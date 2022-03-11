@@ -27,7 +27,7 @@ export const Viewer: React.FC<Props> = () => {
         });
     }, [setOverlay]);
     const programCtx = useProgramContext();
-    const rowHeight = 48;
+    const rowHeight = 40;
     const columnCount = 12;
     const padding: [number, number] = [20, 4];
     const margin: [number, number] = [10, 10];

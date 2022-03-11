@@ -1,0 +1,16 @@
+.btn {
+    border-radius: var(--border_radius);
+}
+
+.form-control {
+    border-radius: var(--border_radius);
+}
+
+.form-control-sm {
+    border-radius: var(--border_radius);
+}
+
+.input-group-text {
+    border-radius: var(--border_radius);
+    font-size: 0.9rem;
+}

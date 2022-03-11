@@ -13,7 +13,7 @@ interface IBoardEditorProps {
 }
 
 export const BoardEditor: React.FC<IBoardEditorProps> = (props: IBoardEditorProps) => {
-    const rowHeight = 48;
+    const rowHeight = 40;
     const columnCount = 12;
     const containerPadding: [number, number] = [32, 32];
     const elementMargin: [number, number] = [10, 10];

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as model from '../../model';
+//import { Form } from 'react-bootstrap';
 
 import styles from './input_renderer.module.css';
 
@@ -15,3 +16,9 @@ export const InputRenderer: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
+
+//        <Form className={styles.container}>
+//            <Form.Group className="mb-2" controlId={props.card.objectId.toString()}>
+//                <Form.Control type="text" placeholder={props.card.title ?? ''} />
+//            </Form.Group>
+//        </Form>
