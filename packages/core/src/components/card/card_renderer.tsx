@@ -3,7 +3,7 @@ import * as model from '../../model';
 import { CardStatus } from './card_status';
 import { HexRenderer } from './hex_renderer';
 import { JsonRenderer } from './json_renderer';
-import { InputRenderer } from './input_renderer';
+import { InputTextRenderer } from './input_text_renderer';
 import { TableRenderer } from './table_renderer';
 import { VegaRenderer } from './vega_renderer';
 
@@ -18,7 +18,7 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
     }
     switch (props.card.cardRenderer) {
         case model.CardRendererType.BUILTIN_INPUT_TEXT:
-            return <InputRenderer card={props.card} editable={props.editable} />;
+            return <InputTextRenderer card={props.card} editable={props.editable} />;
         case model.CardRendererType.BUILTIN_TABLE:
             return <TableRenderer card={props.card} editable={props.editable} />;
         case model.CardRendererType.BUILTIN_JSON:

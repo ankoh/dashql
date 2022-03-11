@@ -1,3 +1,5 @@
+INPUT player TYPE VARCHAR;
+
 FETCH stats_json FROM HTTP (
     url = 'https://www.haloapi.com/stats/hw2/players/Scootman2/stats',
     headers = (

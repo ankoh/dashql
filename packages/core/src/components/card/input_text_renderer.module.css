@@ -9,9 +9,9 @@
     height: 100% !important;
     box-sizing: border-box;
     border-radius: var(--border_radius);
-    display: grid;
-    align-items: center;
-    justify-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
 }
 
 .input_border_label {
@@ -40,4 +40,34 @@
 .input_text {
     border: 1px solid var(--vizcard_border_color) !important;
     font-size: 0.8rem !important;
+}
+
+.input_placeholder_button {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--vizcard_border_color) !important;
+    border-radius: var(--border_radius) !important;
+    background-color: var(--vizcard_header_bg) !important;
+
+    color: var(--button_fg) !important;
+    display: flex !important;
+    flex-direction: row !important;
+
+    align-items: center !important;
+    justify-content: space-around !important;
+}
+
+.input_placeholder_icon {
+    justify-self: center;
+    align-items: center;
+    margin: 0px 4px;
+}
+
+.input_placeholder_text {
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 0.8rem;
 }
