@@ -98,6 +98,8 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         X("UINTEGER", proto::sql::SQLTypeID::UINTEGER),
         X("UBIGINT", proto::sql::SQLTypeID::UBIGINT),
         X("HUGEINT", proto::sql::SQLTypeID::HUGEINT),
+        X("DATE", proto::sql::SQLTypeID::DATE),
+        X("DATE[2]", proto::sql::SQLTypeID::DATE),  // XXX hacky
 #undef X
     };
     auto value_type_iter = SIMPLE_TYPES.find(value_type_txt);

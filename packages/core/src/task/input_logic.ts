@@ -34,11 +34,17 @@ export class InputTaskLogic extends ProgramTaskLogic {
             case proto.syntax.InputComponentType.TEXT:
                 renderer = CardRendererType.BUILTIN_INPUT_TEXT;
                 break;
+            case proto.syntax.InputComponentType.CALENDAR:
+                renderer = CardRendererType.BUILTIN_INPUT_CALENDAR;
+                break;
             case proto.syntax.InputComponentType.NONE:
                 switch (inputValueType.typeId()) {
                     case proto.sql.SQLTypeID.ANY:
                     case proto.sql.SQLTypeID.INTEGER:
                         renderer = CardRendererType.BUILTIN_INPUT_TEXT;
+                        break;
+                    case proto.sql.SQLTypeID.DATE:
+                        renderer = CardRendererType.BUILTIN_INPUT_CALENDAR;
                         break;
                     default:
                         renderer = CardRendererType.BUILTIN_INPUT_TEXT;

@@ -1,5 +1,5 @@
 -- Input the relevant number of days
-INPUT days TYPE INTEGER;
+INPUT days TYPE DATE[2];
 
 -- Fetch vaccination data
 FETCH csv_vacc_total FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';

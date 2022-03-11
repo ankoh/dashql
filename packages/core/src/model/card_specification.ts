@@ -14,6 +14,7 @@ import { ExprRef } from 'vega-lite/build/src/expr.js';
 
 export enum CardRendererType {
     BUILTIN_HEX,
+    BUILTIN_INPUT_CALENDAR,
     BUILTIN_INPUT_TEXT,
     BUILTIN_JSON,
     BUILTIN_TABLE,
