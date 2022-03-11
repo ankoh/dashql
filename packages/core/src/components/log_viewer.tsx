@@ -4,7 +4,8 @@ import * as utils from '../utils';
 import classNames from 'classnames';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
-import { List, ListRowProps, AutoSizer } from 'react-virtualized';
+import { observeSize } from '../utils/size_observer';
+import { List, ListRowProps } from 'react-virtualized';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import styles from './log_viewer.module.css';
@@ -74,6 +75,9 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
         return <div />;
     };
 
+    const containerElement = React.useRef(null);
+    const containerSize = observeSize(containerElement);
+
     return (
         <SystemCard title="Log" onClose={props.onClose} className={props.className}>
             <div className={styles.content} onKeyDown={onKeyDown}>
@@ -89,27 +93,23 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
                         </motion.div>
                     </AnimatePresence>
                 )}
-                <div className={styles.list_container}>
-                    <AutoSizer>
-                        {({ width, height }) => (
-                            <>
-                                <List
-                                    className={styles.list}
-                                    currentTimeRef={props.currentTime}
-                                    focusedEntry={focused}
-                                    width={width || 150}
-                                    height={height || 100}
-                                    overscanRowCount={OVERSCAN_ROW_COUNT}
-                                    rowCount={log.entries.size}
-                                    rowHeight={32}
-                                    rowRenderer={renderRow}
-                                    noRowsRenderer={renderEmptyList}
-                                    measureAllRows={true}
-                                    scrollToIndex={focused || undefined}
-                                />
-                            </>
-                        )}
-                    </AutoSizer>
+                <div ref={containerElement} className={styles.list_container}>
+                    {containerSize && (
+                        <List
+                            className={styles.list}
+                            currentTimeRef={props.currentTime}
+                            focusedEntry={focused}
+                            width={containerSize.width || 150}
+                            height={containerSize.height || 100}
+                            overscanRowCount={OVERSCAN_ROW_COUNT}
+                            rowCount={log.entries.size}
+                            rowHeight={32}
+                            rowRenderer={renderRow}
+                            noRowsRenderer={renderEmptyList}
+                            measureAllRows={true}
+                            scrollToIndex={focused || undefined}
+                        />
+                    )}
                 </div>
             </div>
         </SystemCard>
