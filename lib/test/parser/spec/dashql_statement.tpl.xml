@@ -37,13 +37,13 @@
     </test>
     <test name="dashql_input_calendar_date">
         <input>
-            INPUT foo TYPE DATETIME USING CALENDAR;
+            INPUT foo TYPE DATE USING CALENDAR;
             VIZ (SELECT foo) USING TABLE;
         </input>
     </test>
     <test name="dashql_input_calendar_date_range">
         <input>
-            INPUT foo TYPE DATETIME[2] USING CALENDAR;
+            INPUT foo TYPE DATE[2] USING CALENDAR;
             VIZ (SELECT foo[0], foo[1]) USING TABLE;
         </input>
     </test>

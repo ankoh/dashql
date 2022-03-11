@@ -62,19 +62,19 @@
     </test>
     <test name="input_calendar">
         <input>
-            INPUT foo TYPE DATETIME[2] USING CALENDAR;
+            INPUT foo TYPE DATE[2] USING CALENDAR;
         </input>
         <expected>
             <statements>
                 <statement type="INPUT" name="main.foo">
-                    <node type="OBJECT_DASHQL_INPUT" loc="13..54" text="INPUT foo ..G CALENDAR">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..50" text="INPUT foo ..G CALENDAR">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR" />
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..39" text="DATETIME[2]">
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..35" text="DATE[2]">
                             <node key="SQL_TYPENAME_ARRAY">
-                                <node loc="36..39" text="[2]" />
+                                <node loc="32..35" text="[2]" />
                             </node>
-                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..36" text="DATETIME">
-                                <node key="SQL_GENERIC_TYPE_NAME" loc="28..36" text="DATETIME" />
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..32" text="DATE">
+                                <node key="SQL_GENERIC_TYPE_NAME" loc="28..32" text="DATE" />
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="foo">
@@ -86,7 +86,7 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="55..56" text="&#10;" />
+                <line_break loc="51..52" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />
