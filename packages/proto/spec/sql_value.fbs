@@ -9,7 +9,8 @@ enum PhysicalType: uint8 {
     I64,
     F64,
     STRING,
-    ARRAY
+    LIST,
+    STRUCT
 }
 
 table SQLValue {

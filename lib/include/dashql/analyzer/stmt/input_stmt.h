@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <variant>
 
+#include "dashql/analyzer/sql_type.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/parser/parser_driver.h"
@@ -33,7 +34,7 @@ class InputStatement {
     /// The schema map
     const ASTIndex ast_;
     /// The value type
-    proto::sql::SQLType value_type_ = proto::sql::SQLType();
+    std::unique_ptr<SQLType> value_type_ = nullptr;
     /// The component type
     std::optional<sx::InputComponentType> component_type_ = std::nullopt;
     /// The position option

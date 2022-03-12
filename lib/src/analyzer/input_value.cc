@@ -1,6 +1,6 @@
 #include "dashql/analyzer/input_value.h"
 
-#include "dashql/analyzer/value_packing.h"
+#include "dashql/analyzer/sql_scalar.h"
 
 namespace dashql {
 
@@ -37,7 +37,7 @@ bool InputValue::operator!=(const InputValue& other) const {
 /// Pack the parameter value
 arrow::Result<flatbuffers::Offset<proto::analyzer::InputValue>> InputValue::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {
-    ARROW_ASSIGN_OR_RAISE(auto v, PackValue(builder, *value));
+    ARROW_ASSIGN_OR_RAISE(auto v, PackArrowScalar(builder, *value));
     proto::analyzer::InputValueBuilder p{builder};
     p.add_statement_id(statement_id);
     p.add_value(v);
@@ -49,7 +49,7 @@ arrow::Result<InputValue> InputValue::UnPack(const proto::analyzer::InputValue& 
     InputValue p;
     p.statement_id = b.statement_id();
     if (auto v = b.value(); !!v) {
-        ARROW_ASSIGN_OR_RAISE(p.value, UnPackValue(*v));
+        ARROW_ASSIGN_OR_RAISE(p.value, UnpackArrowScalar(*v));
     }
     return p;
 }

@@ -10,9 +10,6 @@ namespace fb = flatbuffers;
 
 namespace dashql {
 
-InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
-    : instance_(instance), statement_id_(statement_id), ast_(ast) {}
-
 constexpr size_t SX_POS = 0;
 constexpr size_t SX_POS_ROW = 1;
 constexpr size_t SX_POS_COLUMN = 2;
@@ -27,6 +24,9 @@ constexpr size_t SX_TYPE = 10;
 constexpr size_t SX_INPUT_COMPONENT_TYPE = 11;
 constexpr size_t SX_INPUT_VALUE_TYPE = 12;
 constexpr size_t SX_STATEMENT_NAME = 13;
+
+InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
+    : instance_(instance), statement_id_(statement_id), ast_(ast) {}
 
 std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     auto& program = instance.program();
@@ -70,43 +70,12 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     // Create the viz statement
     auto input = std::make_unique<InputStatement>(instance, stmt_id, matches);
 
-    // Is simple type?
+    // Read the sql type
     auto value_type_node_id = matches[SX_INPUT_VALUE_TYPE].node_id;
-    auto& value_type_node = program.nodes[value_type_node_id];
-    auto value_type_txt = instance.TextAt(value_type_node.location());
-    static const std::unordered_map<std::string_view, proto::sql::SQLType> SIMPLE_TYPES = {
-#define X(NAME, TYPEID) {NAME, proto::sql::SQLType(TYPEID, 0, 0)}
-        X("BOOLEAN", proto::sql::SQLTypeID::BOOLEAN),
-        X("TINYINT", proto::sql::SQLTypeID::TINYINT),
-        X("SMALLINT", proto::sql::SQLTypeID::SMALLINT),
-        X("INTEGER", proto::sql::SQLTypeID::INTEGER),
-        X("BIGINT", proto::sql::SQLTypeID::BIGINT),
-        X("DATE", proto::sql::SQLTypeID::DATE),
-        X("TIME", proto::sql::SQLTypeID::TIME),
-        X("TIMESTAMP_SEC", proto::sql::SQLTypeID::TIMESTAMP_SEC),
-        X("TIMESTAMP_MS", proto::sql::SQLTypeID::TIMESTAMP_MS),
-        X("TIMESTAMP", proto::sql::SQLTypeID::TIMESTAMP),
-        X("TIMESTAMP_NS", proto::sql::SQLTypeID::TIMESTAMP_NS),
-        X("FLOAT", proto::sql::SQLTypeID::FLOAT),
-        X("DOUBLE", proto::sql::SQLTypeID::DOUBLE),
-        X("CHAR", proto::sql::SQLTypeID::CHAR),
-        X("VARCHAR", proto::sql::SQLTypeID::VARCHAR),
-        X("BLOB", proto::sql::SQLTypeID::BLOB),
-        X("INTERVAL", proto::sql::SQLTypeID::INTERVAL),
-        X("UTINYINT", proto::sql::SQLTypeID::UTINYINT),
-        X("USMALLINT", proto::sql::SQLTypeID::USMALLINT),
-        X("UINTEGER", proto::sql::SQLTypeID::UINTEGER),
-        X("UBIGINT", proto::sql::SQLTypeID::UBIGINT),
-        X("HUGEINT", proto::sql::SQLTypeID::HUGEINT),
-        X("DATE", proto::sql::SQLTypeID::DATE),
-        X("DATE[2]", proto::sql::SQLTypeID::DATE),  // XXX hacky
-#undef X
-    };
-    auto value_type_iter = SIMPLE_TYPES.find(value_type_txt);
-    if (value_type_iter != SIMPLE_TYPES.end()) {
-        input->value_type_ = value_type_iter->second;
-    } else {
-        input->value_type_ = proto::sql::SQLType(proto::sql::SQLTypeID::VARCHAR, 0, 0);
+    auto value_type = SQLType::ReadFrom(instance, value_type_node_id);
+    input->value_type_ = SQLType::SQLNULL();
+    if (value_type.ok()) {
+        input->value_type_ = value_type.MoveValueUnsafe();
     }
 
     /// Get the component type
@@ -223,6 +192,9 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
         extra = builder.CreateString(out.str());
     }
 
+    // Pack the value type
+    auto value_type = value_type_->Pack(builder);
+
     // Build viz spec
     assert(computed_position_.has_value());
     proto::analyzer::CardBuilder cb{builder};
@@ -231,7 +203,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     if (title_offset) cb.add_card_title(*title_offset);
     cb.add_statement_id(statement_id_);
     cb.add_input_extra(extra);
-    cb.add_input_value_type(&value_type_);
+    cb.add_input_value_type(value_type);
     return cb.Finish();
 }
 

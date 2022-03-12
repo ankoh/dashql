@@ -265,15 +265,16 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/sql_scalar.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/sql_type.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/set_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/set_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/task_planner.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/value_packing.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/value_printing.cc)
+)
 
 add_library(dashql_jmespath ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
                             ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)
