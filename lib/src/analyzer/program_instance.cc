@@ -3,8 +3,8 @@
 #include "arrow/scalar.h"
 #include "arrow/type_fwd.h"
 #include "arrow/visitor_inline.h"
+#include "dashql/analyzer/arrow_scalar.h"
 #include "dashql/analyzer/program_linter.h"
-#include "dashql/analyzer/sql_scalar.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/memstream.h"
@@ -58,7 +58,7 @@ std::shared_ptr<arrow::Scalar> ProgramInstance::ReadNodeValue(size_t node_id) {
     auto& n = program_->nodes[node_id];
     switch (n.node_type()) {
         case proto::syntax::NodeType::BOOL:
-            v = arrow::MakeScalar(arrow::boolean(), n.children_begin_or_value() != 0).ValueOr(v);
+            v = arrow::MakeScalar(arrow::boolean(), n.children_begin_or_value()).ValueOr(v);
             break;
         case proto::syntax::NodeType::UI32:
         case proto::syntax::NodeType::UI32_BITMAP:
@@ -144,7 +144,7 @@ arrow::Result<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) 
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = PrintArrowScalar(*node_value.value);
+        auto vstr = PrintScalarForScript(*node_value.value);
         buffer.Replace(node_loc, vstr);
     });
 
@@ -167,7 +167,7 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
     evaluated_nodes_.IterateValues([&](size_t /*node_id*/, const NodeValue& node_value) {
-        auto vb = PackArrowScalar(builder, *node_value.value).ValueUnsafe();
+        auto vb = PackScalar(builder, *node_value.value);
         proto::analyzer::NodeValueBuilder nv{builder};
         nv.add_node_id(node_value.root_node_id);
         nv.add_value(vb);

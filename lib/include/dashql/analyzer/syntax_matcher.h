@@ -30,6 +30,7 @@ enum ASTMatcherType {
     STRING,
     UI32,
     UI32_BITMAP,
+    SELECT_BY_TYPE,
 };
 
 /// A node matching status
@@ -91,7 +92,7 @@ class ASTIndex {
     const NodeMatch& operator[](size_t id) const { return matches[id]; };
 
     /// Is full match?
-    bool IsFullMatch() const { return full_match; }
+    bool IsFullMatch() const { return full_match; };
     /// Is any node set?
     bool HasAny(std::initializer_list<size_t> ids) const;
     /// Is any node set?
@@ -143,7 +144,12 @@ struct ASTMatcher {
         children = std::move(c);
         return *this;
     }
-
+    /// Match an object
+    constexpr inline ASTMatcher& SelectByType(std::initializer_list<ASTMatcher> c) {
+        node_spec = ASTMatcherType::SELECT_BY_TYPE;
+        node_type = sx::NodeType::NONE;
+        return *this;
+    }
     /// Match an object
     constexpr inline ASTMatcher& MatchObject(sx::NodeType type) {
         node_spec = ASTMatcherType::OBJECT;

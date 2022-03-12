@@ -181,6 +181,20 @@ ASTIndex ASTMatcher::Match(nonstd::span<sx::Node> nodes, std::string_view text, 
                 }
                 break;
             }
+            case ASTMatcherType::SELECT_BY_TYPE: {
+                matching.status = NodeMatchStatus::MISSING;
+                for (auto i = 0; i < top.matcher.children.size(); ++i) {
+                    auto& child_matcher = top.matcher.children[i];
+                    if (child_matcher.node_type == top_node.node_type()) {
+                        pending.push_back({top.node_id, child_matcher});
+                        matching.status = NodeMatchStatus::MATCHED;
+                    }
+                }
+                if (matching.status == NodeMatchStatus::MISSING) {
+                    index.full_match = false;
+                }
+                break;
+            }
         }
     }
     return index;

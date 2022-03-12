@@ -265,8 +265,8 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/sql_scalar.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/sql_type.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/arrow_scalar.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/arrow_type.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc

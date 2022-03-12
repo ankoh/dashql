@@ -13,6 +13,11 @@ enum PhysicalType: uint8 {
     STRUCT
 }
 
+struct DayTimeInterval {
+    days: int32;
+    milliseconds: int32;
+}
+
 table SQLValue {
     logical_type: SQLType;
     physical_type: PhysicalType;
@@ -20,5 +25,6 @@ table SQLValue {
     data_i64: int64;
     data_f64: double;
     data_str: string;
+    data_interval: DayTimeInterval;
     children: [SQLValue];
 }
