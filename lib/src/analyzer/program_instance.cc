@@ -4,10 +4,9 @@
 #include "arrow/type_fwd.h"
 #include "arrow/visitor_inline.h"
 #include "dashql/analyzer/program_linter.h"
+#include "dashql/analyzer/sql_scalar.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
-#include "dashql/analyzer/value_packing.h"
-#include "dashql/analyzer/value_printing.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
@@ -145,7 +144,7 @@ arrow::Result<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) 
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = PrintScript(*node_value.value);
+        auto vstr = PrintArrowScalar(*node_value.value);
         buffer.Replace(node_loc, vstr);
     });
 
@@ -168,7 +167,7 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
     evaluated_nodes_.IterateValues([&](size_t /*node_id*/, const NodeValue& node_value) {
-        auto vb = PackValue(builder, *node_value.value).ValueUnsafe();
+        auto vb = PackArrowScalar(builder, *node_value.value).ValueUnsafe();
         proto::analyzer::NodeValueBuilder nv{builder};
         nv.add_node_id(node_value.root_node_id);
         nv.add_value(vb);

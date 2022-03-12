@@ -7,10 +7,6 @@
 
 #include "arrow/scalar.h"
 
-namespace dashql {
-
-std::string PrintScript(const arrow::Scalar& scalar);
-
-}  // namespace dashql
+namespace dashql {}  // namespace dashql
 
 #endif

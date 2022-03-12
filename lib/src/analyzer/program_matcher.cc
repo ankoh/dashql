@@ -4,6 +4,7 @@
 #include <stack>
 #include <unordered_map>
 
+#include "dashql/analyzer/sql_type.h"
 #include "nonstd/span.h"
 
 namespace dashql {
@@ -539,7 +540,7 @@ bool ProgramMatcher::InputValuesEqual(const proto::analyzer::InputValueT* l, con
                         lv.is_null == rv.is_null;
     auto& lt = *lv.logical_type;
     auto& rt = *rv.logical_type;
-    auto types_equal = lt.type_id() == rt.type_id() && lt.width() == rt.width() && lt.scale() == rt.scale();
+    auto types_equal = SQLType::TypesEqual(lv.logical_type, rv.logical_type);
     return types_equal && values_equal;
 }
 

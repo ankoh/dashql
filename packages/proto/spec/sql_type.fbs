@@ -32,9 +32,6 @@ enum SQLTypeID: uint8 {
     UINTEGER = 30,
     UBIGINT = 31,
 
-    HUGEINT = 50,
-    POINTER = 51,
-    HASH = 52,
     STRUCT = 100,
     LIST = 101,
 }
@@ -42,6 +39,11 @@ enum SQLTypeID: uint8 {
 // A sql type
 struct SQLType {
     type_id: SQLTypeID;
-    width: uint16;
-    scale: uint8;
+    is_nullable: bool;
+    decimal_width: int16;
+    decimal_scale: int8;
+    list_size: int32;
+    value_type: SQLType;
+    field_names: [string];
+    field_types: [SQLType];
 }
