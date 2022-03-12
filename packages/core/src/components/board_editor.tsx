@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 import { observeSize } from '../utils/size_observer';
 import { Board } from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
@@ -25,7 +25,7 @@ export const BoardEditor: React.FC<IBoardEditorProps> = (props: IBoardEditorProp
     const leftRulerSize = observeSize(containerElement);
 
     return (
-        <div ref={containerElement} className={classNames(styles.container, props.className)}>
+        <div ref={containerElement} className={clsx(styles.container, props.className)}>
             {containerSize && (
                 <div className={styles.content_with_rulers}>
                     <div className={styles.ruler_corner} />

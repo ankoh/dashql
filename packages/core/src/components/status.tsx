@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 import * as rd from '@duckdb/react-duckdb';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './status.module.css';
 
@@ -20,7 +20,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
         case rd.ResolvableStatus.RUNNING:
             element = (
                 <svg
-                    className={classNames(props.className)}
+                    className={clsx(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
@@ -39,7 +39,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
         case rd.ResolvableStatus.NONE:
             element = (
                 <svg
-                    className={classNames(props.className)}
+                    className={clsx(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
@@ -56,7 +56,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
         case rd.ResolvableStatus.FAILED:
             element = (
                 <svg
-                    className={classNames(props.className)}
+                    className={clsx(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="0 0 16 16"
@@ -76,7 +76,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
         case rd.ResolvableStatus.COMPLETED:
             element = (
                 <svg
-                    className={classNames(props.className)}
+                    className={clsx(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="0 0 16 16"

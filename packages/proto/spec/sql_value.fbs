@@ -8,7 +8,8 @@ enum PhysicalType: uint8 {
     NONE,
     I64,
     F64,
-    STRING
+    STRING,
+    ARRAY
 }
 
 table SQLValue {
@@ -18,4 +19,5 @@ table SQLValue {
     data_i64: int64;
     data_f64: double;
     data_str: string;
+    children: [SQLValue];
 }

@@ -40,8 +40,15 @@ enum SQLTypeID: uint8 {
 }
 
 // A sql type
-struct SQLType {
+table SQLType {
     type_id: SQLTypeID;
-    width: uint16;
-    scale: uint8;
+    is_nullable: bool;
+    is_array: bool;
+    decimal_width: uint16;
+    decimal_scale: uint8;
+    array_size: uint32;
+    key_type: SQLType;
+    value_type: SQLType;
+    field_names: [string];
+    field_types: [SQLType];
 }

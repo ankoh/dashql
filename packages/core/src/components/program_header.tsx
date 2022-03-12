@@ -1,5 +1,5 @@
 import * as React from 'react';
-import cn from 'classnames';
+import { clsx } from '../utils';
 import { Script, getScriptName, getScriptNamespace, getScriptBeans } from '../model';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -15,7 +15,7 @@ interface Props {
 export const ProgramHeader: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     return (
-        <div className={cn(styles.container, props.className)}>
+        <div className={clsx(styles.container, props.className)}>
             <div className={styles.avatar}>
                 <div className={styles.avatar_icon}>
                     <svg width="24px" height="24px">

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import cn from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './worker_status.module.css';
 
@@ -43,7 +43,7 @@ export const WorkerStatus: React.FC<Props> = (props: Props) => {
         });
     }
     return (
-        <div className={cn(styles.container, props.className)}>
+        <div className={clsx(styles.container, props.className)}>
             <div className={styles.title}>Tasks</div>
             <div className={styles.indicators}>
                 {runs.map((run, i) => (

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as model from '../model';
 import * as utils from '../utils';
 import * as examples from '../example_scripts';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
@@ -56,7 +56,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
         features.push(
             <div
                 key={i}
-                className={classNames(styles.filter_tag, {
+                className={clsx(styles.filter_tag, {
                     [styles.filter_tag_active]: state.features.isSet(i),
                 })}
                 onClick={(elem: React.MouseEvent<HTMLDivElement>) => {
@@ -96,7 +96,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
                 <div className={styles.collection_grid}>
                     {scripts.map(script => (
                         <motion.div
-                            className={classNames(styles.script_card, {
+                            className={clsx(styles.script_card, {
                                 [styles.script_card_disabled]: !script.enabled,
                             })}
                             key={script.name}

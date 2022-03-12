@@ -1,8 +1,8 @@
 import * as React from 'react';
+import * as v from 'vega';
 import { Table } from 'apache-arrow/table';
 import { tableFromIPC } from 'apache-arrow/ipc/serialization';
-import * as v from 'vega';
-import cn from 'classnames';
+import { clsx } from '../utils';
 import { Field } from 'vega-lite/build/src/channeldef.js';
 import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';
 import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
@@ -150,13 +150,13 @@ export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps
 
     if (!state) {
         return (
-            <div className={cn(styles.spinner_container, props.className)}>
+            <div className={clsx(styles.spinner_container, props.className)}>
                 <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
             </div>
         );
     }
     return (
-        <div className={cn(styles.container, props.className)}>
+        <div className={clsx(styles.container, props.className)}>
             <ActivityTimeseriesChart data={state.table} />
         </div>
     );

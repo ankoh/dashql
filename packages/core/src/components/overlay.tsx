@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './overlay.module.css';
 
@@ -52,7 +52,7 @@ export const OverlayContainer: React.FC<OverlayContainerProps> = (props: Overlay
     );
     if (!renderedOverlay && !props.children) return <div />;
     return (
-        <div className={classNames(styles.overlay_root, props.className)}>
+        <div className={clsx(styles.overlay_root, props.className)}>
             {props.children}
             {renderedOverlay}
         </div>

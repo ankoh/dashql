@@ -1,5 +1,5 @@
 import * as React from 'react';
-import cn from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './minibar_chart.module.css';
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export const MiniBarChart: React.FC<Props> = (props: Props): React.ReactElement => (
-    <div className={cn(styles.container, props.className)}>
+    <div className={clsx(styles.container, props.className)}>
         <div className={styles.bar}>
             <div
                 className={styles.bar_fill}

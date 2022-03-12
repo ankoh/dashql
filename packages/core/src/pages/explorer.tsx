@@ -1,5 +1,5 @@
 import * as React from 'react';
-import cn from 'classnames';
+import { clsx } from '../utils';
 import { Route, Routes } from 'react-router-dom';
 import {
     BoardEditor,
@@ -134,7 +134,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                     <div className={styles.program_info_and_actions}>
                         <ProgramHeader className={styles.program_info} script={programCtx.script} />
                         {appConfig.value.features?.editorControls && (
-                            <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
+                            <div className={clsx(styles_cmd.buttonset, styles.program_actions)}>
                                 {canEdit ? (
                                     <>
                                         <Button

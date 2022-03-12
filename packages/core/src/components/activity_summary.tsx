@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActivityPieChart } from './activity_piechart';
 import { ActivityLengthDistribution } from './activity_length_distribution';
 import { MiniBarChart } from './minibar_chart';
-import cn from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './activity_summary.module.css';
 
@@ -24,7 +24,7 @@ interface MetricProps {
 }
 
 const ActivityMetric: React.FC<MetricProps> = (props: MetricProps) => (
-    <div className={cn(styles.metric_container, props.className)}>
+    <div className={clsx(styles.metric_container, props.className)}>
         <div className={styles.metric_name}>{props.name}</div>
         <div className={styles.metric_value}>{props.value}</div>
         {props.trend && <div className={styles.metric_trend}>{renderArrow(props.trend)}</div>}
@@ -66,7 +66,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <ActivityMetric name="Visualizations" value="42k" />
             </div>
             <div className={styles.row_3col}>
-                <div className={cn(styles.chart_container, styles.chart_container_dist)}>
+                <div className={clsx(styles.chart_container, styles.chart_container_dist)}>
                     <ActivityLengthDistribution className={styles.chart} />
                 </div>
                 <div className={styles.metric_inline_column}>
@@ -74,7 +74,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                     <ActivityMetric className={styles.metric_padding_noborder} name="Evaluation Time" value="Ø 4s" />
                     <ActivityMetric className={styles.metric_padding_noborder} name="Interaction Rate" value="1.2" />
                 </div>
-                <div className={cn(styles.chart_container, styles.chart_container_pie)}>
+                <div className={clsx(styles.chart_container, styles.chart_container_pie)}>
                     <ActivityPieChart className={styles.chart} />
                 </div>
             </div>

@@ -1,9 +1,9 @@
 import * as React from 'react';
+import * as utils from '../utils';
 import { Table } from 'apache-arrow/table';
 import { tableFromIPC } from 'apache-arrow/ipc/serialization';
-import * as utils from '../utils';
 import { ProgramStatsSessionCountChart } from './program_stats_chart';
-import cn from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './program_stats.module.css';
 
@@ -65,13 +65,13 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
 
     if (!state) {
         return (
-            <div className={cn(styles.spinner_container, props.className)}>
+            <div className={clsx(styles.spinner_container, props.className)}>
                 <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
             </div>
         );
     }
     return (
-        <div className={cn(styles.container, props.className)}>
+        <div className={clsx(styles.container, props.className)}>
             <div className={styles.prefix}>{state.table.numRows}d</div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Views</div>

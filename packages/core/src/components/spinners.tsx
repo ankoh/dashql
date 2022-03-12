@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 import styles from './spinners.module.css';
 
 interface IRectangleWaveSpinnerProps {
@@ -23,33 +23,33 @@ export const RectangleWaveSpinner: React.FC<IRectangleWaveSpinnerProps> = (props
         backgroundColor: props.color || 'rgb(36, 41, 46)',
     };
     return (
-        <div className={classNames(props.className, styles.rw)}>
+        <div className={clsx(props.className, styles.rw)}>
             <div
-                className={classNames(styles.rw_rect_1, {
+                className={clsx(styles.rw_rect_1, {
                     [styles.rw_rect_active]: props.active,
                 })}
                 style={s}
             />
             <div
-                className={classNames(styles.rw_rect_2, {
+                className={clsx(styles.rw_rect_2, {
                     [styles.rw_rect_active]: props.active,
                 })}
                 style={s}
             />
             <div
-                className={classNames(styles.rw_rect_3, {
+                className={clsx(styles.rw_rect_3, {
                     [styles.rw_rect_active]: props.active,
                 })}
                 style={s}
             />
             <div
-                className={classNames(styles.rw_rect_4, {
+                className={clsx(styles.rw_rect_4, {
                     [styles.rw_rect_active]: props.active,
                 })}
                 style={s}
             />
             <div
-                className={classNames(styles.rw_rect_5, {
+                className={clsx(styles.rw_rect_5, {
                     [styles.rw_rect_active]: props.active,
                 })}
                 style={s}

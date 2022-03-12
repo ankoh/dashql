@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as model from '../model';
 import * as utils from '../utils';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { observeSize } from '../utils/size_observer';
@@ -60,7 +60,7 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
                 data-entry={rowProps.index}
                 onClick={focusEntry}
             >
-                <div className={classNames(styles.row, { [styles.row_focused]: rowProps.index == focused })}>
+                <div className={clsx(styles.row, { [styles.row_focused]: rowProps.index == focused })}>
                     <div className={styles.row_level}>{model.getLogLevelLabel(logEntry.level)}</div>
                     <div className={styles.row_origin}>{model.getLogOriginLabel(logEntry.origin)}</div>
                     <div className={styles.row_topic}>{model.getLogTopicLabel(logEntry.topic)}</div>

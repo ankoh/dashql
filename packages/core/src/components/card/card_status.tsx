@@ -3,7 +3,6 @@ import * as React from 'react';
 import * as model from '../../model';
 import * as utils from '../../utils';
 import * as proto from '@dashql/proto';
-import classNames from 'classnames';
 
 import styles from './card_status.module.css';
 
@@ -122,7 +121,7 @@ export const CardStatus: React.FC<CardStatusProps> = (props: CardStatusProps) =>
         return <div />;
     }
     return (
-        <div className={classNames(styles.container, props.className)}>
+        <div className={utils.clsx(styles.container, props.className)}>
             <div className={styles.node_group}>{state.nodes.map(n => renderNode(n))}</div>
         </div>
     );

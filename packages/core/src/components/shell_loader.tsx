@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { RectangleWaveSpinner } from './spinners';
-import classnames from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './shell_loader.module.css';
 
@@ -10,7 +10,7 @@ interface Props {
 
 function loadingSpinner(props: Props) {
     return (
-        <div className={classnames(styles.terminal_loader, props.className)}>
+        <div className={clsx(styles.terminal_loader, props.className)}>
             <RectangleWaveSpinner active={true} />
         </div>
     );

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import cn from 'classnames';
+import { clsx } from '../utils';
 
 import styles from './button.module.css';
 
@@ -15,7 +15,7 @@ type ButtonProps = {
 
 export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
     <div
-        className={cn(styles.button, props.className, {
+        className={clsx(styles.button, props.className, {
             [styles.disabled]: props.disabled,
         })}
         onClick={props.onClick}
@@ -35,7 +35,7 @@ type LinkProps = {
 };
 
 export const LinkButton: React.FC<LinkProps> = (props: LinkProps) => (
-    <Link className={cn(styles.button, props.className)} to={props.to}>
+    <Link className={clsx(styles.button, props.className)} to={props.to}>
         <svg width={props.width} height={props.height}>
             <use xlinkHref={`${props.icon}#sym`} />
         </svg>

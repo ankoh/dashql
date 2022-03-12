@@ -124,7 +124,7 @@ lib_debug: lib
 
 .PHONY: js_tests
 js_tests:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --runInBand
 
 # Test the dashql_core javascript library
 .PHONY: js_tests_cov

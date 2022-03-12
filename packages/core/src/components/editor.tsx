@@ -5,7 +5,7 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as utils from '../utils';
 import { SizeObserver, useObservedSize } from '../utils/size_observer';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 
 import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
@@ -273,7 +273,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
                     range: new monaco.Range(firstPos[0], 1, firstPos[0], 1),
                     options: {
                         isWholeLine: true,
-                        glyphMarginClassName: classNames(styles.deco_glyph_status, glyphClass),
+                        glyphMarginClassName: clsx(styles.deco_glyph_status, glyphClass),
                     },
                 });
             }
@@ -346,7 +346,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
     // Return the placeholders
     return (
-        <div className={classNames(styles.editor, props.className)}>
+        <div className={clsx(styles.editor, props.className)}>
             <div className={styles.editor_monaco} ref={monacoRef} />
         </div>
     );

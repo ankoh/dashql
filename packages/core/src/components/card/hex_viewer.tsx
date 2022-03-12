@@ -1,5 +1,5 @@
 import * as React from 'react';
-import className from 'classnames';
+import { clsx } from '../../utils';
 import { List, ListRowProps } from 'react-virtualized';
 
 import styles from './hex_viewer.module.css';
@@ -165,7 +165,7 @@ export class HexViewer extends React.Component<Props, State> {
                 <span
                     key={i}
                     data-byteindex={byte}
-                    className={className(styles.hex_row_byte, {
+                    className={clsx(styles.hex_row_byte, {
                         [styles.hex_row_byte_block]: i > 0 && i % 4 == 0,
                         [styles.hex_row_byte_focused]: this.isFocused(byte),
                     })}
@@ -180,7 +180,7 @@ export class HexViewer extends React.Component<Props, State> {
             ascii.push(
                 <span
                     key={i}
-                    className={className(styles.hex_row_ascii_char, {
+                    className={clsx(styles.hex_row_ascii_char, {
                         [styles.hex_row_ascii_char_focused]: this.isFocused(byte),
                     })}
                     data-byteindex={byte}

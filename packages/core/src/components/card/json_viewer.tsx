@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as utils from '../../utils';
 import { JSONTree } from 'react-json-tree';
-import classNames from 'classnames';
+import { clsx } from '../../utils';
 
 import styles from './json_viewer.module.css';
 
@@ -126,7 +126,7 @@ export class JSONViewer extends React.Component<Props, State> {
                 </div>
                 <div className={styles.meta_table}>
                     <div className={styles.meta_entry_label}></div>
-                    <div className={classNames(styles.meta_entry_value, shapeClass)}>{shapeName}</div>
+                    <div className={clsx(styles.meta_entry_value, shapeClass)}>{shapeName}</div>
                 </div>
             </div>
         );

@@ -134,6 +134,10 @@ class ProgramMatcher {
     ///
     std::vector<DiffOp> ComputeDiff();
 
+    /// Do sql types equal?
+    static bool SQLTypesEqual(const proto::sql::SQLTypeT* l, const proto::sql::SQLTypeT* r);
+    /// Do sql values equal?
+    static bool SQLValuesEqual(const proto::sql::SQLValueT* l, const proto::sql::SQLValueT* r);
     /// Do parameter values equal?
     static bool InputValuesEqual(const proto::analyzer::InputValueT* l, const proto::analyzer::InputValueT* r);
 };

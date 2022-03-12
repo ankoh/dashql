@@ -2,7 +2,7 @@ import * as React from 'react';
 import { SEQ_SINGLE_HUE_PRIMARY } from '../utils';
 import { ComposableMap, Graticule, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { observeSize } from '../utils/size_observer';
-import cn from 'classnames';
+import { clsx } from '../utils';
 import styles from './activity_map.module.css';
 
 import world_110m from '../../static/geo/world-110m.json';
@@ -52,7 +52,7 @@ export const ActivityMapChart: React.FC<ChartProps> = (props: ChartProps) => {
     const containerElement = React.useRef(null);
     const containerSize = observeSize(containerElement);
     return (
-        <div className={cn(styles.label_container, props.className)}>
+        <div className={clsx(styles.label_container, props.className)}>
             <div className={styles.label}>Views</div>
             <div ref={containerElement} className={styles.map_container}>
                 {containerSize && (

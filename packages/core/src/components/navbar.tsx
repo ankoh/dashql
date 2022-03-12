@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Button from 'react-bootstrap/Button';
-import classNames from 'classnames';
+import { clsx } from '../utils';
 import { SystemBar } from './system_bar';
 import { Link, useLocation } from 'react-router-dom';
 import { useActiveGitHubProfile } from '../github';
@@ -17,7 +17,7 @@ import icon_account from '../../static/svg/icons/folder_account.svg';
 const Tab = (props: { route: string; alt?: string; location: string; icon: string }) => (
     <div
         key={props.route}
-        className={classNames(styles.tab, {
+        className={clsx(styles.tab, {
             [styles.active]: props.location == props.route || props.location == props.alt,
         })}
     >

@@ -20,7 +20,6 @@ import './globals.module.css';
 import './app.module.css';
 import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 
 const DataProviders = (props: { children: React.ReactElement }) => (

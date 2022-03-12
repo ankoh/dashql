@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/button.module.css';
-import cn from 'classnames';
+import { clsx } from '../utils';
 import { observeSize } from '../utils/size_observer';
 import { Board, OverlayContainer, ScriptNotFound, ShareDialog, useOverlaySetter, ProgramHeader } from '../components';
 import { Link } from 'react-router-dom';
@@ -46,18 +46,18 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
                 <div className={styles.cmdbar}>
                     {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                        <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
+                        <div className={clsx(styles_cmd.button_inverted, styles.cmdbutton)}>
                             <svg width="20px" height="20px">
                                 <use xlinkHref={`${icon_star_outline}#sym`} />
                             </svg>
                         </div>
                     )}
-                    <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)} onClick={showShareDialog}>
+                    <div className={clsx(styles_cmd.button_inverted, styles.cmdbutton)} onClick={showShareDialog}>
                         <svg width="20px" height="20px">
                             <use xlinkHref={`${icon_share}#sym`} />
                         </svg>
                     </div>
-                    <Link to="/explorer" className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
+                    <Link to="/explorer" className={clsx(styles_cmd.button_inverted, styles.cmdbutton)}>
                         <svg width="20px" height="20px">
                             <use xlinkHref={`${icon_code}#sym`} />
                         </svg>

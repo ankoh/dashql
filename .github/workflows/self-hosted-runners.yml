@@ -227,7 +227,7 @@ jobs:
                            --experimental-wasm-eh \
                            --liftoff \
                            --no-wasm-tier-up \
-                           ./node_modules/.bin/jest --collect-coverage
+                           ./node_modules/.bin/jest --runInBand --collect-coverage
 
             - uses: codecov/codecov-action@v2.1.0
               with:
