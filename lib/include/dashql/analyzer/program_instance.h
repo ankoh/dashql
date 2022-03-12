@@ -14,6 +14,8 @@
 
 #include "arrow/scalar.h"
 #include "arrow/type_fwd.h"
+#include "dashql/analyzer/arrow_scalar.h"
+#include "dashql/analyzer/arrow_type.h"
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/stmt/fetch_stmt.h"

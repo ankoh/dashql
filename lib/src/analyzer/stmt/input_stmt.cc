@@ -1,5 +1,8 @@
 #include "dashql/analyzer/stmt/input_stmt.h"
 
+#include <arrow/type_fwd.h>
+
+#include "arrow/type.h"
 #include "arrow/visitor_inline.h"
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/syntax_matcher.h"
@@ -72,8 +75,8 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
 
     // Read the sql type
     auto value_type_node_id = matches[SX_INPUT_VALUE_TYPE].node_id;
-    auto value_type = SQLType::ReadFrom(instance, value_type_node_id);
-    input->value_type_ = SQLType::SQLNULL();
+    auto value_type = ReadTypeFrom(instance, value_type_node_id);
+    input->value_type_ = arrow::null();
     if (value_type.ok()) {
         input->value_type_ = value_type.MoveValueUnsafe();
     }
@@ -193,7 +196,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     }
 
     // Pack the value type
-    auto value_type = value_type_->Pack(builder);
+    auto value_type = PackType(builder, *value_type_);
 
     // Build viz spec
     assert(computed_position_.has_value());

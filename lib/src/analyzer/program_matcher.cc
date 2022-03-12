@@ -4,7 +4,7 @@
 #include <stack>
 #include <unordered_map>
 
-#include "dashql/analyzer/sql_type.h"
+#include "dashql/analyzer/arrow_type.h"
 #include "nonstd/span.h"
 
 namespace dashql {
@@ -530,18 +530,6 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
         emit(DiffOpCode::KEEP, next_source_id, next_target_id);
     }
     return ops;
-}
-
-// Do parameter values equal?
-bool ProgramMatcher::InputValuesEqual(const proto::analyzer::InputValueT* l, const proto::analyzer::InputValueT* r) {
-    auto& lv = *l->value;
-    auto& rv = *r->value;
-    auto values_equal = lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 && lv.data_str == rv.data_str &&
-                        lv.is_null == rv.is_null;
-    auto& lt = *lv.logical_type;
-    auto& rt = *rv.logical_type;
-    auto types_equal = SQLType::TypesEqual(lv.logical_type, rv.logical_type);
-    return types_equal && values_equal;
 }
 
 }  // namespace dashql

@@ -133,9 +133,6 @@ class ProgramMatcher {
     ///     We use the unique statement pairs as constants to identify updates quickly.
     ///
     std::vector<DiffOp> ComputeDiff();
-
-    /// Do parameter values equal?
-    static bool InputValuesEqual(const proto::analyzer::InputValueT* l, const proto::analyzer::InputValueT* r);
 };
 
 }  // namespace dashql

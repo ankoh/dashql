@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_ANALYZER_STMT_INPUT_STMT_H_
 #define INCLUDE_DASHQL_ANALYZER_STMT_INPUT_STMT_H_
 
+#include <arrow/type.h>
 #include <flatbuffers/flatbuffers.h>
 
 #include <iostream>
@@ -13,7 +14,7 @@
 #include <unordered_map>
 #include <variant>
 
-#include "dashql/analyzer/sql_type.h"
+#include "dashql/analyzer/arrow_type.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/parser/parser_driver.h"
@@ -34,7 +35,7 @@ class InputStatement {
     /// The schema map
     const ASTIndex ast_;
     /// The value type
-    std::unique_ptr<SQLType> value_type_ = nullptr;
+    std::shared_ptr<arrow::DataType> value_type_ = nullptr;
     /// The component type
     std::optional<sx::InputComponentType> component_type_ = std::nullopt;
     /// The position option

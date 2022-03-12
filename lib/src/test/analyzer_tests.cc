@@ -64,7 +64,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     instance.evaluated_nodes().IterateValues([&](size_t /*node_id*/, const ProgramInstance::NodeValue& node_value) {
         auto e = patch.append_child("eval");
         auto t = node_value.value->type->ToString();
-        auto v = node_value.value->ToString();
+        auto v = PrintScalar(*node_value.value);
         e.append_attribute("type").set_value(t.c_str());
         e.append_attribute("value").set_value(v.c_str());
         EncodeLocation(e, instance.program().nodes[node_value.root_node_id].location(), instance.program_text());
