@@ -5,7 +5,7 @@
         "cloudService": false,
         "userAccount": false,
         "editorControls": false,
-        "exampleCatalog": true,
+        "exampleCatalog": false,
         "systemInfo": false
     }
 }
