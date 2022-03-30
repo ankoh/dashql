@@ -95,10 +95,11 @@ const LaunchLogic: React.FC<Props> = (props: Props) => {
 };
 
 const DuckDBContext: React.FC<Props> = (props: Props) => {
+    const config = useAppConfig();
     const logger = model.useLogger();
     return (
         <rd.DuckDBPlatform bundles={DUCKDB_BUNDLES} logger={logger}>
-            <rd.DuckDBProvider>
+            <rd.DuckDBProvider config={config.value?.database}>
                 <rd.DuckDBConnectionProvider>{props.children}</rd.DuckDBConnectionProvider>
             </rd.DuckDBProvider>
         </rd.DuckDBPlatform>

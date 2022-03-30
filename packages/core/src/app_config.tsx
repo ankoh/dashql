@@ -1,3 +1,4 @@
+import * as d from '@duckdb/duckdb-wasm';
 import * as rd from '@duckdb/react-duckdb';
 import React from 'react';
 import axios from 'axios';
@@ -16,6 +17,7 @@ export interface AppFeatures {
 export interface AppConfig {
     features?: AppFeatures;
     program?: string;
+    database?: d.DuckDBConfig;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

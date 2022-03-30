@@ -11,8 +11,6 @@ CREATE VIEW vaccinations_desc AS (
     SELECT * FROM vaccinations ORDER BY "date" DESC
 );
 
-VIZ vaccinations_desc USING AREA;
-
 -- Visualize vaccination data
 VIZ vaccinations_desc USING (
     title = 'Covid Total Doses',
