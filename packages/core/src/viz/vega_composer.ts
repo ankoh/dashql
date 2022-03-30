@@ -109,6 +109,8 @@ export class VegaComposer {
 
         // First collect the encodings that the user specified himself
         const encoding: Encoding<Field> = layer.encoding!;
+        const assignedFields = new Set();
+        const assignedNames = new Set();
         const resolveEncoding = (opt: any, field: string) => {
             // Specified directly as encoding?
             // E.g. the user wrote USING LINE (encoding = (x = _))
@@ -117,14 +119,32 @@ export class VegaComposer {
                 // Specified as string?
                 if (typeof f === 'string' || f instanceof String) return { field: f };
                 // Assume the user gave us a valid encoding
-                return opt.encoding?.[field];
+                const enc = opt.encoding?.[field];
+                assignedFields.add(field);
+                return opt.encoding?.[enc];
             }
             // Is there a column with that name?
             if (this.table.columnNameMapping.has(field)) {
+                assignedFields.add(field);
+                assignedNames.add(field);
                 return { field: field };
             }
             // Otherwise mark it as undefined
             return undefined;
+        };
+        const assignRemaining = (fields: string[]) => {
+            for (const field of fields) {
+                if (assignedFields.has(field)) {
+                    return;
+                }
+                for (const name of this.table.columnNames) {
+                    if (!assignedNames.has(name)) {
+                        assignedNames.add(name);
+                        encoding[field] = { field: name };
+                        break;
+                    }
+                }
+            }
         };
         switch (type) {
             case proto.syntax.VizComponentType.AREA:
@@ -137,12 +157,14 @@ export class VegaComposer {
                 encoding.color = resolveEncoding(options, 'color');
                 encoding.shape = resolveEncoding(options, 'shape');
                 encoding.size = resolveEncoding(options, 'size');
+                assignRemaining(['x', 'y']);
                 break;
             case proto.syntax.VizComponentType.PIE:
                 encoding.theta = resolveEncoding(options, 'theta');
                 encoding.radius = resolveEncoding(options, 'radius');
                 encoding.shape = resolveEncoding(options, 'shape');
                 encoding.size = resolveEncoding(options, 'size');
+                assignRemaining(['theta', 'radius']);
                 break;
             default:
                 break;
