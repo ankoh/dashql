@@ -70,7 +70,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     assert(matches[SX_INPUT_VALUE_TYPE]);
     auto statement_name_node = matches[SX_STATEMENT_NAME].node_id;
 
-    // Create the viz statement
+    // Create the input statement
     auto input = std::make_unique<InputStatement>(instance, stmt_id, matches);
 
     // Read the sql type

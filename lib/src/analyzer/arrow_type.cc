@@ -32,6 +32,8 @@ arrow::Result<std::shared_ptr<arrow::DataType>> ReadTypeFrom(ProgramInstance& in
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_SQL_TYPENAME)
         .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::SQL_TYPENAME_ARRAY, SX_TYPENAME_ARRAY),
+            sxm::Attribute(sx::AttributeKey::SQL_TYPENAME_SETOF, SX_TYPENAME_SETOF),
             sxm::Attribute(sx::AttributeKey::SQL_TYPENAME_TYPE)
                 .SelectByType({
                     sxm::Element(SX_NUMERIC_TYPE)
@@ -47,9 +49,9 @@ arrow::Result<std::shared_ptr<arrow::DataType>> ReadTypeFrom(ProgramInstance& in
                     sxm::Element()
                         .MatchObject(sx::NodeType::OBJECT_SQL_BIT_TYPE)
                         .MatchChildren({
+                            sxm::Attribute(sx::AttributeKey::SQL_BIT_TYPE_LENGTH, SX_BIT_TYPE_LENGTH),
                             sxm::Attribute(sx::AttributeKey::SQL_BIT_TYPE_VARYING, SX_BIT_TYPE_VARYING)
                                 .MatchBool(),
-                            sxm::Attribute(sx::AttributeKey::SQL_BIT_TYPE_LENGTH, SX_BIT_TYPE_LENGTH),
                         }),
                     sxm::Element()
                         .MatchObject(sx::NodeType::OBJECT_SQL_CHARACTER_TYPE)
@@ -70,14 +72,12 @@ arrow::Result<std::shared_ptr<arrow::DataType>> ReadTypeFrom(ProgramInstance& in
                     sxm::Element()
                         .MatchObject(sx::NodeType::OBJECT_SQL_INTERVAL_TYPE)
                         .MatchChildren({
-                            sxm::Attribute(sx::AttributeKey::SQL_INTERVAL_TYPE)
-                                .MatchEnum(sx::NodeType::ENUM_SQL_INTERVAL_TYPE),
                             sxm::Attribute(sx::AttributeKey::SQL_INTERVAL_PRECISION)
                                 .MatchString(),
+                            sxm::Attribute(sx::AttributeKey::SQL_INTERVAL_TYPE)
+                                .MatchEnum(sx::NodeType::ENUM_SQL_INTERVAL_TYPE),
                         }),
-                }),
-            sxm::Attribute(sx::AttributeKey::SQL_TYPENAME_ARRAY, SX_TYPENAME_ARRAY),
-            sxm::Attribute(sx::AttributeKey::SQL_TYPENAME_SETOF, SX_TYPENAME_SETOF)
+                })
         });
     // clang-format on
 
@@ -85,9 +85,42 @@ arrow::Result<std::shared_ptr<arrow::DataType>> ReadTypeFrom(ProgramInstance& in
 }
 
 /// Pack a sql type
-flatbuffers::Offset<proto::sql::SQLType> PackType(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<proto::sql::SQLType> PackType(flatbuffers::FlatBufferBuilder& builder, const arrow::DataType& r) {
     proto::sql::SQLTypeBuilder t{builder};
-
+    switch (r.id()) {
+        case arrow::Type::type::BOOL:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::BOOLEAN);
+            break;
+        case arrow::Type::type::DATE32:
+        case arrow::Type::type::DATE64:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::DATE);
+            break;
+        case arrow::Type::type::INT8:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::TINYINT);
+            break;
+        case arrow::Type::type::INT16:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::SMALLINT);
+            break;
+        case arrow::Type::type::INT32:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::INTEGER);
+            break;
+        case arrow::Type::type::INT64:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::BIGINT);
+            break;
+        case arrow::Type::type::STRING:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::VARCHAR);
+            break;
+        case arrow::Type::type::DOUBLE:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::DOUBLE);
+            break;
+        case arrow::Type::type::HALF_FLOAT:
+        case arrow::Type::type::FLOAT:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::FLOAT);
+            break;
+        default:
+            t.add_type_id(dashql::proto::sql::SQLTypeID::INVALID);
+            break;
+    }
     return t.Finish();
 }
 

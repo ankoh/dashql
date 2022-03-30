@@ -37,7 +37,7 @@ flatbuffers::Offset<proto::sql::SQLValue> PackScalar(flatbuffers::FlatBufferBuil
         case arrow::Type::STRING: {
             auto& s = reinterpret_cast<const arrow::StringScalar&>(scalar);
             auto& v = s.value;
-            value.data_str = std::string{reinterpret_cast<const char*>(v->data()), static_cast<uint64_t>(v->size())};
+            value.data_str = std::string{reinterpret_cast<const char*>(v->data()), static_cast<size_t>(v->size())};
         }
         case arrow::Type::INTERVAL_DAY_TIME: {
             auto& s = reinterpret_cast<const arrow::DayTimeIntervalScalar&>(scalar);
@@ -88,14 +88,18 @@ arrow::Result<flatbuffers::Offset<proto::sql::SQLValue>> PackArrowScalar(flatbuf
     return v.Finish();
 }
 /// Unpack a value
-arrow::Result<std::shared_ptr<arrow::Scalar>> UnpackArrowScalar(const proto::sql::SQLValue& value) {
+arrow::Result<std::shared_ptr<arrow::Scalar>> UnpackScalar(const proto::sql::SQLValue& value) {
 #define EXPECT_PHYSICAL(TYPE) \
     if (value.physical_type() != TYPE) return arrow::Status::Invalid("unexpected physical type");
 
     switch (value.logical_type()->type_id()) {
+        case proto::sql::SQLTypeID::SMALLINT:
+        case proto::sql::SQLTypeID::TINYINT:
+        case proto::sql::SQLTypeID::INTEGER:
         case proto::sql::SQLTypeID::BIGINT:
             EXPECT_PHYSICAL(proto::sql::PhysicalType::I64);
             return arrow::MakeScalar(arrow::int64(), value.data_i64());
+        case proto::sql::SQLTypeID::FLOAT:
         case proto::sql::SQLTypeID::DOUBLE:
             EXPECT_PHYSICAL(proto::sql::PhysicalType::F64);
             return arrow::MakeScalar(arrow::float64(), value.data_f64());
