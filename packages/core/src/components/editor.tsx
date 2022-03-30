@@ -100,7 +100,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
         // Create editor
         const e = monaco.editor.create(monacoContainer, {
-            fontFamily: 'Roboto Mono',
+            // fontFamily: 'Roboto Mono',
             fontSize: 13,
             language: 'dashql',
             value: script.text,
