@@ -17,7 +17,7 @@ void FFIResponseBuffer::Store(FFIResponse& response, flatbuffers::DetachedBuffer
     proto_buffer_ = std::move(result);
     response.statusCode = 0;
     response.dataOrValue = reinterpret_cast<uintptr_t>(proto_buffer_.data());
-    response.dataSize = reinterpret_cast<uintptr_t>(proto_buffer_.size());
+    response.dataSize = static_cast<uintptr_t>(proto_buffer_.size());
 }
 
 /// Get the instance
