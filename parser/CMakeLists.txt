@@ -30,12 +30,13 @@ if(WASM)
   set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
   set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} \
+        -DWASM=1 \
         --target=wasm32-wasi \
         -fno-exceptions \
         ")
   set(CMAKE_EXE_LINKER_FLAGS
       "${CMAKE_EXE_LINKER_FLAGS} \
-        -Wl,--export=parse \
+        -Wl,--export=dashql_parse \
         -flto \
     ")
 endif()
@@ -175,18 +176,23 @@ add_custom_command(
 # ---------------------------------------------------------------------------
 # Module
 
-add_executable(
-  dashql_parser
-  ${SCANNER_OUT}
-  ${PARSER_OUT}
-  ${CMAKE_SOURCE_DIR}/src/ffi.cc
-  ${CMAKE_SOURCE_DIR}/src/ffi_response.cc
-  ${CMAKE_SOURCE_DIR}/src/dson.cc
-  ${CMAKE_SOURCE_DIR}/src/enums.cc
-  ${CMAKE_SOURCE_DIR}/src/highlighting.cc
-  ${CMAKE_SOURCE_DIR}/src/keywords.cc
-  ${CMAKE_SOURCE_DIR}/src/nodes.cc
-  ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
-  ${CMAKE_SOURCE_DIR}/src/scanner.cc)
+set(LIB_SRC
+    ${SCANNER_OUT}
+    ${PARSER_OUT}
+    ${CMAKE_SOURCE_DIR}/src/ffi.cc
+    ${CMAKE_SOURCE_DIR}/src/ffi_response.cc
+    ${CMAKE_SOURCE_DIR}/src/dson.cc
+    ${CMAKE_SOURCE_DIR}/src/enums.cc
+    ${CMAKE_SOURCE_DIR}/src/highlighting.cc
+    ${CMAKE_SOURCE_DIR}/src/keywords.cc
+    ${CMAKE_SOURCE_DIR}/src/nodes.cc
+    ${CMAKE_SOURCE_DIR}/src/parser_driver.cc
+    ${CMAKE_SOURCE_DIR}/src/scanner.cc)
+
+if(WASM)
+  add_executable(dashql_parser ${LIB_SRC})
+else()
+  add_library(dashql_parser ${LIB_SRC})
+endif()
 
 target_link_libraries(dashql_parser dashql_proto flatbuffers)
