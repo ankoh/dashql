@@ -1,0 +1,5 @@
+%type <sx::Node> dashql_function_call;
+%type <sx::Node> dashql_statement;
+%type <sx::Node> dashql_statement_name;
+%type <sx::Node> dashql_statement_ref;
+%type <sx::Node> opt_dashql_statement;

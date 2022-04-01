@@ -26,7 +26,6 @@ echo "BUILD_TYPE=${MODE}"
 echo "WASI_SDK_PREFIX=${WASI_SDK_PREFIX}"
 echo "WASI_TOOLCHAIN=${WASI_CMAKE_TOOLCHAIN}"
 
-rm -rf ${CPP_SOURCE_DIR}/build/wasm/${MODE}
 mkdir -p ${CPP_SOURCE_DIR}/build/wasm/${MODE}
 
 set -x

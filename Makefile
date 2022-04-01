@@ -13,6 +13,9 @@ GID=${shell id -g}
 APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
+PARSER_SOURCE_DIR="${ROOT_DIR}/parser"
+PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/Debug"
+
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
@@ -251,6 +254,16 @@ ccache:
 	chown -R $(id -u):$(id -g) ${ROOT_DIR}/.ccache
 
 .PHONY: parser
-parser: ccache
+parser:
+	mkdir -p ${PARSER_DEBUG_DIR}
+	cmake -S ${PARSER_SOURCE_DIR} -B ${PARSER_DEBUG_DIR} \
+		-GNinja \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
+	ninja -C ${PARSER_DEBUG_DIR}
+
+.PHONY: parser_wasm
+parser_wasm: ccache
 	mkdir -p ${CACHE_DIRS}
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Fast
