@@ -17,20 +17,11 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/google.list
 
-ARG EMSDK_VERSION="2.0.25"
-RUN mkdir -p /opt/emsdk \
-    && cd /opt/emsdk \
-    && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
-    && ./emsdk install ${EMSDK_VERSION} ccache-git-emscripten-64bit \
-    && ./emsdk activate ${EMSDK_VERSION} ccache-git-emscripten-64bit \
-    && /bin/bash ./emsdk_env.sh \
-    && rm -rf ./emscripten/tag-*/tests \
-    && rm -rf ./emscripten/tag-*/site \
-    && rm -rf ./emscripten/tag-*/docs \
-    && rm -rf ./zips \
-    && find . -name "*.o" -exec rm {} \; \
-    && find . -name "*.a" -exec rm {} \; \
-    && find . -name "*.tmp" -exec rm {} \;
+ARG WASI_VERSION=12
+ARG WASI_VERSION_FULL=12.0
+RUN mkdir -p /opt/wasi \
+    && cd /opt/wasi \
+    && curl -SL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz | tar -xz --strip-components=1
 
 SHELL ["/bin/bash", "-c"]
 
@@ -41,7 +32,7 @@ RUN groupadd -g ${GID} -o ${UNAME} \
     && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
 
 ENV NVM_DIR=/opt/nvm
-ARG NVM_VERSION="v0.38.0"
+ARG NVM_VERSION="v0.39.1"
 ARG NODE_VERSION="v17.6.0"
 RUN mkdir -p /opt/nvm \
     && ls -lisah /opt/nvm \
@@ -74,7 +65,7 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && make -C /tmp/flatbuffers/build -j`nproc` install \
     && rm -rf /tmp/flatbuffers
 
-ARG RUST_VERSION="1.50.0"
+ARG RUST_VERSION="1.59.0"
 RUN export RUSTUP_HOME=/opt/rust \
     && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
@@ -82,22 +73,17 @@ RUN export RUSTUP_HOME=/opt/rust \
     && rustup target add wasm32-unknown-unknown \
     && chown -R ${UID}:${GID} /opt/rust
 
-ENV AZURE_CONFIG_DIR=/opt/azure
-RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /opt/azure \
-    && chown -R ${UID}:${GID} /opt/azure
+ARG WASM_PACK_VERSION="0.10.2"
+RUN export PATH=$PATH:/opt/rust/bin \
+    && export RUSTUP_HOME=/opt/rust \
+    && export CARGO_HOME=/opt/rust \
+    && cargo install --version ${WASM_PACK_VERSION} wasm-pack
 
-RUN source /opt/emsdk/emsdk_env.sh \
+RUN echo "export WASI_SDK_PATH=/opt/wasi" >> /opt/env.sh \
+    && echo "export WASI_SYSROOT=/opt/wasi/share/wasi-sysroot" >> /opt/env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
-    && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
-    && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
-    && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
-    && echo "export AZURE_CONFIG_DIR=/opt/azure" >> /opt/env.sh \
-    && echo "export BOOST_ARCHIVE=/opt/boost.tar.gz" >> /opt/env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\nsource /opt/env.sh\nexec env "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh \
