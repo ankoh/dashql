@@ -6,9 +6,11 @@
 using namespace dashql::parser;
 namespace sx = dashql::proto::syntax;
 
-extern "C" void dashql_parse(FFIResponse* response, const char* text, int length) {
+extern "C" void dashql_parse(FFIResponse* response, const uint8_t* text, size_t length) {
+    static_assert(sizeof(uint8_t) == sizeof(char));
+
     // Parse the program
-    auto program = ParserDriver::Parse(std::string_view{text, static_cast<size_t>(length)});
+    auto program = ParserDriver::Parse(std::string_view{reinterpret_cast<const char*>(text), length});
 
     // Pack the flatbuffer program
     flatbuffers::FlatBufferBuilder fb;

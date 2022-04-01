@@ -14,7 +14,7 @@ APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
 PARSER_SOURCE_DIR="${ROOT_DIR}/parser"
-PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/debug"
+PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/native/debug"
 
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
@@ -249,19 +249,13 @@ bootstrap:
 # ---------------------------------------------------------------------------
 # Parser
 
-ccache:
-	mkdir -p ${ROOT_DIR}/.ccache
-	chown -R $(id -u):$(id -g) ${ROOT_DIR}/.ccache
-
-.PHONY: parser
-parser:
+.PHONY: parser_cc
+parser_cc:
 	mkdir -p ${PARSER_DEBUG_DIR}
 	cmake -S ${PARSER_SOURCE_DIR} -B ${PARSER_DEBUG_DIR} \
-		-GNinja \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
-	ninja -C ${PARSER_DEBUG_DIR}
 
 .PHONY: parser_wasm
 parser_wasm: ccache
