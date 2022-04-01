@@ -1,9 +1,9 @@
-mod parser;
+mod grammar;
 
 #[cfg(test)]
 mod test;
 
 fn main() {
-    parser::parse("select 1;");
+    grammar::parse("select 1;");
     println!("Hello, world!");
 }

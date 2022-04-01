@@ -1,6 +1,6 @@
-use crate::parser;
+use crate::grammar;
 
 #[test]
 fn test_parser_call() {
-    parser::parse("select 1;");
+    grammar::parse("select 1;");
 }

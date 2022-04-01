@@ -1,6 +1,6 @@
-mod parser;
+mod grammar;
 
 fn main() {
-    parser::parse("select 1;");
+    grammar::parse("select 1;");
     println!("Hello, world!");
 }
