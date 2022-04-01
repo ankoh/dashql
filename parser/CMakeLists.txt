@@ -45,6 +45,9 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 
+add_subdirectory("${CMAKE_SOURCE_DIR}/../packages/proto"
+                 "${CMAKE_BINARY_DIR}/proto/")
+
 # ---------------------------------------------------------------------------
 # Module
 
