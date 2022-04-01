@@ -1,4 +1,5 @@
 mod grammar;
+mod proto;
 
 fn main() {
     grammar::parse("select 1;");

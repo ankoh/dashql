@@ -1,4 +1,5 @@
 mod grammar;
+mod proto;
 
 #[cfg(test)]
 mod test;

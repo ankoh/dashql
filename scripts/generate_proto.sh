@@ -15,6 +15,7 @@ SPEC_INDEX="${SPEC_DIR}/proto.fbs"
 
 OUT_DIR_CPP="${PROJECT_ROOT}/packages/proto/gen/cc/include/dashql"
 OUT_DIR_TS="${PROJECT_ROOT}/packages/proto/gen/ts"
+OUT_DIR_RS="${PROJECT_ROOT}/packages/proto/gen/rs"
 
 mkdir -p ${OUT_DIR_CPP} ${OUT_DIR_TS}
 
@@ -26,6 +27,12 @@ ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_CPP} ${SPEC_INDEX} --cpp \
         --gen-mutable \
     && { echo "[ OK  ] Generate C++ Library"; } \
     || { echo "[ ERR ] Generate C++ Library"; exit 1; }
+
+${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_RS} ${SPEC_INDEX} --rust \
+        --gen-all \
+        --gen-object-api --gen-name-strings \
+    && { echo "[ OK  ] Generate Rust Library"; } \
+    || { echo "[ ERR ] Generate Rust Library"; exit 1; }
 
 ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_TS} ${SPEC_INDEX} --ts \
         --gen-all \

@@ -1,0 +1,11 @@
+[package]
+name = "dashql_proto"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "dashql_proto"
+path = "lib.rs"
+
+[dependencies]
+flatbuffers = "2.1.1"
