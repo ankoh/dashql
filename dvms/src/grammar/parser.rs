@@ -14,6 +14,7 @@ impl ProgramBuffer {
     }
     /// Read the flatbuffer program
     pub fn read<'buf>(&'buf self) -> proto::syntax::Program<'buf> {
+        // We can unwrap here as we run this call once when constructing the buffer
         flatbuffers::root::<proto::syntax::Program>(self.buffer.as_ref()).unwrap()
     }
 }
