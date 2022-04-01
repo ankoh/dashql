@@ -13,6 +13,8 @@ path = "src/dump_grammar.rs"
 
 [dependencies]
 libc = "0.2.121"
+serde = { version = "1.0.136", features = ['derive'] }
+quick-xml = { version = "0.22.0", features = ['serialize'] }
 
 [build-dependencies]
 cmake = "0.1.48"
