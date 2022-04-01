@@ -319,8 +319,6 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trac
     dashql::parser::Parser parser(driver);
     parser.parse();
 
-    driver.ComputeDependencies();
-
     return driver.Finish();
 }
 

@@ -36,6 +36,7 @@ if(WASM)
   set(CMAKE_EXE_LINKER_FLAGS
       "${CMAKE_EXE_LINKER_FLAGS} \
         -Wl,--export=parse \
+        -flto \
     ")
 endif()
 
@@ -174,7 +175,7 @@ add_custom_command(
 # ---------------------------------------------------------------------------
 # Module
 
-add_library(
+add_executable(
   dashql_parser
   ${SCANNER_OUT}
   ${PARSER_OUT}

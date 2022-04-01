@@ -14,7 +14,7 @@ APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
 PARSER_SOURCE_DIR="${ROOT_DIR}/parser"
-PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/Debug"
+PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/debug"
 
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
@@ -266,4 +266,9 @@ parser:
 .PHONY: parser_wasm
 parser_wasm: ccache
 	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Fast
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh fast
+
+.PHONY: parser_wasm_release
+parser_wasm_release: ccache
+	mkdir -p ${CACHE_DIRS}
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh release
