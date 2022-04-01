@@ -17,32 +17,7 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/google.list
 
-ARG WASI_VERSION=12
-ARG WASI_VERSION_FULL=12.0
-RUN mkdir -p /opt/wasi \
-    && cd /opt/wasi \
-    && curl -SL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz | tar -xz --strip-components=1
-
 SHELL ["/bin/bash", "-c"]
-
-ARG UNAME=actions
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g ${GID} -o ${UNAME} \
-    && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
-
-ENV NVM_DIR=/opt/nvm
-ARG NVM_VERSION="v0.39.1"
-ARG NODE_VERSION="v17.6.0"
-RUN mkdir -p /opt/nvm \
-    && ls -lisah /opt/nvm \
-    && curl https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash \
-    && source ${NVM_DIR}/nvm.sh \
-    && nvm install ${NODE_VERSION} \
-    && nvm alias default ${NODE_VERSION} \
-    && nvm use default \
-    && npm install --global yarn \
-    && chown -R ${UID}:${GID} /opt/nvm
 
 ARG FLATBUFFER_COMMIT="04b10f5a3a78aed27030a4e26dcf36921979114f"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
@@ -65,19 +40,41 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && make -C /tmp/flatbuffers/build -j`nproc` install \
     && rm -rf /tmp/flatbuffers
 
+ARG UNAME=actions
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} -o ${UNAME} \
+    && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
+
+ARG WASI_VERSION=12
+ARG WASI_VERSION_FULL=12.0
+RUN mkdir -p /opt/wasi \
+    && cd /opt/wasi \
+    && curl -SL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz | tar -xz --strip-components=1 \
+    && chown -R ${UID}:${GID} /opt/wasi
+
 ARG RUST_VERSION="1.59.0"
+ARG WASM_PACK_VERSION="0.10.2"
 RUN export RUSTUP_HOME=/opt/rust \
     && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
     && export PATH=$PATH:/opt/rust/bin \
     && rustup target add wasm32-unknown-unknown \
+    && cargo install --version ${WASM_PACK_VERSION} wasm-pack \
     && chown -R ${UID}:${GID} /opt/rust
 
-ARG WASM_PACK_VERSION="0.10.2"
-RUN export PATH=$PATH:/opt/rust/bin \
-    && export RUSTUP_HOME=/opt/rust \
-    && export CARGO_HOME=/opt/rust \
-    && cargo install --version ${WASM_PACK_VERSION} wasm-pack
+ENV NVM_DIR=/opt/nvm
+ARG NVM_VERSION="v0.39.1"
+ARG NODE_VERSION="v17.6.0"
+RUN mkdir -p /opt/nvm \
+    && ls -lisah /opt/nvm \
+    && curl https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash \
+    && source ${NVM_DIR}/nvm.sh \
+    && nvm install ${NODE_VERSION} \
+    && nvm alias default ${NODE_VERSION} \
+    && nvm use default \
+    && npm install --global yarn \
+    && chown -R ${UID}:${GID} /opt/nvm
 
 RUN echo "export WASI_SDK_PATH=/opt/wasi" >> /opt/env.sh \
     && echo "export WASI_SYSROOT=/opt/wasi/share/wasi-sysroot" >> /opt/env.sh \
