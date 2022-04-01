@@ -1,0 +1,50 @@
+<tests>
+    <test name="dashql_syntax_error">
+        <input>?</input>
+    </test>
+    <test name="load_url_plain">
+        <input>
+            FETCH weather_csv FROM http (
+                url = 'https://localhost/test'
+            );
+        </input>
+    </test>
+    <test name="load_url_parameter">
+        <input>
+            FETCH weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+            );
+        </input>
+    </test>
+    <test name="dashql_viz_position">
+        <input>
+            VIZ weather_avg USING LINE (
+                position = (
+                    row = 0,
+                    column = 0,
+                    width = 4,
+                    height = 15
+                )
+            )
+        </input>
+    </test>
+    <test name="dashql_viz_position_short">
+        <input>
+            VIZ weather_avg USING LINE (
+                pos = (r = 0, c = 0, w = 4, h = 15)
+            )
+        </input>
+    </test>
+    <test name="dashql_input_calendar_date">
+        <input>
+            INPUT foo TYPE DATE USING CALENDAR;
+            VIZ (SELECT foo) USING TABLE;
+        </input>
+    </test>
+    <test name="dashql_input_calendar_date_range">
+        <input>
+            INPUT foo TYPE DATE[2] USING CALENDAR;
+            VIZ (SELECT foo[0], foo[1]) USING TABLE;
+        </input>
+    </test>
+</tests>

@@ -1,0 +1,32 @@
+<tests>
+    <test name="create_table_as_select_1">
+        <input>
+            create view foo as select 1
+        </input>
+        <expected>
+            <statements>
+                <statement type="CREATE_VIEW" name="main.foo">
+                    <node type="OBJECT_SQL_VIEW" loc="13..40" text="create vie..s select 1">
+                        <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="25..28" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..28" text="foo" />
+                        </node>
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="32..40" text="select 1">
+                            <node key="SQL_SELECT_TARGETS">
+                                <node loc="39..40" text="1" />
+                            </node>
+                        </node>
+                        <node key="SQL_VIEW_TEMP" value="DEFAULT" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+</tests>

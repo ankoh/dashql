@@ -1,0 +1,300 @@
+<tests>
+    <test name="dashql_syntax_error">
+        <input>?</input>
+        <expected>
+            <statements />
+            <errors>
+                <error message="syntax error, unexpected '?', expecting EOF" loc="0..1" text="?" />
+            </errors>
+            <line_breaks />
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="load_url_plain">
+        <input>
+            FETCH weather_csv FROM http (
+                url = 'https://localhost/test'
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.weather_csv">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..103" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
+                        </node>
+                        <node key="DSON_URL" loc="65..89" text="'https://l..host/test'" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+                <line_break loc="89..90" text="&#10;" />
+                <line_break loc="104..105" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="load_url_parameter">
+        <input>
+            FETCH weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.weather_csv">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..141" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
+                        </node>
+                        <node key="DSON_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="65..127" text="format('ht..n.country)">
+                            <node key="SQL_FUNCTION_ARGUMENTS">
+                                <node loc="72..112" text="'https://c..eather/%s'" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="114..126" text="main.country">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="114..118" text="main" />
+                                        <node loc="119..126" text="country" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" loc="65..71" text="format" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+                <line_break loc="127..128" text="&#10;" />
+                <line_break loc="142..143" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_viz_position">
+        <input>
+            VIZ weather_avg USING LINE (
+                position = (
+                    row = 0,
+                    column = 0,
+                    width = 4,
+                    height = 15
+                )
+            )
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..226" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..226" text="LINE (&#10;   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="69..212" text="(&#10;        ..         )">
+                                    <node key="DSON_ROW" loc="97..98" text="0" />
+                                    <node key="DSON_COLUMN" loc="129..130" text="0" />
+                                    <node key="DSON_WIDTH" loc="160..161" text="4" />
+                                    <node key="DSON_HEIGHT" loc="192..194" text="15" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..28" text="weather_avg">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..28" text="weather_avg">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..28" text="weather_avg" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="70..71" text="&#10;" />
+                <line_break loc="99..100" text="&#10;" />
+                <line_break loc="131..132" text="&#10;" />
+                <line_break loc="162..163" text="&#10;" />
+                <line_break loc="194..195" text="&#10;" />
+                <line_break loc="212..213" text="&#10;" />
+                <line_break loc="226..227" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_viz_position_short">
+        <input>
+            VIZ weather_avg USING LINE (
+                pos = (r = 0, c = 0, w = 4, h = 15)
+            )
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..107" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..107" text="LINE (&#10;   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                                <node key="pos" type="OBJECT_DSON" loc="64..93" text="(r = 0, c ..4, h = 15)">
+                                    <node key="r" loc="69..70" text="0" />
+                                    <node key="c" loc="76..77" text="0" />
+                                    <node key="w" loc="83..84" text="4" />
+                                    <node key="h" loc="90..92" text="15" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..28" text="weather_avg">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..28" text="weather_avg">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..28" text="weather_avg" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="93..94" text="&#10;" />
+                <line_break loc="107..108" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys>
+                <key loc="65..66" text="r" />
+                <key loc="72..73" text="c" />
+                <key loc="79..80" text="w" />
+                <key loc="86..87" text="h" />
+                <key loc="58..61" text="pos" />
+            </dson_keys>
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_input_calendar_date">
+        <input>
+            INPUT foo TYPE DATE USING CALENDAR;
+            VIZ (SELECT foo) USING TABLE;
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..47" text="INPUT foo ..G CALENDAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..32" text="DATE">
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..32" text="DATE">
+                                <node key="SQL_GENERIC_TYPE_NAME" loc="28..32" text="DATE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="foo" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="61..89" text="VIZ (SELEC..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="84..89" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_FUNCTION_TABLE" loc="65..77" text="(SELECT foo)">
+                            <node key="SQL_SELECT_TARGETS">
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="73..76" text="foo">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="73..76" text="foo" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="48..49" text="&#10;" />
+                <line_break loc="90..91" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_input_calendar_date_range">
+        <input>
+            INPUT foo TYPE DATE[2] USING CALENDAR;
+            VIZ (SELECT foo[0], foo[1]) USING TABLE;
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..50" text="INPUT foo ..G CALENDAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..35" text="DATE[2]">
+                            <node key="SQL_TYPENAME_ARRAY">
+                                <node loc="32..35" text="[2]" />
+                            </node>
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..32" text="DATE">
+                                <node key="SQL_GENERIC_TYPE_NAME" loc="28..32" text="DATE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="foo" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="64..103" text="VIZ (SELEC..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="98..103" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_FUNCTION_TABLE" loc="68..91" text="(SELECT fo..], foo[1])">
+                            <node key="SQL_SELECT_TARGETS">
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="76..82" text="foo[0]">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="76..79" text="foo" />
+                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="79..82" text="[0]">
+                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="80..81" text="0" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="84..90" text="foo[1]">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="84..87" text="foo" />
+                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="87..90" text="[1]">
+                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="88..89" text="1" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="51..52" text="&#10;" />
+                <line_break loc="104..105" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+</tests>

@@ -1,0 +1,28 @@
+<tests>
+    <test name="load_uni_zip_http">
+        <input>
+            FETCH uni FROM http (
+                url = 'https://static.dashql.com/data/uni/de/all.zip'
+            );
+            LOAD assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+        </input>
+    </test>
+    <test name="load_uni_zip_infer">
+        <input>
+            FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            LOAD hoeren FROM uni['hoeren.parquet'];
+            LOAD studenten FROM uni['studenten.parquet'];
+        </input>
+    </test>
+    <test name="load_rest_header">
+        <input>
+            FETCH json_stats FROM HTTP (
+                url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
+                headers = (
+                    'Ocp-Apim-Subscription-Key' = 'somekey'
+                )
+            );
+        </input>
+    </test>
+</tests>

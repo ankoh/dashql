@@ -1,0 +1,167 @@
+<tests>
+    <test name="load_uni_zip_http">
+        <input>
+            FETCH uni FROM http (
+                url = 'https://static.dashql.com/data/uni/de/all.zip'
+            );
+            LOAD assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.uni">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..118" text="FETCH uni ..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="uni">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="uni" />
+                        </node>
+                        <node key="DSON_URL" loc="57..104" text="'https://s..e/all.zip'" />
+                    </node>
+                </statement>
+                <statement type="LOAD" name="main.assistenten">
+                    <node type="OBJECT_DASHQL_LOAD" loc="132..194" text="LOAD assis..NG PARQUET">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="154..180" text="uni['assis...parquet']">
+                            <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="157..180" text="['assisten...parquet']">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" loc="158..179" text="'assistent..n.parquet'" />
+                            </node>
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="154..157" text="uni" />
+                        </node>
+                        <node key="DASHQL_LOAD_METHOD" value="PARQUET" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="137..148" text="assistenten">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="137..148" text="assistenten" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="34..35" text="&#10;" />
+                <line_break loc="104..105" text="&#10;" />
+                <line_break loc="119..120" text="&#10;" />
+                <line_break loc="195..196" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies>
+                <dependency type="TABLE_REF" source="0" target="1" loc="154..180" text="uni['assis...parquet']" />
+            </dependencies>
+        </expected>
+    </test>
+    <test name="load_uni_zip_infer">
+        <input>
+            FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            LOAD hoeren FROM uni['hoeren.parquet'];
+            LOAD studenten FROM uni['studenten.parquet'];
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.uni">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..75" text="FETCH uni ..e/all.zip'">
+                        <node key="DASHQL_FETCH_FROM_URI" loc="28..75" text="'https://s..e/all.zip'" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="uni">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="uni" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD" name="main.vorlesungen">
+                    <node type="OBJECT_DASHQL_LOAD" loc="89..151" text="LOAD vorle..NG PARQUET">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="111..137" text="uni['vorle...parquet']">
+                            <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="114..137" text="['vorlesun...parquet']">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" loc="115..136" text="'vorlesung..n.parquet'" />
+                            </node>
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="111..114" text="uni" />
+                        </node>
+                        <node key="DASHQL_LOAD_METHOD" value="PARQUET" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="94..105" text="vorlesungen">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="94..105" text="vorlesungen" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD" name="main.hoeren">
+                    <node type="OBJECT_DASHQL_LOAD" loc="165..203" text="LOAD hoere...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="182..203" text="uni['hoere...parquet']">
+                            <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="185..203" text="['hoeren.parquet']">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" loc="186..202" text="'hoeren.parquet'" />
+                            </node>
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="182..185" text="uni" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="170..176" text="hoeren">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="170..176" text="hoeren" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD" name="main.studenten">
+                    <node type="OBJECT_DASHQL_LOAD" loc="217..261" text="LOAD stude...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="237..261" text="uni['stude...parquet']">
+                            <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="240..261" text="['studente...parquet']">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" loc="241..260" text="'studenten.parquet'" />
+                            </node>
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="237..240" text="uni" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="222..231" text="studenten">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="222..231" text="studenten" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="76..77" text="&#10;" />
+                <line_break loc="152..153" text="&#10;" />
+                <line_break loc="204..205" text="&#10;" />
+                <line_break loc="262..263" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies>
+                <dependency type="TABLE_REF" source="0" target="1" loc="111..137" text="uni['vorle...parquet']" />
+                <dependency type="TABLE_REF" source="0" target="2" loc="182..203" text="uni['hoere...parquet']" />
+                <dependency type="TABLE_REF" source="0" target="3" loc="237..261" text="uni['stude...parquet']" />
+            </dependencies>
+        </expected>
+    </test>
+    <test name="load_rest_header">
+        <input>
+            FETCH json_stats FROM HTTP (
+                url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
+                headers = (
+                    'Ocp-Apim-Subscription-Key' = 'somekey'
+                )
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.json_stats">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..247" text="FETCH json..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..29" text="json_stats">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..29" text="json_stats" />
+                        </node>
+                        <node key="DSON_URL" loc="64..126" text="'https://w..tag/stats'" />
+                        <node key="headers" type="OBJECT_DSON" loc="154..233" text="(&#10;        ..         )">
+                            <node key="Ocp-Apim-Subscription-Key" loc="206..215" text="'somekey'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="127..128" text="&#10;" />
+                <line_break loc="155..156" text="&#10;" />
+                <line_break loc="215..216" text="&#10;" />
+                <line_break loc="233..234" text="&#10;" />
+                <line_break loc="248..249" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys>
+                <key loc="177..202" text="Ocp-Apim-S..iption-Key" />
+                <key loc="144..151" text="headers" />
+            </dson_keys>
+            <dependencies />
+        </expected>
+    </test>
+</tests>

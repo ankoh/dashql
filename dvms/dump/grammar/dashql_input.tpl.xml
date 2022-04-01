@@ -1,0 +1,14 @@
+<tests>
+    <test name="input_varchar">
+        <input>
+            INPUT foo TYPE VARCHAR;
+            INPUT foo TYPE VARCHAR USING TEXT;
+            INPUT foo TYPE VARCHAR USING TEXT (label = 'Foo');
+        </input>
+    </test>
+    <test name="input_calendar">
+        <input>
+            INPUT foo TYPE DATE[2] USING CALENDAR;
+        </input>
+    </test>
+</tests>
