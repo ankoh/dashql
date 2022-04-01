@@ -1,1 +1,1 @@
-pub use dashql_proto::dashql::*;
+pub use dashql_proto::dashql::proto::*;
