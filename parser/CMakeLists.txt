@@ -13,6 +13,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
 
+# ---------------------------------------------------------------------------
+# Parallelism
+
+include(ProcessorCount)
+ProcessorCount(NPROCS)
+set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
+
+# ---------------------------------------------------------------------------
+# WASM
+
 if(WASM)
   if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
@@ -29,4 +39,14 @@ if(WASM)
     ")
 endif()
 
+# ---------------------------------------------------------------------------
+# CMake includes
+
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
+include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
+
+# ---------------------------------------------------------------------------
+# Module
+
 add_executable(dashql_parser ${CMAKE_SOURCE_DIR}/src/parser.cc)
+target_link_libraries(dashql_parser flatbuffers)
