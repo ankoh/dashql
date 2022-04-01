@@ -17,11 +17,11 @@ constexpr uint64_t SUCCESS = 0;
 /// A packed response
 struct FFIResponse {
     /// The status code
-    double statusCode;
+    uintptr_t statusCode;
     /// The data ptr (if any)
-    double dataOrValue;
+    uintptr_t dataOrValue;
     /// The data size
-    double dataSize;
+    uintptr_t dataSize;
 } __attribute((packed));
 
 /// A response buffer
