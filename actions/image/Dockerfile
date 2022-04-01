@@ -76,7 +76,7 @@ RUN mkdir -p /opt/nvm \
     && npm install --global yarn \
     && chown -R ${UID}:${GID} /opt/nvm
 
-RUN echo "export WASI_SDK_PATH=/opt/wasi" >> /opt/env.sh \
+RUN echo "export WASI_SDK_PREFIX=/opt/wasi" >> /opt/env.sh \
     && echo "export WASI_SYSROOT=/opt/wasi/share/wasi-sysroot" >> /opt/env.sh \
     && echo "export WASI_CMAKE_TOOLCHAIN=/opt/wasi/share/cmake/wasi-sdk.cmake" >> /opt/env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \

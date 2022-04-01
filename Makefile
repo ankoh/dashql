@@ -17,8 +17,6 @@ LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
-CORE_WASM_DIR="${ROOT_DIR}/packages/core/src/wasm"
-DATAFRAME_WASM_DIR="${ROOT_DIR}/packages/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
@@ -243,3 +241,16 @@ bootstrap:
 	make proto
 	make wasm
 	make core
+
+
+# ---------------------------------------------------------------------------
+# Parser
+
+ccache:
+	mkdir -p ${ROOT_DIR}/.ccache
+	chown -R $(id -u):$(id -g) ${ROOT_DIR}/.ccache
+
+.PHONY: parser
+parser: ccache
+	mkdir -p ${CACHE_DIRS}
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Fast
