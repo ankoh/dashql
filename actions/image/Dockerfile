@@ -78,6 +78,7 @@ RUN mkdir -p /opt/nvm \
 
 RUN echo "export WASI_SDK_PATH=/opt/wasi" >> /opt/env.sh \
     && echo "export WASI_SYSROOT=/opt/wasi/share/wasi-sysroot" >> /opt/env.sh \
+    && echo "export WASI_CMAKE_TOOLCHAIN=/opt/wasi/share/cmake/wasi-sdk.cmake" >> /opt/env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
