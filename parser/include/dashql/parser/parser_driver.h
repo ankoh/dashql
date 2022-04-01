@@ -84,8 +84,6 @@ class ParserDriver {
 
     /// Add a node
     NodeID AddNode(sx::Node node);
-    /// Compute the dependencies
-    void ComputeDependencies();
     /// Get as flatbuffer object
     std::shared_ptr<sx::ProgramT> Finish();
 

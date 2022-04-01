@@ -180,6 +180,7 @@ add_executable(
   ${SCANNER_OUT}
   ${PARSER_OUT}
   ${CMAKE_SOURCE_DIR}/src/ffi.cc
+  ${CMAKE_SOURCE_DIR}/src/ffi_response.cc
   ${CMAKE_SOURCE_DIR}/src/dson.cc
   ${CMAKE_SOURCE_DIR}/src/enums.cc
   ${CMAKE_SOURCE_DIR}/src/highlighting.cc
