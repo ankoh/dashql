@@ -2,16 +2,21 @@ use crate::proto::syntax as sx;
 
 #[derive(Debug, Clone)]
 pub enum ConstantExpression<'text> {
-    Null(u32),
-    True(u32),
-    False(u32),
-    String(u32, &'text str),
+    Null,
+    True,
+    False,
+    String(&'text str),
+}
+
+#[derive(Debug, Clone)]
+pub struct NullaryExpression {
+    pub operator: sx::ExpressionOperator,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnaryExpression<'text> {
     pub operator: sx::ExpressionOperator,
-    pub value: Box<Expression<'text>>,
+    pub arg0: Box<Expression<'text>>,
     pub postfix: bool,
 }
 
@@ -33,6 +38,7 @@ pub struct TernaryExpression<'text> {
 #[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Constant(ConstantExpression<'text>),
+    Nullary(NullaryExpression),
     Unary(UnaryExpression<'text>),
     Binary(BinaryExpression<'text>),
     Ternary(TernaryExpression<'text>),

@@ -1,13 +1,14 @@
-use super::node::Node;
+use super::node::*;
+use super::sql_nodes::*;
 use crate::proto::syntax as sx;
 
 pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
     let statements = ast.statements().unwrap_or_default();
-    let nodes = ast.nodes().unwrap_or_default();
+    let ast_nodes = ast.nodes().unwrap_or_default();
 
     // Collect children
-    let mut children: Vec<Vec<Node<'text>>> = Vec::new();
-    children.resize(nodes.len(), Vec::new());
+    let mut children: Vec<Vec<(usize, Node<'text>)>> = Vec::new();
+    children.resize(ast_nodes.len(), Vec::new());
 
     // Do a postorder dfs traversal
     let mut out: Vec<Node<'text>> = Vec::new();
@@ -17,7 +18,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
 
         while !pending.is_empty() {
             let (ti, visited) = pending.last().copied().unwrap();
-            let t = nodes[ti as usize];
+            let t = ast_nodes[ti as usize];
 
             // Not visited yet?
             // Mark as visited and push all children to the stack.
@@ -36,18 +37,76 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
             // Translate the node
             let translated = match t.node_type() {
                 sx::NodeType::NONE => Node::Null,
-                sx::NodeType::BOOL => Node::Boolean(ti, t.children_begin_or_value() != 0),
-                sx::NodeType::UI32 => Node::UInt32(ti, t.children_begin_or_value()),
-                sx::NodeType::UI32_BITMAP => Node::UInt32Bitmap(ti, t.children_begin_or_value()),
+                sx::NodeType::BOOL => Node::Boolean(t.children_begin_or_value() != 0),
+                sx::NodeType::UI32 => Node::UInt32(t.children_begin_or_value()),
+                sx::NodeType::UI32_BITMAP => Node::UInt32Bitmap(t.children_begin_or_value()),
                 sx::NodeType::STRING_REF => Node::StringRef(
-                    ti,
                     &text[(t.location().offset() as usize)
                         ..((t.location().offset() + t.location().length()) as usize)],
                 ),
                 sx::NodeType::ARRAY => {
-                    let mut c = Vec::new();
-                    std::mem::swap(&mut c, &mut children[ti as usize]);
-                    Node::Array(ti, c)
+                    let mapped: Vec<Node<'text>> =
+                        children[ti as usize].drain(..).map(|(_, n)| n).collect();
+                    Node::Array(mapped)
+                }
+                sx::NodeType::OBJECT_SQL_EXPRESSION => {
+                    let mut operator: sx::ExpressionOperator = sx::ExpressionOperator::PLUS;
+                    let mut postfix = false;
+                    let mut arity = 0;
+                    let mut arg0 = None;
+                    let mut arg1 = None;
+                    let mut arg2 = None;
+                    let as_expr = |node: Node<'text>| match node {
+                        Node::StringRef(s) => Expression::Constant(ConstantExpression::String(s)),
+                        _ => Expression::Constant(ConstantExpression::Null),
+                    };
+                    for (child_node_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_node_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (sx::AttributeKey::SQL_EXPRESSION_ARG0, n) => {
+                                arity |= 0b001;
+                                arg0 = Some(as_expr(n));
+                            }
+                            (sx::AttributeKey::SQL_EXPRESSION_ARG1, n) => {
+                                arity |= 0b010;
+                                arg1 = Some(as_expr(n));
+                            }
+                            (sx::AttributeKey::SQL_EXPRESSION_ARG2, n) => {
+                                arity |= 0b100;
+                                arg2 = Some(as_expr(n));
+                            }
+                            (
+                                sx::AttributeKey::SQL_EXPRESSION_OPERATOR,
+                                Node::ExpressionOperator(op),
+                            ) => {
+                                operator = op;
+                            }
+                            (sx::AttributeKey::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => {
+                                postfix = p;
+                            }
+                            _ => {}
+                        }
+                    }
+                    let exp = match arity {
+                        0b001 => Expression::Unary(UnaryExpression {
+                            operator,
+                            arg0: Box::new(arg0.unwrap()),
+                            postfix,
+                        }),
+                        0b011 => Expression::Binary(BinaryExpression {
+                            operator,
+                            arg0: Box::new(arg0.unwrap()),
+                            arg1: Box::new(arg1.unwrap()),
+                        }),
+                        0b111 => Expression::Ternary(TernaryExpression {
+                            operator,
+                            arg0: Box::new(arg0.unwrap()),
+                            arg1: Box::new(arg1.unwrap()),
+                            arg2: Box::new(arg2.unwrap()),
+                        }),
+                        _ => Expression::Nullary(NullaryExpression { operator }),
+                    };
+                    Node::Expression(exp)
                 }
                 _ => panic!("node translation not implemented"),
             };
@@ -59,8 +118,8 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                 out.push(translated);
             } else {
                 debug_assert!(t.parent() != u32::MAX);
-                debug_assert!((t.parent() as usize) < nodes.len());
-                children[t.parent() as usize].push(translated);
+                debug_assert!((t.parent() as usize) < ast_nodes.len());
+                children[t.parent() as usize].push((ti, translated));
             }
         }
     }
