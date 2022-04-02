@@ -20,6 +20,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
             let t = nodes[ti as usize];
 
             // Not visited yet?
+            // Mark as visited and push all children to the stack.
             if !visited {
                 pending.last_mut().unwrap().1 = true;
                 if t.node_type() == sx::NodeType::ARRAY
@@ -35,21 +36,24 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
             // Translate the node
             let translated = match t.node_type() {
                 sx::NodeType::NONE => Node::Null,
-                sx::NodeType::BOOL => Node::Boolean(t.children_begin_or_value() != 0),
-                sx::NodeType::UI32 => Node::UInt32(t.children_begin_or_value()),
-                sx::NodeType::UI32_BITMAP => Node::UInt32Bitmap(t.children_begin_or_value()),
+                sx::NodeType::BOOL => Node::Boolean(ti, t.children_begin_or_value() != 0),
+                sx::NodeType::UI32 => Node::UInt32(ti, t.children_begin_or_value()),
+                sx::NodeType::UI32_BITMAP => Node::UInt32Bitmap(ti, t.children_begin_or_value()),
                 sx::NodeType::STRING_REF => Node::StringRef(
+                    ti,
                     &text[(t.location().offset() as usize)
                         ..((t.location().offset() + t.location().length()) as usize)],
                 ),
                 sx::NodeType::ARRAY => {
                     let mut c = Vec::new();
                     std::mem::swap(&mut c, &mut children[ti as usize]);
-                    Node::Array(c)
+                    Node::Array(ti, c)
                 }
                 _ => panic!("node translation not implemented"),
             };
 
+            // Stack empty?
+            // Returned to statement root then, otherwise push as child
             pending.pop();
             if pending.is_empty() {
                 out.push(translated);
