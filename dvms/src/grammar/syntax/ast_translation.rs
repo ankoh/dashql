@@ -1,6 +1,7 @@
 use super::node::*;
 use super::sql_nodes::*;
 use crate::proto::syntax as sx;
+use sx::AttributeKey as Key;
 
 fn as_expr<'text>(node: Node<'text>) -> Expression<'text> {
     match node {
@@ -57,33 +58,27 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                     Node::Array(mapped)
                 }
                 sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
+                    let mut args = Vec::with_capacity(3);
                     let mut operator: sx::ExpressionOperator = sx::ExpressionOperator::PLUS;
-                    let mut args = Vec::new();
                     let mut postfix = false;
-                    for (child_node_id, translated) in children[ti as usize].drain(..) {
-                        let key = ast_nodes[child_node_id].attribute_key();
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (sx::AttributeKey::SQL_EXPRESSION_ARG0, n) => args.push(as_expr(n)),
-                            (sx::AttributeKey::SQL_EXPRESSION_ARG1, n) => args.push(as_expr(n)),
-                            (sx::AttributeKey::SQL_EXPRESSION_ARG2, n) => args.push(as_expr(n)),
-                            (sx::AttributeKey::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => {
-                                postfix = p
-                            }
-                            (
-                                sx::AttributeKey::SQL_EXPRESSION_OPERATOR,
-                                Node::ExpressionOperator(op),
-                            ) => {
+                            (Key::SQL_EXPRESSION_ARG0, n) => args.push(as_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG1, n) => args.push(as_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG2, n) => args.push(as_expr(n)),
+                            (Key::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => postfix = p,
+                            (Key::SQL_EXPRESSION_OPERATOR, Node::ExpressionOperator(op)) => {
                                 operator = op;
                             }
                             _ => {}
                         }
                     }
-                    let exp = Expression::NaryExpression(NaryExpression {
+                    Node::Expression(Expression::NaryExpression(NaryExpression {
                         operator,
                         args,
                         postfix,
-                    });
-                    Node::Expression(exp)
+                    }))
                 }
                 _ => panic!("node translation not implemented"),
             };
