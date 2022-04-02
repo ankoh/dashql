@@ -191,7 +191,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..25" text="select 1 > 2">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..25" text="1 > 2">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..25" text="1 > 2">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="24..25" text="2" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
@@ -1694,13 +1694,13 @@
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="109..123" text="c = main.a + 1">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="109..123" text="c = main.a + 1">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="109..110" text="c">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="109..110" text="c" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="113..123" text="main.a + 1">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="113..123" text="main.a + 1">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="113..119" text="main.a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="113..117" text="main" />
@@ -1772,8 +1772,8 @@
                             </node>
                             <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="145..190" text="c1.month =..main.month">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="145..164" text="c1.month = c2.month">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="145..190" text="c1.month =..main.month">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="145..164" text="c1.month = c2.month">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="145..153" text="c1.month">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="145..147" text="c1" />
@@ -1788,7 +1788,7 @@
                                 </node>
                                 <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="169..190" text="c2.month =..main.month">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="169..190" text="c2.month =..main.month">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="169..177" text="c2.month">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="169..171" text="c2" />
@@ -2435,7 +2435,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..46" text="select 1 o..chema.+) 2">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..46" text="1 operator..chema.+) 2">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..46" text="1 operator..chema.+) 2">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="45..46" text="2" />
                                 <node key="SQL_EXPRESSION_OPERATOR">
@@ -2466,7 +2466,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..37" text="select 1 b..en 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..37" text="1 between 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..37" text="1 between 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="30..31" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="36..37" text="3" />
@@ -2495,7 +2495,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..48" text="select 1 b..ic 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..48" text="1 between ..ic 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..48" text="1 between ..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="41..42" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="47..48" text="3" />
@@ -2524,7 +2524,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..41" text="select 1 n..en 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="1 not betw..en 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..41" text="1 not betw..en 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="34..35" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="40..41" text="3" />
@@ -2553,7 +2553,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..52" text="select 1 n..ic 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..52" text="1 not betw..ic 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..52" text="1 not betw..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="45..46" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="51..52" text="3" />
@@ -2582,7 +2582,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..47" text="select 1 b..ic 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..47" text="1 between ..ic 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..47" text="1 between ..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="40..41" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="46..47" text="3" />
@@ -2611,7 +2611,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..51" text="select 1 n..ic 0 and 3">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..51" text="1 not betw..ic 0 and 3">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..51" text="1 not betw..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="44..45" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="50..51" text="3" />
@@ -2640,7 +2640,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..60" text="select '20..zone 'mst'">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..60" text="'2001-02-1..zone 'mst'">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..60" text="'2001-02-1..zone 'mst'">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..41" text="'2001-02-1.. 20:38:40'" />
                                 <node key="SQL_EXPRESSION_ARG1" loc="55..60" text="'mst'" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="AT_TIMEZONE" />
@@ -2668,7 +2668,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..30" text="select 1::integer">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..30" text="1::integer">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..30" text="1::integer">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="23..30" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" value="INT4" />
@@ -2698,7 +2698,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..33" text="select 1 c..ollate foo">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..33" text="1 collate foo">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..33" text="1 collate foo">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
                                 <node key="SQL_EXPRESSION_ARG1">
                                     <node loc="30..33" text="foo" />
@@ -2728,7 +2728,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..106" text="select (da..21-02-10')">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..106" text="(date '202..21-02-10')">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..106" text="(date '202..21-02-10')">
                                 <node key="SQL_EXPRESSION_ARG0">
                                     <node type="OBJECT_SQL_CONST_CAST" loc="21..38" text="date '2021-01-10'">
                                         <node key="SQL_CONST_CAST_FUNC_NAME">
@@ -2786,7 +2786,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..40" text="select a i..nct from b">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..40" text="a is disti..nct from b">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..40" text="a is disti..nct from b">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -2822,7 +2822,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..44" text="select a i..nct from b">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..44" text="a is not d..nct from b">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..44" text="a is not d..nct from b">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -2858,7 +2858,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..37" text="select a i.. (integer)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..37" text="a is of (integer)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..37" text="a is of (integer)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -2894,7 +2894,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..41" text="select a i.. (integer)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="a is not o.. (integer)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..41" text="a is not o.. (integer)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3233,7 +3233,7 @@
                                 <node key="SQL_FUNCTION_ARGUMENTS">
                                     <node loc="29..30" text="1" />
                                 </node>
-                                <node key="SQL_FUNCTION_FILTER" type="OBJECT_SQL_EXPRESSION" loc="46..51" text="a = b">
+                                <node key="SQL_FUNCTION_FILTER" type="OBJECT_SQL_NARY_EXPRESSION" loc="46..51" text="a = b">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="46..47" text="a">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="46..47" text="a" />
@@ -3407,7 +3407,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..35" text="select a i..(select 1)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..35" text="a in (select 1)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..35" text="a in (select 1)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3443,7 +3443,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..31" text="select a in (2, 3)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..31" text="a in (2, 3)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..31" text="a in (2, 3)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3478,7 +3478,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..41" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="a like all..(select 1)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..41" text="a like all..(select 1)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3517,7 +3517,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..41" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="a like any..(select 1)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..41" text="a like any..(select 1)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3556,7 +3556,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..42" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..42" text="a like som..(select 1)">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..42" text="a like som..(select 1)">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3595,7 +3595,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..44" text="select a l..oo('bar'))">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_EXPRESSION" loc="20..44" text="a like som..oo('bar'))">
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="20..44" text="a like som..oo('bar'))">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="20..21" text="a" />
@@ -3637,7 +3637,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..37" text="somefunc(default)">
                                 <node key="SQL_FUNCTION_ARGUMENTS">
-                                    <node type="OBJECT_SQL_EXPRESSION" loc="29..36" text="default">
+                                    <node type="OBJECT_SQL_NARY_EXPRESSION" loc="29..36" text="default">
                                         <node key="SQL_EXPRESSION_OPERATOR" value="DEFAULT" />
                                     </node>
                                 </node>
@@ -5083,7 +5083,7 @@
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="70..82" text="tbl.i=tbl2.i">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="70..82" text="tbl.i=tbl2.i">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="70..75" text="tbl.i">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="70..73" text="tbl" />
@@ -5137,7 +5137,7 @@
                             <node key="SQL_SAMPLE_FUNCTION" loc="69..78" text="RESERVOIR" />
                             <node key="SQL_SAMPLE_COUNT" loc="79..81" text="20" />
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="43..55" text="tbl.i=tbl2.i">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="43..55" text="tbl.i=tbl2.i">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="43..48" text="tbl.i">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="43..46" text="tbl" />
@@ -5176,7 +5176,7 @@
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..50" text="a INNER JO..b ON c = d">
                                 <node key="SQL_JOIN_TYPE" value="INNER" />
-                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="45..50" text="c = d">
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="45..50" text="c = d">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="45..46" text="c">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="45..46" text="c" />
@@ -5229,7 +5229,7 @@
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..44" text="a JOIN b ON c = d">
                                 <node key="SQL_JOIN_TYPE" value="INNER" />
-                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="39..44" text="c = d">
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="39..44" text="c = d">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="39..40" text="c">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="39..40" text="c" />
@@ -5398,7 +5398,7 @@
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..50" text="a RIGHT JO..b ON c = d">
                                 <node key="SQL_JOIN_TYPE" value="RIGHT" />
-                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="45..50" text="c = d">
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="45..50" text="c = d">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="45..46" text="c">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="45..46" text="c" />
@@ -5451,7 +5451,7 @@
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..55" text="a FULL OUT..b ON c = d">
                                 <node key="SQL_JOIN_TYPE" value="OUTER_FULL" />
-                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="50..55" text="c = d">
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="50..55" text="c = d">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="50..51" text="c">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="50..51" text="c" />
@@ -5563,7 +5563,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="62..64" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="71..79" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="71..79" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="71..75" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="71..75" text="col1" />
@@ -5611,7 +5611,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="69..71" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="78..86" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="78..86" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="78..82" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="78..82" text="col1" />
@@ -5659,7 +5659,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="61..63" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="70..78" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="70..78" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="70..74" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="70..74" text="col1" />
@@ -5707,7 +5707,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="65..67" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="74..82" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="74..82" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="74..78" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="74..78" text="col1" />
@@ -5755,7 +5755,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="65..67" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="74..82" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="74..82" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="74..78" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="74..78" text="col1" />
@@ -5808,7 +5808,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="69..71" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="78..86" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="78..86" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="78..82" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="78..82" text="col1" />
@@ -5862,7 +5862,7 @@
                                 <node key="SQL_TABLE_ALIAS" loc="76..78" text="ss" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="85..93" text="col1 = 5">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="85..93" text="col1 = 5">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="85..89" text="col1">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="85..89" text="col1" />

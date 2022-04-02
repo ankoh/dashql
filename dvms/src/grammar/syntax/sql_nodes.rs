@@ -28,20 +28,16 @@ pub struct BinaryExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TernaryExpression<'text> {
+pub struct NaryExpression<'text> {
     pub operator: sx::ExpressionOperator,
-    pub arg0: Box<Expression<'text>>,
-    pub arg1: Box<Expression<'text>>,
-    pub arg2: Box<Expression<'text>>,
+    pub args: Vec<Expression<'text>>,
+    pub postfix: bool,
 }
 
 #[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Constant(ConstantExpression<'text>),
-    Nullary(NullaryExpression),
-    Unary(UnaryExpression<'text>),
-    Binary(BinaryExpression<'text>),
-    Ternary(TernaryExpression<'text>),
+    NaryExpression(NaryExpression<'text>),
 }
 
 #[derive(Debug, Clone)]

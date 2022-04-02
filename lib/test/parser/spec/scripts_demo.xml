@@ -409,8 +409,8 @@
                                     </node>
                                 </node>
                             </node>
-                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="582..669" text="studenten...gen.VorlNr">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="582..614" text="studenten...ren.MatrNr">
+                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="582..669" text="studenten...gen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="582..614" text="studenten...ren.MatrNr">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="582..598" text="studenten.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="582..591" text="studenten" />
@@ -425,7 +425,7 @@
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="635..669" text="hoeren.Vor..gen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="635..669" text="hoeren.Vor..gen.VorlNr">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="635..648" text="hoeren.VorlNr">
                                         <node key="SQL_COLUMN_REF_PATH">
                                             <node loc="635..641" text="hoeren" />
@@ -487,7 +487,7 @@
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="782..812" text="count(*)::.. studenten">
                                     <node key="SQL_RESULT_TARGET_NAME" loc="803..812" text="studenten" />
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_EXPRESSION" loc="782..799" text="count(*)::INTEGER">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="782..799" text="count(*)::INTEGER">
                                         <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="782..790" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS">
                                                 <node loc="788..789" text="*" />
@@ -501,7 +501,7 @@
                                     </node>
                                 </node>
                             </node>
-                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="880..899" text="h.vorlnr = v.vorlnr">
+                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="880..899" text="h.vorlnr = v.vorlnr">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="880..888" text="h.vorlnr">
                                     <node key="SQL_COLUMN_REF_PATH">
                                         <node loc="880..881" text="h" />
@@ -553,7 +553,7 @@
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="1044..1068" text="count(*)::..GER as cnt">
                                     <node key="SQL_RESULT_TARGET_NAME" loc="1065..1068" text="cnt" />
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_EXPRESSION" loc="1044..1061" text="count(*)::INTEGER">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="1044..1061" text="count(*)::INTEGER">
                                         <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1044..1052" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS">
                                                 <node loc="1050..1051" text="*" />
