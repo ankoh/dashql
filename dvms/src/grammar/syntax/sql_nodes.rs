@@ -9,13 +9,11 @@ pub enum NamePathElement<'text> {
 
 #[derive(Debug, Clone)]
 pub struct NamePath<'text> {
-    pub node_id: usize,
     pub elements: Vec<NamePathElement<'text>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct NaryExpression<'text> {
-    pub node_id: usize,
     pub operator: sx::ExpressionOperator,
     pub args: Vec<Expression<'text>>,
     pub postfix: bool,
@@ -23,7 +21,6 @@ pub struct NaryExpression<'text> {
 
 #[derive(Debug, Clone)]
 pub struct CastExpression<'text> {
-    pub node_id: usize,
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text>>,
     pub func_args: Vec<Expression<'text>>,

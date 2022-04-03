@@ -75,7 +75,6 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         }
                     }
                     Node::Expression(Expression::Nary(NaryExpression {
-                        node_id: ti,
                         operator,
                         args,
                         postfix,
@@ -98,7 +97,6 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         }
                     }
                     Node::Expression(Expression::Cast(CastExpression {
-                        node_id: ti,
                         cast_type: cast_type.unwrap_or_default(),
                         func_name,
                         func_args,
