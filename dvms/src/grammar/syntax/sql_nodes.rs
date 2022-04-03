@@ -9,25 +9,6 @@ pub enum ConstantExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct NullaryExpression {
-    pub operator: sx::ExpressionOperator,
-}
-
-#[derive(Debug, Clone)]
-pub struct UnaryExpression<'text> {
-    pub operator: sx::ExpressionOperator,
-    pub arg0: Box<Expression<'text>>,
-    pub postfix: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct BinaryExpression<'text> {
-    pub operator: sx::ExpressionOperator,
-    pub arg0: Box<Expression<'text>>,
-    pub arg1: Box<Expression<'text>>,
-}
-
-#[derive(Debug, Clone)]
 pub struct NaryExpression<'text> {
     pub operator: sx::ExpressionOperator,
     pub args: Vec<Expression<'text>>,
@@ -35,9 +16,17 @@ pub struct NaryExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub struct CastExpression<'text> {
+    pub cast_type: &'text str,
+    pub value: &'text str,
+    pub args: Vec<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Constant(ConstantExpression<'text>),
-    NaryExpression(NaryExpression<'text>),
+    Nary(NaryExpression<'text>),
+    Cast(CastExpression<'text>),
 }
 
 #[derive(Debug, Clone)]

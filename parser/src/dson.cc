@@ -177,9 +177,9 @@ sx::Node ParserDriver::AddDSONField(sx::Location loc, std::vector<sx::Location>&
 
     // Expand key path
     auto iter = keys.rbegin() + (keys.size() - key_path.size());
-    auto prev = *iter << value;
+    auto prev = Attr(*iter, value);
     for (++iter; iter != keys.rend(); ++iter) {
-        prev = *iter << AddObject(loc, sx::NodeType::OBJECT_DSON, {&prev, 1}, true, false);
+        prev = Attr(*iter, AddObject(loc, sx::NodeType::OBJECT_DSON, {&prev, 1}, true, false));
     }
     return prev;
 }

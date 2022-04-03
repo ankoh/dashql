@@ -25,23 +25,23 @@ sx::Node QualifiedName(ParserDriver& driver, sx::Location loc, std::vector<sx::N
     // clang-format off
     auto maybe_indirection = (first_indirection == -1)
         ? Null()
-        : (Key::SQL_QUALIFIED_NAME_INDEX << std::move(nodes[first_indirection]));
+        : (Attr(Key::SQL_QUALIFIED_NAME_INDEX, std::move(nodes[first_indirection])));
     switch (name_length) {
         case 0: return Null();
         case 1: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
-            Key::SQL_QUALIFIED_NAME_RELATION << std::move(nodes[0]),
+            Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[0])),
         });
         case 2: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
-            Key::SQL_QUALIFIED_NAME_SCHEMA << std::move(nodes[0]),
-            Key::SQL_QUALIFIED_NAME_RELATION << std::move(nodes[1]),
+            Attr(Key::SQL_QUALIFIED_NAME_SCHEMA, std::move(nodes[0])),
+            Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[1])),
         });
         default: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
-            Key::SQL_QUALIFIED_NAME_CATALOG << std::move(nodes[0]),
-            Key::SQL_QUALIFIED_NAME_RELATION << std::move(nodes[3]),
-            Key::SQL_QUALIFIED_NAME_SCHEMA << std::move(nodes[2]),
+            Attr(Key::SQL_QUALIFIED_NAME_CATALOG, std::move(nodes[0])),
+            Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[3])),
+            Attr(Key::SQL_QUALIFIED_NAME_SCHEMA, std::move(nodes[2])),
         });
     }
     // clang-format on

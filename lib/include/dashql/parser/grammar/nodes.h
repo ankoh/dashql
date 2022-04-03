@@ -13,6 +13,54 @@
 namespace dashql {
 namespace parser {
 
+/// Helper to configure an attribute node
+inline sx::Node Attr(sx::AttributeKey key, sx::Node node) {
+    return sx::Node(node.location(), node.node_type(), static_cast<uint16_t>(key), node.parent(),
+                    node.children_begin_or_value(), node.children_count());
+}
+/// Helper to configure an attribute node
+inline sx::Node Attr(uint16_t key, sx::Node node) {
+    return sx::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
+                    node.children_count());
+}
+/// Helper to append a node to a node vector
+inline NodeVector& Attr(NodeVector& attrs, sx::Node node) {
+    attrs.push_back(node);
+    return attrs;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& l, NodeVector&& r) {
+    for (auto& node : r) {
+        l.push_back(node);
+    }
+    return l;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
+    v0.reserve(v0.size() + v1.size() + v2.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    return v0;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3) {
+    v0.reserve(v0.size() + v1.size() + v2.size() + v3.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    for (auto& n : v3) {
+        v0.push_back(n);
+    }
+    return v0;
+}
+
 /// Create a null node
 inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, 0, NO_PARENT, 0, 0); }
 /// Create a string node

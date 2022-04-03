@@ -1,17 +1,17 @@
 sql_create_as_stmt:
     CREATE_P sql_opt_temp TABLE sql_create_as_target AS sql_select_stmt sql_opt_with_data {
-        $$ = concat(std::move($4), {
-            Key::SQL_CREATE_AS_TEMP << Enum(@2, $2),
-            Key::SQL_CREATE_AS_STATEMENT << ctx.Add(@6, sx::NodeType::OBJECT_SQL_SELECT, move($6)),
-            Key::SQL_CREATE_AS_WITH_DATA << $7
+        $$ = Concat(std::move($4), {
+            Attr(Key::SQL_CREATE_AS_TEMP, Enum(@2, $2)),
+            Attr(Key::SQL_CREATE_AS_STATEMENT, ctx.Add(@6, sx::NodeType::OBJECT_SQL_SELECT, move($6))),
+            Attr(Key::SQL_CREATE_AS_WITH_DATA, $7),
         });
     }
   | CREATE_P sql_opt_temp TABLE IF_P NOT EXISTS sql_create_as_target AS sql_select_stmt sql_opt_with_data {
-        $$ = concat(std::move($7), {
-            Key::SQL_CREATE_AS_IF_NOT_EXISTS << Bool(Loc({@4, @5, @6}), true),
-            Key::SQL_CREATE_AS_TEMP << Enum(@2, $2),
-            Key::SQL_CREATE_AS_STATEMENT << ctx.Add(@9, sx::NodeType::OBJECT_SQL_SELECT, move($9)),
-            Key::SQL_CREATE_AS_WITH_DATA << $10,
+        $$ = Concat(std::move($7), {
+            Attr(Key::SQL_CREATE_AS_IF_NOT_EXISTS, Bool(Loc({@4, @5, @6}), true)),
+            Attr(Key::SQL_CREATE_AS_TEMP, Enum(@2, $2)),
+            Attr(Key::SQL_CREATE_AS_STATEMENT, ctx.Add(@9, sx::NodeType::OBJECT_SQL_SELECT, move($9))),
+            Attr(Key::SQL_CREATE_AS_WITH_DATA, $10),
         });
     }
     ;
@@ -19,9 +19,9 @@ sql_create_as_stmt:
 sql_create_as_target:
     sql_qualified_name sql_opt_column_list sql_opt_with sql_on_commit_option {
         $$ = {
-            Key::SQL_CREATE_AS_NAME << std::move($1),
-            Key::SQL_CREATE_AS_COLUMNS << ctx.Add(@2, move($2)),
-            Key::SQL_CREATE_AS_ON_COMMIT << Enum(@4, $4)
+            Attr(Key::SQL_CREATE_AS_NAME, std::move($1)),
+            Attr(Key::SQL_CREATE_AS_COLUMNS, ctx.Add(@2, move($2))),
+            Attr(Key::SQL_CREATE_AS_ON_COMMIT, Enum(@4, $4))
         };
     }
     ;
@@ -29,10 +29,10 @@ sql_create_as_target:
 sql_create_stmt:
     CREATE_P sql_opt_temp TABLE sql_qualified_name '(' sql_opt_table_element_list ')' sql_on_commit_option {
         $$ = {
-            Key::SQL_CREATE_TABLE_TEMP << Enum(@2, $2),
-            Key::SQL_CREATE_TABLE_NAME << std::move($4),
-            Key::SQL_CREATE_TABLE_ELEMENTS << ctx.Add(Loc({@5, @6, @7}), std::move($6)),
-            Key::SQL_CREATE_TABLE_ON_COMMIT << Enum(@8, $8),
+            Attr(Key::SQL_CREATE_TABLE_TEMP, Enum(@2, $2)),
+            Attr(Key::SQL_CREATE_TABLE_NAME, std::move($4)),
+            Attr(Key::SQL_CREATE_TABLE_ELEMENTS, ctx.Add(Loc({@5, @6, @7}), std::move($6))),
+            Attr(Key::SQL_CREATE_TABLE_ON_COMMIT, Enum(@8, $8)),
         };
     }
     ;
@@ -54,10 +54,10 @@ sql_table_element:
 sql_column_def:
     sql_col_id sql_typename sql_create_generic_options sql_col_qual_list {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_DEF, {
-            Key::SQL_COLUMN_DEF_NAME << String(@1),
-            Key::SQL_COLUMN_DEF_TYPE << std::move($2),
-            Key::SQL_COLUMN_DEF_OPTIONS << std::move($3),
-            Key::SQL_COLUMN_DEF_CONSTRAINTS << ctx.Add(@4, std::move($4))
+            Attr(Key::SQL_COLUMN_DEF_NAME, String(@1)),
+            Attr(Key::SQL_COLUMN_DEF_TYPE, std::move($2)),
+            Attr(Key::SQL_COLUMN_DEF_OPTIONS, std::move($3)),
+            Attr(Key::SQL_COLUMN_DEF_CONSTRAINTS, ctx.Add(@4, std::move($4)))
         });
     }
     ;
@@ -69,14 +69,14 @@ sql_col_qual_list:
 
 sql_col_constraint:
     CONSTRAINT sql_name sql_col_constraint_elem {
-        $3.push_back(Key::SQL_COLUMN_CONSTRAINT_NAME << String(@2));
+        $3.push_back(Attr(Key::SQL_COLUMN_CONSTRAINT_NAME, String(@2)));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($3));
     }
   | sql_col_constraint_elem { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($1)); }
   | sql_constraint_attr     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, { std::move($1) }); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
-        Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::COLLATE),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << String(@2),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::COLLATE)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, String(@2)),
     });
   }
     ;
@@ -103,8 +103,8 @@ sql_def_list:
 sql_def_elem:
     sql_col_label '=' sql_def_arg {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_DEF_ARG, {
-            Key::SQL_DEFINITION_ARG_KEY << std::move(String(@1)),
-            Key::SQL_DEFINITION_ARG_VALUE << std::move(std::move($3)),
+            Attr(Key::SQL_DEFINITION_ARG_KEY, std::move(String(@1))),
+            Attr(Key::SQL_DEFINITION_ARG_VALUE, std::move(std::move($3))),
         });
     }
     ;
@@ -138,27 +138,27 @@ sql_func_type:
 
 // XXX omitted identity and foreign
 sql_col_constraint_elem:
-    NOT NULL_P                { $$ = { Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::NOT_NULL) }; }
-  | NULL_P                    { $$ = { Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::NULL_) }; }
+    NOT NULL_P                { $$ = { Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::NOT_NULL)) }; }
+  | NULL_P                    { $$ = { Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::NULL_)) }; }
   | UNIQUE sql_opt_definition { $$ = {
-        Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::UNIQUE),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << ctx.Add(@2, std::move($2)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::UNIQUE)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@2, std::move($2))),
     };
   }
   | PRIMARY KEY sql_opt_definition { $$ = {
-        Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::PRIMARY_KEY),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << ctx.Add(@3, std::move($3)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::PRIMARY_KEY)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@3, std::move($3))),
     };
   }
   | CHECK_P '(' sql_a_expr ')' sql_opt_no_inherit { $$ = {
-        Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::CHECK),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << std::move($3),
-        Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT << std::move($5),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::CHECK)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, std::move($3)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, std::move($5)),
     };
   }
   | DEFAULT sql_b_expr { $$ = {
-        Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::DEFAULT),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << std::move($2),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::DEFAULT)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, std::move($2)),
     };
   }
     ;
@@ -181,8 +181,8 @@ sql_generic_option_list:
 sql_generic_option_elem:
     sql_col_label SCONST {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GENERIC_OPTION, {
-            Key::SQL_GENERIC_OPTION_KEY << String(@1),
-            Key::SQL_GENERIC_OPTION_VALUE << String(@2),
+            Attr(Key::SQL_GENERIC_OPTION_KEY, String(@1)),
+            Attr(Key::SQL_GENERIC_OPTION_VALUE, String(@2)),
         });
     }
     ;

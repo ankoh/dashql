@@ -16,65 +16,6 @@
 namespace dashql {
 namespace parser {
 
-/// Printing locations
-std::ostream& operator<<(std::ostream& out, const Location& loc) {
-    out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
-    return out;
-}
-
-/// Syntactic sugar to set the key of a node
-sx::Node operator<<(uint16_t key, const sx::Node& node) {
-    return sx::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
-                    node.children_count());
-}
-
-/// Syntactic sugar to set the key of a node
-sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
-    return sx::Node(node.location(), node.node_type(), static_cast<uint16_t>(key), node.parent(),
-                    node.children_begin_or_value(), node.children_count());
-}
-
-/// Syntactic sugar concatenate vectors
-NodeVector& operator<<(NodeVector& attrs, const sx::Node& node) {
-    attrs.push_back(node);
-    return attrs;
-}
-
-/// Concatenate 2 vectors
-NodeVector concat(NodeVector&& l, NodeVector&& r) {
-    for (auto& node : r) {
-        l.push_back(node);
-    }
-    return l;
-}
-
-/// Concatenate 3 vectors
-NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
-    v0.reserve(v0.size() + v1.size() + v2.size());
-    for (auto& n : v1) {
-        v0.push_back(n);
-    }
-    for (auto& n : v2) {
-        v0.push_back(n);
-    }
-    return v0;
-}
-
-/// Concatenate 4 vectors
-NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3) {
-    v0.reserve(v0.size() + v1.size() + v2.size() + v3.size());
-    for (auto& n : v1) {
-        v0.push_back(n);
-    }
-    for (auto& n : v2) {
-        v0.push_back(n);
-    }
-    for (auto& n : v3) {
-        v0.push_back(n);
-    }
-    return v0;
-}
-
 /// Constructor
 Statement::Statement() : root() {}
 

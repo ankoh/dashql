@@ -28,20 +28,10 @@ using Key = sx::AttributeKey;
 using Location = sx::Location;
 using NodeVector = std::vector<sx::Node>;
 
-/// Helper to print the location
-std::ostream& operator<<(std::ostream& out, const sx::Location& loc);
-/// Helper to configure an attribute node
-sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
-/// Helper to configure an attribute node
-sx::Node operator<<(uint16_t key, const sx::Node& node);
-/// Helper to append a node to a node vector
-NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
-/// Helper to concatenate node vectors
-NodeVector concat(NodeVector&& l, NodeVector&& r);
-/// Helper to concatenate node vectors
-NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2);
-/// Helper to concatenate node vectors
-NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3);
+inline std::ostream& operator<<(std::ostream& out, const sx::Location& loc) {
+    out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
+    return out;
+}
 
 using NodeID = uint32_t;
 

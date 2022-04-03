@@ -13,6 +13,54 @@
 namespace dashql {
 namespace parser {
 
+/// Helper to configure an attribute node
+inline sx::Node Attr(sx::AttributeKey key, sx::Node node) {
+    return sx::Node(node.location(), node.node_type(), static_cast<uint16_t>(key), node.parent(),
+                    node.children_begin_or_value(), node.children_count());
+}
+/// Helper to configure an attribute node
+inline sx::Node Attr(uint16_t key, sx::Node node) {
+    return sx::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
+                    node.children_count());
+}
+/// Helper to append a node to a node vector
+inline NodeVector& Attr(NodeVector& attrs, sx::Node node) {
+    attrs.push_back(node);
+    return attrs;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& l, NodeVector&& r) {
+    for (auto& node : r) {
+        l.push_back(node);
+    }
+    return l;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
+    v0.reserve(v0.size() + v1.size() + v2.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    return v0;
+}
+/// Helper to concatenate node vectors
+inline NodeVector Concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3) {
+    v0.reserve(v0.size() + v1.size() + v2.size() + v3.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    for (auto& n : v3) {
+        v0.push_back(n);
+    }
+    return v0;
+}
+
 /// Create a null node
 inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, 0, NO_PARENT, 0, 0); }
 /// Create a string node
@@ -39,7 +87,7 @@ inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType /*t
 inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Node index) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                       {
-                          Key::SQL_INDIRECTION_INDEX_VALUE << index,
+                          Attr(Key::SQL_INDIRECTION_INDEX_VALUE, index),
                       });
 }
 
@@ -47,8 +95,8 @@ inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Nod
 inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                       {
-                          Key::SQL_INDIRECTION_INDEX_LOWER_BOUND << lower_bound,
-                          Key::SQL_INDIRECTION_INDEX_UPPER_BOUND << upper_bound,
+                          Attr(Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, lower_bound),
+                          Attr(Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, upper_bound),
                       });
 }
 
@@ -56,8 +104,8 @@ inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Nod
 inline sx::Node Into(ParserDriver& driver, sx::Location loc, sx::Node type, sx::Node name) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INTO,
                       {
-                          Key::SQL_TEMP_TYPE << type,
-                          Key::SQL_TEMP_NAME << name,
+                          Attr(Key::SQL_TEMP_TYPE, type),
+                          Attr(Key::SQL_TEMP_NAME, name),
                       });
 }
 
@@ -65,21 +113,21 @@ inline sx::Node Into(ParserDriver& driver, sx::Location loc, sx::Node type, sx::
 inline sx::Node ColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& path) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_COLUMN_REF,
                       {
-                          Key::SQL_COLUMN_REF_PATH << driver.Add(loc, move(path)),
+                          Attr(Key::SQL_COLUMN_REF_PATH, driver.Add(loc, move(path))),
                       });
 }
 
 /// Add an expression without arguments
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION, {Key::SQL_EXPRESSION_OPERATOR << func});
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION, {Attr(Key::SQL_EXPRESSION_OPERATOR, func)});
 }
 
 /// Add an unary expression
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_OPERATOR << func,
-                          Key::SQL_EXPRESSION_ARG0 << arg,
+                          Attr(Key::SQL_EXPRESSION_OPERATOR, func),
+                          Attr(Key::SQL_EXPRESSION_ARG0, arg),
                       });
 }
 
@@ -89,9 +137,9 @@ enum PostFixTag { PostFix };
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg, PostFixTag) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_OPERATOR << func,
-                          Key::SQL_EXPRESSION_POSTFIX << Bool(loc, true),
-                          Key::SQL_EXPRESSION_ARG0 << arg,
+                          Attr(Key::SQL_EXPRESSION_OPERATOR, func),
+                          Attr(Key::SQL_EXPRESSION_POSTFIX, Bool(loc, true)),
+                          Attr(Key::SQL_EXPRESSION_ARG0, arg),
                       });
 }
 
@@ -99,9 +147,9 @@ inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_OPERATOR << func,
-                          Key::SQL_EXPRESSION_ARG0 << left,
-                          Key::SQL_EXPRESSION_ARG1 << right,
+                          Attr(Key::SQL_EXPRESSION_OPERATOR, func),
+                          Attr(Key::SQL_EXPRESSION_ARG0, left),
+                          Attr(Key::SQL_EXPRESSION_ARG1, right),
                       });
 }
 
@@ -110,10 +158,10 @@ inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::
                      sx::Node arg2) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_OPERATOR << func,
-                          Key::SQL_EXPRESSION_ARG0 << arg0,
-                          Key::SQL_EXPRESSION_ARG1 << arg1,
-                          Key::SQL_EXPRESSION_ARG2 << arg2,
+                          Attr(Key::SQL_EXPRESSION_OPERATOR, func),
+                          Attr(Key::SQL_EXPRESSION_ARG0, arg0),
+                          Attr(Key::SQL_EXPRESSION_ARG1, arg1),
+                          Attr(Key::SQL_EXPRESSION_ARG2, arg2),
                       });
 }
 
@@ -124,8 +172,8 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
     // Otherwise fall back to an unary negation
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_NARY_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_OPERATOR << Enum(loc_minus, sx::ExpressionOperator::NEGATE),
-                          Key::SQL_EXPRESSION_ARG0 << value,
+                          Attr(Key::SQL_EXPRESSION_OPERATOR, Enum(loc_minus, sx::ExpressionOperator::NEGATE)),
+                          Attr(Key::SQL_EXPRESSION_ARG0, value),
                       });
 }
 
