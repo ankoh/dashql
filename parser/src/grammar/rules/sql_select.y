@@ -1998,8 +1998,8 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id                      { $$ = QualifiedName(ctx, @$, { String(@1) }); };
-  | sql_col_id sql_indirection      { $2.insert($2.begin(), String(@1)); $$ = QualifiedName(ctx, @$, move($2)); };
+    sql_col_id                      { $$ = ctx.Add(@$, { String(@1) }); };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), String(@1)); $$ = ctx.Add(@$, move($2)); };
     ;
 
 sql_name_list:

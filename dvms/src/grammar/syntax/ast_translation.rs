@@ -82,7 +82,8 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                 }
                 sx::NodeType::OBJECT_SQL_CONST_CAST => {
                     let mut cast_type = None;
-                    let mut args = Vec::new();
+                    let mut func_name = None;
+                    let mut func_args = Vec::new();
                     let mut value = None;
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
@@ -90,15 +91,16 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             (Key::SQL_CONST_CAST_TYPE, Node::StringRef(t)) => cast_type = Some(t),
                             (Key::SQL_CONST_CAST_VALUE, Node::StringRef(t)) => value = Some(t),
                             (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(mut nodes)) => {
-                                args = nodes.drain(..).map(|n| as_expr(n)).collect();
+                                func_args = nodes.drain(..).map(|n| as_expr(n)).collect();
                             }
                             _ => {}
                         }
                     }
                     Node::Expression(Expression::Cast(CastExpression {
                         cast_type: cast_type.unwrap_or_default(),
+                        func_name,
+                        func_args,
                         value: value.unwrap_or_default(),
-                        args,
                     }))
                 }
                 _ => panic!("node translation not implemented"),
