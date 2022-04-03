@@ -5,8 +5,8 @@ use sx::AttributeKey as Key;
 
 fn as_expr<'text>(node: Node<'text>) -> Expression<'text> {
     match node {
-        Node::StringRef(s) => Expression::Constant(ConstantExpression::String(s)),
-        _ => Expression::Constant(ConstantExpression::Null),
+        Node::StringRef(s) => Expression::StringRef(s),
+        _ => Expression::Null,
     }
 }
 
@@ -75,6 +75,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         }
                     }
                     Node::Expression(Expression::Nary(NaryExpression {
+                        node_id: ti,
                         operator,
                         args,
                         postfix,
@@ -97,6 +98,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         }
                     }
                     Node::Expression(Expression::Cast(CastExpression {
+                        node_id: ti,
                         cast_type: cast_type.unwrap_or_default(),
                         func_name,
                         func_args,

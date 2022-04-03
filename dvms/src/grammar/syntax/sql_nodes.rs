@@ -2,37 +2,20 @@ use crate::proto::syntax as sx;
 
 #[derive(Debug, Clone)]
 pub enum NamePathElement<'text> {
-    Component {
-        node_id: u32,
-        value: &'text str,
-    },
-    IndirectionIndex {
-        node_id: u32,
-        value: Box<Expression<'text>>,
-    },
-    IndirectionBounds {
-        node_id: u32,
-        lower_bound: Box<Expression<'text>>,
-        upper_bound: Box<Expression<'text>>,
-    },
+    Component(&'text str),
+    IndirectionIndex(Box<Expression<'text>>),
+    IndirectionBounds(Box<Expression<'text>>, Box<Expression<'text>>),
 }
 
 #[derive(Debug, Clone)]
 pub struct NamePath<'text> {
-    node_id: u32,
-    elements: Vec<NamePathElement<'text>>,
-}
-
-#[derive(Debug, Clone)]
-pub enum ConstantExpression<'text> {
-    Null,
-    True,
-    False,
-    String(&'text str),
+    pub node_id: usize,
+    pub elements: Vec<NamePathElement<'text>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct NaryExpression<'text> {
+    pub node_id: usize,
     pub operator: sx::ExpressionOperator,
     pub args: Vec<Expression<'text>>,
     pub postfix: bool,
@@ -40,6 +23,7 @@ pub struct NaryExpression<'text> {
 
 #[derive(Debug, Clone)]
 pub struct CastExpression<'text> {
+    pub node_id: usize,
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text>>,
     pub func_args: Vec<Expression<'text>>,
@@ -48,7 +32,10 @@ pub struct CastExpression<'text> {
 
 #[derive(Debug, Clone)]
 pub enum Expression<'text> {
-    Constant(ConstantExpression<'text>),
+    Null,
+    True,
+    False,
+    StringRef(&'text str),
     Nary(NaryExpression<'text>),
     Cast(CastExpression<'text>),
 }
