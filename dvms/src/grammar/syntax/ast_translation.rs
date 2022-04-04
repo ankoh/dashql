@@ -3,11 +3,24 @@ use super::sql_nodes::*;
 use crate::proto::syntax as sx;
 use sx::AttributeKey as Key;
 
-fn as_expr<'text>(node: Node<'text>) -> Expression<'text> {
+fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {
     match node {
         Node::StringRef(s) => Expression::StringRef(s),
         _ => Expression::Null,
     }
+}
+
+fn read_name<'text>(mut elements: Vec<Node<'text>>) -> NamePath<'text> {
+    let mut path = Vec::new();
+    for e in elements.drain(..) {
+        match e {
+            Node::StringRef(s) => path.push(NamePathElement::Component(s)),
+            Node::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
+            Node::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
+            _ => continue,
+        }
+    }
+    NamePath { elements: path }
 }
 
 pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
@@ -64,9 +77,9 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_EXPRESSION_ARG0, n) => args.push(as_expr(n)),
-                            (Key::SQL_EXPRESSION_ARG1, n) => args.push(as_expr(n)),
-                            (Key::SQL_EXPRESSION_ARG2, n) => args.push(as_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG0, n) => args.push(read_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG1, n) => args.push(read_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG2, n) => args.push(read_expr(n)),
                             (Key::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => postfix = p,
                             (Key::SQL_EXPRESSION_OPERATOR, Node::ExpressionOperator(op)) => {
                                 operator = op;
@@ -90,8 +103,11 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         match (sx::AttributeKey(key), translated) {
                             (Key::SQL_CONST_CAST_TYPE, Node::StringRef(t)) => cast_type = Some(t),
                             (Key::SQL_CONST_CAST_VALUE, Node::StringRef(t)) => value = Some(t),
+                            (Key::SQL_CONST_CAST_FUNC_NAME, Node::Array(n)) => {
+                                func_name = Some(read_name(n));
+                            }
                             (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(mut nodes)) => {
-                                func_args = nodes.drain(..).map(|n| as_expr(n)).collect();
+                                func_args = nodes.drain(..).map(|n| read_expr(n)).collect();
                             }
                             _ => {}
                         }

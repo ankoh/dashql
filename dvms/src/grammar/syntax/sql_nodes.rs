@@ -1,10 +1,21 @@
 use crate::proto::syntax as sx;
 
 #[derive(Debug, Clone)]
+pub struct IndirectionIndex<'text> {
+    pub value: Box<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IndirectionBounds<'text> {
+    pub lower_bound: Box<Expression<'text>>,
+    pub upper_bound: Box<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum NamePathElement<'text> {
     Component(&'text str),
-    IndirectionIndex(Box<Expression<'text>>),
-    IndirectionBounds(Box<Expression<'text>>, Box<Expression<'text>>),
+    IndirectionIndex(IndirectionIndex<'text>),
+    IndirectionBounds(IndirectionBounds<'text>),
 }
 
 #[derive(Debug, Clone)]

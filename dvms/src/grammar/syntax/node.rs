@@ -44,4 +44,6 @@ pub enum Node<'text> {
     WindowRangeMode(sx::WindowRangeMode),
 
     Expression(Expression<'text>),
+    IndirectionIndex(IndirectionIndex<'text>),
+    IndirectionBounds(IndirectionBounds<'text>),
 }
