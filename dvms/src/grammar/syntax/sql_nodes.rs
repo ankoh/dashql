@@ -35,7 +35,15 @@ pub struct CastExpression<'text> {
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text>>,
     pub func_args: Vec<Expression<'text>>,
+    pub func_arg_ordering: Vec<OrderSpecification<'text>>,
     pub value: &'text str,
+}
+
+#[derive(Debug, Clone)]
+pub struct OrderSpecification<'text> {
+    pub value: Box<Expression<'text>>,
+    pub direction: sx::OrderDirection,
+    pub null_rule: sx::OrderNullRule,
 }
 
 #[derive(Debug, Clone)]

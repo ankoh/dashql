@@ -10,9 +10,17 @@ fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {
     }
 }
 
-fn read_name<'text>(mut elements: Vec<Node<'text>>) -> NamePath<'text> {
-    let mut path = Vec::new();
-    for e in elements.drain(..) {
+fn read_exprs<'text>(nodes: Vec<Node<'text>>) -> Vec<Expression<'text>> {
+    let mut exprs = Vec::with_capacity(nodes.len());
+    for n in nodes {
+        exprs.push(read_expr(n));
+    }
+    exprs
+}
+
+fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
+    let mut path = Vec::with_capacity(elements.len());
+    for e in elements {
         match e {
             Node::StringRef(s) => path.push(NamePathElement::Component(s)),
             Node::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
@@ -21,6 +29,17 @@ fn read_name<'text>(mut elements: Vec<Node<'text>>) -> NamePath<'text> {
         }
     }
     NamePath { elements: path }
+}
+
+fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
+    let mut ordering = Vec::with_capacity(specs.len());
+    for n in specs {
+        match n {
+            Node::OrderSpecification(o) => ordering.push(o),
+            _ => continue,
+        }
+    }
+    ordering
 }
 
 pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
@@ -97,6 +116,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                     let mut cast_type = None;
                     let mut func_name = None;
                     let mut func_args = Vec::new();
+                    let mut func_arg_ordering = Vec::new();
                     let mut value = None;
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
@@ -106,8 +126,11 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             (Key::SQL_CONST_CAST_FUNC_NAME, Node::Array(n)) => {
                                 func_name = Some(read_name(n));
                             }
-                            (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(mut nodes)) => {
-                                func_args = nodes.drain(..).map(|n| read_expr(n)).collect();
+                            (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(nodes)) => {
+                                func_args = read_exprs(nodes);
+                            }
+                            (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, Node::Array(nodes)) => {
+                                func_arg_ordering = read_ordering(nodes);
                             }
                             _ => {}
                         }
@@ -116,6 +139,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         cast_type: cast_type.unwrap_or_default(),
                         func_name,
                         func_args,
+                        func_arg_ordering,
                         value: value.unwrap_or_default(),
                     }))
                 }

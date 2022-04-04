@@ -43,6 +43,7 @@ pub enum Node<'text> {
     WindowExclusionMode(sx::WindowExclusionMode),
     WindowRangeMode(sx::WindowRangeMode),
 
+    OrderSpecification(OrderSpecification<'text>),
     Expression(Expression<'text>),
     IndirectionIndex(IndirectionIndex<'text>),
     IndirectionBounds(IndirectionBounds<'text>),
