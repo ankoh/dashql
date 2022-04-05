@@ -72,29 +72,41 @@ where
             if !visited {
                 pending.last_mut().unwrap().0 = true;
                 let mut node = BytesStart::borrowed_name(b"node");
+                if n.attribute_key() != 0 {
+                    let key = Key(n.attribute_key()).variant_name().unwrap_or_default();
+                    node.push_attribute(("key", key));
+                }
                 match n.node_type() {
-                    sx::NodeType::NONE => {}
+                    sx::NodeType::NONE => {
+                        pending.pop();
+                    }
                     sx::NodeType::BOOL => {
                         node.push_attribute((
                             "value",
                             format!("{}", n.children_begin_or_value() != 0).as_str(),
                         ));
+                        writer.write_event(Event::Empty(node))?;
+                        pending.pop();
                     }
                     sx::NodeType::UI32_BITMAP | sx::NodeType::UI32 => {
                         node.push_attribute((
                             "value",
                             format!("{}", n.children_begin_or_value()).as_str(),
                         ));
+                        writer.write_event(Event::Empty(node))?;
+                        pending.pop();
                     }
                     sx::NodeType::STRING_REF => {
                         encode_location(&mut node, *n.location(), text);
+                        writer.write_event(Event::Empty(node))?;
+                        pending.pop();
                     }
                     sx::NodeType::ARRAY => {
                         let begin = n.children_begin_or_value();
                         for i in begin..(begin + n.children_count()) {
                             pending.push((false, i));
                         }
-                        break;
+                        writer.write_event(Event::Start(node))?;
                     }
                     _ => {
                         let node_type_id = n.node_type();
@@ -108,20 +120,25 @@ where
                             for i in begin..(begin + n.children_count()) {
                                 pending.push((false, i));
                             }
+                            writer.write_event(Event::Start(node))?;
                         } else if node_type_id.0 > sx::NodeType::ENUM_KEYS_.0 {
-                            node.push_attribute(("value", get_enum_text(&n)))
+                            node.push_attribute(("value", get_enum_text(&n)));
+                            writer.write_event(Event::Empty(node))?;
+                            pending.pop();
                         } else {
                             node.push_attribute((
                                 "value",
                                 format!("{}", n.children_begin_or_value()).as_str(),
-                            ))
+                            ));
+                            writer.write_event(Event::Empty(node))?;
+                            pending.pop();
                         }
                     }
                 }
-                writer.write_event(Event::Start(node))?;
                 continue;
             }
             writer.write_event(Event::End(BytesEnd::borrowed(b"node")))?;
+            pending.pop();
         }
         writer.write_event(Event::End(BytesEnd::borrowed(b"statement")))?;
     }
@@ -140,12 +157,20 @@ mod test {
         let text = "select 1;";
         let program = crate::grammar::parse(text)?;
 
-        let mut writer = Writer::new(Cursor::new(Vec::new()));
+        let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), ' ' as u8, 4);
         super::print_ast(&mut writer, text, program.read())?;
 
         let xml_buffer = writer.into_inner().into_inner();
         let xml_str = std::str::from_utf8(&xml_buffer)?;
-        let expected = r#"<statements><statement type="SELECT"><node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1"></statement></statements>"#;
+        let expected = r#"<statements>
+    <statement type="SELECT">
+        <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
+            <node key="SQL_SELECT_TARGETS">
+                <node loc="7..8" text="1"/>
+            </node>
+        </node>
+    </statement>
+</statements>"#;
         assert_eq!(xml_str, expected);
         Ok(())
     }
