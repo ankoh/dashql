@@ -3,47 +3,6 @@ use super::sql_nodes::*;
 use crate::proto::syntax as sx;
 use sx::AttributeKey as Key;
 
-fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {
-    match node {
-        Node::StringRef(s) => Expression::StringRef(s),
-        _ => Expression::Null,
-    }
-}
-
-fn read_exprs<'text>(nodes: Vec<Node<'text>>) -> Vec<Expression<'text>> {
-    let mut exprs = Vec::with_capacity(nodes.len());
-    for n in nodes {
-        exprs.push(read_expr(n));
-    }
-    exprs
-}
-
-fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
-    let mut path = Vec::with_capacity(elements.len());
-    for e in elements {
-        match e {
-            Node::StringRef(s) => path.push(NamePathElement::Component(s)),
-            Node::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
-            Node::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
-            _ => continue,
-        }
-    }
-    NamePath { elements: path }
-}
-
-fn unexpected(key: u16) {}
-
-fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
-    let mut ordering = Vec::with_capacity(specs.len());
-    for n in specs {
-        match n {
-            Node::OrderSpecification(o) => ordering.push(o),
-            _ => continue,
-        }
-    }
-    ordering
-}
-
 pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
@@ -171,6 +130,28 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         postfix,
                     }))
                 }
+                sx::NodeType::OBJECT_SQL_TABLE_SAMPLE => {
+                    let mut function = None;
+                    let mut count = None;
+                    let mut repeat = None;
+                    let mut seed = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_SAMPLE_FUNCTION, Node::StringRef(s)) => function = Some(s),
+                            (Key::SQL_SAMPLE_REPEAT, Node::StringRef(s)) => repeat = Some(s),
+                            (Key::SQL_SAMPLE_SEED, Node::StringRef(s)) => seed = Some(s),
+                            (Key::SQL_SAMPLE_COUNT, Node::StringRef(s)) => count = Some(s),
+                            _ => unexpected(key),
+                        }
+                    }
+                    Node::TableSample(TableSample {
+                        function,
+                        count,
+                        repeat,
+                        seed,
+                    })
+                }
                 sx::NodeType::OBJECT_SQL_CONST_CAST => {
                     let mut cast_type = None;
                     let mut func_name = None;
@@ -225,4 +206,45 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
             }
         }
     }
+}
+
+fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {
+    match node {
+        Node::StringRef(s) => Expression::StringRef(s),
+        _ => Expression::Null,
+    }
+}
+
+fn read_exprs<'text>(nodes: Vec<Node<'text>>) -> Vec<Expression<'text>> {
+    let mut exprs = Vec::with_capacity(nodes.len());
+    for n in nodes {
+        exprs.push(read_expr(n));
+    }
+    exprs
+}
+
+fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
+    let mut path = Vec::with_capacity(elements.len());
+    for e in elements {
+        match e {
+            Node::StringRef(s) => path.push(NamePathElement::Component(s)),
+            Node::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
+            Node::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
+            _ => continue,
+        }
+    }
+    NamePath { elements: path }
+}
+
+fn unexpected(key: u16) {}
+
+fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
+    let mut ordering = Vec::with_capacity(specs.len());
+    for n in specs {
+        match n {
+            Node::OrderSpecification(o) => ordering.push(o),
+            _ => continue,
+        }
+    }
+    ordering
 }

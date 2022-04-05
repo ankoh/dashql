@@ -66,6 +66,14 @@ pub enum ResultTarget<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub struct TableSample<'text> {
+    pub function: Option<&'text str>,
+    pub count: Option<&'text str>,
+    pub repeat: Option<&'text str>,
+    pub seed: Option<&'text str>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Null,
     True,
