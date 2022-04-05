@@ -152,17 +152,21 @@ mod test {
     use std::error::Error;
     use std::io::Cursor;
 
-    #[test]
-    fn test_printing() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let text = "select 1;";
-        let program = crate::grammar::parse(text)?;
-
+    fn test_grammar(stmt: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let program = crate::grammar::parse(stmt)?;
         let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), ' ' as u8, 4);
-        super::print_ast(&mut writer, text, program.read())?;
-
+        super::print_ast(&mut writer, stmt, program.read())?;
         let xml_buffer = writer.into_inner().into_inner();
         let xml_str = std::str::from_utf8(&xml_buffer)?;
-        let expected = r#"<statements>
+        assert_eq!(xml_str, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_grammar(
+            "select 1;",
+            r#"<statements>
     <statement type="SELECT">
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
             <node key="SQL_SELECT_TARGETS">
@@ -170,8 +174,7 @@ mod test {
             </node>
         </node>
     </statement>
-</statements>"#;
-        assert_eq!(xml_str, expected);
-        Ok(())
+</statements>"#,
+        )
     }
 }
