@@ -31,6 +31,8 @@ fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
     NamePath { elements: path }
 }
 
+fn unexpected(key: u16) {}
+
 fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
     let mut ordering = Vec::with_capacity(specs.len());
     for n in specs {
@@ -89,6 +91,63 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         children[ti as usize].drain(..).map(|(_, n)| n).collect();
                     Node::Array(mapped)
                 }
+                sx::NodeType::OBJECT_SQL_ORDER => {
+                    let mut value = None;
+                    let mut direction = None;
+                    let mut null_rule = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)),
+                            (Key::SQL_ORDER_DIRECTION, Node::OrderDirection(d)) => {
+                                direction = Some(d)
+                            }
+                            (Key::SQL_ORDER_NULLRULE, Node::OrderNullRule(n)) => {
+                                null_rule = Some(n)
+                            }
+                            _ => unexpected(key),
+                        }
+                    }
+                    Node::OrderSpecification(OrderSpecification {
+                        value: Box::new(value.unwrap_or(Expression::Null)),
+                        direction,
+                        null_rule,
+                    })
+                }
+                sx::NodeType::OBJECT_SQL_INTERVAL_TYPE => {
+                    let mut type_ = None;
+                    let mut precision = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_INTERVAL_TYPE, Node::IntervalType(t)) => type_ = Some(t),
+                            (Key::SQL_INTERVAL_PRECISION, Node::StringRef(s)) => {
+                                precision = Some(s)
+                            }
+                            _ => unexpected(key),
+                        }
+                    }
+                    Node::IntervalSpecification(IntervalSpecification::Type {
+                        type_: type_.unwrap_or_default(),
+                        precision: precision,
+                    })
+                }
+                sx::NodeType::OBJECT_SQL_RESULT_TARGET => {
+                    let mut value = None;
+                    let mut alias = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)),
+                            (Key::SQL_RESULT_TARGET_NAME, Node::StringRef(s)) => alias = Some(s),
+                            _ => unexpected(key),
+                        }
+                    }
+                    Node::ResultTarget(ResultTarget::Value {
+                        value: Box::new(value.unwrap_or(Expression::Null)),
+                        alias,
+                    })
+                }
                 sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                     let mut args = Vec::with_capacity(3);
                     let mut operator: sx::ExpressionOperator = sx::ExpressionOperator::PLUS;
@@ -103,7 +162,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             (Key::SQL_EXPRESSION_OPERATOR, Node::ExpressionOperator(op)) => {
                                 operator = op;
                             }
-                            _ => {}
+                            _ => unexpected(key),
                         }
                     }
                     Node::Expression(Expression::Nary(NaryExpression {
@@ -139,7 +198,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             (Key::SQL_CONST_CAST_INTERVAL, Node::StringRef(s)) => {
                                 interval = Some(IntervalSpecification::Raw(s));
                             }
-                            _ => {}
+                            _ => unexpected(key),
                         }
                     }
                     Node::Expression(Expression::Cast(CastExpression {

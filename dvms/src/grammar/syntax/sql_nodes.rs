@@ -43,8 +43,8 @@ pub struct CastExpression<'text> {
 #[derive(Debug, Clone)]
 pub struct OrderSpecification<'text> {
     pub value: Box<Expression<'text>>,
-    pub direction: sx::OrderDirection,
-    pub null_rule: sx::OrderNullRule,
+    pub direction: Option<sx::OrderDirection>,
+    pub null_rule: Option<sx::OrderNullRule>,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +53,15 @@ pub enum IntervalSpecification<'text> {
     Type {
         type_: sx::IntervalType,
         precision: Option<&'text str>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum ResultTarget<'text> {
+    Star,
+    Value {
+        value: Box<Expression<'text>>,
+        alias: Option<&'text str>,
     },
 }
 

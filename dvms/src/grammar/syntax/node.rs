@@ -48,4 +48,5 @@ pub enum Node<'text> {
     IndirectionIndex(IndirectionIndex<'text>),
     IndirectionBounds(IndirectionBounds<'text>),
     IntervalSpecification(IntervalSpecification<'text>),
+    ResultTarget(ResultTarget<'text>),
 }
