@@ -37,6 +37,7 @@ pub struct CastExpression<'text> {
     pub func_args: Vec<Expression<'text>>,
     pub func_arg_ordering: Vec<OrderSpecification<'text>>,
     pub value: &'text str,
+    pub interval: Option<IntervalSpecification<'text>>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +45,15 @@ pub struct OrderSpecification<'text> {
     pub value: Box<Expression<'text>>,
     pub direction: sx::OrderDirection,
     pub null_rule: sx::OrderNullRule,
+}
+
+#[derive(Debug, Clone)]
+pub enum IntervalSpecification<'text> {
+    Raw(&'text str),
+    Type {
+        type_: sx::IntervalType,
+        precision: Option<&'text str>,
+    },
 }
 
 #[derive(Debug, Clone)]

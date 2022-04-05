@@ -47,4 +47,5 @@ pub enum Node<'text> {
     Expression(Expression<'text>),
     IndirectionIndex(IndirectionIndex<'text>),
     IndirectionBounds(IndirectionBounds<'text>),
+    IntervalSpecification(IntervalSpecification<'text>),
 }

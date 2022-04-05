@@ -117,6 +117,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                     let mut func_name = None;
                     let mut func_args = Vec::new();
                     let mut func_arg_ordering = Vec::new();
+                    let mut interval = None;
                     let mut value = None;
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
@@ -132,6 +133,12 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, Node::Array(nodes)) => {
                                 func_arg_ordering = read_ordering(nodes);
                             }
+                            (Key::SQL_CONST_CAST_INTERVAL, Node::IntervalSpecification(i)) => {
+                                interval = Some(i);
+                            }
+                            (Key::SQL_CONST_CAST_INTERVAL, Node::StringRef(s)) => {
+                                interval = Some(IntervalSpecification::Raw(s));
+                            }
                             _ => {}
                         }
                     }
@@ -141,6 +148,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         func_args,
                         func_arg_ordering,
                         value: value.unwrap_or_default(),
+                        interval,
                     }))
                 }
                 _ => panic!("node translation not implemented"),
