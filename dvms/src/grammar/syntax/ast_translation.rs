@@ -20,6 +20,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
         while !pending.is_empty() {
             let (ti, visited) = pending.last().copied().unwrap();
             let t = ast_nodes[ti as usize];
+            let v = t.children_begin_or_value();
 
             // Not visited yet?
             // Mark as visited and push all children to the stack.
@@ -50,6 +51,82 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         children[ti as usize].drain(..).map(|(_, n)| n).collect();
                     Node::Array(mapped)
                 }
+
+                sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => {
+                    Node::VizComponentType(sx::VizComponentType(v as u8))
+                }
+                sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => {
+                    Node::InputComponentType(sx::InputComponentType(v as u8))
+                }
+                sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE => {
+                    Node::FetchMethodType(sx::FetchMethodType(v as u8))
+                }
+                sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE => {
+                    Node::LoadMethodType(sx::LoadMethodType(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_TEMP_TYPE => Node::TempType(sx::TempType(v as u8)),
+                sx::NodeType::ENUM_SQL_CONST_TYPE => Node::ConstType(sx::AConstType(v as u8)),
+                sx::NodeType::ENUM_SQL_CHARACTER_TYPE => {
+                    Node::CharacterType(sx::CharacterType(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR => {
+                    Node::ExpressionOperator(sx::ExpressionOperator(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_ORDER_DIRECTION => {
+                    Node::OrderDirection(sx::OrderDirection(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_ORDER_NULL_RULE => {
+                    Node::OrderNullRule(sx::OrderNullRule(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_COMBINE_MODIFIER => {
+                    Node::CombineModifier(sx::CombineModifier(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_COMBINE_OPERATION => {
+                    Node::CombineOperation(sx::CombineOperation(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_NUMERIC_TYPE => Node::NumericType(sx::NumericType(v as u8)),
+                sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE => {
+                    Node::WindowBoundMode(sx::WindowBoundMode(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE => {
+                    Node::WindowRangeMode(sx::WindowRangeMode(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => {
+                    Node::WindowExclusionMode(sx::WindowExclusionMode(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => {
+                    Node::WindowBoundDirection(sx::WindowBoundDirection(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION => {
+                    Node::OnCommitOption(sx::OnCommitOption(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE => {
+                    Node::ConstraintAttribute(sx::ConstraintAttribute(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT => {
+                    Node::ColumnConstraint(sx::ColumnConstraint(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_INTERVAL_TYPE => {
+                    Node::IntervalType(sx::IntervalType(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => {
+                    Node::SubqueryQuantifier(sx::SubqueryQuantifier(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_TRIM_TARGET => {
+                    Node::TrimDirection(sx::TrimDirection(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_EXTRACT_TARGET => {
+                    Node::ExtractTarget(sx::ExtractTarget(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => {
+                    Node::RowLockingBlockBehavior(sx::RowLockingBlockBehavior(v as u8))
+                }
+                sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => {
+                    Node::RowLockingStrength(sx::RowLockingStrength(v as u8))
+                }
+
+                sx::NodeType::ENUM_SQL_JOIN_TYPE => Node::JoinType(sx::JoinType(v as u8)),
+
                 sx::NodeType::OBJECT_SQL_ORDER => {
                     let mut value = None;
                     let mut direction = None;
