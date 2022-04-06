@@ -258,11 +258,11 @@ parser_cc:
 	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
 
 .PHONY: parser_wasm
-parser_wasm: ccache
+parser_wasm: 
 	mkdir -p ${CACHE_DIRS}
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh fast
 
 .PHONY: parser_wasm_release
-parser_wasm_release: ccache
+parser_wasm_release:
 	mkdir -p ${CACHE_DIRS}
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh release
