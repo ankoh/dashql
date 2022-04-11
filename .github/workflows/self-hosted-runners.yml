@@ -111,7 +111,7 @@ jobs:
                           -ignore-filename-regex submodules \
                           > ./reports/coverage_lib.txt
 
-            - uses: codecov/codecov-action@v2.1.0
+            - uses: codecov/codecov-action@v3.0.0
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   files: ./reports/coverage_lib.txt
@@ -229,7 +229,7 @@ jobs:
                            --no-wasm-tier-up \
                            ./node_modules/.bin/jest --collect-coverage
 
-            - uses: codecov/codecov-action@v2.1.0
+            - uses: codecov/codecov-action@v3.0.0
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   files: ./coverage/coverage-final.json
