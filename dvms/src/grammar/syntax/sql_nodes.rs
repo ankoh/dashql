@@ -74,6 +74,15 @@ pub struct TableSample<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub struct GenericType<'text> {
+    pub name: &'text str,
+    pub modifiers: Vec<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum SQLType {}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Null,
     True,

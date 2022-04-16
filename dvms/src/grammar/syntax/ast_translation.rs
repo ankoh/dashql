@@ -127,6 +127,24 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
 
                 sx::NodeType::ENUM_SQL_JOIN_TYPE => Node::JoinType(sx::JoinType(v as u8)),
 
+                sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
+                    let mut name = None;
+                    let mut modifiers = Vec::new();
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_GENERIC_TYPE_NAME, Node::StringRef(s)) => name = Some(s),
+                            (Key::SQL_GENERIC_TYPE_MODIFIERS, Node::Array(a)) => {
+                                modifiers = read_exprs(a)
+                            }
+                            _ => unexpected(key),
+                        }
+                    }
+                    Node::GenericType(GenericType {
+                        name: name.unwrap_or_default(),
+                        modifiers,
+                    })
+                }
                 sx::NodeType::OBJECT_SQL_ORDER => {
                     let mut value = None;
                     let mut direction = None;

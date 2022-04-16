@@ -50,4 +50,5 @@ pub enum Node<'text> {
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text>),
     TableSample(TableSample<'text>),
+    GenericType(GenericType<'text>),
 }
