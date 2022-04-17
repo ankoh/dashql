@@ -80,7 +80,51 @@ pub struct GenericType<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub enum SQLType {}
+pub struct NumericType<'text> {
+    pub base: sx::NumericType,
+    pub modifiers: Vec<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BitType<'text> {
+    pub varying: bool,
+    pub length: Option<Expression<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CharacterType<'text> {
+    pub base: sx::CharacterType,
+    pub length: Option<&'text str>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TimestampType<'text> {
+    pub precision: Option<&'text str>,
+    pub with_timezone: Option<&'text str>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IntervalType<'text> {
+    pub base: Option<sx::IntervalType>,
+    pub precision: Option<&'text str>,
+}
+
+#[derive(Debug, Clone)]
+pub enum SQLBaseType<'text> {
+    Generic(GenericType<'text>),
+    Numeric(NumericType<'text>),
+    Bit(BitType<'text>),
+    Character(CharacterType<'text>),
+    Timestamp(TimestampType<'text>),
+    Interval(IntervalType<'text>),
+}
+
+#[derive(Debug, Clone)]
+pub struct SQLType<'text> {
+    pub base: SQLBaseType<'text>,
+    pub set_of: bool,
+    pub array: bool,
+}
 
 #[derive(Debug, Clone)]
 pub enum Expression<'text> {
