@@ -41,6 +41,16 @@ pub struct CastExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub enum Expression<'text> {
+    Null,
+    True,
+    False,
+    StringRef(&'text str),
+    Nary(NaryExpression<'text>),
+    Cast(CastExpression<'text>),
+}
+
+#[derive(Debug, Clone)]
 pub struct OrderSpecification<'text> {
     pub value: Box<Expression<'text>>,
     pub direction: Option<sx::OrderDirection>,
@@ -124,14 +134,4 @@ pub struct SQLType<'text> {
     pub base: SQLBaseType<'text>,
     pub set_of: bool,
     pub array: bool,
-}
-
-#[derive(Debug, Clone)]
-pub enum Expression<'text> {
-    Null,
-    True,
-    False,
-    StringRef(&'text str),
-    Nary(NaryExpression<'text>),
-    Cast(CastExpression<'text>),
 }
