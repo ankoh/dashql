@@ -878,7 +878,7 @@ sql_typename:
   | SETOF sql_simple_typename ARRAY '[' ICONST ']' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $2),
-            Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(Loc({@3, @4, @5, @6}), {String(@4)})),
+            Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(Loc({@3, @4, @5, @6}), {String(@5)})),
             Attr(Key::SQL_TYPENAME_SETOF, Bool(@1, true)),
         });
     }
@@ -898,8 +898,8 @@ sql_typename:
     ;
 
 sql_opt_array_bounds:
-    sql_opt_array_bounds '[' ']'            { $1.push_back(String(Loc({@2, @3}))); $$ = move($1); }
-  | sql_opt_array_bounds '[' ICONST ']'     { $1.push_back(String(Loc({@2, @3, @4}))); $$ = move($1); }
+    sql_opt_array_bounds '[' ']'            { $1.push_back(Null()); $$ = move($1); }
+  | sql_opt_array_bounds '[' ICONST ']'     { $1.push_back(String(Loc({@3}))); $$ = move($1); }
   | %empty                                  { $$ = {}; }
     ;
 

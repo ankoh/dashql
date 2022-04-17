@@ -133,5 +133,5 @@ pub enum SQLBaseType<'text> {
 pub struct SQLType<'text> {
     pub base: SQLBaseType<'text>,
     pub set_of: bool,
-    pub array: bool,
+    pub array: Vec<&'text str>,
 }
