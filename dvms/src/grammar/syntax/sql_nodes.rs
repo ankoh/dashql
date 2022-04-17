@@ -31,7 +31,7 @@ pub struct NaryExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct CastExpression<'text> {
+pub struct ConstCastExpression<'text> {
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text>>,
     pub func_args: Vec<Expression<'text>>,
@@ -41,13 +41,20 @@ pub struct CastExpression<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub struct TypecastExpression<'text> {
+    pub value: Box<Expression<'text>>,
+    pub typename: Box<SQLType<'text>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text> {
     Null,
     True,
     False,
     StringRef(&'text str),
     Nary(NaryExpression<'text>),
-    Cast(CastExpression<'text>),
+    ConstCast(ConstCastExpression<'text>),
+    Typecast(TypecastExpression<'text>),
 }
 
 #[derive(Debug, Clone)]

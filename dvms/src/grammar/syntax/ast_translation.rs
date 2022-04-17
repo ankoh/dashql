@@ -277,7 +277,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                             _ => unexpected(key),
                         }
                     }
-                    Node::Expression(Expression::Cast(CastExpression {
+                    Node::Expression(Expression::ConstCast(ConstCastExpression {
                         cast_type: cast_type.unwrap_or_default(),
                         func_name,
                         func_args,
