@@ -286,6 +286,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                         interval,
                     }))
                 }
+                sx::NodeType::OBJECT_SQL_SELECT => {}
                 t => panic!("node translation not implemented for: {:?}", t),
             };
 

@@ -14,7 +14,7 @@ fn test_translation(
     print_ast(&mut writer, text, program.read())?;
     let xml_buffer = writer.into_inner().into_inner();
     let xml_str = std::str::from_utf8(&xml_buffer)?;
-    assert_eq!(xml_str, ast_xml);
+    assert_eq!(xml_str, ast_xml.trim());
 
     let translated = translate_ast(text, program.read());
     assert_eq!(&format!("{:?}", &translated), ast_rs);
@@ -25,7 +25,8 @@ fn test_translation(
 fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
     test_translation(
         "select 1;",
-        r#"<statements>
+        r#"
+<statements>
     <statement type="SELECT">
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
             <node key="SQL_SELECT_TARGETS">

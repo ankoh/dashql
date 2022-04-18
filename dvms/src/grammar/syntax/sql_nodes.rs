@@ -142,3 +142,36 @@ pub struct SQLType<'text> {
     pub set_of: bool,
     pub array: Vec<&'text str>,
 }
+
+#[derive(Debug, Clone)]
+pub struct Into<'text> {
+    temp: sx::TempType,
+    name: NamePath<'text>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Alias<'text> {
+    name: &'text str,
+    columns: Vec<&'text str>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TableRef<'text> {
+    alias: Option<Alias<'text>>,
+    sample: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct SelectStatement<'text> {
+    pub all: bool,
+    pub targets: Vec<ResultTarget<'text>>,
+    pub into: Option<Into<'text>>,
+    pub from: bool,
+    pub where_expr: bool,
+    pub group_by: bool,
+    pub having: bool,
+    pub order_by: bool,
+    pub windows: bool,
+    pub sample: bool,
+    pub row_locking: bool,
+}

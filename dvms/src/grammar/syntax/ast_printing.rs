@@ -158,7 +158,7 @@ mod test {
         super::print_ast(&mut writer, stmt, program.read())?;
         let xml_buffer = writer.into_inner().into_inner();
         let xml_str = std::str::from_utf8(&xml_buffer)?;
-        assert_eq!(xml_str, expected);
+        assert_eq!(xml_str, expected.trim());
         Ok(())
     }
 
@@ -166,7 +166,8 @@ mod test {
     fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_grammar(
             "select 1;",
-            r#"<statements>
+            r#"
+<statements>
     <statement type="SELECT">
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
             <node key="SQL_SELECT_TARGETS">
