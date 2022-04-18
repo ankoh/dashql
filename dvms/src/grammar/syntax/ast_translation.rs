@@ -3,7 +3,7 @@ use super::sql_nodes::*;
 use crate::proto::syntax as sx;
 use sx::AttributeKey as Key;
 
-pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
+pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> Vec<Node<'text>> {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
 
@@ -286,7 +286,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
                         interval,
                     }))
                 }
-                _ => panic!("node translation not implemented"),
+                t => panic!("node translation not implemented for: {:?}", t),
             };
 
             // Stack empty?
@@ -301,6 +301,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) {
             }
         }
     }
+    out
 }
 
 fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {

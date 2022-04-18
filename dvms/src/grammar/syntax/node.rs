@@ -3,7 +3,7 @@ use crate::proto::syntax as sx;
 
 type NodeId = usize;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Node<'text> {
     Null,
 
