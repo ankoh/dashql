@@ -1,9 +1,20 @@
 use super::node::*;
 use super::sql_nodes::*;
+use crate::error::RawError;
 use crate::proto::syntax as sx;
+use std::error::Error;
 use sx::AttributeKey as Key;
 
-pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> Vec<Node<'text>> {
+macro_rules! unexpected_attribute {
+    ($key:expr) => {
+        return Err(RawError::from(format!("unexpected attribute key: {}", $key)).boxed());
+    };
+}
+
+pub fn translate_ast<'text, 'ast>(
+    text: &'text str,
+    ast: sx::Program<'ast>,
+) -> Result<Vec<Node<'text>>, Box<dyn Error + Send + Sync>> {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
 
@@ -138,9 +149,9 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                         match (sx::AttributeKey(key), translated) {
                             (Key::SQL_GENERIC_TYPE_NAME, Node::StringRef(s)) => name = Some(s),
                             (Key::SQL_GENERIC_TYPE_MODIFIERS, Node::Array(a)) => {
-                                modifiers = read_exprs(a)
+                                modifiers = read_exprs(a)?
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::GenericType(GenericType {
@@ -155,14 +166,14 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)),
+                            (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)?),
                             (Key::SQL_ORDER_DIRECTION, Node::OrderDirection(d)) => {
                                 direction = Some(d)
                             }
                             (Key::SQL_ORDER_NULLRULE, Node::OrderNullRule(n)) => {
                                 null_rule = Some(n)
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::OrderSpecification(OrderSpecification {
@@ -181,7 +192,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                             (Key::SQL_INTERVAL_PRECISION, Node::StringRef(s)) => {
                                 precision = Some(s)
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::IntervalSpecification(IntervalSpecification::Type {
@@ -192,17 +203,23 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                 sx::NodeType::OBJECT_SQL_RESULT_TARGET => {
                     let mut value = None;
                     let mut alias = None;
+                    let mut star = false;
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)),
+                            (Key::SQL_RESULT_TARGET_STAR, Node::Boolean(true)) => star = true,
+                            (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)?),
                             (Key::SQL_RESULT_TARGET_NAME, Node::StringRef(s)) => alias = Some(s),
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::ResultTarget(ResultTarget::Value {
-                        value: Box::new(value.unwrap_or(Expression::Null)),
-                        alias,
+                    Node::ResultTarget(if star {
+                        ResultTarget::Star
+                    } else {
+                        ResultTarget::Value {
+                            value: Box::new(value.unwrap_or(Expression::Null)),
+                            alias,
+                        }
                     })
                 }
                 sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
@@ -212,14 +229,14 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_EXPRESSION_ARG0, n) => args.push(read_expr(n)),
-                            (Key::SQL_EXPRESSION_ARG1, n) => args.push(read_expr(n)),
-                            (Key::SQL_EXPRESSION_ARG2, n) => args.push(read_expr(n)),
+                            (Key::SQL_EXPRESSION_ARG0, n) => args.push(read_expr(n)?),
+                            (Key::SQL_EXPRESSION_ARG1, n) => args.push(read_expr(n)?),
+                            (Key::SQL_EXPRESSION_ARG2, n) => args.push(read_expr(n)?),
                             (Key::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => postfix = p,
                             (Key::SQL_EXPRESSION_OPERATOR, Node::ExpressionOperator(op)) => {
                                 operator = op;
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::Expression(Expression::Nary(NaryExpression {
@@ -246,7 +263,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                             (Key::SQL_SAMPLE_COUNT_UNIT, Node::SampleCountUnit(u)) => {
                                 count_unit = Some(u)
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::TableSample(TableSample {
@@ -273,7 +290,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                                 func_name = Some(read_name(n));
                             }
                             (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(nodes)) => {
-                                func_args = read_exprs(nodes);
+                                func_args = read_exprs(nodes)?;
                             }
                             (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, Node::Array(nodes)) => {
                                 func_arg_ordering = read_ordering(nodes);
@@ -284,7 +301,7 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                             (Key::SQL_CONST_CAST_INTERVAL, Node::StringRef(s)) => {
                                 interval = Some(IntervalSpecification::Raw(s));
                             }
-                            _ => unexpected(key),
+                            _ => unexpected_attribute!(key),
                         }
                     }
                     Node::Expression(Expression::ConstCast(ConstCastExpression {
@@ -297,7 +314,35 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                     }))
                 }
                 sx::NodeType::OBJECT_SQL_SELECT => {
-                    Node::SelectStatement(SelectStatement::default())
+                    let mut targets = Vec::new();
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_SELECT_TARGETS, Node::Array(mut a)) => {
+                                targets = a
+                                    .drain(..)
+                                    .filter_map(|n| match n {
+                                        Node::ResultTarget(t) => Some(t),
+                                        _ => None,
+                                    })
+                                    .collect();
+                            }
+                            _ => unexpected_attribute!(key),
+                        }
+                    }
+                    Node::SelectStatement(SelectStatement {
+                        all: false,
+                        targets: targets,
+                        into: None,
+                        from: false,
+                        where_clause: false,
+                        group_by: false,
+                        having: false,
+                        order_by: false,
+                        windows: false,
+                        sample: false,
+                        row_locking: false,
+                    })
                 }
                 t => panic!("node translation not implemented for: {:?}", t),
             };
@@ -314,22 +359,25 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
             }
         }
     }
-    out
+    Ok(out)
 }
 
-fn read_expr<'text>(node: Node<'text>) -> Expression<'text> {
-    match node {
+fn read_expr<'text>(node: Node<'text>) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
+    let n = match node {
         Node::StringRef(s) => Expression::StringRef(s),
-        _ => Expression::Null,
-    }
+        _ => return Err(RawError::from(format!("invalid expression node: {:?}", node)).boxed()),
+    };
+    Ok(n)
 }
 
-fn read_exprs<'text>(nodes: Vec<Node<'text>>) -> Vec<Expression<'text>> {
+fn read_exprs<'text>(
+    nodes: Vec<Node<'text>>,
+) -> Result<Vec<Expression<'text>>, Box<dyn Error + Send + Sync>> {
     let mut exprs = Vec::with_capacity(nodes.len());
     for n in nodes {
-        exprs.push(read_expr(n));
+        exprs.push(read_expr(n)?);
     }
-    exprs
+    Ok(exprs)
 }
 
 fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
@@ -344,8 +392,6 @@ fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
     }
     NamePath { elements: path }
 }
-
-fn unexpected(key: u16) {}
 
 fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
     let mut ordering = Vec::with_capacity(specs.len());

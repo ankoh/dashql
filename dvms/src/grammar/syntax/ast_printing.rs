@@ -76,6 +76,7 @@ where
                     let key = Key(n.attribute_key()).variant_name().unwrap_or_default();
                     node.push_attribute(("key", key));
                 }
+                node.push_attribute(("type", n.node_type().variant_name().unwrap_or_default()));
                 match n.node_type() {
                     sx::NodeType::NONE => {
                         pending.pop();
@@ -111,10 +112,6 @@ where
                     _ => {
                         let node_type_id = n.node_type();
                         if node_type_id.0 > sx::NodeType::OBJECT_KEYS_.0 {
-                            node.push_attribute((
-                                "type",
-                                n.node_type().variant_name().unwrap_or_default(),
-                            ));
                             encode_location(&mut node, *n.location(), text);
                             let begin = n.children_begin_or_value();
                             for i in begin..(begin + n.children_count()) {
@@ -170,8 +167,10 @@ mod test {
 <statements>
     <statement type="SELECT">
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
-            <node key="SQL_SELECT_TARGETS">
-                <node loc="7..8" text="1"/>
+            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
+                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="7..8" text="1"/>
+                </node>
             </node>
         </node>
     </statement>

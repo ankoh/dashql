@@ -1985,8 +1985,16 @@ sql_target_el:
             Attr(Key::SQL_RESULT_TARGET_NAME, String(@2)),
         });
     }
-  | sql_a_expr  { $$ = $1; }
-  | '*'         { $$ = String(@1); }
+  | sql_a_expr  {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+            Attr(Key::SQL_RESULT_TARGET_VALUE, $1),
+        });
+    }
+  | '*' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+            Attr(Key::SQL_RESULT_TARGET_STAR, Bool(@1, true)),
+        });
+    }
     ;
 
 

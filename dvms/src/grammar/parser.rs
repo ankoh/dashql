@@ -1,4 +1,4 @@
-use crate::error::StringError;
+use crate::error::RawError;
 use crate::proto;
 use std::error::Error;
 
@@ -58,7 +58,7 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, Box<dyn Error + Send + Sync>> 
                     response.data_size,
                     response.data_size,
                 );
-                Err(Box::new(StringError::from_string(msg)))
+                Err(RawError::from(msg).boxed())
             }
         }
     }

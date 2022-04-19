@@ -2,48 +2,38 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Debug)]
-pub struct StringError {
+pub struct RawError {
     pub what: String,
 }
 
-impl StringError {
-    pub fn from_string(msg: String) -> Self {
-        Self { what: msg }
+impl RawError {
+    pub fn boxed(self) -> Box<Self> {
+        Box::new(self)
     }
 }
 
-impl fmt::Display for StringError {
+impl fmt::Display for RawError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.what)
     }
 }
 
-impl Error for StringError {
+impl Error for RawError {
     fn description(&self) -> &str {
         &self.what
     }
 }
 
-#[derive(Debug)]
-pub struct StaticStrError {
-    what: &'static str,
-}
-
-impl StaticStrError {
-    #[allow(unused)]
-    pub fn from_msg(msg: &'static str) -> StaticStrError {
-        Self { what: msg }
+impl From<&str> for RawError {
+    fn from(m: &str) -> Self {
+        Self {
+            what: m.to_string(),
+        }
     }
 }
 
-impl fmt::Display for StaticStrError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.what)
-    }
-}
-
-impl Error for StaticStrError {
-    fn description(&self) -> &str {
-        self.what
+impl From<String> for RawError {
+    fn from(m: String) -> Self {
+        Self { what: m }
     }
 }

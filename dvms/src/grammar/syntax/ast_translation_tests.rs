@@ -16,7 +16,7 @@ fn test_translation(
     let xml_str = std::str::from_utf8(&xml_buffer)?;
     assert_eq!(xml_str, ast_xml.trim());
 
-    let translated = translate_ast(text, program.read());
+    let translated = translate_ast(text, program.read())?;
     assert_eq!(&format!("{:#?}", &translated), ast_rs.trim());
     Ok(())
 }
@@ -29,8 +29,10 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
 <statements>
     <statement type="SELECT">
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
-            <node key="SQL_SELECT_TARGETS">
-                <node loc="7..8" text="1"/>
+            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
+                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="7..8" text="1"/>
+                </node>
             </node>
         </node>
     </statement>
@@ -40,7 +42,14 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
     SelectStatement(
         SelectStatement {
             all: false,
-            targets: [],
+            targets: [
+                Value {
+                    value: StringRef(
+                        "1",
+                    ),
+                    alias: None,
+                },
+            ],
             into: None,
             from: false,
             where_clause: false,
