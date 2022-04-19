@@ -83,14 +83,6 @@ pub enum ResultTarget<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TableSample<'text> {
-    pub function: Option<&'text str>,
-    pub count: Option<&'text str>,
-    pub repeat: Option<&'text str>,
-    pub seed: Option<&'text str>,
-}
-
-#[derive(Debug, Clone)]
 pub struct GenericType<'text> {
     pub name: &'text str,
     pub modifiers: Vec<Expression<'text>>,
@@ -156,9 +148,18 @@ pub struct Alias<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub struct TableSample<'text> {
+    pub count: &'text str,
+    pub unit: sx::SampleCountUnit,
+    pub function: Option<&'text str>,
+    pub repeat: Option<&'text str>,
+    pub seed: Option<&'text str>,
+}
+
+#[derive(Debug, Clone)]
 pub struct TableRef<'text> {
-    alias: Option<Alias<'text>>,
-    sample: bool,
+    pub alias: Option<Alias<'text>>,
+    pub sample: Option<TableSample<'text>>,
 }
 
 #[derive(Debug, Clone)]

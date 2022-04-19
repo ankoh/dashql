@@ -85,6 +85,9 @@ pub fn get_enum_text(target: &sx::Node) -> &'static str {
         sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => sx::RowLockingStrength(v as u8)
             .variant_name()
             .unwrap_or_default(),
+        sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => sx::SampleCountUnit(v as u8)
+            .variant_name()
+            .unwrap_or_default(),
 
         sx::NodeType::ENUM_SQL_JOIN_TYPE => {
             sx::JoinType(v as u8).variant_name().unwrap_or_default()

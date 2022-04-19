@@ -124,6 +124,9 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                 sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => {
                     Node::RowLockingStrength(sx::RowLockingStrength(v as u8))
                 }
+                sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => {
+                    Node::SampleCountUnit(sx::SampleCountUnit(v as u8))
+                }
 
                 sx::NodeType::ENUM_SQL_JOIN_TYPE => Node::JoinType(sx::JoinType(v as u8)),
 
@@ -225,9 +228,10 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                         postfix,
                     }))
                 }
-                sx::NodeType::OBJECT_SQL_TABLE_SAMPLE => {
+                sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
                     let mut function = None;
                     let mut count = None;
+                    let mut count_unit = None;
                     let mut repeat = None;
                     let mut seed = None;
                     for (child_id, translated) in children[ti as usize].drain(..) {
@@ -236,13 +240,19 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                             (Key::SQL_SAMPLE_FUNCTION, Node::StringRef(s)) => function = Some(s),
                             (Key::SQL_SAMPLE_REPEAT, Node::StringRef(s)) => repeat = Some(s),
                             (Key::SQL_SAMPLE_SEED, Node::StringRef(s)) => seed = Some(s),
-                            (Key::SQL_SAMPLE_COUNT, Node::StringRef(s)) => count = Some(s),
+                            (Key::SQL_SAMPLE_COUNT_VALUE, Node::StringRef(v)) => {
+                                count = Some(v);
+                            }
+                            (Key::SQL_SAMPLE_COUNT_UNIT, Node::SampleCountUnit(u)) => {
+                                count_unit = Some(u)
+                            }
                             _ => unexpected(key),
                         }
                     }
                     Node::TableSample(TableSample {
-                        function,
-                        count,
+                        function: function,
+                        count: count.unwrap_or_default(),
+                        unit: count_unit.unwrap_or(sx::SampleCountUnit::ROWS),
                         repeat,
                         seed,
                     })
@@ -286,7 +296,6 @@ pub fn translate_ast<'text, 'ast>(text: &'text str, ast: sx::Program<'ast>) -> V
                         interval,
                     }))
                 }
-                sx::NodeType::OBJECT_SQL_SELECT => {}
                 t => panic!("node translation not implemented for: {:?}", t),
             };
 

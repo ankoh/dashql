@@ -266,3 +266,8 @@ enum RowLockingBlockBehavior: uint8 {
     NOWAIT,
     SKIP_LOCKED
 }
+
+enum SampleCountUnit: uint8 {
+    PERCENT,
+    ROWS,
+}

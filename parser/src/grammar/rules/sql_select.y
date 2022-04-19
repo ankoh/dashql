@@ -156,7 +156,7 @@ sql_simple_select:
         $$ = { Attr(Key::SQL_SELECT_VALUES, ctx.Add(@1, move($1))) };
     }
   | TABLE sql_relation_expr {
-        $$ = { Attr(Key::SQL_SELECT_TABLE, ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($2))) };
+        $$ = { Attr(Key::SQL_SELECT_TABLE, ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, move($2))) };
     }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
         auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
@@ -536,38 +536,53 @@ sql_from_list:
 // XXX Andre
 sql_table_ref:
     sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, Concat(move($1), {
-            Attr(Key::SQL_TABLE_ALIAS, $2),
-            Attr(Key::SQL_TABLE_SAMPLE, $3),
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, Concat(move($1), {
+            Attr(Key::SQL_TABLEREF_ALIAS, $2),
+            Attr(Key::SQL_TABLEREF_SAMPLE, $3),
         }));
     }
   | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, Concat(move($1), {
-            Attr(Key::SQL_TABLE_ALIAS, $2),
-            Attr(Key::SQL_TABLE_SAMPLE, $3),
-        }));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $2),
+            Attr(Key::SQL_TABLEREF_SAMPLE, $3),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
     }
   | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, Concat(move($1), {
-            Attr(Key::SQL_TABLE_ALIAS, $2),
-            Attr(Key::SQL_TABLE_SAMPLE, $3),
-        }));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $2),
+            Attr(Key::SQL_TABLEREF_SAMPLE, $3),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
     }
   | LATERAL_P sql_func_table sql_func_alias_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_FUNCTION_TABLE, Concat(std::move($2), {
-            Attr(Key::SQL_TABLE_ALIAS, $3),
-        }));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_LATERAL_FUNCTION_TABLE, move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $3),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
     }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, Concat(std::move($2), {
-            Attr(Key::SQL_TABLE_ALIAS, $3),
-        }));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $3),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
     }
-  | sql_joined_table { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, std::move($1)); }
+  | sql_joined_table {
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, {
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
+    }
   | '(' sql_joined_table ')' sql_alias_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, Concat(std::move($2), {
-            Attr(Key::SQL_TABLE_ALIAS, $4),
-        }));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $4),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
     }
     ;
 
@@ -694,10 +709,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { Attr(Key::SQL_TABLE_NAME, std::move($1)), Attr(Key::SQL_TABLE_INHERIT, Bool(@$, true)) }; }
-  | sql_qualified_name '*'          { $$ = { Attr(Key::SQL_TABLE_NAME, std::move($1)), Attr(Key::SQL_TABLE_INHERIT, Bool(@2, true)) }; }
-  | ONLY sql_qualified_name         { $$ = { Attr(Key::SQL_TABLE_NAME, std::move($2)), Attr(Key::SQL_TABLE_INHERIT, Bool(@1, false)) }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { Attr(Key::SQL_TABLE_NAME, std::move($3)), Attr(Key::SQL_TABLE_INHERIT, Bool(@1, false)) }; }
+    sql_qualified_name              { $$ = { Attr(Key::SQL_TABLEREF_NAME, std::move($1)), Attr(Key::SQL_TABLEREF_INHERIT, Bool(@$, true)) }; }
+  | sql_qualified_name '*'          { $$ = { Attr(Key::SQL_TABLEREF_NAME, std::move($1)), Attr(Key::SQL_TABLEREF_INHERIT, Bool(@2, true)) }; }
+  | ONLY sql_qualified_name         { $$ = { Attr(Key::SQL_TABLEREF_NAME, std::move($2)), Attr(Key::SQL_TABLEREF_INHERIT, Bool(@1, false)) }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { Attr(Key::SQL_TABLEREF_NAME, std::move($3)), Attr(Key::SQL_TABLEREF_INHERIT, Bool(@1, false)) }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -710,12 +725,12 @@ sql_relation_expr:
 
 
 sql_sample_count:
-	  FCONST '%'        { $$ = String(@1); }
-	| ICONST '%'        { $$ = String(@1); }
-	| FCONST PERCENT    { $$ = String(@1); }
-	| ICONST PERCENT    { $$ = String(@1); }
-	| ICONST            { $$ = String(@1); }
-	| ICONST ROWS       { $$ = String(@1); }
+	  FCONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
+	| ICONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
+	| FCONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
+	| ICONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
+	| ICONST            { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@1, sx::SampleCountUnit::ROWS)) }; }
+	| ICONST ROWS       { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::ROWS)) }; }
 	  ;
 
 sql_sample_clause:
@@ -729,35 +744,25 @@ sql_opt_sample_func:
 
 sql_tablesample_entry:
 	  sql_opt_sample_func '(' sql_sample_count ')' sql_opt_repeatable_clause {
-        $$ = {
-            Attr(Key::SQL_SAMPLE_FUNCTION, String(@1)),
-            Attr(Key::SQL_SAMPLE_COUNT, std::move($3)),
-            Attr(Key::SQL_SAMPLE_REPEAT, std::move($5)),
-        };
+        $3.push_back(Attr(Key::SQL_SAMPLE_FUNCTION, String(@3)));
+        $3.push_back(Attr(Key::SQL_SAMPLE_REPEAT, std::move($5)));
+        $$ = std::move($3);
     }
-	| sql_sample_count {
-        $$ = {
-            Attr(Key::SQL_SAMPLE_COUNT, std::move($1)),
-        };
-    }
+	| sql_sample_count { $$ = std::move($1); }
 	| sql_sample_count '(' sql_col_id ')' {
-        $$ = {
-            Attr(Key::SQL_SAMPLE_COUNT, std::move($1)),
-            Attr(Key::SQL_SAMPLE_FUNCTION, String(@3)),
-        };
+        $1.push_back(Attr(Key::SQL_SAMPLE_FUNCTION, String(@3)));
+        $$ = std::move($1);
     }
 	| sql_sample_count '(' sql_col_id ',' ICONST ')' {
-        $$ = {
-            Attr(Key::SQL_SAMPLE_COUNT, std::move($1)),
-            Attr(Key::SQL_SAMPLE_FUNCTION, String(@3)),
-            Attr(Key::SQL_SAMPLE_SEED, String(@5)),
-        };
+        $1.push_back(Attr(Key::SQL_SAMPLE_FUNCTION, String(@3)));
+        $1.push_back(Attr(Key::SQL_SAMPLE_SEED, String(@5)));
+        $$ = std::move($1);
     }
 	  ;
 
 sql_tablesample_clause:
     TABLESAMPLE sql_tablesample_entry {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_SAMPLE, std::move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE, std::move($2));
     }
 		;
 

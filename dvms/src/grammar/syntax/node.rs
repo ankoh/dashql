@@ -35,6 +35,7 @@ pub enum Node<'text> {
     OrderNullRule(sx::OrderNullRule),
     RowLockingBlockBehavior(sx::RowLockingBlockBehavior),
     RowLockingStrength(sx::RowLockingStrength),
+    SampleCountUnit(sx::SampleCountUnit),
     SubqueryQuantifier(sx::SubqueryQuantifier),
     TempType(sx::TempType),
     TrimDirection(sx::TrimDirection),

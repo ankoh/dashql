@@ -43,6 +43,7 @@
 %type <NodeVector> sql_relation_expr;
 %type <NodeVector> sql_row;
 %type <NodeVector> sql_rowsfrom_list;
+%type <NodeVector> sql_sample_count;
 %type <NodeVector> sql_select_clause;
 %type <NodeVector> sql_select_limit;
 %type <NodeVector> sql_select_no_parens;
@@ -126,7 +127,6 @@
 %type <sx::Node> sql_qualified_name;
 %type <sx::Node> sql_rowsfrom_item;
 %type <sx::Node> sql_sample_clause;
-%type <sx::Node> sql_sample_count;
 %type <sx::Node> sql_select_fetch_first_value;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
