@@ -1,10 +1,9 @@
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 use log::info;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
 use quick_xml::events::Event;
-use quick_xml::se::Serializer;
 use quick_xml::Writer;
 use serde::Deserialize;
 use std::error::Error;
