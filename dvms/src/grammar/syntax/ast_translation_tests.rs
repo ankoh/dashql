@@ -8,7 +8,6 @@ fn test_translation(
     expected: Vec<Statement<'static>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let program = crate::grammar::parse(text)?;
-
     let translated = translate_ast(text, program.read())?;
     assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &expected));
     Ok(())
