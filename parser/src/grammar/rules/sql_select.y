@@ -558,28 +558,30 @@ sql_table_ref:
         });
     }
   | LATERAL_P sql_func_table sql_func_alias_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_LATERAL_FUNCTION_TABLE, move($2));
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($2));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_LATERAL, Bool(@1, true)),
             Attr(Key::SQL_TABLEREF_ALIAS, $3),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, move($2));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, {
+        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_LATERAL, Bool(@1, true)),
             Attr(Key::SQL_TABLEREF_ALIAS, $3),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | sql_joined_table {
         auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | '(' sql_joined_table ')' sql_alias_clause {
         auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($2));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_ALIAS, $4),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });

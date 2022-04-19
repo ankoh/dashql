@@ -52,4 +52,6 @@ pub enum Node<'text> {
     ResultTarget(ResultTarget<'text>),
     TableSample(TableSample<'text>),
     GenericType(GenericType<'text>),
+
+    SelectStatement(SelectStatement<'text>),
 }

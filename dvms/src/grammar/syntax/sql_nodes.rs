@@ -157,12 +157,21 @@ pub struct TableSample<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TableRef<'text> {
-    pub alias: Option<Alias<'text>>,
-    pub sample: Option<TableSample<'text>>,
+pub enum InlineTable<'text> {
+    SelectStatement(Box<SelectStatement<'text>>),
+    FunctionTable,
+    JoinedTable,
 }
 
 #[derive(Debug, Clone)]
+pub struct TableRef<'text> {
+    pub alias: Option<Alias<'text>>,
+    pub sample: Option<TableSample<'text>>,
+    pub table: Option<InlineTable<'text>>,
+    pub lateral: bool,
+}
+
+#[derive(Default, Debug, Clone)]
 pub struct SelectStatement<'text> {
     pub all: bool,
     pub targets: Vec<ResultTarget<'text>>,

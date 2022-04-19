@@ -17,7 +17,7 @@ fn test_translation(
     assert_eq!(xml_str, ast_xml.trim());
 
     let translated = translate_ast(text, program.read());
-    assert_eq!(&format!("{:?}", &translated), ast_rs);
+    assert_eq!(&format!("{:#?}", &translated), ast_rs.trim());
     Ok(())
 }
 
@@ -35,6 +35,23 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         </node>
     </statement>
 </statements>"#,
-        "",
+        r#"
+[
+    SelectStatement(
+        SelectStatement {
+            all: false,
+            targets: [],
+            into: None,
+            from: false,
+            where_expr: false,
+            group_by: false,
+            having: false,
+            order_by: false,
+            windows: false,
+            sample: false,
+            row_locking: false,
+        },
+    ),
+]"#,
     )
 }
