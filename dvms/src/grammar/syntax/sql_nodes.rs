@@ -177,7 +177,7 @@ pub struct SelectStatement<'text> {
     pub targets: Vec<ResultTarget<'text>>,
     pub into: Option<Into<'text>>,
     pub from: bool,
-    pub where_expr: bool,
+    pub where_clause: bool,
     pub group_by: bool,
     pub having: bool,
     pub order_by: bool,

@@ -43,7 +43,7 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
             targets: [],
             into: None,
             from: false,
-            where_expr: false,
+            where_clause: false,
             group_by: false,
             having: false,
             order_by: false,
