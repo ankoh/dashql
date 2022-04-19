@@ -8,8 +8,8 @@ name = "dvms"
 path = "src/dvms.rs"
 
 [[bin]]
-name = "dump_grammar"
-path = "src/dump_grammar.rs"
+name = "grammardump"
+path = "src/grammar_dump.rs"
 
 [dependencies]
 dashql_proto = { path = "../packages/proto" }
@@ -17,6 +17,9 @@ flatbuffers = "2.1.1"
 libc = "0.2.121"
 serde = { version = "1.0.136", features = ['derive'] }
 quick-xml = { version = "0.22.0", features = ['serialize'] }
+clap = "2.33.3"
+log = "0.4.0"
+env_logger = "0.8.3"
 
 [build-dependencies]
 cmake = "0.1.48"
