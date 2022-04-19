@@ -70,7 +70,9 @@ impl GrammarDump {
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    env_logger::init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .init();
 
     let matches = App::new("Dump")
         .version("0.1")
@@ -85,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let dir_str = matches.value_of("directory").unwrap();
     let dir_path = PathBuf::from(dir_str).canonicalize()?;
-    info!("dir={:?}", &dir_path);
+    info!("directory={}", &dir_str);
 
     let paths = fs::read_dir(&dir_path).unwrap();
     for file_path in paths {
@@ -96,6 +98,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         if !file_name_str.ends_with(tpl_suffix) {
             continue;
         }
+        info!("processing {}", &file_name_str);
         let prefix = file_name_str.strip_suffix(tpl_suffix).unwrap_or_default();
 
         let input_file = fs::File::open(&file_path.path())?;
@@ -113,26 +116,5 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         dump_file.write_xml(&mut xml_writer)?;
         output_writer.flush()?;
     }
-
-    let test = GrammarDumpFile {
-        dumps: vec![
-            GrammarDump {
-                name: "select_1".to_string(),
-                input: "select 1;".to_string(),
-                parsed: None,
-            },
-            GrammarDump {
-                name: "select_1".to_string(),
-                input: "select 1;".to_string(),
-                parsed: None,
-            },
-        ],
-    };
-
-    let mut buffer = Vec::new();
-    let mut writer = Writer::new_with_indent(&mut buffer, b' ', 4);
-    test.write_xml(&mut writer)?;
-    let xml_str = std::str::from_utf8(&buffer)?;
-    println!("{}", xml_str);
     Ok(())
 }
