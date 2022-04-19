@@ -2,20 +2,26 @@ use crate::error::RawError;
 use crate::proto;
 use std::error::Error;
 
+#[derive(Clone, Debug)]
 pub struct ProgramBuffer {
+    /// The input text
+    text: String,
     /// The program buffer
     buffer: Vec<u8>,
 }
 
 impl ProgramBuffer {
     /// Construct a program buffer
-    pub fn new(buffer: Vec<u8>) -> Self {
-        Self { buffer }
+    pub fn new(text: String, buffer: Vec<u8>) -> Self {
+        Self { text, buffer }
     }
     /// Read the flatbuffer program
-    pub fn read<'buf>(&'buf self) -> proto::syntax::Program<'buf> {
+    pub fn read<'buf>(&'buf self) -> (proto::syntax::Program<'buf>, &'buf str) {
         // We can unwrap here as we run this call once when constructing the buffer
-        flatbuffers::root::<proto::syntax::Program>(self.buffer.as_ref()).unwrap()
+        (
+            flatbuffers::root::<proto::syntax::Program>(self.buffer.as_ref()).unwrap(),
+            self.text.as_str(),
+        )
     }
 }
 
@@ -50,7 +56,7 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, Box<dyn Error + Send + Sync>> 
                 {
                     flatbuffers::root::<proto::syntax::Program>(buffer.as_ref())?;
                 }
-                Ok(ProgramBuffer::new(buffer))
+                Ok(ProgramBuffer::new(text.to_string(), buffer))
             }
             _ => {
                 let msg = String::from_raw_parts(
@@ -72,7 +78,7 @@ mod test {
     #[test]
     fn test_parser_call() -> Result<(), Box<dyn Error + Send + Sync>> {
         let program = super::parse("select 1;")?;
-        let reader = program.read();
+        let (reader, _) = program.read();
         let stmts = reader.statements().expect("must have statements");
         assert_eq!(stmts.len(), 1);
         assert_eq!(

@@ -6,7 +6,8 @@ fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send +
     let program = crate::grammar::parse(text)?;
     let mut buffer = Vec::new();
     let mut writer = Writer::new_with_indent(&mut buffer, ' ' as u8, 4);
-    ast_printing::print_ast(&mut writer, text, program.read())?;
+    let (ast, txt) = program.read();
+    ast_printing::print_ast(&mut writer, ast, text)?;
     let xml_str = std::str::from_utf8(&buffer)?;
     assert_eq!(xml_str, expected.trim());
     Ok(())

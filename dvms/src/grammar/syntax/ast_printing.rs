@@ -43,8 +43,8 @@ fn encode_error<'writer, 'text, 'ast>(
 
 pub fn print_ast<'text, 'ast, W>(
     writer: &mut Writer<W>,
-    text: &'text str,
     ast: sx::Program<'ast>,
+    text: &'text str,
 ) -> Result<(), Box<dyn Error + Send + Sync>>
 where
     W: std::io::Write,

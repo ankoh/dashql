@@ -1,0 +1,18 @@
+<dumps>
+    <dump name="select_iconst_1">
+        <input>select 1</input>
+        <parsed>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
+                        <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="7..8" text="1"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+        </parsed>
+    </dump>
+</dumps>
