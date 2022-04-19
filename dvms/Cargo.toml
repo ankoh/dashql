@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2018"
 
 [[bin]]
-name = "dvms"
-path = "src/dvms.rs"
-
-[[bin]]
 name = "grammardump"
 path = "src/grammar_dump.rs"
+
+[[bin]]
+name = "dvms"
+path = "src/dvms.rs"
 
 [dependencies]
 dashql_proto = { path = "../packages/proto" }

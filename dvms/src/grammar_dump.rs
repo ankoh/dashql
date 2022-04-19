@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clap::{App, Arg};
 use log::info;
 use quick_xml::events::BytesEnd;

@@ -13,6 +13,10 @@
                     </node>
                 </statement>
             </statements>
+            <errors/>
+            <line_breaks/>
+            <comments/>
+            <dson_keys/>
         </parsed>
     </dump>
 </dumps>

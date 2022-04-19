@@ -1,8 +1,5 @@
-use super::ast_node::*;
-use super::sql_nodes::*;
 use crate::grammar::syntax::enums::get_enum_text;
 use crate::proto::syntax as sx;
-use quick_xml::events::attributes::Attribute;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::Event;
@@ -140,5 +137,58 @@ where
         writer.write_event(Event::End(BytesEnd::borrowed(b"statement")))?;
     }
     writer.write_event(Event::End(BytesEnd::borrowed(b"statements")))?;
+
+    let errors = ast.errors().unwrap_or_default();
+    if errors.is_empty() {
+        writer.write_event(Event::Empty(BytesStart::borrowed_name(b"errors")))?;
+    } else {
+        writer.write_event(Event::Start(BytesStart::borrowed_name(b"errors")))?;
+        for error in errors {
+            let mut elem = BytesStart::borrowed_name(b"error");
+            encode_error(&mut elem, error, text);
+            writer.write_event(Event::Empty(elem))?;
+        }
+        writer.write_event(Event::End(BytesEnd::borrowed(b"errors")))?;
+    }
+
+    let line_breaks = ast.line_breaks().unwrap_or_default();
+    if line_breaks.is_empty() {
+        writer.write_event(Event::Empty(BytesStart::borrowed_name(b"line_breaks")))?;
+    } else {
+        writer.write_event(Event::Start(BytesStart::borrowed_name(b"line_breaks")))?;
+        for line_break in line_breaks {
+            let mut elem = BytesStart::borrowed_name(b"line_break");
+            encode_location(&mut elem, *line_break, text);
+            writer.write_event(Event::Empty(elem))?;
+        }
+        writer.write_event(Event::End(BytesEnd::borrowed(b"line_breaks")))?;
+    }
+
+    let comments = ast.line_breaks().unwrap_or_default();
+    if comments.is_empty() {
+        writer.write_event(Event::Empty(BytesStart::borrowed_name(b"comments")))?;
+    } else {
+        writer.write_event(Event::Start(BytesStart::borrowed_name(b"comments")))?;
+        for comment in comments {
+            let mut elem = BytesStart::borrowed_name(b"comment");
+            encode_location(&mut elem, *comment, text);
+            writer.write_event(Event::Empty(elem))?;
+        }
+        writer.write_event(Event::End(BytesEnd::borrowed(b"comments")))?;
+    }
+
+    let dson_keys = ast.dson_keys().unwrap_or_default();
+    if dson_keys.is_empty() {
+        writer.write_event(Event::Empty(BytesStart::borrowed_name(b"dson_keys")))?;
+    } else {
+        writer.write_event(Event::Start(BytesStart::borrowed_name(b"dson_keys")))?;
+        for key in dson_keys {
+            let mut elem = BytesStart::borrowed_name(b"key");
+            encode_location(&mut elem, *key, text);
+            writer.write_event(Event::Empty(elem))?;
+        }
+        writer.write_event(Event::End(BytesEnd::borrowed(b"dson_keys")))?;
+    }
+
     Ok(())
 }

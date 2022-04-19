@@ -1,4 +1,5 @@
 mod ast_node;
+#[allow(dead_code)]
 mod ast_printing;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod ast_printing_tests;
