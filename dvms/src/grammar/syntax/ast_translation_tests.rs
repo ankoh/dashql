@@ -1,5 +1,7 @@
 use super::ast_printing::print_ast;
 use super::ast_translation::translate_ast;
+use super::node::*;
+use super::sql_nodes::*;
 use quick_xml::Writer;
 use std::error::Error;
 use std::io::Cursor;
@@ -7,7 +9,7 @@ use std::io::Cursor;
 fn test_translation(
     text: &str,
     ast_xml: &str,
-    ast_rs: &str,
+    ast_rs: Vec<Node<'static>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let program = crate::grammar::parse(text)?;
     let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), ' ' as u8, 4);
@@ -17,7 +19,7 @@ fn test_translation(
     assert_eq!(xml_str, ast_xml.trim());
 
     let translated = translate_ast(text, program.read())?;
-    assert_eq!(&format!("{:#?}", &translated), ast_rs.trim());
+    assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &ast_rs));
     Ok(())
 }
 
@@ -37,30 +39,12 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         </node>
     </statement>
 </statements>"#,
-        r#"
-[
-    SelectStatement(
-        SelectStatement {
-            all: false,
-            targets: [
-                Value {
-                    value: StringRef(
-                        "1",
-                    ),
-                    alias: None,
-                },
-            ],
-            into: None,
-            from: false,
-            where_clause: false,
-            group_by: false,
-            having: false,
-            order_by: false,
-            windows: false,
-            sample: false,
-            row_locking: false,
-        },
-    ),
-]"#,
+        vec![Node::SelectStatement(SelectStatement {
+            targets: vec![ResultTarget::Value {
+                value: Box::new(Expression::StringRef("1")),
+                alias: None,
+            }],
+            ..Default::default()
+        })],
     )
 }
