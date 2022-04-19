@@ -4,14 +4,14 @@ use crate::proto::syntax as sx;
 type NodeId = usize;
 
 #[derive(Clone, Debug)]
-pub enum Node<'text> {
+pub enum ASTNode<'text> {
     Null,
 
     Boolean(bool),
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'text str),
-    Array(Vec<Node<'text>>),
+    Array(Vec<ASTNode<'text>>),
 
     FetchMethodType(sx::FetchMethodType),
     InputComponentType(sx::InputComponentType),

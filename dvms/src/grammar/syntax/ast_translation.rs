@@ -1,4 +1,4 @@
-use super::node::*;
+use super::ast_node::*;
 use super::sql_nodes::*;
 use crate::error::RawError;
 use crate::proto::syntax as sx;
@@ -14,16 +14,16 @@ macro_rules! unexpected_attribute {
 pub fn translate_ast<'text, 'ast>(
     text: &'text str,
     ast: sx::Program<'ast>,
-) -> Result<Vec<Node<'text>>, Box<dyn Error + Send + Sync>> {
+) -> Result<Vec<ASTNode<'text>>, Box<dyn Error + Send + Sync>> {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
 
     // Collect children
-    let mut children: Vec<Vec<(usize, Node<'text>)>> = Vec::new();
+    let mut children: Vec<Vec<(usize, ASTNode<'text>)>> = Vec::new();
     children.resize(ast_nodes.len(), Vec::new());
 
     // Do a postorder dfs traversal
-    let mut out: Vec<Node<'text>> = Vec::new();
+    let mut out: Vec<ASTNode<'text>> = Vec::new();
     let mut pending: Vec<(usize, bool)> = Vec::new();
     for statement in statements.iter() {
         pending.push((statement.root_node() as usize, false));
@@ -49,97 +49,99 @@ pub fn translate_ast<'text, 'ast>(
 
             // Translate the node
             let translated = match t.node_type() {
-                sx::NodeType::NONE => Node::Null,
-                sx::NodeType::BOOL => Node::Boolean(t.children_begin_or_value() != 0),
-                sx::NodeType::UI32 => Node::UInt32(t.children_begin_or_value()),
-                sx::NodeType::UI32_BITMAP => Node::UInt32Bitmap(t.children_begin_or_value()),
-                sx::NodeType::STRING_REF => Node::StringRef(
+                sx::NodeType::NONE => ASTNode::Null,
+                sx::NodeType::BOOL => ASTNode::Boolean(t.children_begin_or_value() != 0),
+                sx::NodeType::UI32 => ASTNode::UInt32(t.children_begin_or_value()),
+                sx::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(t.children_begin_or_value()),
+                sx::NodeType::STRING_REF => ASTNode::StringRef(
                     &text[(t.location().offset() as usize)
                         ..((t.location().offset() + t.location().length()) as usize)],
                 ),
                 sx::NodeType::ARRAY => {
-                    let mapped: Vec<Node<'text>> =
+                    let mapped: Vec<ASTNode<'text>> =
                         children[ti as usize].drain(..).map(|(_, n)| n).collect();
-                    Node::Array(mapped)
+                    ASTNode::Array(mapped)
                 }
 
                 sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => {
-                    Node::VizComponentType(sx::VizComponentType(v as u8))
+                    ASTNode::VizComponentType(sx::VizComponentType(v as u8))
                 }
                 sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => {
-                    Node::InputComponentType(sx::InputComponentType(v as u8))
+                    ASTNode::InputComponentType(sx::InputComponentType(v as u8))
                 }
                 sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE => {
-                    Node::FetchMethodType(sx::FetchMethodType(v as u8))
+                    ASTNode::FetchMethodType(sx::FetchMethodType(v as u8))
                 }
                 sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE => {
-                    Node::LoadMethodType(sx::LoadMethodType(v as u8))
+                    ASTNode::LoadMethodType(sx::LoadMethodType(v as u8))
                 }
-                sx::NodeType::ENUM_SQL_TEMP_TYPE => Node::TempType(sx::TempType(v as u8)),
-                sx::NodeType::ENUM_SQL_CONST_TYPE => Node::ConstType(sx::AConstType(v as u8)),
+                sx::NodeType::ENUM_SQL_TEMP_TYPE => ASTNode::TempType(sx::TempType(v as u8)),
+                sx::NodeType::ENUM_SQL_CONST_TYPE => ASTNode::ConstType(sx::AConstType(v as u8)),
                 sx::NodeType::ENUM_SQL_CHARACTER_TYPE => {
-                    Node::CharacterType(sx::CharacterType(v as u8))
+                    ASTNode::CharacterType(sx::CharacterType(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR => {
-                    Node::ExpressionOperator(sx::ExpressionOperator(v as u8))
+                    ASTNode::ExpressionOperator(sx::ExpressionOperator(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_ORDER_DIRECTION => {
-                    Node::OrderDirection(sx::OrderDirection(v as u8))
+                    ASTNode::OrderDirection(sx::OrderDirection(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_ORDER_NULL_RULE => {
-                    Node::OrderNullRule(sx::OrderNullRule(v as u8))
+                    ASTNode::OrderNullRule(sx::OrderNullRule(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_COMBINE_MODIFIER => {
-                    Node::CombineModifier(sx::CombineModifier(v as u8))
+                    ASTNode::CombineModifier(sx::CombineModifier(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_COMBINE_OPERATION => {
-                    Node::CombineOperation(sx::CombineOperation(v as u8))
+                    ASTNode::CombineOperation(sx::CombineOperation(v as u8))
                 }
-                sx::NodeType::ENUM_SQL_NUMERIC_TYPE => Node::NumericType(sx::NumericType(v as u8)),
+                sx::NodeType::ENUM_SQL_NUMERIC_TYPE => {
+                    ASTNode::NumericType(sx::NumericType(v as u8))
+                }
                 sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE => {
-                    Node::WindowBoundMode(sx::WindowBoundMode(v as u8))
+                    ASTNode::WindowBoundMode(sx::WindowBoundMode(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE => {
-                    Node::WindowRangeMode(sx::WindowRangeMode(v as u8))
+                    ASTNode::WindowRangeMode(sx::WindowRangeMode(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => {
-                    Node::WindowExclusionMode(sx::WindowExclusionMode(v as u8))
+                    ASTNode::WindowExclusionMode(sx::WindowExclusionMode(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => {
-                    Node::WindowBoundDirection(sx::WindowBoundDirection(v as u8))
+                    ASTNode::WindowBoundDirection(sx::WindowBoundDirection(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION => {
-                    Node::OnCommitOption(sx::OnCommitOption(v as u8))
+                    ASTNode::OnCommitOption(sx::OnCommitOption(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE => {
-                    Node::ConstraintAttribute(sx::ConstraintAttribute(v as u8))
+                    ASTNode::ConstraintAttribute(sx::ConstraintAttribute(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT => {
-                    Node::ColumnConstraint(sx::ColumnConstraint(v as u8))
+                    ASTNode::ColumnConstraint(sx::ColumnConstraint(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_INTERVAL_TYPE => {
-                    Node::IntervalType(sx::IntervalType(v as u8))
+                    ASTNode::IntervalType(sx::IntervalType(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => {
-                    Node::SubqueryQuantifier(sx::SubqueryQuantifier(v as u8))
+                    ASTNode::SubqueryQuantifier(sx::SubqueryQuantifier(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_TRIM_TARGET => {
-                    Node::TrimDirection(sx::TrimDirection(v as u8))
+                    ASTNode::TrimDirection(sx::TrimDirection(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_EXTRACT_TARGET => {
-                    Node::ExtractTarget(sx::ExtractTarget(v as u8))
+                    ASTNode::ExtractTarget(sx::ExtractTarget(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => {
-                    Node::RowLockingBlockBehavior(sx::RowLockingBlockBehavior(v as u8))
+                    ASTNode::RowLockingBlockBehavior(sx::RowLockingBlockBehavior(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => {
-                    Node::RowLockingStrength(sx::RowLockingStrength(v as u8))
+                    ASTNode::RowLockingStrength(sx::RowLockingStrength(v as u8))
                 }
                 sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => {
-                    Node::SampleCountUnit(sx::SampleCountUnit(v as u8))
+                    ASTNode::SampleCountUnit(sx::SampleCountUnit(v as u8))
                 }
 
-                sx::NodeType::ENUM_SQL_JOIN_TYPE => Node::JoinType(sx::JoinType(v as u8)),
+                sx::NodeType::ENUM_SQL_JOIN_TYPE => ASTNode::JoinType(sx::JoinType(v as u8)),
 
                 sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                     let mut name = None;
@@ -147,14 +149,14 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_GENERIC_TYPE_NAME, Node::StringRef(s)) => name = Some(s),
-                            (Key::SQL_GENERIC_TYPE_MODIFIERS, Node::Array(a)) => {
+                            (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s),
+                            (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => {
                                 modifiers = read_exprs(a)?
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::GenericType(GenericType {
+                    ASTNode::GenericType(GenericType {
                         name: name.unwrap_or_default(),
                         modifiers,
                     })
@@ -167,16 +169,16 @@ pub fn translate_ast<'text, 'ast>(
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
                             (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)?),
-                            (Key::SQL_ORDER_DIRECTION, Node::OrderDirection(d)) => {
+                            (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d)) => {
                                 direction = Some(d)
                             }
-                            (Key::SQL_ORDER_NULLRULE, Node::OrderNullRule(n)) => {
+                            (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n)) => {
                                 null_rule = Some(n)
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::OrderSpecification(OrderSpecification {
+                    ASTNode::OrderSpecification(OrderSpecification {
                         value: Box::new(value.unwrap_or(Expression::Null)),
                         direction,
                         null_rule,
@@ -188,14 +190,14 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_INTERVAL_TYPE, Node::IntervalType(t)) => type_ = Some(t),
-                            (Key::SQL_INTERVAL_PRECISION, Node::StringRef(s)) => {
+                            (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => type_ = Some(t),
+                            (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => {
                                 precision = Some(s)
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::IntervalSpecification(IntervalSpecification::Type {
+                    ASTNode::IntervalSpecification(IntervalSpecification::Type {
                         type_: type_.unwrap_or_default(),
                         precision: precision,
                     })
@@ -207,13 +209,13 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_RESULT_TARGET_STAR, Node::Boolean(true)) => star = true,
+                            (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(true)) => star = true,
                             (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)?),
-                            (Key::SQL_RESULT_TARGET_NAME, Node::StringRef(s)) => alias = Some(s),
+                            (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s)) => alias = Some(s),
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::ResultTarget(if star {
+                    ASTNode::ResultTarget(if star {
                         ResultTarget::Star
                     } else {
                         ResultTarget::Value {
@@ -232,14 +234,14 @@ pub fn translate_ast<'text, 'ast>(
                             (Key::SQL_EXPRESSION_ARG0, n) => args.push(read_expr(n)?),
                             (Key::SQL_EXPRESSION_ARG1, n) => args.push(read_expr(n)?),
                             (Key::SQL_EXPRESSION_ARG2, n) => args.push(read_expr(n)?),
-                            (Key::SQL_EXPRESSION_POSTFIX, Node::Boolean(p)) => postfix = p,
-                            (Key::SQL_EXPRESSION_OPERATOR, Node::ExpressionOperator(op)) => {
+                            (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(p)) => postfix = p,
+                            (Key::SQL_EXPRESSION_OPERATOR, ASTNode::ExpressionOperator(op)) => {
                                 operator = op;
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::Expression(Expression::Nary(NaryExpression {
+                    ASTNode::Expression(Expression::Nary(NaryExpression {
                         operator,
                         args,
                         postfix,
@@ -254,19 +256,19 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_SAMPLE_FUNCTION, Node::StringRef(s)) => function = Some(s),
-                            (Key::SQL_SAMPLE_REPEAT, Node::StringRef(s)) => repeat = Some(s),
-                            (Key::SQL_SAMPLE_SEED, Node::StringRef(s)) => seed = Some(s),
-                            (Key::SQL_SAMPLE_COUNT_VALUE, Node::StringRef(v)) => {
+                            (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(s)) => function = Some(s),
+                            (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(s)) => repeat = Some(s),
+                            (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(s)) => seed = Some(s),
+                            (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v)) => {
                                 count = Some(v);
                             }
-                            (Key::SQL_SAMPLE_COUNT_UNIT, Node::SampleCountUnit(u)) => {
+                            (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => {
                                 count_unit = Some(u)
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::TableSample(TableSample {
+                    ASTNode::TableSample(TableSample {
                         function: function,
                         count: count.unwrap_or_default(),
                         unit: count_unit.unwrap_or(sx::SampleCountUnit::ROWS),
@@ -284,27 +286,29 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_CONST_CAST_TYPE, Node::StringRef(t)) => cast_type = Some(t),
-                            (Key::SQL_CONST_CAST_VALUE, Node::StringRef(t)) => value = Some(t),
-                            (Key::SQL_CONST_CAST_FUNC_NAME, Node::Array(n)) => {
+                            (Key::SQL_CONST_CAST_TYPE, ASTNode::StringRef(t)) => {
+                                cast_type = Some(t)
+                            }
+                            (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t),
+                            (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => {
                                 func_name = Some(read_name(n));
                             }
-                            (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, Node::Array(nodes)) => {
+                            (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => {
                                 func_args = read_exprs(nodes)?;
                             }
-                            (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, Node::Array(nodes)) => {
+                            (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => {
                                 func_arg_ordering = read_ordering(nodes);
                             }
-                            (Key::SQL_CONST_CAST_INTERVAL, Node::IntervalSpecification(i)) => {
+                            (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => {
                                 interval = Some(i);
                             }
-                            (Key::SQL_CONST_CAST_INTERVAL, Node::StringRef(s)) => {
+                            (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
                                 interval = Some(IntervalSpecification::Raw(s));
                             }
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::Expression(Expression::ConstCast(ConstCastExpression {
+                    ASTNode::Expression(Expression::ConstCast(ConstCastExpression {
                         cast_type: cast_type.unwrap_or_default(),
                         func_name,
                         func_args,
@@ -318,11 +322,11 @@ pub fn translate_ast<'text, 'ast>(
                     for (child_id, translated) in children[ti as usize].drain(..) {
                         let key = ast_nodes[child_id].attribute_key();
                         match (sx::AttributeKey(key), translated) {
-                            (Key::SQL_SELECT_TARGETS, Node::Array(mut a)) => {
+                            (Key::SQL_SELECT_TARGETS, ASTNode::Array(mut a)) => {
                                 targets = a
                                     .drain(..)
                                     .filter_map(|n| match n {
-                                        Node::ResultTarget(t) => Some(t),
+                                        ASTNode::ResultTarget(t) => Some(t),
                                         _ => None,
                                     })
                                     .collect();
@@ -330,7 +334,7 @@ pub fn translate_ast<'text, 'ast>(
                             _ => unexpected_attribute!(key),
                         }
                     }
-                    Node::SelectStatement(SelectStatement {
+                    ASTNode::SelectStatement(SelectStatement {
                         all: false,
                         targets: targets,
                         into: None,
@@ -362,16 +366,18 @@ pub fn translate_ast<'text, 'ast>(
     Ok(out)
 }
 
-fn read_expr<'text>(node: Node<'text>) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
+fn read_expr<'text>(
+    node: ASTNode<'text>,
+) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
     let n = match node {
-        Node::StringRef(s) => Expression::StringRef(s),
+        ASTNode::StringRef(s) => Expression::StringRef(s),
         _ => return Err(RawError::from(format!("invalid expression node: {:?}", node)).boxed()),
     };
     Ok(n)
 }
 
 fn read_exprs<'text>(
-    nodes: Vec<Node<'text>>,
+    nodes: Vec<ASTNode<'text>>,
 ) -> Result<Vec<Expression<'text>>, Box<dyn Error + Send + Sync>> {
     let mut exprs = Vec::with_capacity(nodes.len());
     for n in nodes {
@@ -380,24 +386,24 @@ fn read_exprs<'text>(
     Ok(exprs)
 }
 
-fn read_name<'text>(elements: Vec<Node<'text>>) -> NamePath<'text> {
+fn read_name<'text>(elements: Vec<ASTNode<'text>>) -> NamePath<'text> {
     let mut path = Vec::with_capacity(elements.len());
     for e in elements {
         match e {
-            Node::StringRef(s) => path.push(NamePathElement::Component(s)),
-            Node::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
-            Node::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
+            ASTNode::StringRef(s) => path.push(NamePathElement::Component(s)),
+            ASTNode::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
+            ASTNode::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
             _ => continue,
         }
     }
     NamePath { elements: path }
 }
 
-fn read_ordering<'text>(specs: Vec<Node<'text>>) -> Vec<OrderSpecification<'text>> {
+fn read_ordering<'text>(specs: Vec<ASTNode<'text>>) -> Vec<OrderSpecification<'text>> {
     let mut ordering = Vec::with_capacity(specs.len());
     for n in specs {
         match n {
-            Node::OrderSpecification(o) => ordering.push(o),
+            ASTNode::OrderSpecification(o) => ordering.push(o),
             _ => continue,
         }
     }

@@ -1,4 +1,4 @@
-use super::node::*;
+use super::ast_node::*;
 use super::sql_nodes::*;
 use crate::grammar::syntax::enums::get_enum_text;
 use crate::proto::syntax as sx;

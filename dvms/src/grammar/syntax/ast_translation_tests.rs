@@ -1,6 +1,6 @@
+use super::ast_node::*;
 use super::ast_printing::print_ast;
 use super::ast_translation::translate_ast;
-use super::node::*;
 use super::sql_nodes::*;
 use quick_xml::Writer;
 use std::error::Error;
@@ -9,7 +9,7 @@ use std::io::Cursor;
 fn test_translation(
     text: &str,
     ast_xml: &str,
-    ast_rs: Vec<Node<'static>>,
+    ast_rs: Vec<ASTNode<'static>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let program = crate::grammar::parse(text)?;
     let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), ' ' as u8, 4);
@@ -39,7 +39,7 @@ fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         </node>
     </statement>
 </statements>"#,
-        vec![Node::SelectStatement(SelectStatement {
+        vec![ASTNode::SelectStatement(SelectStatement {
             targets: vec![ResultTarget::Value {
                 value: Box::new(Expression::StringRef("1")),
                 alias: None,
