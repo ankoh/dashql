@@ -1,5 +1,6 @@
 use super::ast_node::*;
 use super::sql_nodes::*;
+use super::statement::Statement;
 use crate::error::RawError;
 use crate::proto::syntax as sx;
 use std::error::Error;
@@ -14,7 +15,7 @@ macro_rules! unexpected_attribute {
 pub fn translate_ast<'text, 'ast>(
     text: &'text str,
     ast: sx::Program<'ast>,
-) -> Result<Vec<ASTNode<'text>>, Box<dyn Error + Send + Sync>> {
+) -> Result<Vec<Statement<'text>>, Box<dyn Error + Send + Sync>> {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
 
@@ -23,7 +24,7 @@ pub fn translate_ast<'text, 'ast>(
     children.resize(ast_nodes.len(), Vec::new());
 
     // Do a postorder dfs traversal
-    let mut out: Vec<ASTNode<'text>> = Vec::new();
+    let mut out: Vec<Statement<'text>> = Vec::new();
     let mut pending: Vec<(usize, bool)> = Vec::new();
     for statement in statements.iter() {
         pending.push((statement.root_node() as usize, false));
@@ -354,13 +355,25 @@ pub fn translate_ast<'text, 'ast>(
             // Stack empty?
             // Returned to statement root then, otherwise push as child
             pending.pop();
-            if pending.is_empty() {
-                out.push(translated);
-            } else {
+            if !pending.is_empty() {
                 debug_assert!(t.parent() != u32::MAX);
                 debug_assert!((t.parent() as usize) < ast_nodes.len());
                 children[t.parent() as usize].push((ti, translated));
+                continue;
             }
+
+            // Push statement
+            let stmt = match translated {
+                ASTNode::SelectStatement(s) => Statement::Select(s),
+                _ => {
+                    return Err(RawError::from(format!(
+                        "not a valid statement node: {:?}",
+                        &translated
+                    ))
+                    .boxed())
+                }
+            };
+            out.push(stmt);
         }
     }
     Ok(out)

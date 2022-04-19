@@ -1,11 +1,11 @@
-use super::ast_node::*;
 use super::ast_translation::translate_ast;
 use super::sql_nodes::*;
+use super::statement::Statement;
 use std::error::Error;
 
 fn test_translation(
     text: &str,
-    expected: Vec<ASTNode<'static>>,
+    expected: Vec<Statement<'static>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let program = crate::grammar::parse(text)?;
 
@@ -18,7 +18,7 @@ fn test_translation(
 fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
     test_translation(
         "select 1;",
-        vec![ASTNode::SelectStatement(SelectStatement {
+        vec![Statement::Select(SelectStatement {
             targets: vec![ResultTarget::Value {
                 value: Box::new(Expression::StringRef("1")),
                 alias: None,
