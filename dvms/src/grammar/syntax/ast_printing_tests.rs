@@ -3,10 +3,10 @@ use quick_xml::Writer;
 use std::error::Error;
 use std::io::Cursor;
 
-fn test_grammar(stmt: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let program = crate::grammar::parse(stmt)?;
+fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let program = crate::grammar::parse(text)?;
     let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), ' ' as u8, 4);
-    ast_printing::print_ast(&mut writer, stmt, program.read())?;
+    ast_printing::print_ast(&mut writer, text, program.read())?;
     let xml_buffer = writer.into_inner().into_inner();
     let xml_str = std::str::from_utf8(&xml_buffer)?;
     assert_eq!(xml_str, expected.trim());

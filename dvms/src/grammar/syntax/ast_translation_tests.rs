@@ -1,9 +1,7 @@
 use super::ast_node::*;
-use super::ast_printing::print_ast;
 use super::ast_translation::translate_ast;
 use super::sql_nodes::*;
 use std::error::Error;
-use std::io::Cursor;
 
 fn test_translation(
     text: &str,
