@@ -1,4 +1,3 @@
-use crate::proto::syntax as sx;
 use clap::{App, Arg};
 use log::info;
 use quick_xml::events::BytesEnd;
@@ -98,7 +97,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         if !file_name_str.ends_with(tpl_suffix) {
             continue;
         }
-        info!("processing {}", &file_name_str);
+        info!("dump_file={}", &file_name_str);
         let prefix = file_name_str.strip_suffix(tpl_suffix).unwrap_or_default();
 
         let input_file = fs::File::open(&file_path.path())?;
