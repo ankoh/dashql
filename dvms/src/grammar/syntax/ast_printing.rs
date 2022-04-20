@@ -19,14 +19,16 @@ fn encode_location<'writer, 'text>(
     let end = (loc.offset() + loc.length()) as usize;
     let loc_string = format!("{b}..{e}", b = begin, e = end);
     let loc_attr = ("loc", loc_string.as_str());
+    let mut out: String;
     if (loc.length() as usize) < INLINE_LOCATION_CAP {
-        writer.extend_attributes([loc_attr, ("text", &text[begin..end])]);
+        out = text[begin..end].to_string();
     } else {
         let prefix = &text[begin..(begin + LOCATION_HINT_LENGTH)];
         let suffix = &text[(end - LOCATION_HINT_LENGTH)..end];
-        let text = format!("{p}..{s}", p = prefix, s = suffix);
-        writer.extend_attributes([loc_attr, ("text", text.as_str())]);
+        out = format!("{p}..{s}", p = prefix, s = suffix);
     }
+    out = out.replace("\n", "\\n");
+    writer.extend_attributes([loc_attr, ("text", &out)]);
 }
 
 fn encode_error<'writer, 'text, 'ast>(
@@ -164,7 +166,7 @@ where
         writer.write_event(Event::End(BytesEnd::borrowed(b"line_breaks")))?;
     }
 
-    let comments = ast.line_breaks().unwrap_or_default();
+    let comments = ast.comments().unwrap_or_default();
     if comments.is_empty() {
         writer.write_event(Event::Empty(BytesStart::borrowed_name(b"comments")))?;
     } else {
@@ -191,4 +193,87 @@ where
     }
 
     Ok(())
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use quick_xml::Writer;
+    use std::error::Error;
+
+    fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let program = crate::grammar::parse(text)?;
+        let mut buffer = Vec::new();
+        let mut writer = Writer::new_with_indent(&mut buffer, ' ' as u8, 4);
+        let (ast, _) = program.read();
+        print_ast(&mut writer, ast, text)?;
+        let xml_str = std::str::from_utf8(&buffer)?;
+        assert_eq!(expected.trim(), xml_str);
+        Ok(())
+    }
+
+    #[test]
+    fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_grammar(
+            "select 1;",
+            r#"
+<statements>
+    <statement type="SELECT">
+        <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
+            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
+                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="7..8" text="1"/>
+                </node>
+            </node>
+        </node>
+    </statement>
+</statements>
+<errors/>
+<line_breaks/>
+<comments/>
+<dson_keys/>
+"#,
+        )
+    }
+
+    #[test]
+    fn test_select_1_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_grammar(
+            "
+            select 1;
+            select 2;
+            ",
+            r#"
+<statements>
+    <statement type="SELECT">
+        <node type="OBJECT_SQL_SELECT" loc="13..21" text="select 1">
+            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="1">
+                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="20..21" text="1"/>
+                </node>
+            </node>
+        </node>
+    </statement>
+    <statement type="SELECT">
+        <node type="OBJECT_SQL_SELECT" loc="35..43" text="select 2">
+            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                <node type="OBJECT_SQL_RESULT_TARGET" loc="42..43" text="2">
+                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="42..43" text="2"/>
+                </node>
+            </node>
+        </node>
+    </statement>
+</statements>
+<errors/>
+<line_breaks>
+    <line_break loc="0..1" text="\n"/>
+    <line_break loc="22..23" text="\n"/>
+    <line_break loc="44..45" text="\n"/>
+</line_breaks>
+<comments/>
+<dson_keys/>
+"#,
+        )
+    }
 }
