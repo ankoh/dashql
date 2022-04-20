@@ -906,7 +906,7 @@ sql_typename:
 
 sql_opt_array_bounds:
     sql_opt_array_bounds '[' ']'            { $1.push_back(Null()); $$ = move($1); }
-  | sql_opt_array_bounds '[' ICONST ']'     { $1.push_back(String(Loc({@3}))); $$ = move($1); }
+  | sql_opt_array_bounds '[' ICONST ']'     { $1.push_back(String(@3)); $$ = move($1); }
   | %empty                                  { $$ = {}; }
     ;
 

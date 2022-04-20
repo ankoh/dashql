@@ -1,0 +1,123 @@
+<astdumps>
+    <astdump name="demo">
+        <input>
+            -- This script outlines basic concepts of the SQL extension DashQL.
+            -- Delete everything when you're ready and start from scratch.
+
+            -- Declare a dynamic input field on top of your dashboard.
+            -- Ref: https://docs.dashql.com/grammar/param
+            INPUT country TYPE VARCHAR USING TEXT (
+                title = 'Country',
+                position = (row = 0, column = 0, width = 3, height = 1)
+            );
+
+            -- Fetch data from external sources like HTTP REST APIs.
+            -- Ref: https://docs.dashql.com/grammar/fetch
+            FETCH weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+            );
+
+            -- Interpret the data as SQL table.
+            -- Ref: https://docs.dashql.com/grammar/load
+            LOAD weather FROM weather_csv USING CSV;
+
+            -- Run arbitrary SQL within your browser.
+            -- Ref: https://docs.dashql.com/grammar/query
+            SELECT 1 INTO weather_avg FROM weather;
+
+            -- Visualize tables and views.
+            -- Ref: https://docs.dashql.com/grammar/viz
+            VIZ weather_avg USING LINE;
+        </input>
+    </astdump>
+    <astdump name="demo_2">
+        <input>
+            VIZ foo USING (
+                title = 'Line Chart',
+                position = (row = 0, column = 0, width = 6, height = 4),
+                mark = 'line',
+                encoding = (
+                    x = (field = 'x', axis = (tick_count = 10)),
+                    y = (field = 'y', axis = (tick_count = 10))
+                )
+            );
+        </input>
+    </astdump>
+    <astdump name="demo_3">
+        <input>
+            -- Fetch the bundled university schema
+            FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+
+            -- Load the parquet files in the zip archive
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+            LOAD hoeren FROM uni['hoeren.parquet'];
+            LOAD studenten FROM uni['studenten.parquet'];
+
+            -- Run arbitrary SQL
+            CREATE TABLE Enrolments AS
+                SELECT studenten.MatrNr, vorlesungen.Titel
+                FROM studenten, hoeren, vorlesungen
+                WHERE studenten.MatrNr = hoeren.MatrNr
+                AND hoeren.VorlNr = vorlesungen.VorlNr;
+
+            -- ... with aggregates
+            CREATE TABLE StudentsCounts AS
+                SELECT v.titel, count(*)::INTEGER as studenten
+                FROM hoeren h, vorlesungen v
+                where h.vorlnr = v.vorlnr
+                GROUP BY v.titel;
+
+            -- ... store as table or view
+            CREATE VIEW SWSCounts AS
+                SELECT v.sws, count(*)::INTEGER as cnt
+                FROM vorlesungen v
+                GROUP BY v.sws;
+
+            -- Visualize the result with a simple table
+            VIZ Enrolments USING TABLE (
+                title = 'Einschreibungen',
+                position = (row = 3, column = 0, width = 12, height = 4),
+            );
+
+            -- ... or a bar chart
+            VIZ StudentCounts USING (
+                title = 'Auslastung',
+                position = (row = 0, column = 0, width = 6, height = 4),
+                mark = 'bar',
+                encoding = (
+                    y = (
+                        title = 'Vorlesungen',
+                        field = 'Titel',
+                        type = 'nominal',
+                    ),
+                    x = (
+                        title = 'Studenten',
+                        field = 'studenten',
+                        type ='quantitative',
+                        scale.zero = true,
+                        axis.tick_min_step = 1,
+                    ),
+                )
+            );
+
+            -- ... or a donut chart
+            VIZ SWSCounts USING (
+                title = 'Wochenstunden',
+                position = (row = 0, column = 6, width = 6, height = 4),
+                mark = (type= 'arc', inner_radius=50),
+                encoding = (
+                    color = (
+                        field = 'SWS',
+                        type = 'ordinal',
+                    ),
+                    theta = (
+                        title = 'Vorlesungen',
+                        field = 'cnt',
+                        type = 'quantitative',
+                        scale.zero = true,
+                    ),
+                )
+            );
+        </input>
+    </astdump>
+</astdumps>

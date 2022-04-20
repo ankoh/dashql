@@ -10,9 +10,9 @@ use std::error::Error;
 use std::io::Write;
 
 #[derive(Debug, Deserialize)]
-#[serde(rename = "dumps")]
+#[serde(rename = "astdumps")]
 pub struct ASTDumpFile {
-    #[serde(rename = "dump", default)]
+    #[serde(rename = "astdump", default)]
     pub dumps: Vec<ASTDump>,
 }
 
@@ -21,11 +21,11 @@ impl ASTDumpFile {
     where
         W: Write,
     {
-        writer.write_event(Event::Start(BytesStart::borrowed_name(b"dumps")))?;
+        writer.write_event(Event::Start(BytesStart::borrowed_name(b"astdumps")))?;
         for dump in self.dumps.iter() {
             dump.write_xml(writer)?;
         }
-        writer.write_event(Event::End(BytesEnd::borrowed(b"dumps")))?;
+        writer.write_event(Event::End(BytesEnd::borrowed(b"astdumps")))?;
         Ok(())
     }
 }
@@ -43,7 +43,7 @@ impl ASTDump {
     where
         W: Write,
     {
-        let mut start = BytesStart::borrowed_name(b"dump");
+        let mut start = BytesStart::borrowed_name(b"astdump");
         start.push_attribute(("name", self.name.as_str()));
         writer.write_event(Event::Start(start))?;
         writer.write_event(Event::Start(BytesStart::borrowed_name(b"input")))?;
@@ -55,7 +55,7 @@ impl ASTDump {
             print_ast(writer, program, text)?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
         }
-        writer.write_event(Event::End(BytesEnd::borrowed(b"dump")))?;
+        writer.write_event(Event::End(BytesEnd::borrowed(b"astdump")))?;
         Ok(())
     }
 }
@@ -71,9 +71,9 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    fn test_dumps() -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn ast_dumps() -> Result<(), Box<dyn Error + Send + Sync>> {
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let grammar_dumps_dir = base.join("dump").join("grammar");
+        let grammar_dumps_dir = base.join("dump").join("ast");
         let dump_paths = fs::read_dir(&grammar_dumps_dir).unwrap();
         for dump_path in dump_paths {
             let dump_path = dump_path?;

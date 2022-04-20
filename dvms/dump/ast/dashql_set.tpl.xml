@@ -1,0 +1,11 @@
+<astdumps>
+    <astdump name="dashql_set_title">
+        <input>SET title = 'foo';</input>
+    </astdump>
+    <astdump name="dashql_set_qualified_title">
+        <input>SET dashql.title = 'foo';</input>
+    </astdump>
+    <astdump name="dashql_set_description">
+        <input>SET description = 'bar';</input>
+    </astdump>
+</astdumps>

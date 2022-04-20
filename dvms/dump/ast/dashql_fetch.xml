@@ -1,0 +1,146 @@
+<astdumps>
+    <astdump name="load_uni_zip_http">
+        <input>FETCH uni FROM http (
+                url = &apos;https://static.dashql.com/data/uni/de/all.zip&apos;
+            );
+            LOAD assistenten FROM uni[&apos;assistenten.parquet&apos;] USING PARQUET;</input>
+        <parsed>
+            <statements>
+                <statement type="FETCH">
+                    <node type="OBJECT_DASHQL_FETCH" loc="0..105" text="FETCH uni ..         )">
+                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..9" text="uni"/>
+                        </node>
+                        <node key="DSON_URL" type="STRING_REF" loc="44..91" text="&apos;https://s..e/all.zip&apos;"/>
+                    </node>
+                </statement>
+                <statement type="LOAD">
+                    <node type="OBJECT_DASHQL_LOAD" loc="119..181" text="LOAD assis..NG PARQUET">
+                        <node key="DASHQL_DATA_SOURCE" type="ARRAY">
+                            <node type="STRING_REF" loc="141..144" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="144..167" text="[&apos;assisten...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="145..166" text="&apos;assistent..n.parquet&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="124..135" text="assistenten"/>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="21..22" text="\n"/>
+                <line_break loc="91..92" text="\n"/>
+                <line_break loc="106..107" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="load_uni_zip_infer">
+        <input>FETCH uni FROM &apos;https://static.dashql.com/data/uni/de/all.zip&apos;;
+            LOAD vorlesungen FROM uni[&apos;vorlesungen.parquet&apos;] USING PARQUET;
+            LOAD hoeren FROM uni[&apos;hoeren.parquet&apos;];
+            LOAD studenten FROM uni[&apos;studenten.parquet&apos;];</input>
+        <parsed>
+            <statements>
+                <statement type="FETCH">
+                    <node type="OBJECT_DASHQL_FETCH" loc="0..62" text="FETCH uni ..e/all.zip&apos;">
+                        <node key="DASHQL_FETCH_FROM_URI" type="STRING_REF" loc="15..62" text="&apos;https://s..e/all.zip&apos;"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..9" text="uni"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD">
+                    <node type="OBJECT_DASHQL_LOAD" loc="76..138" text="LOAD vorle..NG PARQUET">
+                        <node key="DASHQL_DATA_SOURCE" type="ARRAY">
+                            <node type="STRING_REF" loc="98..101" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="101..124" text="[&apos;vorlesun...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="102..123" text="&apos;vorlesung..n.parquet&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="81..92" text="vorlesungen"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD">
+                    <node type="OBJECT_DASHQL_LOAD" loc="152..190" text="LOAD hoere...parquet&apos;]">
+                        <node key="DASHQL_DATA_SOURCE" type="ARRAY">
+                            <node type="STRING_REF" loc="169..172" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="172..190" text="[&apos;hoeren.parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="173..189" text="&apos;hoeren.parquet&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="157..163" text="hoeren"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD">
+                    <node type="OBJECT_DASHQL_LOAD" loc="204..248" text="LOAD stude...parquet&apos;]">
+                        <node key="DASHQL_DATA_SOURCE" type="ARRAY">
+                            <node type="STRING_REF" loc="224..227" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="227..248" text="[&apos;studente...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="228..247" text="&apos;studenten.parquet&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="209..218" text="studenten"/>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="63..64" text="\n"/>
+                <line_break loc="139..140" text="\n"/>
+                <line_break loc="191..192" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="load_rest_header">
+        <input>FETCH json_stats FROM HTTP (
+                url = &apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;,
+                headers = (
+                    &apos;Ocp-Apim-Subscription-Key&apos; = &apos;somekey&apos;
+                )
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="FETCH">
+                    <node type="OBJECT_DASHQL_FETCH" loc="0..234" text="FETCH json..         )">
+                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..16" text="json_stats"/>
+                        </node>
+                        <node key="DSON_URL" type="STRING_REF" loc="51..113" text="&apos;https://w..tag/stats&apos;"/>
+                        <node key="" type="OBJECT_DSON" loc="141..220" text="(\n        ..         )">
+                            <node key="DSON_DYNAMIC_KEYS_" type="STRING_REF" loc="193..202" text="&apos;somekey&apos;"/>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="28..29" text="\n"/>
+                <line_break loc="114..115" text="\n"/>
+                <line_break loc="142..143" text="\n"/>
+                <line_break loc="202..203" text="\n"/>
+                <line_break loc="220..221" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys>
+                <key loc="164..189" text="Ocp-Apim-S..iption-Key"/>
+                <key loc="131..138" text="headers"/>
+            </dson_keys>
+        </parsed>
+    </astdump>
+</astdumps>

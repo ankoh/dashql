@@ -1,0 +1,553 @@
+<astdumps>
+    <astdump name="dashql_viz_full">
+        <input>VISUALIZE weather_avg USING STACKED BAR (
+                position = (row = 0, column = 0, width = 4, height = 15),
+                x = a,
+                y = b,
+            ), LINE, SCATTER, X AXIS(scale = &apos;linear&apos;), Y AXIS(scale = &apos;log&apos;);</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..239" text="VISUALIZE ..e = &apos;log&apos;)">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="28..175" text="STACKED BA..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="69..114" text="(row = 0, ..ight = 15)">
+                                    <node key="DSON_ROW" type="STRING_REF" loc="76..77" text="0"/>
+                                    <node key="DSON_COLUMN" type="STRING_REF" loc="88..89" text="0"/>
+                                    <node key="DSON_WIDTH" type="STRING_REF" loc="99..100" text="4"/>
+                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="111..113" text="15"/>
+                                </node>
+                                <node key="DSON_X" type="OBJECT_SQL_COLUMN_REF" loc="136..137" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                        <node type="STRING_REF" loc="136..137" text="a"/>
+                                    </node>
+                                </node>
+                                <node key="DSON_Y" type="OBJECT_SQL_COLUMN_REF" loc="159..160" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                        <node type="STRING_REF" loc="159..160" text="b"/>
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="177..181" text="LINE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                            </node>
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="183..190" text="SCATTER">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SCATTER"/>
+                            </node>
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="192..216" text="X AXIS(sca.. &apos;linear&apos;)">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AXIS"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="64"/>
+                                <node key="DSON_SCALE" type="STRING_REF" loc="207..215" text="&apos;linear&apos;"/>
+                            </node>
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="218..239" text="Y AXIS(sca..e = &apos;log&apos;)">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AXIS"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="128"/>
+                                <node key="DSON_SCALE" type="STRING_REF" loc="233..238" text="&apos;log&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="10..21" text="weather_avg">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="10..21" text="weather_avg"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="41..42" text="\n"/>
+                <line_break loc="115..116" text="\n"/>
+                <line_break loc="138..139" text="\n"/>
+                <line_break loc="161..162" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_stacked">
+        <input>VIZ foo USING STACKED AREA (
+                title = &apos;Stacked Area Chart&apos;,
+                position = (row = 8, column = 0, width = 6, height = 5)
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..160" text="VIZ foo US..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="14..160" text="STACKED AR..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="102..146" text="(row = 8, ..eight = 5)">
+                                    <node key="DSON_ROW" type="STRING_REF" loc="109..110" text="8"/>
+                                    <node key="DSON_COLUMN" type="STRING_REF" loc="121..122" text="0"/>
+                                    <node key="DSON_WIDTH" type="STRING_REF" loc="132..133" text="6"/>
+                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="144..145" text="5"/>
+                                </node>
+                                <node key="DSON_TITLE" type="STRING_REF" loc="53..73" text="&apos;Stacked A..rea Chart&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..7" text="foo"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="28..29" text="\n"/>
+                <line_break loc="74..75" text="\n"/>
+                <line_break loc="146..147" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_dump_1">
+        <input>VIZ foo USING astdump;</input>
+        <parsed>
+            <statements>
+            </statements>
+            <errors>
+                <error message="syntax error, unexpected IDENT, expecting EOF or &apos;;&apos;" loc="14..21" text="astdump"/>
+            </errors>
+            <line_breaks/>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_dump_2">
+        <input>VIZ foo USING astdump (
+                position = (row = 8, column = 0, width = 6, height = 5)
+            );</input>
+        <parsed>
+            <statements>
+            </statements>
+            <errors>
+                <error message="syntax error, unexpected IDENT, expecting EOF or &apos;;&apos;" loc="14..21" text="astdump"/>
+            </errors>
+            <line_breaks>
+                <line_break loc="23..24" text="\n"/>
+                <line_break loc="95..96" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_vegalite_examples_bar">
+        <input>VIZ foo USING (
+                mark = &apos;bar&apos;,
+                encoding = (
+                    x = (
+                        field = a,
+                        type = &apos;nominal&apos;,
+                    ),
+                    y = (
+                        field = b,
+                        type = &apos;quantitative&apos;,
+                    ),
+                )
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..363" text="VIZ foo US..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..363" text=" (\n       ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..349" text="(\n        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="133..134" text="a"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
+                                    </node>
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="225..330" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="259..260" text="b">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="259..260" text="b"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="293..307" text="&apos;quantitative&apos;"/>
+                                    </node>
+                                </node>
+                                <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..7" text="foo"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="15..16" text="\n"/>
+                <line_break loc="45..46" text="\n"/>
+                <line_break loc="74..75" text="\n"/>
+                <line_break loc="100..101" text="\n"/>
+                <line_break loc="135..136" text="\n"/>
+                <line_break loc="177..178" text="\n"/>
+                <line_break loc="200..201" text="\n"/>
+                <line_break loc="226..227" text="\n"/>
+                <line_break loc="261..262" text="\n"/>
+                <line_break loc="308..309" text="\n"/>
+                <line_break loc="331..332" text="\n"/>
+                <line_break loc="349..350" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_vegalite_examples_bar_size_responsive">
+        <input>VIZ foo USING (
+                mark = &apos;bar&apos;,
+                encoding = (
+                    x = (
+                        field = a,
+                        type = &apos;nominal&apos;,
+                    ),
+                    y = (
+                        aggregate = &apos;count&apos;,
+                        title = &apos;Number of cars&apos;,
+                    ),
+                )
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..376" text="VIZ foo US..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..376" text=" (\n       ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..362" text="(\n        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="133..134" text="a"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
+                                    </node>
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="225..343" text="(\n        ..         )">
+                                        <node key="DSON_TITLE" type="STRING_REF" loc="304..320" text="&apos;Number of cars&apos;"/>
+                                        <node key="DSON_AGGREGATE" type="STRING_REF" loc="263..270" text="&apos;count&apos;"/>
+                                    </node>
+                                </node>
+                                <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..7" text="foo"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="15..16" text="\n"/>
+                <line_break loc="45..46" text="\n"/>
+                <line_break loc="74..75" text="\n"/>
+                <line_break loc="100..101" text="\n"/>
+                <line_break loc="135..136" text="\n"/>
+                <line_break loc="177..178" text="\n"/>
+                <line_break loc="200..201" text="\n"/>
+                <line_break loc="226..227" text="\n"/>
+                <line_break loc="271..272" text="\n"/>
+                <line_break loc="321..322" text="\n"/>
+                <line_break loc="344..345" text="\n"/>
+                <line_break loc="362..363" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_vegalite_examples_bar_aggregate">
+        <input>VIZ foo USING (
+                mark = &apos;bar&apos;,
+                encoding = (
+                    x = (
+                        field = age,
+                    ),
+                    y = (
+                        aggregate = &apos;sum&apos;,
+                        field = &apos;people&apos;,
+                        title = &apos;population&apos;
+                    ),
+                )
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..371" text="VIZ foo US..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..371" text=" (\n       ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..357" text="(\n        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="99..159" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..136" text="age">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="133..136" text="age"/>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="185..338" text="(\n        ..         )">
+                                        <node key="DSON_TITLE" type="STRING_REF" loc="304..316" text="&apos;population&apos;"/>
+                                        <node key="DSON_AGGREGATE" type="STRING_REF" loc="223..228" text="&apos;sum&apos;"/>
+                                        <node key="DSON_FIELD" type="STRING_REF" loc="262..270" text="&apos;people&apos;"/>
+                                    </node>
+                                </node>
+                                <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..7" text="foo"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="15..16" text="\n"/>
+                <line_break loc="45..46" text="\n"/>
+                <line_break loc="74..75" text="\n"/>
+                <line_break loc="100..101" text="\n"/>
+                <line_break loc="137..138" text="\n"/>
+                <line_break loc="160..161" text="\n"/>
+                <line_break loc="186..187" text="\n"/>
+                <line_break loc="229..230" text="\n"/>
+                <line_break loc="271..272" text="\n"/>
+                <line_break loc="316..317" text="\n"/>
+                <line_break loc="339..340" text="\n"/>
+                <line_break loc="357..358" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_paper">
+        <input>VISUALIZE daily USING STACKED AREA CHART;
+            VISUALIZE daily USING TABLE;
+            VISUALIZE daily USING MULTI LINE CHART;
+            VISUALIZE grouped USING TABLE;
+            VISUALIZE grouped USING STACKED BAR CHART;
+            VIZ activity USING (
+                mark = &apos;line&apos;,
+                encoding = (
+                    x = (
+                        field = &apos;time&apos;,
+                        type = &apos;temporal&apos;,
+                        scale = (
+                            domain = [
+                                &apos;15.10 12:00&apos;,
+                                &apos;22.10 12:00&apos;
+                            ]
+                        )
+                    ),
+                    y = (
+                        field = &apos;hits&apos;,
+                        type = &apos;quantitative&apos;,
+                        scale = (domain = [1234, 2345])
+                    ),
+                    color = (
+                        field = &apos;site&apos;,
+                        type = &apos;nominal&apos;,
+                        scale = (
+                            domain = [
+                                &apos;https://github.com/dashql&apos;,
+                                &apos;https://app.dashql.com&apos;,
+                                &apos;https://www.dashql.com&apos;
+                            ]
+                        )
+                    )
+                )
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..40" text="VISUALIZE ..AREA CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..40" text="STACKED AREA CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="10..15" text="daily">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="10..15" text="daily"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="54..81" text="VISUALIZE ..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="76..81" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="64..69" text="daily">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="64..69" text="daily"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="95..133" text="VISUALIZE ..LINE CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="117..133" text="MULTI LINE CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="2"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="105..110" text="daily">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="105..110" text="daily"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="147..176" text="VISUALIZE ..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="171..176" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="157..164" text="grouped">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="157..164" text="grouped"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="190..231" text="VISUALIZE .. BAR CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="214..231" text="STACKED BAR CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="200..207" text="grouped">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="200..207" text="grouped"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="245..1342" text="VIZ activi..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="263..1342" text=" (\n       ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="324..1328" text="(\n        ..         )">
+                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="900..1310" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="STRING_REF" loc="934..940" text="&apos;site&apos;"/>
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1016..1288" text="(\n        ..         )">
+                                            <node key="DSON_DOMAIN" type="ARRAY">
+                                                <node type="STRING_REF" loc="1089..1116" text="&apos;https://g..om/dashql&apos;"/>
+                                                <node type="STRING_REF" loc="1150..1174" text="&apos;https://a..ashql.com&apos;"/>
+                                                <node type="STRING_REF" loc="1208..1232" text="&apos;https://w..ashql.com&apos;"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="973..982" text="&apos;nominal&apos;"/>
+                                    </node>
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="350..678" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="STRING_REF" loc="384..390" text="&apos;time&apos;"/>
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="467..656" text="(\n        ..         )">
+                                            <node key="DSON_DOMAIN" type="ARRAY">
+                                                <node type="STRING_REF" loc="540..553" text="&apos;15.10 12:00&apos;"/>
+                                                <node type="STRING_REF" loc="587..600" text="&apos;22.10 12:00&apos;"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="423..433" text="&apos;temporal&apos;"/>
+                                    </node>
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="704..870" text="(\n        ..         )">
+                                        <node key="DSON_FIELD" type="STRING_REF" loc="738..744" text="&apos;hits&apos;"/>
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="825..848" text="(domain = ..34, 2345])">
+                                            <node key="DSON_DOMAIN" type="ARRAY">
+                                                <node type="STRING_REF" loc="836..840" text="1234"/>
+                                                <node type="STRING_REF" loc="842..846" text="2345"/>
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="777..791" text="&apos;quantitative&apos;"/>
+                                    </node>
+                                </node>
+                                <node key="DSON_MARK" type="STRING_REF" loc="289..295" text="&apos;line&apos;"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="249..257" text="activity">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="249..257" text="activity"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="41..42" text="\n"/>
+                <line_break loc="82..83" text="\n"/>
+                <line_break loc="134..135" text="\n"/>
+                <line_break loc="177..178" text="\n"/>
+                <line_break loc="232..233" text="\n"/>
+                <line_break loc="265..266" text="\n"/>
+                <line_break loc="296..297" text="\n"/>
+                <line_break loc="325..326" text="\n"/>
+                <line_break loc="351..352" text="\n"/>
+                <line_break loc="391..392" text="\n"/>
+                <line_break loc="434..435" text="\n"/>
+                <line_break loc="468..469" text="\n"/>
+                <line_break loc="507..508" text="\n"/>
+                <line_break loc="554..555" text="\n"/>
+                <line_break loc="600..601" text="\n"/>
+                <line_break loc="630..631" text="\n"/>
+                <line_break loc="656..657" text="\n"/>
+                <line_break loc="679..680" text="\n"/>
+                <line_break loc="705..706" text="\n"/>
+                <line_break loc="745..746" text="\n"/>
+                <line_break loc="792..793" text="\n"/>
+                <line_break loc="848..849" text="\n"/>
+                <line_break loc="871..872" text="\n"/>
+                <line_break loc="901..902" text="\n"/>
+                <line_break loc="941..942" text="\n"/>
+                <line_break loc="983..984" text="\n"/>
+                <line_break loc="1017..1018" text="\n"/>
+                <line_break loc="1056..1057" text="\n"/>
+                <line_break loc="1117..1118" text="\n"/>
+                <line_break loc="1175..1176" text="\n"/>
+                <line_break loc="1232..1233" text="\n"/>
+                <line_break loc="1262..1263" text="\n"/>
+                <line_break loc="1288..1289" text="\n"/>
+                <line_break loc="1310..1311" text="\n"/>
+                <line_break loc="1328..1329" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+</astdumps>

@@ -1,0 +1,280 @@
+<astdumps>
+    <astdump name="dashql_syntax_error">
+        <input>?</input>
+        <parsed>
+            <statements>
+            </statements>
+            <errors>
+                <error message="syntax error, unexpected &apos;?&apos;, expecting EOF" loc="0..1" text="?"/>
+            </errors>
+            <line_breaks/>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="load_url_plain">
+        <input>FETCH weather_csv FROM http (
+                url = &apos;https://localhost/astdump&apos;
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="FETCH">
+                    <node type="OBJECT_DASHQL_FETCH" loc="0..93" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..17" text="weather_csv"/>
+                        </node>
+                        <node key="DSON_URL" type="STRING_REF" loc="52..79" text="&apos;https://l..t/astdump&apos;"/>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="29..30" text="\n"/>
+                <line_break loc="79..80" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="load_url_parameter">
+        <input>FETCH weather_csv FROM http (
+                url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, main.country)
+            );</input>
+        <parsed>
+            <statements>
+                <statement type="FETCH">
+                    <node type="OBJECT_DASHQL_FETCH" loc="0..128" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..17" text="weather_csv"/>
+                        </node>
+                        <node key="DSON_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="52..114" text="format(&apos;ht..n.country)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
+                                <node type="STRING_REF" loc="59..99" text="&apos;https://c..eather/%s&apos;"/>
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="101..113" text="main.country">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                        <node type="STRING_REF" loc="101..105" text="main"/>
+                                        <node type="STRING_REF" loc="106..113" text="country"/>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="52..58" text="format"/>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="29..30" text="\n"/>
+                <line_break loc="114..115" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_position">
+        <input>VIZ weather_avg USING LINE (
+                position = (
+                    row = 0,
+                    column = 0,
+                    width = 4,
+                    height = 15
+                )
+            )</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..213" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..213" text="LINE (\n   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
+                                    <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
+                                    <node key="DSON_COLUMN" type="STRING_REF" loc="116..117" text="0"/>
+                                    <node key="DSON_WIDTH" type="STRING_REF" loc="147..148" text="4"/>
+                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="179..181" text="15"/>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..15" text="weather_avg"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="28..29" text="\n"/>
+                <line_break loc="57..58" text="\n"/>
+                <line_break loc="86..87" text="\n"/>
+                <line_break loc="118..119" text="\n"/>
+                <line_break loc="149..150" text="\n"/>
+                <line_break loc="181..182" text="\n"/>
+                <line_break loc="199..200" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_viz_position_short">
+        <input>VIZ weather_avg USING LINE (
+                pos = (r = 0, c = 0, w = 4, h = 15)
+            )</input>
+        <parsed>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..94" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..94" text="LINE (\n   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                                <node key="" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
+                                    <node key="DSON_DYNAMIC_KEYS_" type="STRING_REF" loc="56..57" text="0"/>
+                                    <node key="" type="STRING_REF" loc="63..64" text="0"/>
+                                    <node key="" type="STRING_REF" loc="70..71" text="4"/>
+                                    <node key="" type="STRING_REF" loc="77..79" text="15"/>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="STRING_REF" loc="4..15" text="weather_avg"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="28..29" text="\n"/>
+                <line_break loc="80..81" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys>
+                <key loc="52..53" text="r"/>
+                <key loc="59..60" text="c"/>
+                <key loc="66..67" text="w"/>
+                <key loc="73..74" text="h"/>
+                <key loc="45..48" text="pos"/>
+            </dson_keys>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_input_calendar_date">
+        <input>INPUT foo TYPE DATE USING CALENDAR;
+            VIZ (SELECT foo) USING TABLE;</input>
+        <parsed>
+            <statements>
+                <statement type="INPUT">
+                    <node type="OBJECT_DASHQL_INPUT" loc="0..34" text="INPUT foo ..G CALENDAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR"/>
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..19" text="DATE">
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
+                                <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="48..76" text="VIZ (SELEC..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="71..76" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="52..64" text="(SELECT foo)">
+                            <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="52..64" text="(SELECT foo)">
+                                <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                    <node type="OBJECT_SQL_RESULT_TARGET" loc="60..63" text="foo">
+                                        <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="60..63" text="foo">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="60..63" text="foo"/>
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="35..36" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+    <astdump name="dashql_input_calendar_date_range">
+        <input>INPUT foo TYPE DATE[2] USING CALENDAR;
+            VIZ (SELECT foo[0], foo[1]) USING TABLE;</input>
+        <parsed>
+            <statements>
+                <statement type="INPUT">
+                    <node type="OBJECT_DASHQL_INPUT" loc="0..37" text="INPUT foo ..G CALENDAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR"/>
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
+                            <node key="SQL_TYPENAME_ARRAY" type="ARRAY">
+                                <node type="STRING_REF" loc="20..21" text="2"/>
+                            </node>
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
+                                <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="51..90" text="VIZ (SELEC..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="85..90" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="55..78" text="(SELECT fo..], foo[1])">
+                            <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="55..78" text="(SELECT fo..], foo[1])">
+                                <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                    <node type="OBJECT_SQL_RESULT_TARGET" loc="63..69" text="foo[0]">
+                                        <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="63..69" text="foo[0]">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="63..66" text="foo"/>
+                                                <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="66..69" text="[0]">
+                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="67..68" text="0"/>
+                                                </node>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_RESULT_TARGET" loc="71..77" text="foo[1]">
+                                        <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="71..77" text="foo[1]">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="71..74" text="foo"/>
+                                                <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="74..77" text="[1]">
+                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="75..76" text="1"/>
+                                                </node>
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="38..39" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+    </astdump>
+</astdumps>
