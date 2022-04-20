@@ -1,5 +1,5 @@
 use super::sql_nodes::*;
-use crate::proto::syntax as sx;
+use dashql_proto::syntax as sx;
 
 type NodeId = usize;
 

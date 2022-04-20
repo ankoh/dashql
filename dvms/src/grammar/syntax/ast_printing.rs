@@ -1,5 +1,5 @@
 use crate::grammar::syntax::enums::get_enum_text;
-use crate::proto::syntax as sx;
+use dashql_proto::syntax as sx;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::Event;

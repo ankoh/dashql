@@ -1,5 +1,5 @@
 use crate::error::RawError;
-pub use dashql_proto::dashql::proto;
+use dashql_proto as proto;
 use std::error::Error;
 
 mod error;
@@ -74,7 +74,7 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, Box<dyn Error + Send + Sync>> 
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod test {
-    use crate::proto;
+    use dashql_proto as proto;
     use std::error::Error;
 
     #[test]

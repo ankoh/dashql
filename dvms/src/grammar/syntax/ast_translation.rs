@@ -2,7 +2,7 @@ use super::ast_node::*;
 use super::sql_nodes::*;
 use super::statement::Statement;
 use crate::error::RawError;
-use crate::proto::syntax as sx;
+use dashql_proto::syntax as sx;
 use std::error::Error;
 use sx::AttributeKey as Key;
 

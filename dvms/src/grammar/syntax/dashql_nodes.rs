@@ -1,4 +1,4 @@
-use crate::proto::syntax as sx;
+use dashql_proto::syntax as sx;
 
 #[derive(Debug, Clone)]
 struct FetchStatement<'text> {
