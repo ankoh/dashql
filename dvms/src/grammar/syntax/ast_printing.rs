@@ -281,13 +281,4 @@ mod test {
 "#,
         )
     }
-
-    #[test]
-    fn test_bug() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_grammar(
-            "SELECT * FROM a LEFT JOIN b ON foo = bar",
-            r#"
-"#,
-        )
-    }
 }
