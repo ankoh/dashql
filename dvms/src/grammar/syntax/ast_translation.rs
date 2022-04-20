@@ -423,35 +423,35 @@ fn read_ordering<'text>(specs: Vec<ASTNode<'text>>) -> Vec<OrderSpecification<'t
     ordering
 }
 
-// #[cfg(all(test, not(target_arch = "wasm32")))]
-// mod test {
-//     use super::super::sql_nodes::*;
-//     use super::super::statement::Statement;
-//     use super::translate_ast;
-//     use std::error::Error;
-//
-//     fn test_translation(
-//         text: &str,
-//         expected: Vec<Statement<'static>>,
-//     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-//         let program = crate::grammar::parse(text)?;
-//         let (ast, _) = program.read();
-//         let translated = translate_ast(text, ast)?;
-//         assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &expected));
-//         Ok(())
-//     }
-//
-//     #[test]
-//     fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
-//         test_translation(
-//             "select 1;",
-//             vec![Statement::Select(SelectStatement {
-//                 targets: vec![ResultTarget::Value {
-//                     value: Box::new(Expression::StringRef("1")),
-//                     alias: None,
-//                 }],
-//                 ..Default::default()
-//             })],
-//         )
-//     }
-// }
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod test {
+    use super::super::sql_nodes::*;
+    use super::super::statement::Statement;
+    use super::translate_ast;
+    use std::error::Error;
+
+    fn test_translation(
+        text: &str,
+        expected: Vec<Statement<'static>>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let program = crate::grammar::parse(text)?;
+        let (ast, _) = program.read();
+        let translated = translate_ast(text, ast)?;
+        assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &expected));
+        Ok(())
+    }
+
+    #[test]
+    fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_translation(
+            "select 1;",
+            vec![Statement::Select(SelectStatement {
+                targets: vec![ResultTarget::Value {
+                    value: Box::new(Expression::StringRef("1")),
+                    alias: None,
+                }],
+                ..Default::default()
+            })],
+        )
+    }
+}

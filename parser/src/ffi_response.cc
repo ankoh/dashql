@@ -22,7 +22,7 @@ void FFIResponseBuffer::Store(FFIResponse& response, flatbuffers::DetachedBuffer
 
 /// Get the instance
 FFIResponseBuffer& FFIResponseBuffer::Get() {
-    static FFIResponseBuffer buffer;
+    thread_local FFIResponseBuffer buffer;
     return buffer;
 }
 
