@@ -1,6 +1,8 @@
 use crate::error::RawError;
-use crate::proto;
+pub use dashql_proto::dashql::proto;
 use std::error::Error;
+
+mod error;
 
 #[derive(Clone, Debug)]
 pub struct ProgramBuffer {

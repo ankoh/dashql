@@ -2,4 +2,6 @@
 
 members = [
     "dvms",
+    "parser-sys",
+    "packages/proto",
 ]

@@ -1,6 +1,4 @@
-mod error;
-mod grammar;
-mod proto;
+use dashql::*;
 
 fn main() {
     grammar::parse("select 1;").ok();

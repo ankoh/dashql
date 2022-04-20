@@ -10,9 +10,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
 
-mod error;
-mod grammar;
-mod proto;
+use dashql::*;
 
 use grammar::syntax::ast_dump::ASTDumpFile;
 

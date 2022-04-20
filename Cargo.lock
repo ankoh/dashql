@@ -89,6 +89,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "cmake",
+ "dashql_parser",
  "dashql_proto",
  "env_logger",
  "flatbuffers",
@@ -97,6 +98,16 @@ dependencies = [
  "pretty_assertions",
  "quick-xml",
  "serde",
+]
+
+[[package]]
+name = "dashql_parser"
+version = "0.1.0"
+dependencies = [
+ "cmake",
+ "dashql_proto",
+ "flatbuffers",
+ "libc",
 ]
 
 [[package]]

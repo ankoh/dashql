@@ -6,6 +6,8 @@ edition = "2018"
 [lib]
 name = "dashql_proto"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 flatbuffers = "2.1.1"

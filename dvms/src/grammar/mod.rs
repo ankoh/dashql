@@ -1,6 +1,4 @@
-mod parser;
-pub use parser::parse;
+pub use dashql_parser::{parse, ProgramBuffer};
 pub mod syntax;
 
-pub use parser::ProgramBuffer;
 pub use syntax::print_ast;

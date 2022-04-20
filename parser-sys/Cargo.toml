@@ -1,0 +1,17 @@
+[package]
+name = "dashql_parser"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "dashql_parser"
+test = true
+doctest = false
+
+[dependencies]
+dashql_proto = { path = "../packages/proto" }
+flatbuffers = "2.1.1"
+libc = "0.2.121"
+
+[build-dependencies]
+cmake = "0.1.48"
