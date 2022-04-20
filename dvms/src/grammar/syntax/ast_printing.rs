@@ -204,11 +204,11 @@ mod test {
 
     fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let program = crate::grammar::parse(text)?;
-        let mut buffer = Vec::new();
-        let mut writer = Writer::new_with_indent(&mut buffer, ' ' as u8, 4);
+        let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
         let (ast, _) = program.read();
         print_ast(&mut writer, ast, text)?;
-        let xml_str = std::str::from_utf8(&buffer)?;
+        let buffer = writer.into_inner();
+        let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");
         assert_eq!(expected.trim(), xml_str);
         Ok(())
     }
