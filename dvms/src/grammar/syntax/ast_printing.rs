@@ -17,6 +17,9 @@ fn encode_location<'writer, 'text>(
 ) {
     let begin = loc.offset() as usize;
     let end = (loc.offset() + loc.length()) as usize;
+    if begin >= text.len() || end > text.len() {
+        return;
+    }
     let loc_string = format!("{b}..{e}", b = begin, e = end);
     let loc_attr = ("loc", loc_string.as_str());
     let mut out: String;
@@ -103,8 +106,9 @@ where
                     }
                     sx::NodeType::ARRAY => {
                         let begin = n.children_begin_or_value();
-                        for i in begin..(begin + n.children_count()) {
-                            pending.push((false, i));
+                        let end = begin + n.children_count();
+                        for i in 0..n.children_count() {
+                            pending.push((false, end - i - 1));
                         }
                         writer.write_event(Event::Start(node))?;
                     }
@@ -113,8 +117,9 @@ where
                         if node_type_id.0 > sx::NodeType::OBJECT_KEYS_.0 {
                             encode_location(&mut node, *n.location(), text);
                             let begin = n.children_begin_or_value();
-                            for i in begin..(begin + n.children_count()) {
-                                pending.push((false, i));
+                            let end = begin + n.children_count();
+                            for i in 0..n.children_count() {
+                                pending.push((false, end - i - 1));
                             }
                             writer.write_event(Event::Start(node))?;
                         } else if node_type_id.0 > sx::NodeType::ENUM_KEYS_.0 {
@@ -273,6 +278,15 @@ mod test {
 </line_breaks>
 <comments/>
 <dson_keys/>
+"#,
+        )
+    }
+
+    #[test]
+    fn test_bug() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_grammar(
+            "SELECT * FROM a LEFT JOIN b ON foo = bar",
+            r#"
 "#,
         )
     }

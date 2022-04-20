@@ -119,6 +119,8 @@ mod test {
                         if name == "input" {
                             awaiting_input = false;
                         } else if name == "parsed" {
+                            awaiting_parsed = false;
+
                             // Get the expected xml string
                             let expected_str = String::from_utf8(expected_writer.into_inner())?;
                             expected_writer =
