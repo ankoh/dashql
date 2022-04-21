@@ -1,4 +1,5 @@
 use dashql_proto::syntax as sx;
+use serde::{Deserialize, Serialize};
 
 pub fn get_enum_text(target: &sx::Node) -> &'static str {
     let v = target.children_begin_or_value();
@@ -96,3 +97,69 @@ pub fn get_enum_text(target: &sx::Node) -> &'static str {
         _ => "?",
     }
 }
+
+macro_rules! derive_enum_serde {
+    ($name:ident, $remote:ident) => {
+        #[allow(dead_code)]
+        pub mod $name {
+            use dashql_proto::syntax::$remote;
+            use serde::{Deserializer, Serializer};
+
+            pub fn serialize<S>(value: &$remote, ser: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                match value.variant_name() {
+                    Some(n) => ser.serialize_str(&format!("{}:{}", value.0, n)),
+                    None => ser.serialize_str(&format!("{}:UNKNOWN", value.0)),
+                }
+            }
+
+            pub fn deserialize<'de, D>(de: D) -> Result<$remote, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let s: &'de str = serde::de::Deserialize::deserialize(de)?;
+                let id_str = &s[..s.find(':').unwrap()];
+                let id_u8 = id_str.parse::<u8>().unwrap_or_default();
+                Ok($remote(id_u8))
+            }
+
+            pub mod opt {
+                use super::*;
+
+                pub fn serialize<S>(value: &Option<$remote>, ser: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+                {
+                    match value {
+                        Some(v) => super::serialize(v, ser),
+                        None => ser.serialize_str("undefined"),
+                    }
+                }
+
+                pub fn deserialize<'de, D>(de: D) -> Result<Option<$remote>, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    let s: &'de str = serde::de::Deserialize::deserialize(de)?;
+                    if s == "undefined" {
+                        return Ok(None);
+                    }
+                    let id_str = &s[..s.find(':').unwrap()];
+                    let id_u8 = id_str.parse::<u8>().unwrap_or_default();
+                    Ok(Some($remote(id_u8)))
+                }
+            }
+        }
+    };
+}
+
+derive_enum_serde!(serde_expression_operator, ExpressionOperator);
+derive_enum_serde!(serde_order_direction, OrderDirection);
+derive_enum_serde!(serde_order_null_rule, OrderNullRule);
+derive_enum_serde!(serde_interval_type, IntervalType);
+derive_enum_serde!(serde_character_type, CharacterType);
+derive_enum_serde!(serde_numeric_type, NumericType);
+derive_enum_serde!(serde_temp_type, TempType);
+derive_enum_serde!(serde_sample_unit_count, SampleCountUnit);
