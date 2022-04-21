@@ -108,20 +108,15 @@ macro_rules! derive_enum_serde {
             where
                 S: Serializer,
             {
-                match value.variant_name() {
-                    Some(n) => ser.serialize_str(&format!("{}:{}", value.0, n)),
-                    None => ser.serialize_str(&format!("{}:UNKNOWN", value.0)),
-                }
+                ser.serialize_i32(value.0.into())
             }
 
             pub fn deserialize<'de, D>(de: D) -> Result<$remote, D::Error>
             where
                 D: Deserializer<'de>,
             {
-                let s: &'de str = serde::de::Deserialize::deserialize(de)?;
-                let id_str = &s[..s.find(':').unwrap()];
-                let id_u8 = id_str.parse::<u8>().unwrap_or_default();
-                Ok($remote(id_u8))
+                let id_unchecked: i32 = serde::de::Deserialize::deserialize(de)?;
+                Ok($remote(id_unchecked as u8))
             }
 
             pub mod opt {
@@ -132,8 +127,8 @@ macro_rules! derive_enum_serde {
                     S: Serializer,
                 {
                     match value {
-                        Some(v) => super::serialize(v, ser),
-                        None => ser.serialize_str("undefined"),
+                        Some(v) => ser.serialize_i32(v.0.into()),
+                        None => ser.serialize_i32(-1),
                     }
                 }
 
@@ -141,13 +136,11 @@ macro_rules! derive_enum_serde {
                 where
                     D: Deserializer<'de>,
                 {
-                    let s: &'de str = serde::de::Deserialize::deserialize(de)?;
-                    if s == "undefined" {
+                    let id_unchecked: i32 = serde::de::Deserialize::deserialize(de)?;
+                    if id_unchecked == -1 {
                         return Ok(None);
                     }
-                    let id_str = &s[..s.find(':').unwrap()];
-                    let id_u8 = id_str.parse::<u8>().unwrap_or_default();
-                    Ok(Some($remote(id_u8)))
+                    Ok(Some($remote(id_unchecked as u8)))
                 }
             }
         }
