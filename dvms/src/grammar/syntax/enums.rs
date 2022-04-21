@@ -1,5 +1,4 @@
 use dashql_proto::syntax as sx;
-use serde::{Deserialize, Serialize};
 
 pub fn get_enum_text(target: &sx::Node) -> &'static str {
     let v = target.children_begin_or_value();
