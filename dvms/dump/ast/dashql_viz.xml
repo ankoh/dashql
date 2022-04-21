@@ -120,6 +120,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="dashql_viz_dump_2">
         <input>VIZ foo USING astdump (
@@ -138,6 +139,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="dashql_viz_vegalite_examples_bar">
         <input>VIZ foo USING (

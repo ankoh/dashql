@@ -349,7 +349,13 @@ pub fn translate_ast<'text, 'ast>(
                         row_locking: false,
                     })
                 }
-                t => panic!("node translation not implemented for: {:?}", t),
+                t => {
+                    return Err(RawError::from(format!(
+                        "node translation not implemented for: {:?}",
+                        t
+                    ))
+                    .boxed())
+                }
             };
 
             // Stack empty?

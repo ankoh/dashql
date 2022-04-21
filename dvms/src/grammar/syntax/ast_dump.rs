@@ -1,24 +1,37 @@
 use super::print_ast;
+use super::program::Program;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 use quick_xml::Writer;
 use serde::Deserialize;
+use serde::Serialize;
 use std::error::Error;
 use std::io::Write;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "astdumps")]
-pub struct ASTDumpFile {
+pub struct ASTDumpTemplateFile {
     #[serde(rename = "astdump", default)]
-    pub dumps: Vec<ASTDump>,
+    pub dumps: Vec<ASTDumpTemplate>,
 }
 
-impl ASTDumpFile {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ASTDumpTemplate {
+    pub name: String,
+    pub input: String,
+}
+
+#[derive(Debug)]
+pub struct ASTDumpFile<'text> {
+    pub dumps: Vec<ASTDump<'text>>,
+}
+
+impl<'text> ASTDumpFile<'text> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
-        W: Write,
+        W: Write + Clone,
     {
         writer.write_event(Event::Start(BytesStart::borrowed_name(b"astdumps")))?;
         for dump in self.dumps.iter() {
@@ -29,29 +42,33 @@ impl ASTDumpFile {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ASTDump {
+#[derive(Debug)]
+pub struct ASTDump<'text> {
     pub name: String,
-    pub input: String,
-    #[serde(skip)]
+    pub input: &'text str,
     pub parsed: Option<dashql_parser::ASTBuffer>,
+    pub translated: Option<Program<'text>>,
 }
 
-impl ASTDump {
+impl<'text> ASTDump<'text> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
-        W: Write,
+        W: Write + Clone,
     {
         let mut start = BytesStart::borrowed_name(b"astdump");
         start.push_attribute(("name", self.name.as_str()));
         writer.write_event(Event::Start(start))?;
         writer.write_event(Event::Start(BytesStart::borrowed_name(b"input")))?;
-        writer.write_event(Event::Text(BytesText::from_plain_str(self.input.as_str())))?;
+        writer.write_event(Event::Text(BytesText::from_plain_str(self.input)))?;
         writer.write_event(Event::End(BytesEnd::borrowed(b"input")))?;
         if let Some(ast) = &self.parsed {
             writer.write_event(Event::Start(BytesStart::borrowed_name(b"parsed")))?;
-            print_ast(writer, ast.get_root(), self.input.as_str())?;
+            print_ast(writer, ast.get_root(), self.input)?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
+        }
+        if let Some(prog) = &self.translated {
+            let mut ser = quick_xml::se::Serializer::with_root(writer.clone(), Some("translated"));
+            prog.serialize(&mut ser)?;
         }
         writer.write_event(Event::End(BytesEnd::borrowed(b"astdump")))?;
         Ok(())

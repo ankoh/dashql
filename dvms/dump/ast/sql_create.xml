@@ -139,6 +139,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="create_table_5">
         <input>create table foo (a integer, b varchar)</input>
@@ -283,6 +284,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="create_table_10">
         <input>create table foo (a integer constraint a not null)</input>

@@ -9,3 +9,4 @@ mod program;
 mod sql_nodes;
 
 pub use ast_printing::print_ast;
+pub use ast_translation::translate_ast;

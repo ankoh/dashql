@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
 use clap::{App, Arg, SubCommand};
+use dashql::grammar::syntax::ast_dump::ASTDump;
+use dashql::grammar::syntax::ast_dump::ASTDumpTemplateFile;
 use log::info;
+use log::warn;
 use quick_xml::Writer;
 use std::error::Error;
 use std::fs;
@@ -10,6 +13,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
 
+use crate::utils::shared_writer::SharedWriter;
 use dashql::*;
 
 use grammar::syntax::ast_dump::ASTDumpFile;
@@ -51,18 +55,33 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
             let input_file = fs::File::open(&file_path.path())?;
             let input_reader = BufReader::new(input_file);
-            let mut dump_file: ASTDumpFile = quick_xml::de::from_reader(input_reader)?;
+            let dump_file: ASTDumpTemplateFile = quick_xml::de::from_reader(input_reader)?;
 
-            for dump in dump_file.dumps.iter_mut() {
+            let mut dumps = Vec::new();
+            for dump in dump_file.dumps.iter() {
                 let ast_buffer = grammar::parse(&dump.input)?;
-                dump.parsed = Some(ast_buffer);
+                let translated = match grammar::translate_ast(&dump.input, ast_buffer.get_root()) {
+                    Ok(p) => Some(p),
+                    Err(e) => {
+                        warn!("{}", e);
+                        None
+                    }
+                };
+                dumps.push(ASTDump {
+                    name: dump.name.clone(),
+                    input: &dump.input,
+                    parsed: Some(ast_buffer),
+                    translated,
+                });
             }
+            let output_dump = ASTDumpFile { dumps };
 
             let output_file = fs::File::create(&dir_path.join(format!("{}.xml", prefix)))?;
-            let mut output_writer = BufWriter::new(output_file);
-            let mut xml_writer = Writer::new_with_indent(&mut output_writer, b' ', 4);
-            dump_file.write_xml(&mut xml_writer)?;
-            output_writer.flush()?;
+            let output_writer = SharedWriter::from_writer(BufWriter::new(output_file));
+            let mut output_writer_cp = output_writer.clone();
+            let mut xml_writer = Writer::new_with_indent(output_writer, b' ', 4);
+            output_dump.write_xml(&mut xml_writer)?;
+            output_writer_cp.flush()?;
         }
     }
     Ok(())

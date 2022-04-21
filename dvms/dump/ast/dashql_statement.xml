@@ -11,6 +11,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="load_url_plain">
         <input>FETCH weather_csv FROM http (

@@ -18,6 +18,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_fconst_1e04">
         <input>select 1e-04</input>
@@ -38,6 +40,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1e-04</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_bconst_b1010">
         <input>select b&apos;1010&apos;</input>
@@ -58,6 +62,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>b&apos;1010&apos;</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_sconst_string">
         <input>select string</input>
@@ -174,6 +180,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;foo&apos;</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_sconst_quotes_nested_quote">
         <input>select &apos;&apos;&apos;foo&apos;&apos;&apos;</input>
@@ -194,6 +202,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;&apos;&apos;foo&apos;&apos;&apos;</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_sconst_quotes_nested_dquote">
         <input>select &apos;&quot;foo&quot;&apos;</input>
@@ -214,6 +224,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;&quot;foo&quot;&apos;</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_iconst_1_ident">
         <input>select 1 &quot;foo&quot;</input>
@@ -235,6 +247,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value alias="&quot;foo&quot;"><StringRef>1</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="comments_cstyle">
         <input>/* foo */</input>
@@ -248,6 +262,7 @@
             </comments>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="comments_cstyle_nested">
         <input>/* foo /* bar */ */</input>
@@ -261,6 +276,7 @@
             </comments>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="select_iconst_list">
         <input>select 1, 2</input>
@@ -284,6 +300,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>2</StringRef></Value><Value><StringRef>1</StringRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_from_1rel">
         <input>select a from b</input>
@@ -5524,6 +5542,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated/>
     </astdump>
     <astdump name="select_limit_3">
         <input>SELECT * FROM foo LIMIT ALL</input>
