@@ -4,6 +4,7 @@ mod ast_printing;
 mod ast_translation;
 mod dashql_nodes;
 mod enums;
+mod enums_serde;
 mod sql_nodes;
 mod statement;
 

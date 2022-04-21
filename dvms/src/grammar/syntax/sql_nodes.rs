@@ -1,4 +1,4 @@
-use super::enums::*;
+use super::enums_serde::*;
 use dashql_proto::syntax as sx;
 use serde::{Deserialize, Serialize};
 
