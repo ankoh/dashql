@@ -1,6 +1,6 @@
 use super::ast_node::*;
+use super::program::*;
 use super::sql_nodes::*;
-use super::statement::Statement;
 use crate::error::RawError;
 use dashql_proto::syntax as sx;
 use std::error::Error;
@@ -15,7 +15,7 @@ macro_rules! unexpected_attribute {
 pub fn translate_ast<'text, 'ast>(
     text: &'text str,
     ast: sx::Program<'ast>,
-) -> Result<Vec<Statement<'text>>, Box<dyn Error + Send + Sync>> {
+) -> Result<Program<'text>, Box<dyn Error + Send + Sync>> {
     let statements = ast.statements().unwrap_or_default();
     let ast_nodes = ast.nodes().unwrap_or_default();
 
@@ -24,7 +24,7 @@ pub fn translate_ast<'text, 'ast>(
     children.resize(ast_nodes.len(), Vec::new());
 
     // Do a postorder dfs traversal
-    let mut out: Vec<Statement<'text>> = Vec::new();
+    let mut stmts: Vec<Statement<'text>> = Vec::new();
     let mut pending: Vec<(usize, bool)> = Vec::new();
     for statement in statements.iter() {
         pending.push((statement.root_node() as usize, false));
@@ -373,10 +373,10 @@ pub fn translate_ast<'text, 'ast>(
                     .boxed())
                 }
             };
-            out.push(stmt);
+            stmts.push(stmt);
         }
     }
-    Ok(out)
+    Ok(Program { statements: stmts })
 }
 
 fn read_expr<'text>(
@@ -425,14 +425,14 @@ fn read_ordering<'text>(specs: Vec<ASTNode<'text>>) -> Vec<OrderSpecification<'t
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod test {
+    use super::super::program::*;
     use super::super::sql_nodes::*;
-    use super::super::statement::Statement;
     use super::translate_ast;
     use std::error::Error;
 
     fn test_translation(
         text: &str,
-        expected: Vec<Statement<'static>>,
+        expected: Program<'static>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let program = crate::grammar::parse(text)?;
         let (ast, _) = program.read();
@@ -445,13 +445,15 @@ mod test {
     fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_translation(
             "select 1;",
-            vec![Statement::Select(SelectStatement {
-                targets: vec![ResultTarget::Value {
-                    value: Box::new(Expression::StringRef("1")),
-                    alias: None,
-                }],
-                ..Default::default()
-            })],
+            Program {
+                statements: vec![Statement::Select(SelectStatement {
+                    targets: vec![ResultTarget::Value {
+                        value: Box::new(Expression::StringRef("1")),
+                        alias: None,
+                    }],
+                    ..Default::default()
+                })],
+            },
         )
     }
 }
