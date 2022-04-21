@@ -1,4 +1,5 @@
 use super::ast_node::*;
+use super::dashql_nodes::FetchStatement;
 use super::program::*;
 use super::sql_nodes::*;
 use crate::error::RawError;
@@ -8,7 +9,11 @@ use sx::AttributeKey as Key;
 
 macro_rules! unexpected_attribute {
     ($key:expr) => {
-        return Err(RawError::from(format!("unexpected attribute key: {}", $key)).boxed())
+        return Err(RawError::from(format!(
+            "unexpected attribute key: {}",
+            Key($key).variant_name().unwrap_or(&format!("{}", $key))
+        ))
+        .boxed())
     };
 }
 
@@ -317,6 +322,23 @@ pub fn translate_ast<'text, 'ast>(
                         value: value.unwrap_or_default(),
                         interval,
                     }))
+                }
+                sx::NodeType::OBJECT_DASHQL_FETCH => {
+                    let mut name: Option<NamePath> = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => {
+                                name = Some(read_name(a));
+                            }
+                            _ => unexpected_attribute!(key),
+                        }
+                    }
+                    ASTNode::FetchStatement(FetchStatement {
+                        name,
+                        fetch_method: None,
+                        fetch_from_uri: None,
+                    })
                 }
                 sx::NodeType::OBJECT_SQL_SELECT => {
                     let mut targets = Vec::new();

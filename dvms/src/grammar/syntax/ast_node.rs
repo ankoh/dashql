@@ -1,3 +1,4 @@
+use super::dashql_nodes::*;
 use super::enums_serde::*;
 use super::sql_nodes::*;
 use dashql_proto::syntax as sx;
@@ -56,4 +57,5 @@ pub enum ASTNode<'text> {
     GenericType(GenericType<'text>),
 
     SelectStatement(SelectStatement<'text>),
+    FetchStatement(FetchStatement<'text>),
 }
