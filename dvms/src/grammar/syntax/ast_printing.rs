@@ -208,9 +208,9 @@ mod test {
     use std::error::Error;
 
     fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let program = crate::grammar::parse(text)?;
         let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
-        let (ast, _) = program.read();
+        let ast_buffer = crate::grammar::parse(text)?;
+        let ast = ast_buffer.get_root();
         print_ast(&mut writer, ast, text)?;
         let buffer = writer.into_inner();
         let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");

@@ -5,25 +5,19 @@ use std::error::Error;
 mod error;
 
 #[derive(Clone, Debug)]
-pub struct ProgramBuffer {
-    /// The input text
-    text: String,
+pub struct ASTBuffer {
     /// The program buffer
     buffer: Vec<u8>,
 }
 
-impl ProgramBuffer {
+impl ASTBuffer {
     /// Construct a program buffer
-    pub fn new(text: String, buffer: Vec<u8>) -> Self {
-        Self { text, buffer }
+    pub fn new(buffer: Vec<u8>) -> Self {
+        Self { buffer }
     }
-    /// Read the flatbuffer program
-    pub fn read<'buf>(&'buf self) -> (proto::syntax::Program<'buf>, &'buf str) {
-        // We can unwrap here as we run this call once when constructing the buffer
-        (
-            flatbuffers::root::<proto::syntax::Program>(self.buffer.as_ref()).unwrap(),
-            self.text.as_str(),
-        )
+    /// Get the program
+    pub fn get_root<'buf>(&'buf self) -> proto::syntax::Program<'buf> {
+        flatbuffers::root::<proto::syntax::Program>(self.buffer.as_ref()).unwrap()
     }
 }
 
@@ -40,7 +34,7 @@ extern "C" {
 }
 
 /// Parse a text and return a program buffer
-pub fn parse(text: &str) -> Result<ProgramBuffer, Box<dyn Error + Send + Sync>> {
+pub fn parse(text: &str) -> Result<ASTBuffer, Box<dyn Error + Send + Sync>> {
     let mut response = FFIResponse {
         status: 0,
         data_or_value: 0,
@@ -58,7 +52,7 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, Box<dyn Error + Send + Sync>> 
                 {
                     flatbuffers::root::<proto::syntax::Program>(buffer.as_ref())?;
                 }
-                Ok(ProgramBuffer::new(text.to_string(), buffer))
+                Ok(ASTBuffer::new(buffer))
             }
             _ => {
                 let msg = String::from_raw_parts(
@@ -80,7 +74,7 @@ mod test {
     #[test]
     fn test_parser_call() -> Result<(), Box<dyn Error + Send + Sync>> {
         let program = super::parse("select 1;")?;
-        let (reader, _) = program.read();
+        let reader = program.get_root();
         let stmts = reader.statements().expect("must have statements");
         assert_eq!(stmts.len(), 1);
         assert_eq!(

@@ -1,4 +1,3 @@
-use super::super::ProgramBuffer;
 use super::print_ast;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
@@ -35,7 +34,7 @@ pub struct ASTDump {
     pub name: String,
     pub input: String,
     #[serde(skip)]
-    pub parsed: Option<ProgramBuffer>,
+    pub parsed: Option<dashql_parser::ASTBuffer>,
 }
 
 impl ASTDump {
@@ -50,9 +49,8 @@ impl ASTDump {
         writer.write_event(Event::Text(BytesText::from_plain_str(self.input.as_str())))?;
         writer.write_event(Event::End(BytesEnd::borrowed(b"input")))?;
         if let Some(ast) = &self.parsed {
-            let (program, text) = ast.read();
             writer.write_event(Event::Start(BytesStart::borrowed_name(b"parsed")))?;
-            print_ast(writer, program, text)?;
+            print_ast(writer, ast.get_root(), self.input.as_str())?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
         }
         writer.write_event(Event::End(BytesEnd::borrowed(b"astdump")))?;
@@ -123,11 +121,11 @@ mod test {
                         let have_input =
                             input_text.as_ref().map(String::as_str).unwrap_or_default();
                         let have = crate::grammar::parse(have_input)?;
-                        let (have_ast, have_script) = have.read();
+                        let have_ast = have.get_root();
                         // Print parsed ast
                         let mut have_writer =
                             quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
-                        crate::grammar::print_ast(&mut have_writer, have_ast, have_script)?;
+                        crate::grammar::print_ast(&mut have_writer, have_ast, have_input)?;
                         let have_str = String::from_utf8(have_writer.into_inner())?;
                         // Compare output
                         assert_eq!(have_str, expected_str);

@@ -434,8 +434,8 @@ mod test {
         text: &str,
         expected: Program<'static>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let program = crate::grammar::parse(text)?;
-        let (ast, _) = program.read();
+        let ast_buffer = crate::grammar::parse(text)?;
+        let ast = ast_buffer.get_root();
         let translated = translate_ast(text, ast)?;
         assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &expected));
         Ok(())
