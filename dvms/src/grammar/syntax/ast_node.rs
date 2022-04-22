@@ -74,6 +74,13 @@ pub enum ASTNode<'text> {
     #[serde(with = "serde_window_range_mode")]
     WindowRangeMode(sx::WindowRangeMode),
 
+    GenericTypeInfo(GenericType<'text>),
+    NumericTypeInfo(NumericType<'text>),
+    BitTypeInfo(BitType<'text>),
+    CharacterTypeInfo(CharacterType<'text>),
+    TimestampTypeInfo(TimestampType<'text>),
+    IntervalTypeInfo(IntervalType<'text>),
+
     OrderSpecification(OrderSpecification<'text>),
     Expression(Expression<'text>),
     IndirectionIndex(IndirectionIndex<'text>),
@@ -81,10 +88,10 @@ pub enum ASTNode<'text> {
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text>),
     TableSample(TableSample<'text>),
-    GenericType(GenericType<'text>),
     ColumnRef(NamePath<'text>),
     FunctionArgument(FunctionArgument<'text>),
     FunctionExpression(FunctionExpression<'text>),
+    SQLType(SQLType<'text>),
 
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),

@@ -121,7 +121,7 @@ fn translate_statement<'text, 'ast>(
                         _ => unexpected_key!(k),
                     }
                 }
-                ASTNode::GenericType(GenericType {
+                ASTNode::GenericTypeInfo(GenericType {
                     name: name.unwrap_or_default(),
                     modifiers,
                 })
@@ -246,13 +246,13 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_CONST_CAST_TYPE, ASTNode::StringRef(t)) => cast_type = Some(t),
                         (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t),
                         (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => {
-                            func_name = Some(read_name(n));
+                            func_name = Some(read_name(n)?);
                         }
                         (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => {
                             func_args = read_exprs(nodes)?;
                         }
                         (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => {
-                            func_arg_ordering = read_ordering(nodes);
+                            func_arg_ordering = read_ordering(nodes)?;
                         }
                         (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => {
                             interval = Some(i);
@@ -278,7 +278,7 @@ fn translate_statement<'text, 'ast>(
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => {
-                            name = Some(read_name(a));
+                            name = Some(read_name(a)?);
                         }
                         _ => unexpected_key!(k),
                     }
@@ -295,7 +295,7 @@ fn translate_statement<'text, 'ast>(
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => {
-                            name = Some(read_name(a));
+                            name = Some(read_name(a)?);
                         }
                         _ => unexpected_key!(k),
                     }
@@ -308,7 +308,7 @@ fn translate_statement<'text, 'ast>(
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_FUNCTION_ARG_VALUE, ASTNode::StringRef(s)) => name = Some(s),
+                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => name = Some(s),
                         (Key::SQL_FUNCTION_ARG_VALUE, n) => value = Some(read_expr(n)?),
                         _ => unexpected_key!(k),
                     }
@@ -329,7 +329,7 @@ fn translate_statement<'text, 'ast>(
                             func_name = Some(s);
                         }
                         (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => {
-                            func_arg_ordering = read_ordering(nodes);
+                            func_arg_ordering = read_ordering(nodes)?;
                         }
                         (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                             func_args = Vec::new();
@@ -348,6 +348,34 @@ fn translate_statement<'text, 'ast>(
                     arguments: func_args,
                     argument_ordering: func_arg_ordering,
                     ..Default::default()
+                })
+            }
+            sx::NodeType::OBJECT_SQL_TYPENAME => {
+                let mut base = None;
+                let mut set_of = false;
+                let mut array_bounds = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeInfo(t)) => base = Some(SQLBaseType::Generic(t)),
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeInfo(t)) => base = Some(SQLBaseType::Numeric(t)),
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeInfo(t)) => base = Some(SQLBaseType::Bit(t)),
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => {
+                            base = Some(SQLBaseType::Character(t))
+                        }
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeInfo(t)) => {
+                            base = Some(SQLBaseType::Timestamp(t))
+                        }
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalTypeInfo(t)) => base = Some(SQLBaseType::Interval(t)),
+                        (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = b,
+                        (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(n)?,
+                        _ => unexpected_key!(k),
+                    }
+                }
+                ASTNode::SQLType(SQLType {
+                    base_type: base.unwrap_or(SQLBaseType::Invalid),
+                    set_of,
+                    array_bounds,
                 })
             }
             sx::NodeType::OBJECT_SQL_SELECT => {

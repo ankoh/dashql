@@ -30,6 +30,12 @@ pub struct NamePath<'text> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ArrayBound<'text> {
+    Empty,
+    Index(&'text str),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NaryExpression<'text> {
     #[serde(with = "serde_expression_operator")]
     pub operator: sx::ExpressionOperator,
@@ -142,6 +148,7 @@ pub struct IntervalType<'text> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SQLBaseType<'text> {
+    Invalid,
     #[serde(borrow)]
     Generic(GenericType<'text>),
     Numeric(NumericType<'text>),
@@ -153,10 +160,10 @@ pub enum SQLBaseType<'text> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SQLType<'text> {
-    pub base: SQLBaseType<'text>,
+    pub base_type: SQLBaseType<'text>,
     pub set_of: bool,
     #[serde(borrow)]
-    pub array: Vec<&'text str>,
+    pub array_bounds: Vec<ArrayBound<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
