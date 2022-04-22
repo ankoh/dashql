@@ -10,11 +10,7 @@ use sx::AttributeKey as Key;
 const INLINE_LOCATION_CAP: usize = 20;
 const LOCATION_HINT_LENGTH: usize = 10;
 
-fn encode_location<'writer, 'text>(
-    writer: &mut BytesStart<'writer>,
-    loc: sx::Location,
-    text: &'text str,
-) {
+fn encode_location<'writer, 'text>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'text str) {
     let begin = loc.offset() as usize;
     let end = (loc.offset() + loc.length()) as usize;
     if begin >= text.len() || end > text.len() {
@@ -34,11 +30,7 @@ fn encode_location<'writer, 'text>(
     writer.extend_attributes([loc_attr, ("text", &out)]);
 }
 
-fn encode_error<'writer, 'text, 'ast>(
-    writer: &mut BytesStart<'writer>,
-    error: sx::Error<'ast>,
-    text: &'text str,
-) {
+fn encode_error<'writer, 'text, 'ast>(writer: &mut BytesStart<'writer>, error: sx::Error<'ast>, text: &'text str) {
     writer.extend_attributes([("message", error.message().unwrap_or_default())]);
     encode_location(writer, error.location().copied().unwrap_or_default(), text);
 }
@@ -58,10 +50,7 @@ where
     for s in ast.statements().unwrap_or_default().iter() {
         // Start statement
         let mut stmt = BytesStart::borrowed_name(b"statement");
-        stmt.push_attribute((
-            "type",
-            s.statement_type().variant_name().unwrap_or_default(),
-        ));
+        stmt.push_attribute(("type", s.statement_type().variant_name().unwrap_or_default()));
         writer.write_event(Event::Start(stmt))?;
 
         // Do a post-order DFS traversal
@@ -75,8 +64,15 @@ where
                 pending.last_mut().unwrap().0 = true;
                 let mut node = BytesStart::borrowed_name(b"node");
                 if n.attribute_key() != 0 {
-                    let key = Key(n.attribute_key()).variant_name().unwrap_or_default();
-                    node.push_attribute(("key", key));
+                    let key = if n.attribute_key() < sx::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
+                        Key(n.attribute_key()).variant_name().unwrap_or_default().to_string()
+                    } else {
+                        format!(
+                            "DSON_DYNAMIC_KEYS[{}]",
+                            (n.attribute_key() - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0)
+                        )
+                    };
+                    node.push_attribute(("key", key.as_str()));
                 }
                 node.push_attribute(("type", n.node_type().variant_name().unwrap_or_default()));
                 match n.node_type() {
@@ -84,18 +80,12 @@ where
                         pending.pop();
                     }
                     sx::NodeType::BOOL => {
-                        node.push_attribute((
-                            "value",
-                            format!("{}", n.children_begin_or_value() != 0).as_str(),
-                        ));
+                        node.push_attribute(("value", format!("{}", n.children_begin_or_value() != 0).as_str()));
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
                     sx::NodeType::UI32_BITMAP | sx::NodeType::UI32 => {
-                        node.push_attribute((
-                            "value",
-                            format!("{}", n.children_begin_or_value()).as_str(),
-                        ));
+                        node.push_attribute(("value", format!("{}", n.children_begin_or_value()).as_str()));
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
@@ -127,10 +117,7 @@ where
                             writer.write_event(Event::Empty(node))?;
                             pending.pop();
                         } else {
-                            node.push_attribute((
-                                "value",
-                                format!("{}", n.children_begin_or_value()).as_str(),
-                            ));
+                            node.push_attribute(("value", format!("{}", n.children_begin_or_value()).as_str()));
                             writer.write_event(Event::Empty(node))?;
                             pending.pop();
                         }
