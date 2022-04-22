@@ -14,9 +14,15 @@ pub struct InputStatement<'text> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FetchStatement<'text> {
-    #[serde(borrow, default)]
+    #[serde(borrow)]
     pub name: NamePath<'text>,
     #[serde(with = "serde_fetch_method_type")]
     pub fetch_method: sx::FetchMethodType,
     pub fetch_from_uri: Option<Expression<'text>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VizStatement<'text> {
+    #[serde(borrow)]
+    pub target: TableRef<'text>,
 }

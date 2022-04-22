@@ -87,6 +87,7 @@ pub enum ASTNode<'text> {
     IndirectionBounds(IndirectionBounds<'text>),
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text>),
+    TableRef(TableRef<'text>),
     TableSample(TableSample<'text>),
     ColumnRef(NamePath<'text>),
     FunctionArgument(FunctionArgument<'text>),
@@ -96,4 +97,5 @@ pub enum ASTNode<'text> {
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),
     InputStatement(InputStatement<'text>),
+    VizStatement(VizStatement<'text>),
 }

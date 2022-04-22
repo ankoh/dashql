@@ -204,7 +204,7 @@ pub enum InlineTable<'text> {
     JoinedTable,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TableRef<'text> {
     #[serde(borrow)]
     pub alias: Option<Alias<'text>>,
