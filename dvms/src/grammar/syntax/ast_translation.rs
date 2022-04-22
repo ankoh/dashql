@@ -340,6 +340,19 @@ pub fn translate_ast<'text, 'ast>(
                         fetch_from_uri: None,
                     })
                 }
+                sx::NodeType::OBJECT_SQL_COLUMN_REF => {
+                    let mut name: Option<NamePath> = None;
+                    for (child_id, translated) in children[ti as usize].drain(..) {
+                        let key = ast_nodes[child_id].attribute_key();
+                        match (sx::AttributeKey(key), translated) {
+                            (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => {
+                                name = Some(read_name(a));
+                            }
+                            _ => unexpected_attribute!(key),
+                        }
+                    }
+                    ASTNode::ColumnRef(name.unwrap_or_default())
+                }
                 sx::NodeType::OBJECT_SQL_SELECT => {
                     let mut targets = Vec::new();
                     for (child_id, translated) in children[ti as usize].drain(..) {

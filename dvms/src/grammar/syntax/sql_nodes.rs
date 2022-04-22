@@ -23,7 +23,7 @@ pub enum NamePathElement<'text> {
     IndirectionBounds(IndirectionBounds<'text>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NamePath<'text> {
     #[serde(borrow)]
     pub elements: Vec<NamePathElement<'text>>,
