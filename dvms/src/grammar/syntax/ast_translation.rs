@@ -1,6 +1,6 @@
 use super::ast_node::*;
 use super::ast_translation_helper::*;
-use super::dashql_nodes::FetchStatement;
+use super::dashql_nodes::*;
 use super::program::*;
 use super::sql_nodes::*;
 use crate::error::RawError;
@@ -245,18 +245,12 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_CONST_CAST_TYPE, ASTNode::StringRef(t)) => cast_type = Some(t),
                         (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t),
-                        (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => {
-                            func_name = Some(read_name(n)?);
-                        }
-                        (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => {
-                            func_args = read_exprs(nodes)?;
-                        }
+                        (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => func_name = Some(read_name(n)?),
+                        (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => func_args = read_exprs(nodes)?,
                         (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => {
                             func_arg_ordering = read_ordering(nodes)?;
                         }
-                        (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => {
-                            interval = Some(i);
-                        }
+                        (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => interval = Some(i),
                         (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
                             interval = Some(IntervalSpecification::Raw(s));
                         }
@@ -273,20 +267,22 @@ fn translate_statement<'text, 'ast>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_FETCH => {
-                let mut name: Option<NamePath> = None;
+                let mut name = NamePath::default();
+                let mut fetch_method = sx::FetchMethodType::NONE;
+                let mut fetch_from_uri = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => {
-                            name = Some(read_name(a)?);
-                        }
+                        (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => name = read_name(a)?,
+                        (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m)) => fetch_method = m,
+                        (Key::DASHQL_FETCH_FROM_URI, n) => fetch_from_uri = Some(read_expr(n)?),
                         _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::FetchStatement(FetchStatement {
                     name,
-                    fetch_method: None,
-                    fetch_from_uri: None,
+                    fetch_method,
+                    fetch_from_uri,
                 })
             }
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
@@ -294,9 +290,7 @@ fn translate_statement<'text, 'ast>(
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => {
-                            name = Some(read_name(a)?);
-                        }
+                        (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => name = Some(read_name(a)?),
                         _ => unexpected_key!(k),
                     }
                 }
@@ -325,12 +319,8 @@ fn translate_statement<'text, 'ast>(
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => {
-                            func_name = Some(s);
-                        }
-                        (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => {
-                            func_arg_ordering = read_ordering(nodes)?;
-                        }
+                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = Some(s),
+                        (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = read_ordering(nodes)?,
                         (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                             func_args = Vec::new();
                             for node in nodes {
@@ -376,6 +366,25 @@ fn translate_statement<'text, 'ast>(
                     base_type: base.unwrap_or(SQLBaseType::Invalid),
                     set_of,
                     array_bounds,
+                })
+            }
+            sx::NodeType::OBJECT_DASHQL_INPUT => {
+                let mut name = NamePath::default();
+                let mut value_type = SQLType::default();
+                let mut component_type = sx::InputComponentType::NONE;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n)) => name = read_name(n)?,
+                        (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = t,
+                        (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = t,
+                        _ => unexpected_key!(k),
+                    }
+                }
+                ASTNode::InputStatement(InputStatement {
+                    name,
+                    value_type,
+                    component_type,
                 })
             }
             sx::NodeType::OBJECT_SQL_SELECT => {
@@ -427,6 +436,8 @@ fn translate_statement<'text, 'ast>(
     // Push statement
     match last {
         Some(ASTNode::SelectStatement(s)) => Ok(Statement::Select(s)),
+        Some(ASTNode::InputStatement(s)) => Ok(Statement::Input(s)),
+        Some(ASTNode::FetchStatement(s)) => Ok(Statement::Fetch(s)),
         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }

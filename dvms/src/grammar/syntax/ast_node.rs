@@ -95,4 +95,5 @@ pub enum ASTNode<'text> {
 
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),
+    InputStatement(InputStatement<'text>),
 }

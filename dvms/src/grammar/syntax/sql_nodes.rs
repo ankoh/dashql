@@ -158,7 +158,13 @@ pub enum SQLBaseType<'text> {
     Interval(IntervalType<'text>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl<'text> Default for SQLBaseType<'text> {
+    fn default() -> Self {
+        SQLBaseType::Invalid
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SQLType<'text> {
     pub base_type: SQLBaseType<'text>,
     pub set_of: bool,

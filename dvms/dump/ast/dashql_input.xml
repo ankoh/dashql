@@ -81,5 +81,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Input><InputStatement component_type="2"><name><Component>foo</Component></name><value_type set_of="false"><Generic><GenericType name="DATE"/></Generic><Index>2</Index></value_type></InputStatement></Input>
+        </translated>
     </astdump>
 </astdumps>

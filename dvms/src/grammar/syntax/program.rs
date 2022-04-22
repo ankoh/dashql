@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use super::sql_nodes::SelectStatement;
+use super::dashql_nodes::*;
+use super::sql_nodes::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement<'text> {
     #[serde(borrow)]
     Select(SelectStatement<'text>),
+    Input(InputStatement<'text>),
+    Fetch(FetchStatement<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
