@@ -67,8 +67,9 @@ impl<'text> ASTDump<'text> {
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
         }
         if let Some(prog) = &self.translated {
-            let mut ser = quick_xml::se::Serializer::with_root(writer.clone(), Some("translated"));
-            prog.serialize(&mut ser)?;
+            writer.write_event(Event::Start(BytesStart::borrowed_name(b"translated")))?;
+            writer.write_event(Event::Text(BytesText::from_plain_str(&format!("{:#?}", &prog))))?;
+            writer.write_event(Event::End(BytesEnd::borrowed(b"translated")))?;
         }
         writer.write_event(Event::End(BytesEnd::borrowed(b"astdump")))?;
         Ok(())
@@ -84,6 +85,8 @@ mod test {
     use std::fs;
     use std::io::BufReader;
     use std::path::PathBuf;
+
+    use crate::grammar::translate_ast;
 
     fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -107,19 +110,24 @@ mod test {
 
         let mut expected_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
 
+        let mut script_text: Option<String> = None;
+        let mut ast_buffer = None;
+
         let mut tmp_buffer = Vec::new();
-        let mut input_text: Option<String> = None;
         let mut awaiting_input = false;
         let mut awaiting_parsed = false;
+        let mut awaiting_translated = false;
         loop {
             match xml_reader.read_event(&mut tmp_buffer)? {
                 Event::Start(e) => {
                     let name = std::str::from_utf8(e.name())?;
                     if name == "input" {
                         awaiting_input = true;
-                        input_text = None;
+                        script_text = None;
                     } else if name == "parsed" {
                         awaiting_parsed = true;
+                    } else if name == "translated" {
+                        awaiting_translated = true;
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::Start(e))?;
                     }
@@ -128,6 +136,8 @@ mod test {
                     let name = std::str::from_utf8(e.name())?;
                     if name == "input" {
                         awaiting_input = false;
+                    } else if name == "translated" {
+                        awaiting_translated = false;
                     } else if name == "parsed" {
                         awaiting_parsed = false;
 
@@ -135,29 +145,38 @@ mod test {
                         let expected_str = String::from_utf8(expected_writer.into_inner())?;
                         expected_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         // Parse the input text
-                        let have_input =
-                            input_text.as_ref().map(String::as_str).unwrap_or_default();
+                        let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
                         let have = crate::grammar::parse(have_input)?;
                         let have_ast = have.get_root();
                         // Print parsed ast
-                        let mut have_writer =
-                            quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
+                        let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::print_ast(&mut have_writer, have_ast, have_input)?;
                         let have_str = String::from_utf8(have_writer.into_inner())?;
                         // Compare output
                         assert_eq!(have_str, expected_str);
+                        // Remember AST buffer
+                        ast_buffer = Some(have);
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::End(e))?;
                     }
                 }
-                Event::Text(t) => {
+                Event::Text(expected) => {
                     if awaiting_input {
-                        if input_text.is_none() {
-                            let unescaped = t.unescape_and_decode(&xml_reader).unwrap_or_default();
-                            input_text = Some(unescaped)
+                        if script_text.is_none() {
+                            let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
+                            script_text = Some(unescaped)
                         }
                     } else if awaiting_parsed {
-                        expected_writer.write_event(Event::Text(t))?;
+                        expected_writer.write_event(Event::Text(expected))?;
+                    } else if awaiting_translated {
+                        awaiting_translated = false;
+
+                        // Translate the ast
+                        let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
+                        let ast = ast_buffer.as_ref().expect("expected ast buffer").get_root();
+                        let translated =
+                            translate_ast(script_text.as_ref().expect("expected script text").as_str(), ast)?;
+                        assert_eq!(&format!("{:#?}", translated), &unescaped);
                     }
                 }
                 Event::Eof => break,

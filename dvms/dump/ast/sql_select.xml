@@ -18,8 +18,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_fconst_1e04">
         <input>select 1e-04</input>
@@ -40,8 +64,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1e-04</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1e-04&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_bconst_b1010">
         <input>select b&apos;1010&apos;</input>
@@ -62,8 +110,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>b&apos;1010&apos;</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;b&apos;1010&apos;&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_string">
         <input>select string</input>
@@ -88,8 +160,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>string</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Component(
+                                        &quot;string&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_string_latin1">
         <input>select äöü</input>
@@ -114,8 +216,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>äöü</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Component(
+                                        &quot;äöü&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_string_unicode_plane1">
         <input>select 📈</input>
@@ -140,8 +272,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>📈</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Component(
+                                        &quot;📈&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_1_gt_2">
         <input>select 1 &gt; 2</input>
@@ -186,8 +348,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;foo&apos;</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;&apos;foo&apos;&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_quotes_nested_quote">
         <input>select &apos;&apos;&apos;foo&apos;&apos;&apos;</input>
@@ -208,8 +394,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;&apos;&apos;foo&apos;&apos;&apos;</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;&apos;&apos;&apos;foo&apos;&apos;&apos;&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_quotes_nested_dquote">
         <input>select &apos;&quot;foo&quot;&apos;</input>
@@ -230,8 +440,32 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>&apos;&quot;foo&quot;&apos;</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;&apos;\&quot;foo\&quot;&apos;&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_iconst_1_ident">
         <input>select 1 &quot;foo&quot;</input>
@@ -253,8 +487,34 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value alias="&quot;foo&quot;"><StringRef>1</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: Some(
+                            &quot;\&quot;foo\&quot;&quot;,
+                        ),
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="comments_cstyle">
         <input>/* foo */</input>
@@ -268,7 +528,9 @@
             </comments>
             <dson_keys/>
         </parsed>
-        <translated/>
+        <translated>Program {
+    statements: [],
+}</translated>
     </astdump>
     <astdump name="comments_cstyle_nested">
         <input>/* foo /* bar */ */</input>
@@ -282,7 +544,9 @@
             </comments>
             <dson_keys/>
         </parsed>
-        <translated/>
+        <translated>Program {
+    statements: [],
+}</translated>
     </astdump>
     <astdump name="select_iconst_list">
         <input>select 1, 2</input>
@@ -306,8 +570,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1</StringRef></Value><Value><StringRef>2</StringRef></Value></SelectStatement></Select>
-        </translated>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                    Value {
+                        value: StringRef(
+                            &quot;2&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel">
         <input>select a from b</input>
@@ -5584,7 +5878,9 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated/>
+        <translated>Program {
+    statements: [],
+}</translated>
     </astdump>
     <astdump name="select_limit_3">
         <input>SELECT * FROM foo LIMIT ALL</input>

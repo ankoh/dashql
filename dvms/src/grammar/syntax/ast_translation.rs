@@ -386,14 +386,14 @@ fn translate_statement<'text, 'ast>(
             sx::NodeType::OBJECT_DASHQL_INPUT => {
                 let mut name = NamePath::default();
                 let mut value_type = SQLType::default();
-                let mut component_type = sx::InputComponentType::NONE;
+                let mut component_type = Some(sx::InputComponentType::NONE);
                 let mut extra = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n)) => name = read_name(n)?,
                         (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = t,
-                        (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = t,
+                        (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = Some(t),
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }

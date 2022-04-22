@@ -26,7 +26,7 @@ pub enum NamePathElement<'text> {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NamePath<'text> {
     #[serde(borrow)]
-    pub elements: Vec<NamePathElement<'text>>,
+    pub path: Vec<NamePathElement<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -168,9 +168,9 @@ impl<'text> Default for SQLBaseType<'text> {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SQLType<'text> {
     pub base_type: SQLBaseType<'text>,
-    pub set_of: bool,
     #[serde(borrow)]
     pub array_bounds: Vec<ArrayBound<'text>>,
+    pub set_of: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

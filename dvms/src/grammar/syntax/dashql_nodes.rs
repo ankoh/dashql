@@ -9,8 +9,8 @@ pub struct InputStatement<'text> {
     #[serde(borrow, default)]
     pub name: NamePath<'text>,
     pub value_type: SQLType<'text>,
-    #[serde(with = "serde_input_component_type")]
-    pub component_type: sx::InputComponentType,
+    #[serde(with = "serde_input_component_type::opt")]
+    pub component_type: Option<sx::InputComponentType>,
     pub extra: Option<DsonObject<'text>>,
 }
 
@@ -39,8 +39,8 @@ pub struct VizStatement<'text> {
     pub target: TableRef<'text>,
 }
 
-pub struct VizComponents<'text> {
-    pub component_type: sx::VizComponentType,
+pub struct VizComponent<'text> {
+    pub component_type: Option<sx::VizComponentType>,
     pub type_modifiers: u32,
     pub extra: Option<DsonObject<'text>>,
 }
