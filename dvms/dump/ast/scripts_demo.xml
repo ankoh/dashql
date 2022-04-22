@@ -55,7 +55,7 @@
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="593..604" text="weather_csv"/>
                         </node>
-                        <node key="DSON_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="639..701" text="format(&apos;ht..n.country)">
+                        <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="639..701" text="format(&apos;ht..n.country)">
                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                 <node type="STRING_REF" loc="646..686" text="&apos;https://c..eather/%s&apos;"/>
                                 <node type="OBJECT_SQL_COLUMN_REF" loc="688..700" text="main.country">

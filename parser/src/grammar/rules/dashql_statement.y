@@ -32,5 +32,5 @@ dashql_statement_ref:
     ;
 
 dashql_function_call:
-    sql_func_application { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, move($1)); }
+    sql_func_expr { $$ = std::move($1); }
     ;
