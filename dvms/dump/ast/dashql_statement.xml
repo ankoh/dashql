@@ -97,7 +97,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..213" text="VIZ weathe..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..213" text="LINE (\n   ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
                                         <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
@@ -106,6 +105,7 @@
                                         <node key="DSON_HEIGHT" type="STRING_REF" loc="179..181" text="15"/>
                                     </node>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
@@ -141,7 +141,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..94" text="VIZ weathe..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..94" text="LINE (\n   ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
                                     <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
                                         <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
@@ -150,6 +149,7 @@
                                         <node key="DSON_KEYS[3]" type="STRING_REF" loc="77..79" text="15"/>
                                     </node>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">

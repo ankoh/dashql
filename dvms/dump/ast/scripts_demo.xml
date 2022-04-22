@@ -189,7 +189,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..347" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..347" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..347" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="81..125" text="(row = 0, ..eight = 4)">
                                         <node key="DSON_ROW" type="STRING_REF" loc="88..89" text="0"/>
@@ -214,6 +213,7 @@
                                     </node>
                                     <node key="DSON_MARK" type="STRING_REF" loc="150..156" text="&apos;line&apos;"/>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
@@ -578,7 +578,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1192..1351" text="VIZ Enrolm..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1213..1351" text="TABLE (\n  ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1219..1351" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="1291..1336" text="(row = 3, ..eight = 4)">
                                         <node key="DSON_ROW" type="STRING_REF" loc="1298..1299" text="3"/>
@@ -588,6 +587,7 @@
                                     </node>
                                     <node key="DSON_TITLE" type="STRING_REF" loc="1245..1262" text="&apos;Einschreibungen&apos;"/>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1196..1206" text="Enrolments">
@@ -602,7 +602,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1400..2082" text="VIZ Studen..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1423..2082" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1424..2082" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="1491..1535" text="(row = 0, ..eight = 4)">
                                         <node key="DSON_ROW" type="STRING_REF" loc="1498..1499" text="0"/>
@@ -631,6 +630,7 @@
                                     </node>
                                     <node key="DSON_MARK" type="STRING_REF" loc="1560..1565" text="&apos;bar&apos;"/>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1404..1417" text="StudentCounts">
@@ -645,7 +645,6 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="2133..2747" text="VIZ SWSCou..         )">
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2152..2747" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                                 <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="2153..2747" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="2223..2267" text="(row = 0, ..eight = 4)">
                                         <node key="DSON_ROW" type="STRING_REF" loc="2230..2231" text="0"/>
@@ -673,6 +672,7 @@
                                         <node key="DSON_TYPE" type="STRING_REF" loc="2299..2304" text="&apos;arc&apos;"/>
                                     </node>
                                 </node>
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="2137..2146" text="SWSCounts">

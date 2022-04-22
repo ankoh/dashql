@@ -70,6 +70,7 @@ pub enum Expression<'text> {
     True,
     False,
     StringRef(&'text str),
+    ColumnRef(NamePath<'text>),
     Nary(NaryExpression<'text>),
     ConstCast(ConstCastExpression<'text>),
     Typecast(TypecastExpression<'text>),

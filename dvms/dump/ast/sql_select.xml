@@ -88,6 +88,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>string</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_sconst_string_latin1">
         <input>select äöü</input>
@@ -112,6 +114,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>äöü</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_sconst_string_unicode_plane1">
         <input>select 📈</input>
@@ -136,6 +140,8 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><ColumnRef><NamePath><Component>📈</Component></NamePath></ColumnRef></Value></SelectStatement></Select>
+        </translated>
     </astdump>
     <astdump name="select_1_gt_2">
         <input>select 1 &gt; 2</input>
