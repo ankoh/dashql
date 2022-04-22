@@ -32,6 +32,15 @@
                 <statement type="INPUT">
                     <node type="OBJECT_DASHQL_INPUT" loc="285..445" text="INPUT coun..         )">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
+                        <node key="DASHQL_INPUT_CONFIG" type="OBJECT_DSON" loc="323..445" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="387..431" text="(row = 0, ..eight = 1)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="394..395" text="0"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="406..407" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="417..418" text="3"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="429..430" text="1"/>
+                            </node>
+                            <node key="DSON_TITLE" type="STRING_REF" loc="349..358" text="&apos;Country&apos;"/>
+                        </node>
                         <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="304..311" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="304..311" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
@@ -40,36 +49,31 @@
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="291..298" text="country"/>
                         </node>
-                        <node key="DSON_POSITION" type="OBJECT_DSON" loc="387..431" text="(row = 0, ..eight = 1)">
-                            <node key="DSON_ROW" type="STRING_REF" loc="394..395" text="0"/>
-                            <node key="DSON_COLUMN" type="STRING_REF" loc="406..407" text="0"/>
-                            <node key="DSON_WIDTH" type="STRING_REF" loc="417..418" text="3"/>
-                            <node key="DSON_HEIGHT" type="STRING_REF" loc="429..430" text="1"/>
-                        </node>
-                        <node key="DSON_TITLE" type="STRING_REF" loc="349..358" text="&apos;Country&apos;"/>
                     </node>
                 </statement>
                 <statement type="FETCH">
                     <node type="OBJECT_DASHQL_FETCH" loc="587..715" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
-                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="593..604" text="weather_csv"/>
-                        </node>
-                        <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="639..701" text="format(&apos;ht..n.country)">
-                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="646..686" text="&apos;https://c..eather/%s&apos;">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="646..686" text="&apos;https://c..eather/%s&apos;"/>
-                                </node>
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="688..700" text="main.country">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="688..700" text="main.country">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="688..692" text="main"/>
-                                            <node type="STRING_REF" loc="693..700" text="country"/>
+                        <node key="DASHQL_FETCH_CONFIG" type="OBJECT_DSON" loc="615..715" text="(\n        ..         )">
+                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="639..701" text="format(&apos;ht..n.country)">
+                                <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="646..686" text="&apos;https://c..eather/%s&apos;">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="646..686" text="&apos;https://c..eather/%s&apos;"/>
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="688..700" text="main.country">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="688..700" text="main.country">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="688..692" text="main"/>
+                                                <node type="STRING_REF" loc="693..700" text="country"/>
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
+                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="639..645" text="format"/>
                             </node>
-                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="639..645" text="format"/>
+                        </node>
+                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="STRING_REF" loc="593..604" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
@@ -186,28 +190,30 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..347" text=" (\n       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="81..125" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" type="STRING_REF" loc="88..89" text="0"/>
-                                    <node key="DSON_COLUMN" type="STRING_REF" loc="100..101" text="0"/>
-                                    <node key="DSON_WIDTH" type="STRING_REF" loc="111..112" text="6"/>
-                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="123..124" text="4"/>
-                                </node>
-                                <node key="DSON_TITLE" type="STRING_REF" loc="40..52" text="&apos;Line Chart&apos;"/>
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="185..333" text="(\n        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="211..250" text="(field = &apos;..unt = 10))">
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="232..249" text="(tick_count = 10)">
-                                            <node key="DSON_TICK_COUNT" type="STRING_REF" loc="246..248" text="10"/>
-                                        </node>
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="220..223" text="&apos;x&apos;"/>
+                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="14..347" text="(\n        ..         )">
+                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="81..125" text="(row = 0, ..eight = 4)">
+                                        <node key="DSON_ROW" type="STRING_REF" loc="88..89" text="0"/>
+                                        <node key="DSON_COLUMN" type="STRING_REF" loc="100..101" text="0"/>
+                                        <node key="DSON_WIDTH" type="STRING_REF" loc="111..112" text="6"/>
+                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="123..124" text="4"/>
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="276..315" text="(field = &apos;..unt = 10))">
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="297..314" text="(tick_count = 10)">
-                                            <node key="DSON_TICK_COUNT" type="STRING_REF" loc="311..313" text="10"/>
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="40..52" text="&apos;Line Chart&apos;"/>
+                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="185..333" text="(\n        ..         )">
+                                        <node key="DSON_X" type="OBJECT_DSON" loc="211..250" text="(field = &apos;..unt = 10))">
+                                            <node key="DSON_AXIS" type="OBJECT_DSON" loc="232..249" text="(tick_count = 10)">
+                                                <node key="DSON_TICK_COUNT" type="STRING_REF" loc="246..248" text="10"/>
+                                            </node>
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="220..223" text="&apos;x&apos;"/>
                                         </node>
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="285..288" text="&apos;y&apos;"/>
+                                        <node key="DSON_Y" type="OBJECT_DSON" loc="276..315" text="(field = &apos;..unt = 10))">
+                                            <node key="DSON_AXIS" type="OBJECT_DSON" loc="297..314" text="(tick_count = 10)">
+                                                <node key="DSON_TICK_COUNT" type="STRING_REF" loc="311..313" text="10"/>
+                                            </node>
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="285..288" text="&apos;y&apos;"/>
+                                        </node>
                                     </node>
+                                    <node key="DSON_MARK" type="STRING_REF" loc="150..156" text="&apos;line&apos;"/>
                                 </node>
-                                <node key="DSON_MARK" type="STRING_REF" loc="150..156" text="&apos;line&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
@@ -573,13 +579,15 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1213..1351" text="TABLE (\n  ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1291..1336" text="(row = 3, ..eight = 4)">
-                                    <node key="DSON_ROW" type="STRING_REF" loc="1298..1299" text="3"/>
-                                    <node key="DSON_COLUMN" type="STRING_REF" loc="1310..1311" text="0"/>
-                                    <node key="DSON_WIDTH" type="STRING_REF" loc="1321..1323" text="12"/>
-                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="1334..1335" text="4"/>
+                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="1219..1351" text="(\n        ..         )">
+                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="1291..1336" text="(row = 3, ..eight = 4)">
+                                        <node key="DSON_ROW" type="STRING_REF" loc="1298..1299" text="3"/>
+                                        <node key="DSON_COLUMN" type="STRING_REF" loc="1310..1311" text="0"/>
+                                        <node key="DSON_WIDTH" type="STRING_REF" loc="1321..1323" text="12"/>
+                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="1334..1335" text="4"/>
+                                    </node>
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="1245..1262" text="&apos;Einschreibungen&apos;"/>
                                 </node>
-                                <node key="DSON_TITLE" type="STRING_REF" loc="1245..1262" text="&apos;Einschreibungen&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1196..1206" text="Enrolments">
@@ -595,32 +603,34 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1423..2082" text=" (\n       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1491..1535" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" type="STRING_REF" loc="1498..1499" text="0"/>
-                                    <node key="DSON_COLUMN" type="STRING_REF" loc="1510..1511" text="0"/>
-                                    <node key="DSON_WIDTH" type="STRING_REF" loc="1521..1522" text="6"/>
-                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="1533..1534" text="4"/>
-                                </node>
-                                <node key="DSON_TITLE" type="STRING_REF" loc="1450..1462" text="&apos;Auslastung&apos;"/>
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1594..2068" text="(\n        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="1799..2049" text="(\n        ..         )">
-                                        <node key="DSON_TITLE" type="STRING_REF" loc="1833..1844" text="&apos;Studenten&apos;"/>
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="2004..2026" text="axis.tick_..n_step = 1">
-                                            <node key="DSON_TICK_MIN_STEP" type="STRING_REF" loc="2025..2026" text="1"/>
-                                        </node>
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="1878..1889" text="&apos;studenten&apos;"/>
-                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1961..1978" text="scale.zero = true">
-                                            <node key="DSON_ZERO" type="BOOL" value="true"/>
-                                        </node>
-                                        <node key="DSON_TYPE" type="STRING_REF" loc="1921..1935" text="&apos;quantitative&apos;"/>
+                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="1424..2082" text="(\n        ..         )">
+                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="1491..1535" text="(row = 0, ..eight = 4)">
+                                        <node key="DSON_ROW" type="STRING_REF" loc="1498..1499" text="0"/>
+                                        <node key="DSON_COLUMN" type="STRING_REF" loc="1510..1511" text="0"/>
+                                        <node key="DSON_WIDTH" type="STRING_REF" loc="1521..1522" text="6"/>
+                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="1533..1534" text="4"/>
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="1620..1773" text="(\n        ..         )">
-                                        <node key="DSON_TITLE" type="STRING_REF" loc="1654..1667" text="&apos;Vorlesungen&apos;"/>
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="1701..1708" text="&apos;Titel&apos;"/>
-                                        <node key="DSON_TYPE" type="STRING_REF" loc="1741..1750" text="&apos;nominal&apos;"/>
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="1450..1462" text="&apos;Auslastung&apos;"/>
+                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1594..2068" text="(\n        ..         )">
+                                        <node key="DSON_X" type="OBJECT_DSON" loc="1799..2049" text="(\n        ..         )">
+                                            <node key="DSON_TITLE" type="STRING_REF" loc="1833..1844" text="&apos;Studenten&apos;"/>
+                                            <node key="DSON_AXIS" type="OBJECT_DSON" loc="2004..2026" text="axis.tick_..n_step = 1">
+                                                <node key="DSON_TICK_MIN_STEP" type="STRING_REF" loc="2025..2026" text="1"/>
+                                            </node>
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="1878..1889" text="&apos;studenten&apos;"/>
+                                            <node key="DSON_SCALE" type="OBJECT_DSON" loc="1961..1978" text="scale.zero = true">
+                                                <node key="DSON_ZERO" type="BOOL" value="true"/>
+                                            </node>
+                                            <node key="DSON_TYPE" type="STRING_REF" loc="1921..1935" text="&apos;quantitative&apos;"/>
+                                        </node>
+                                        <node key="DSON_Y" type="OBJECT_DSON" loc="1620..1773" text="(\n        ..         )">
+                                            <node key="DSON_TITLE" type="STRING_REF" loc="1654..1667" text="&apos;Vorlesungen&apos;"/>
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="1701..1708" text="&apos;Titel&apos;"/>
+                                            <node key="DSON_TYPE" type="STRING_REF" loc="1741..1750" text="&apos;nominal&apos;"/>
+                                        </node>
                                     </node>
+                                    <node key="DSON_MARK" type="STRING_REF" loc="1560..1565" text="&apos;bar&apos;"/>
                                 </node>
-                                <node key="DSON_MARK" type="STRING_REF" loc="1560..1565" text="&apos;bar&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1404..1417" text="StudentCounts">
@@ -636,30 +646,32 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2152..2747" text=" (\n       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="2223..2267" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" type="STRING_REF" loc="2230..2231" text="0"/>
-                                    <node key="DSON_COLUMN" type="STRING_REF" loc="2242..2243" text="6"/>
-                                    <node key="DSON_WIDTH" type="STRING_REF" loc="2253..2254" text="6"/>
-                                    <node key="DSON_HEIGHT" type="STRING_REF" loc="2265..2266" text="4"/>
-                                </node>
-                                <node key="DSON_TITLE" type="STRING_REF" loc="2179..2194" text="&apos;Wochenstunden&apos;"/>
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2351..2733" text="(\n        ..         )">
-                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="2381..2485" text="(\n        ..         )">
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="2415..2420" text="&apos;SWS&apos;"/>
-                                        <node key="DSON_TYPE" type="STRING_REF" loc="2453..2462" text="&apos;ordinal&apos;"/>
+                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="2153..2747" text="(\n        ..         )">
+                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="2223..2267" text="(row = 0, ..eight = 4)">
+                                        <node key="DSON_ROW" type="STRING_REF" loc="2230..2231" text="0"/>
+                                        <node key="DSON_COLUMN" type="STRING_REF" loc="2242..2243" text="6"/>
+                                        <node key="DSON_WIDTH" type="STRING_REF" loc="2253..2254" text="6"/>
+                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="2265..2266" text="4"/>
                                     </node>
-                                    <node key="DSON_THETA" type="OBJECT_DSON" loc="2515..2714" text="(\n        ..         )">
-                                        <node key="DSON_TITLE" type="STRING_REF" loc="2549..2562" text="&apos;Vorlesungen&apos;"/>
-                                        <node key="DSON_FIELD" type="STRING_REF" loc="2596..2601" text="&apos;cnt&apos;"/>
-                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="2674..2691" text="scale.zero = true">
-                                            <node key="DSON_ZERO" type="BOOL" value="true"/>
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="2179..2194" text="&apos;Wochenstunden&apos;"/>
+                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2351..2733" text="(\n        ..         )">
+                                        <node key="DSON_COLOR" type="OBJECT_DSON" loc="2381..2485" text="(\n        ..         )">
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="2415..2420" text="&apos;SWS&apos;"/>
+                                            <node key="DSON_TYPE" type="STRING_REF" loc="2453..2462" text="&apos;ordinal&apos;"/>
                                         </node>
-                                        <node key="DSON_TYPE" type="STRING_REF" loc="2634..2648" text="&apos;quantitative&apos;"/>
+                                        <node key="DSON_THETA" type="OBJECT_DSON" loc="2515..2714" text="(\n        ..         )">
+                                            <node key="DSON_TITLE" type="STRING_REF" loc="2549..2562" text="&apos;Vorlesungen&apos;"/>
+                                            <node key="DSON_FIELD" type="STRING_REF" loc="2596..2601" text="&apos;cnt&apos;"/>
+                                            <node key="DSON_SCALE" type="OBJECT_DSON" loc="2674..2691" text="scale.zero = true">
+                                                <node key="DSON_ZERO" type="BOOL" value="true"/>
+                                            </node>
+                                            <node key="DSON_TYPE" type="STRING_REF" loc="2634..2648" text="&apos;quantitative&apos;"/>
+                                        </node>
                                     </node>
-                                </node>
-                                <node key="DSON_MARK" type="OBJECT_DSON" loc="2292..2322" text="(type= &apos;ar..radius=50)">
-                                    <node key="DSON_INNER_RADIUS" type="STRING_REF" loc="2319..2321" text="50"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="2299..2304" text="&apos;arc&apos;"/>
+                                    <node key="DSON_MARK" type="OBJECT_DSON" loc="2292..2322" text="(type= &apos;ar..radius=50)">
+                                        <node key="DSON_INNER_RADIUS" type="STRING_REF" loc="2319..2321" text="50"/>
+                                        <node key="DSON_TYPE" type="STRING_REF" loc="2299..2304" text="&apos;arc&apos;"/>
+                                    </node>
                                 </node>
                             </node>
                         </node>

@@ -2,21 +2,21 @@
 // DashQL JSON
 
 opt_dson:
-    dson       { $$ = move($1); }
+    dson       { $$ = std::move($1); }
   | %empty     { $$ = {}; }
     ;
 
 dson:
-    '(' dson_fields ')'  { $$ = move($2); }
+    '(' dson_fields ')'  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DSON, std::move($2)); }
     ;
 
 dson_fields:
-    dson_fields ',' opt_dson_field  { $1.push_back($3); $$ = move($1); }
+    dson_fields ',' opt_dson_field  { $1.push_back($3); $$ = std::move($1); }
   | opt_dson_field                  { $$ = {$1}; }
     ;
 
 opt_dson_field:
-    dson_key_path '=' dson_value    { $$ = ctx.AddDSONField(@$, move($1), $3); }
+    dson_key_path '=' dson_value    { $$ = ctx.AddDSONField(@$, std::move($1), $3); }
   | %empty                          { $$ = Null(); }
     ;
 
@@ -35,8 +35,8 @@ dson_key:
     ;
 
 dson_value:
-    dson                      { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DSON, move($1)); }
-  | dson_array_brackets       { $$ = ctx.Add(@$, move($1)); }
+    dson                      { $$ = std::move($1); }
+  | dson_array_brackets       { $$ = ctx.Add(@$, std::move($1)); }
   | dashql_function_call      { $$ = $1; }
   | sql_columnref             { $$ = $1; }
   | sql_a_expr_const          { $$ = $1; }

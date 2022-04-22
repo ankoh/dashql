@@ -1,9 +1,10 @@
 dashql_fetch_statement:
     FETCH dashql_statement_name FROM dashql_fetch_method opt_dson {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FETCH, Concat(NodeVector{
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FETCH, {
             Attr(Key::DASHQL_STATEMENT_NAME, $2),
-            $4
-        }, std::move($5)));
+            $4,
+            Attr(Key::DASHQL_FETCH_CONFIG, std::move($5)),
+        });
     }
     ;
 
