@@ -1,6 +1,7 @@
 use super::ast_node::*;
 use super::ast_translation_helper::*;
 use super::dashql_nodes::*;
+use super::dson::*;
 use super::program::*;
 use super::sql_nodes::*;
 use crate::error::RawError;
@@ -40,6 +41,7 @@ fn translate_statement<'text, 'ast>(
     text: &'text str,
     ast: &'ast [sx::Node],
     ast_statement: sx::Statement<'ast>,
+    ast_program: sx::Program<'ast>,
     children: &mut Vec<Vec<(usize, ASTNode<'text>)>>,
 ) -> Result<Statement<'text>, Box<dyn Error + Send + Sync>> {
     // Do a postorder dfs traversal
@@ -278,6 +280,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => name = read_name(a)?,
                         (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m)) => method = m,
                         (Key::DASHQL_FETCH_FROM_URI, n) => from_uri = Some(read_expr(n)?),
+                        (Key::DASHQL_FETCH_EXTRA, n) => extra = Some(read_dson(n)?),
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
@@ -288,6 +291,21 @@ fn translate_statement<'text, 'ast>(
                     extra,
                 })
             }
+            sx::NodeType::OBJECT_DASHQL_LOAD => {
+                let mut name = NamePath::default();
+                let mut method = sx::LoadMethodType::NONE;
+                let mut extra = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => name = read_name(a)?,
+                        (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m)) => method = m,
+                        (Key::DASHQL_LOAD_EXTRA, n) => extra = Some(read_dson(n)?),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::LoadStatement(LoadStatement { name, method, extra })
+            }
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 let mut name: Option<NamePath> = None;
                 for (ci, c) in children[ti].drain(..) {
@@ -297,7 +315,7 @@ fn translate_statement<'text, 'ast>(
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
-                ASTNode::ColumnRef(name.unwrap_or_default())
+                ASTNode::Expression(Expression::ColumnRef(name.unwrap_or_default()))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_ARG => {
                 let mut name = None;
@@ -371,17 +389,46 @@ fn translate_statement<'text, 'ast>(
                     array_bounds,
                 })
             }
+            sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT => {
+                let mut component_type = None;
+                let mut type_modifiers = 0_u32;
+                let mut extra = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::DASHQL_VIZ_COMPONENT_TYPE, ASTNode::VizComponentType(t)) => component_type = Some(t),
+                        (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods)) => {
+                            type_modifiers = mods
+                        }
+                        (Key::DASHQL_VIZ_COMPONENT_EXTRA, n) => extra = Some(read_dson(n)?),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::VizComponent(VizComponent {
+                    component_type,
+                    type_modifiers,
+                    extra,
+                })
+            }
             sx::NodeType::OBJECT_DASHQL_VIZ => {
                 let mut target = TableRef::default();
+                let mut components = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t)) => target = t,
-                        // XXX components
+                        (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::VizComponent(c) => components.push(c),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
-                ASTNode::VizStatement(VizStatement { target })
+                ASTNode::VizStatement(VizStatement { target, components })
             }
             sx::NodeType::OBJECT_DASHQL_INPUT => {
                 let mut name = NamePath::default();
@@ -394,6 +441,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n)) => name = read_name(n)?,
                         (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = t,
                         (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = Some(t),
+                        (Key::DASHQL_INPUT_EXTRA, n) => extra = Some(read_dson(n)?),
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
@@ -434,6 +482,23 @@ fn translate_statement<'text, 'ast>(
                     row_locking: false,
                 })
             }
+            sx::NodeType::OBJECT_DSON => {
+                let mut fields = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = ast[ci].attribute_key();
+                    let ks = if k >= sx::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
+                        let ki = k - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0;
+                        let dson_keys = ast_program.dson_keys().unwrap_or_default();
+                        let dson_key = dson_keys[ki as usize];
+                        &text[(dson_key.offset() as usize)..((dson_key.offset() + dson_key.length()) as usize)]
+                    } else {
+                        Key(k).variant_name().unwrap_or_default()
+                    };
+                    let value = read_dson(c)?;
+                    fields.push(DsonField { key: ks, value });
+                }
+                ASTNode::Dson(DsonValue::Object(DsonObject { fields }))
+            }
             t => return Err(RawError::from(format!("node translation not implemented for: {:?}", t)).boxed()),
         };
 
@@ -473,7 +538,7 @@ pub fn translate_ast<'text, 'ast>(
     // Do a postorder dfs traversal
     let mut stmts: Vec<Statement<'text>> = Vec::new();
     for statement in statements.iter() {
-        let stmt = translate_statement(&text, &ast, statement, &mut children)?;
+        let stmt = translate_statement(&text, &ast, statement, ast_program, &mut children)?;
         stmts.push(stmt);
     }
     Ok(Program { statements: stmts })

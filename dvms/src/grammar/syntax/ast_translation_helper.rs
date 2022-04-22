@@ -1,4 +1,5 @@
 use super::ast_node::*;
+use super::dson::DsonValue;
 use super::sql_nodes::*;
 use crate::error::RawError;
 use std::error::Error;
@@ -66,4 +67,21 @@ pub(super) fn read_array_bounds<'text>(
         }
     }
     Ok(bounds)
+}
+
+pub(super) fn read_dson<'text>(node: ASTNode<'text>) -> Result<DsonValue<'text>, Box<dyn Error + Send + Sync>> {
+    let value = match node {
+        ASTNode::Dson(value) => value,
+        ASTNode::Array(nodes) => {
+            let mut elements = Vec::new();
+            for node in nodes {
+                elements.push(read_dson(node)?);
+            }
+            DsonValue::Array(elements)
+        }
+        ASTNode::Expression(e) => DsonValue::Expression(e),
+        ASTNode::FunctionExpression(f) => DsonValue::Expression(Expression::FunctionCall(f)),
+        _ => unexpected!("dson key", node),
+    };
+    Ok(value)
 }

@@ -160,38 +160,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                all: false,
-                targets: [
-                    Value {
-                        value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Component(
-                                        &quot;string&quot;,
-                                    ),
-                                ],
-                            },
-                        ),
-                        alias: None,
-                    },
-                ],
-                into: None,
-                from: false,
-                where_clause: false,
-                group_by: false,
-                having: false,
-                order_by: false,
-                windows: false,
-                sample: false,
-                row_locking: false,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_sconst_string_latin1">
         <input>select äöü</input>
@@ -216,38 +184,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                all: false,
-                targets: [
-                    Value {
-                        value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Component(
-                                        &quot;äöü&quot;,
-                                    ),
-                                ],
-                            },
-                        ),
-                        alias: None,
-                    },
-                ],
-                into: None,
-                from: false,
-                where_clause: false,
-                group_by: false,
-                having: false,
-                order_by: false,
-                windows: false,
-                sample: false,
-                row_locking: false,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_sconst_string_unicode_plane1">
         <input>select 📈</input>
@@ -272,38 +208,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                all: false,
-                targets: [
-                    Value {
-                        value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Component(
-                                        &quot;📈&quot;,
-                                    ),
-                                ],
-                            },
-                        ),
-                        alias: None,
-                    },
-                ],
-                into: None,
-                from: false,
-                where_clause: false,
-                group_by: false,
-                having: false,
-                order_by: false,
-                windows: false,
-                sample: false,
-                row_locking: false,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_1_gt_2">
         <input>select 1 &gt; 2</input>

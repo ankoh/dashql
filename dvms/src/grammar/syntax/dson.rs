@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DsonField<'text> {
     #[serde(borrow)]
-    key: Vec<&'text str>,
-    value: DsonValue<'text>,
+    pub key: &'text str,
+    pub value: DsonValue<'text>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DsonObject<'text> {
     #[serde(borrow)]
-    fields: Vec<DsonField<'text>>,
+    pub fields: Vec<DsonField<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

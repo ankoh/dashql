@@ -1,4 +1,5 @@
 use super::dashql_nodes::*;
+use super::dson::*;
 use super::enums_serde::*;
 use super::sql_nodes::*;
 use dashql_proto::syntax as sx;
@@ -97,5 +98,9 @@ pub enum ASTNode<'text> {
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),
     InputStatement(InputStatement<'text>),
+    LoadStatement(LoadStatement<'text>),
+    VizComponent(VizComponent<'text>),
     VizStatement(VizStatement<'text>),
+
+    Dson(DsonValue<'text>),
 }

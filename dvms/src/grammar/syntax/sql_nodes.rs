@@ -74,6 +74,7 @@ pub enum Expression<'text> {
     Nary(NaryExpression<'text>),
     ConstCast(ConstCastExpression<'text>),
     Typecast(TypecastExpression<'text>),
+    FunctionCall(FunctionExpression<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,7 +234,7 @@ pub struct FunctionExpression<'text> {
     pub all: bool,
     pub distinct: bool,
     pub over: bool,
-    pub variadic: Option<FunctionArgument<'text>>,
+    pub variadic: Option<Box<FunctionArgument<'text>>>,
     #[serde(with = "serde_trim_direction::opt")]
     pub trim_direction: Option<sx::TrimDirection>,
 }
