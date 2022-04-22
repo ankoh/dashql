@@ -1652,8 +1652,12 @@
                                 </node>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="21..46" text="generate_s..(0, 10000)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="37..38" text="0"/>
-                                        <node type="STRING_REF" loc="40..45" text="10000"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="0">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="37..38" text="0"/>
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="40..45" text="10000">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="40..45" text="10000"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="21..36" text="generate_series"/>
                                     <node key="SQL_FUNCTION_TABLE_WITH_ORDINALITY" type="BOOL" value="false"/>
@@ -1695,7 +1699,9 @@
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="34..37" text="foo"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..33" text="somefunc(&apos;somearg&apos;)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="23..32" text="&apos;somearg&apos;"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="23..32" text="&apos;somearg&apos;">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="23..32" text="&apos;somearg&apos;"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="14..22" text="somefunc"/>
                                     <node key="SQL_FUNCTION_TABLE_WITH_ORDINALITY" type="BOOL" value="false"/>
@@ -1752,7 +1758,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..24" text="somefunc(1) &apos;foo&apos;">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..24" text="somefunc(1) &apos;foo&apos;">
                                     <node key="SQL_CONST_CAST_FUNC_ARGS_LIST" type="ARRAY">
-                                        <node type="STRING_REF" loc="16..17" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="7..15" text="somefunc"/>
@@ -2797,7 +2805,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..18" text="somefunc(1)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..18" text="somefunc(1)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="16..17" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="7..15" text="somefunc"/>
                                 </node>
@@ -2822,7 +2832,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..40" text="somefunc(1..tion by c)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..40" text="somefunc(1..tion by c)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="16..17" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="7..15" text="somefunc"/>
                                     <node key="SQL_FUNCTION_OVER" type="OBJECT_SQL_WINDOW_FRAME" loc="24..40" text="(partition by c)">
@@ -2856,7 +2868,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..44" text="somefunc(1..rder by c)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..44" text="somefunc(1..rder by c)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="16..17" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="7..15" text="somefunc"/>
                                     <node key="SQL_FUNCTION_WITHIN_GROUP" type="ARRAY">
@@ -2890,7 +2904,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..39" text="somefunc(1..ere a = b)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..39" text="somefunc(1..ere a = b)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="16..17" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_FILTER" type="OBJECT_SQL_NARY_EXPRESSION" loc="33..38" text="a = b">
                                         <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="33..34" text="a">
@@ -3236,7 +3252,9 @@
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..30" text="foo(&apos;bar&apos;)">
                                         <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                            <node type="STRING_REF" loc="24..29" text="&apos;bar&apos;"/>
+                                            <node type="OBJECT_SQL_FUNCTION_ARG" loc="24..29" text="&apos;bar&apos;">
+                                                <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="24..29" text="&apos;bar&apos;"/>
+                                            </node>
                                         </node>
                                         <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="20..23" text="foo"/>
                                     </node>
@@ -3266,8 +3284,10 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..24" text="somefunc(default)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..24" text="somefunc(default)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="16..23" text="default">
-                                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="DEFAULT"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..23" text="default">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="16..23" text="default">
+                                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="DEFAULT"/>
+                                            </node>
                                         </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="7..15" text="somefunc"/>
@@ -4150,7 +4170,9 @@
                             <node type="OBJECT_SQL_TABLEREF" loc="14..32" text="generate_series(1)">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..32" text="generate_series(1)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="30..31" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="30..31" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="30..31" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="14..29" text="generate_series"/>
                                     <node key="SQL_FUNCTION_TABLE_WITH_ORDINALITY" type="BOOL" value="false"/>
@@ -4181,7 +4203,9 @@
                             <node type="OBJECT_SQL_TABLEREF" loc="14..48" text="generate_s..ORDINALITY">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..48" text="generate_s..ORDINALITY">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="30..31" text="1"/>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="30..31" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="30..31" text="1"/>
+                                        </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="14..29" text="generate_series"/>
                                     <node key="SQL_FUNCTION_TABLE_WITH_ORDINALITY" type="BOOL" value="true"/>
@@ -4215,7 +4239,9 @@
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="25..43" text="generate_series(1)">
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="25..43" text="generate_series(1)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="41..42" text="1"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="41..42" text="1">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="41..42" text="1"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="25..40" text="generate_series"/>
                                             </node>
@@ -4223,7 +4249,9 @@
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="45..63" text="generate_series(2)">
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="45..63" text="generate_series(2)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="61..62" text="2"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="61..62" text="2">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="61..62" text="2"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="45..60" text="generate_series"/>
                                             </node>
@@ -4268,7 +4296,9 @@
                                             </node>
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="25..43" text="generate_series(1)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="41..42" text="1"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="41..42" text="1">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="41..42" text="1"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="25..40" text="generate_series"/>
                                             </node>
@@ -4284,7 +4314,9 @@
                                             </node>
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="60..78" text="generate_series(2)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="76..77" text="2"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="76..77" text="2">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="76..77" text="2"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="60..75" text="generate_series"/>
                                             </node>
@@ -4338,7 +4370,9 @@
                                             </node>
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="62..80" text="generate_series(1)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="78..79" text="1"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="78..79" text="1">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="78..79" text="1"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="62..77" text="generate_series"/>
                                             </node>
@@ -4359,7 +4393,9 @@
                                             </node>
                                             <node key="SQL_ROWSFROM_ITEM_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="133..151" text="generate_series(2)">
                                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                    <node type="STRING_REF" loc="149..150" text="2"/>
+                                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="149..150" text="2">
+                                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="149..150" text="2"/>
+                                                    </node>
                                                 </node>
                                                 <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="133..148" text="generate_series"/>
                                             </node>

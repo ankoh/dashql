@@ -201,6 +201,29 @@ pub struct TableRef<'text> {
     pub lateral: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionArgument<'text> {
+    #[serde(borrow)]
+    pub name: Option<&'text str>,
+    pub value: Expression<'text>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FunctionExpression<'text> {
+    #[serde(borrow)]
+    pub name: Option<&'text str>,
+    pub arguments: Vec<FunctionArgument<'text>>,
+    pub argument_ordering: Vec<OrderSpecification<'text>>,
+    pub within_group: Vec<OrderSpecification<'text>>,
+    pub filter: Option<Box<Expression<'text>>>,
+    pub all: bool,
+    pub distinct: bool,
+    pub over: bool,
+    pub variadic: Option<FunctionArgument<'text>>,
+    #[serde(with = "serde_trim_direction::opt")]
+    pub trim_direction: Option<sx::TrimDirection>,
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct SelectStatement<'text> {
     pub all: bool,

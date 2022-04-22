@@ -56,6 +56,8 @@ pub enum ASTNode<'text> {
     TableSample(TableSample<'text>),
     GenericType(GenericType<'text>),
     ColumnRef(NamePath<'text>),
+    FunctionArgument(FunctionArgument<'text>),
+    FunctionExpression(FunctionExpression<'text>),
 
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),

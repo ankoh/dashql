@@ -298,6 +298,54 @@ fn translate_statement<'text, 'ast>(
                 }
                 ASTNode::ColumnRef(name.unwrap_or_default())
             }
+            sx::NodeType::OBJECT_SQL_FUNCTION_ARG => {
+                let mut name = None;
+                let mut value = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_FUNCTION_ARG_VALUE, ASTNode::StringRef(s)) => name = Some(s),
+                        (Key::SQL_FUNCTION_ARG_VALUE, n) => value = Some(read_expr(n)?),
+                        _ => unexpected_attribute!(k),
+                    }
+                }
+                ASTNode::FunctionArgument(FunctionArgument {
+                    name: name,
+                    value: value.unwrap_or(Expression::Null),
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
+                let mut func_name = None;
+                let mut func_args = Vec::new();
+                let mut func_arg_ordering = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => {
+                            func_name = Some(s);
+                        }
+                        (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => {
+                            func_arg_ordering = read_ordering(nodes);
+                        }
+                        (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(mut nodes)) => {
+                            func_args = nodes
+                                .drain(..)
+                                .filter_map(|n| match n {
+                                    ASTNode::FunctionArgument(t) => Some(t),
+                                    _ => None,
+                                })
+                                .collect();
+                        }
+                        _ => unexpected_attribute!(k),
+                    }
+                }
+                ASTNode::FunctionExpression(FunctionExpression {
+                    name: func_name,
+                    arguments: func_args,
+                    argument_ordering: func_arg_ordering,
+                    ..Default::default()
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
                 for (ci, c) in children[ti].drain(..) {

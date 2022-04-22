@@ -1727,7 +1727,11 @@ sql_func_arg_list:
     ;
 
 sql_func_arg_expr:
-    sql_a_expr { $$ = $1; }
+    sql_a_expr {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Attr(Key::SQL_FUNCTION_ARG_VALUE, $1),
+        });
+    }
   | sql_param_name COLON_EQUALS sql_a_expr {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_NAME, String(@1)),

@@ -52,11 +52,15 @@
                         </node>
                         <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="52..114" text="format(&apos;ht..n.country)">
                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                <node type="STRING_REF" loc="59..99" text="&apos;https://c..eather/%s&apos;"/>
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="101..113" text="main.country">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="101..105" text="main"/>
-                                        <node type="STRING_REF" loc="106..113" text="country"/>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="59..99" text="&apos;https://c..eather/%s&apos;">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="59..99" text="&apos;https://c..eather/%s&apos;"/>
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="101..113" text="main.country">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="101..113" text="main.country">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="101..105" text="main"/>
+                                            <node type="STRING_REF" loc="106..113" text="country"/>
+                                        </node>
                                     </node>
                                 </node>
                             </node>
