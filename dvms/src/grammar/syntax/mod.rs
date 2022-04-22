@@ -4,6 +4,7 @@ mod ast_printing;
 mod ast_translation;
 mod ast_translation_helper;
 mod dashql_nodes;
+mod dson;
 mod enums;
 mod enums_serde;
 mod program;

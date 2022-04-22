@@ -269,21 +269,23 @@ fn translate_statement<'text, 'ast>(
             }
             sx::NodeType::OBJECT_DASHQL_FETCH => {
                 let mut name = NamePath::default();
-                let mut fetch_method = sx::FetchMethodType::NONE;
-                let mut fetch_from_uri = None;
+                let mut method = sx::FetchMethodType::NONE;
+                let mut from_uri = None;
+                let mut extra = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => name = read_name(a)?,
-                        (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m)) => fetch_method = m,
-                        (Key::DASHQL_FETCH_FROM_URI, n) => fetch_from_uri = Some(read_expr(n)?),
+                        (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m)) => method = m,
+                        (Key::DASHQL_FETCH_FROM_URI, n) => from_uri = Some(read_expr(n)?),
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
                 ASTNode::FetchStatement(FetchStatement {
                     name,
-                    fetch_method,
-                    fetch_from_uri,
+                    method,
+                    from_uri,
+                    extra,
                 })
             }
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
@@ -385,6 +387,7 @@ fn translate_statement<'text, 'ast>(
                 let mut name = NamePath::default();
                 let mut value_type = SQLType::default();
                 let mut component_type = sx::InputComponentType::NONE;
+                let mut extra = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
@@ -398,6 +401,7 @@ fn translate_statement<'text, 'ast>(
                     name,
                     value_type,
                     component_type,
+                    extra,
                 })
             }
             sx::NodeType::OBJECT_SQL_SELECT => {

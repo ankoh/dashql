@@ -3,7 +3,7 @@ dashql_fetch_statement:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FETCH, {
             Attr(Key::DASHQL_STATEMENT_NAME, $2),
             $4,
-            Attr(Key::DASHQL_FETCH_CONFIG, std::move($5)),
+            Attr(Key::DASHQL_FETCH_EXTRA, std::move($5)),
         });
     }
     ;

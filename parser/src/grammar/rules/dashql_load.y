@@ -4,7 +4,7 @@ dashql_load_statement:
             Attr(Key::DASHQL_STATEMENT_NAME, $2),
             Attr(Key::DASHQL_DATA_SOURCE, $4),
             Attr(Key::DASHQL_LOAD_METHOD, $5),
-            Attr(Key::DASHQL_LOAD_CONFIG, $6),
+            Attr(Key::DASHQL_LOAD_EXTRA, $6),
         });
     }
     ;

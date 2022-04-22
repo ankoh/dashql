@@ -21,7 +21,7 @@
             <statements>
                 <statement type="FETCH">
                     <node type="OBJECT_DASHQL_FETCH" loc="0..93" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_CONFIG" type="OBJECT_DSON" loc="28..93" text="(\n        ..         )">
+                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="28..93" text="(\n        ..         )">
                             <node key="DSON_URL" type="STRING_REF" loc="52..79" text="&apos;https://l..t/astdump&apos;"/>
                         </node>
                         <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
@@ -48,7 +48,7 @@
             <statements>
                 <statement type="FETCH">
                     <node type="OBJECT_DASHQL_FETCH" loc="0..128" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_CONFIG" type="OBJECT_DSON" loc="28..128" text="(\n        ..         )">
+                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="28..128" text="(\n        ..         )">
                             <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="52..114" text="format(&apos;ht..n.country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="59..99" text="&apos;https://c..eather/%s&apos;">
@@ -98,7 +98,7 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..213" text="LINE (\n   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
                                     <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
                                         <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
                                         <node key="DSON_COLUMN" type="STRING_REF" loc="116..117" text="0"/>
@@ -142,7 +142,7 @@
                         <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..94" text="LINE (\n   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                                <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
                                     <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
                                         <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
                                         <node key="DSON_KEYS[1]" type="STRING_REF" loc="63..64" text="0"/>

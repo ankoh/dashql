@@ -34,7 +34,7 @@
                 <statement type="INPUT">
                     <node type="OBJECT_DASHQL_INPUT" loc="83..132" text="INPUT foo ..l = &apos;Foo&apos;)">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_CONFIG" type="OBJECT_DSON" loc="117..132" text="(label = &apos;Foo&apos;)">
+                        <node key="DASHQL_INPUT_EXTRA" type="OBJECT_DSON" loc="117..132" text="(label = &apos;Foo&apos;)">
                             <node key="DSON_LABEL" type="STRING_REF" loc="126..131" text="&apos;Foo&apos;"/>
                         </node>
                         <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="98..105" text="VARCHAR">

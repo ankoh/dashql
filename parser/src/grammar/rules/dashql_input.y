@@ -20,13 +20,13 @@ dashql_input_component:
     dashql_input_component_type opt_dson {
         $$ = { 
             Attr(Key::DASHQL_INPUT_COMPONENT_TYPE, $1),
-            Attr(Key::DASHQL_INPUT_CONFIG, std::move($2)),
+            Attr(Key::DASHQL_INPUT_EXTRA, std::move($2)),
         };
     }
   | opt_dson {
         $$ = {
             Attr(Key::DASHQL_INPUT_COMPONENT_TYPE, Enum(@$, sx::InputComponentType::NONE)),
-            Attr(Key::DASHQL_INPUT_CONFIG, std::move($1)),
+            Attr(Key::DASHQL_INPUT_EXTRA, std::move($1)),
         };
     }
     ;

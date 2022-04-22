@@ -7,14 +7,14 @@ dashql_viz_component:
     dashql_viz_type opt_dson {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, {
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE, std::move($1)),
-            Attr(Key::DASHQL_VIZ_COMPONENT_CONFIG, std::move($2)),
+            Attr(Key::DASHQL_VIZ_COMPONENT_EXTRA, std::move($2)),
         });
     }
  |  dashql_viz_type_modifiers dashql_viz_type opt_dson {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, {
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, UI32Bitmap(@1, $1)),
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE, std::move($2)),
-            Attr(Key::DASHQL_VIZ_COMPONENT_CONFIG, std::move($3)),
+            Attr(Key::DASHQL_VIZ_COMPONENT_EXTRA, std::move($3)),
         });
     }
     ;

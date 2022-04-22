@@ -8,7 +8,7 @@
             <statements>
                 <statement type="FETCH">
                     <node type="OBJECT_DASHQL_FETCH" loc="0..105" text="FETCH uni ..         )">
-                        <node key="DASHQL_FETCH_CONFIG" type="OBJECT_DSON" loc="20..105" text="(\n        ..         )">
+                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="20..105" text="(\n        ..         )">
                             <node key="DSON_URL" type="STRING_REF" loc="44..91" text="&apos;https://s..e/all.zip&apos;"/>
                         </node>
                         <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
@@ -119,7 +119,7 @@
             <statements>
                 <statement type="FETCH">
                     <node type="OBJECT_DASHQL_FETCH" loc="0..234" text="FETCH json..         )">
-                        <node key="DASHQL_FETCH_CONFIG" type="OBJECT_DSON" loc="27..234" text="(\n        ..         )">
+                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="27..234" text="(\n        ..         )">
                             <node key="DSON_URL" type="STRING_REF" loc="51..113" text="&apos;https://w..tag/stats&apos;"/>
                             <node key="DSON_KEYS[1]" type="OBJECT_DSON" loc="141..220" text="(\n        ..         )">
                                 <node key="DSON_KEYS[0]" type="STRING_REF" loc="193..202" text="&apos;somekey&apos;"/>
