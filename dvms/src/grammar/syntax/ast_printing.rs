@@ -68,7 +68,7 @@ where
                         Key(n.attribute_key()).variant_name().unwrap_or_default().to_string()
                     } else {
                         format!(
-                            "DSON_DYNAMIC_KEYS[{}]",
+                            "DSON_KEYS[{}]",
                             (n.attribute_key() - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0)
                         )
                     };

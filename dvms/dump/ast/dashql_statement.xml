@@ -143,11 +143,11 @@
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..94" text="LINE (\n   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                                 <node key="DASHQL_VIZ_COMPONENT_CONFIG" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
-                                    <node key="" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
-                                        <node key="DSON_DYNAMIC_KEYS_" type="STRING_REF" loc="56..57" text="0"/>
-                                        <node key="" type="STRING_REF" loc="63..64" text="0"/>
-                                        <node key="" type="STRING_REF" loc="70..71" text="4"/>
-                                        <node key="" type="STRING_REF" loc="77..79" text="15"/>
+                                    <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
+                                        <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
+                                        <node key="DSON_KEYS[1]" type="STRING_REF" loc="63..64" text="0"/>
+                                        <node key="DSON_KEYS[2]" type="STRING_REF" loc="70..71" text="4"/>
+                                        <node key="DSON_KEYS[3]" type="STRING_REF" loc="77..79" text="15"/>
                                     </node>
                                 </node>
                             </node>
