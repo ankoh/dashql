@@ -46,8 +46,9 @@ fn translate_statement<'text, 'ast>(
         if !visited {
             pending.last_mut().unwrap().1 = true;
             if t.node_type() == sx::NodeType::ARRAY || t.node_type() > sx::NodeType::OBJECT_KEYS_ {
+                let end = t.children_begin_or_value() + t.children_count();
                 for i in 0..t.children_count() {
-                    pending.push(((t.children_begin_or_value() + i) as usize, false));
+                    pending.push(((end - i - 1) as usize, false));
                 }
             }
             continue;

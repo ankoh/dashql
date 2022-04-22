@@ -300,7 +300,7 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>2</StringRef></Value><Value><StringRef>1</StringRef></Value></SelectStatement></Select>
+        <translated><Select><SelectStatement all="false" from="false" where_clause="false" group_by="false" having="false" order_by="false" windows="false" sample="false" row_locking="false"><Value><StringRef>1</StringRef></Value><Value><StringRef>2</StringRef></Value></SelectStatement></Select>
         </translated>
     </astdump>
     <astdump name="select_from_1rel">
