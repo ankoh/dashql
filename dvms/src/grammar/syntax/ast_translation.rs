@@ -8,11 +8,22 @@ use dashql_proto::syntax as sx;
 use std::error::Error;
 use sx::AttributeKey as Key;
 
-macro_rules! unexpected_attribute {
+macro_rules! unexpected_key {
     ($key:expr) => {
         return Err(RawError::from(format!(
             "unexpected attribute key: {}",
             $key.variant_name().unwrap_or(&format!("{}", $key.0))
+        ))
+        .boxed())
+    };
+}
+
+macro_rules! unexpected_array_element {
+    ($key:expr, $value:expr) => {
+        return Err(RawError::from(format!(
+            "unexpected array element for {}: {:?}",
+            $key.variant_name().unwrap_or_default(),
+            $value
         ))
         .boxed())
     };
@@ -110,7 +121,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => {
                             modifiers = read_exprs(a)?
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::GenericType(GenericType {
@@ -130,7 +141,7 @@ fn translate_statement<'text, 'ast>(
                             direction = Some(d)
                         }
                         (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n)) => null_rule = Some(n),
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::OrderSpecification(OrderSpecification {
@@ -147,7 +158,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => type_ = Some(t),
                         (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::IntervalSpecification(IntervalSpecification::Type {
@@ -165,7 +176,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(true)) => star = true,
                         (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)?),
                         (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s)) => alias = Some(s),
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::ResultTarget(if star {
@@ -191,7 +202,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_EXPRESSION_OPERATOR, ASTNode::ExpressionOperator(op)) => {
                             operator = op;
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::Expression(Expression::Nary(NaryExpression {
@@ -218,7 +229,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => {
                             count_unit = Some(u)
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::TableSample(TableSample {
@@ -256,7 +267,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
                             interval = Some(IntervalSpecification::Raw(s));
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::Expression(Expression::ConstCast(ConstCastExpression {
@@ -276,7 +287,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => {
                             name = Some(read_name(a));
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::FetchStatement(FetchStatement {
@@ -293,7 +304,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => {
                             name = Some(read_name(a));
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::ColumnRef(name.unwrap_or_default())
@@ -306,7 +317,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_FUNCTION_ARG_VALUE, ASTNode::StringRef(s)) => name = Some(s),
                         (Key::SQL_FUNCTION_ARG_VALUE, n) => value = Some(read_expr(n)?),
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::FunctionArgument(FunctionArgument {
@@ -327,16 +338,16 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => {
                             func_arg_ordering = read_ordering(nodes);
                         }
-                        (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(mut nodes)) => {
-                            func_args = nodes
-                                .drain(..)
-                                .filter_map(|n| match n {
-                                    ASTNode::FunctionArgument(t) => Some(t),
-                                    _ => None,
-                                })
-                                .collect();
+                        (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
+                            func_args = Vec::new();
+                            for node in nodes {
+                                match node {
+                                    ASTNode::FunctionArgument(t) => func_args.push(t),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::FunctionExpression(FunctionExpression {
@@ -351,16 +362,15 @@ fn translate_statement<'text, 'ast>(
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_SELECT_TARGETS, ASTNode::Array(mut a)) => {
-                            targets = a
-                                .drain(..)
-                                .filter_map(|n| match n {
-                                    ASTNode::ResultTarget(t) => Some(t),
-                                    _ => None,
-                                })
-                                .collect();
+                        (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::ResultTarget(t) => targets.push(t),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
                         }
-                        _ => unexpected_attribute!(k),
+                        _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::SelectStatement(SelectStatement {
