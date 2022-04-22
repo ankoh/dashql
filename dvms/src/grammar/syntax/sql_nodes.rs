@@ -84,7 +84,7 @@ pub enum IntervalSpecification<'text> {
     Raw(&'text str),
     Type {
         #[serde(with = "serde_interval_type")]
-        type_: sx::IntervalType,
+        interval_type: sx::IntervalType,
         precision: Option<&'text str>,
     },
 }

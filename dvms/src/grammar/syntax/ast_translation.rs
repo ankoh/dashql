@@ -72,8 +72,7 @@ fn translate_statement<'text, 'ast>(
             sx::NodeType::UI32 => ASTNode::UInt32(t.children_begin_or_value()),
             sx::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(t.children_begin_or_value()),
             sx::NodeType::STRING_REF => ASTNode::StringRef(
-                &text[(t.location().offset() as usize)
-                    ..((t.location().offset() + t.location().length()) as usize)],
+                &text[(t.location().offset() as usize)..((t.location().offset() + t.location().length()) as usize)],
             ),
             sx::NodeType::ARRAY => {
                 let mapped: Vec<ASTNode<'text>> = children[ti].drain(..).map(|(_, n)| n).collect();
@@ -118,9 +117,7 @@ fn translate_statement<'text, 'ast>(
                     let k = sx::AttributeKey(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s),
-                        (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => {
-                            modifiers = read_exprs(a)?
-                        }
+                        (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => modifiers = read_exprs(a)?,
                         _ => unexpected_key!(k),
                     }
                 }
@@ -137,9 +134,7 @@ fn translate_statement<'text, 'ast>(
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)?),
-                        (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d)) => {
-                            direction = Some(d)
-                        }
+                        (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d)) => direction = Some(d),
                         (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n)) => null_rule = Some(n),
                         _ => unexpected_key!(k),
                     }
@@ -151,18 +146,18 @@ fn translate_statement<'text, 'ast>(
                 })
             }
             sx::NodeType::OBJECT_SQL_INTERVAL_TYPE => {
-                let mut type_ = None;
+                let mut ty = None;
                 let mut precision = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => type_ = Some(t),
+                        (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => ty = Some(t),
                         (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
                         _ => unexpected_key!(k),
                     }
                 }
                 ASTNode::IntervalSpecification(IntervalSpecification::Type {
-                    type_: type_.unwrap_or_default(),
+                    interval_type: ty.unwrap_or_default(),
                     precision: precision,
                 })
             }
@@ -226,9 +221,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v)) => {
                             count = Some(v);
                         }
-                        (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => {
-                            count_unit = Some(u)
-                        }
+                        (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => count_unit = Some(u),
                         _ => unexpected_key!(k),
                     }
                 }
@@ -387,13 +380,7 @@ fn translate_statement<'text, 'ast>(
                     row_locking: false,
                 })
             }
-            t => {
-                return Err(RawError::from(format!(
-                    "node translation not implemented for: {:?}",
-                    t
-                ))
-                .boxed())
-            }
+            t => return Err(RawError::from(format!("node translation not implemented for: {:?}", t)).boxed()),
         };
 
         // Stack empty?
@@ -412,9 +399,7 @@ fn translate_statement<'text, 'ast>(
     // Push statement
     match last {
         Some(ASTNode::SelectStatement(s)) => Ok(Statement::Select(s)),
-        _ => {
-            return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed())
-        }
+        _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }
 
@@ -445,10 +430,7 @@ mod test {
     use super::translate_ast;
     use std::error::Error;
 
-    fn test_translation(
-        text: &str,
-        expected: Program<'static>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_translation(text: &str, expected: Program<'static>) -> Result<(), Box<dyn Error + Send + Sync>> {
         let ast_buffer = crate::grammar::parse(text)?;
         let ast = ast_buffer.get_root();
         let translated = translate_ast(text, ast)?;
