@@ -4,11 +4,11 @@
         <parsed>
             <statements>
                 <statement type="CREATE_VIEW">
-                    <node type="OBJECT_SQL_VIEW" loc="0..27" text="create vie..s select 1">
+                    <node type="OBJECT_SQL_TYPENAME" loc="0..27" text="create vie..s select 1">
                         <node key="SQL_VIEW_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="12..15" text="foo"/>
                         </node>
-                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="19..27" text="select 1">
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_TYPENAME" loc="19..27" text="select 1">
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>

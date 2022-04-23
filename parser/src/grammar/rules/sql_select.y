@@ -325,10 +325,10 @@ sql_opt_select_limit:
     ;
 
 sql_limit_clause:
-    LIMIT sql_select_limit_value { $$ = { Attr(Key::SQL_SELECT_LIMIT, $2) }; }
+    LIMIT sql_select_limit_value { $$ = { $2 }; }
   | LIMIT sql_select_limit_value ',' sql_select_offset_value {
         $$ = {
-            Attr(Key::SQL_SELECT_LIMIT, $2),
+            $2,
             Attr(Key::SQL_SELECT_OFFSET, $4),
         };
     }
@@ -361,8 +361,8 @@ sql_offset_clause:
     ;
 
 sql_select_limit_value:
-    sql_a_expr  { $$ = $1; }
-  | ALL         { $$ = Null(); }
+    sql_a_expr  { $$ = Attr(Key::SQL_SELECT_LIMIT, $1); }
+  | ALL         { $$ = Attr(Key::SQL_SELECT_LIMIT_ALL, Bool(@1, true)); }
     ;
 
 sql_select_offset_value:
@@ -734,7 +734,7 @@ sql_sample_count:
 	  ;
 
 sql_sample_clause:
-    USING SAMPLE sql_tablesample_entry  { $$ = ctx.Add(@$, std::move($3)); }
+    USING SAMPLE sql_tablesample_entry  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_SAMPLE, std::move($3)); }
   | %empty                              { $$ = Null(); }
 
 sql_opt_sample_func:

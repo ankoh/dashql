@@ -295,11 +295,11 @@ pub enum Limit<'text> {
     Expression(Box<Expression<'text>>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Offset<'text> {
-    ALL,
-    #[serde(borrow)]
-    Expression(Box<Expression<'text>>),
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Sample<'text> {
+    pub function: &'text str,
+    pub seed: Option<&'text str>,
+    pub repeat: Option<&'text str>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -314,8 +314,8 @@ pub struct SelectStatement<'text> {
     pub having: bool,
     pub order_by: bool,
     pub windows: bool,
-    pub sample: bool,
+    pub sample: Option<Sample<'text>>,
     pub row_locking: bool,
     pub limit: Option<Limit<'text>>,
-    pub offset: Option<Offset<'text>>,
+    pub offset: Option<Box<Expression<'text>>>,
 }

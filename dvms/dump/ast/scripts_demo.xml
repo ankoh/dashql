@@ -41,7 +41,7 @@
                             </node>
                             <node key="DSON_TITLE" type="STRING_REF" loc="349..358" text="&apos;Country&apos;"/>
                         </node>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="304..311" text="VARCHAR">
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="304..311" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="304..311" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                             </node>
@@ -91,7 +91,7 @@
                 <statement type="SELECT_INTO">
                     <node type="OBJECT_SQL_SELECT" loc="1001..1039" text="SELECT 1 I..OM weather">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="1032..1039" text="weather">
+                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="1032..1039" text="weather">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="1032..1039" text="weather"/>
@@ -118,7 +118,7 @@
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1157..1168" text="weather_avg">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="1157..1168" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="1157..1168" text="weather_avg"/>
@@ -172,226 +172,6 @@
             </comments>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Input(
-            InputStatement {
-                name: [
-                    Name(
-                        &quot;country&quot;,
-                    ),
-                ],
-                value_type: SQLType {
-                    base_type: Character(
-                        CharacterType {
-                            base: VARCHAR,
-                            length: None,
-                        },
-                    ),
-                    array_bounds: [],
-                    set_of: false,
-                },
-                component_type: Some(
-                    TEXT,
-                ),
-                extra: Some(
-                    Object(
-                        [
-                            DsonField {
-                                key: &quot;DSON_POSITION&quot;,
-                                value: Object(
-                                    [
-                                        DsonField {
-                                            key: &quot;DSON_ROW&quot;,
-                                            value: Expression(
-                                                StringRef(
-                                                    &quot;0&quot;,
-                                                ),
-                                            ),
-                                        },
-                                        DsonField {
-                                            key: &quot;DSON_COLUMN&quot;,
-                                            value: Expression(
-                                                StringRef(
-                                                    &quot;0&quot;,
-                                                ),
-                                            ),
-                                        },
-                                        DsonField {
-                                            key: &quot;DSON_WIDTH&quot;,
-                                            value: Expression(
-                                                StringRef(
-                                                    &quot;3&quot;,
-                                                ),
-                                            ),
-                                        },
-                                        DsonField {
-                                            key: &quot;DSON_HEIGHT&quot;,
-                                            value: Expression(
-                                                StringRef(
-                                                    &quot;1&quot;,
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                ),
-                            },
-                            DsonField {
-                                key: &quot;DSON_TITLE&quot;,
-                                value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Country&apos;&quot;,
-                                    ),
-                                ),
-                            },
-                        ],
-                    ),
-                ),
-            },
-        ),
-        Fetch(
-            FetchStatement {
-                name: [
-                    Name(
-                        &quot;weather_csv&quot;,
-                    ),
-                ],
-                method: HTTP,
-                from_uri: None,
-                extra: Some(
-                    Object(
-                        [
-                            DsonField {
-                                key: &quot;DSON_URL&quot;,
-                                value: Expression(
-                                    FunctionCall(
-                                        FunctionExpression {
-                                            name: Some(
-                                                &quot;format&quot;,
-                                            ),
-                                            arguments: [
-                                                FunctionArgument {
-                                                    name: None,
-                                                    value: StringRef(
-                                                        &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
-                                                    ),
-                                                },
-                                                FunctionArgument {
-                                                    name: None,
-                                                    value: ColumnRef(
-                                                        [
-                                                            Name(
-                                                                &quot;main&quot;,
-                                                            ),
-                                                            Name(
-                                                                &quot;country&quot;,
-                                                            ),
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                            argument_ordering: [],
-                                            within_group: [],
-                                            filter: None,
-                                            all: false,
-                                            distinct: false,
-                                            over: false,
-                                            variadic: None,
-                                            trim_direction: None,
-                                        },
-                                    ),
-                                ),
-                            },
-                        ],
-                    ),
-                ),
-            },
-        ),
-        Load(
-            LoadStatement {
-                name: [
-                    Name(
-                        &quot;weather&quot;,
-                    ),
-                ],
-                source: [
-                    Name(
-                        &quot;weather_csv&quot;,
-                    ),
-                ],
-                method: CSV,
-                extra: None,
-            },
-        ),
-        Select(
-            SelectStatement {
-                all: false,
-                targets: [
-                    Value {
-                        value: StringRef(
-                            &quot;1&quot;,
-                        ),
-                        alias: None,
-                    },
-                ],
-                into: Some(
-                    Into {
-                        temp: DEFAULT,
-                        name: [
-                            Name(
-                                &quot;weather_avg&quot;,
-                            ),
-                        ],
-                    },
-                ),
-                from: [
-                    Relation(
-                        RelationRef {
-                            name: [
-                                Name(
-                                    &quot;weather&quot;,
-                                ),
-                            ],
-                            inherit: true,
-                        },
-                    ),
-                ],
-                where_clause: None,
-                group_by: false,
-                having: false,
-                order_by: false,
-                windows: false,
-                sample: false,
-                row_locking: false,
-                limit: None,
-                offset: None,
-            },
-        ),
-        Viz(
-            VizStatement {
-                target: Relation(
-                    RelationRef {
-                        name: [
-                            Name(
-                                &quot;weather_avg&quot;,
-                            ),
-                        ],
-                        inherit: true,
-                    },
-                ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            LINE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                ],
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="demo_2">
         <input>VIZ foo USING (
@@ -436,7 +216,7 @@
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="4..7" text="foo"/>
@@ -459,160 +239,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Viz(
-            VizStatement {
-                target: Relation(
-                    RelationRef {
-                        name: [
-                            Name(
-                                &quot;foo&quot;,
-                            ),
-                        ],
-                        inherit: true,
-                    },
-                ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            SPEC,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: &quot;DSON_POSITION&quot;,
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: &quot;DSON_ROW&quot;,
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: &quot;DSON_COLUMN&quot;,
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: &quot;DSON_WIDTH&quot;,
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;6&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: &quot;DSON_HEIGHT&quot;,
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;4&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: &quot;DSON_TITLE&quot;,
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;Line Chart&apos;&quot;,
-                                            ),
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: &quot;DSON_ENCODING&quot;,
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: &quot;DSON_X&quot;,
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: &quot;DSON_AXIS&quot;,
-                                                                value: Object(
-                                                                    [
-                                                                        DsonField {
-                                                                            key: &quot;DSON_TICK_COUNT&quot;,
-                                                                            value: Expression(
-                                                                                StringRef(
-                                                                                    &quot;10&quot;,
-                                                                                ),
-                                                                            ),
-                                                                        },
-                                                                    ],
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;x&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: &quot;DSON_Y&quot;,
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: &quot;DSON_AXIS&quot;,
-                                                                value: Object(
-                                                                    [
-                                                                        DsonField {
-                                                                            key: &quot;DSON_TICK_COUNT&quot;,
-                                                                            value: Expression(
-                                                                                StringRef(
-                                                                                    &quot;10&quot;,
-                                                                                ),
-                                                                            ),
-                                                                        },
-                                                                    ],
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;y&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: &quot;DSON_MARK&quot;,
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;line&apos;&quot;,
-                                            ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="demo_3">
         <input>-- Fetch the bundled university schema
@@ -745,19 +371,19 @@
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="452..656" text="SELECT stu..gen.VorlNr">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="516..525" text="studenten">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="516..525" text="studenten">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="516..525" text="studenten"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="527..533" text="hoeren">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="527..533" text="hoeren">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="527..533" text="hoeren"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="535..546" text="vorlesungen">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="535..546" text="vorlesungen">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="535..546" text="vorlesungen"/>
@@ -828,14 +454,14 @@
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="753..919" text="SELECT v.t..BY v.titel">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="821..829" text="hoeren h">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="821..829" text="hoeren h">
                                     <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="828..829" text="h"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="821..827" text="hoeren"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="831..844" text="vorlesungen v">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="831..844" text="vorlesungen v">
                                     <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="843..844" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -869,7 +495,7 @@
                                             </node>
                                             <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="769..774" text="count"/>
                                         </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="779..786" text="INTEGER">
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TIME_TYPE" loc="779..786" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="TYPECAST"/>
@@ -897,13 +523,13 @@
                     </node>
                 </statement>
                 <statement type="CREATE_VIEW">
-                    <node type="OBJECT_SQL_VIEW" loc="976..1121" text="CREATE VIE..P BY v.sws">
+                    <node type="OBJECT_SQL_TYPENAME" loc="976..1121" text="CREATE VIE..P BY v.sws">
                         <node key="SQL_VIEW_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="988..997" text="SWSCounts"/>
                         </node>
-                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="1017..1121" text="SELECT v.s..P BY v.sws">
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_TYPENAME" loc="1017..1121" text="SELECT v.s..P BY v.sws">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="1077..1090" text="vorlesungen v">
+                                <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="1077..1090" text="vorlesungen v">
                                     <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="1089..1090" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -937,7 +563,7 @@
                                             </node>
                                             <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="1031..1036" text="count"/>
                                         </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="1041..1048" text="INTEGER">
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TIME_TYPE" loc="1041..1048" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="TYPECAST"/>
@@ -964,7 +590,7 @@
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1196..1206" text="Enrolments">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="1196..1206" text="Enrolments">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="1196..1206" text="Enrolments"/>
@@ -1007,7 +633,7 @@
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1404..1417" text="StudentCounts">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="1404..1417" text="StudentCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="1404..1417" text="StudentCounts"/>
@@ -1049,7 +675,7 @@
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="2137..2146" text="SWSCounts">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="2137..2146" text="SWSCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="2137..2146" text="SWSCounts"/>

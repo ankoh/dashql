@@ -82,6 +82,7 @@ pub enum ASTNode<'text> {
     TimestampTypeInfo(TimestampType<'text>),
     IntervalTypeInfo(IntervalType<'text>),
 
+    Sample(Sample<'text>),
     Alias(Alias<'text>),
     Into(Into<'text>),
 

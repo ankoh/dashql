@@ -36,7 +36,7 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -64,13 +64,13 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b tinyint">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="tinyint">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="31..38" text="tinyint">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="31..38" text="tinyint">
                                         <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="31..38" text="tinyint"/>
                                     </node>
@@ -100,13 +100,13 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="varchar">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="31..38" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="31..38" text="varchar">
                                         <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                     </node>
@@ -152,13 +152,13 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="varchar">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="31..38" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="31..38" text="varchar">
                                         <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                     </node>
@@ -193,7 +193,7 @@
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -227,7 +227,7 @@
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -255,7 +255,7 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="28..37" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="28..29" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="30..37" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="30..37" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -305,7 +305,7 @@
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -338,7 +338,7 @@
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
@@ -375,7 +375,7 @@
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
-                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>

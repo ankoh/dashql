@@ -494,6 +494,12 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeInfo(t)) => base = Some(SQLBaseType::Generic(t)),
                         (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeInfo(t)) => base = Some(SQLBaseType::Numeric(t)),
+                        (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t)) => {
+                            base = Some(SQLBaseType::Numeric(NumericType {
+                                base: t,
+                                modifiers: Vec::new(),
+                            }))
+                        }
                         (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeInfo(t)) => base = Some(SQLBaseType::Bit(t)),
                         (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => {
                             base = Some(SQLBaseType::Character(t))
@@ -605,16 +611,38 @@ fn translate_statement<'text, 'ast>(
                     name: temp_name,
                 })
             }
+            sx::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
+                let mut function = "";
+                let mut repeat = None;
+                let mut seed = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f)) => function = f,
+                        (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v)) => repeat = Some(v),
+                        (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v)) => seed = Some(v),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::Sample(Sample { function, repeat, seed })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
                 let mut from = Vec::new();
                 let mut where_clause = None;
                 let mut into = None;
+                let mut limit = None;
+                let mut offset = None;
+                let mut sample = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_SELECT_WHERE, n) => where_clause = Some(Box::new(read_expr(n)?)),
                         (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
+                        (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(true)) => limit = Some(Limit::ALL),
+                        (Key::SQL_SELECT_LIMIT, n) => limit = Some(Limit::Expression(Box::new(read_expr(n)?))),
+                        (Key::SQL_SELECT_OFFSET, n) => offset = Some(Box::new(read_expr(n)?)),
+                        (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
                         (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
                             for node in nodes {
                                 match node {
@@ -644,10 +672,10 @@ fn translate_statement<'text, 'ast>(
                     having: false,
                     order_by: false,
                     windows: false,
-                    sample: false,
+                    sample,
                     row_locking: false,
-                    limit: None,
-                    offset: None,
+                    limit,
+                    offset,
                 })
             }
             sx::NodeType::OBJECT_DSON => {
