@@ -576,6 +576,19 @@ fn translate_statement<'text, 'ast>(
                     extra,
                 })
             }
+            sx::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
+                let mut base = sx::CharacterType::VARCHAR;
+                let mut length = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c)) => base = c,
+                        (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l)) => length = Some(l),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::CharacterTypeInfo(CharacterType { base, length })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
                 let mut from = Vec::new();

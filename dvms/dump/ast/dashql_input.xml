@@ -56,6 +56,92 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Input(
+            InputStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Character(
+                        CharacterType {
+                            base: VARCHAR,
+                            length: None,
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    NONE,
+                ),
+                extra: None,
+            },
+        ),
+        Input(
+            InputStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Character(
+                        CharacterType {
+                            base: VARCHAR,
+                            length: None,
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    TEXT,
+                ),
+                extra: None,
+            },
+        ),
+        Input(
+            InputStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Character(
+                        CharacterType {
+                            base: VARCHAR,
+                            length: None,
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    TEXT,
+                ),
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: &quot;DSON_LABEL&quot;,
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;Foo&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="input_calendar">
         <input>INPUT foo TYPE DATE[2] USING CALENDAR;</input>
