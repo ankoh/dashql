@@ -40,6 +40,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -86,6 +88,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -132,6 +136,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -186,6 +192,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -240,6 +248,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -294,6 +304,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -355,6 +367,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -401,6 +415,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -447,6 +463,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -493,6 +511,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -542,6 +562,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -629,6 +651,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -702,6 +726,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -779,6 +805,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -856,6 +884,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -979,6 +1009,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -1027,6 +1059,68 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;b&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;d&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_group1">
         <input>select a from b group by 1</input>
@@ -1976,6 +2070,78 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;b&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_column_ref_expr_1">
         <input>input a type integer using text;
@@ -2297,6 +2463,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -2415,6 +2583,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -2479,6 +2649,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -2543,6 +2715,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -2939,6 +3113,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3004,6 +3180,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3069,6 +3247,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3134,6 +3314,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3199,6 +3381,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3264,6 +3448,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3325,6 +3511,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3508,6 +3696,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -3585,6 +3775,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -5281,6 +5473,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -5372,6 +5566,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -5860,6 +6056,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -6115,6 +6313,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -6208,6 +6408,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],
@@ -6963,6 +7165,8 @@
                 windows: false,
                 sample: false,
                 row_locking: false,
+                limit: None,
+                offset: None,
             },
         ),
     ],

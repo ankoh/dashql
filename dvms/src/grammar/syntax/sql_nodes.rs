@@ -173,9 +173,9 @@ pub struct SQLType<'text> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Into<'text> {
     #[serde(with = "serde_temp_type")]
-    temp: sx::TempType,
+    pub temp: sx::TempType,
     #[serde(borrow)]
-    name: NamePath<'text>,
+    pub name: NamePath<'text>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -288,6 +288,20 @@ pub struct FunctionExpression<'text> {
     pub trim_direction: Option<sx::TrimDirection>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Limit<'text> {
+    ALL,
+    #[serde(borrow)]
+    Expression(Box<Expression<'text>>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Offset<'text> {
+    ALL,
+    #[serde(borrow)]
+    Expression(Box<Expression<'text>>),
+}
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct SelectStatement<'text> {
     pub all: bool,
@@ -302,4 +316,6 @@ pub struct SelectStatement<'text> {
     pub windows: bool,
     pub sample: bool,
     pub row_locking: bool,
+    pub limit: Option<Limit<'text>>,
+    pub offset: Option<Offset<'text>>,
 }

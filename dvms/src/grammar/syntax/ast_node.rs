@@ -83,6 +83,7 @@ pub enum ASTNode<'text> {
     IntervalTypeInfo(IntervalType<'text>),
 
     Alias(Alias<'text>),
+    Into(Into<'text>),
 
     RowsFromItem(RowsFromItem<'text>),
     FunctionTable(FunctionTable<'text>),

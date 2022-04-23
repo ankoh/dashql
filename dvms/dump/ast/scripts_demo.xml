@@ -172,6 +172,226 @@
             </comments>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Input(
+            InputStatement {
+                name: [
+                    Name(
+                        &quot;country&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Character(
+                        CharacterType {
+                            base: VARCHAR,
+                            length: None,
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    TEXT,
+                ),
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: &quot;DSON_POSITION&quot;,
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: &quot;DSON_ROW&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_COLUMN&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_WIDTH&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;3&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_HEIGHT&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: &quot;DSON_TITLE&quot;,
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;Country&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
+            },
+        ),
+        Fetch(
+            FetchStatement {
+                name: [
+                    Name(
+                        &quot;weather_csv&quot;,
+                    ),
+                ],
+                method: HTTP,
+                from_uri: None,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: &quot;DSON_URL&quot;,
+                                value: Expression(
+                                    FunctionCall(
+                                        FunctionExpression {
+                                            name: Some(
+                                                &quot;format&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
+                                                    ),
+                                                },
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;main&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;country&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;weather&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;weather_csv&quot;,
+                    ),
+                ],
+                method: CSV,
+                extra: None,
+            },
+        ),
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;weather_avg&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;weather&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: [
+                            Name(
+                                &quot;weather_avg&quot;,
+                            ),
+                        ],
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            LINE,
+                        ),
+                        type_modifiers: 0,
+                        extra: None,
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="demo_2">
         <input>VIZ foo USING (

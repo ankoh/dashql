@@ -589,14 +589,32 @@ fn translate_statement<'text, 'ast>(
                 }
                 ASTNode::CharacterTypeInfo(CharacterType { base, length })
             }
+            sx::NodeType::OBJECT_SQL_INTO => {
+                let mut temp_type = sx::TempType::DEFAULT;
+                let mut temp_name = NamePath::default();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TEMP_NAME, ASTNode::Array(nodes)) => temp_name = read_name(nodes)?,
+                        (Key::SQL_TEMP_TYPE, ASTNode::TempType(t)) => temp_type = t,
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::Into(Into {
+                    temp: temp_type,
+                    name: temp_name,
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
                 let mut from = Vec::new();
                 let mut where_clause = None;
+                let mut into = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_SELECT_WHERE, n) => where_clause = Some(Box::new(read_expr(n)?)),
+                        (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
                         (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
                             for node in nodes {
                                 match node {
@@ -619,7 +637,7 @@ fn translate_statement<'text, 'ast>(
                 ASTNode::SelectStatement(SelectStatement {
                     all: false,
                     targets: targets,
-                    into: None,
+                    into,
                     from,
                     where_clause,
                     group_by: false,
@@ -628,6 +646,8 @@ fn translate_statement<'text, 'ast>(
                     windows: false,
                     sample: false,
                     row_locking: false,
+                    limit: None,
+                    offset: None,
                 })
             }
             sx::NodeType::OBJECT_DSON => {
