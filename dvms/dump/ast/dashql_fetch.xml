@@ -41,6 +41,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Fetch(
+            FetchStatement {
+                name: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                ],
+                method: HTTP,
+                from_uri: None,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: &quot;DSON_URL&quot;,
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;https://static.dashql.com/data/uni/de/all.zip&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;assistenten&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;assistenten.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: PARQUET,
+                extra: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="load_uni_zip_infer">
         <input>FETCH uni FROM &apos;https://static.dashql.com/data/uni/de/all.zip&apos;;
@@ -107,6 +159,95 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Fetch(
+            FetchStatement {
+                name: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                ],
+                method: NONE,
+                from_uri: Some(
+                    StringRef(
+                        &quot;&apos;https://static.dashql.com/data/uni/de/all.zip&apos;&quot;,
+                    ),
+                ),
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;vorlesungen&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;vorlesungen.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: PARQUET,
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;hoeren&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;hoeren.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: NONE,
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;studenten&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;studenten.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: NONE,
+                extra: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="load_rest_header">
         <input>FETCH json_stats FROM HTTP (

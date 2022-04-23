@@ -294,8 +294,8 @@ pub struct SelectStatement<'text> {
     #[serde(borrow)]
     pub targets: Vec<ResultTarget<'text>>,
     pub into: Option<Into<'text>>,
-    pub from: bool,
-    pub where_clause: bool,
+    pub from: Vec<TableRef<'text>>,
+    pub where_clause: Option<Box<Expression<'text>>>,
     pub group_by: bool,
     pub having: bool,
     pub order_by: bool,

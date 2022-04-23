@@ -28,6 +28,7 @@ pub struct FetchStatement<'text> {
 pub struct LoadStatement<'text> {
     #[serde(borrow)]
     pub name: NamePath<'text>,
+    pub source: NamePath<'text>,
     #[serde(with = "serde_load_method_type")]
     pub method: sx::LoadMethodType,
     pub extra: Option<DsonValue<'text>>,

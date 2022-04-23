@@ -32,8 +32,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -78,8 +78,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -124,8 +124,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -178,8 +178,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -232,8 +232,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -286,8 +286,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -347,8 +347,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -393,8 +393,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -439,8 +439,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -485,8 +485,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -534,8 +534,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -621,8 +621,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -665,6 +665,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1">
         <input>select a from b.c</input>
@@ -698,6 +739,50 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1_noinherit">
         <input>select a from only b.c</input>
@@ -731,6 +816,50 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1_alias">
         <input>select a from b.c as d</input>
@@ -803,6 +932,57 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_into_2rel">
         <input>select a into b from c, d</input>
@@ -2109,8 +2289,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2227,8 +2407,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2291,8 +2471,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2355,8 +2535,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2751,8 +2931,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2816,8 +2996,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2881,8 +3061,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -2946,8 +3126,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -3011,8 +3191,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -3076,8 +3256,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -3137,8 +3317,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -3320,8 +3500,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -3397,8 +3577,8 @@
                     },
                 ],
                 into: None,
-                from: false,
-                where_clause: false,
+                from: [],
+                where_clause: None,
                 group_by: false,
                 having: false,
                 order_by: false,
@@ -5049,6 +5229,62 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;generate_series&quot;,
+                                        ),
+                                        arguments: [
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: false,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_2">
         <input>SELECT * FROM generate_series(1) WITH ORDINALITY;</input>
@@ -5084,6 +5320,62 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;generate_series&quot;,
+                                        ),
+                                        arguments: [
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: true,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_3">
         <input>SELECT * FROM ROWS FROM (generate_series(1), generate_series(2));</input>
@@ -5501,6 +5793,77 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl2&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl2&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_7">
         <input>SELECT * FROM tbl, tbl2 WHERE tbl.i=tbl2.i USING SAMPLE RESERVOIR(20%);</input>
@@ -5704,6 +6067,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: NONE,
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_4">
         <input>SELECT * FROM a NATURAL JOIN b</input>
@@ -5745,6 +6160,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: NATURAL_INNER,
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_5">
         <input>SELECT * FROM a LEFT OUTER JOIN b ON c = d</input>
@@ -6468,6 +6935,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_4">
         <input>SELECT * FROM foo LIMIT ALL OFFSET 21</input>

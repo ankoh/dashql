@@ -361,18 +361,25 @@ fn translate_statement<'text, 'ast>(
             }
             sx::NodeType::OBJECT_DASHQL_LOAD => {
                 let mut name = NamePath::default();
+                let mut source = NamePath::default();
                 let mut method = sx::LoadMethodType::NONE;
                 let mut extra = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a)) => name = read_name(a)?,
+                        (Key::DASHQL_DATA_SOURCE, ASTNode::Array(a)) => source = read_name(a)?,
                         (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m)) => method = m,
                         (Key::DASHQL_LOAD_EXTRA, n) => extra = Some(read_dson(n)?),
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
-                ASTNode::LoadStatement(LoadStatement { name, method, extra })
+                ASTNode::LoadStatement(LoadStatement {
+                    name,
+                    source,
+                    method,
+                    extra,
+                })
             }
             sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
                 let mut join = sx::JoinType::NONE;
@@ -571,13 +578,24 @@ fn translate_statement<'text, 'ast>(
             }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
+                let mut from = Vec::new();
+                let mut where_clause = None;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
+                        (Key::SQL_SELECT_WHERE, n) => where_clause = Some(Box::new(read_expr(n)?)),
                         (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
                             for node in nodes {
                                 match node {
                                     ASTNode::ResultTarget(t) => targets.push(t),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::TableRef(t) => from.push(t),
                                     _ => unexpected_array_element!(k, node),
                                 }
                             }
@@ -589,8 +607,8 @@ fn translate_statement<'text, 'ast>(
                     all: false,
                     targets: targets,
                     into: None,
-                    from: false,
-                    where_clause: false,
+                    from,
+                    where_clause,
                     group_by: false,
                     having: false,
                     order_by: false,
@@ -638,6 +656,7 @@ fn translate_statement<'text, 'ast>(
         Some(ASTNode::InputStatement(s)) => Ok(Statement::Input(s)),
         Some(ASTNode::FetchStatement(s)) => Ok(Statement::Fetch(s)),
         Some(ASTNode::VizStatement(s)) => Ok(Statement::Viz(s)),
+        Some(ASTNode::LoadStatement(s)) => Ok(Statement::Load(s)),
         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }
