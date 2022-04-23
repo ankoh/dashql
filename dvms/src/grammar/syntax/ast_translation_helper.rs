@@ -12,6 +12,7 @@ macro_rules! unexpected {
 
 pub(super) fn read_expr<'text>(node: ASTNode<'text>) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
     let n = match node {
+        ASTNode::Expression(e) => e,
         ASTNode::StringRef(s) => Expression::StringRef(s),
         ASTNode::ColumnRef(c) => Expression::ColumnRef(c),
         _ => return Err(RawError::from(format!("invalid expression node: {:?}", node)).boxed()),
@@ -33,9 +34,8 @@ pub(super) fn read_name<'text>(nodes: Vec<ASTNode<'text>>) -> Result<NamePath<'t
     let mut path = Vec::with_capacity(nodes.len());
     for n in nodes {
         match n {
-            ASTNode::StringRef(s) => path.push(NamePathElement::Component(s)),
-            ASTNode::IndirectionIndex(i) => path.push(NamePathElement::IndirectionIndex(i)),
-            ASTNode::IndirectionBounds(b) => path.push(NamePathElement::IndirectionBounds(b)),
+            ASTNode::StringRef(s) => path.push(Indirection::Name(s)),
+            ASTNode::Indirection(i) => path.push(i),
             _ => unexpected!("name element", n),
         }
     }
@@ -80,6 +80,7 @@ pub(super) fn read_dson<'text>(node: ASTNode<'text>) -> Result<DsonValue<'text>,
             DsonValue::Array(elements)
         }
         ASTNode::Expression(e) => DsonValue::Expression(e),
+        ASTNode::StringRef(s) => DsonValue::Expression(Expression::StringRef(s)),
         ASTNode::FunctionExpression(f) => DsonValue::Expression(Expression::FunctionCall(f)),
         _ => unexpected!("dson key", node),
     };

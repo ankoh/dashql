@@ -41,6 +41,39 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Fetch(
+            FetchStatement {
+                name: NamePath {
+                    path: [
+                        Name(
+                            &quot;weather_csv&quot;,
+                        ),
+                    ],
+                },
+                method: HTTP,
+                from_uri: None,
+                extra: Some(
+                    Object(
+                        DsonObject {
+                            fields: [
+                                DsonField {
+                                    key: &quot;DSON_URL&quot;,
+                                    value: Expression(
+                                        StringRef(
+                                            &quot;&apos;https://localhost/astdump&apos;&quot;,
+                                        ),
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="load_url_parameter">
         <input>FETCH weather_csv FROM http (
@@ -83,6 +116,74 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Fetch(
+            FetchStatement {
+                name: NamePath {
+                    path: [
+                        Name(
+                            &quot;weather_csv&quot;,
+                        ),
+                    ],
+                },
+                method: HTTP,
+                from_uri: None,
+                extra: Some(
+                    Object(
+                        DsonObject {
+                            fields: [
+                                DsonField {
+                                    key: &quot;DSON_URL&quot;,
+                                    value: Expression(
+                                        FunctionCall(
+                                            FunctionExpression {
+                                                name: Some(
+                                                    &quot;format&quot;,
+                                                ),
+                                                arguments: [
+                                                    FunctionArgument {
+                                                        name: None,
+                                                        value: StringRef(
+                                                            &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
+                                                        ),
+                                                    },
+                                                    FunctionArgument {
+                                                        name: None,
+                                                        value: ColumnRef(
+                                                            NamePath {
+                                                                path: [
+                                                                    Name(
+                                                                        &quot;main&quot;,
+                                                                    ),
+                                                                    Name(
+                                                                        &quot;country&quot;,
+                                                                    ),
+                                                                ],
+                                                            },
+                                                        ),
+                                                    },
+                                                ],
+                                                argument_ordering: [],
+                                                within_group: [],
+                                                filter: None,
+                                                all: false,
+                                                distinct: false,
+                                                over: false,
+                                                variadic: None,
+                                                trim_direction: None,
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="dashql_viz_position">
         <input>VIZ weather_avg USING LINE (

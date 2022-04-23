@@ -160,6 +160,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Name(
+                                        &quot;string&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_string_latin1">
         <input>select äöü</input>
@@ -184,6 +216,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Name(
+                                        &quot;äöü&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_string_unicode_plane1">
         <input>select 📈</input>
@@ -208,6 +272,38 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            NamePath {
+                                path: [
+                                    Name(
+                                        &quot;📈&quot;,
+                                    ),
+                                ],
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_1_gt_2">
         <input>select 1 &gt; 2</input>
@@ -232,6 +328,43 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: GREATER_THAN,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;2&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sconst_quotes">
         <input>select &apos;foo&apos;</input>
@@ -1951,6 +2084,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ConstCast(
+                            ConstCastExpression {
+                                cast_type: &quot;somefunc&quot;,
+                                func_name: Some(
+                                    NamePath {
+                                        path: [
+                                            Name(
+                                                &quot;somefunc&quot;,
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                func_args: [],
+                                func_arg_ordering: [],
+                                value: &quot;&apos;foo&apos;&quot;,
+                                interval: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_funcconst_2">
         <input>select somefunc(1) &apos;foo&apos;;</input>
@@ -2031,6 +2205,44 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ConstCast(
+                            ConstCastExpression {
+                                cast_type: &quot;interval&quot;,
+                                func_name: None,
+                                func_args: [],
+                                func_arg_ordering: [],
+                                value: &quot;&apos;90&apos;&quot;,
+                                interval: Some(
+                                    Type {
+                                        interval_type: MINUTE_TO_SECOND,
+                                        precision: None,
+                                    },
+                                ),
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_const_interval_2">
         <input>select interval &apos;90&apos; hour;</input>
@@ -2057,6 +2269,44 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ConstCast(
+                            ConstCastExpression {
+                                cast_type: &quot;interval&quot;,
+                                func_name: None,
+                                func_args: [],
+                                func_arg_ordering: [],
+                                value: &quot;&apos;90&apos;&quot;,
+                                interval: Some(
+                                    Type {
+                                        interval_type: HOUR,
+                                        precision: None,
+                                    },
+                                ),
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_const_interval_3">
         <input>select interval 1 hour;</input>
@@ -2083,6 +2333,44 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ConstCast(
+                            ConstCastExpression {
+                                cast_type: &quot;interval&quot;,
+                                func_name: None,
+                                func_args: [],
+                                func_arg_ordering: [],
+                                value: &quot;1&quot;,
+                                interval: Some(
+                                    Type {
+                                        interval_type: HOUR,
+                                        precision: None,
+                                    },
+                                ),
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_datetime_type_1">
         <input>select cast(&apos;1&apos; as timestamp with time zone);</input>
@@ -2439,6 +2727,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: BETWEEN_SYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_2">
         <input>select 1 between asymmetric 0 and 3;</input>
@@ -2464,6 +2792,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: BETWEEN_ASYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_3">
         <input>select 1 not between 0 and 3;</input>
@@ -2489,6 +2857,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: NOT_BETWEEN_SYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_4">
         <input>select 1 not between asymmetric 0 and 3;</input>
@@ -2514,6 +2922,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: NOT_BETWEEN_ASYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_5">
         <input>select 1 between symmetric 0 and 3;</input>
@@ -2539,6 +2987,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: BETWEEN_SYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_6">
         <input>select 1 not between symmetric 0 and 3;</input>
@@ -2564,6 +3052,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: NOT_BETWEEN_SYMMETRIC,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;0&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;3&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_attimezone_1">
         <input>select &apos;2001-02-16 20:38:40&apos; at time zone &apos;mst&apos;;</input>
@@ -2588,6 +3116,43 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: AT_TIMEZONE,
+                                args: [
+                                    StringRef(
+                                        &quot;&apos;2001-02-16 20:38:40&apos;&quot;,
+                                    ),
+                                    StringRef(
+                                        &quot;&apos;mst&apos;&quot;,
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_typecast_1">
         <input>select 1::integer;</input>
@@ -2726,6 +3291,55 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: IS_DISTINCT_FROM,
+                                args: [
+                                    ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_distinct_2">
         <input>select a is not distinct from b;</input>
@@ -2758,6 +3372,55 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: IS_NOT_DISTINCT_FROM,
+                                args: [
+                                    ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: false,
+                where_clause: false,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: false,
+                row_locking: false,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_isof_1">
         <input>select a is of (integer);</input>

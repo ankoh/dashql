@@ -84,8 +84,7 @@ pub enum ASTNode<'text> {
 
     OrderSpecification(OrderSpecification<'text>),
     Expression(Expression<'text>),
-    IndirectionIndex(IndirectionIndex<'text>),
-    IndirectionBounds(IndirectionBounds<'text>),
+    Indirection(Indirection<'text>),
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text>),
     TableRef(TableRef<'text>),

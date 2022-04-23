@@ -113,6 +113,29 @@ fn translate_statement<'text, 'ast>(
             sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => map_enum!(SampleCountUnit, v),
             sx::NodeType::ENUM_SQL_JOIN_TYPE => ASTNode::JoinType(sx::JoinType(v as u8)),
 
+            sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX => {
+                let mut val = None;
+                let mut lb = None;
+                let mut ub = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = sx::AttributeKey(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_INDIRECTION_INDEX_VALUE, n) => val = Some(read_expr(n)?),
+                        (Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, n) => lb = Some(read_expr(n)?),
+                        (Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, n) => ub = Some(read_expr(n)?),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::Indirection(if let Some(val) = val {
+                    Indirection::Index(IndirectionIndex { value: Box::new(val) })
+                } else {
+                    Indirection::Bounds(IndirectionBounds {
+                        lower_bound: Box::new(lb.unwrap_or(Expression::Null)),
+                        upper_bound: Box::new(ub.unwrap_or(Expression::Null)),
+                    })
+                })
+            }
+
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name = None;
                 let mut modifiers = Vec::new();

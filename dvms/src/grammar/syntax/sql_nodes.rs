@@ -17,16 +17,16 @@ pub struct IndirectionBounds<'text> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NamePathElement<'text> {
-    Component(&'text str),
-    IndirectionIndex(IndirectionIndex<'text>),
-    IndirectionBounds(IndirectionBounds<'text>),
+pub enum Indirection<'text> {
+    Name(&'text str),
+    Index(IndirectionIndex<'text>),
+    Bounds(IndirectionBounds<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NamePath<'text> {
     #[serde(borrow)]
-    pub path: Vec<NamePathElement<'text>>,
+    pub path: Vec<Indirection<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

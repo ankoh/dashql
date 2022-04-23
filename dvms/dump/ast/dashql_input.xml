@@ -89,7 +89,7 @@
             InputStatement {
                 name: NamePath {
                     path: [
-                        Component(
+                        Name(
                             &quot;foo&quot;,
                         ),
                     ],
