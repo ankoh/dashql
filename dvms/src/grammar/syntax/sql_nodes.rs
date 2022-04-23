@@ -23,11 +23,7 @@ pub enum Indirection<'text> {
     Bounds(IndirectionBounds<'text>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct NamePath<'text> {
-    #[serde(borrow)]
-    pub path: Vec<Indirection<'text>>,
-}
+pub type NamePath<'text> = Vec<Indirection<'text>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ArrayBound<'text> {

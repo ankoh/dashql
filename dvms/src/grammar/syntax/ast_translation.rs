@@ -614,7 +614,7 @@ fn translate_statement<'text, 'ast>(
                     let value = read_dson(c)?;
                     fields.push(DsonField { key: ks, value });
                 }
-                ASTNode::Dson(DsonValue::Object(DsonObject { fields }))
+                ASTNode::Dson(DsonValue::Object(fields))
             }
             t => return Err(RawError::from(format!("node translation not implemented for: {:?}", t)).boxed()),
         };

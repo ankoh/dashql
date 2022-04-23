@@ -39,7 +39,7 @@ pub(super) fn read_name<'text>(nodes: Vec<ASTNode<'text>>) -> Result<NamePath<'t
             _ => unexpected!("name element", n),
         }
     }
-    Ok(NamePath { path })
+    Ok(path)
 }
 
 pub(super) fn read_ordering<'text>(

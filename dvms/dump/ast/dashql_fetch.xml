@@ -150,46 +150,40 @@
     statements: [
         Fetch(
             FetchStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;json_stats&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;json_stats&quot;,
+                    ),
+                ],
                 method: HTTP,
                 from_uri: None,
                 extra: Some(
                     Object(
-                        DsonObject {
-                            fields: [
-                                DsonField {
-                                    key: &quot;DSON_URL&quot;,
-                                    value: Expression(
-                                        StringRef(
-                                            &quot;&apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;&quot;,
-                                        ),
+                        [
+                            DsonField {
+                                key: &quot;DSON_URL&quot;,
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;&quot;,
                                     ),
-                                },
-                                DsonField {
-                                    key: &quot;headers&quot;,
-                                    value: Object(
-                                        DsonObject {
-                                            fields: [
-                                                DsonField {
-                                                    key: &quot;Ocp-Apim-Subscription-Key&quot;,
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;&apos;somekey&apos;&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
+                                ),
+                            },
+                            DsonField {
+                                key: &quot;headers&quot;,
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: &quot;Ocp-Apim-Subscription-Key&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;&apos;somekey&apos;&quot;,
+                                                ),
+                                            ),
                                         },
-                                    ),
-                                },
-                            ],
-                        },
+                                    ],
+                                ),
+                            },
+                        ],
                     ),
                 ),
             },

@@ -168,13 +168,11 @@
                 targets: [
                     Value {
                         value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Name(
-                                        &quot;string&quot;,
-                                    ),
-                                ],
-                            },
+                            [
+                                Name(
+                                    &quot;string&quot;,
+                                ),
+                            ],
                         ),
                         alias: None,
                     },
@@ -224,13 +222,11 @@
                 targets: [
                     Value {
                         value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Name(
-                                        &quot;äöü&quot;,
-                                    ),
-                                ],
-                            },
+                            [
+                                Name(
+                                    &quot;äöü&quot;,
+                                ),
+                            ],
                         ),
                         alias: None,
                     },
@@ -280,13 +276,11 @@
                 targets: [
                     Value {
                         value: ColumnRef(
-                            NamePath {
-                                path: [
-                                    Name(
-                                        &quot;📈&quot;,
-                                    ),
-                                ],
-                            },
+                            [
+                                Name(
+                                    &quot;📈&quot;,
+                                ),
+                            ],
                         ),
                         alias: None,
                     },
@@ -2099,13 +2093,11 @@
                             ConstCastExpression {
                                 cast_type: &quot;somefunc&quot;,
                                 func_name: Some(
-                                    NamePath {
-                                        path: [
-                                            Name(
-                                                &quot;somefunc&quot;,
-                                            ),
-                                        ],
-                                    },
+                                    [
+                                        Name(
+                                            &quot;somefunc&quot;,
+                                        ),
+                                    ],
                                 ),
                                 func_args: [],
                                 func_arg_ordering: [],
@@ -3307,22 +3299,18 @@
                                 operator: IS_DISTINCT_FROM,
                                 args: [
                                     ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;a&quot;,
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
                                     ),
                                     ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;b&quot;,
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;b&quot;,
+                                            ),
+                                        ],
                                     ),
                                 ],
                                 postfix: false,
@@ -3388,22 +3376,18 @@
                                 operator: IS_NOT_DISTINCT_FROM,
                                 args: [
                                     ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;a&quot;,
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
                                     ),
                                     ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;b&quot;,
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;b&quot;,
+                                            ),
+                                        ],
                                     ),
                                 ],
                                 postfix: false,

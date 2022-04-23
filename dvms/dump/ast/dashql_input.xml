@@ -87,13 +87,11 @@
     statements: [
         Input(
             InputStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;foo&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
                 value_type: SQLType {
                     base_type: Generic(
                         GenericType {

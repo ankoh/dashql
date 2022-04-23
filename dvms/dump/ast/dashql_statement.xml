@@ -45,29 +45,25 @@
     statements: [
         Fetch(
             FetchStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;weather_csv&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;weather_csv&quot;,
+                    ),
+                ],
                 method: HTTP,
                 from_uri: None,
                 extra: Some(
                     Object(
-                        DsonObject {
-                            fields: [
-                                DsonField {
-                                    key: &quot;DSON_URL&quot;,
-                                    value: Expression(
-                                        StringRef(
-                                            &quot;&apos;https://localhost/astdump&apos;&quot;,
-                                        ),
+                        [
+                            DsonField {
+                                key: &quot;DSON_URL&quot;,
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;https://localhost/astdump&apos;&quot;,
                                     ),
-                                },
-                            ],
-                        },
+                                ),
+                            },
+                        ],
                     ),
                 ),
             },
@@ -120,64 +116,58 @@
     statements: [
         Fetch(
             FetchStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;weather_csv&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;weather_csv&quot;,
+                    ),
+                ],
                 method: HTTP,
                 from_uri: None,
                 extra: Some(
                     Object(
-                        DsonObject {
-                            fields: [
-                                DsonField {
-                                    key: &quot;DSON_URL&quot;,
-                                    value: Expression(
-                                        FunctionCall(
-                                            FunctionExpression {
-                                                name: Some(
-                                                    &quot;format&quot;,
-                                                ),
-                                                arguments: [
-                                                    FunctionArgument {
-                                                        name: None,
-                                                        value: StringRef(
-                                                            &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
-                                                        ),
-                                                    },
-                                                    FunctionArgument {
-                                                        name: None,
-                                                        value: ColumnRef(
-                                                            NamePath {
-                                                                path: [
-                                                                    Name(
-                                                                        &quot;main&quot;,
-                                                                    ),
-                                                                    Name(
-                                                                        &quot;country&quot;,
-                                                                    ),
-                                                                ],
-                                                            },
-                                                        ),
-                                                    },
-                                                ],
-                                                argument_ordering: [],
-                                                within_group: [],
-                                                filter: None,
-                                                all: false,
-                                                distinct: false,
-                                                over: false,
-                                                variadic: None,
-                                                trim_direction: None,
-                                            },
-                                        ),
+                        [
+                            DsonField {
+                                key: &quot;DSON_URL&quot;,
+                                value: Expression(
+                                    FunctionCall(
+                                        FunctionExpression {
+                                            name: Some(
+                                                &quot;format&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
+                                                    ),
+                                                },
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;main&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;country&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
                                     ),
-                                },
-                            ],
-                        },
+                                ),
+                            },
+                        ],
                     ),
                 ),
             },
@@ -239,13 +229,11 @@
             VizStatement {
                 target: Relation(
                     RelationRef {
-                        name: NamePath {
-                            path: [
-                                Name(
-                                    &quot;weather_avg&quot;,
-                                ),
-                            ],
-                        },
+                        name: [
+                            Name(
+                                &quot;weather_avg&quot;,
+                            ),
+                        ],
                         inherit: true,
                     },
                 ),
@@ -257,51 +245,47 @@
                         type_modifiers: 0,
                         extra: Some(
                             Object(
-                                DsonObject {
-                                    fields: [
-                                        DsonField {
-                                            key: &quot;DSON_POSITION&quot;,
-                                            value: Object(
-                                                DsonObject {
-                                                    fields: [
-                                                        DsonField {
-                                                            key: &quot;DSON_ROW&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;0&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;DSON_COLUMN&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;0&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;DSON_WIDTH&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;4&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;DSON_HEIGHT&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;15&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ],
+                                [
+                                    DsonField {
+                                        key: &quot;DSON_POSITION&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_ROW&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
                                                 },
-                                            ),
-                                        },
-                                    ],
-                                },
+                                                DsonField {
+                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;4&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;15&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
                             ),
                         ),
                     },
@@ -361,13 +345,11 @@
             VizStatement {
                 target: Relation(
                     RelationRef {
-                        name: NamePath {
-                            path: [
-                                Name(
-                                    &quot;weather_avg&quot;,
-                                ),
-                            ],
-                        },
+                        name: [
+                            Name(
+                                &quot;weather_avg&quot;,
+                            ),
+                        ],
                         inherit: true,
                     },
                 ),
@@ -379,51 +361,47 @@
                         type_modifiers: 0,
                         extra: Some(
                             Object(
-                                DsonObject {
-                                    fields: [
-                                        DsonField {
-                                            key: &quot;pos&quot;,
-                                            value: Object(
-                                                DsonObject {
-                                                    fields: [
-                                                        DsonField {
-                                                            key: &quot;r&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;0&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;c&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;0&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;w&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;4&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                        DsonField {
-                                                            key: &quot;h&quot;,
-                                                            value: Expression(
-                                                                StringRef(
-                                                                    &quot;15&quot;,
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ],
+                                [
+                                    DsonField {
+                                        key: &quot;pos&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;r&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
                                                 },
-                                            ),
-                                        },
-                                    ],
-                                },
+                                                DsonField {
+                                                    key: &quot;c&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;w&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;4&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;h&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;15&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
                             ),
                         ),
                     },
@@ -485,13 +463,11 @@
     statements: [
         Input(
             InputStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;foo&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
                 value_type: SQLType {
                     base_type: Generic(
                         GenericType {
@@ -517,13 +493,11 @@
                             targets: [
                                 Value {
                                     value: ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;foo&quot;,
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;foo&quot;,
+                                            ),
+                                        ],
                                     ),
                                     alias: None,
                                 },
@@ -625,13 +599,11 @@
     statements: [
         Input(
             InputStatement {
-                name: NamePath {
-                    path: [
-                        Name(
-                            &quot;foo&quot;,
-                        ),
-                    ],
-                },
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
                 value_type: SQLType {
                     base_type: Generic(
                         GenericType {
@@ -661,39 +633,35 @@
                             targets: [
                                 Value {
                                     value: ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;foo&quot;,
-                                                ),
-                                                Index(
-                                                    IndirectionIndex {
-                                                        value: StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    },
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;foo&quot;,
+                                            ),
+                                            Index(
+                                                IndirectionIndex {
+                                                    value: StringRef(
+                                                        &quot;0&quot;,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
                                     ),
                                     alias: None,
                                 },
                                 Value {
                                     value: ColumnRef(
-                                        NamePath {
-                                            path: [
-                                                Name(
-                                                    &quot;foo&quot;,
-                                                ),
-                                                Index(
-                                                    IndirectionIndex {
-                                                        value: StringRef(
-                                                            &quot;1&quot;,
-                                                        ),
-                                                    },
-                                                ),
-                                            ],
-                                        },
+                                        [
+                                            Name(
+                                                &quot;foo&quot;,
+                                            ),
+                                            Index(
+                                                IndirectionIndex {
+                                                    value: StringRef(
+                                                        &quot;1&quot;,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
                                     ),
                                     alias: None,
                                 },
