@@ -198,22 +198,75 @@ pub struct TableSample<'text> {
     pub seed: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum InlineTable<'text> {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SelectStatementRef<'text> {
     #[serde(borrow)]
-    SelectStatement(Box<SelectStatement<'text>>),
-    FunctionTable,
-    JoinedTable,
+    pub table: Box<SelectStatement<'text>>,
+    pub alias: Option<Alias<'text>>,
+    pub sample: Option<TableSample<'text>>,
+    pub lateral: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TableRef<'text> {
+pub struct RowsFromItem<'text> {
     #[serde(borrow)]
+    pub function: Box<FunctionExpression<'text>>,
+    pub columns: Vec<FunctionTableElement<'text>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FunctionTableElement<'text> {
+    pub element_name: &'text str,
+    pub element_type: SQLType<'text>,
+    pub collate: Option<Vec<&'text str>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FunctionTable<'text> {
+    #[serde(borrow)]
+    pub function: Option<Box<FunctionExpression<'text>>>,
+    pub rows_from: Vec<RowsFromItem<'text>>,
+    pub with_ordinality: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FunctionTableRef<'text> {
+    #[serde(borrow)]
+    pub table: FunctionTable<'text>,
     pub alias: Option<Alias<'text>>,
-    #[serde(borrow)]
     pub sample: Option<TableSample<'text>>,
-    pub table: Option<InlineTable<'text>>,
     pub lateral: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct JoinedTable<'text> {
+    #[serde(with = "serde_join_type")]
+    pub join: sx::JoinType,
+    #[serde(borrow)]
+    pub input: Vec<TableRef<'text>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct JoinedTableRef<'text> {
+    #[serde(borrow)]
+    pub table: JoinedTable<'text>,
+    pub alias: Option<Alias<'text>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RelationRef<'text> {
+    #[serde(borrow)]
+    pub name: NamePath<'text>,
+    pub inherit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TableRef<'text> {
+    #[serde(borrow)]
+    Relation(RelationRef<'text>),
+    Select(SelectStatementRef<'text>),
+    Function(FunctionTableRef<'text>),
+    Join(JoinedTableRef<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

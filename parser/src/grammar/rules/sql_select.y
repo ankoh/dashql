@@ -542,11 +542,10 @@ sql_table_ref:
         }));
     }
   | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
-            Attr(Key::SQL_TABLEREF_ALIAS, $2),
-            Attr(Key::SQL_TABLEREF_SAMPLE, $3),
-            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+            Attr(Key::SQL_TABLEREF_ALIAS, std::move($2)),
+            Attr(Key::SQL_TABLEREF_SAMPLE, std::move($3)),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move($1)),
         });
     }
   | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause {
@@ -558,11 +557,10 @@ sql_table_ref:
         });
     }
   | LATERAL_P sql_func_table sql_func_alias_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($2));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_LATERAL, Bool(@1, true)),
             Attr(Key::SQL_TABLEREF_ALIAS, $3),
-            Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+            Attr(Key::SQL_TABLEREF_TABLE, std::move($2)),
         });
     }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
@@ -791,22 +789,23 @@ sql_opt_repeatable_clause:
 
 sql_func_table:
     sql_func_expr_windowless sql_opt_ordinality {
-        $$ = Concat(move($1), {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
+            Attr(Key::SQL_FUNCTION_TABLE_FUNCTION, std::move($1)),
             Attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, std::move($2)),
         });
     }
   | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality  {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
             Attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, std::move($6)),
             Attr(Key::SQL_FUNCTION_TABLE_ROWS_FROM, ctx.Add(@4, std::move($4))),
-        };
+        });
     }
     ;
 
 sql_rowsfrom_item:
     sql_func_expr_windowless sql_opt_col_def_list {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM, {
-            Attr(Key::SQL_ROWSFROM_ITEM_FUNCTION, ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1))),
+            Attr(Key::SQL_ROWSFROM_ITEM_FUNCTION, std::move($1)),
             Attr(Key::SQL_ROWSFROM_ITEM_COLUMNS, std::move($2)),
         });
     }
@@ -1404,8 +1403,8 @@ sql_func_expr:
 // disambiguate the grammar (e.g. in CREATE INDEX).
 
 sql_func_expr_windowless:
-    sql_func_application            { $$ = std::move($1); }
-  | sql_func_expr_common_subexpr    { $$ = std::move($1); }
+    sql_func_application            { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
+  | sql_func_expr_common_subexpr    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
     ;
 
 // Special expressions that are considered to be functions.

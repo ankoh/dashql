@@ -9,6 +9,7 @@ pub enum Statement<'text> {
     Select(SelectStatement<'text>),
     Input(InputStatement<'text>),
     Fetch(FetchStatement<'text>),
+    Viz(VizStatement<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

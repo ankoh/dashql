@@ -82,12 +82,20 @@ pub enum ASTNode<'text> {
     TimestampTypeInfo(TimestampType<'text>),
     IntervalTypeInfo(IntervalType<'text>),
 
+    Alias(Alias<'text>),
+
+    RowsFromItem(RowsFromItem<'text>),
+    FunctionTable(FunctionTable<'text>),
+    FunctionTableRef(FunctionTableRef<'text>),
+    JoinedTable(JoinedTable<'text>),
+    JoinedTableRef(JoinedTableRef<'text>),
+    TableRef(TableRef<'text>),
+
     OrderSpecification(OrderSpecification<'text>),
     Expression(Expression<'text>),
     Indirection(Indirection<'text>),
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text>),
-    TableRef(TableRef<'text>),
     TableSample(TableSample<'text>),
     ColumnRef(NamePath<'text>),
     FunctionArgument(FunctionArgument<'text>),

@@ -14,9 +14,7 @@
 %type <NodeVector> sql_func_application;
 %type <NodeVector> sql_func_arg_list;
 %type <NodeVector> sql_func_expr_common_subexpr;
-%type <NodeVector> sql_func_expr_windowless;
 %type <NodeVector> sql_func_name;
-%type <NodeVector> sql_func_table;
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;
 %type <NodeVector> sql_indirection;
@@ -95,6 +93,8 @@
 %type <sx::Node> sql_func_alias_clause;
 %type <sx::Node> sql_func_arg_expr;
 %type <sx::Node> sql_func_expr;
+%type <sx::Node> sql_func_expr_windowless;
+%type <sx::Node> sql_func_table;
 %type <sx::Node> sql_generic_type;
 %type <sx::Node> sql_group_by_item;
 %type <sx::Node> sql_having_clause;

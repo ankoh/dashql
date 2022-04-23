@@ -232,6 +232,51 @@ fn translate_statement<'text, 'ast>(
                     postfix,
                 }))
             }
+            sx::NodeType::OBJECT_SQL_TABLEREF => {
+                let mut name = None;
+                let mut inherit = false;
+                let mut select = None;
+                let mut joined = None;
+                let mut func = None;
+                let mut alias = None;
+                let mut lateral = false;
+                let mut sample = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TABLEREF_NAME, ASTNode::Array(n)) => name = Some(read_name(n)?),
+                        (Key::SQL_TABLEREF_INHERIT, ASTNode::Boolean(b)) => inherit = b,
+                        (Key::SQL_TABLEREF_TABLE, ASTNode::SelectStatement(s)) => select = Some(Box::new(s)),
+                        (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t)) => joined = Some(t),
+                        (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t)) => func = Some(t),
+                        (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a)) => alias = Some(a),
+                        (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(b)) => lateral = b,
+                        (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(s),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::TableRef(if let Some(table) = select {
+                    TableRef::Select(SelectStatementRef {
+                        table,
+                        alias,
+                        sample,
+                        lateral,
+                    })
+                } else if let Some(table) = joined {
+                    TableRef::Join(JoinedTableRef { table, alias })
+                } else if let Some(table) = func {
+                    TableRef::Function(FunctionTableRef {
+                        table,
+                        alias,
+                        sample,
+                        lateral,
+                    })
+                } else if let Some(name) = name {
+                    TableRef::Relation(RelationRef { name, inherit })
+                } else {
+                    return Err(RawError::from(format!("invalid table ref")).boxed());
+                })
+            }
             sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
                 let mut function = None;
                 let mut count = None;
@@ -328,6 +373,55 @@ fn translate_statement<'text, 'ast>(
                     }
                 }
                 ASTNode::LoadStatement(LoadStatement { name, method, extra })
+            }
+            sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
+                let mut join = sx::JoinType::NONE;
+                let mut input = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t)) => join = t,
+                        (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::TableRef(t) => input.push(t),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::JoinedTable(JoinedTable { join, input })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
+                let mut function = None;
+                let mut ordinality = false;
+                let mut rows_from = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => {
+                            function = Some(Box::new(f))
+                        }
+                        (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(b)) => ordinality = b,
+                        (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => {
+                            rows_from.reserve(nodes.len());
+                            for node in nodes {
+                                match node {
+                                    ASTNode::RowsFromItem(item) => rows_from.push(item),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::FunctionTable(FunctionTable {
+                    function,
+                    rows_from,
+                    with_ordinality: ordinality,
+                })
             }
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 let mut name: Option<NamePath> = None;
@@ -434,7 +528,7 @@ fn translate_statement<'text, 'ast>(
                 })
             }
             sx::NodeType::OBJECT_DASHQL_VIZ => {
-                let mut target = TableRef::default();
+                let mut target = TableRef::Select(SelectStatementRef::default());
                 let mut components = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
@@ -543,6 +637,7 @@ fn translate_statement<'text, 'ast>(
         Some(ASTNode::SelectStatement(s)) => Ok(Statement::Select(s)),
         Some(ASTNode::InputStatement(s)) => Ok(Statement::Input(s)),
         Some(ASTNode::FetchStatement(s)) => Ok(Statement::Fetch(s)),
+        Some(ASTNode::VizStatement(s)) => Ok(Statement::Viz(s)),
         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }

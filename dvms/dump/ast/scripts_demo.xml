@@ -239,6 +239,176 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: NamePath {
+                            path: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                        },
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            SPEC,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                DsonObject {
+                                    fields: [
+                                        DsonField {
+                                            key: &quot;DSON_POSITION&quot;,
+                                            value: Object(
+                                                DsonObject {
+                                                    fields: [
+                                                        DsonField {
+                                                            key: &quot;DSON_ROW&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_COLUMN&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_WIDTH&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;6&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_HEIGHT&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;4&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_TITLE&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;&apos;Line Chart&apos;&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_ENCODING&quot;,
+                                            value: Object(
+                                                DsonObject {
+                                                    fields: [
+                                                        DsonField {
+                                                            key: &quot;DSON_X&quot;,
+                                                            value: Object(
+                                                                DsonObject {
+                                                                    fields: [
+                                                                        DsonField {
+                                                                            key: &quot;DSON_AXIS&quot;,
+                                                                            value: Object(
+                                                                                DsonObject {
+                                                                                    fields: [
+                                                                                        DsonField {
+                                                                                            key: &quot;DSON_TICK_COUNT&quot;,
+                                                                                            value: Expression(
+                                                                                                StringRef(
+                                                                                                    &quot;10&quot;,
+                                                                                                ),
+                                                                                            ),
+                                                                                        },
+                                                                                    ],
+                                                                                },
+                                                                            ),
+                                                                        },
+                                                                        DsonField {
+                                                                            key: &quot;DSON_FIELD&quot;,
+                                                                            value: Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;x&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                },
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_Y&quot;,
+                                                            value: Object(
+                                                                DsonObject {
+                                                                    fields: [
+                                                                        DsonField {
+                                                                            key: &quot;DSON_AXIS&quot;,
+                                                                            value: Object(
+                                                                                DsonObject {
+                                                                                    fields: [
+                                                                                        DsonField {
+                                                                                            key: &quot;DSON_TICK_COUNT&quot;,
+                                                                                            value: Expression(
+                                                                                                StringRef(
+                                                                                                    &quot;10&quot;,
+                                                                                                ),
+                                                                                            ),
+                                                                                        },
+                                                                                    ],
+                                                                                },
+                                                                            ),
+                                                                        },
+                                                                        DsonField {
+                                                                            key: &quot;DSON_FIELD&quot;,
+                                                                            value: Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;y&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                },
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: &quot;DSON_MARK&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;&apos;line&apos;&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="demo_3">
         <input>-- Fetch the bundled university schema

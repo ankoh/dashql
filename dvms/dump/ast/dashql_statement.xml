@@ -233,6 +233,83 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: NamePath {
+                            path: [
+                                Name(
+                                    &quot;weather_avg&quot;,
+                                ),
+                            ],
+                        },
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            LINE,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                DsonObject {
+                                    fields: [
+                                        DsonField {
+                                            key: &quot;DSON_POSITION&quot;,
+                                            value: Object(
+                                                DsonObject {
+                                                    fields: [
+                                                        DsonField {
+                                                            key: &quot;DSON_ROW&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_COLUMN&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_WIDTH&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;4&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;DSON_HEIGHT&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;15&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="dashql_viz_position_short">
         <input>VIZ weather_avg USING LINE (
@@ -278,6 +355,83 @@
                 <key loc="45..48" text="pos"/>
             </dson_keys>
         </parsed>
+        <translated>Program {
+    statements: [
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: NamePath {
+                            path: [
+                                Name(
+                                    &quot;weather_avg&quot;,
+                                ),
+                            ],
+                        },
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            LINE,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                DsonObject {
+                                    fields: [
+                                        DsonField {
+                                            key: &quot;pos&quot;,
+                                            value: Object(
+                                                DsonObject {
+                                                    fields: [
+                                                        DsonField {
+                                                            key: &quot;r&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;c&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;0&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;w&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;4&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                        DsonField {
+                                                            key: &quot;h&quot;,
+                                                            value: Expression(
+                                                                StringRef(
+                                                                    &quot;15&quot;,
+                                                                ),
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="dashql_input_calendar_date">
         <input>INPUT foo TYPE DATE USING CALENDAR;
@@ -327,6 +481,81 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Input(
+            InputStatement {
+                name: NamePath {
+                    path: [
+                        Name(
+                            &quot;foo&quot;,
+                        ),
+                    ],
+                },
+                value_type: SQLType {
+                    base_type: Generic(
+                        GenericType {
+                            name: &quot;DATE&quot;,
+                            modifiers: [],
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    CALENDAR,
+                ),
+                extra: None,
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Select(
+                    SelectStatementRef {
+                        table: SelectStatement {
+                            all: false,
+                            targets: [
+                                Value {
+                                    value: ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    alias: None,
+                                },
+                            ],
+                            into: None,
+                            from: false,
+                            where_clause: false,
+                            group_by: false,
+                            having: false,
+                            order_by: false,
+                            windows: false,
+                            sample: false,
+                            row_locking: false,
+                        },
+                        alias: None,
+                        sample: None,
+                        lateral: false,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            TABLE,
+                        ),
+                        type_modifiers: 0,
+                        extra: None,
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="dashql_input_calendar_date_range">
         <input>INPUT foo TYPE DATE[2] USING CALENDAR;
@@ -392,5 +621,110 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Input(
+            InputStatement {
+                name: NamePath {
+                    path: [
+                        Name(
+                            &quot;foo&quot;,
+                        ),
+                    ],
+                },
+                value_type: SQLType {
+                    base_type: Generic(
+                        GenericType {
+                            name: &quot;DATE&quot;,
+                            modifiers: [],
+                        },
+                    ),
+                    array_bounds: [
+                        Index(
+                            &quot;2&quot;,
+                        ),
+                    ],
+                    set_of: false,
+                },
+                component_type: Some(
+                    CALENDAR,
+                ),
+                extra: None,
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Select(
+                    SelectStatementRef {
+                        table: SelectStatement {
+                            all: false,
+                            targets: [
+                                Value {
+                                    value: ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                                Index(
+                                                    IndirectionIndex {
+                                                        value: StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    alias: None,
+                                },
+                                Value {
+                                    value: ColumnRef(
+                                        NamePath {
+                                            path: [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                                Index(
+                                                    IndirectionIndex {
+                                                        value: StringRef(
+                                                            &quot;1&quot;,
+                                                        ),
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    alias: None,
+                                },
+                            ],
+                            into: None,
+                            from: false,
+                            where_clause: false,
+                            group_by: false,
+                            having: false,
+                            order_by: false,
+                            windows: false,
+                            sample: false,
+                            row_locking: false,
+                        },
+                        alias: None,
+                        sample: None,
+                        lateral: false,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            TABLE,
+                        ),
+                        type_modifiers: 0,
+                        extra: None,
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
 </astdumps>
