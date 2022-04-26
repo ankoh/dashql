@@ -133,7 +133,13 @@ pub struct CharacterType<'text> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimestampType<'text> {
     pub precision: Option<&'text str>,
-    pub with_timezone: Option<&'text str>,
+    pub with_timezone: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimeType<'text> {
+    pub precision: Option<&'text str>,
+    pub with_timezone: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -152,6 +158,7 @@ pub enum SQLBaseType<'text> {
     Numeric(NumericType<'text>),
     Bit(BitType<'text>),
     Character(CharacterType<'text>),
+    Time(TimeType<'text>),
     Timestamp(TimestampType<'text>),
     Interval(IntervalType<'text>),
 }

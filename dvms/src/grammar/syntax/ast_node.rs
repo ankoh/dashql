@@ -80,6 +80,7 @@ pub enum ASTNode<'text> {
     BitTypeInfo(BitType<'text>),
     CharacterTypeInfo(CharacterType<'text>),
     TimestampTypeInfo(TimestampType<'text>),
+    TimeTypeInfo(TimeType<'text>),
     IntervalTypeInfo(IntervalType<'text>),
 
     Sample(Sample<'text>),

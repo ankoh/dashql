@@ -485,6 +485,38 @@ fn translate_statement<'text, 'ast>(
                     ..Default::default()
                 })
             }
+            sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
+                let mut precision = None;
+                let mut with_timezone = false;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
+                        (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz,
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::TimestampTypeInfo(TimestampType {
+                    precision,
+                    with_timezone,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_TIME_TYPE => {
+                let mut precision = None;
+                let mut with_timezone = false;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
+                        (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz,
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::TimeTypeInfo(TimeType {
+                    precision,
+                    with_timezone,
+                })
+            }
             sx::NodeType::OBJECT_SQL_TYPENAME => {
                 let mut base = None;
                 let mut set_of = false;
