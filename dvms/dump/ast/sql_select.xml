@@ -665,7 +665,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..15" text="select a from b">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -689,6 +689,49 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1">
         <input>select a from b.c</input>
@@ -697,7 +740,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..17" text="select a from b.c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="b.c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="b.c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -722,6 +765,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1_noinherit">
         <input>select a from only b.c</input>
@@ -730,7 +819,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..22" text="select a f..m only b.c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..22" text="only b.c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..22" text="only b.c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="false"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="19..20" text="b"/>
@@ -755,6 +844,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_indirect1_alias">
         <input>select a from b.c as d</input>
@@ -763,7 +898,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..22" text="select a f..m b.c as d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..22" text="b.c as d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..22" text="b.c as d">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="21..22" text="d"/>
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -797,13 +932,13 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..18" text="select a from b, c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="17..18" text="c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="17..18" text="c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="17..18" text="c"/>
@@ -827,6 +962,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_into_2rel">
         <input>select a into b from c, d</input>
@@ -835,13 +1023,13 @@
                 <statement type="SELECT_INTO">
                     <node type="OBJECT_SQL_SELECT" loc="0..25" text="select a i.. from c, d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="21..22" text="c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="21..22" text="c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="21..22" text="c"/>
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="24..25" text="d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="24..25" text="d">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="24..25" text="d"/>
@@ -871,6 +1059,68 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;b&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;d&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_from_1rel_group1">
         <input>select a from b group by 1</input>
@@ -879,7 +1129,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..26" text="select a f..group by 1">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -914,7 +1164,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..30" text="select a f..ow c as ()">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -931,7 +1181,7 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_WINDOWS" type="ARRAY">
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="23..30" text="c as ()">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="23..30" text="c as ()">
                                 <node key="SQL_WINDOW_DEF_NAME" type="STRING_REF" loc="23..24" text="c"/>
                             </node>
                         </node>
@@ -951,7 +1201,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..44" text="select a f..tion by d)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -968,8 +1218,8 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_WINDOWS" type="ARRAY">
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="23..44" text="c as (part..tion by d)">
-                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_DEF" loc="28..44" text="(partition by d)">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="23..44" text="c as (part..tion by d)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="28..44" text="(partition by d)">
                                     <node key="SQL_WINDOW_FRAME_PARTITION" type="ARRAY">
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="42..43" text="d">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
@@ -998,7 +1248,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..113" text="select a f..following)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -1015,14 +1265,14 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_WINDOWS" type="ARRAY">
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="35..113" text="c as (part..following)">
-                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_DEF" loc="40..113" text="(partition..following)">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="35..113" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="40..113" text="(partition..following)">
                                     <node key="SQL_WINDOW_FRAME_BOUNDS" type="ARRAY">
-                                        <node type="OBJECT_SQL_VIEW" loc="69..88" text="unbounded preceding">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="69..88" text="unbounded preceding">
                                             <node key="SQL_WINDOW_BOUND_DIRECTION" type="ENUM_SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING"/>
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="UNBOUNDED"/>
                                         </node>
-                                        <node type="OBJECT_SQL_VIEW" loc="93..112" text="unbounded following">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="93..112" text="unbounded following">
                                             <node key="SQL_WINDOW_BOUND_DIRECTION" type="ENUM_SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING"/>
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="UNBOUNDED"/>
                                         </node>
@@ -1058,7 +1308,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..97" text="select a f..rrent row)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -1075,15 +1325,15 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_WINDOWS" type="ARRAY">
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="35..97" text="c as (part..rrent row)">
-                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_DEF" loc="40..97" text="(partition..rrent row)">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="35..97" text="c as (part..rrent row)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="40..97" text="(partition..rrent row)">
                                     <node key="SQL_WINDOW_FRAME_BOUNDS" type="ARRAY">
-                                        <node type="OBJECT_SQL_VIEW" loc="69..80" text="1 preceding">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="69..80" text="1 preceding">
                                             <node key="SQL_WINDOW_BOUND_DIRECTION" type="ENUM_SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING"/>
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="VALUE"/>
                                             <node key="SQL_WINDOW_BOUND_VALUE" type="STRING_REF" loc="69..70" text="1"/>
                                         </node>
-                                        <node type="OBJECT_SQL_VIEW" loc="85..96" text="current row">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="85..96" text="current row">
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW"/>
                                         </node>
                                     </node>
@@ -1119,7 +1369,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..141" text="select a f..tion by f)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="b"/>
@@ -1136,13 +1386,13 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_WINDOWS" type="ARRAY">
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="35..98" text="c as (part..following)">
-                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_DEF" loc="40..98" text="(partition..following)">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="35..98" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="40..98" text="(partition..following)">
                                     <node key="SQL_WINDOW_FRAME_BOUNDS" type="ARRAY">
-                                        <node type="OBJECT_SQL_VIEW" loc="70..81" text="current row">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="70..81" text="current row">
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW"/>
                                         </node>
-                                        <node type="OBJECT_SQL_VIEW" loc="86..97" text="1 following">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="86..97" text="1 following">
                                             <node key="SQL_WINDOW_BOUND_DIRECTION" type="ENUM_SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING"/>
                                             <node key="SQL_WINDOW_BOUND_MODE" type="ENUM_SQL_WINDOW_BOUND_MODE" value="VALUE"/>
                                             <node key="SQL_WINDOW_BOUND_VALUE" type="STRING_REF" loc="86..87" text="1"/>
@@ -1159,8 +1409,8 @@
                                 </node>
                                 <node key="SQL_WINDOW_DEF_NAME" type="STRING_REF" loc="35..36" text="c"/>
                             </node>
-                            <node type="OBJECT_SQL_WINDOW_BOUND" loc="120..141" text="e as (part..tion by f)">
-                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_DEF" loc="125..141" text="(partition by f)">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="120..141" text="e as (part..tion by f)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="125..141" text="(partition by f)">
                                     <node key="SQL_WINDOW_FRAME_PARTITION" type="ARRAY">
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="139..140" text="f">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
@@ -1192,7 +1442,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..24" text="select dis..t a from b">
                         <node key="SQL_SELECT_DISTINCT" type="BOOL" value="true"/>
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="23..24" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="23..24" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="23..24" text="b"/>
@@ -1231,7 +1481,7 @@
                             </node>
                         </node>
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="30..31" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="30..31" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="30..31" text="b"/>
@@ -1264,7 +1514,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..17" text="select all from b">
                         <node key="SQL_SELECT_ALL" type="BOOL" value="true"/>
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="16..17" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="16..17" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="16..17" text="b"/>
@@ -1354,7 +1604,7 @@
             <statements>
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..7" text="TABLE a">
-                        <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="0..7" text="TABLE a">
+                        <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_TABLEREF" loc="0..7" text="TABLE a">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="6..7" text="a"/>
@@ -1798,7 +2048,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="29..44" text="select 1 from b">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="43..44" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="43..44" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="43..44" text="b"/>
@@ -1820,6 +2070,78 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;b&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_column_ref_expr_1">
         <input>input a type integer using text;
@@ -1830,7 +2152,7 @@
                 <statement type="INPUT">
                     <node type="OBJECT_DASHQL_INPUT" loc="0..31" text="input a ty..using text">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="13..20" text="integer">
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="13..20" text="integer">
                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
@@ -1856,7 +2178,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="74..110" text="select c f..main.a + 1">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="88..89" text="b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="88..89" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="88..89" text="b"/>
@@ -1901,6 +2223,142 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Input(
+            InputStatement {
+                name: [
+                    Name(
+                        &quot;a&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Numeric(
+                        NumericType {
+                            base: INT4,
+                            modifiers: [],
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    TEXT,
+                ),
+                extra: None,
+            },
+        ),
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: StringRef(
+                            &quot;1&quot;,
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;b&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;c&quot;,
+                                        ),
+                                    ],
+                                ),
+                                Nary(
+                                    NaryExpression {
+                                        operator: PLUS,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;main&quot;,
+                                                    ),
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            StringRef(
+                                                &quot;1&quot;,
+                                            ),
+                                        ],
+                                        postfix: false,
+                                    },
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_column_ref_expr_2">
         <input>input month type integer using text;
@@ -1910,7 +2368,7 @@
                 <statement type="INPUT">
                     <node type="OBJECT_DASHQL_INPUT" loc="0..35" text="input mont..using text">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="17..24" text="integer">
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
@@ -1921,14 +2379,14 @@
                 <statement type="SELECT_INTO">
                     <node type="OBJECT_SQL_SELECT" loc="49..177" text="select * i..main.month">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="85..104" text="country1_weather c1">
+                            <node type="OBJECT_SQL_TABLEREF" loc="85..104" text="country1_weather c1">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="102..104" text="c1"/>
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="85..101" text="country1_weather"/>
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="106..125" text="country2_weather c2">
+                            <node type="OBJECT_SQL_TABLEREF" loc="106..125" text="country2_weather c2">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="123..125" text="c2"/>
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1998,7 +2456,7 @@
                 <statement type="SELECT_INTO">
                     <node type="OBJECT_SQL_SELECT" loc="0..54" text="select v i..0) as t(v)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="21..54" text="generate_s..0) as t(v)">
+                            <node type="OBJECT_SQL_TABLEREF" loc="21..54" text="generate_s..0) as t(v)">
                                 <node key="SQL_TABLEREF_ALIAS" type="OBJECT_SQL_ALIAS" loc="47..54" text="as t(v)">
                                     <node key="SQL_ALIAS_COLUMN_NAMES" type="ARRAY">
                                         <node type="STRING_REF" loc="52..53" text="v"/>
@@ -2052,7 +2510,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..37" text="select * f..earg&apos;) foo">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..37" text="somefunc(&apos;..earg&apos;) foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..37" text="somefunc(&apos;..earg&apos;) foo">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="34..37" text="foo"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..33" text="somefunc(&apos;somearg&apos;)">
                                     <node key="SQL_FUNCTION_TABLE_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="14..33" text="somefunc(&apos;somearg&apos;)">
@@ -2411,8 +2869,8 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..44" text="cast(&apos;1&apos; a..time zone)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..43" text="timestamp .. time zone">
-                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TABLEREF_SAMPLE" loc="19..43" text="timestamp .. time zone">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..43" text="timestamp .. time zone">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..43" text="timestamp .. time zone">
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
@@ -2441,8 +2899,8 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..48" text="cast(&apos;1&apos; a..time zone)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..47" text="timestamp .. time zone">
-                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TABLEREF_SAMPLE" loc="19..47" text="timestamp .. time zone">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..47" text="timestamp .. time zone">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..47" text="timestamp .. time zone">
                                                 <node key="SQL_TIME_TYPE_PRECISION" type="STRING_REF" loc="30..31" text="2"/>
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
@@ -2472,8 +2930,8 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..39" text="cast(&apos;1&apos; a..time zone)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..38" text="time with time zone">
-                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..38" text="time with time zone">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..38" text="time with time zone">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="19..38" text="time with time zone">
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
@@ -2502,8 +2960,8 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..43" text="cast(&apos;1&apos; a..time zone)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..42" text="time (2) w.. time zone">
-                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..42" text="time (2) w.. time zone">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..42" text="time (2) w.. time zone">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="19..42" text="time (2) w.. time zone">
                                                 <node key="SQL_TIME_TYPE_PRECISION" type="STRING_REF" loc="25..26" text="2"/>
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
@@ -2533,7 +2991,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..33" text="cast(&apos;1&apos; a..rval year)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..32" text="interval year">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..32" text="interval year">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="19..32" text="interval year">
                                                 <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="YEAR"/>
                                             </node>
@@ -2563,7 +3021,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..31" text="cast(&apos;1&apos; a..terval(2))">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..30" text="interval(2)">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..30" text="interval(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="19..30" text="interval(2)">
                                                 <node key="SQL_INTERVAL_PRECISION" type="STRING_REF" loc="28..29" text="2"/>
                                             </node>
@@ -2593,7 +3051,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..28" text="cast(&apos;1&apos; a.. sometype)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..27" text="sometype">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..27" text="sometype">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="19..27" text="sometype">
                                                 <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="19..27" text="sometype"/>
                                             </node>
@@ -2623,7 +3081,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..23" text="cast(&apos;1&apos; as bit)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..22" text="bit">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..22" text="bit">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..22" text="bit">
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="false"/>
                                             </node>
@@ -2653,7 +3111,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..26" text="cast(&apos;1&apos; as bit(2))">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..25" text="bit(2)">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..25" text="bit(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..25" text="bit(2)">
                                                 <node key="SQL_BIT_TYPE_LENGTH" type="STRING_REF" loc="23..24" text="2"/>
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="false"/>
@@ -2684,7 +3142,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..34" text="cast(&apos;1&apos; a..arying(2))">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="19..33" text="bit varying(2)">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="19..33" text="bit varying(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..33" text="bit varying(2)">
                                                 <node key="SQL_BIT_TYPE_LENGTH" type="STRING_REF" loc="31..32" text="2"/>
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="true"/>
@@ -3206,7 +3664,7 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..17" text="1::integer">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..17" text="1::integer">
                                     <node key="SQL_EXPRESSION_ARG0" type="STRING_REF" loc="7..8" text="1"/>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TIME_TYPE" loc="10..17" text="integer">
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="10..17" text="integer">
                                         <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="TYPECAST"/>
@@ -3475,7 +3933,7 @@
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="16..23" text="integer">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="16..23" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
@@ -3507,7 +3965,7 @@
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="20..27" text="integer">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
@@ -3614,7 +4072,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..15" text="select ? from c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..15" text="c"/>
@@ -3644,7 +4102,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..16" text="select $1 from c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="15..16" text="c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="15..16" text="c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="15..16" text="c"/>
@@ -3674,7 +4132,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..18" text="select $1.a from c">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="17..18" text="c">
+                            <node type="OBJECT_SQL_TABLEREF" loc="17..18" text="c">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="17..18" text="c"/>
@@ -3742,7 +4200,7 @@
                                         </node>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="7..15" text="somefunc"/>
-                                    <node key="SQL_FUNCTION_OVER" type="OBJECT_SQL_WINDOW_DEF" loc="24..40" text="(partition by c)">
+                                    <node key="SQL_FUNCTION_OVER" type="OBJECT_SQL_WINDOW_FRAME" loc="24..40" text="(partition by c)">
                                         <node key="SQL_WINDOW_FRAME_PARTITION" type="ARRAY">
                                             <node type="OBJECT_SQL_COLUMN_REF" loc="38..39" text="c">
                                                 <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
@@ -3878,7 +4336,7 @@
                                         <node type="STRING_REF" loc="25..28" text="foo"/>
                                     </node>
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="22..23" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="22..23" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="22..23" text="b"/>
@@ -4051,7 +4509,7 @@
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SELECT_SAMPLE" loc="9..17" text="like all">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..17" text="like all">
                                         <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
                                         <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ALL"/>
                                     </node>
@@ -4088,7 +4546,7 @@
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SELECT_SAMPLE" loc="9..17" text="like any">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..17" text="like any">
                                         <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
                                         <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ANY"/>
                                     </node>
@@ -4125,7 +4583,7 @@
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SELECT_SAMPLE" loc="9..18" text="like some">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..18" text="like some">
                                         <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
                                         <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
                                     </node>
@@ -4163,7 +4621,7 @@
                                         </node>
                                         <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="20..23" text="foo"/>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SELECT_SAMPLE" loc="9..18" text="like some">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..18" text="like some">
                                         <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
                                         <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
                                     </node>
@@ -4561,7 +5019,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..25" text="cast(1 as integer)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="12..13" text="1"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="17..24" text="integer">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
@@ -4589,7 +5047,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..26" text="treat(1 as integer)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                         <node type="STRING_REF" loc="13..14" text="1"/>
-                                        <node type="OBJECT_SQL_TIME_TYPE" loc="18..25" text="integer">
+                                        <node type="OBJECT_SQL_TYPENAME" loc="18..25" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
@@ -4861,7 +5319,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..35" text="select ext..) from foo">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="32..35" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="32..35" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="32..35" text="foo"/>
@@ -5072,7 +5530,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..32" text="SELECT * F.._series(1)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..32" text="generate_series(1)">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..32" text="generate_series(1)">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..32" text="generate_series(1)">
                                     <node key="SQL_FUNCTION_TABLE_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="14..32" text="generate_series(1)">
                                         <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
@@ -5099,6 +5557,64 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;generate_series&quot;,
+                                        ),
+                                        arguments: [
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: false,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_2">
         <input>SELECT * FROM generate_series(1) WITH ORDINALITY;</input>
@@ -5107,7 +5623,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..48" text="SELECT * F..ORDINALITY">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..48" text="generate_s..ORDINALITY">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..48" text="generate_s..ORDINALITY">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..48" text="generate_s..ORDINALITY">
                                     <node key="SQL_FUNCTION_TABLE_FUNCTION" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="14..32" text="generate_series(1)">
                                         <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
@@ -5134,6 +5650,64 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;generate_series&quot;,
+                                        ),
+                                        arguments: [
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: true,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_3">
         <input>SELECT * FROM ROWS FROM (generate_series(1), generate_series(2));</input>
@@ -5142,7 +5716,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..64" text="SELECT * F..series(2))">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..64" text="ROWS FROM ..series(2))">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..64" text="ROWS FROM ..series(2))">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..64" text="ROWS FROM ..series(2))">
                                     <node key="SQL_FUNCTION_TABLE_ROWS_FROM" type="ARRAY">
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="25..43" text="generate_series(1)">
@@ -5191,14 +5765,14 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..94" text="SELECT * F.. integer))">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..94" text="ROWS FROM .. integer))">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..94" text="ROWS FROM .. integer))">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="14..94" text="ROWS FROM .. integer))">
                                     <node key="SQL_FUNCTION_TABLE_ROWS_FROM" type="ARRAY">
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="25..58" text="generate_s..a integer)">
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
                                                 <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="48..57" text="a integer">
                                                     <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="48..49" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="50..57" text="integer">
+                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="50..57" text="integer">
                                                         <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                                     </node>
                                                 </node>
@@ -5216,7 +5790,7 @@
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
                                                 <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="83..92" text="a integer">
                                                     <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="83..84" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="85..92" text="integer">
+                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="85..92" text="integer">
                                                         <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                                     </node>
                                                 </node>
@@ -5260,7 +5834,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..200" text="SELECT * F..         )">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="30..200" text="ROWS FROM ..         )">
+                            <node type="OBJECT_SQL_TABLEREF" loc="30..200" text="ROWS FROM ..         )">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_FUNCTION_TABLE" loc="30..200" text="ROWS FROM ..         )">
                                     <node key="SQL_FUNCTION_TABLE_ROWS_FROM" type="ARRAY">
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="62..111" text="generate_s..e &quot;de_DE&quot;)">
@@ -5270,7 +5844,7 @@
                                                         <node type="STRING_REF" loc="103..110" text="&quot;de_DE&quot;"/>
                                                     </node>
                                                     <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="85..86" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="87..94" text="varchar">
+                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="87..94" text="varchar">
                                                         <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="87..94" text="varchar">
                                                             <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                                         </node>
@@ -5293,7 +5867,7 @@
                                                         <node type="STRING_REF" loc="174..181" text="&quot;de_DE&quot;"/>
                                                     </node>
                                                     <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="156..157" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="158..165" text="varchar">
+                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="158..165" text="varchar">
                                                         <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="158..165" text="varchar">
                                                             <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                                         </node>
@@ -5340,16 +5914,16 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..32" text="SELECT * F..G SAMPLE 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..32" text="5"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="18..32" text="USING SAMPLE 5">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="ROWS"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..32" text="5"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="*">
@@ -5372,16 +5946,16 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..34" text="SELECT * F..SAMPLE 10%">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="18..34" text="USING SAMPLE 10%">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="PERCENT"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="*">
@@ -5404,16 +5978,16 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..53" text="SELECT * F..bernoulli)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="18..53" text="USING SAMP..bernoulli)">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="PERCENT"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
                             <node key="SQL_SAMPLE_FUNCTION" type="STRING_REF" loc="43..52" text="bernoulli"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
@@ -5437,16 +6011,16 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..66" text="SELECT * F..ABLE (100)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="41..43" text="50"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="18..66" text="USING SAMP..ABLE (100)">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="ROWS"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="41..43" text="50"/>
                             <node key="SQL_SAMPLE_FUNCTION" type="STRING_REF" loc="41..48" text="50 ROWS"/>
                             <node key="SQL_SAMPLE_REPEAT" type="STRING_REF" loc="62..65" text="100"/>
                         </node>
@@ -5471,16 +6045,16 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..48" text="SELECT * F..stem, 377)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="18..48" text="USING SAMP..stem, 377)">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="PERCENT"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="31..33" text="10"/>
                             <node key="SQL_SAMPLE_FUNCTION" type="STRING_REF" loc="36..42" text="system"/>
                             <node key="SQL_SAMPLE_SEED" type="STRING_REF" loc="44..47" text="377"/>
                         </node>
@@ -5505,18 +6079,18 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..69" text="SELECT * F..l.i=tbl2.i">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..44" text="tbl TABLES..RVOIR(20%)">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..44" text="tbl TABLES..RVOIR(20%)">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
-                                <node key="SQL_TABLEREF_SAMPLE" type="OBJECT_SQL_TABLEREF" loc="18..44" text="TABLESAMPL..RVOIR(20%)">
+                                <node key="SQL_TABLEREF_SAMPLE" type="OBJECT_SQL_TABLEREF_SAMPLE" loc="18..44" text="TABLESAMPL..RVOIR(20%)">
                                     <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="PERCENT"/>
                                     <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="40..42" text="20"/>
                                     <node key="SQL_SAMPLE_FUNCTION" type="STRING_REF" loc="40..43" text="20%"/>
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="46..50" text="tbl2">
+                            <node type="OBJECT_SQL_TABLEREF" loc="46..50" text="tbl2">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="46..50" text="tbl2"/>
@@ -5551,6 +6125,79 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl2&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl2&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_7">
         <input>SELECT * FROM tbl, tbl2 WHERE tbl.i=tbl2.i USING SAMPLE RESERVOIR(20%);</input>
@@ -5559,22 +6206,22 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..70" text="SELECT * F..RVOIR(20%)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="tbl">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="tbl">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="tbl"/>
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="19..23" text="tbl2">
+                            <node type="OBJECT_SQL_TABLEREF" loc="19..23" text="tbl2">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="19..23" text="tbl2"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_SAMPLE" type="ARRAY">
-                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="66..68" text="20"/>
+                        <node key="SQL_SELECT_SAMPLE" type="OBJECT_SQL_SELECT_SAMPLE" loc="43..70" text="USING SAMP..RVOIR(20%)">
                             <node key="SQL_SAMPLE_COUNT_UNIT" type="ENUM_SQL_SAMPLE_UNIT_TYPE" value="PERCENT"/>
+                            <node key="SQL_SAMPLE_COUNT_VALUE" type="STRING_REF" loc="66..68" text="20"/>
                             <node key="SQL_SAMPLE_FUNCTION" type="STRING_REF" loc="66..69" text="20%"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
@@ -5613,7 +6260,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..37" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..37" text="a INNER JO..b ON c = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..37" text="a INNER JO..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..37" text="a INNER JO..b ON c = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
@@ -5630,13 +6277,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="27..28" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="27..28" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..28" text="b"/>
@@ -5667,7 +6314,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..31" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..31" text="a JOIN b ON c = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..31" text="a JOIN b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..31" text="a JOIN b ON c = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="26..31" text="c = d">
@@ -5684,13 +6331,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="21..22" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="21..22" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="21..22" text="b"/>
@@ -5721,17 +6368,17 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..28" text="SELECT * F..OSS JOIN b">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..28" text="a CROSS JOIN b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..28" text="a CROSS JOIN b">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..28" text="a CROSS JOIN b">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NONE"/>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="27..28" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="27..28" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..28" text="b"/>
@@ -5754,6 +6401,60 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: NONE,
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_4">
         <input>SELECT * FROM a NATURAL JOIN b</input>
@@ -5762,17 +6463,17 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..30" text="SELECT * F..RAL JOIN b">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..30" text="a NATURAL JOIN b">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..30" text="a NATURAL JOIN b">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..30" text="a NATURAL JOIN b">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NATURAL_INNER"/>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..30" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..30" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..30" text="b"/>
@@ -5795,6 +6496,60 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: NATURAL_INNER,
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_5">
         <input>SELECT * FROM a LEFT OUTER JOIN b ON c = d</input>
@@ -5803,7 +6558,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..42" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..42" text="a LEFT OUT..b ON c = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..42" text="a LEFT OUT..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..42" text="a LEFT OUT..b ON c = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_LEFT"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
@@ -5820,13 +6575,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="32..33" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="32..33" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="32..33" text="b"/>
@@ -5857,7 +6612,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..38" text="SELECT * F..ON foo = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..38" text="a LEFT JOI..ON foo = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..38" text="a LEFT JOI..ON foo = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..38" text="a LEFT JOI..ON foo = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="LEFT"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="31..38" text="foo = d">
@@ -5874,13 +6629,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="26..27" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="26..27" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="26..27" text="b"/>
@@ -5911,7 +6666,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..37" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..37" text="a RIGHT JO..b ON c = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..37" text="a RIGHT JO..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..37" text="a RIGHT JO..b ON c = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="RIGHT"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
@@ -5928,13 +6683,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="27..28" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="27..28" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..28" text="b"/>
@@ -5965,7 +6720,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..42" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..42" text="a FULL OUT..b ON c = d">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..42" text="a FULL OUT..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..42" text="a FULL OUT..b ON c = d">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_FULL"/>
                                     <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
@@ -5982,13 +6737,13 @@
                                         <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="32..33" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="32..33" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="32..33" text="b"/>
@@ -6019,7 +6774,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..41" text="SELECT * F..ING (c, d)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..41" text="a INNER JO..ING (c, d)">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..41" text="a INNER JO..ING (c, d)">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..41" text="a INNER JO..ING (c, d)">
                                     <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
                                     <node key="SQL_JOIN_USING" type="ARRAY">
@@ -6027,13 +6782,13 @@
                                         <node type="STRING_REF" loc="39..40" text="d"/>
                                     </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..15" text="a">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="14..15" text="a"/>
                                             </node>
                                         </node>
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="27..28" text="b">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="27..28" text="b">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..28" text="b"/>
@@ -6064,11 +6819,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..66" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..51" text="(SELECT * ..UPDATE) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..51" text="(SELECT * ..UPDATE) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="49..51" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..48" text="(SELECT * ..OR UPDATE)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6118,11 +6873,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..73" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..58" text="(SELECT * ..UPDATE) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..58" text="(SELECT * ..UPDATE) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="56..58" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..55" text="(SELECT * ..EY UPDATE)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6172,11 +6927,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..65" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..50" text="(SELECT * .. SHARE) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..50" text="(SELECT * .. SHARE) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="48..50" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..47" text="(SELECT * ..FOR SHARE)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6226,11 +6981,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..69" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..54" text="(SELECT * .. SHARE) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..54" text="(SELECT * .. SHARE) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="52..54" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..51" text="(SELECT * ..KEY SHARE)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6280,11 +7035,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..69" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..54" text="(SELECT * ..D ONLY) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..54" text="(SELECT * ..D ONLY) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="52..54" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..51" text="(SELECT * ..READ ONLY)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6334,11 +7089,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..73" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..58" text="(SELECT * ..OF foo) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..58" text="(SELECT * ..OF foo) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="56..58" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..55" text="(SELECT * ..TE OF foo)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6393,11 +7148,11 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..80" text="SELECT * F..E col1 = 5">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..65" text="(SELECT * ..NOWAIT) ss">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..65" text="(SELECT * ..NOWAIT) ss">
                                 <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="63..65" text="ss"/>
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="14..62" text="(SELECT * ..oo NOWAIT)">
                                     <node key="SQL_SELECT_FROM" type="ARRAY">
-                                        <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="29..36" text="mytable">
+                                        <node type="OBJECT_SQL_TABLEREF" loc="29..36" text="mytable">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="29..36" text="mytable"/>
@@ -6453,7 +7208,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..26" text="SELECT * F..o LIMIT 42">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6474,6 +7229,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    Expression(
+                        StringRef(
+                            &quot;42&quot;,
+                        ),
+                    ),
+                ),
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_2">
         <input>SELECT * FROM foo LIMIT 42, OFFSET 21</input>
@@ -6498,7 +7293,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..27" text="SELECT * F.. LIMIT ALL">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6519,6 +7314,42 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    ALL,
+                ),
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_4">
         <input>SELECT * FROM foo LIMIT ALL OFFSET 21</input>
@@ -6527,7 +7358,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..37" text="SELECT * F.. OFFSET 21">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6549,6 +7380,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    ALL,
+                ),
+                offset: Some(
+                    StringRef(
+                        &quot;21&quot;,
+                    ),
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_5">
         <input>SELECT * FROM foo FETCH FIRST 42 ROWS ONLY</input>
@@ -6557,7 +7428,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..42" text="SELECT * F.. ROWS ONLY">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6578,6 +7449,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    Expression(
+                        StringRef(
+                            &quot;42&quot;,
+                        ),
+                    ),
+                ),
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_6">
         <input>SELECT * FROM foo FETCH FIRST 1 ROW ONLY</input>
@@ -6586,7 +7497,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..40" text="SELECT * F..1 ROW ONLY">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6607,6 +7518,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    Expression(
+                        StringRef(
+                            &quot;1&quot;,
+                        ),
+                    ),
+                ),
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_7">
         <input>SELECT * FROM foo FETCH NEXT 1 ROW ONLY</input>
@@ -6615,7 +7566,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..39" text="SELECT * F..1 ROW ONLY">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6636,6 +7587,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    Expression(
+                        StringRef(
+                            &quot;1&quot;,
+                        ),
+                    ),
+                ),
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_8">
         <input>SELECT * FROM foo LIMIT ALL, 21</input>
@@ -6644,7 +7635,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..31" text="SELECT * F..IT ALL, 21">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="14..17" text="foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="14..17" text="foo">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
                                     <node type="STRING_REF" loc="14..17" text="foo"/>
@@ -6666,6 +7657,46 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                group_by: false,
+                having: false,
+                order_by: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: Some(
+                    ALL,
+                ),
+                offset: Some(
+                    StringRef(
+                        &quot;21&quot;,
+                    ),
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_alias_1">
         <input>select v into a FROM somefunc() as t(a integer);</input>
@@ -6674,12 +7705,12 @@
                 <statement type="SELECT_INTO">
                     <node type="OBJECT_SQL_SELECT" loc="0..47" text="select v i..a integer)">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="21..47" text="somefunc()..a integer)">
+                            <node type="OBJECT_SQL_TABLEREF" loc="21..47" text="somefunc()..a integer)">
                                 <node key="SQL_TABLEREF_ALIAS" type="OBJECT_SQL_ALIAS" loc="32..47" text="as t(a integer)">
                                     <node key="SQL_ALIAS_COLUMN_DEFINITIONS" type="ARRAY">
                                         <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="37..46" text="a integer">
                                             <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="37..38" text="a"/>
-                                            <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="39..46" text="integer">
+                                            <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="39..46" text="integer">
                                                 <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                             </node>
                                         </node>
