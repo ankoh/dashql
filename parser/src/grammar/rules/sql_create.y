@@ -1,18 +1,18 @@
 sql_create_as_stmt:
     CREATE_P sql_opt_temp TABLE sql_create_as_target AS sql_select_stmt sql_opt_with_data {
-        $$ = Concat(std::move($4), {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CREATE_AS, Concat(std::move($4), {
             Attr(Key::SQL_CREATE_AS_TEMP, Enum(@2, $2)),
             Attr(Key::SQL_CREATE_AS_STATEMENT, ctx.Add(@6, sx::NodeType::OBJECT_SQL_SELECT, move($6))),
             Attr(Key::SQL_CREATE_AS_WITH_DATA, $7),
-        });
+        }));
     }
   | CREATE_P sql_opt_temp TABLE IF_P NOT EXISTS sql_create_as_target AS sql_select_stmt sql_opt_with_data {
-        $$ = Concat(std::move($7), {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CREATE_AS, Concat(std::move($7), {
             Attr(Key::SQL_CREATE_AS_IF_NOT_EXISTS, Bool(Loc({@4, @5, @6}), true)),
             Attr(Key::SQL_CREATE_AS_TEMP, Enum(@2, $2)),
             Attr(Key::SQL_CREATE_AS_STATEMENT, ctx.Add(@9, sx::NodeType::OBJECT_SQL_SELECT, move($9))),
             Attr(Key::SQL_CREATE_AS_WITH_DATA, $10),
-        });
+        }));
     }
     ;
 
@@ -28,12 +28,12 @@ sql_create_as_target:
     
 sql_create_stmt:
     CREATE_P sql_opt_temp TABLE sql_qualified_name '(' sql_opt_table_element_list ')' sql_on_commit_option {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CREATE, {
             Attr(Key::SQL_CREATE_TABLE_TEMP, Enum(@2, $2)),
             Attr(Key::SQL_CREATE_TABLE_NAME, std::move($4)),
             Attr(Key::SQL_CREATE_TABLE_ELEMENTS, ctx.Add(Loc({@5, @6, @7}), std::move($6))),
             Attr(Key::SQL_CREATE_TABLE_ON_COMMIT, Enum(@8, $8)),
-        };
+        });
     }
     ;
 

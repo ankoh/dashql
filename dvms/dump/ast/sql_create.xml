@@ -36,7 +36,7 @@
                     ),
                 ],
                 columns: None,
-                as_statement: SelectStatement {
+                statement: SelectStatement {
                     all: false,
                     targets: [
                         Value {

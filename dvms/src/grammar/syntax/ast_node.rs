@@ -110,7 +110,9 @@ pub enum ASTNode<'text> {
     SQLType(SQLType<'text>),
 
     CreateAs(CreateAsStatement<'text>),
+    CreateView(CreateViewStatement<'text>),
     SelectStatement(SelectStatement<'text>),
+    SetStatement(SetStatement<'text>),
     FetchStatement(FetchStatement<'text>),
     InputStatement(InputStatement<'text>),
     LoadStatement(LoadStatement<'text>),

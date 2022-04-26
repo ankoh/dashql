@@ -342,11 +342,21 @@ pub struct CreateAsStatement<'text> {
     #[serde(borrow)]
     pub name: NamePath<'text>,
     pub columns: Option<Vec<&'text str>>,
-    pub as_statement: SelectStatement<'text>,
+    pub statement: SelectStatement<'text>,
     pub if_not_exists: bool,
     pub with_data: bool,
     #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
     #[serde(with = "serde_on_commit_option::opt")]
     pub on_commit: Option<sx::OnCommitOption>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct CreateViewStatement<'text> {
+    #[serde(borrow)]
+    pub name: NamePath<'text>,
+    pub columns: Option<Vec<&'text str>>,
+    pub statement: SelectStatement<'text>,
+    #[serde(with = "serde_temp_type::opt")]
+    pub temp: Option<sx::TempType>,
 }

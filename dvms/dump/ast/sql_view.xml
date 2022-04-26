@@ -8,7 +8,7 @@
                         <node key="SQL_VIEW_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="12..15" text="foo"/>
                         </node>
-                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="19..27" text="select 1">
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="19..27" text="select 1">
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>
@@ -24,5 +24,44 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        CreateView(
+            CreateViewStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                columns: None,
+                statement: SelectStatement {
+                    all: false,
+                    targets: [
+                        Value {
+                            value: StringRef(
+                                &quot;1&quot;,
+                            ),
+                            alias: None,
+                        },
+                    ],
+                    into: None,
+                    from: [],
+                    where_clause: None,
+                    order_by: [],
+                    group_by: [],
+                    having: None,
+                    windows: false,
+                    sample: None,
+                    row_locking: false,
+                    limit: None,
+                    offset: None,
+                },
+                temp: Some(
+                    DEFAULT,
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
 </astdumps>

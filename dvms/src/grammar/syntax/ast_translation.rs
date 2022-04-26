@@ -674,6 +674,17 @@ fn translate_statement<'text, 'ast>(
                     extra,
                 })
             }
+            sx::NodeType::OBJECT_DASHQL_SET => {
+                let mut value = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::DASHQL_SET_FIELDS, n) => value = Some(read_dson(n)?),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::SetStatement(SetStatement { fields: value.unwrap() })
+            }
             sx::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
                 let mut base = sx::CharacterType::VARCHAR;
                 let mut length = None;
@@ -751,11 +762,42 @@ fn translate_statement<'text, 'ast>(
                 ASTNode::CreateAs(CreateAsStatement {
                     name,
                     columns,
-                    as_statement: select.unwrap(),
+                    statement: select.unwrap(),
                     if_not_exists,
                     on_commit,
                     temp,
                     with_data,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_VIEW => {
+                let mut name = NamePath::default();
+                let mut select = None;
+                let mut columns = None;
+                let mut temp = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_VIEW_NAME, ASTNode::Array(n)) => name = read_name(n)?,
+                        (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s)) => select = Some(s),
+                        (Key::SQL_VIEW_TEMP, ASTNode::TempType(t)) => temp = Some(t),
+                        (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => {
+                            let mut col_names = Vec::new();
+                            for col in cols {
+                                match col {
+                                    ASTNode::StringRef(s) => col_names.push(s),
+                                    _ => unexpected_array_element!(k, col),
+                                }
+                            }
+                            columns = Some(col_names);
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::CreateView(CreateViewStatement {
+                    name,
+                    columns,
+                    statement: select.unwrap(),
+                    temp,
                 })
             }
             sx::NodeType::OBJECT_SQL_SELECT => {
@@ -864,6 +906,8 @@ fn translate_statement<'text, 'ast>(
         Some(ASTNode::VizStatement(s)) => Ok(Statement::Viz(s)),
         Some(ASTNode::LoadStatement(s)) => Ok(Statement::Load(s)),
         Some(ASTNode::CreateAs(s)) => Ok(Statement::CreateAs(s)),
+        Some(ASTNode::CreateView(s)) => Ok(Statement::CreateView(s)),
+        Some(ASTNode::SetStatement(s)) => Ok(Statement::Set(s)),
         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }

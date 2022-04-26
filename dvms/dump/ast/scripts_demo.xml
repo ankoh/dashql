@@ -903,7 +903,7 @@
                         <node key="SQL_VIEW_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="988..997" text="SWSCounts"/>
                         </node>
-                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="1017..1121" text="SELECT v.s..P BY v.sws">
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="1017..1121" text="SELECT v.s..P BY v.sws">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
                                 <node type="OBJECT_SQL_TABLEREF" loc="1077..1090" text="vorlesungen v">
                                     <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="1089..1090" text="v"/>
@@ -1149,5 +1149,937 @@
             </comments>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Fetch(
+            FetchStatement {
+                name: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                ],
+                method: NONE,
+                from_uri: Some(
+                    StringRef(
+                        &quot;&apos;https://dashql.blob.core.windows.net/static/data/uni/de/all.zip&apos;&quot;,
+                    ),
+                ),
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;vorlesungen&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;vorlesungen.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: NONE,
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;hoeren&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;hoeren.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: NONE,
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;studenten&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;uni&quot;,
+                    ),
+                    Index(
+                        IndirectionIndex {
+                            value: StringRef(
+                                &quot;&apos;studenten.parquet&apos;&quot;,
+                            ),
+                        },
+                    ),
+                ],
+                method: NONE,
+                extra: None,
+            },
+        ),
+        CreateAs(
+            CreateAsStatement {
+                name: [
+                    Name(
+                        &quot;Enrolments&quot;,
+                    ),
+                ],
+                columns: None,
+                statement: SelectStatement {
+                    all: false,
+                    targets: [
+                        Value {
+                            value: ColumnRef(
+                                [
+                                    Name(
+                                        &quot;studenten&quot;,
+                                    ),
+                                    Name(
+                                        &quot;MatrNr&quot;,
+                                    ),
+                                ],
+                            ),
+                            alias: None,
+                        },
+                        Value {
+                            value: ColumnRef(
+                                [
+                                    Name(
+                                        &quot;vorlesungen&quot;,
+                                    ),
+                                    Name(
+                                        &quot;Titel&quot;,
+                                    ),
+                                ],
+                            ),
+                            alias: None,
+                        },
+                    ],
+                    into: None,
+                    from: [
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;studenten&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;hoeren&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;vorlesungen&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                    ],
+                    where_clause: Some(
+                        Nary(
+                            NaryExpression {
+                                operator: AND,
+                                args: [
+                                    Nary(
+                                        NaryExpression {
+                                            operator: EQUAL,
+                                            args: [
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;studenten&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;MatrNr&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;hoeren&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;MatrNr&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                            postfix: false,
+                                        },
+                                    ),
+                                    Nary(
+                                        NaryExpression {
+                                            operator: EQUAL,
+                                            args: [
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;hoeren&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;VorlNr&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;vorlesungen&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;VorlNr&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                            postfix: false,
+                                        },
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                    ),
+                    order_by: [],
+                    group_by: [],
+                    having: None,
+                    windows: false,
+                    sample: None,
+                    row_locking: false,
+                    limit: None,
+                    offset: None,
+                },
+                if_not_exists: false,
+                with_data: true,
+                temp: Some(
+                    DEFAULT,
+                ),
+                on_commit: Some(
+                    NOOP,
+                ),
+            },
+        ),
+        CreateAs(
+            CreateAsStatement {
+                name: [
+                    Name(
+                        &quot;StudentsCounts&quot;,
+                    ),
+                ],
+                columns: None,
+                statement: SelectStatement {
+                    all: false,
+                    targets: [
+                        Value {
+                            value: ColumnRef(
+                                [
+                                    Name(
+                                        &quot;v&quot;,
+                                    ),
+                                    Name(
+                                        &quot;titel&quot;,
+                                    ),
+                                ],
+                            ),
+                            alias: None,
+                        },
+                        Value {
+                            value: Typecast(
+                                TypecastExpression {
+                                    value: FunctionCall(
+                                        FunctionExpression {
+                                            name: Some(
+                                                &quot;count&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;*&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                    ),
+                                    typename: SQLType {
+                                        base_type: Numeric(
+                                            NumericType {
+                                                base: INT4,
+                                                modifiers: [],
+                                            },
+                                        ),
+                                        array_bounds: [],
+                                        set_of: false,
+                                    },
+                                },
+                            ),
+                            alias: Some(
+                                &quot;studenten&quot;,
+                            ),
+                        },
+                    ],
+                    into: None,
+                    from: [
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;hoeren&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;vorlesungen&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                    ],
+                    where_clause: Some(
+                        Nary(
+                            NaryExpression {
+                                operator: EQUAL,
+                                args: [
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;h&quot;,
+                                            ),
+                                            Name(
+                                                &quot;vorlnr&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;v&quot;,
+                                            ),
+                                            Name(
+                                                &quot;vorlnr&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                    ),
+                    order_by: [],
+                    group_by: [
+                        Expression(
+                            ColumnRef(
+                                [
+                                    Name(
+                                        &quot;v&quot;,
+                                    ),
+                                    Name(
+                                        &quot;titel&quot;,
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                    having: None,
+                    windows: false,
+                    sample: None,
+                    row_locking: false,
+                    limit: None,
+                    offset: None,
+                },
+                if_not_exists: false,
+                with_data: true,
+                temp: Some(
+                    DEFAULT,
+                ),
+                on_commit: Some(
+                    NOOP,
+                ),
+            },
+        ),
+        CreateView(
+            CreateViewStatement {
+                name: [
+                    Name(
+                        &quot;SWSCounts&quot;,
+                    ),
+                ],
+                columns: None,
+                statement: SelectStatement {
+                    all: false,
+                    targets: [
+                        Value {
+                            value: ColumnRef(
+                                [
+                                    Name(
+                                        &quot;v&quot;,
+                                    ),
+                                    Name(
+                                        &quot;sws&quot;,
+                                    ),
+                                ],
+                            ),
+                            alias: None,
+                        },
+                        Value {
+                            value: Typecast(
+                                TypecastExpression {
+                                    value: FunctionCall(
+                                        FunctionExpression {
+                                            name: Some(
+                                                &quot;count&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;*&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                    ),
+                                    typename: SQLType {
+                                        base_type: Numeric(
+                                            NumericType {
+                                                base: INT4,
+                                                modifiers: [],
+                                            },
+                                        ),
+                                        array_bounds: [],
+                                        set_of: false,
+                                    },
+                                },
+                            ),
+                            alias: Some(
+                                &quot;cnt&quot;,
+                            ),
+                        },
+                    ],
+                    into: None,
+                    from: [
+                        Relation(
+                            RelationRef {
+                                name: [
+                                    Name(
+                                        &quot;vorlesungen&quot;,
+                                    ),
+                                ],
+                                inherit: true,
+                            },
+                        ),
+                    ],
+                    where_clause: None,
+                    order_by: [],
+                    group_by: [
+                        Expression(
+                            ColumnRef(
+                                [
+                                    Name(
+                                        &quot;v&quot;,
+                                    ),
+                                    Name(
+                                        &quot;sws&quot;,
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                    having: None,
+                    windows: false,
+                    sample: None,
+                    row_locking: false,
+                    limit: None,
+                    offset: None,
+                },
+                temp: Some(
+                    DEFAULT,
+                ),
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: [
+                            Name(
+                                &quot;Enrolments&quot;,
+                            ),
+                        ],
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            TABLE,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                [
+                                    DsonField {
+                                        key: &quot;DSON_POSITION&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_ROW&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;3&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;12&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;4&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_TITLE&quot;,
+                                        value: Expression(
+                                            StringRef(
+                                                &quot;&apos;Einschreibungen&apos;&quot;,
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: [
+                            Name(
+                                &quot;StudentCounts&quot;,
+                            ),
+                        ],
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            SPEC,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                [
+                                    DsonField {
+                                        key: &quot;DSON_POSITION&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_ROW&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;6&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;4&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_TITLE&quot;,
+                                        value: Expression(
+                                            StringRef(
+                                                &quot;&apos;Auslastung&apos;&quot;,
+                                            ),
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_ENCODING&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_X&quot;,
+                                                    value: Object(
+                                                        [
+                                                            DsonField {
+                                                                key: &quot;DSON_TITLE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;Studenten&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_AXIS&quot;,
+                                                                value: Object(
+                                                                    [
+                                                                        DsonField {
+                                                                            key: &quot;DSON_TICK_MIN_STEP&quot;,
+                                                                            value: Expression(
+                                                                                StringRef(
+                                                                                    &quot;1&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_FIELD&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;studenten&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_SCALE&quot;,
+                                                                value: Object(
+                                                                    [
+                                                                        DsonField {
+                                                                            key: &quot;DSON_ZERO&quot;,
+                                                                            value: Expression(
+                                                                                True,
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_TYPE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;quantitative&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_Y&quot;,
+                                                    value: Object(
+                                                        [
+                                                            DsonField {
+                                                                key: &quot;DSON_TITLE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;Vorlesungen&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_FIELD&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;Titel&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_TYPE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;nominal&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_MARK&quot;,
+                                        value: Expression(
+                                            StringRef(
+                                                &quot;&apos;bar&apos;&quot;,
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: [
+                            Name(
+                                &quot;SWSCounts&quot;,
+                            ),
+                        ],
+                        inherit: true,
+                    },
+                ),
+                components: [
+                    VizComponent {
+                        component_type: Some(
+                            SPEC,
+                        ),
+                        type_modifiers: 0,
+                        extra: Some(
+                            Object(
+                                [
+                                    DsonField {
+                                        key: &quot;DSON_POSITION&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_ROW&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;0&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;6&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;6&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;4&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_TITLE&quot;,
+                                        value: Expression(
+                                            StringRef(
+                                                &quot;&apos;Wochenstunden&apos;&quot;,
+                                            ),
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_ENCODING&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_COLOR&quot;,
+                                                    value: Object(
+                                                        [
+                                                            DsonField {
+                                                                key: &quot;DSON_FIELD&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;SWS&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_TYPE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;ordinal&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_THETA&quot;,
+                                                    value: Object(
+                                                        [
+                                                            DsonField {
+                                                                key: &quot;DSON_TITLE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;Vorlesungen&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_FIELD&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;cnt&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_SCALE&quot;,
+                                                                value: Object(
+                                                                    [
+                                                                        DsonField {
+                                                                            key: &quot;DSON_ZERO&quot;,
+                                                                            value: Expression(
+                                                                                True,
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                ),
+                                                            },
+                                                            DsonField {
+                                                                key: &quot;DSON_TYPE&quot;,
+                                                                value: Expression(
+                                                                    StringRef(
+                                                                        &quot;&apos;quantitative&apos;&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                    DsonField {
+                                        key: &quot;DSON_MARK&quot;,
+                                        value: Object(
+                                            [
+                                                DsonField {
+                                                    key: &quot;DSON_INNER_RADIUS&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;50&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                                DsonField {
+                                                    key: &quot;DSON_TYPE&quot;,
+                                                    value: Expression(
+                                                        StringRef(
+                                                            &quot;&apos;arc&apos;&quot;,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        ),
+                                    },
+                                ],
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ),
+    ],
+}</translated>
     </astdump>
 </astdumps>

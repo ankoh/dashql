@@ -12,6 +12,8 @@ macro_rules! unexpected {
 
 pub(super) fn read_expr<'text>(node: ASTNode<'text>) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
     let n = match node {
+        ASTNode::Boolean(true) => Expression::True,
+        ASTNode::Boolean(false) => Expression::False,
         ASTNode::Expression(e) => e,
         ASTNode::FunctionExpression(f) => Expression::FunctionCall(f),
         ASTNode::StringRef(s) => Expression::StringRef(s),
@@ -84,7 +86,7 @@ pub(super) fn read_dson<'text>(node: ASTNode<'text>) -> Result<DsonValue<'text>,
         ASTNode::Expression(e) => DsonValue::Expression(e),
         ASTNode::StringRef(s) => DsonValue::Expression(Expression::StringRef(s)),
         ASTNode::FunctionExpression(f) => DsonValue::Expression(Expression::FunctionCall(f)),
-        _ => unexpected!("dson key", node),
+        e => DsonValue::Expression(read_expr(e)?),
     };
     Ok(value)
 }

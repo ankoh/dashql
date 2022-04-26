@@ -49,3 +49,9 @@ pub struct VizComponent<'text> {
     #[serde(borrow)]
     pub extra: Option<DsonValue<'text>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetStatement<'text> {
+    #[serde(borrow)]
+    pub fields: DsonValue<'text>,
+}
