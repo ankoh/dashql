@@ -185,10 +185,10 @@ pub struct Into<'text> {
     pub name: NamePath<'text>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Alias<'text> {
-    name: &'text str,
-    columns: Vec<&'text str>,
+    pub name: &'text str,
+    pub columns: Vec<&'text str>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -325,4 +325,18 @@ pub struct SelectStatement<'text> {
     pub row_locking: bool,
     pub limit: Option<Limit<'text>>,
     pub offset: Option<Box<Expression<'text>>>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct CreateAsStatement<'text> {
+    #[serde(borrow)]
+    pub name: NamePath<'text>,
+    pub columns: Option<Vec<&'text str>>,
+    pub as_statement: SelectStatement<'text>,
+    pub if_not_exists: bool,
+    pub with_data: bool,
+    #[serde(with = "serde_temp_type::opt")]
+    pub temp: Option<sx::TempType>,
+    #[serde(with = "serde_on_commit_option::opt")]
+    pub on_commit: Option<sx::OnCommitOption>,
 }

@@ -862,17 +862,16 @@
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="769..799" text="count(*)::.. studenten">
                                     <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="790..799" text="studenten"/>
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="769..786" text="count(*)::INTEGER">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="769..777" text="count(*)">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="769..786" text="count(*)::INTEGER">
+                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="779..786" text="INTEGER">
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                        </node>
+                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="769..777" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                                 <node type="STRING_REF" loc="775..776" text="*"/>
                                             </node>
                                             <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="769..774" text="count"/>
                                         </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="779..786" text="INTEGER">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="TYPECAST"/>
                                     </node>
                                 </node>
                             </node>
@@ -930,17 +929,16 @@
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="1031..1055" text="count(*)::..GER as cnt">
                                     <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="1052..1055" text="cnt"/>
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="1031..1048" text="count(*)::INTEGER">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1031..1039" text="count(*)">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="1031..1048" text="count(*)::INTEGER">
+                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="1041..1048" text="INTEGER">
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                        </node>
+                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1031..1039" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                                 <node type="STRING_REF" loc="1037..1038" text="*"/>
                                             </node>
                                             <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="1031..1036" text="count"/>
                                         </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="1041..1048" text="INTEGER">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="TYPECAST"/>
                                     </node>
                                 </node>
                             </node>

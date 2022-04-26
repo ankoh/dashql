@@ -1166,8 +1166,13 @@ sql_interval_second:
 // you expect!  So we use %prec annotations freely to set precedences.
 
 sql_a_expr:
-    sql_c_expr                                                  { $$ = $1; }
-  | sql_a_expr TYPECAST sql_typename                            { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::TYPECAST), $1, $3); }
+    sql_c_expr { $$ = $1; }
+  | sql_a_expr TYPECAST sql_typename {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
+            Attr(Key::SQL_TYPECAST_VALUE, $1),
+            Attr(Key::SQL_TYPECAST_TYPE, $3),
+        });
+    }
   | sql_a_expr COLLATE sql_any_name                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::COLLATE), $1, ctx.Add(@3, std::move($3))); }
   | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT            { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::AT_TIMEZONE), $1, $5); }
 

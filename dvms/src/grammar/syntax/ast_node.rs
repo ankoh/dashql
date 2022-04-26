@@ -103,8 +103,10 @@ pub enum ASTNode<'text> {
     ColumnRef(NamePath<'text>),
     FunctionArgument(FunctionArgument<'text>),
     FunctionExpression(FunctionExpression<'text>),
+    TypecastExpression(TypecastExpression<'text>),
     SQLType(SQLType<'text>),
 
+    CreateAs(CreateAsStatement<'text>),
     SelectStatement(SelectStatement<'text>),
     FetchStatement(FetchStatement<'text>),
     InputStatement(InputStatement<'text>),

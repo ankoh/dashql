@@ -26,6 +26,50 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        CreateAs(
+            CreateAsStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                columns: None,
+                as_statement: SelectStatement {
+                    all: false,
+                    targets: [
+                        Value {
+                            value: StringRef(
+                                &quot;1&quot;,
+                            ),
+                            alias: None,
+                        },
+                    ],
+                    into: None,
+                    from: [],
+                    where_clause: None,
+                    group_by: false,
+                    having: false,
+                    order_by: false,
+                    windows: false,
+                    sample: None,
+                    row_locking: false,
+                    limit: None,
+                    offset: None,
+                },
+                if_not_exists: false,
+                with_data: true,
+                temp: Some(
+                    DEFAULT,
+                ),
+                on_commit: Some(
+                    NOOP,
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="create_table_1">
         <input>create table foo (a integer)</input>

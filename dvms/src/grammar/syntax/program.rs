@@ -11,6 +11,7 @@ pub enum Statement<'text> {
     Fetch(FetchStatement<'text>),
     Load(LoadStatement<'text>),
     Viz(VizStatement<'text>),
+    CreateAs(CreateAsStatement<'text>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

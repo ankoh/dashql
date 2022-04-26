@@ -13,8 +13,10 @@ macro_rules! unexpected {
 pub(super) fn read_expr<'text>(node: ASTNode<'text>) -> Result<Expression<'text>, Box<dyn Error + Send + Sync>> {
     let n = match node {
         ASTNode::Expression(e) => e,
+        ASTNode::FunctionExpression(f) => Expression::FunctionCall(f),
         ASTNode::StringRef(s) => Expression::StringRef(s),
         ASTNode::ColumnRef(c) => Expression::ColumnRef(c),
+        ASTNode::TypecastExpression(c) => Expression::Typecast(c),
         _ => return Err(RawError::from(format!("invalid expression node: {:?}", node)).boxed()),
     };
     Ok(n)

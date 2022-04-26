@@ -250,6 +250,12 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t)) => joined = Some(t),
                         (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t)) => func = Some(t),
                         (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a)) => alias = Some(a),
+                        (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s)) => {
+                            alias = Some(Alias {
+                                name: s,
+                                ..Alias::default()
+                            })
+                        }
                         (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(b)) => lateral = b,
                         (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(s),
                         (k, c) => unexpected_attr!(k, c),
@@ -471,7 +477,10 @@ fn translate_statement<'text, 'ast>(
                             for node in nodes {
                                 match node {
                                     ASTNode::FunctionArgument(t) => func_args.push(t),
-                                    _ => unexpected_array_element!(k, node),
+                                    e => func_args.push(FunctionArgument {
+                                        name: None,
+                                        value: read_expr(e)?,
+                                    }),
                                 }
                             }
                         }
@@ -483,6 +492,22 @@ fn translate_statement<'text, 'ast>(
                     arguments: func_args,
                     argument_ordering: func_arg_ordering,
                     ..Default::default()
+                })
+            }
+            sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {
+                let mut value = None;
+                let mut typename = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_TYPECAST_VALUE, v) => value = Some(read_expr(v)?),
+                        (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t)) => typename = Some(t),
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::TypecastExpression(TypecastExpression {
+                    value: Box::new(value.unwrap()),
+                    typename: Box::new(typename.unwrap()),
                 })
             }
             sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
@@ -658,6 +683,46 @@ fn translate_statement<'text, 'ast>(
                 }
                 ASTNode::Sample(Sample { function, repeat, seed })
             }
+            sx::NodeType::OBJECT_SQL_CREATE_AS => {
+                let mut name = NamePath::default();
+                let mut select = None;
+                let mut with_data = false;
+                let mut if_not_exists = false;
+                let mut columns = None;
+                let mut temp = None;
+                let mut on_commit = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_CREATE_AS_NAME, ASTNode::Array(n)) => name = read_name(n)?,
+                        (Key::SQL_CREATE_AS_STATEMENT, ASTNode::SelectStatement(s)) => select = Some(s),
+                        (Key::SQL_CREATE_AS_WITH_DATA, ASTNode::Boolean(b)) => with_data = b,
+                        (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b)) => if_not_exists = b,
+                        (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t)) => temp = Some(t),
+                        (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o),
+                        (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(cols)) => {
+                            let mut col_names = Vec::new();
+                            for col in cols {
+                                match col {
+                                    ASTNode::StringRef(s) => col_names.push(s),
+                                    _ => unexpected_array_element!(k, col),
+                                }
+                            }
+                            columns = Some(col_names);
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::CreateAs(CreateAsStatement {
+                    name,
+                    columns,
+                    as_statement: select.unwrap(),
+                    if_not_exists,
+                    on_commit,
+                    temp,
+                    with_data,
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut targets = Vec::new();
                 let mut from = Vec::new();
@@ -750,6 +815,7 @@ fn translate_statement<'text, 'ast>(
         Some(ASTNode::FetchStatement(s)) => Ok(Statement::Fetch(s)),
         Some(ASTNode::VizStatement(s)) => Ok(Statement::Viz(s)),
         Some(ASTNode::LoadStatement(s)) => Ok(Statement::Load(s)),
+        Some(ASTNode::CreateAs(s)) => Ok(Statement::CreateAs(s)),
         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
     }
 }
