@@ -35,8 +35,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -83,8 +83,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -131,8 +131,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -187,8 +187,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -243,8 +243,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -299,8 +299,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -362,8 +362,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -410,8 +410,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -458,8 +458,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -506,8 +506,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -557,8 +557,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -646,8 +646,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -721,8 +721,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -800,8 +800,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -879,8 +879,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -959,8 +959,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -1050,8 +1050,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -1156,8 +1156,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -1243,8 +1243,8 @@
                         ),
                     ),
                 ],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -1996,6 +1996,50 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                group_by: [],
+                order_by: [
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: None,
+                        null_rule: None,
+                    },
+                ],
+                having: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_a_orderby_b_c">
         <input>select a order by b, c</input>
@@ -2036,6 +2080,61 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                group_by: [],
+                order_by: [
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: None,
+                        null_rule: None,
+                    },
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: None,
+                        null_rule: None,
+                    },
+                ],
+                having: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_a_orderby_b_c_directions">
         <input>select a order by b asc, c desc</input>
@@ -2078,6 +2177,65 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                group_by: [],
+                order_by: [
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: Some(
+                            ASCENDING,
+                        ),
+                        null_rule: None,
+                    },
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: Some(
+                            DESCENDING,
+                        ),
+                        null_rule: None,
+                    },
+                ],
+                having: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_a_orderby_b_c_directions_nulls">
         <input>select a order by b asc nulls first, c desc nulls last</input>
@@ -2122,6 +2280,69 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;a&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                group_by: [],
+                order_by: [
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;b&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: Some(
+                            ASCENDING,
+                        ),
+                        null_rule: Some(
+                            NULLS_FIRST,
+                        ),
+                    },
+                    OrderSpecification {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;c&quot;,
+                                ),
+                            ],
+                        ),
+                        direction: Some(
+                            DESCENDING,
+                        ),
+                        null_rule: Some(
+                            NULLS_LAST,
+                        ),
+                    },
+                ],
+                having: false,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_ref">
         <input>select 1 into b;
@@ -2194,8 +2415,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2229,8 +2450,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2370,8 +2591,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2446,8 +2667,8 @@
                     ),
                 ),
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2676,8 +2897,8 @@
                     ),
                 ),
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2829,8 +3050,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -2896,8 +3117,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3016,8 +3237,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3082,8 +3303,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3148,8 +3369,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3546,8 +3767,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3613,8 +3834,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3680,8 +3901,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3747,8 +3968,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3814,8 +4035,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3881,8 +4102,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -3944,8 +4165,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -4011,8 +4232,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -4170,8 +4391,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -4249,8 +4470,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -4564,8 +4785,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -5097,8 +5318,8 @@
                 from: [],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -6047,8 +6268,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -6140,8 +6361,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -6630,8 +6851,8 @@
                     ),
                 ),
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -6887,8 +7108,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -6982,8 +7203,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -7695,8 +7916,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -7780,8 +8001,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -7846,8 +8067,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -7915,8 +8136,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -7984,8 +8205,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -8053,8 +8274,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
@@ -8123,8 +8344,8 @@
                 ],
                 where_clause: None,
                 group_by: [],
+                order_by: [],
                 having: false,
-                order_by: false,
                 windows: false,
                 sample: None,
                 row_locking: false,
