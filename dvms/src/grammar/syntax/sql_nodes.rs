@@ -329,7 +329,7 @@ pub struct SelectStatement<'text> {
     pub where_clause: Option<Box<Expression<'text>>>,
     pub order_by: Vec<OrderSpecification<'text>>,
     pub group_by: Vec<GroupByItem<'text>>,
-    pub having: bool,
+    pub having: Option<Box<Expression<'text>>>,
     pub windows: bool,
     pub sample: Option<Sample<'text>>,
     pub row_locking: bool,

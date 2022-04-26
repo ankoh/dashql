@@ -51,7 +51,7 @@
                     where_clause: None,
                     order_by: [],
                     group_by: [],
-                    having: false,
+                    having: None,
                     windows: false,
                     sample: None,
                     row_locking: false,

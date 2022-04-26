@@ -766,6 +766,7 @@ fn translate_statement<'text, 'ast>(
                 let mut limit = None;
                 let mut offset = None;
                 let mut sample = None;
+                let mut having = None;
                 let mut group_by = Vec::new();
                 let mut order_by = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
@@ -777,6 +778,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_SELECT_LIMIT, n) => limit = Some(Limit::Expression(Box::new(read_expr(n)?))),
                         (Key::SQL_SELECT_OFFSET, n) => offset = Some(Box::new(read_expr(n)?)),
                         (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = read_ordering(nodes)?,
+                        (Key::SQL_SELECT_HAVING, n) => having = Some(Box::new(read_expr(n)?)),
                         (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
                         (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
                             for node in nodes {
@@ -813,7 +815,7 @@ fn translate_statement<'text, 'ast>(
                     where_clause,
                     group_by,
                     order_by,
-                    having: false,
+                    having,
                     windows: false,
                     sample,
                     row_locking: false,
