@@ -271,3 +271,11 @@ enum SampleCountUnit: uint8 {
     PERCENT,
     ROWS,
 }
+
+enum GroupByItemType: uint8 {
+    EMPTY,
+    EXPRESSION,
+    CUBE,
+    ROLLUP,
+    GROUPING_SETS,
+}

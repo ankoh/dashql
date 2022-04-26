@@ -49,7 +49,7 @@
                     into: None,
                     from: [],
                     where_clause: None,
-                    group_by: false,
+                    group_by: [],
                     having: false,
                     order_by: false,
                     windows: false,

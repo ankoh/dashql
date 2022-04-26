@@ -441,8 +441,35 @@ sql_group_by_list:
     ;
 
 sql_group_by_item:
-    sql_a_expr              { $$ = std::move($1); }
-  | sql_empty_grouping_set  { $$ = {}; }
+    sql_a_expr {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@$, sx::GroupByItemType::EXPRESSION)),
+            Attr(Key::SQL_GROUP_BY_ITEM_ARG, std::move($1)),
+        });
+    }
+  | sql_empty_grouping_set {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::EMPTY)),
+        }); 
+    }
+  | CUBE '(' sql_expr_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::CUBE)),
+            Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@3, std::move($3))),
+        }); 
+    }
+  | ROLLUP '(' sql_expr_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::ROLLUP)),
+            Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@3, std::move($3))),
+        }); 
+    }
+  | GROUPING SETS '(' sql_expr_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(Loc({@1, @2}), sx::GroupByItemType::GROUPING_SETS)),
+            Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@4, std::move($4))),
+        }); 
+    }
     ;
 
 sql_empty_grouping_set:

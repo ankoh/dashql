@@ -6,13 +6,14 @@ use super::program::*;
 use super::sql_nodes::*;
 use crate::error::RawError;
 use dashql_proto::syntax as sx;
+use dashql_proto::syntax::GroupByItemType;
 use std::error::Error;
 use sx::AttributeKey as Key;
 
 macro_rules! unexpected_attr {
     ($key:expr, $child:expr) => {
         return Err(RawError::from(format!(
-            "unexpected node: {} => {:?}",
+            "unexpected attribute: {} => {:?}",
             $key.variant_name().unwrap_or(&format!("{}", $key.0)),
             $child
         ))
@@ -94,6 +95,7 @@ fn translate_statement<'text, 'ast>(
             sx::NodeType::ENUM_SQL_CONST_TYPE => ASTNode::ConstType(sx::AConstType(v as u8)),
             sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR => map_enum!(ExpressionOperator, v),
             sx::NodeType::ENUM_SQL_EXTRACT_TARGET => map_enum!(ExtractTarget, v),
+            sx::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE => map_enum!(GroupByItemType, v),
             sx::NodeType::ENUM_SQL_INTERVAL_TYPE => map_enum!(IntervalType, v),
             sx::NodeType::ENUM_SQL_KNOWN_FUNCTION => map_enum!(KnownFunction, v),
             sx::NodeType::ENUM_SQL_NUMERIC_TYPE => map_enum!(NumericType, v),
@@ -543,6 +545,38 @@ fn translate_statement<'text, 'ast>(
                     with_timezone,
                 })
             }
+            sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM => {
+                let mut item_type = GroupByItemType::EMPTY;
+                let mut expr = None;
+                let mut args = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_GROUP_BY_ITEM_TYPE, ASTNode::GroupByItemType(t)) => item_type = t,
+                        (Key::SQL_GROUP_BY_ITEM_ARG, n) => expr = Some(read_expr(n)?),
+                        (Key::SQL_GROUP_BY_ITEM_ARGS, ASTNode::Array(nodes)) => args = nodes,
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                let item = match item_type {
+                    GroupByItemType::EMPTY => GroupByItem::Empty,
+                    GroupByItemType::EXPRESSION => GroupByItem::Expression(Box::new(expr.unwrap())),
+                    GroupByItemType::CUBE => GroupByItem::Cube(read_exprs(args)?),
+                    GroupByItemType::ROLLUP => GroupByItem::Rollup(read_exprs(args)?),
+                    GroupByItemType::GROUPING_SETS => {
+                        let mut items = Vec::new();
+                        for arg in args {
+                            match arg {
+                                ASTNode::GroupByItem(i) => items.push(i),
+                                _ => unexpected_attr!(Key::SQL_GROUP_BY_ITEM_ARGS, arg),
+                            }
+                        }
+                        GroupByItem::GroupingSets(items)
+                    }
+                    _ => return Err(RawError::from(format!("invalid group by item type: {:?}", item_type)).boxed()),
+                };
+                ASTNode::GroupByItem(item)
+            }
             sx::NodeType::OBJECT_SQL_TYPENAME => {
                 let mut base = None;
                 let mut set_of = false;
@@ -732,6 +766,7 @@ fn translate_statement<'text, 'ast>(
                 let mut limit = None;
                 let mut offset = None;
                 let mut sample = None;
+                let mut group_by = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
@@ -757,6 +792,14 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
+                        (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::GroupByItem(i) => group_by.push(i),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
@@ -766,7 +809,7 @@ fn translate_statement<'text, 'ast>(
                     into,
                     from,
                     where_clause,
-                    group_by: false,
+                    group_by,
                     having: false,
                     order_by: false,
                     windows: false,

@@ -84,6 +84,16 @@ pub struct OrderSpecification<'text> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GroupByItem<'text> {
+    Empty,
+    #[serde(borrow)]
+    Expression(Box<Expression<'text>>),
+    Cube(Vec<Expression<'text>>),
+    Rollup(Vec<Expression<'text>>),
+    GroupingSets(Vec<GroupByItem<'text>>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum IntervalSpecification<'text> {
     Raw(&'text str),
     Type {
@@ -317,7 +327,7 @@ pub struct SelectStatement<'text> {
     pub into: Option<Into<'text>>,
     pub from: Vec<TableRef<'text>>,
     pub where_clause: Option<Box<Expression<'text>>>,
-    pub group_by: bool,
+    pub group_by: Vec<GroupByItem<'text>>,
     pub having: bool,
     pub order_by: bool,
     pub windows: bool,

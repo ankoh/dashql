@@ -40,6 +40,8 @@ pub enum ASTNode<'text> {
     ExpressionOperator(sx::ExpressionOperator),
     #[serde(with = "serde_extract_target")]
     ExtractTarget(sx::ExtractTarget),
+    #[serde(with = "serde_group_by_item_type")]
+    GroupByItemType(sx::GroupByItemType),
     #[serde(with = "serde_interval_type")]
     IntervalType(sx::IntervalType),
     #[serde(with = "serde_join_type")]
@@ -95,6 +97,7 @@ pub enum ASTNode<'text> {
     TableRef(TableRef<'text>),
 
     OrderSpecification(OrderSpecification<'text>),
+    GroupByItem(GroupByItem<'text>),
     Expression(Expression<'text>),
     Indirection(Indirection<'text>),
     IntervalSpecification(IntervalSpecification<'text>),

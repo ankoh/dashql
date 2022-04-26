@@ -357,7 +357,7 @@
                     ),
                 ],
                 where_clause: None,
-                group_by: false,
+                group_by: [],
                 having: false,
                 order_by: false,
                 windows: false,
@@ -844,11 +844,14 @@
                                 </node>
                             </node>
                             <node key="SQL_SELECT_GROUPS" type="ARRAY">
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="912..919" text="v.titel">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="912..913" text="v"/>
-                                        <node type="STRING_REF" loc="914..919" text="titel"/>
+                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="912..919" text="v.titel">
+                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="912..919" text="v.titel">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="912..913" text="v"/>
+                                            <node type="STRING_REF" loc="914..919" text="titel"/>
+                                        </node>
                                     </node>
+                                    <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
@@ -911,11 +914,14 @@
                                 </node>
                             </node>
                             <node key="SQL_SELECT_GROUPS" type="ARRAY">
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="1116..1121" text="v.sws">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="1116..1117" text="v"/>
-                                        <node type="STRING_REF" loc="1118..1121" text="sws"/>
+                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="1116..1121" text="v.sws">
+                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="1116..1121" text="v.sws">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="1116..1117" text="v"/>
+                                            <node type="STRING_REF" loc="1118..1121" text="sws"/>
+                                        </node>
                                     </node>
+                                    <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
