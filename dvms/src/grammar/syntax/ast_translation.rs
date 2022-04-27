@@ -82,7 +82,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
     let buffer_nodes = buffer.nodes().unwrap_or_default();
 
     // Translate all nodes from left-to-right
-    let mut nodes = arena.alloc_slice_fill_default(buffer_nodes.len());
+    let nodes = arena.alloc_slice_fill_default(buffer_nodes.len());
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
         let node_type = node.node_type();
@@ -124,7 +124,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                         ASTNode::Null => Default::default(),
                         ASTNode::$node_type(inner) => inner.clone(),
                         _ => {
-                            debug_assert!(false, "invalid node: {:?}", &nodes[i]);
+                            debug_assert!(false, "invalid node: {:?}", &$nodes[i]);
                             Default::default()
                         }
                     };
@@ -253,7 +253,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 })
             }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
-                let mut args = arena.alloc_slice_fill_default(3);
+                let args = arena.alloc_slice_fill_default(3);
                 let mut operator: sx::ExpressionOperator = sx::ExpressionOperator::PLUS;
                 let mut postfix = false;
                 read_attributes! {
@@ -573,7 +573,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     GroupByItemType::CUBE => GroupByItem::Cube(read_exprs(arena, args)),
                     GroupByItemType::ROLLUP => GroupByItem::Rollup(read_exprs(arena, args)),
                     GroupByItemType::GROUPING_SETS => {
-                        let mut items = arena.alloc_slice_fill_default(args.len());
+                        let items = arena.alloc_slice_fill_default(args.len());
                         for (i, arg) in args.iter().enumerate() {
                             match arg {
                                 ASTNode::GroupByItem(item) => items[i] = item.clone(),
@@ -828,7 +828,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 }))
             }
             sx::NodeType::OBJECT_DSON => {
-                let mut fields = arena.alloc_slice_fill_default(children.len());
+                let fields = arena.alloc_slice_fill_default(children.len());
                 for i in 0..children.len() {
                     let c = &children[i];
                     let k = sx::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
@@ -847,6 +847,9 @@ pub fn translate_ast<'text, 'ast, 'arena>(
             }
             t => return Err(RawError::from(format!("node translation not implemented for: {:?}", t)).boxed()),
         };
+
+        // Remember translated node
+        nodes[node_id] = translated;
     }
 
     // Do a postorder dfs traversal
