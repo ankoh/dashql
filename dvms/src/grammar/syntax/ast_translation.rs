@@ -118,9 +118,9 @@ pub fn translate_ast<'text, 'ast, 'arena>(
         // Helper to read a node array
         macro_rules! cast_nodes_or_default {
             ($nodes:expr, $node_type:ident) => {{
-                let out = arena.alloc_slice_fill_default(nodes.len());
-                for i in 0..nodes.len() {
-                    out[i] = match &nodes[i] {
+                let out = arena.alloc_slice_fill_default($nodes.len());
+                for i in 0..$nodes.len() {
+                    out[i] = match &$nodes[i] {
                         ASTNode::Null => Default::default(),
                         ASTNode::$node_type(inner) => inner.clone(),
                         _ => {
