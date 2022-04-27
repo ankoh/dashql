@@ -252,11 +252,19 @@ pub struct FunctionTableRef<'text> {
     pub lateral: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum JoinQualifier<'text> {
+    #[serde(borrow)]
+    On(Box<Expression<'text>>),
+    Using(Vec<&'text str>),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct JoinedTable<'text> {
     #[serde(with = "serde_join_type")]
     pub join: sx::JoinType,
     #[serde(borrow)]
+    pub qualifier: Option<JoinQualifier<'text>>,
     pub input: Vec<TableRef<'text>>,
 }
 

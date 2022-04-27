@@ -425,11 +425,23 @@ fn translate_statement<'text, 'ast>(
             }
             sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
                 let mut join = sx::JoinType::NONE;
+                let mut qualifier = None;
                 let mut input = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t)) => join = t,
+                        (Key::SQL_JOIN_ON, n) => qualifier = Some(JoinQualifier::On(Box::new(read_expr(n)?))),
+                        (Key::SQL_JOIN_USING, ASTNode::Array(nodes)) => {
+                            let mut using = Vec::new();
+                            for node in nodes {
+                                match node {
+                                    ASTNode::StringRef(s) => using.push(s),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                            qualifier = Some(JoinQualifier::Using(using));
+                        }
                         (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => {
                             for node in nodes {
                                 match node {
@@ -441,7 +453,7 @@ fn translate_statement<'text, 'ast>(
                         (k, c) => unexpected_attr!(k, c),
                     }
                 }
-                ASTNode::JoinedTable(JoinedTable { join, input })
+                ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
             }
             sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
                 let mut elem_name = "";

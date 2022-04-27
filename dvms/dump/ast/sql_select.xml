@@ -7938,6 +7938,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: INNER,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;c&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_2">
         <input>SELECT * FROM a JOIN b ON c = d</input>
@@ -7992,6 +8072,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: INNER,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;c&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_3">
         <input>SELECT * FROM a CROSS JOIN b</input>
@@ -8047,6 +8207,7 @@
                         JoinedTableRef {
                             table: JoinedTable {
                                 join: NONE,
+                                qualifier: None,
                                 input: [
                                     Relation(
                                         RelationRef {
@@ -8142,6 +8303,7 @@
                         JoinedTableRef {
                             table: JoinedTable {
                                 join: NATURAL_INNER,
+                                qualifier: None,
                                 input: [
                                     Relation(
                                         RelationRef {
@@ -8236,6 +8398,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: OUTER_LEFT,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;c&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_6">
         <input>SELECT * FROM a LEFT JOIN b ON foo = d</input>
@@ -8290,6 +8532,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: LEFT,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;foo&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_7">
         <input>SELECT * FROM a RIGHT JOIN b ON c = d</input>
@@ -8344,6 +8666,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: RIGHT,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;c&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_8">
         <input>SELECT * FROM a FULL OUTER JOIN b ON c = d</input>
@@ -8398,6 +8800,86 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: OUTER_FULL,
+                                qualifier: Some(
+                                    On(
+                                        Nary(
+                                            NaryExpression {
+                                                operator: EQUAL,
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;c&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;d&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_9">
         <input>SELECT * FROM a INNER JOIN b USING (c, d)</input>
@@ -8443,6 +8925,68 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Join(
+                        JoinedTableRef {
+                            table: JoinedTable {
+                                join: INNER,
+                                qualifier: Some(
+                                    Using(
+                                        [
+                                            &quot;c&quot;,
+                                            &quot;d&quot;,
+                                        ],
+                                    ),
+                                ),
+                                input: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                            },
+                            alias: None,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_1">
         <input>SELECT * FROM (SELECT * FROM mytable FOR UPDATE) ss WHERE col1 = 5;</input>
