@@ -11,9 +11,10 @@ use std::error::Error;
 use sx::AttributeKey as Key;
 
 macro_rules! unexpected_attr {
-    ($key:expr, $child:expr) => {
+    ($node:expr, $key:expr, $child:expr) => {
         return Err(RawError::from(format!(
-            "unexpected attribute: {} => {:?}",
+            "unexpected attribute: {:?}.{} => {:?}",
+            $node,
             $key.variant_name().unwrap_or(&format!("{}", $key.0)),
             $child
         ))
@@ -24,7 +25,7 @@ macro_rules! unexpected_attr {
 macro_rules! unexpected_array_element {
     ($key:expr, $value:expr) => {
         return Err(RawError::from(format!(
-            "unexpected node: {}[] => {:?}",
+            "unexpected element: {}[] => {:?}",
             $key.variant_name().unwrap_or_default(),
             $value
         ))
@@ -70,7 +71,8 @@ fn translate_statement<'text, 'ast>(
         }
 
         // Translate the node
-        let c = match t.node_type() {
+        let nt = t.node_type();
+        let n = match nt {
             sx::NodeType::NONE => ASTNode::Null,
             sx::NodeType::BOOL => ASTNode::Boolean(t.children_begin_or_value() != 0),
             sx::NodeType::UI32 => ASTNode::UInt32(t.children_begin_or_value()),
@@ -126,7 +128,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_INDIRECTION_INDEX_VALUE, n) => val = Some(read_expr(n)?),
                         (Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, n) => lb = Some(read_expr(n)?),
                         (Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, n) => ub = Some(read_expr(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Indirection(if let Some(val) = val {
@@ -147,7 +149,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s),
                         (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => modifiers = read_exprs(a)?,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::GenericTypeInfo(GenericType {
@@ -165,7 +167,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_ORDER_VALUE, n) => value = Some(read_expr(n)?),
                         (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d)) => direction = Some(d),
                         (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n)) => null_rule = Some(n),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::OrderSpecification(OrderSpecification {
@@ -182,7 +184,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => ty = Some(t),
                         (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::IntervalSpecification(IntervalSpecification::Type {
@@ -200,7 +202,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(true)) => star = true,
                         (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr(n)?),
                         (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s)) => alias = Some(s),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::ResultTarget(if star {
@@ -226,7 +228,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_EXPRESSION_OPERATOR, ASTNode::ExpressionOperator(op)) => {
                             operator = op;
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Expression(Expression::Nary(NaryExpression {
@@ -261,7 +263,7 @@ fn translate_statement<'text, 'ast>(
                         }
                         (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(b)) => lateral = b,
                         (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(s),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::TableRef(if let Some(table) = select {
@@ -302,7 +304,7 @@ fn translate_statement<'text, 'ast>(
                             count = Some(v);
                         }
                         (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => count_unit = Some(u),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::TableSample(TableSample {
@@ -334,7 +336,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
                             interval = Some(IntervalSpecification::Raw(s));
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Expression(Expression::ConstCast(ConstCastExpression {
@@ -370,7 +372,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Alias(Alias {
@@ -391,7 +393,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m)) => method = m,
                         (Key::DASHQL_FETCH_FROM_URI, n) => from_uri = Some(read_expr(n)?),
                         (Key::DASHQL_FETCH_EXTRA, n) => extra = Some(read_dson(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::FetchStatement(FetchStatement {
@@ -413,7 +415,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_DATA_SOURCE, ASTNode::Array(a)) => source = read_name(a)?,
                         (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m)) => method = m,
                         (Key::DASHQL_LOAD_EXTRA, n) => extra = Some(read_dson(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::LoadStatement(LoadStatement {
@@ -450,7 +452,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
@@ -474,7 +476,7 @@ fn translate_statement<'text, 'ast>(
                             }
                             collate = Some(name);
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::ColumnDefinition(ColumnDefinition {
@@ -503,7 +505,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::FunctionTable(FunctionTable {
@@ -518,7 +520,7 @@ fn translate_statement<'text, 'ast>(
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => name = Some(read_name(a)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Expression(Expression::ColumnRef(name.unwrap_or_default()))
@@ -531,7 +533,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => name = Some(s),
                         (Key::SQL_FUNCTION_ARG_VALUE, n) => value = Some(read_expr(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::FunctionArgument(FunctionArgument {
@@ -561,7 +563,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::FunctionExpression(FunctionExpression {
@@ -579,7 +581,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_TYPECAST_VALUE, v) => value = Some(read_expr(v)?),
                         (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t)) => typename = Some(t),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::TypecastExpression(TypecastExpression {
@@ -595,7 +597,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
                         (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::TimestampTypeInfo(TimestampType {
@@ -611,7 +613,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s),
                         (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::TimeTypeInfo(TimeType {
@@ -629,7 +631,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_GROUP_BY_ITEM_TYPE, ASTNode::GroupByItemType(t)) => item_type = t,
                         (Key::SQL_GROUP_BY_ITEM_ARG, n) => expr = Some(read_expr(n)?),
                         (Key::SQL_GROUP_BY_ITEM_ARGS, ASTNode::Array(nodes)) => args = nodes,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 let item = match item_type {
@@ -642,7 +644,7 @@ fn translate_statement<'text, 'ast>(
                         for arg in args {
                             match arg {
                                 ASTNode::GroupByItem(i) => items.push(i),
-                                _ => unexpected_attr!(Key::SQL_GROUP_BY_ITEM_ARGS, arg),
+                                _ => unexpected_attr!(nt, Key::SQL_GROUP_BY_ITEM_ARGS, arg),
                             }
                         }
                         GroupByItem::GroupingSets(items)
@@ -676,7 +678,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalTypeInfo(t)) => base = Some(SQLBaseType::Interval(t)),
                         (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = b,
                         (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(n)?,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::SQLType(SQLType {
@@ -697,7 +699,7 @@ fn translate_statement<'text, 'ast>(
                             type_modifiers = mods
                         }
                         (Key::DASHQL_VIZ_COMPONENT_EXTRA, n) => extra = Some(read_dson(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::VizComponent(VizComponent {
@@ -721,7 +723,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::VizStatement(VizStatement { target, components })
@@ -738,7 +740,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = t,
                         (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = Some(t),
                         (Key::DASHQL_INPUT_EXTRA, n) => extra = Some(read_dson(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::InputStatement(InputStatement {
@@ -754,7 +756,7 @@ fn translate_statement<'text, 'ast>(
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::DASHQL_SET_FIELDS, n) => value = Some(read_dson(n)?),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::SetStatement(SetStatement { fields: value.unwrap() })
@@ -767,7 +769,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c)) => base = c,
                         (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l)) => length = Some(l),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::CharacterTypeInfo(CharacterType { base, length })
@@ -780,7 +782,7 @@ fn translate_statement<'text, 'ast>(
                     match (k, c) {
                         (Key::SQL_TEMP_NAME, ASTNode::Array(nodes)) => temp_name = read_name(nodes)?,
                         (Key::SQL_TEMP_TYPE, ASTNode::TempType(t)) => temp_type = t,
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Into(Into {
@@ -807,7 +809,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::RowLocking(RowLocking {
@@ -826,7 +828,7 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f)) => function = f,
                         (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v)) => repeat = Some(v),
                         (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v)) => seed = Some(v),
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::Sample(Sample { function, repeat, seed })
@@ -858,7 +860,7 @@ fn translate_statement<'text, 'ast>(
                             }
                             columns = Some(col_names);
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::CreateAs(CreateAsStatement {
@@ -892,7 +894,7 @@ fn translate_statement<'text, 'ast>(
                             }
                             columns = Some(col_names);
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::CreateView(CreateViewStatement {
@@ -957,7 +959,7 @@ fn translate_statement<'text, 'ast>(
                                 }
                             }
                         }
-                        (k, c) => unexpected_attr!(k, c),
+                        (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
                 ASTNode::SelectStatement(SelectStatement {
@@ -1002,10 +1004,10 @@ fn translate_statement<'text, 'ast>(
         if !pending.is_empty() {
             debug_assert!(t.parent() != u32::MAX);
             debug_assert!((t.parent() as usize) < ast.len());
-            children[t.parent() as usize].push((ti, c));
+            children[t.parent() as usize].push((ti, n));
             continue;
         }
-        last = Some(c);
+        last = Some(n);
         break;
     }
 
