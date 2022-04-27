@@ -2962,6 +2962,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;v&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;a&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;generate_series&quot;,
+                                        ),
+                                        arguments: [
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            },
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;10000&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: false,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;t&quot;,
+                                    column_names: [
+                                        &quot;v&quot;,
+                                    ],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_functable">
         <input>select * from somefunc(&apos;somearg&apos;) foo;</input>
@@ -3040,7 +3130,8 @@
                             alias: Some(
                                 Alias {
                                     name: &quot;foo&quot;,
-                                    columns: [],
+                                    column_names: [],
+                                    column_definitions: [],
                                 },
                             ),
                             sample: None,
@@ -6434,9 +6525,9 @@
                                     <node key="SQL_FUNCTION_TABLE_ROWS_FROM" type="ARRAY">
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="25..58" text="generate_s..a integer)">
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
-                                                <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="48..57" text="a integer">
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="48..49" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="50..57" text="integer">
+                                                <node type="OBJECT_SQL_COLUMN_DEF" loc="48..57" text="a integer">
+                                                    <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="48..49" text="a"/>
+                                                    <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="50..57" text="integer">
                                                         <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                                     </node>
                                                 </node>
@@ -6452,9 +6543,9 @@
                                         </node>
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="60..93" text="generate_s..a integer)">
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
-                                                <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="83..92" text="a integer">
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="83..84" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="85..92" text="integer">
+                                                <node type="OBJECT_SQL_COLUMN_DEF" loc="83..92" text="a integer">
+                                                    <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="83..84" text="a"/>
+                                                    <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="85..92" text="integer">
                                                         <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                                     </node>
                                                 </node>
@@ -6503,12 +6594,12 @@
                                     <node key="SQL_FUNCTION_TABLE_ROWS_FROM" type="ARRAY">
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="62..111" text="generate_s..e &quot;de_DE&quot;)">
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
-                                                <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="85..110" text="a varchar ..te &quot;de_DE&quot;">
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_COLLATE" type="ARRAY">
+                                                <node type="OBJECT_SQL_COLUMN_DEF" loc="85..110" text="a varchar ..te &quot;de_DE&quot;">
+                                                    <node key="SQL_COLUMN_DEF_COLLATE" type="ARRAY">
                                                         <node type="STRING_REF" loc="103..110" text="&quot;de_DE&quot;"/>
                                                     </node>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="85..86" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="87..94" text="varchar">
+                                                    <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="85..86" text="a"/>
+                                                    <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="87..94" text="varchar">
                                                         <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="87..94" text="varchar">
                                                             <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                                         </node>
@@ -6526,12 +6617,12 @@
                                         </node>
                                         <node type="OBJECT_SQL_ROWSFROM_ITEM" loc="133..182" text="generate_s..e &quot;de_DE&quot;)">
                                             <node key="SQL_ROWSFROM_ITEM_COLUMNS" type="ARRAY">
-                                                <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="156..181" text="a varchar ..te &quot;de_DE&quot;">
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_COLLATE" type="ARRAY">
+                                                <node type="OBJECT_SQL_COLUMN_DEF" loc="156..181" text="a varchar ..te &quot;de_DE&quot;">
+                                                    <node key="SQL_COLUMN_DEF_COLLATE" type="ARRAY">
                                                         <node type="STRING_REF" loc="174..181" text="&quot;de_DE&quot;"/>
                                                     </node>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="156..157" text="a"/>
-                                                    <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="158..165" text="varchar">
+                                                    <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="156..157" text="a"/>
+                                                    <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="158..165" text="varchar">
                                                         <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="158..165" text="varchar">
                                                             <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                                                         </node>
@@ -8371,10 +8462,10 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="21..47" text="somefunc()..a integer)">
                                 <node key="SQL_TABLEREF_ALIAS" type="OBJECT_SQL_ALIAS" loc="32..47" text="as t(a integer)">
-                                    <node key="SQL_ALIAS_COLUMN_DEFINITIONS" type="ARRAY">
-                                        <node type="OBJECT_SQL_FUNCTION_TABLE_ELEMENT" loc="37..46" text="a integer">
-                                            <node key="SQL_FUNCTION_TABLE_ELEMENT_NAME" type="STRING_REF" loc="37..38" text="a"/>
-                                            <node key="SQL_FUNCTION_TABLE_ELEMENT_TYPE" type="OBJECT_SQL_TYPENAME" loc="39..46" text="integer">
+                                    <node key="SQL_ALIAS_COLUMN_DEFS" type="ARRAY">
+                                        <node type="OBJECT_SQL_COLUMN_DEF" loc="37..46" text="a integer">
+                                            <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="37..38" text="a"/>
+                                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="39..46" text="integer">
                                                 <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                             </node>
                                         </node>
@@ -8412,5 +8503,95 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ColumnRef(
+                            [
+                                Name(
+                                    &quot;v&quot;,
+                                ),
+                            ],
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: Some(
+                    Into {
+                        temp: DEFAULT,
+                        name: [
+                            Name(
+                                &quot;a&quot;,
+                            ),
+                        ],
+                    },
+                ),
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: Some(
+                                    FunctionExpression {
+                                        name: Some(
+                                            &quot;somefunc&quot;,
+                                        ),
+                                        arguments: [],
+                                        argument_ordering: [],
+                                        within_group: [],
+                                        filter: None,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                        variadic: None,
+                                        trim_direction: None,
+                                    },
+                                ),
+                                rows_from: [],
+                                with_ordinality: false,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;t&quot;,
+                                    column_names: [],
+                                    column_definitions: [
+                                        ColumnDefinition {
+                                            name: &quot;a&quot;,
+                                            sql_type: SQLType {
+                                                base_type: Numeric(
+                                                    NumericType {
+                                                        base: INT4,
+                                                        modifiers: [],
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                            collate: None,
+                                        },
+                                    ],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: false,
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
 </astdumps>

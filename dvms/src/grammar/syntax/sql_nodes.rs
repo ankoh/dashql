@@ -196,9 +196,17 @@ pub struct Into<'text> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ColumnDefinition<'text> {
+    pub name: &'text str,
+    pub sql_type: SQLType<'text>,
+    pub collate: Option<Vec<&'text str>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Alias<'text> {
     pub name: &'text str,
-    pub columns: Vec<&'text str>,
+    pub column_names: Vec<&'text str>,
+    pub column_definitions: Vec<ColumnDefinition<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -224,14 +232,7 @@ pub struct SelectStatementRef<'text> {
 pub struct RowsFromItem<'text> {
     #[serde(borrow)]
     pub function: Box<FunctionExpression<'text>>,
-    pub columns: Vec<FunctionTableElement<'text>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FunctionTableElement<'text> {
-    pub element_name: &'text str,
-    pub element_type: SQLType<'text>,
-    pub collate: Option<Vec<&'text str>>,
+    pub columns: Vec<ColumnDefinition<'text>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -90,6 +90,7 @@ pub enum ASTNode<'text> {
     Into(Into<'text>),
 
     RowsFromItem(RowsFromItem<'text>),
+    ColumnDefinition(ColumnDefinition<'text>),
     FunctionTable(FunctionTable<'text>),
     FunctionTableRef(FunctionTableRef<'text>),
     JoinedTable(JoinedTable<'text>),

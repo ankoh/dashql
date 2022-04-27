@@ -346,6 +346,39 @@ fn translate_statement<'text, 'ast>(
                     interval,
                 }))
             }
+            sx::NodeType::OBJECT_SQL_ALIAS => {
+                let mut name = "";
+                let mut column_names = Vec::new();
+                let mut column_definitions = Vec::new();
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s)) => name = s,
+                        (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::StringRef(s) => column_names.push(s),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::ColumnDefinition(d) => column_definitions.push(d),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::Alias(Alias {
+                    name,
+                    column_names,
+                    column_definitions,
+                })
+            }
             sx::NodeType::OBJECT_DASHQL_FETCH => {
                 let mut name = NamePath::default();
                 let mut method = sx::FetchMethodType::NONE;
@@ -409,6 +442,34 @@ fn translate_statement<'text, 'ast>(
                     }
                 }
                 ASTNode::JoinedTable(JoinedTable { join, input })
+            }
+            sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
+                let mut elem_name = "";
+                let mut elem_type = SQLType::default();
+                let mut collate = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
+                        (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = t,
+                        (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => {
+                            let mut name = Vec::new();
+                            for node in nodes {
+                                match node {
+                                    ASTNode::StringRef(s) => name.push(s),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                            collate = Some(name);
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::ColumnDefinition(ColumnDefinition {
+                    name: elem_name,
+                    sql_type: elem_type,
+                    collate,
+                })
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
                 let mut function = None;

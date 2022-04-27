@@ -691,19 +691,19 @@ sql_func_alias_clause:
     sql_alias_clause { $$ = $1; }
   | AS '(' sql_table_func_element_list ')' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
-            Attr(Key::SQL_ALIAS_COLUMN_DEFINITIONS, ctx.Add(@3, move($3))),
+            Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@3, move($3))),
         });
     }
   | AS sql_col_id '(' sql_table_func_element_list ')' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@2)),
-            Attr(Key::SQL_ALIAS_COLUMN_DEFINITIONS, ctx.Add(@4, move($4))),
+            Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@4, move($4))),
         });
     }
   | sql_col_id '(' sql_table_func_element_list ')' ')' {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@1)),
-            Attr(Key::SQL_ALIAS_COLUMN_DEFINITIONS, ctx.Add(@3, move($3))),
+            Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@3, move($3))),
         });
     }
   | %empty { $$ = Null(); }
@@ -867,10 +867,10 @@ sql_table_func_element_list:
 
 sql_table_func_element:
     sql_col_id sql_typename sql_opt_collate_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE_ELEMENT, {
-            Attr(Key::SQL_FUNCTION_TABLE_ELEMENT_NAME, String(@1)),
-            Attr(Key::SQL_FUNCTION_TABLE_ELEMENT_TYPE, std::move($2)),
-            Attr(Key::SQL_FUNCTION_TABLE_ELEMENT_COLLATE, std::move($3)),
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_DEF, {
+            Attr(Key::SQL_COLUMN_DEF_NAME, String(@1)),
+            Attr(Key::SQL_COLUMN_DEF_TYPE, std::move($2)),
+            Attr(Key::SQL_COLUMN_DEF_COLLATE, std::move($3)),
         });
     }
     ;
