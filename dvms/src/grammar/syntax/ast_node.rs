@@ -60,7 +60,7 @@ pub enum ASTNode<'text> {
     RowLockingBlockBehavior(sx::RowLockingBlockBehavior),
     #[serde(with = "serde_row_locking_strength")]
     RowLockingStrength(sx::RowLockingStrength),
-    #[serde(with = "serde_sample_unit_count")]
+    #[serde(with = "serde_sample_count_unit")]
     SampleCountUnit(sx::SampleCountUnit),
     #[serde(with = "serde_subquery_quantifier")]
     SubqueryQuantifier(sx::SubqueryQuantifier),

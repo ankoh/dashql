@@ -212,7 +212,7 @@ pub struct Alias<'text> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableSample<'text> {
     pub count: &'text str,
-    #[serde(with = "serde_sample_unit_count")]
+    #[serde(with = "serde_sample_count_unit")]
     pub unit: sx::SampleCountUnit,
     pub function: Option<&'text str>,
     pub repeat: Option<&'text str>,
@@ -336,10 +336,19 @@ pub enum Limit<'text> {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct SampleCount<'text> {
+    #[serde(borrow)]
+    pub value: &'text str,
+    #[serde(with = "serde_sample_count_unit")]
+    pub unit: sx::SampleCountUnit,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Sample<'text> {
     pub function: &'text str,
     pub seed: Option<&'text str>,
     pub repeat: Option<&'text str>,
+    pub count: Option<SampleCount<'text>>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

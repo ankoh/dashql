@@ -7570,6 +7570,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;&quot;,
+                        seed: None,
+                        repeat: None,
+                        count: Some(
+                            SampleCount {
+                                value: &quot;5&quot;,
+                                unit: ROWS,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_2">
         <input>SELECT * FROM tbl USING SAMPLE 10%;</input>
@@ -7602,6 +7648,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;&quot;,
+                        seed: None,
+                        repeat: None,
+                        count: Some(
+                            SampleCount {
+                                value: &quot;10&quot;,
+                                unit: PERCENT,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_3">
         <input>SELECT * FROM tbl USING SAMPLE 10 PERCENT (bernoulli);</input>
@@ -7635,6 +7727,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;bernoulli&quot;,
+                        seed: None,
+                        repeat: None,
+                        count: Some(
+                            SampleCount {
+                                value: &quot;10&quot;,
+                                unit: PERCENT,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_4">
         <input>SELECT * FROM tbl USING SAMPLE reservoir(50 ROWS) REPEATABLE (100);</input>
@@ -7669,6 +7807,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;50 ROWS&quot;,
+                        seed: None,
+                        repeat: Some(
+                            &quot;100&quot;,
+                        ),
+                        count: Some(
+                            SampleCount {
+                                value: &quot;50&quot;,
+                                unit: ROWS,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_5">
         <input>SELECT * FROM tbl USING SAMPLE 10% (system, 377);</input>
@@ -7703,6 +7889,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;system&quot;,
+                        seed: Some(
+                            &quot;377&quot;,
+                        ),
+                        repeat: None,
+                        count: Some(
+                            SampleCount {
+                                value: &quot;10&quot;,
+                                unit: PERCENT,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_6">
         <input>SELECT * FROM tbl TABLESAMPLE RESERVOIR(20%), tbl2 WHERE tbl.i=tbl2.i;</input>
@@ -7884,6 +8118,91 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;tbl2&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;tbl2&quot;,
+                                        ),
+                                        Name(
+                                            &quot;i&quot;,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: Some(
+                    Sample {
+                        function: &quot;20%&quot;,
+                        seed: None,
+                        repeat: None,
+                        count: Some(
+                            SampleCount {
+                                value: &quot;20&quot;,
+                                unit: PERCENT,
+                            },
+                        ),
+                    },
+                ),
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_join_1">
         <input>SELECT * FROM a INNER JOIN b ON c = d</input>

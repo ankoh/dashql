@@ -822,16 +822,28 @@ fn translate_statement<'text, 'ast>(
                 let mut function = "";
                 let mut repeat = None;
                 let mut seed = None;
+                let mut count_value = None;
+                let mut count_unit = sx::SampleCountUnit::ROWS;
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
                         (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f)) => function = f,
                         (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v)) => repeat = Some(v),
                         (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v)) => seed = Some(v),
+                        (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => count_unit = u,
+                        (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(s)) => count_value = Some(s),
                         (k, c) => unexpected_attr!(nt, k, c),
                     }
                 }
-                ASTNode::Sample(Sample { function, repeat, seed })
+                ASTNode::Sample(Sample {
+                    function,
+                    repeat,
+                    seed,
+                    count: count_value.map(|v| SampleCount {
+                        value: v,
+                        unit: count_unit,
+                    }),
+                })
             }
             sx::NodeType::OBJECT_SQL_CREATE_AS => {
                 let mut name = NamePath::default();

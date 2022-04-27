@@ -69,7 +69,7 @@ derive_enum_serde!(serde_order_direction, OrderDirection);
 derive_enum_serde!(serde_order_null_rule, OrderNullRule);
 derive_enum_serde!(serde_row_locking_block_behaviour, RowLockingBlockBehavior);
 derive_enum_serde!(serde_row_locking_strength, RowLockingStrength);
-derive_enum_serde!(serde_sample_unit_count, SampleCountUnit);
+derive_enum_serde!(serde_sample_count_unit, SampleCountUnit);
 derive_enum_serde!(serde_subquery_quantifier, SubqueryQuantifier);
 derive_enum_serde!(serde_temp_type, TempType);
 derive_enum_serde!(serde_trim_direction, TrimDirection);
