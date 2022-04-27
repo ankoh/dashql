@@ -1,6 +1,6 @@
 use super::sql_nodes::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DsonField<'text, 'bump> {
     pub key: &'text str,
     pub value: DsonValue<'text, 'bump>,

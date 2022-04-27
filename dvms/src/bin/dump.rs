@@ -19,9 +19,8 @@ use dashql::*;
 use grammar::syntax::ast_dump::ASTDumpFile;
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
-        .init();
+    let arena = bumpalo::Bump::new();
+    env_logger::builder().filter_level(log::LevelFilter::Info).init();
 
     let matches = App::new("Dump")
         .version("0.1")
@@ -60,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             let mut dumps = Vec::new();
             for dump in dump_file.dumps.iter() {
                 let ast_buffer = grammar::parse(&dump.input)?;
-                let translated = match grammar::translate_ast(&dump.input, ast_buffer.get_root()) {
+                let translated = match grammar::translate_ast(&arena, &dump.input, ast_buffer.get_root()) {
                     Ok(p) => Some(p),
                     Err(e) => {
                         warn!("{}", e);

@@ -28,11 +28,11 @@ pub struct LoadStatement<'text, 'arena> {
 
 #[derive(Debug, Clone)]
 pub struct VizStatement<'text, 'arena> {
-    pub target: TableRef<'text, 'arena>,
+    pub target: &'arena TableRef<'text, 'arena>,
     pub components: &'arena [VizComponent<'text, 'arena>],
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VizComponent<'text, 'arena> {
     pub component_type: Option<sx::VizComponentType>,
     pub type_modifiers: u32,

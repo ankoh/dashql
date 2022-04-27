@@ -58,7 +58,7 @@ pub struct ConstCastExpression<'text, 'arena> {
 #[derive(Debug, Clone)]
 pub struct TypecastExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
-    pub typename: &'arena SQLType<'text, 'arena>,
+    pub typename: SQLType<'text, 'arena>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +96,12 @@ pub enum GroupByItem<'text, 'arena> {
     GroupingSets(&'arena [GroupByItem<'text, 'arena>]),
 }
 
+impl<'text, 'arena> Default for GroupByItem<'text, 'arena> {
+    fn default() -> Self {
+        GroupByItem::Empty
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum IntervalSpecification<'text> {
     Raw(&'text str),
@@ -112,6 +118,15 @@ pub enum ResultTarget<'text, 'arena> {
         value: Expression<'text, 'arena>,
         alias: Option<&'text str>,
     },
+}
+
+impl<'text, 'arena> Default for ResultTarget<'text, 'arena> {
+    fn default() -> Self {
+        ResultTarget::Value {
+            value: Expression::Null,
+            alias: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -191,7 +206,7 @@ pub struct Into<'text, 'arena> {
 pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
     pub sql_type: SQLType<'text, 'arena>,
-    pub collate: Option<&'arena [&'text str]>,
+    pub collate: &'arena [&'text str],
 }
 
 #[derive(Debug, Clone, Default)]
@@ -272,7 +287,13 @@ pub enum TableRef<'text, 'arena> {
     Join(JoinedTableRef<'text, 'arena>),
 }
 
-#[derive(Debug, Clone)]
+impl<'text, 'arena> Default for TableRef<'text, 'arena> {
+    fn default() -> Self {
+        TableRef::Relation(Default::default())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct FunctionArgument<'text, 'arena> {
     pub name: Option<&'text str>,
     pub value: Expression<'text, 'arena>,
@@ -327,7 +348,7 @@ pub struct Sample<'text> {
 #[derive(Default, Debug, Clone)]
 pub struct RowLocking<'text, 'arena> {
     pub strength: sx::RowLockingStrength,
-    pub of: NamePath<'text, 'arena>,
+    pub of: &'arena [NamePath<'text, 'arena>],
     pub block_behavior: Option<sx::RowLockingBlockBehavior>,
 }
 
@@ -335,34 +356,34 @@ pub struct RowLocking<'text, 'arena> {
 pub struct SelectStatement<'text, 'arena> {
     pub all: bool,
     pub targets: &'arena [ResultTarget<'text, 'arena>],
-    pub into: Option<Into<'text, 'arena>>,
+    pub into: Option<&'arena Into<'text, 'arena>>,
     pub from: &'arena [TableRef<'text, 'arena>],
     pub where_clause: Option<Expression<'text, 'arena>>,
     pub order_by: &'arena [OrderSpecification<'text, 'arena>],
     pub group_by: &'arena [GroupByItem<'text, 'arena>],
     pub having: Option<Expression<'text, 'arena>>,
     pub windows: bool,
-    pub sample: Option<Sample<'text>>,
+    pub sample: Option<&'arena Sample<'text>>,
     pub row_locking: &'arena [RowLocking<'text, 'arena>],
     pub limit: Option<Limit<'text, 'arena>>,
     pub offset: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct CreateAsStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
-    pub columns: Option<&'arena [&'text str]>,
-    pub statement: SelectStatement<'text, 'arena>,
+    pub columns: &'arena [&'text str],
+    pub statement: &'arena SelectStatement<'text, 'arena>,
     pub if_not_exists: bool,
     pub with_data: bool,
     pub temp: Option<sx::TempType>,
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct CreateViewStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
-    pub columns: Option<&'arena [&'text str]>,
-    pub statement: SelectStatement<'text, 'arena>,
+    pub columns: &'arena [&'text str],
+    pub statement: &'arena SelectStatement<'text, 'arena>,
     pub temp: Option<sx::TempType>,
 }

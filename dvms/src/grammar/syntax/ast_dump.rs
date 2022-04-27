@@ -89,6 +89,7 @@ mod test {
     use crate::grammar::translate_ast;
 
     fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let arena = bumpalo::Bump::new();
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let dump_dir = base.join("dump").join("ast");
         let dump_path = dump_dir.join(name);
@@ -174,8 +175,11 @@ mod test {
                         // Translate the ast
                         let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
                         let ast = ast_buffer.as_ref().expect("expected ast buffer").get_root();
-                        let translated =
-                            translate_ast(script_text.as_ref().expect("expected script text").as_str(), ast)?;
+                        let translated = translate_ast(
+                            &arena,
+                            script_text.as_ref().expect("expected script text").as_str(),
+                            ast,
+                        )?;
                         assert_eq!(&format!("{:#?}", translated), &unescaped);
                     }
                 }
