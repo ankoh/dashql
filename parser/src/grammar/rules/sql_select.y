@@ -509,9 +509,9 @@ sql_for_locking_items:
 sql_for_locking_item:
     sql_for_locking_strength sql_locked_rels_list sql_opt_nowait_or_skip {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROW_LOCKING, {
-            Attr(Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, $3),
-            Attr(Key::SQL_ROW_LOCKING_OF, ctx.Add(@2, std::move($2))),
             Attr(Key::SQL_ROW_LOCKING_STRENGTH, $1),
+            Attr(Key::SQL_ROW_LOCKING_OF, ctx.Add(@2, std::move($2))),
+            Attr(Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, $3),
         });
     }
     ;

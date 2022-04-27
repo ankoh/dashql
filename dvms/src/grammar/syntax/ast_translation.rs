@@ -528,13 +528,14 @@ fn translate_statement<'text, 'ast>(
                 })
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
-                let mut func_name = None;
+                let mut func_name = FunctionName::default();
                 let mut func_args = Vec::new();
                 let mut func_arg_ordering = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
                     let k = Key(ast[ci].attribute_key());
                     match (k, c) {
-                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = Some(s),
+                        (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
+                        (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f)) => func_name = FunctionName::Known(f),
                         (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = read_ordering(nodes)?,
                         (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                             func_args = Vec::new();
@@ -775,6 +776,34 @@ fn translate_statement<'text, 'ast>(
                     name: temp_name,
                 })
             }
+            sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
+                let mut strength = sx::RowLockingStrength::READ_ONLY;
+                let mut of = Vec::new();
+                let mut block_behavior = None;
+                for (ci, c) in children[ti].drain(..) {
+                    let k = Key(ast[ci].attribute_key());
+                    match (k, c) {
+                        (Key::SQL_ROW_LOCKING_STRENGTH, ASTNode::RowLockingStrength(s)) => strength = s,
+                        (Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, ASTNode::RowLockingBlockBehavior(b)) => {
+                            block_behavior = Some(b);
+                        }
+                        (Key::SQL_ROW_LOCKING_OF, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::Array(path) => of.push(read_name(path)?),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
+                        (k, c) => unexpected_attr!(k, c),
+                    }
+                }
+                ASTNode::RowLocking(RowLocking {
+                    strength,
+                    of,
+                    block_behavior,
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
                 let mut function = "";
                 let mut repeat = None;
@@ -870,6 +899,7 @@ fn translate_statement<'text, 'ast>(
                 let mut offset = None;
                 let mut sample = None;
                 let mut having = None;
+                let mut row_locking = Vec::new();
                 let mut group_by = Vec::new();
                 let mut order_by = Vec::new();
                 for (ci, c) in children[ti].drain(..) {
@@ -883,6 +913,14 @@ fn translate_statement<'text, 'ast>(
                         (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = read_ordering(nodes)?,
                         (Key::SQL_SELECT_HAVING, n) => having = Some(Box::new(read_expr(n)?)),
                         (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
+                        (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => {
+                            for node in nodes {
+                                match node {
+                                    ASTNode::RowLocking(l) => row_locking.push(l),
+                                    _ => unexpected_array_element!(k, node),
+                                }
+                            }
+                        }
                         (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => {
                             for node in nodes {
                                 match node {
@@ -921,7 +959,7 @@ fn translate_statement<'text, 'ast>(
                     having,
                     windows: false,
                     sample,
-                    row_locking: false,
+                    row_locking,
                     limit,
                     offset,
                 })

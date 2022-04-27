@@ -290,10 +290,24 @@ pub struct FunctionArgument<'text> {
     pub value: Expression<'text>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FunctionName<'text> {
+    #[serde(borrow)]
+    Unknown(&'text str),
+    #[serde(with = "serde_known_function")]
+    Known(sx::KnownFunction),
+}
+
+impl<'text> Default for FunctionName<'text> {
+    fn default() -> Self {
+        FunctionName::Unknown("")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FunctionExpression<'text> {
     #[serde(borrow)]
-    pub name: Option<&'text str>,
+    pub name: FunctionName<'text>,
     pub arguments: Vec<FunctionArgument<'text>>,
     pub argument_ordering: Vec<OrderSpecification<'text>>,
     pub within_group: Vec<OrderSpecification<'text>>,
@@ -321,6 +335,16 @@ pub struct Sample<'text> {
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct RowLocking<'text> {
+    #[serde(with = "serde_row_locking_strength")]
+    pub strength: sx::RowLockingStrength,
+    #[serde(borrow)]
+    pub of: Vec<NamePath<'text>>,
+    #[serde(with = "serde_row_locking_block_behaviour::opt")]
+    pub block_behavior: Option<sx::RowLockingBlockBehavior>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct SelectStatement<'text> {
     pub all: bool,
     #[serde(borrow)]
@@ -333,7 +357,7 @@ pub struct SelectStatement<'text> {
     pub having: Option<Box<Expression<'text>>>,
     pub windows: bool,
     pub sample: Option<Sample<'text>>,
-    pub row_locking: bool,
+    pub row_locking: Vec<RowLocking<'text>>,
     pub limit: Option<Limit<'text>>,
     pub offset: Option<Box<Expression<'text>>>,
 }

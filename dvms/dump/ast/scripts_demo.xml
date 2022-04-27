@@ -266,7 +266,7 @@
                                 value: Expression(
                                     FunctionCall(
                                         FunctionExpression {
-                                            name: Some(
+                                            name: Unknown(
                                                 &quot;format&quot;,
                                             ),
                                             arguments: [
@@ -362,7 +362,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -1378,7 +1378,7 @@
                     having: None,
                     windows: false,
                     sample: None,
-                    row_locking: false,
+                    row_locking: [],
                     limit: None,
                     offset: None,
                 },
@@ -1421,7 +1421,7 @@
                                 TypecastExpression {
                                     value: FunctionCall(
                                         FunctionExpression {
-                                            name: Some(
+                                            name: Unknown(
                                                 &quot;count&quot;,
                                             ),
                                             arguments: [
@@ -1530,7 +1530,7 @@
                     having: None,
                     windows: false,
                     sample: None,
-                    row_locking: false,
+                    row_locking: [],
                     limit: None,
                     offset: None,
                 },
@@ -1573,7 +1573,7 @@
                                 TypecastExpression {
                                     value: FunctionCall(
                                         FunctionExpression {
-                                            name: Some(
+                                            name: Unknown(
                                                 &quot;count&quot;,
                                             ),
                                             arguments: [
@@ -1643,7 +1643,7 @@
                     having: None,
                     windows: false,
                     sample: None,
-                    row_locking: false,
+                    row_locking: [],
                     limit: None,
                     offset: None,
                 },

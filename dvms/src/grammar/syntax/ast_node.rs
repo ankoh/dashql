@@ -97,6 +97,7 @@ pub enum ASTNode<'text> {
     JoinedTableRef(JoinedTableRef<'text>),
     TableRef(TableRef<'text>),
 
+    RowLocking(RowLocking<'text>),
     OrderSpecification(OrderSpecification<'text>),
     GroupByItem(GroupByItem<'text>),
     Expression(Expression<'text>),

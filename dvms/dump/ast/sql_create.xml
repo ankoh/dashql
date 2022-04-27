@@ -54,7 +54,7 @@
                     having: None,
                     windows: false,
                     sample: None,
-                    row_locking: false,
+                    row_locking: [],
                     limit: None,
                     offset: None,
                 },

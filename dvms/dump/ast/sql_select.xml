@@ -39,7 +39,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -87,7 +87,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -135,7 +135,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -191,7 +191,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -247,7 +247,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -303,7 +303,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -366,7 +366,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -414,7 +414,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -462,7 +462,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -510,7 +510,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -561,7 +561,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -650,7 +650,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -725,7 +725,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -804,7 +804,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -883,7 +883,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -963,7 +963,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -1054,7 +1054,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -1160,7 +1160,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -1247,7 +1247,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2033,7 +2033,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2128,7 +2128,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2229,7 +2229,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2336,7 +2336,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2419,7 +2419,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2454,7 +2454,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2595,7 +2595,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2671,7 +2671,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2901,7 +2901,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -2995,7 +2995,7 @@
                             table: FunctionTable {
                                 function: Some(
                                     FunctionExpression {
-                                        name: Some(
+                                        name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
                                         arguments: [
@@ -3045,7 +3045,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3103,7 +3103,7 @@
                             table: FunctionTable {
                                 function: Some(
                                     FunctionExpression {
-                                        name: Some(
+                                        name: Unknown(
                                             &quot;somefunc&quot;,
                                         ),
                                         arguments: [
@@ -3145,7 +3145,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3212,7 +3212,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3332,7 +3332,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3398,7 +3398,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3464,7 +3464,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3862,7 +3862,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3929,7 +3929,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -3996,7 +3996,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4063,7 +4063,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4130,7 +4130,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4197,7 +4197,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4260,7 +4260,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4327,7 +4327,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4486,7 +4486,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4565,7 +4565,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -4848,7 +4848,7 @@
                     Value {
                         value: FunctionCall(
                             FunctionExpression {
-                                name: Some(
+                                name: Unknown(
                                     &quot;somefunc&quot;,
                                 ),
                                 arguments: [
@@ -4880,7 +4880,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -5377,7 +5377,7 @@
                     Value {
                         value: FunctionCall(
                             FunctionExpression {
-                                name: Some(
+                                name: Unknown(
                                     &quot;somefunc&quot;,
                                 ),
                                 arguments: [
@@ -5413,7 +5413,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -5442,6 +5442,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_DATE,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_2">
         <input>select current_time;</input>
@@ -5464,6 +5505,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_TIME,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_3">
         <input>select current_timestamp;</input>
@@ -5486,6 +5568,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_TIMESTAMP,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_4">
         <input>select localtime;</input>
@@ -5508,6 +5631,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    LOCALTIME,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_5">
         <input>select localtimestamp;</input>
@@ -5530,6 +5694,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    LOCALTIMESTAMP,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_7">
         <input>select current_time(42);</input>
@@ -5555,6 +5760,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_DATE,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;42&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_8">
         <input>select current_timestamp(42);</input>
@@ -5580,6 +5833,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_TIMESTAMP,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;42&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_9">
         <input>select localtime(42);</input>
@@ -5605,6 +5906,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    LOCALTIME,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;42&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_10">
         <input>select localtimestamp(42);</input>
@@ -5630,6 +5979,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    LOCALTIMESTAMP,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;42&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_11">
         <input>select current_role;</input>
@@ -5652,6 +6049,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_ROLE,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_12">
         <input>select current_user;</input>
@@ -5674,6 +6112,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_USER,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_13">
         <input>select session_user;</input>
@@ -5696,6 +6175,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SESSION_USER,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_14">
         <input>select user;</input>
@@ -5718,6 +6238,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    USER,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_15">
         <input>select current_catalog;</input>
@@ -5740,6 +6301,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_CATALOG,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_16">
         <input>select current_schema;</input>
@@ -5762,6 +6364,47 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CURRENT_SCHEMA,
+                                ),
+                                arguments: [],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_17">
         <input>select cast(1 as integer);</input>
@@ -5848,6 +6491,64 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    NULLIF,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_20">
         <input>select coalesce(a, b);</input>
@@ -5882,6 +6583,68 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    NULLIF,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;b&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_21">
         <input>select trim(both &apos;foo&apos;);</input>
@@ -6202,6 +6965,66 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;foobar&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;4&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_33">
         <input>select substring(&apos;foobar&apos;, 1);</input>
@@ -6228,6 +7051,60 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;foobar&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_34">
         <input>select position(&apos;bar&apos; in &apos;foobar&apos;);</input>
@@ -6327,7 +7204,7 @@
                             table: FunctionTable {
                                 function: Some(
                                     FunctionExpression {
-                                        name: Some(
+                                        name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
                                         arguments: [
@@ -6363,7 +7240,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -6420,7 +7297,7 @@
                             table: FunctionTable {
                                 function: Some(
                                     FunctionExpression {
-                                        name: Some(
+                                        name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
                                         arguments: [
@@ -6456,7 +7333,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -6946,7 +7823,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -7203,7 +8080,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -7298,7 +8175,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
@@ -7620,6 +8497,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: UPDATE,
+                                        of: [],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_2">
         <input>SELECT * FROM (SELECT * FROM mytable FOR NO KEY UPDATE) ss WHERE col1 = 5;</input>
@@ -7674,6 +8641,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: NO_KEY_UPDATE,
+                                        of: [],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_3">
         <input>SELECT * FROM (SELECT * FROM mytable FOR SHARE) ss WHERE col1 = 5;</input>
@@ -7728,6 +8785,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: SHARE,
+                                        of: [],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_4">
         <input>SELECT * FROM (SELECT * FROM mytable FOR KEY SHARE) ss WHERE col1 = 5;</input>
@@ -7782,6 +8929,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: KEY_SHARE,
+                                        of: [],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_5">
         <input>SELECT * FROM (SELECT * FROM mytable FOR READ ONLY) ss WHERE col1 = 5;</input>
@@ -7836,6 +9073,96 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: READ_ONLY,
+                                        of: [],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_6">
         <input>SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo) ss WHERE col1 = 5;</input>
@@ -7895,6 +9222,102 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: UPDATE,
+                                        of: [
+                                            [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                            ],
+                                        ],
+                                        block_behavior: None,
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_row_locking_7">
         <input>SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;</input>
@@ -7955,6 +9378,104 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Select(
+                        SelectStatementRef {
+                            table: SelectStatement {
+                                all: false,
+                                targets: [
+                                    Star,
+                                ],
+                                into: None,
+                                from: [
+                                    Relation(
+                                        RelationRef {
+                                            name: [
+                                                Name(
+                                                    &quot;mytable&quot;,
+                                                ),
+                                            ],
+                                            inherit: true,
+                                        },
+                                    ),
+                                ],
+                                where_clause: None,
+                                order_by: [],
+                                group_by: [],
+                                having: None,
+                                windows: false,
+                                sample: None,
+                                row_locking: [
+                                    RowLocking {
+                                        strength: UPDATE,
+                                        of: [
+                                            [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                            ],
+                                        ],
+                                        block_behavior: Some(
+                                            NOWAIT,
+                                        ),
+                                    },
+                                ],
+                                limit: None,
+                                offset: None,
+                            },
+                            alias: Some(
+                                Alias {
+                                    name: &quot;ss&quot;,
+                                    column_names: [],
+                                    column_definitions: [],
+                                },
+                            ),
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: Some(
+                    Nary(
+                        NaryExpression {
+                            operator: EQUAL,
+                            args: [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;col1&quot;,
+                                        ),
+                                    ],
+                                ),
+                                StringRef(
+                                    &quot;5&quot;,
+                                ),
+                            ],
+                            postfix: false,
+                        },
+                    ),
+                ),
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_limit_1">
         <input>SELECT * FROM foo LIMIT 42</input>
@@ -8011,7 +9532,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     Expression(
                         StringRef(
@@ -8096,7 +9617,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     ALL,
                 ),
@@ -8162,7 +9683,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     ALL,
                 ),
@@ -8231,7 +9752,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     Expression(
                         StringRef(
@@ -8300,7 +9821,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     Expression(
                         StringRef(
@@ -8369,7 +9890,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     Expression(
                         StringRef(
@@ -8439,7 +9960,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: Some(
                     ALL,
                 ),
@@ -8536,7 +10057,7 @@
                             table: FunctionTable {
                                 function: Some(
                                     FunctionExpression {
-                                        name: Some(
+                                        name: Unknown(
                                             &quot;somefunc&quot;,
                                         ),
                                         arguments: [],
@@ -8586,7 +10107,7 @@
                 having: None,
                 windows: false,
                 sample: None,
-                row_locking: false,
+                row_locking: [],
                 limit: None,
                 offset: None,
             },
