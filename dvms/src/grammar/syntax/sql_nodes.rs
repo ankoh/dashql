@@ -1,349 +1,322 @@
-use super::enums_serde::*;
 use dashql_proto::syntax as sx;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IndirectionIndex<'text> {
-    #[serde(borrow)]
-    pub value: Box<Expression<'text>>,
+#[derive(Debug, Clone)]
+pub struct IndirectionIndex<'text, 'arena> {
+    pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IndirectionBounds<'text> {
-    #[serde(borrow)]
-    pub lower_bound: Box<Expression<'text>>,
-    #[serde(borrow)]
-    pub upper_bound: Box<Expression<'text>>,
+#[derive(Debug, Clone)]
+pub struct IndirectionBounds<'text, 'arena> {
+    pub lower_bound: Expression<'text, 'arena>,
+    pub upper_bound: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Indirection<'text> {
+#[derive(Debug, Clone)]
+pub enum Indirection<'text, 'arena> {
     Name(&'text str),
-    Index(IndirectionIndex<'text>),
-    Bounds(IndirectionBounds<'text>),
+    Index(IndirectionIndex<'text, 'arena>),
+    Bounds(IndirectionBounds<'text, 'arena>),
 }
 
-pub type NamePath<'text> = Vec<Indirection<'text>>;
+impl<'text, 'arena> Default for Indirection<'text, 'arena> {
+    fn default() -> Self {
+        Indirection::Name("")
+    }
+}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+pub type NamePath<'text, 'arena> = &'arena [Indirection<'text, 'arena>];
+
+#[derive(Debug, Clone)]
 pub enum ArrayBound<'text> {
     Empty,
     Index(&'text str),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NaryExpression<'text> {
-    #[serde(with = "serde_expression_operator")]
+impl<'text> Default for ArrayBound<'text> {
+    fn default() -> Self {
+        ArrayBound::Empty
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NaryExpression<'text, 'arena> {
     pub operator: sx::ExpressionOperator,
-    #[serde(borrow)]
-    pub args: Vec<Expression<'text>>,
+    pub args: &'arena [Expression<'text, 'arena>],
     pub postfix: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConstCastExpression<'text> {
+#[derive(Debug, Clone)]
+pub struct ConstCastExpression<'text, 'arena> {
     pub cast_type: &'text str,
-    pub func_name: Option<NamePath<'text>>,
-    pub func_args: Vec<Expression<'text>>,
-    #[serde(borrow)]
-    pub func_arg_ordering: Vec<OrderSpecification<'text>>,
+    pub func_name: Option<NamePath<'text, 'arena>>,
+    pub func_args: &'arena [Expression<'text, 'arena>],
+    pub func_arg_ordering: &'arena [OrderSpecification<'text, 'arena>],
     pub value: &'text str,
-    #[serde(borrow)]
-    pub interval: Option<IntervalSpecification<'text>>,
+    pub interval: Option<&'arena IntervalSpecification<'text>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TypecastExpression<'text> {
-    #[serde(borrow)]
-    pub value: Box<Expression<'text>>,
-    #[serde(borrow)]
-    pub typename: Box<SQLType<'text>>,
+#[derive(Debug, Clone)]
+pub struct TypecastExpression<'text, 'arena> {
+    pub value: Expression<'text, 'arena>,
+    pub typename: &'arena SQLType<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Expression<'text> {
+#[derive(Debug, Clone)]
+pub enum Expression<'text, 'arena> {
     Null,
     True,
     False,
     StringRef(&'text str),
-    ColumnRef(NamePath<'text>),
-    Nary(NaryExpression<'text>),
-    ConstCast(ConstCastExpression<'text>),
-    Typecast(TypecastExpression<'text>),
-    FunctionCall(FunctionExpression<'text>),
+    ColumnRef(NamePath<'text, 'arena>),
+    Nary(&'arena NaryExpression<'text, 'arena>),
+    ConstCast(&'arena ConstCastExpression<'text, 'arena>),
+    Typecast(&'arena TypecastExpression<'text, 'arena>),
+    FunctionCall(&'arena FunctionExpression<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OrderSpecification<'text> {
-    #[serde(borrow)]
-    pub value: Box<Expression<'text>>,
-    #[serde(with = "serde_order_direction::opt")]
+impl<'text, 'arena> Default for Expression<'text, 'arena> {
+    fn default() -> Self {
+        Expression::Null
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct OrderSpecification<'text, 'arena> {
+    pub value: Expression<'text, 'arena>,
     pub direction: Option<sx::OrderDirection>,
-    #[serde(with = "serde_order_null_rule::opt")]
     pub null_rule: Option<sx::OrderNullRule>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum GroupByItem<'text> {
+#[derive(Debug, Clone)]
+pub enum GroupByItem<'text, 'arena> {
     Empty,
-    #[serde(borrow)]
-    Expression(Box<Expression<'text>>),
-    Cube(Vec<Expression<'text>>),
-    Rollup(Vec<Expression<'text>>),
-    GroupingSets(Vec<GroupByItem<'text>>),
+    Expression(Expression<'text, 'arena>),
+    Cube(&'arena [Expression<'text, 'arena>]),
+    Rollup(&'arena [Expression<'text, 'arena>]),
+    GroupingSets(&'arena [GroupByItem<'text, 'arena>]),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum IntervalSpecification<'text> {
     Raw(&'text str),
     Type {
-        #[serde(with = "serde_interval_type")]
         interval_type: sx::IntervalType,
         precision: Option<&'text str>,
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ResultTarget<'text> {
+#[derive(Debug, Clone)]
+pub enum ResultTarget<'text, 'arena> {
     Star,
     Value {
-        value: Box<Expression<'text>>,
+        value: Expression<'text, 'arena>,
         alias: Option<&'text str>,
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenericType<'text> {
+#[derive(Debug, Clone)]
+pub struct GenericType<'text, 'arena> {
     pub name: &'text str,
-    pub modifiers: Vec<Expression<'text>>,
+    pub modifiers: &'arena [Expression<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NumericType<'text> {
-    #[serde(with = "serde_numeric_type")]
+#[derive(Debug, Clone)]
+pub struct NumericType<'text, 'arena> {
     pub base: sx::NumericType,
-    #[serde(borrow)]
-    pub modifiers: Vec<Expression<'text>>,
+    pub modifiers: &'arena [Expression<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BitType<'text> {
+#[derive(Debug, Clone)]
+pub struct BitType<'text, 'arena> {
     pub varying: bool,
-    #[serde(borrow)]
-    pub length: Option<Expression<'text>>,
+    pub length: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CharacterType<'text> {
-    #[serde(with = "serde_character_type")]
     pub base: sx::CharacterType,
     pub length: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TimestampType<'text> {
     pub precision: Option<&'text str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TimeType<'text> {
     pub precision: Option<&'text str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct IntervalType<'text> {
-    #[serde(with = "serde_interval_type::opt")]
     pub base: Option<sx::IntervalType>,
-    #[serde(borrow)]
     pub precision: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum SQLBaseType<'text> {
+#[derive(Debug, Clone)]
+pub enum SQLBaseType<'text, 'arena> {
     Invalid,
-    #[serde(borrow)]
-    Generic(GenericType<'text>),
-    Numeric(NumericType<'text>),
-    Bit(BitType<'text>),
+    Generic(GenericType<'text, 'arena>),
+    Numeric(NumericType<'text, 'arena>),
+    Bit(BitType<'text, 'arena>),
     Character(CharacterType<'text>),
     Time(TimeType<'text>),
     Timestamp(TimestampType<'text>),
     Interval(IntervalType<'text>),
 }
 
-impl<'text> Default for SQLBaseType<'text> {
+impl<'text, 'arena> Default for SQLBaseType<'text, 'arena> {
     fn default() -> Self {
         SQLBaseType::Invalid
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SQLType<'text> {
-    pub base_type: SQLBaseType<'text>,
-    #[serde(borrow)]
-    pub array_bounds: Vec<ArrayBound<'text>>,
+#[derive(Debug, Clone, Default)]
+pub struct SQLType<'text, 'arena> {
+    pub base_type: SQLBaseType<'text, 'arena>,
+    pub array_bounds: &'arena [ArrayBound<'text>],
     pub set_of: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Into<'text> {
-    #[serde(with = "serde_temp_type")]
+#[derive(Debug, Clone)]
+pub struct Into<'text, 'arena> {
     pub temp: sx::TempType,
-    #[serde(borrow)]
-    pub name: NamePath<'text>,
+    pub name: NamePath<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ColumnDefinition<'text> {
+#[derive(Debug, Clone, Default)]
+pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
-    pub sql_type: SQLType<'text>,
-    pub collate: Option<Vec<&'text str>>,
+    pub sql_type: SQLType<'text, 'arena>,
+    pub collate: Option<&'arena [&'text str]>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Alias<'text> {
+#[derive(Debug, Clone, Default)]
+pub struct Alias<'text, 'arena> {
     pub name: &'text str,
-    pub column_names: Vec<&'text str>,
-    pub column_definitions: Vec<ColumnDefinition<'text>>,
+    pub column_names: &'arena [&'text str],
+    pub column_definitions: &'arena [ColumnDefinition<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TableSample<'text> {
     pub count: &'text str,
-    #[serde(with = "serde_sample_count_unit")]
     pub unit: sx::SampleCountUnit,
     pub function: Option<&'text str>,
     pub repeat: Option<&'text str>,
     pub seed: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SelectStatementRef<'text> {
-    #[serde(borrow)]
-    pub table: Box<SelectStatement<'text>>,
-    pub alias: Option<Alias<'text>>,
-    pub sample: Option<TableSample<'text>>,
+#[derive(Debug, Clone)]
+pub struct SelectStatementRef<'text, 'arena> {
+    pub table: &'arena SelectStatement<'text, 'arena>,
+    pub alias: Option<&'arena Alias<'text, 'arena>>,
+    pub sample: Option<&'arena TableSample<'text>>,
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct RowsFromItem<'text> {
-    #[serde(borrow)]
-    pub function: Box<FunctionExpression<'text>>,
-    pub columns: Vec<ColumnDefinition<'text>>,
+#[derive(Debug, Clone, Default)]
+pub struct RowsFromItem<'text, 'arena> {
+    pub function: FunctionExpression<'text, 'arena>,
+    pub columns: &'arena [ColumnDefinition<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FunctionTable<'text> {
-    #[serde(borrow)]
-    pub function: Option<Box<FunctionExpression<'text>>>,
-    pub rows_from: Vec<RowsFromItem<'text>>,
+#[derive(Debug, Clone, Default)]
+pub struct FunctionTable<'text, 'arena> {
+    pub function: Option<&'arena FunctionExpression<'text, 'arena>>,
+    pub rows_from: &'arena [RowsFromItem<'text, 'arena>],
     pub with_ordinality: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FunctionTableRef<'text> {
-    #[serde(borrow)]
-    pub table: FunctionTable<'text>,
-    pub alias: Option<Alias<'text>>,
-    pub sample: Option<TableSample<'text>>,
+#[derive(Debug, Clone)]
+pub struct FunctionTableRef<'text, 'arena> {
+    pub table: &'arena FunctionTable<'text, 'arena>,
+    pub alias: Option<&'arena Alias<'text, 'arena>>,
+    pub sample: Option<&'arena TableSample<'text>>,
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum JoinQualifier<'text> {
-    #[serde(borrow)]
-    On(Box<Expression<'text>>),
-    Using(Vec<&'text str>),
+#[derive(Debug, Clone)]
+pub enum JoinQualifier<'text, 'arena> {
+    On(Expression<'text, 'arena>),
+    Using(&'arena [&'text str]),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct JoinedTable<'text> {
-    #[serde(with = "serde_join_type")]
+#[derive(Debug, Clone, Default)]
+pub struct JoinedTable<'text, 'arena> {
     pub join: sx::JoinType,
-    #[serde(borrow)]
-    pub qualifier: Option<JoinQualifier<'text>>,
-    pub input: Vec<TableRef<'text>>,
+    pub qualifier: Option<JoinQualifier<'text, 'arena>>,
+    pub input: &'arena [TableRef<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct JoinedTableRef<'text> {
-    #[serde(borrow)]
-    pub table: JoinedTable<'text>,
-    pub alias: Option<Alias<'text>>,
+#[derive(Debug, Clone)]
+pub struct JoinedTableRef<'text, 'arena> {
+    pub table: &'arena JoinedTable<'text, 'arena>,
+    pub alias: Option<&'arena Alias<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct RelationRef<'text> {
-    #[serde(borrow)]
-    pub name: NamePath<'text>,
+#[derive(Debug, Clone, Default)]
+pub struct RelationRef<'text, 'arena> {
+    pub name: NamePath<'text, 'arena>,
     pub inherit: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TableRef<'text> {
-    #[serde(borrow)]
-    Relation(RelationRef<'text>),
-    Select(SelectStatementRef<'text>),
-    Function(FunctionTableRef<'text>),
-    Join(JoinedTableRef<'text>),
+#[derive(Debug, Clone)]
+pub enum TableRef<'text, 'arena> {
+    Relation(RelationRef<'text, 'arena>),
+    Select(SelectStatementRef<'text, 'arena>),
+    Function(FunctionTableRef<'text, 'arena>),
+    Join(JoinedTableRef<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionArgument<'text> {
-    #[serde(borrow)]
+#[derive(Debug, Clone)]
+pub struct FunctionArgument<'text, 'arena> {
     pub name: Option<&'text str>,
-    pub value: Expression<'text>,
+    pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum FunctionName<'text> {
-    #[serde(borrow)]
     Unknown(&'text str),
-    #[serde(with = "serde_known_function")]
     Known(sx::KnownFunction),
 }
 
-impl<'text> Default for FunctionName<'text> {
+impl<'text, 'arena> Default for FunctionName<'text> {
     fn default() -> Self {
         FunctionName::Unknown("")
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FunctionExpression<'text> {
-    #[serde(borrow)]
+#[derive(Debug, Clone, Default)]
+pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
-    pub arguments: Vec<FunctionArgument<'text>>,
-    pub argument_ordering: Vec<OrderSpecification<'text>>,
-    pub within_group: Vec<OrderSpecification<'text>>,
-    pub filter: Option<Box<Expression<'text>>>,
+    pub arguments: &'arena [FunctionArgument<'text, 'arena>],
+    pub argument_ordering: &'arena [OrderSpecification<'text, 'arena>],
+    pub within_group: &'arena [OrderSpecification<'text, 'arena>],
+    pub filter: Option<Expression<'text, 'arena>>,
     pub all: bool,
     pub distinct: bool,
     pub over: bool,
-    pub variadic: Option<Box<FunctionArgument<'text>>>,
-    #[serde(with = "serde_trim_direction::opt")]
+    pub variadic: Option<Box<FunctionArgument<'text, 'arena>>>,
     pub trim_direction: Option<sx::TrimDirection>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Limit<'text> {
+#[derive(Debug, Clone)]
+pub enum Limit<'text, 'arena> {
     ALL,
-    #[serde(borrow)]
-    Expression(Box<Expression<'text>>),
+    Expression(Expression<'text, 'arena>),
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone)]
 pub struct SampleCount<'text> {
-    #[serde(borrow)]
     pub value: &'text str,
-    #[serde(with = "serde_sample_count_unit")]
     pub unit: sx::SampleCountUnit,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone)]
 pub struct Sample<'text> {
     pub function: &'text str,
     pub seed: Option<&'text str>,
@@ -351,54 +324,45 @@ pub struct Sample<'text> {
     pub count: Option<SampleCount<'text>>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct RowLocking<'text> {
-    #[serde(with = "serde_row_locking_strength")]
+#[derive(Default, Debug, Clone)]
+pub struct RowLocking<'text, 'arena> {
     pub strength: sx::RowLockingStrength,
-    #[serde(borrow)]
-    pub of: Vec<NamePath<'text>>,
-    #[serde(with = "serde_row_locking_block_behaviour::opt")]
+    pub of: NamePath<'text, 'arena>,
     pub block_behavior: Option<sx::RowLockingBlockBehavior>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct SelectStatement<'text> {
+#[derive(Default, Debug, Clone)]
+pub struct SelectStatement<'text, 'arena> {
     pub all: bool,
-    #[serde(borrow)]
-    pub targets: Vec<ResultTarget<'text>>,
-    pub into: Option<Into<'text>>,
-    pub from: Vec<TableRef<'text>>,
-    pub where_clause: Option<Box<Expression<'text>>>,
-    pub order_by: Vec<OrderSpecification<'text>>,
-    pub group_by: Vec<GroupByItem<'text>>,
-    pub having: Option<Box<Expression<'text>>>,
+    pub targets: &'arena [ResultTarget<'text, 'arena>],
+    pub into: Option<Into<'text, 'arena>>,
+    pub from: &'arena [TableRef<'text, 'arena>],
+    pub where_clause: Option<Expression<'text, 'arena>>,
+    pub order_by: &'arena [OrderSpecification<'text, 'arena>],
+    pub group_by: &'arena [GroupByItem<'text, 'arena>],
+    pub having: Option<Expression<'text, 'arena>>,
     pub windows: bool,
     pub sample: Option<Sample<'text>>,
-    pub row_locking: Vec<RowLocking<'text>>,
-    pub limit: Option<Limit<'text>>,
-    pub offset: Option<Box<Expression<'text>>>,
+    pub row_locking: &'arena [RowLocking<'text, 'arena>],
+    pub limit: Option<Limit<'text, 'arena>>,
+    pub offset: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct CreateAsStatement<'text> {
-    #[serde(borrow)]
-    pub name: NamePath<'text>,
-    pub columns: Option<Vec<&'text str>>,
-    pub statement: SelectStatement<'text>,
+#[derive(Default, Debug, Clone)]
+pub struct CreateAsStatement<'text, 'arena> {
+    pub name: NamePath<'text, 'arena>,
+    pub columns: Option<&'arena [&'text str]>,
+    pub statement: SelectStatement<'text, 'arena>,
     pub if_not_exists: bool,
     pub with_data: bool,
-    #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
-    #[serde(with = "serde_on_commit_option::opt")]
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct CreateViewStatement<'text> {
-    #[serde(borrow)]
-    pub name: NamePath<'text>,
-    pub columns: Option<Vec<&'text str>>,
-    pub statement: SelectStatement<'text>,
-    #[serde(with = "serde_temp_type::opt")]
+#[derive(Default, Debug, Clone)]
+pub struct CreateViewStatement<'text, 'arena> {
+    pub name: NamePath<'text, 'arena>,
+    pub columns: Option<&'arena [&'text str]>,
+    pub statement: SelectStatement<'text, 'arena>,
     pub temp: Option<sx::TempType>,
 }

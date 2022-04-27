@@ -1,5 +1,5 @@
+use super::ast::Program;
 use super::print_ast;
-use super::program::Program;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
@@ -24,11 +24,11 @@ pub struct ASTDumpTemplate {
 }
 
 #[derive(Debug)]
-pub struct ASTDumpFile<'text> {
-    pub dumps: Vec<ASTDump<'text>>,
+pub struct ASTDumpFile<'text, 'arena> {
+    pub dumps: Vec<ASTDump<'text, 'arena>>,
 }
 
-impl<'text> ASTDumpFile<'text> {
+impl<'text, 'arena> ASTDumpFile<'text, 'arena> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
         W: Write + Clone,
@@ -43,14 +43,14 @@ impl<'text> ASTDumpFile<'text> {
 }
 
 #[derive(Debug)]
-pub struct ASTDump<'text> {
+pub struct ASTDump<'text, 'arena> {
     pub name: String,
     pub input: &'text str,
     pub parsed: Option<dashql_parser::ASTBuffer>,
-    pub translated: Option<Program<'text>>,
+    pub translated: Option<Program<'text, 'arena>>,
 }
 
-impl<'text> ASTDump<'text> {
+impl<'text, 'arena> ASTDump<'text, 'arena> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
         W: Write + Clone,

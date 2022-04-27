@@ -1,125 +1,98 @@
 use super::dashql_nodes::*;
 use super::dson::*;
-use super::enums_serde::*;
 use super::sql_nodes::*;
 use dashql_proto::syntax as sx;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ASTNode<'text> {
+#[derive(Clone, Debug)]
+pub enum ASTNode<'text, 'arena> {
     Null,
 
     Boolean(bool),
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'text str),
-    Array(Vec<ASTNode<'text>>),
+    Array(&'arena [ASTNode<'text, 'arena>]),
 
-    #[serde(with = "serde_fetch_method_type")]
-    FetchMethodType(sx::FetchMethodType),
-    #[serde(with = "serde_input_component_type")]
-    InputComponentType(sx::InputComponentType),
-    #[serde(with = "serde_load_method_type")]
-    LoadMethodType(sx::LoadMethodType),
-    #[serde(with = "serde_viz_component_type")]
-    VizComponentType(sx::VizComponentType),
-
-    #[serde(with = "serde_character_type")]
     CharacterType(sx::CharacterType),
-    #[serde(with = "serde_column_constraint")]
     ColumnConstraint(sx::ColumnConstraint),
-    #[serde(with = "serde_combine_modifier")]
     CombineModifier(sx::CombineModifier),
-    #[serde(with = "serde_combine_operation")]
     CombineOperation(sx::CombineOperation),
-    #[serde(with = "serde_constraint_attribute")]
-    ConstraintAttribute(sx::ConstraintAttribute),
-    #[serde(with = "serde_const_type")]
     ConstType(sx::AConstType),
-    #[serde(with = "serde_expression_operator")]
+    ConstraintAttribute(sx::ConstraintAttribute),
     ExpressionOperator(sx::ExpressionOperator),
-    #[serde(with = "serde_extract_target")]
     ExtractTarget(sx::ExtractTarget),
-    #[serde(with = "serde_group_by_item_type")]
+    FetchMethodType(sx::FetchMethodType),
     GroupByItemType(sx::GroupByItemType),
-    #[serde(with = "serde_interval_type")]
+    InputComponentType(sx::InputComponentType),
     IntervalType(sx::IntervalType),
-    #[serde(with = "serde_join_type")]
     JoinType(sx::JoinType),
-    #[serde(with = "serde_known_function")]
     KnownFunction(sx::KnownFunction),
-    #[serde(with = "serde_numeric_type")]
+    LoadMethodType(sx::LoadMethodType),
     NumericType(sx::NumericType),
-    #[serde(with = "serde_on_commit_option")]
     OnCommitOption(sx::OnCommitOption),
-    #[serde(with = "serde_order_direction")]
     OrderDirection(sx::OrderDirection),
-    #[serde(with = "serde_order_null_rule")]
     OrderNullRule(sx::OrderNullRule),
-    #[serde(with = "serde_row_locking_block_behaviour")]
     RowLockingBlockBehavior(sx::RowLockingBlockBehavior),
-    #[serde(with = "serde_row_locking_strength")]
     RowLockingStrength(sx::RowLockingStrength),
-    #[serde(with = "serde_sample_count_unit")]
     SampleCountUnit(sx::SampleCountUnit),
-    #[serde(with = "serde_subquery_quantifier")]
     SubqueryQuantifier(sx::SubqueryQuantifier),
-    #[serde(with = "serde_temp_type")]
     TempType(sx::TempType),
-    #[serde(with = "serde_trim_direction")]
     TrimDirection(sx::TrimDirection),
-    #[serde(with = "serde_window_bound_direction")]
+    VizComponentType(sx::VizComponentType),
     WindowBoundDirection(sx::WindowBoundDirection),
-    #[serde(with = "serde_window_bound_mode")]
     WindowBoundMode(sx::WindowBoundMode),
-    #[serde(with = "serde_window_exclusion_mode")]
     WindowExclusionMode(sx::WindowExclusionMode),
-    #[serde(with = "serde_window_range_mode")]
     WindowRangeMode(sx::WindowRangeMode),
 
-    GenericTypeInfo(GenericType<'text>),
-    NumericTypeInfo(NumericType<'text>),
-    BitTypeInfo(BitType<'text>),
+    GenericTypeInfo(GenericType<'text, 'arena>),
+    NumericTypeInfo(NumericType<'text, 'arena>),
+    BitTypeInfo(BitType<'text, 'arena>),
     CharacterTypeInfo(CharacterType<'text>),
     TimestampTypeInfo(TimestampType<'text>),
     TimeTypeInfo(TimeType<'text>),
     IntervalTypeInfo(IntervalType<'text>),
 
     Sample(Sample<'text>),
-    Alias(Alias<'text>),
-    Into(Into<'text>),
+    Alias(Alias<'text, 'arena>),
+    Into(Into<'text, 'arena>),
 
-    RowsFromItem(RowsFromItem<'text>),
-    ColumnDefinition(ColumnDefinition<'text>),
-    FunctionTable(FunctionTable<'text>),
-    FunctionTableRef(FunctionTableRef<'text>),
-    JoinedTable(JoinedTable<'text>),
-    JoinedTableRef(JoinedTableRef<'text>),
-    TableRef(TableRef<'text>),
+    RowsFromItem(RowsFromItem<'text, 'arena>),
+    ColumnDefinition(ColumnDefinition<'text, 'arena>),
+    FunctionTable(FunctionTable<'text, 'arena>),
+    FunctionTableRef(FunctionTableRef<'text, 'arena>),
+    JoinedTable(&'arena JoinedTable<'text, 'arena>),
+    JoinedTableRef(JoinedTableRef<'text, 'arena>),
+    TableRef(TableRef<'text, 'arena>),
 
-    RowLocking(RowLocking<'text>),
-    OrderSpecification(OrderSpecification<'text>),
-    GroupByItem(GroupByItem<'text>),
-    Expression(Expression<'text>),
-    Indirection(Indirection<'text>),
+    RowLocking(RowLocking<'text, 'arena>),
+    OrderSpecification(OrderSpecification<'text, 'arena>),
+    GroupByItem(GroupByItem<'text, 'arena>),
+    Expression(Expression<'text, 'arena>),
+    Indirection(Indirection<'text, 'arena>),
     IntervalSpecification(IntervalSpecification<'text>),
-    ResultTarget(ResultTarget<'text>),
+    ResultTarget(ResultTarget<'text, 'arena>),
     TableSample(TableSample<'text>),
-    ColumnRef(NamePath<'text>),
-    FunctionArgument(FunctionArgument<'text>),
-    FunctionExpression(FunctionExpression<'text>),
-    TypecastExpression(TypecastExpression<'text>),
-    SQLType(SQLType<'text>),
+    ColumnRef(NamePath<'text, 'arena>),
+    FunctionArgument(FunctionArgument<'text, 'arena>),
+    FunctionExpression(FunctionExpression<'text, 'arena>),
+    TypecastExpression(TypecastExpression<'text, 'arena>),
+    SQLType(SQLType<'text, 'arena>),
 
-    CreateAs(CreateAsStatement<'text>),
-    CreateView(CreateViewStatement<'text>),
-    SelectStatement(SelectStatement<'text>),
-    SetStatement(SetStatement<'text>),
-    FetchStatement(FetchStatement<'text>),
-    InputStatement(InputStatement<'text>),
-    LoadStatement(LoadStatement<'text>),
-    VizComponent(VizComponent<'text>),
-    VizStatement(VizStatement<'text>),
+    CreateAs(CreateAsStatement<'text, 'arena>),
+    CreateView(CreateViewStatement<'text, 'arena>),
+    SelectStatement(&'arena SelectStatement<'text, 'arena>),
+    SetStatement(SetStatement<'text, 'arena>),
+    FetchStatement(FetchStatement<'text, 'arena>),
+    InputStatement(InputStatement<'text, 'arena>),
+    LoadStatement(LoadStatement<'text, 'arena>),
+    VizComponent(VizComponent<'text, 'arena>),
+    VizStatement(VizStatement<'text, 'arena>),
 
-    Dson(DsonValue<'text>),
+    Dson(DsonValue<'text, 'arena>),
+}
+
+impl<'text, 'arena> Default for ASTNode<'text, 'arena> {
+    fn default() -> Self {
+        ASTNode::Null
+    }
 }
