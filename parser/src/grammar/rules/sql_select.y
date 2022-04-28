@@ -1556,9 +1556,13 @@ sql_func_expr_common_subexpr:
         };
     }
   | TREAT '(' sql_a_expr AS sql_typename ')' {
+        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS, {
+            Attr(Key::SQL_FUNCTION_TREAT_VALUE, std::move($3)),
+            Attr(Key::SQL_FUNCTION_TREAT_TYPE, std::move($5))
+        });
         $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TREAT)),
-            Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })),
+            Attr(Key::SQL_FUNCTION_TREAT_ARGS, args),
         };
     }
   | NULLIF '(' sql_a_expr ',' sql_a_expr ')' {

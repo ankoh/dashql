@@ -553,14 +553,26 @@ pub fn translate_ast<'text, 'ast, 'arena>(
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
                 let mut value = None;
-                let mut cast_type = None;
+                let mut as_type = None;
                 read_attributes! {
                     (Key::SQL_FUNCTION_CAST_VALUE, n) => value = Some(read_expr(n)),
-                    (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t)) => cast_type = Some(t)
+                    (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t)) => as_type = Some(t)
                 }
                 ASTNode::CastFunctionArguments(CastFunctionArguments {
                     value: value.unwrap(),
-                    cast_type: cast_type.unwrap(),
+                    as_type: as_type.unwrap(),
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
+                let mut value = None;
+                let mut as_type = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_TREAT_VALUE, n) => value = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_TREAT_TYPE, ASTNode::SQLType(t)) => as_type = Some(t)
+                }
+                ASTNode::TreatFunctionArguments(TreatFunctionArguments {
+                    value: value.unwrap(),
+                    as_type: as_type.unwrap(),
                 })
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
@@ -590,7 +602,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_FUNCTION_POSITION_ARGS, ASTNode::PositionFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Position(a)),
                     (Key::SQL_FUNCTION_SUBSTRING_ARGS, ASTNode::SubstringFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Substring(a)),
                     (Key::SQL_FUNCTION_EXTRACT_ARGS, ASTNode::ExtractFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Extract(a)),
-                    (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Cast(a))
+                    (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Cast(a)),
+                    (Key::SQL_FUNCTION_TREAT_ARGS, ASTNode::TreatFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Treat(a))
                 }
                 ASTNode::FunctionExpression(FunctionExpression {
                     name: func_name,

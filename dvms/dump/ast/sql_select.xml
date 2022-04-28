@@ -3569,7 +3569,7 @@
                                             value: StringRef(
                                                 &quot;&apos;1&apos;&quot;,
                                             ),
-                                            cast_type: SQLType {
+                                            as_type: SQLType {
                                                 base_type: Timestamp(
                                                     TimestampType {
                                                         precision: None,
@@ -3659,7 +3659,7 @@
                                             value: StringRef(
                                                 &quot;&apos;1&apos;&quot;,
                                             ),
-                                            cast_type: SQLType {
+                                            as_type: SQLType {
                                                 base_type: Timestamp(
                                                     TimestampType {
                                                         precision: Some(
@@ -3871,7 +3871,7 @@
                                             value: StringRef(
                                                 &quot;&apos;1&apos;&quot;,
                                             ),
-                                            cast_type: SQLType {
+                                            as_type: SQLType {
                                                 base_type: Generic(
                                                     GenericType {
                                                         name: &quot;sometype&quot;,
@@ -6887,7 +6887,7 @@
                                             value: StringRef(
                                                 &quot;1&quot;,
                                             ),
-                                            cast_type: SQLType {
+                                            as_type: SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
                                                         base: INT4,
@@ -6937,13 +6937,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..26" text="treat(1 as integer)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..26" text="treat(1 as integer)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="13..14" text="1"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="18..25" text="integer">
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TREAT"/>
+                                    <node key="SQL_FUNCTION_TREAT_ARGS" type="OBJECT_SQL_FUNCTION_TREAT_ARGS" loc="12..26" text="(1 as integer)">
+                                        <node key="SQL_FUNCTION_TREAT_TYPE" type="OBJECT_SQL_TYPENAME" loc="18..25" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
+                                        <node key="SQL_FUNCTION_TREAT_VALUE" type="STRING_REF" loc="13..14" text="1"/>
                                     </node>
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TREAT"/>
                                 </node>
                             </node>
                         </node>
@@ -6967,19 +6967,26 @@
                                 name: Known(
                                     TREAT,
                                 ),
-                                args: [
-                                    FunctionArgument {
-                                        name: None,
-                                        value: StringRef(
-                                            &quot;1&quot;,
-                                        ),
-                                    },
-                                    FunctionArgument {
-                                        name: None,
-                                        value: Null,
-                                    },
-                                ],
-                                args_known: None,
+                                args: [],
+                                args_known: Some(
+                                    Treat(
+                                        TreatFunctionArguments {
+                                            value: StringRef(
+                                                &quot;1&quot;,
+                                            ),
+                                            as_type: SQLType {
+                                                base_type: Numeric(
+                                                    NumericType {
+                                                        base: INT4,
+                                                        modifiers: [],
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                        },
+                                    ),
+                                ),
                                 arg_ordering: [],
                                 within_group: [],
                                 filter: None,
