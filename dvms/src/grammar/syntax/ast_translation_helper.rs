@@ -6,10 +6,10 @@ pub(super) fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> 
     match node {
         ASTNode::Boolean(true) => Expression::True,
         ASTNode::Boolean(false) => Expression::False,
-        ASTNode::Expression(e) => e.clone(),
-        ASTNode::FunctionExpression(f) => Expression::FunctionCall(f),
-        ASTNode::StringRef(s) => Expression::StringRef(s),
-        ASTNode::ColumnRef(c) => Expression::ColumnRef(c),
+        ASTNode::Expression(ref e) => e.clone(),
+        ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),
+        ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
+        ASTNode::ColumnRef(ref c) => Expression::ColumnRef(c.clone()),
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
         _ => {
             log::warn!("invalid expression node: {:?}", node);

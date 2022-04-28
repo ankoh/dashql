@@ -50,7 +50,7 @@ pub struct ConstCastExpression<'text, 'arena> {
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text, 'arena>>,
     pub func_args: &'arena [Expression<'text, 'arena>],
-    pub func_arg_ordering: &'arena [OrderSpecification<'text, 'arena>],
+    pub func_arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub value: &'text str,
     pub interval: Option<&'arena IntervalSpecification<'text>>,
 }
@@ -80,7 +80,7 @@ impl<'text, 'arena> Default for Expression<'text, 'arena> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct OrderSpecification<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub direction: Option<sx::OrderDirection>,
@@ -93,13 +93,7 @@ pub enum GroupByItem<'text, 'arena> {
     Expression(Expression<'text, 'arena>),
     Cube(&'arena [Expression<'text, 'arena>]),
     Rollup(&'arena [Expression<'text, 'arena>]),
-    GroupingSets(&'arena [GroupByItem<'text, 'arena>]),
-}
-
-impl<'text, 'arena> Default for GroupByItem<'text, 'arena> {
-    fn default() -> Self {
-        GroupByItem::Empty
-    }
+    GroupingSets(&'arena [&'arena GroupByItem<'text, 'arena>]),
 }
 
 #[derive(Debug, Clone)]
@@ -118,15 +112,6 @@ pub enum ResultTarget<'text, 'arena> {
         value: Expression<'text, 'arena>,
         alias: Option<&'text str>,
     },
-}
-
-impl<'text, 'arena> Default for ResultTarget<'text, 'arena> {
-    fn default() -> Self {
-        ResultTarget::Value {
-            value: Expression::Null,
-            alias: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -202,18 +187,18 @@ pub struct Into<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
     pub sql_type: SQLType<'text, 'arena>,
     pub collate: &'arena [&'text str],
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Alias<'text, 'arena> {
     pub name: &'text str,
     pub column_names: &'arena [&'text str],
-    pub column_definitions: &'arena [ColumnDefinition<'text, 'arena>],
+    pub column_definitions: &'arena [&'arena ColumnDefinition<'text, 'arena>],
 }
 
 #[derive(Debug, Clone)]
@@ -233,16 +218,16 @@ pub struct SelectStatementRef<'text, 'arena> {
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct RowsFromItem<'text, 'arena> {
-    pub function: FunctionExpression<'text, 'arena>,
-    pub columns: &'arena [ColumnDefinition<'text, 'arena>],
+    pub function: &'arena FunctionExpression<'text, 'arena>,
+    pub columns: &'arena [&'arena ColumnDefinition<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FunctionTable<'text, 'arena> {
     pub function: Option<&'arena FunctionExpression<'text, 'arena>>,
-    pub rows_from: &'arena [RowsFromItem<'text, 'arena>],
+    pub rows_from: &'arena [&'arena RowsFromItem<'text, 'arena>],
     pub with_ordinality: bool,
 }
 
@@ -260,11 +245,11 @@ pub enum JoinQualifier<'text, 'arena> {
     Using(&'arena [&'text str]),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct JoinedTable<'text, 'arena> {
     pub join: sx::JoinType,
     pub qualifier: Option<JoinQualifier<'text, 'arena>>,
-    pub input: &'arena [TableRef<'text, 'arena>],
+    pub input: &'arena [&'arena TableRef<'text, 'arena>],
 }
 
 #[derive(Debug, Clone)]
@@ -315,8 +300,8 @@ impl<'text, 'arena> Default for FunctionName<'text> {
 pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
     pub arguments: &'arena [FunctionArgument<'text, 'arena>],
-    pub argument_ordering: &'arena [OrderSpecification<'text, 'arena>],
-    pub within_group: &'arena [OrderSpecification<'text, 'arena>],
+    pub argument_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
+    pub within_group: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub filter: Option<Expression<'text, 'arena>>,
     pub all: bool,
     pub distinct: bool,
@@ -355,16 +340,16 @@ pub struct RowLocking<'text, 'arena> {
 #[derive(Default, Debug, Clone)]
 pub struct SelectStatement<'text, 'arena> {
     pub all: bool,
-    pub targets: &'arena [ResultTarget<'text, 'arena>],
+    pub targets: &'arena [&'arena ResultTarget<'text, 'arena>],
     pub into: Option<&'arena Into<'text, 'arena>>,
-    pub from: &'arena [TableRef<'text, 'arena>],
+    pub from: &'arena [&'arena TableRef<'text, 'arena>],
     pub where_clause: Option<Expression<'text, 'arena>>,
-    pub order_by: &'arena [OrderSpecification<'text, 'arena>],
-    pub group_by: &'arena [GroupByItem<'text, 'arena>],
+    pub order_by: &'arena [&'arena OrderSpecification<'text, 'arena>],
+    pub group_by: &'arena [&'arena GroupByItem<'text, 'arena>],
     pub having: Option<Expression<'text, 'arena>>,
     pub windows: bool,
     pub sample: Option<&'arena Sample<'text>>,
-    pub row_locking: &'arena [RowLocking<'text, 'arena>],
+    pub row_locking: &'arena [&'arena RowLocking<'text, 'arena>],
     pub limit: Option<Limit<'text, 'arena>>,
     pub offset: Option<Expression<'text, 'arena>>,
 }

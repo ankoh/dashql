@@ -60,7 +60,7 @@ pub enum ASTNode<'text, 'arena> {
     ColumnDefinition(ColumnDefinition<'text, 'arena>),
     FunctionTable(FunctionTable<'text, 'arena>),
     FunctionTableRef(FunctionTableRef<'text, 'arena>),
-    JoinedTable(&'arena JoinedTable<'text, 'arena>),
+    JoinedTable(JoinedTable<'text, 'arena>),
     JoinedTableRef(JoinedTableRef<'text, 'arena>),
     TableRef(TableRef<'text, 'arena>),
 
@@ -80,7 +80,7 @@ pub enum ASTNode<'text, 'arena> {
 
     CreateAs(CreateAsStatement<'text, 'arena>),
     CreateView(CreateViewStatement<'text, 'arena>),
-    SelectStatement(&'arena SelectStatement<'text, 'arena>),
+    SelectStatement(SelectStatement<'text, 'arena>),
     SetStatement(SetStatement<'text, 'arena>),
     FetchStatement(FetchStatement<'text, 'arena>),
     InputStatement(InputStatement<'text, 'arena>),

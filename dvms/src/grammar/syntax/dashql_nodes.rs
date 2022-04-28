@@ -29,7 +29,7 @@ pub struct LoadStatement<'text, 'arena> {
 #[derive(Debug, Clone)]
 pub struct VizStatement<'text, 'arena> {
     pub target: &'arena TableRef<'text, 'arena>,
-    pub components: &'arena [VizComponent<'text, 'arena>],
+    pub components: &'arena [&'arena VizComponent<'text, 'arena>],
 }
 
 #[derive(Debug, Clone, Default)]

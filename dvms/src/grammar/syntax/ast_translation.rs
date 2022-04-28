@@ -10,6 +10,12 @@ use dashql_proto::syntax::GroupByItemType;
 use std::error::Error;
 use sx::AttributeKey as Key;
 
+#[inline(never)]
+#[cold]
+fn oom() -> ! {
+    panic!("out of memory")
+}
+
 pub fn translate_ast<'text, 'ast, 'arena>(
     arena: &'arena bumpalo::Bump,
     text: &'text str,
@@ -17,10 +23,10 @@ pub fn translate_ast<'text, 'ast, 'arena>(
 ) -> Result<Program<'text, 'arena>, Box<dyn Error + Send + Sync>> {
     let buffer_stmts = buffer.statements().unwrap_or_default();
     let buffer_nodes = buffer.nodes().unwrap_or_default();
-    let mut nodes: Vec<&'arena ASTNode<'text, 'arena>> = Vec::new();
-    nodes.reserve(buffer_nodes.len());
 
     // Translate all nodes from left-to-right
+    let mut nodes: Vec<&'arena ASTNode<'text, 'arena>> = Vec::new();
+    nodes.reserve(buffer_nodes.len());
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
         let node_type = node.node_type();
@@ -36,7 +42,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
         };
 
         // Helper to mark an unexpected attribute
-        macro_rules! unexpected_attr {
+        macro_rules! err_unexpected_attr {
             ($node:expr, $key:expr, $child:expr) => {
                 return Err(RawError::from(format!(
                     "unexpected attribute: {:?}.{} => {:?}",
@@ -47,9 +53,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 .boxed())
             };
         }
-
         // Helper to mark an unexpected array element
-        macro_rules! unexpected_array_element {
+        macro_rules! err_unexpected_element {
             ($key:expr, $value:expr) => {
                 return Err(RawError::from(format!(
                     "unexpected element: {}[] => {:?}",
@@ -59,7 +64,6 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 .boxed())
             };
         }
-
         // Helper to read integer as enum
         macro_rules! as_enum {
             ($name:ident) => {
@@ -73,26 +77,47 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     let k = sx::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
                     match (k, &children[i]) {
                         $($matcher => $result),*,
-                        (k, c) => unexpected_attr!(node_type, k, c),
+                        (k, c) => err_unexpected_attr!(node_type, k, c),
                     }
                 }
             }
         }
-        // Helper to read a node array
-        macro_rules! unpack_nodes {
-            ($nodes:expr, $node_type:ident) => {{
-                let out = arena.alloc_slice_fill_default($nodes.len());
+
+        // Helper to unpack nodes
+        macro_rules! unpack_nodes_inner {
+            ($nodes:expr, $ast_node:ident, $out:expr) => {{
+                let mut writer = 0;
                 for i in 0..$nodes.len() {
-                    out[i] = match &$nodes[i] {
-                        ASTNode::Null => Default::default(),
-                        ASTNode::$node_type(inner) => inner.clone(),
+                    match &$nodes[i] {
+                        ASTNode::$ast_node(inner) => {
+                            unsafe {
+                                std::ptr::write($out.as_ptr().add(writer), inner);
+                            }
+                            writer += 1;
+                        }
                         _ => {
-                            debug_assert!(false, "invalid node: {:?}", &$nodes[i]);
-                            Default::default()
+                            debug_assert!(false, "unexpected node: {:?}", &$nodes[i]);
                         }
                     };
                 }
-                out
+                unsafe { std::slice::from_raw_parts_mut($out.as_ptr(), writer) }
+            }};
+        }
+        macro_rules! unpack_nodes {
+            ($nodes:expr, $ast_node:ident) => {
+                unpack_nodes!($nodes, $ast_node, $ast_node)
+            };
+            ($nodes:expr, $ast_node:ident, $inner:ident) => {{
+                let layout = std::alloc::Layout::array::<&'arena $inner>($nodes.len()).unwrap_or_else(|_| oom());
+                let out = arena.alloc_layout(layout).cast::<&'arena $inner>();
+                unpack_nodes_inner!($nodes, $ast_node, out)
+            }};
+        }
+        macro_rules! unpack_strings {
+            ($nodes:expr, $ast_node:ident) => {{
+                let layout = std::alloc::Layout::array::<&'text str>($nodes.len()).unwrap_or_else(|_| oom());
+                let out = arena.alloc_layout(layout).cast::<&'text str>();
+                unpack_nodes_inner!($nodes, $ast_node, out)
             }};
         }
 
@@ -251,7 +276,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s)) => {
                         alias = Some(arena.alloc(Alias {
                             name: s,
-                            ..Alias::default()
+                            column_names: &[],
+                            column_definitions: &[],
                         }))
                     },
                     (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(b)) => lateral = *b,
@@ -338,7 +364,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s)) => name = s,
                     (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => {
-                        column_names = unpack_nodes!(nodes, StringRef)
+                        column_names = unpack_strings!(nodes, StringRef)
                     },
                     (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => {
                         column_definitions = unpack_nodes!(nodes, ColumnDefinition)
@@ -394,14 +420,14 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t)) => join = t.clone(),
                     (Key::SQL_JOIN_ON, n) => qualifier = Some(JoinQualifier::On(read_expr(n))),
                     (Key::SQL_JOIN_USING, ASTNode::Array(nodes)) => {
-                        let using = unpack_nodes!(nodes, StringRef);
+                        let using = unpack_strings!(nodes, StringRef);
                         qualifier = Some(JoinQualifier::Using(using));
                     },
                     (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => {
                         input = unpack_nodes!(nodes, TableRef);
                     }
                 }
-                ASTNode::JoinedTable(arena.alloc(JoinedTable { join, qualifier, input }))
+                ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
             }
             sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
                 let mut elem_name = "";
@@ -410,7 +436,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
                     (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t.clone()),
-                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_nodes!(nodes, StringRef)
+                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_strings!(nodes, StringRef)
                 }
                 ASTNode::ColumnDefinition(ColumnDefinition {
                     name: elem_name,
@@ -535,16 +561,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     GroupByItemType::EXPRESSION => GroupByItem::Expression(expr.unwrap()),
                     GroupByItemType::CUBE => GroupByItem::Cube(read_exprs(arena, args)),
                     GroupByItemType::ROLLUP => GroupByItem::Rollup(read_exprs(arena, args)),
-                    GroupByItemType::GROUPING_SETS => {
-                        let items = arena.alloc_slice_fill_default(args.len());
-                        for (i, arg) in args.iter().enumerate() {
-                            match arg {
-                                ASTNode::GroupByItem(item) => items[i] = item.clone(),
-                                _ => unexpected_attr!(node_type, Key::SQL_GROUP_BY_ITEM_ARGS, arg),
-                            }
-                        }
-                        GroupByItem::GroupingSets(items)
-                    }
+                    GroupByItemType::GROUPING_SETS => GroupByItem::GroupingSets(unpack_nodes!(args, GroupByItem)),
                     _ => return Err(RawError::from(format!("invalid group by item type: {:?}", item_type)).boxed()),
                 };
                 ASTNode::GroupByItem(item)
@@ -668,7 +685,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                         for (i, node) in nodes.iter().enumerate() {
                             match node {
                                 ASTNode::Array(path) => names[i] = read_name(arena, path),
-                                _ => unexpected_array_element!(sx::NodeType::OBJECT_SQL_ROW_LOCKING, node),
+                                _ => err_unexpected_element!(sx::NodeType::OBJECT_SQL_ROW_LOCKING, node),
                             }
                         }
                         of = names;
@@ -718,7 +735,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b)) => if_not_exists = *b,
                     (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
                     (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
-                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_nodes!(nodes, StringRef)
+                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_strings!(nodes, StringRef)
                 }
                 ASTNode::CreateAs(CreateAsStatement {
                     name,
@@ -739,7 +756,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_VIEW_NAME, ASTNode::Array(n)) => name = read_name(arena, n),
                     (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s)) => select = Some(s),
                     (Key::SQL_VIEW_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
-                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => columns = unpack_nodes!(cols, StringRef)
+                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => columns = unpack_strings!(cols, StringRef)
                 }
                 ASTNode::CreateView(CreateViewStatement {
                     name,
@@ -774,9 +791,9 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),
                     (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem)
                 }
-                ASTNode::SelectStatement(arena.alloc(SelectStatement {
+                ASTNode::SelectStatement(SelectStatement {
                     all: false,
-                    targets: targets,
+                    targets,
                     into,
                     from,
                     where_clause,
@@ -788,7 +805,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     row_locking,
                     limit,
                     offset,
-                }))
+                })
             }
             sx::NodeType::OBJECT_DSON => {
                 let fields = arena.alloc_slice_fill_default(children.len());
@@ -820,7 +837,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
     for statement in buffer_stmts.iter() {
         let node = &nodes[statement.root_node() as usize];
         let stmt = match node {
-            ASTNode::SelectStatement(s) => Statement::Select(s.clone()),
+            ASTNode::SelectStatement(s) => Statement::Select(s),
             ASTNode::InputStatement(s) => Statement::Input(s),
             ASTNode::FetchStatement(s) => Statement::Fetch(s),
             ASTNode::VizStatement(s) => Statement::Viz(s),
