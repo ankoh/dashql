@@ -19,7 +19,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
     let buffer_nodes = buffer.nodes().unwrap_or_default();
 
     // Translate all nodes from left-to-right
-    let nodes = arena.alloc_slice_fill_default(buffer_nodes.len());
+    let mut nodes: Vec<&'arena ASTNode<'text, 'arena>> = Vec::new();
+    nodes.reserve(buffer_nodes.len());
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
         let node_type = node.node_type();
@@ -28,7 +29,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
         let value = node.children_begin_or_value();
         let children_begin = node.children_begin_or_value() as usize;
         let children_end = children_begin + node.children_count() as usize;
-        let children = if children_begin > 0 && (children_begin + children_end) < nodes.len() {
+        let children = if children_end <= nodes.len() {
             &nodes[children_begin..children_end]
         } else {
             &[]
@@ -78,7 +79,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
             }
         }
         // Helper to read a node array
-        macro_rules! cast_nodes_or_default {
+        macro_rules! unpack_nodes {
             ($nodes:expr, $node_type:ident) => {{
                 let out = arena.alloc_slice_fill_default($nodes.len());
                 for i in 0..$nodes.len() {
@@ -105,7 +106,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 &text[(node.location().offset() as usize)
                     ..((node.location().offset() + node.location().length()) as usize)],
             ),
-            sx::NodeType::ARRAY => ASTNode::Array(children),
+            sx::NodeType::ARRAY => ASTNode::Array(arena.alloc_slice_copy(children)),
 
             sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => as_enum!(VizComponentType),
             sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => as_enum!(InputComponentType),
@@ -314,7 +315,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                         func_args = read_exprs(arena, nodes)
                     },
                     (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => {
-                        func_arg_ordering = cast_nodes_or_default!(nodes, OrderSpecification);
+                        func_arg_ordering = unpack_nodes!(nodes, OrderSpecification);
                     },
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => interval = Some(i),
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
@@ -337,10 +338,10 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s)) => name = s,
                     (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => {
-                        column_names = cast_nodes_or_default!(nodes, StringRef)
+                        column_names = unpack_nodes!(nodes, StringRef)
                     },
                     (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => {
-                        column_definitions = cast_nodes_or_default!(nodes, ColumnDefinition)
+                        column_definitions = unpack_nodes!(nodes, ColumnDefinition)
                     }
                 }
                 ASTNode::Alias(Alias {
@@ -393,11 +394,11 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t)) => join = t.clone(),
                     (Key::SQL_JOIN_ON, n) => qualifier = Some(JoinQualifier::On(read_expr(n))),
                     (Key::SQL_JOIN_USING, ASTNode::Array(nodes)) => {
-                        let using = cast_nodes_or_default!(nodes, StringRef);
+                        let using = unpack_nodes!(nodes, StringRef);
                         qualifier = Some(JoinQualifier::Using(using));
                     },
                     (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => {
-                        input = cast_nodes_or_default!(nodes, TableRef);
+                        input = unpack_nodes!(nodes, TableRef);
                     }
                 }
                 ASTNode::JoinedTable(arena.alloc(JoinedTable { join, qualifier, input }))
@@ -409,7 +410,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
                     (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t.clone()),
-                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = cast_nodes_or_default!(nodes, StringRef)
+                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_nodes!(nodes, StringRef)
                 }
                 ASTNode::ColumnDefinition(ColumnDefinition {
                     name: elem_name,
@@ -427,7 +428,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     },
                     (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(b)) => ordinality = *b,
                     (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => {
-                        rows_from = cast_nodes_or_default!(nodes, RowsFromItem);
+                        rows_from = unpack_nodes!(nodes, RowsFromItem);
                     }
                 }
                 ASTNode::FunctionTable(FunctionTable {
@@ -462,7 +463,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
                     (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f)) => func_name = FunctionName::Known(f.clone()),
-                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = cast_nodes_or_default!(nodes, OrderSpecification),
+                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                         let args = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
@@ -600,7 +601,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 let mut components: &[_] = &[];
                 read_attributes! {
                     (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t)) => target = Some(t),
-                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(ref nodes)) => components = cast_nodes_or_default!(nodes, VizComponent)
+                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(ref nodes)) => components = unpack_nodes!(nodes, VizComponent)
                 }
                 ASTNode::VizStatement(VizStatement {
                     target: target.unwrap(),
@@ -717,7 +718,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b)) => if_not_exists = *b,
                     (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
                     (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
-                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = cast_nodes_or_default!(nodes, StringRef)
+                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_nodes!(nodes, StringRef)
                 }
                 ASTNode::CreateAs(CreateAsStatement {
                     name,
@@ -738,7 +739,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_VIEW_NAME, ASTNode::Array(n)) => name = read_name(arena, n),
                     (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s)) => select = Some(s),
                     (Key::SQL_VIEW_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
-                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => columns = cast_nodes_or_default!(cols, StringRef)
+                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => columns = unpack_nodes!(cols, StringRef)
                 }
                 ASTNode::CreateView(CreateViewStatement {
                     name,
@@ -765,13 +766,13 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(true)) => limit = Some(Limit::ALL),
                     (Key::SQL_SELECT_LIMIT, n) => limit = Some(Limit::Expression(read_expr(n))),
                     (Key::SQL_SELECT_OFFSET, n) => offset = Some(read_expr(n)),
-                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = cast_nodes_or_default!(nodes, OrderSpecification),
+                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_SELECT_HAVING, n) => having = Some(read_expr(n)),
                     (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
-                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = cast_nodes_or_default!(nodes, RowLocking),
-                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = cast_nodes_or_default!(nodes, ResultTarget),
-                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = cast_nodes_or_default!(nodes, TableRef),
-                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = cast_nodes_or_default!(nodes, GroupByItem)
+                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = unpack_nodes!(nodes, RowLocking),
+                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
+                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),
+                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem)
                 }
                 ASTNode::SelectStatement(arena.alloc(SelectStatement {
                     all: false,
@@ -811,7 +812,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
         };
 
         // Remember translated node
-        nodes[node_id] = translated;
+        nodes.push(arena.alloc(translated));
     }
 
     // Do a postorder dfs traversal

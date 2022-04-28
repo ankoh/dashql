@@ -351,6 +351,7 @@
                                     StringRef(
                                         &quot;2&quot;,
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -2657,10 +2658,12 @@
                                             StringRef(
                                                 &quot;1&quot;,
                                             ),
+                                            Null,
                                         ],
                                         postfix: false,
                                     },
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -2859,6 +2862,7 @@
                                                     ),
                                                 ],
                                             ),
+                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -2887,10 +2891,12 @@
                                                     ),
                                                 ],
                                             ),
+                                            Null,
                                         ],
                                         postfix: false,
                                     },
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -3250,6 +3256,49 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: ConstCast(
+                            ConstCastExpression {
+                                cast_type: &quot;somefunc&quot;,
+                                func_name: Some(
+                                    [
+                                        Name(
+                                            &quot;somefunc&quot;,
+                                        ),
+                                    ],
+                                ),
+                                func_args: [
+                                    Null,
+                                ],
+                                func_arg_ordering: [],
+                                value: &quot;&apos;foo&apos;&quot;,
+                                interval: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_const_typename_cast">
         <input>select integer &apos;1&apos;;</input>
@@ -3501,6 +3550,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CAST,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;1&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: Null,
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_datetime_type_2">
         <input>select cast(&apos;1&apos; as timestamp (2) with time zone);</input>
@@ -3532,6 +3633,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CAST,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;1&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: Null,
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_datetime_type_3">
         <input>select cast(&apos;1&apos; as time with time zone);</input>
@@ -3683,6 +3836,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CAST,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;1&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: Null,
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_bit_type_1">
         <input>select cast(&apos;1&apos; as bit);</input>
@@ -4245,6 +4450,7 @@
                                     StringRef(
                                         &quot;&apos;mst&apos;&quot;,
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -4360,6 +4566,44 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: COLLATE,
+                                args: [
+                                    StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    Null,
+                                    Null,
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_overlaps_1">
         <input>select (date &apos;2021-01-10&apos;, date &apos;2021-02-01&apos;) overlaps (date &apos;2021-01-20&apos;, date &apos;2021-02-10&apos;);</input>
@@ -4414,6 +4658,42 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: OVERLAPS,
+                                args: [
+                                    Null,
+                                    Null,
+                                    Null,
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_distinct_1">
         <input>select a is distinct from b;</input>
@@ -4471,6 +4751,7 @@
                                             ),
                                         ],
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -4550,6 +4831,7 @@
                                             ),
                                         ],
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -4604,6 +4886,48 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: IS_OF,
+                                args: [
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                    Null,
+                                    Null,
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_isof_2">
         <input>select a is not of (integer);</input>
@@ -4636,6 +4960,48 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: IS_NOT_OF,
+                                args: [
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                    Null,
+                                    Null,
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_case_1">
         <input>select case a
@@ -5190,6 +5556,48 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: Nary(
+                            NaryExpression {
+                                operator: IN,
+                                args: [
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                    Null,
+                                    Null,
+                                ],
+                                postfix: false,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_subquery_1">
         <input>select a like all (select 1);</input>
@@ -5386,7 +5794,11 @@
                                         value: Nary(
                                             NaryExpression {
                                                 operator: DEFAULT,
-                                                args: [],
+                                                args: [
+                                                    Null,
+                                                    Null,
+                                                    Null,
+                                                ],
                                                 postfix: false,
                                             },
                                         ),
@@ -6433,6 +6845,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    CAST,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: Null,
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_18">
         <input>select treat(1 as integer);</input>
@@ -6461,6 +6925,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TREAT,
+                                ),
+                                arguments: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: Null,
+                                    },
+                                ],
+                                argument_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                                trim_direction: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_19">
         <input>select nullif(a, 1);</input>
@@ -8047,6 +8563,7 @@
                                         ),
                                     ],
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -8174,6 +8691,7 @@
                                         ),
                                     ],
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -8291,6 +8809,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -8425,6 +8944,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -8751,6 +9271,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -8885,6 +9406,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -9019,6 +9541,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -9153,6 +9676,7 @@
                                                             ),
                                                         ],
                                                     ),
+                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -9433,6 +9957,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -9577,6 +10102,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -9721,6 +10247,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -9865,6 +10392,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -10009,6 +10537,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -10164,6 +10693,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -10322,6 +10852,7 @@
                                 StringRef(
                                     &quot;5&quot;,
                                 ),
+                                Null,
                             ],
                             postfix: false,
                         },
@@ -10954,7 +11485,7 @@
                                                 array_bounds: [],
                                                 set_of: false,
                                             },
-                                            collate: None,
+                                            collate: [],
                                         },
                                     ],
                                 },

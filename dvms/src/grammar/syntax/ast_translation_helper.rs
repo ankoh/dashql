@@ -12,7 +12,7 @@ pub(super) fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> 
         ASTNode::ColumnRef(c) => Expression::ColumnRef(c),
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
         _ => {
-            debug_assert!(false, "invalid expression node: {:?}", node);
+            log::warn!("invalid expression node: {:?}", node);
             Expression::Null
         }
     }
@@ -20,7 +20,7 @@ pub(super) fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> 
 
 pub(super) fn read_exprs<'text, 'arena>(
     alloc: &'arena bumpalo::Bump,
-    nodes: &'arena [ASTNode<'text, 'arena>],
+    nodes: &[&'arena ASTNode<'text, 'arena>],
 ) -> &'arena [Expression<'text, 'arena>] {
     let exprs = alloc.alloc_slice_fill_default(nodes.len());
     for i in 0..nodes.len() {
@@ -31,7 +31,7 @@ pub(super) fn read_exprs<'text, 'arena>(
 
 pub(super) fn read_name<'text, 'arena>(
     alloc: &'arena bumpalo::Bump,
-    nodes: &'arena [ASTNode<'text, 'arena>],
+    nodes: &[&'arena ASTNode<'text, 'arena>],
 ) -> NamePath<'text, 'arena> {
     let path = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
@@ -39,7 +39,7 @@ pub(super) fn read_name<'text, 'arena>(
             ASTNode::StringRef(s) => Indirection::Name(s),
             ASTNode::Indirection(indirection) => indirection.clone(),
             _ => {
-                debug_assert!(false, "invalid name element: {:?}", n);
+                log::warn!("invalid name element: {:?}", n);
                 Indirection::default()
             }
         }
@@ -49,7 +49,7 @@ pub(super) fn read_name<'text, 'arena>(
 
 pub(super) fn read_array_bounds<'text, 'arena>(
     alloc: &'arena bumpalo::Bump,
-    nodes: &'arena [ASTNode<'text, 'arena>],
+    nodes: &[&'arena ASTNode<'text, 'arena>],
 ) -> &'arena [ArrayBound<'text>] {
     let bounds = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
@@ -57,7 +57,7 @@ pub(super) fn read_array_bounds<'text, 'arena>(
             ASTNode::Null => ArrayBound::Empty,
             ASTNode::StringRef(s) => ArrayBound::Index(s),
             _ => {
-                debug_assert!(false, "invalid name element: {:?}", n);
+                log::warn!("invalid name element: {:?}", n);
                 ArrayBound::Empty
             }
         }
@@ -74,7 +74,7 @@ pub(super) fn read_dson<'text, 'arena>(
         ASTNode::Array(nodes) => {
             let elements = alloc.alloc_slice_fill_default(nodes.len());
             for (i, n) in nodes.iter().enumerate() {
-                elements[i] = read_dson(alloc, node);
+                elements[i] = read_dson(alloc, n);
             }
             DsonValue::Array(elements)
         }

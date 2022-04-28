@@ -1243,7 +1243,7 @@
                         &quot;Enrolments&quot;,
                     ),
                 ],
-                columns: None,
+                columns: [],
                 statement: SelectStatement {
                     all: false,
                     targets: [
@@ -1336,6 +1336,7 @@
                                                         ),
                                                     ],
                                                 ),
+                                                Null,
                                             ],
                                             postfix: false,
                                         },
@@ -1364,10 +1365,12 @@
                                                         ),
                                                     ],
                                                 ),
+                                                Null,
                                             ],
                                             postfix: false,
                                         },
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -1399,7 +1402,7 @@
                         &quot;StudentsCounts&quot;,
                     ),
                 ],
-                columns: None,
+                columns: [],
                 statement: SelectStatement {
                     all: false,
                     targets: [
@@ -1507,6 +1510,7 @@
                                             ),
                                         ],
                                     ),
+                                    Null,
                                 ],
                                 postfix: false,
                             },
@@ -1551,7 +1555,7 @@
                         &quot;SWSCounts&quot;,
                     ),
                 ],
-                columns: None,
+                columns: [],
                 statement: SelectStatement {
                     all: false,
                     targets: [

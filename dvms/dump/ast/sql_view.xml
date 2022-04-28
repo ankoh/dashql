@@ -33,7 +33,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                columns: None,
+                columns: [],
                 statement: SelectStatement {
                     all: false,
                     targets: [

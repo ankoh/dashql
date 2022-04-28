@@ -11,7 +11,7 @@ pub enum ASTNode<'text, 'arena> {
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'text str),
-    Array(&'arena [ASTNode<'text, 'arena>]),
+    Array(&'arena [&'arena ASTNode<'text, 'arena>]),
 
     CharacterType(sx::CharacterType),
     ColumnConstraint(sx::ColumnConstraint),

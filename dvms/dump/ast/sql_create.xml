@@ -35,7 +35,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                columns: None,
+                columns: [],
                 statement: SelectStatement {
                     all: false,
                     targets: [
@@ -330,9 +330,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [],
-}</translated>
     </astdump>
     <astdump name="create_table_10">
         <input>create table foo (a integer constraint a not null)</input>
