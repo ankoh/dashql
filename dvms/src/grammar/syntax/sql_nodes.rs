@@ -168,13 +168,7 @@ pub enum SQLBaseType<'text, 'arena> {
     Interval(IntervalType<'text>),
 }
 
-impl<'text, 'arena> Default for SQLBaseType<'text, 'arena> {
-    fn default() -> Self {
-        SQLBaseType::Invalid
-    }
-}
-
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SQLType<'text, 'arena> {
     pub base_type: SQLBaseType<'text, 'arena>,
     pub array_bounds: &'arena [ArrayBound<'text>],
@@ -190,7 +184,7 @@ pub struct Into<'text, 'arena> {
 #[derive(Debug, Clone)]
 pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
-    pub sql_type: SQLType<'text, 'arena>,
+    pub sql_type: &'text SQLType<'text, 'arena>,
     pub collate: &'arena [&'text str],
 }
 
@@ -270,12 +264,6 @@ pub enum TableRef<'text, 'arena> {
     Select(SelectStatementRef<'text, 'arena>),
     Function(FunctionTableRef<'text, 'arena>),
     Join(JoinedTableRef<'text, 'arena>),
-}
-
-impl<'text, 'arena> Default for TableRef<'text, 'arena> {
-    fn default() -> Self {
-        TableRef::Relation(Default::default())
-    }
 }
 
 #[derive(Debug, Clone, Default)]

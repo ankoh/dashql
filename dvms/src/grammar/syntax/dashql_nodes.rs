@@ -5,7 +5,7 @@ use dashql_proto::syntax as sx;
 #[derive(Debug, Clone)]
 pub struct InputStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
-    pub value_type: SQLType<'text, 'arena>,
+    pub value_type: &'arena SQLType<'text, 'arena>,
     pub component_type: Option<sx::InputComponentType>,
     pub extra: Option<DsonValue<'text, 'arena>>,
 }

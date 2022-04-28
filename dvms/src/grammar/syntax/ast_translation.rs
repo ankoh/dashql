@@ -423,12 +423,12 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 let mut collate: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
-                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t.clone()),
+                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t),
                     (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_strings!(nodes, StringRef)
                 }
                 ASTNode::ColumnDefinition(ColumnDefinition {
                     name: elem_name,
-                    sql_type: elem_type.unwrap_or_default(),
+                    sql_type: elem_type.unwrap(),
                     collate,
                 })
             }
@@ -617,18 +617,18 @@ pub fn translate_ast<'text, 'ast, 'arena>(
             }
             sx::NodeType::OBJECT_DASHQL_INPUT => {
                 let mut name = NamePath::default();
-                let mut value_type = SQLType::default();
+                let mut value_type = None;
                 let mut component_type = Some(sx::InputComponentType::NONE);
                 let mut extra = None;
                 read_attributes! {
                     (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n)) => name = read_name(arena, n),
-                    (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = t.clone(),
+                    (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t)) => value_type = Some(t),
                     (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = Some(t.clone()),
                     (Key::DASHQL_INPUT_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
                 ASTNode::InputStatement(InputStatement {
                     name,
-                    value_type,
+                    value_type: value_type.unwrap(),
                     component_type,
                     extra,
                 })
