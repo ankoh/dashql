@@ -10,69 +10,6 @@ use dashql_proto::syntax::GroupByItemType;
 use std::error::Error;
 use sx::AttributeKey as Key;
 
-macro_rules! unexpected_attr {
-    ($node:expr, $key:expr, $child:expr) => {
-        return Err(RawError::from(format!(
-            "unexpected attribute: {:?}.{} => {:?}",
-            $node,
-            $key.variant_name().unwrap_or(&format!("{}", $key.0)),
-            $child
-        ))
-        .boxed())
-    };
-}
-
-macro_rules! unexpected_array_element {
-    ($key:expr, $value:expr) => {
-        return Err(RawError::from(format!(
-            "unexpected element: {}[] => {:?}",
-            $key.variant_name().unwrap_or_default(),
-            $value
-        ))
-        .boxed())
-    };
-}
-
-// fn translate_statement<'text, 'ast>(
-//     text: &'text str,
-//     ast: &'ast [sx::Node],
-//     ast_statement: sx::Statement<'ast>,
-//     ast_program: sx::Program<'ast>,
-//     children: &mut Vec<Vec<(usize, ASTNode<'text, 'arena>)>>,
-// ) -> Result<Statement<'text>, Box<dyn Error + Send + Sync>> {
-//     // Do a postorder dfs traversal
-//     let mut pending: Vec<(usize, bool)> = Vec::new();
-//     pending.push((ast_statement.root_node() as usize, false));
-//
-//     let mut last: Option<ASTNode<'text>> = None;
-//     while !pending.is_empty() {
-//         // Stack empty?
-//         // Returned to statement root then, otherwise push as c
-//         pending.pop();
-//         if !pending.is_empty() {
-//             debug_assert!(t.parent() != u32::MAX);
-//             debug_assert!((t.parent() as usize) < ast.len());
-//             children[t.parent() as usize].push((ti, n));
-//             continue;
-//         }
-//         last = Some(n);
-//         break;
-//     }
-//
-//     // Push statement
-//     match last {
-//         Some(ASTNode::SelectStatement(s)) => Ok(Statement::Select(s)),
-//         Some(ASTNode::InputStatement(s)) => Ok(Statement::Input(s)),
-//         Some(ASTNode::FetchStatement(s)) => Ok(Statement::Fetch(s)),
-//         Some(ASTNode::VizStatement(s)) => Ok(Statement::Viz(s)),
-//         Some(ASTNode::LoadStatement(s)) => Ok(Statement::Load(s)),
-//         Some(ASTNode::CreateAs(s)) => Ok(Statement::CreateAs(s)),
-//         Some(ASTNode::CreateView(s)) => Ok(Statement::CreateView(s)),
-//         Some(ASTNode::SetStatement(s)) => Ok(Statement::Set(s)),
-//         _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &last)).boxed()),
-//     }
-// }
-
 pub fn translate_ast<'text, 'ast, 'arena>(
     arena: &'arena bumpalo::Bump,
     text: &'text str,
@@ -96,6 +33,31 @@ pub fn translate_ast<'text, 'ast, 'arena>(
         } else {
             &[]
         };
+
+        // Helper to mark an unexpected attribute
+        macro_rules! unexpected_attr {
+            ($node:expr, $key:expr, $child:expr) => {
+                return Err(RawError::from(format!(
+                    "unexpected attribute: {:?}.{} => {:?}",
+                    $node,
+                    $key.variant_name().unwrap_or(&format!("{}", $key.0)),
+                    $child
+                ))
+                .boxed())
+            };
+        }
+
+        // Helper to mark an unexpected array element
+        macro_rules! unexpected_array_element {
+            ($key:expr, $value:expr) => {
+                return Err(RawError::from(format!(
+                    "unexpected element: {}[] => {:?}",
+                    $key.variant_name().unwrap_or_default(),
+                    $value
+                ))
+                .boxed())
+            };
+        }
 
         // Helper to read integer as enum
         macro_rules! as_enum {
