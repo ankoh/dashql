@@ -7905,6 +7905,91 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: None,
+                                rows_from: [
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;1&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [],
+                                    },
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;2&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [],
+                                    },
+                                ],
+                                with_ordinality: false,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_4">
         <input>SELECT * FROM ROWS FROM (generate_series(1) as (a integer), generate_series(2) as (a integer));</input>
@@ -7970,6 +8055,121 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: None,
+                                rows_from: [
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;1&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [
+                                            ColumnDefinition {
+                                                name: &quot;a&quot;,
+                                                sql_type: SQLType {
+                                                    base_type: Numeric(
+                                                        NumericType {
+                                                            base: INT4,
+                                                            modifiers: [],
+                                                        },
+                                                    ),
+                                                    array_bounds: [],
+                                                    set_of: false,
+                                                },
+                                                collate: [],
+                                            },
+                                        ],
+                                    },
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;2&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [
+                                            ColumnDefinition {
+                                                name: &quot;a&quot;,
+                                                sql_type: SQLType {
+                                                    base_type: Numeric(
+                                                        NumericType {
+                                                            base: INT4,
+                                                            modifiers: [],
+                                                        },
+                                                    ),
+                                                    array_bounds: [],
+                                                    set_of: false,
+                                                },
+                                                collate: [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                                with_ordinality: false,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_5">
         <input>SELECT * FROM
@@ -8054,6 +8254,125 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Star,
+                ],
+                into: None,
+                from: [
+                    Function(
+                        FunctionTableRef {
+                            table: FunctionTable {
+                                function: None,
+                                rows_from: [
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;1&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [
+                                            ColumnDefinition {
+                                                name: &quot;a&quot;,
+                                                sql_type: SQLType {
+                                                    base_type: Character(
+                                                        CharacterType {
+                                                            base: VARCHAR,
+                                                            length: None,
+                                                        },
+                                                    ),
+                                                    array_bounds: [],
+                                                    set_of: false,
+                                                },
+                                                collate: [
+                                                    &quot;\&quot;de_DE\&quot;&quot;,
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    RowsFromItem {
+                                        function: FunctionExpression {
+                                            name: Unknown(
+                                                &quot;generate_series&quot;,
+                                            ),
+                                            arguments: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;2&quot;,
+                                                    ),
+                                                },
+                                            ],
+                                            argument_ordering: [],
+                                            within_group: [],
+                                            filter: None,
+                                            all: false,
+                                            distinct: false,
+                                            over: false,
+                                            variadic: None,
+                                            trim_direction: None,
+                                        },
+                                        columns: [
+                                            ColumnDefinition {
+                                                name: &quot;a&quot;,
+                                                sql_type: SQLType {
+                                                    base_type: Character(
+                                                        CharacterType {
+                                                            base: VARCHAR,
+                                                            length: None,
+                                                        },
+                                                    ),
+                                                    array_bounds: [],
+                                                    set_of: false,
+                                                },
+                                                collate: [
+                                                    &quot;\&quot;de_DE\&quot;&quot;,
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
+                                with_ordinality: false,
+                            },
+                            alias: None,
+                            sample: None,
+                            lateral: false,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_sample_1">
         <input>SELECT * FROM tbl USING SAMPLE 5;</input>

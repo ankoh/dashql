@@ -444,6 +444,18 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     collate,
                 })
             }
+            sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
+                let mut function = None;
+                let mut columns: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_ROWSFROM_ITEM_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(f),
+                    (Key::SQL_ROWSFROM_ITEM_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_nodes!(nodes, ColumnDefinition)
+                }
+                ASTNode::RowsFromItem(RowsFromItem {
+                    function: function.unwrap(),
+                    columns,
+                })
+            }
             sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
                 let mut function = None;
                 let mut ordinality = false;
