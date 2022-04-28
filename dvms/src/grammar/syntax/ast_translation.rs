@@ -1,8 +1,8 @@
 use super::ast::*;
 use super::ast_node::*;
-use super::dashql_nodes::*;
+use super::ast_nodes_dashql::*;
+use super::ast_nodes_sql::*;
 use super::dson::*;
-use super::sql_nodes::*;
 use crate::error::RawError;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::GroupByItemType;

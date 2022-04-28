@@ -10,31 +10,6 @@ use sx::AttributeKey as Key;
 const INLINE_LOCATION_CAP: usize = 20;
 const LOCATION_HINT_LENGTH: usize = 10;
 
-fn encode_location<'writer, 'text>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'text str) {
-    let begin = loc.offset() as usize;
-    let end = (loc.offset() + loc.length()) as usize;
-    if begin >= text.len() || end > text.len() {
-        return;
-    }
-    let loc_string = format!("{b}..{e}", b = begin, e = end);
-    let loc_attr = ("loc", loc_string.as_str());
-    let mut out: String;
-    if (loc.length() as usize) < INLINE_LOCATION_CAP {
-        out = text[begin..end].to_string();
-    } else {
-        let prefix = &text[begin..(begin + LOCATION_HINT_LENGTH)];
-        let suffix = &text[(end - LOCATION_HINT_LENGTH)..end];
-        out = format!("{p}..{s}", p = prefix, s = suffix);
-    }
-    out = out.replace("\n", "\\n");
-    writer.extend_attributes([loc_attr, ("text", &out)]);
-}
-
-fn encode_error<'writer, 'text, 'ast>(writer: &mut BytesStart<'writer>, error: sx::Error<'ast>, text: &'text str) {
-    writer.extend_attributes([("message", error.message().unwrap_or_default())]);
-    encode_location(writer, error.location().copied().unwrap_or_default(), text);
-}
-
 pub fn serialize_ast_as_xml<'text, 'ast, W>(
     writer: &mut Writer<W>,
     ast: sx::Program<'ast>,
@@ -185,6 +160,31 @@ where
     }
 
     Ok(())
+}
+
+fn encode_location<'writer, 'text>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'text str) {
+    let begin = loc.offset() as usize;
+    let end = (loc.offset() + loc.length()) as usize;
+    if begin >= text.len() || end > text.len() {
+        return;
+    }
+    let loc_string = format!("{b}..{e}", b = begin, e = end);
+    let loc_attr = ("loc", loc_string.as_str());
+    let mut out: String;
+    if (loc.length() as usize) < INLINE_LOCATION_CAP {
+        out = text[begin..end].to_string();
+    } else {
+        let prefix = &text[begin..(begin + LOCATION_HINT_LENGTH)];
+        let suffix = &text[(end - LOCATION_HINT_LENGTH)..end];
+        out = format!("{p}..{s}", p = prefix, s = suffix);
+    }
+    out = out.replace("\n", "\\n");
+    writer.extend_attributes([loc_attr, ("text", &out)]);
+}
+
+fn encode_error<'writer, 'text, 'ast>(writer: &mut BytesStart<'writer>, error: sx::Error<'ast>, text: &'text str) {
+    writer.extend_attributes([("message", error.message().unwrap_or_default())]);
+    encode_location(writer, error.location().copied().unwrap_or_default(), text);
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

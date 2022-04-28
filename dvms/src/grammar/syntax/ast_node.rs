@@ -1,6 +1,6 @@
-use super::dashql_nodes::*;
+use super::ast_nodes_dashql::*;
+use super::ast_nodes_sql::*;
 use super::dson::*;
-use super::sql_nodes::*;
 use dashql_proto::syntax as sx;
 
 #[derive(Clone, Debug)]
