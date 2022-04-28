@@ -1297,8 +1297,13 @@ sql_a_expr:
 // just eliminate all the boolean-keyword-operator productions from b_expr.
 
 sql_b_expr:
-    sql_c_expr                                        { $$ = std::move($1); }
-  | sql_b_expr TYPECAST sql_typename                  { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::TYPECAST), $1, $3); }
+    sql_c_expr { $$ = std::move($1); }
+  | sql_b_expr TYPECAST sql_typename {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
+            Attr(Key::SQL_TYPECAST_VALUE, $1),
+            Attr(Key::SQL_TYPECAST_TYPE, $3),
+        });
+    }
   | '+' sql_b_expr                      %prec UMINUS  { $$ = $2; }
   | '-' sql_b_expr                      %prec UMINUS  { $$ = Negate(ctx, @$, @1, $2); }
   | sql_b_expr '+' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::PLUS), $1, $3); }
@@ -1484,9 +1489,13 @@ sql_func_expr_common_subexpr:
   | CURRENT_CATALOG { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_CATALOG)) }; }
   | CURRENT_SCHEMA  { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_SCHEMA)) }; }
   | CAST '(' sql_a_expr AS sql_typename ')' {
+        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS, {
+            Attr(Key::SQL_FUNCTION_CAST_VALUE, std::move($3)),
+            Attr(Key::SQL_FUNCTION_CAST_TYPE, std::move($5))
+        });
         $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CAST)),
-            Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })),
+            Attr(Key::SQL_FUNCTION_CAST_ARGS, std::move(args)),
         };
     }
   | EXTRACT '(' sql_extract_list ')' {

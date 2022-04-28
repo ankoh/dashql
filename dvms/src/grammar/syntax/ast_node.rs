@@ -69,6 +69,7 @@ pub enum ASTNode<'text, 'arena> {
     SubstringFunctionArguments(SubstringFunctionArguments<'text, 'arena>),
     PositionFunctionArguments(PositionFunctionArguments<'text, 'arena>),
     ExtractFunctionArguments(ExtractFunctionArguments<'text, 'arena>),
+    CastFunctionArguments(CastFunctionArguments<'text, 'arena>),
 
     RowLocking(RowLocking<'text, 'arena>),
     OrderSpecification(OrderSpecification<'text, 'arena>),

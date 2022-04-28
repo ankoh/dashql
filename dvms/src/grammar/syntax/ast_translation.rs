@@ -551,6 +551,18 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     input: input.unwrap(),
                 })
             }
+            sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
+                let mut value = None;
+                let mut cast_type = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_CAST_VALUE, n) => value = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t)) => cast_type = Some(t)
+                }
+                ASTNode::CastFunctionArguments(CastFunctionArguments {
+                    value: value.unwrap(),
+                    cast_type: cast_type.unwrap(),
+                })
+            }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                 let mut func_name = FunctionName::default();
                 let mut func_args: &[_] = &[];
@@ -577,7 +589,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_FUNCTION_OVERLAY_ARGS, ASTNode::OverlayFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Overlay(a)),
                     (Key::SQL_FUNCTION_POSITION_ARGS, ASTNode::PositionFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Position(a)),
                     (Key::SQL_FUNCTION_SUBSTRING_ARGS, ASTNode::SubstringFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Substring(a)),
-                    (Key::SQL_FUNCTION_EXTRACT_ARGS, ASTNode::ExtractFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Extract(a))
+                    (Key::SQL_FUNCTION_EXTRACT_ARGS, ASTNode::ExtractFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Extract(a)),
+                    (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Cast(a))
                 }
                 ASTNode::FunctionExpression(FunctionExpression {
                     name: func_name,

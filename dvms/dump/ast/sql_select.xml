@@ -3530,13 +3530,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..44" text="cast(&apos;1&apos; a..time zone)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..44" text="cast(&apos;1&apos; a..time zone)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..43" text="timestamp .. time zone">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..44" text="(&apos;1&apos; as ti..time zone)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..43" text="timestamp .. time zone">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..43" text="timestamp .. time zone">
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3562,19 +3562,26 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                args: [
-                                    FunctionArgument {
-                                        name: None,
-                                        value: StringRef(
-                                            &quot;&apos;1&apos;&quot;,
-                                        ),
-                                    },
-                                    FunctionArgument {
-                                        name: None,
-                                        value: Null,
-                                    },
-                                ],
-                                args_known: None,
+                                args: [],
+                                args_known: Some(
+                                    Cast(
+                                        CastFunctionArguments {
+                                            value: StringRef(
+                                                &quot;&apos;1&apos;&quot;,
+                                            ),
+                                            cast_type: SQLType {
+                                                base_type: Timestamp(
+                                                    TimestampType {
+                                                        precision: None,
+                                                        with_timezone: true,
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                        },
+                                    ),
+                                ),
                                 arg_ordering: [],
                                 within_group: [],
                                 filter: None,
@@ -3612,14 +3619,14 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..48" text="cast(&apos;1&apos; a..time zone)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..48" text="cast(&apos;1&apos; a..time zone)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..47" text="timestamp .. time zone">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..48" text="(&apos;1&apos; as ti..time zone)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..47" text="timestamp .. time zone">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="19..47" text="timestamp .. time zone">
                                                 <node key="SQL_TIME_TYPE_PRECISION" type="STRING_REF" loc="30..31" text="2"/>
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3645,19 +3652,28 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                args: [
-                                    FunctionArgument {
-                                        name: None,
-                                        value: StringRef(
-                                            &quot;&apos;1&apos;&quot;,
-                                        ),
-                                    },
-                                    FunctionArgument {
-                                        name: None,
-                                        value: Null,
-                                    },
-                                ],
-                                args_known: None,
+                                args: [],
+                                args_known: Some(
+                                    Cast(
+                                        CastFunctionArguments {
+                                            value: StringRef(
+                                                &quot;&apos;1&apos;&quot;,
+                                            ),
+                                            cast_type: SQLType {
+                                                base_type: Timestamp(
+                                                    TimestampType {
+                                                        precision: Some(
+                                                            &quot;2&quot;,
+                                                        ),
+                                                        with_timezone: true,
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                        },
+                                    ),
+                                ),
                                 arg_ordering: [],
                                 within_group: [],
                                 filter: None,
@@ -3695,13 +3711,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..39" text="cast(&apos;1&apos; a..time zone)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..39" text="cast(&apos;1&apos; a..time zone)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..38" text="time with time zone">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..39" text="(&apos;1&apos; as ti..time zone)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..38" text="time with time zone">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="19..38" text="time with time zone">
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3725,14 +3741,14 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..43" text="cast(&apos;1&apos; a..time zone)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..43" text="cast(&apos;1&apos; a..time zone)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..42" text="time (2) w.. time zone">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..43" text="(&apos;1&apos; as ti..time zone)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..42" text="time (2) w.. time zone">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIME_TYPE" loc="19..42" text="time (2) w.. time zone">
                                                 <node key="SQL_TIME_TYPE_PRECISION" type="STRING_REF" loc="25..26" text="2"/>
                                                 <node key="SQL_TIME_TYPE_WITH_TIMEZONE" type="BOOL" value="true"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3756,13 +3772,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..33" text="cast(&apos;1&apos; a..rval year)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..33" text="cast(&apos;1&apos; a..rval year)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..32" text="interval year">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..33" text="(&apos;1&apos; as in..rval year)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..32" text="interval year">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="19..32" text="interval year">
                                                 <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="YEAR"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3786,13 +3802,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..31" text="cast(&apos;1&apos; a..terval(2))">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..31" text="cast(&apos;1&apos; a..terval(2))">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..30" text="interval(2)">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..31" text="(&apos;1&apos; as in..terval(2))">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..30" text="interval(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="19..30" text="interval(2)">
                                                 <node key="SQL_INTERVAL_PRECISION" type="STRING_REF" loc="28..29" text="2"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3816,13 +3832,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..28" text="cast(&apos;1&apos; a.. sometype)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..28" text="cast(&apos;1&apos; a.. sometype)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..27" text="sometype">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..28" text="(&apos;1&apos; as sometype)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..27" text="sometype">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="19..27" text="sometype">
                                                 <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="19..27" text="sometype"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3848,19 +3864,26 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                args: [
-                                    FunctionArgument {
-                                        name: None,
-                                        value: StringRef(
-                                            &quot;&apos;1&apos;&quot;,
-                                        ),
-                                    },
-                                    FunctionArgument {
-                                        name: None,
-                                        value: Null,
-                                    },
-                                ],
-                                args_known: None,
+                                args: [],
+                                args_known: Some(
+                                    Cast(
+                                        CastFunctionArguments {
+                                            value: StringRef(
+                                                &quot;&apos;1&apos;&quot;,
+                                            ),
+                                            cast_type: SQLType {
+                                                base_type: Generic(
+                                                    GenericType {
+                                                        name: &quot;sometype&quot;,
+                                                        modifiers: [],
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                        },
+                                    ),
+                                ),
                                 arg_ordering: [],
                                 within_group: [],
                                 filter: None,
@@ -3898,13 +3921,13 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..23" text="cast(&apos;1&apos; as bit)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..23" text="cast(&apos;1&apos; as bit)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..22" text="bit">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..23" text="(&apos;1&apos; as bit)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..22" text="bit">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..22" text="bit">
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="false"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3928,14 +3951,14 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..26" text="cast(&apos;1&apos; as bit(2))">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..26" text="cast(&apos;1&apos; as bit(2))">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..25" text="bit(2)">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..26" text="(&apos;1&apos; as bit(2))">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..25" text="bit(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..25" text="bit(2)">
                                                 <node key="SQL_BIT_TYPE_LENGTH" type="STRING_REF" loc="23..24" text="2"/>
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="false"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -3959,14 +3982,14 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..34" text="cast(&apos;1&apos; a..arying(2))">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..34" text="cast(&apos;1&apos; a..arying(2))">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="19..33" text="bit varying(2)">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..34" text="(&apos;1&apos; as bi..arying(2))">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..33" text="bit varying(2)">
                                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="19..33" text="bit varying(2)">
                                                 <node key="SQL_BIT_TYPE_LENGTH" type="STRING_REF" loc="31..32" text="2"/>
                                                 <node key="SQL_BIT_TYPE_VARYING" type="BOOL" value="true"/>
                                             </node>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..15" text="&apos;1&apos;"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -6827,11 +6850,11 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..25" text="cast(1 as integer)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..25" text="cast(1 as integer)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..13" text="1"/>
-                                        <node type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..25" text="(1 as integer)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..13" text="1"/>
                                     </node>
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST"/>
                                 </node>
@@ -6857,19 +6880,26 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                args: [
-                                    FunctionArgument {
-                                        name: None,
-                                        value: StringRef(
-                                            &quot;1&quot;,
-                                        ),
-                                    },
-                                    FunctionArgument {
-                                        name: None,
-                                        value: Null,
-                                    },
-                                ],
-                                args_known: None,
+                                args: [],
+                                args_known: Some(
+                                    Cast(
+                                        CastFunctionArguments {
+                                            value: StringRef(
+                                                &quot;1&quot;,
+                                            ),
+                                            cast_type: SQLType {
+                                                base_type: Numeric(
+                                                    NumericType {
+                                                        base: INT4,
+                                                        modifiers: [],
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
+                                        },
+                                    ),
+                                ),
                                 arg_ordering: [],
                                 within_group: [],
                                 filter: None,
@@ -7759,7 +7789,6 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..26" text="extract(day from a)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..26" text="extract(day from a)">
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="EXTRACT"/>
                                     <node key="SQL_FUNCTION_EXTRACT_ARGS" type="OBJECT_SQL_FUNCTION_EXTRACT_ARGS" loc="14..26" text="(day from a)">
                                         <node key="SQL_FUNCTION_EXTRACT_INPUT" type="OBJECT_SQL_COLUMN_REF" loc="24..25" text="a">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
@@ -7768,6 +7797,7 @@
                                         </node>
                                         <node key="SQL_FUNCTION_EXTRACT_TARGET" type="ENUM_SQL_EXTRACT_TARGET" value="DAY"/>
                                     </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="EXTRACT"/>
                                 </node>
                             </node>
                         </node>

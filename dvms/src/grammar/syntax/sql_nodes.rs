@@ -325,12 +325,19 @@ pub struct TrimFunctionArguments<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct CastFunctionArguments<'text, 'arena> {
+    pub value: Expression<'text, 'arena>,
+    pub cast_type: &'arena SQLType<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
 pub enum KnownFunctionArguments<'text, 'arena> {
     Trim(&'arena TrimFunctionArguments<'text, 'arena>),
     Substring(&'arena SubstringFunctionArguments<'text, 'arena>),
     Position(&'arena PositionFunctionArguments<'text, 'arena>),
     Extract(&'arena ExtractFunctionArguments<'text, 'arena>),
     Overlay(&'arena OverlayFunctionArguments<'text, 'arena>),
+    Cast(&'arena CastFunctionArguments<'text, 'arena>),
 }
 
 #[derive(Debug, Clone, Default)]
