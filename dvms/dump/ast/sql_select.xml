@@ -7189,6 +7189,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: BOTH,
+                                            characters: None,
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_22">
         <input>select trim(both from &apos;foo&apos;);</input>
@@ -7217,6 +7270,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: BOTH,
+                                            characters: None,
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_23">
         <input>select trim(both &apos; \n&apos; from &apos;foo&apos;);</input>
@@ -7246,6 +7352,63 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: BOTH,
+                                            characters: Some(
+                                                StringRef(
+                                                    &quot;&apos; \\n&apos;&quot;,
+                                                ),
+                                            ),
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_24">
         <input>select trim(both &apos; \n&apos; from &apos;foo&apos;, &apos;bar&apos;);</input>
@@ -7276,6 +7439,66 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: BOTH,
+                                            characters: Some(
+                                                StringRef(
+                                                    &quot;&apos; \\n&apos;&quot;,
+                                                ),
+                                            ),
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                                StringRef(
+                                                    &quot;&apos;bar&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_25">
         <input>select trim(leading from &apos;foo&apos;);</input>
@@ -7304,6 +7527,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: LEADING,
+                                            characters: None,
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_26">
         <input>select trim(trailing from &apos;foo&apos;);</input>
@@ -7332,6 +7608,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: TRAILING,
+                                            characters: None,
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_27">
         <input>select trim(&apos;foo&apos;);</input>
@@ -7348,9 +7677,6 @@
                                             <node type="STRING_REF" loc="12..17" text="&apos;foo&apos;"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="12..17" text="&apos;foo&apos;"/>
-                                    </node>
                                 </node>
                             </node>
                         </node>
@@ -7362,6 +7688,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    TRIM,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Trim(
+                                        TrimFunctionArguments {
+                                            direction: LEADING,
+                                            characters: None,
+                                            input: [
+                                                StringRef(
+                                                    &quot;&apos;foo&apos;&quot;,
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_28">
         <input>select extract(day from a) from foo;</input>
@@ -7400,6 +7779,73 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    EXTRACT,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Extract(
+                                        ExtractFunctionArguments {
+                                            target: Known(
+                                                DAY,
+                                            ),
+                                            input: ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [
+                    Relation(
+                        RelationRef {
+                            name: [
+                                Name(
+                                    &quot;foo&quot;,
+                                ),
+                            ],
+                            inherit: true,
+                        },
+                    ),
+                ],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_29">
         <input>select substring(&apos;foobar&apos; from 1 for 2);</input>
@@ -7411,12 +7857,10 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..39" text="substring(..m 1 for 2)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..39" text="substring(..m 1 for 2)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
-                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..39" text="(&apos;foobar&apos; ..m 1 for 2)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..38" text="&apos;foobar&apos; f..om 1 for 2">
-                                            <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="37..38" text="2"/>
-                                            <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
-                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
-                                        </node>
+                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..38" text="&apos;foobar&apos; f..om 1 for 2">
+                                        <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="37..38" text="2"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
                                     </node>
                                 </node>
                             </node>
@@ -7429,6 +7873,65 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Substring(
+                                        SubstringFunctionArguments {
+                                            input: StringRef(
+                                                &quot;&apos;foobar&apos;&quot;,
+                                            ),
+                                            substr_from: Some(
+                                                StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            ),
+                                            substr_for: Some(
+                                                StringRef(
+                                                    &quot;2&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_30">
         <input>select substring(&apos;foobar&apos; from 1);</input>
@@ -7440,11 +7943,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..33" text="substring(..r&apos; from 1)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..33" text="substring(..r&apos; from 1)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
-                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..33" text="(&apos;foobar&apos; from 1)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..32" text="&apos;foobar&apos; from 1">
-                                            <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
-                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
-                                        </node>
+                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..32" text="&apos;foobar&apos; from 1">
+                                        <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
                                     </node>
                                 </node>
                             </node>
@@ -7457,6 +7958,61 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Substring(
+                                        SubstringFunctionArguments {
+                                            input: StringRef(
+                                                &quot;&apos;foobar&apos;&quot;,
+                                            ),
+                                            substr_from: Some(
+                                                StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            ),
+                                            substr_for: None,
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_31">
         <input>select substring(&apos;foobar&apos; for 1);</input>
@@ -7468,11 +8024,9 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..32" text="substring(..ar&apos; for 1)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..32" text="substring(..ar&apos; for 1)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
-                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..32" text="(&apos;foobar&apos; for 1)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..31" text="&apos;foobar&apos; for 1">
-                                            <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="30..31" text="1"/>
-                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
-                                        </node>
+                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..31" text="&apos;foobar&apos; for 1">
+                                        <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="30..31" text="1"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
                                     </node>
                                 </node>
                             </node>
@@ -7485,6 +8039,61 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Substring(
+                                        SubstringFunctionArguments {
+                                            input: StringRef(
+                                                &quot;&apos;foobar&apos;&quot;,
+                                            ),
+                                            substr_from: None,
+                                            substr_for: Some(
+                                                StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_32">
         <input>select substring(&apos;foobar&apos;, 1, 4);</input>
@@ -7495,14 +8104,12 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..32" text="substring(..ar&apos;, 1, 4)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..32" text="substring(..ar&apos;, 1, 4)">
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
-                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..32" text="(&apos;foobar&apos;, 1, 4)">
-                                        <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                            <node type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
-                                            <node type="STRING_REF" loc="27..28" text="1"/>
-                                            <node type="STRING_REF" loc="30..31" text="4"/>
-                                        </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
+                                        <node type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        <node type="STRING_REF" loc="27..28" text="1"/>
+                                        <node type="STRING_REF" loc="30..31" text="4"/>
                                     </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
                                 </node>
                             </node>
                         </node>
@@ -7514,6 +8121,66 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                args: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;foobar&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;4&quot;,
+                                        ),
+                                    },
+                                ],
+                                args_known: None,
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_33">
         <input>select substring(&apos;foobar&apos;, 1);</input>
@@ -7524,13 +8191,11 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..29" text="substring(..oobar&apos;, 1)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..29" text="substring(..oobar&apos;, 1)">
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
-                                    <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..29" text="(&apos;foobar&apos;, 1)">
-                                        <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                            <node type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
-                                            <node type="STRING_REF" loc="27..28" text="1"/>
-                                        </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
+                                        <node type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        <node type="STRING_REF" loc="27..28" text="1"/>
                                     </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
                                 </node>
                             </node>
                         </node>
@@ -7542,6 +8207,60 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    SUBSTRING,
+                                ),
+                                args: [
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;&apos;foobar&apos;&quot;,
+                                        ),
+                                    },
+                                    FunctionArgument {
+                                        name: None,
+                                        value: StringRef(
+                                            &quot;1&quot;,
+                                        ),
+                                    },
+                                ],
+                                args_known: None,
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_34">
         <input>select position(&apos;bar&apos; in &apos;foobar&apos;);</input>
@@ -7568,6 +8287,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    POSITION,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Position(
+                                        PositionFunctionArguments {
+                                            search: StringRef(
+                                                &quot;&apos;bar&apos;&quot;,
+                                            ),
+                                            input: StringRef(
+                                                &quot;&apos;foobar&apos;&quot;,
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_knownfunc_35">
         <input>SELECT overlay(&apos;foooooooooooooooooo&apos; placing &apos;bar&apos; from 3);</input>
@@ -7595,6 +8366,62 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                all: false,
+                targets: [
+                    Value {
+                        value: FunctionCall(
+                            FunctionExpression {
+                                name: Known(
+                                    OVERLAY,
+                                ),
+                                args: [],
+                                args_known: Some(
+                                    Overlay(
+                                        OverlayFunctionArguments {
+                                            input: StringRef(
+                                                &quot;&apos;foooooooooooooooooo&apos;&quot;,
+                                            ),
+                                            placing: StringRef(
+                                                &quot;&apos;bar&apos;&quot;,
+                                            ),
+                                            substr_from: StringRef(
+                                                &quot;3&quot;,
+                                            ),
+                                            substr_for: None,
+                                        },
+                                    ),
+                                ),
+                                arg_ordering: [],
+                                within_group: [],
+                                filter: None,
+                                all: false,
+                                distinct: false,
+                                over: false,
+                                variadic: None,
+                            },
+                        ),
+                        alias: None,
+                    },
+                ],
+                into: None,
+                from: [],
+                where_clause: None,
+                order_by: [],
+                group_by: [],
+                having: None,
+                windows: false,
+                sample: None,
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_table_func_1">
         <input>SELECT * FROM generate_series(1);</input>

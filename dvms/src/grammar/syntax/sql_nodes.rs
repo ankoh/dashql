@@ -326,11 +326,11 @@ pub struct TrimFunctionArguments<'text, 'arena> {
 
 #[derive(Debug, Clone)]
 pub enum KnownFunctionArguments<'text, 'arena> {
-    Trim(TrimFunctionArguments<'text, 'arena>),
-    Substring(SubstringFunctionArguments<'text, 'arena>),
-    Position(PositionFunctionArguments<'text, 'arena>),
-    Extract(ExtractFunctionArguments<'text, 'arena>),
-    Overlay(OverlayFunctionArguments<'text, 'arena>),
+    Trim(&'arena TrimFunctionArguments<'text, 'arena>),
+    Substring(&'arena SubstringFunctionArguments<'text, 'arena>),
+    Position(&'arena PositionFunctionArguments<'text, 'arena>),
+    Extract(&'arena ExtractFunctionArguments<'text, 'arena>),
+    Overlay(&'arena OverlayFunctionArguments<'text, 'arena>),
 }
 
 #[derive(Debug, Clone, Default)]
