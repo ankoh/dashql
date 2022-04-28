@@ -286,10 +286,10 @@ impl<'text, 'arena> Default for FunctionName<'text> {
 
 #[derive(Debug, Clone)]
 pub struct OverlayFunctionArguments<'text, 'arena> {
-    pub input: &'arena Expression<'text, 'arena>,
-    pub placing: &'arena Expression<'text, 'arena>,
-    pub substr_from: &'arena Expression<'text, 'arena>,
-    pub substr_for: Option<&'arena Expression<'text, 'arena>>,
+    pub input: Expression<'text, 'arena>,
+    pub placing: Expression<'text, 'arena>,
+    pub substr_from: Expression<'text, 'arena>,
+    pub substr_for: Option<Expression<'text, 'arena>>,
 }
 
 #[derive(Debug, Clone)]
@@ -301,27 +301,27 @@ pub enum ExtractFunctionTarget<'text> {
 #[derive(Debug, Clone)]
 pub struct ExtractFunctionArguments<'text, 'arena> {
     pub target: ExtractFunctionTarget<'text>,
-    pub input: &'arena Expression<'text, 'arena>,
+    pub input: Expression<'text, 'arena>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SubstringFunctionArguments<'text, 'arena> {
-    pub input: &'arena Expression<'text, 'arena>,
-    pub substr_from: Option<&'arena Expression<'text, 'arena>>,
-    pub substr_for: Option<&'arena Expression<'text, 'arena>>,
+    pub input: Expression<'text, 'arena>,
+    pub substr_from: Option<Expression<'text, 'arena>>,
+    pub substr_for: Option<Expression<'text, 'arena>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct PositionFunctionArguments<'text, 'arena> {
-    pub search: &'arena Expression<'text, 'arena>,
-    pub input: &'arena Expression<'text, 'arena>,
+    pub search: Expression<'text, 'arena>,
+    pub input: Expression<'text, 'arena>,
 }
 
 #[derive(Debug, Clone)]
 pub struct TrimFunctionArguments<'text, 'arena> {
     pub direction: sx::TrimDirection,
-    pub characters: &'arena Expression<'text, 'arena>,
-    pub input: &'arena [&'arena Expression<'text, 'arena>],
+    pub characters: Option<Expression<'text, 'arena>>,
+    pub input: &'arena [Expression<'text, 'arena>],
 }
 
 #[derive(Debug, Clone)]

@@ -478,6 +478,79 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     value: value.unwrap_or(Expression::Null),
                 })
             }
+            sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => {
+                let mut direction = sx::TrimDirection::LEADING;
+                let mut characters = None;
+                let mut input: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_FUNCTION_TRIM_CHARACTERS, n) => characters = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes)) => input = read_exprs(arena, nodes),
+                    (Key::SQL_FUNCTION_TRIM_DIRECTION, ASTNode::TrimDirection(d)) => direction = *d
+                }
+                ASTNode::TrimFunctionArguments(TrimFunctionArguments {
+                    direction,
+                    characters,
+                    input,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => {
+                let mut input = None;
+                let mut substr_from = None;
+                let mut substr_for = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_SUBSTRING_INPUT, n) => input = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_SUBSTRING_FROM, n) => substr_from = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_SUBSTRING_FOR, n) => substr_for = Some(read_expr(n))
+                }
+                ASTNode::SubstringFunctionArguments(SubstringFunctionArguments {
+                    input: input.unwrap(),
+                    substr_for,
+                    substr_from,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
+                let mut input = None;
+                let mut placing = None;
+                let mut substr_from = None;
+                let mut substr_for = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_OVERLAY_INPUT, n) => input = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_OVERLAY_PLACING, n) => placing = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_OVERLAY_FROM, n) => substr_from = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_OVERLAY_FOR, n) => substr_for = Some(read_expr(n))
+                }
+                ASTNode::OverlayFunctionArguments(OverlayFunctionArguments {
+                    input: input.unwrap(),
+                    placing: placing.unwrap(),
+                    substr_from: substr_from.unwrap(),
+                    substr_for,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => {
+                let mut input = None;
+                let mut search = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_POSITION_SEARCH, n) => search = Some(read_expr(n)),
+                    (Key::SQL_FUNCTION_POSITION_INPUT, n) => input = Some(read_expr(n))
+                }
+                ASTNode::PositionFunctionArguments(PositionFunctionArguments {
+                    input: input.unwrap(),
+                    search: search.unwrap(),
+                })
+            }
+            sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => {
+                let mut target = ExtractFunctionTarget::Known(sx::ExtractTarget::SECOND);
+                let mut input = None;
+                read_attributes! {
+                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::StringRef(s)) => target = ExtractFunctionTarget::Unknown(s),
+                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::ExtractTarget(t)) => target = ExtractFunctionTarget::Known(*t),
+                    (Key::SQL_FUNCTION_EXTRACT_INPUT, n) => input = Some(read_expr(n))
+                }
+                ASTNode::ExtractFunctionArguments(ExtractFunctionArguments {
+                    target,
+                    input: input.unwrap(),
+                })
+            }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                 let mut func_name = FunctionName::default();
                 let mut func_args: &[_] = &[];

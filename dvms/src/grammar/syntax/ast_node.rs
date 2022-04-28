@@ -64,6 +64,12 @@ pub enum ASTNode<'text, 'arena> {
     JoinedTableRef(JoinedTableRef<'text, 'arena>),
     TableRef(TableRef<'text, 'arena>),
 
+    TrimFunctionArguments(TrimFunctionArguments<'text, 'arena>),
+    OverlayFunctionArguments(OverlayFunctionArguments<'text, 'arena>),
+    SubstringFunctionArguments(SubstringFunctionArguments<'text, 'arena>),
+    PositionFunctionArguments(PositionFunctionArguments<'text, 'arena>),
+    ExtractFunctionArguments(ExtractFunctionArguments<'text, 'arena>),
+
     RowLocking(RowLocking<'text, 'arena>),
     OrderSpecification(OrderSpecification<'text, 'arena>),
     GroupByItem(GroupByItem<'text, 'arena>),
