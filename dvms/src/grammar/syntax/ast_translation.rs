@@ -17,10 +17,10 @@ pub fn translate_ast<'text, 'ast, 'arena>(
 ) -> Result<Program<'text, 'arena>, Box<dyn Error + Send + Sync>> {
     let buffer_stmts = buffer.statements().unwrap_or_default();
     let buffer_nodes = buffer.nodes().unwrap_or_default();
-
-    // Translate all nodes from left-to-right
     let mut nodes: Vec<&'arena ASTNode<'text, 'arena>> = Vec::new();
     nodes.reserve(buffer_nodes.len());
+
+    // Translate all nodes from left-to-right
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
         let node_type = node.node_type();
