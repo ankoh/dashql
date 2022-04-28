@@ -296,6 +296,14 @@ impl<'text, 'arena> Default for FunctionName<'text> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct OverlayFunctionArguments<'text, 'arena> {
+    pub input: &'arena Expression<'text, 'arena>,
+    pub placing: &'arena Expression<'text, 'arena>,
+    pub substr_from: &'arena Expression<'text, 'arena>,
+    pub substr_for: Option<&'arena Expression<'text, 'arena>>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
@@ -308,6 +316,7 @@ pub struct FunctionExpression<'text, 'arena> {
     pub over: bool,
     pub variadic: Option<Box<FunctionArgument<'text, 'arena>>>,
     pub trim_direction: Option<sx::TrimDirection>,
+    pub overlay_args: Option<OverlayFunctionArguments<'text, 'arena>>,
 }
 
 #[derive(Debug, Clone)]

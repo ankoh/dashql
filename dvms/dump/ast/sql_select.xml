@@ -3026,6 +3026,7 @@
                                         over: false,
                                         variadic: None,
                                         trim_direction: None,
+                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -3128,6 +3129,7 @@
                                         over: false,
                                         variadic: None,
                                         trim_direction: None,
+                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -3582,6 +3584,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -3665,6 +3668,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -3868,6 +3872,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5233,6 +5238,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5812,6 +5818,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5875,6 +5882,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5938,6 +5946,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6001,6 +6010,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6064,6 +6074,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6127,6 +6138,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6200,6 +6212,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6273,6 +6286,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6346,6 +6360,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6419,6 +6434,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6482,6 +6498,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6545,6 +6562,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6608,6 +6626,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6671,6 +6690,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6734,6 +6754,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6797,6 +6818,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6877,6 +6899,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6957,6 +6980,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7045,6 +7069,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7141,6 +7166,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7172,9 +7198,11 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..23" text="trim(both &apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..23" text="trim(both &apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="17..22" text="&apos;foo&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="17..22" text="&apos;foo&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
                                     </node>
                                 </node>
                             </node>
@@ -7198,9 +7226,11 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..28" text="trim(both ..rom &apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..28" text="trim(both ..rom &apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="22..27" text="&apos;foo&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="22..27" text="&apos;foo&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
                                     </node>
                                 </node>
                             </node>
@@ -7224,10 +7254,12 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..34" text="trim(both ..rom &apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..34" text="trim(both ..rom &apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_CHARACTERS" type="STRING_REF" loc="17..22" text="&apos; \n&apos;"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="28..33" text="&apos;foo&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_CHARACTERS" type="STRING_REF" loc="17..22" text="&apos; \n&apos;"/>
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="28..33" text="&apos;foo&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
                                     </node>
                                 </node>
                             </node>
@@ -7251,11 +7283,13 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..41" text="trim(both ..o&apos;, &apos;bar&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..41" text="trim(both ..o&apos;, &apos;bar&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_CHARACTERS" type="STRING_REF" loc="17..22" text="&apos; \n&apos;"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="28..33" text="&apos;foo&apos;"/>
-                                        <node type="STRING_REF" loc="35..40" text="&apos;bar&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_CHARACTERS" type="STRING_REF" loc="17..22" text="&apos; \n&apos;"/>
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="28..33" text="&apos;foo&apos;"/>
+                                            <node type="STRING_REF" loc="35..40" text="&apos;bar&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="BOTH"/>
                                     </node>
                                 </node>
                             </node>
@@ -7279,9 +7313,11 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..31" text="trim(leadi..rom &apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..31" text="trim(leadi..rom &apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="LEADING"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="25..30" text="&apos;foo&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="25..30" text="&apos;foo&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="LEADING"/>
                                     </node>
                                 </node>
                             </node>
@@ -7305,9 +7341,11 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..32" text="trim(trail..rom &apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..32" text="trim(trail..rom &apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
-                                    <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="TRAILING"/>
-                                    <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
-                                        <node type="STRING_REF" loc="26..31" text="&apos;foo&apos;"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="26..31" text="&apos;foo&apos;"/>
+                                        </node>
+                                        <node key="SQL_FUNCTION_TRIM_DIRECTION" type="ENUM_SQL_TRIM_TARGET" value="TRAILING"/>
                                     </node>
                                 </node>
                             </node>
@@ -7331,6 +7369,11 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..18" text="trim(&apos;foo&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..18" text="trim(&apos;foo&apos;)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TRIM"/>
+                                    <node key="SQL_FUNCTION_TRIM_ARGS" type="ARRAY">
+                                        <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
+                                            <node type="STRING_REF" loc="12..17" text="&apos;foo&apos;"/>
+                                        </node>
+                                    </node>
                                     <node key="SQL_FUNCTION_TRIM_INPUT" type="ARRAY">
                                         <node type="STRING_REF" loc="12..17" text="&apos;foo&apos;"/>
                                     </node>
@@ -7521,6 +7564,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7601,6 +7645,7 @@
                                 over: false,
                                 variadic: None,
                                 trim_direction: None,
+                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7739,6 +7784,7 @@
                                         over: false,
                                         variadic: None,
                                         trim_direction: None,
+                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -7832,6 +7878,7 @@
                                         over: false,
                                         variadic: None,
                                         trim_direction: None,
+                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -7941,6 +7988,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [],
                                     },
@@ -7965,6 +8013,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [],
                                     },
@@ -8091,6 +8140,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8130,6 +8180,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8290,6 +8341,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8331,6 +8383,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -11782,6 +11835,7 @@
                                         over: false,
                                         variadic: None,
                                         trim_direction: None,
+                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],

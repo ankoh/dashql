@@ -163,6 +163,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                     ),
                                 ),

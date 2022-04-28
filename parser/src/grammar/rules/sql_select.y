@@ -1510,25 +1510,35 @@ sql_func_expr_common_subexpr:
         });
     }
   | TRIM '(' BOTH sql_trim_list ')' {
-        $$ = Concat(std::move($4), {
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::BOTH)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
-            Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::BOTH)),
-        });
+            Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
+        };
     }
   | TRIM '(' LEADING sql_trim_list ')' {
-        $$ = Concat(std::move($4), {
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::LEADING)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
-            Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::LEADING)),
-        });
+            Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
+        };
     }
   | TRIM '(' TRAILING sql_trim_list ')' {
-        $$ = Concat(std::move($4), {
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::TRAILING)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
-            Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::TRAILING)),
-        });
+            Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
+        };
     }
   | TRIM '(' sql_trim_list ')' {
-        $$ = Concat(std::move($3), { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)) });
+        auto args = ctx.Add(Loc({@2, @3, @4}), std::move($3));
+        $$ = Concat(std::move($3), {
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
+            Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
+        });
     }
   | TREAT '(' sql_a_expr AS sql_typename ')' {
         $$ = {

@@ -298,6 +298,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                     ),
                                 ),
@@ -1443,6 +1444,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                     ),
                                     typename: SQLType {
@@ -1596,6 +1598,7 @@
                                             over: false,
                                             variadic: None,
                                             trim_direction: None,
+                                            overlay_args: None,
                                         },
                                     ),
                                     typename: SQLType {
