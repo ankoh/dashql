@@ -304,19 +304,59 @@ pub struct OverlayFunctionArguments<'text, 'arena> {
     pub substr_for: Option<&'arena Expression<'text, 'arena>>,
 }
 
+#[derive(Debug, Clone)]
+pub enum ExtractFunctionTarget<'text> {
+    Unknown(&'text str),
+    Known(sx::ExtractTarget),
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtractFunctionArguments<'text, 'arena> {
+    pub target: ExtractFunctionTarget<'text>,
+    pub input: &'arena Expression<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubstringFunctionArguments<'text, 'arena> {
+    pub input: &'arena Expression<'text, 'arena>,
+    pub substr_from: Option<&'arena Expression<'text, 'arena>>,
+    pub substr_for: Option<&'arena Expression<'text, 'arena>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PositionFunctionArguments<'text, 'arena> {
+    pub search: &'arena Expression<'text, 'arena>,
+    pub input: &'arena Expression<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TrimFunctionArguments<'text, 'arena> {
+    pub direction: sx::TrimDirection,
+    pub characters: &'arena Expression<'text, 'arena>,
+    pub input: &'arena [&'arena Expression<'text, 'arena>],
+}
+
+#[derive(Debug, Clone)]
+pub enum KnownFunctionArguments<'text, 'arena> {
+    Trim(TrimFunctionArguments<'text, 'arena>),
+    Substring(SubstringFunctionArguments<'text, 'arena>),
+    Position(PositionFunctionArguments<'text, 'arena>),
+    Extract(ExtractFunctionArguments<'text, 'arena>),
+    Overlay(OverlayFunctionArguments<'text, 'arena>),
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
-    pub arguments: &'arena [FunctionArgument<'text, 'arena>],
-    pub argument_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
+    pub args: &'arena [FunctionArgument<'text, 'arena>],
+    pub args_known: Option<KnownFunctionArguments<'text, 'arena>>,
+    pub arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub within_group: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub filter: Option<Expression<'text, 'arena>>,
     pub all: bool,
     pub distinct: bool,
     pub over: bool,
     pub variadic: Option<Box<FunctionArgument<'text, 'arena>>>,
-    pub trim_direction: Option<sx::TrimDirection>,
-    pub overlay_args: Option<OverlayFunctionArguments<'text, 'arena>>,
 }
 
 #[derive(Debug, Clone)]

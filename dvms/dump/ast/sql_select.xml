@@ -3004,7 +3004,7 @@
                                         name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
-                                        arguments: [
+                                        args: [
                                             FunctionArgument {
                                                 name: None,
                                                 value: StringRef(
@@ -3018,15 +3018,14 @@
                                                 ),
                                             },
                                         ],
-                                        argument_ordering: [],
+                                        args_known: None,
+                                        arg_ordering: [],
                                         within_group: [],
                                         filter: None,
                                         all: false,
                                         distinct: false,
                                         over: false,
                                         variadic: None,
-                                        trim_direction: None,
-                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -3113,7 +3112,7 @@
                                         name: Unknown(
                                             &quot;somefunc&quot;,
                                         ),
-                                        arguments: [
+                                        args: [
                                             FunctionArgument {
                                                 name: None,
                                                 value: StringRef(
@@ -3121,15 +3120,14 @@
                                                 ),
                                             },
                                         ],
-                                        argument_ordering: [],
+                                        args_known: None,
+                                        arg_ordering: [],
                                         within_group: [],
                                         filter: None,
                                         all: false,
                                         distinct: false,
                                         over: false,
                                         variadic: None,
-                                        trim_direction: None,
-                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -3564,7 +3562,7 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -3576,15 +3574,14 @@
                                         value: Null,
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -3648,7 +3645,7 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -3660,15 +3657,14 @@
                                         value: Null,
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -3852,7 +3848,7 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -3864,15 +3860,14 @@
                                         value: Null,
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5222,7 +5217,7 @@
                                 name: Unknown(
                                     &quot;somefunc&quot;,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -5230,15 +5225,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5794,7 +5788,7 @@
                                 name: Unknown(
                                     &quot;somefunc&quot;,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: Nary(
@@ -5810,15 +5804,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5873,16 +5866,15 @@
                                 name: Known(
                                     CURRENT_DATE,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -5937,16 +5929,15 @@
                                 name: Known(
                                     CURRENT_TIME,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6001,16 +5992,15 @@
                                 name: Known(
                                     CURRENT_TIMESTAMP,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6065,16 +6055,15 @@
                                 name: Known(
                                     LOCALTIME,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6129,16 +6118,15 @@
                                 name: Known(
                                     LOCALTIMESTAMP,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6196,7 +6184,7 @@
                                 name: Known(
                                     CURRENT_DATE,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6204,15 +6192,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6270,7 +6257,7 @@
                                 name: Known(
                                     CURRENT_TIMESTAMP,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6278,15 +6265,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6344,7 +6330,7 @@
                                 name: Known(
                                     LOCALTIME,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6352,15 +6338,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6418,7 +6403,7 @@
                                 name: Known(
                                     LOCALTIMESTAMP,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6426,15 +6411,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6489,16 +6473,15 @@
                                 name: Known(
                                     CURRENT_ROLE,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6553,16 +6536,15 @@
                                 name: Known(
                                     CURRENT_USER,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6617,16 +6599,15 @@
                                 name: Known(
                                     SESSION_USER,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6681,16 +6662,15 @@
                                 name: Known(
                                     USER,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6745,16 +6725,15 @@
                                 name: Known(
                                     CURRENT_CATALOG,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6809,16 +6788,15 @@
                                 name: Known(
                                     CURRENT_SCHEMA,
                                 ),
-                                arguments: [],
-                                argument_ordering: [],
+                                args: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6879,7 +6857,7 @@
                                 name: Known(
                                     CAST,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6891,15 +6869,14 @@
                                         value: Null,
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -6960,7 +6937,7 @@
                                 name: Known(
                                     TREAT,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: StringRef(
@@ -6972,15 +6949,14 @@
                                         value: Null,
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7043,7 +7019,7 @@
                                 name: Known(
                                     NULLIF,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: ColumnRef(
@@ -7061,15 +7037,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7136,7 +7111,7 @@
                                 name: Known(
                                     NULLIF,
                                 ),
-                                arguments: [
+                                args: [
                                     FunctionArgument {
                                         name: None,
                                         value: ColumnRef(
@@ -7158,15 +7133,14 @@
                                         ),
                                     },
                                 ],
-                                argument_ordering: [],
+                                args_known: None,
+                                arg_ordering: [],
                                 within_group: [],
                                 filter: None,
                                 all: false,
                                 distinct: false,
                                 over: false,
                                 variadic: None,
-                                trim_direction: None,
-                                overlay_args: None,
                             },
                         ),
                         alias: None,
@@ -7438,9 +7412,11 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..39" text="substring(..m 1 for 2)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
                                     <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..39" text="(&apos;foobar&apos; ..m 1 for 2)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="37..38" text="2"/>
-                                        <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
-                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..38" text="&apos;foobar&apos; f..om 1 for 2">
+                                            <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="37..38" text="2"/>
+                                            <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
+                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        </node>
                                     </node>
                                 </node>
                             </node>
@@ -7465,8 +7441,10 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..33" text="substring(..r&apos; from 1)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
                                     <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..33" text="(&apos;foobar&apos; from 1)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
-                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..32" text="&apos;foobar&apos; from 1">
+                                            <node key="SQL_FUNCTION_SUBSTRING_FROM" type="STRING_REF" loc="31..32" text="1"/>
+                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        </node>
                                     </node>
                                 </node>
                             </node>
@@ -7491,8 +7469,10 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..32" text="substring(..ar&apos; for 1)">
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="SUBSTRING"/>
                                     <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="16..32" text="(&apos;foobar&apos; for 1)">
-                                        <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="30..31" text="1"/>
-                                        <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        <node key="SQL_FUNCTION_SUBSTRING_ARGS" type="OBJECT_SQL_FUNCTION_SUBSTRING_ARGS" loc="17..31" text="&apos;foobar&apos; for 1">
+                                            <node key="SQL_FUNCTION_SUBSTRING_FOR" type="STRING_REF" loc="30..31" text="1"/>
+                                            <node key="SQL_FUNCTION_SUBSTRING_INPUT" type="STRING_REF" loc="17..25" text="&apos;foobar&apos;"/>
+                                        </node>
                                     </node>
                                 </node>
                             </node>
@@ -7668,7 +7648,7 @@
                                         name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
-                                        arguments: [
+                                        args: [
                                             FunctionArgument {
                                                 name: None,
                                                 value: StringRef(
@@ -7676,15 +7656,14 @@
                                                 ),
                                             },
                                         ],
-                                        argument_ordering: [],
+                                        args_known: None,
+                                        arg_ordering: [],
                                         within_group: [],
                                         filter: None,
                                         all: false,
                                         distinct: false,
                                         over: false,
                                         variadic: None,
-                                        trim_direction: None,
-                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -7762,7 +7741,7 @@
                                         name: Unknown(
                                             &quot;generate_series&quot;,
                                         ),
-                                        arguments: [
+                                        args: [
                                             FunctionArgument {
                                                 name: None,
                                                 value: StringRef(
@@ -7770,15 +7749,14 @@
                                                 ),
                                             },
                                         ],
-                                        argument_ordering: [],
+                                        args_known: None,
+                                        arg_ordering: [],
                                         within_group: [],
                                         filter: None,
                                         all: false,
                                         distinct: false,
                                         over: false,
                                         variadic: None,
-                                        trim_direction: None,
-                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],
@@ -7872,7 +7850,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -7880,15 +7858,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [],
                                     },
@@ -7897,7 +7874,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -7905,15 +7882,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [],
                                     },
@@ -8024,7 +8000,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -8032,15 +8008,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8064,7 +8039,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -8072,15 +8047,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8225,7 +8199,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -8233,15 +8207,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -8267,7 +8240,7 @@
                                             name: Unknown(
                                                 &quot;generate_series&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -8275,15 +8248,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                         columns: [
                                             ColumnDefinition {
@@ -11726,16 +11698,15 @@
                                         name: Unknown(
                                             &quot;somefunc&quot;,
                                         ),
-                                        arguments: [],
-                                        argument_ordering: [],
+                                        args: [],
+                                        args_known: None,
+                                        arg_ordering: [],
                                         within_group: [],
                                         filter: None,
                                         all: false,
                                         distinct: false,
                                         over: false,
                                         variadic: None,
-                                        trim_direction: None,
-                                        overlay_args: None,
                                     },
                                 ),
                                 rows_from: [],

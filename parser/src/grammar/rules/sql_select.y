@@ -1877,30 +1877,34 @@ sql_position_list:
 
 sql_substr_list:
     sql_a_expr sql_substr_from sql_substr_for {
-        $$ = {
+        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($2)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($3)),
-        };
+        });
+        $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
     }
   | sql_a_expr sql_substr_for sql_substr_from {
-        $$ = {
+        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($2)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($3)),
-        };
+        });
+        $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
     }
   | sql_a_expr sql_substr_from {
-        $$ = {
+        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($2)),
-        };
+        });
+        $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
    }
   | sql_a_expr sql_substr_for {
-        $$ = {
+        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($2)),
-        };
+        });
+        $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
    }
   | sql_expr_list   { $$ = { Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(@1, std::move($1))) }; }
   | %empty          { $$ = {}; }

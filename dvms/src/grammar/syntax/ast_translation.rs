@@ -481,11 +481,11 @@ pub fn translate_ast<'text, 'ast, 'arena>(
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                 let mut func_name = FunctionName::default();
                 let mut func_args: &[_] = &[];
-                let mut func_arg_ordering: &[_] = &[];
+                let mut arg_ordering: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
                     (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f)) => func_name = FunctionName::Known(f.clone()),
-                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification),
+                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => arg_ordering = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                         let args = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
@@ -502,8 +502,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 }
                 ASTNode::FunctionExpression(FunctionExpression {
                     name: func_name,
-                    arguments: func_args,
-                    argument_ordering: func_arg_ordering,
+                    args: func_args,
+                    arg_ordering,
                     ..Default::default()
                 })
             }

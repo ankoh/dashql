@@ -134,7 +134,7 @@
                                             name: Unknown(
                                                 &quot;format&quot;,
                                             ),
-                                            arguments: [
+                                            args: [
                                                 FunctionArgument {
                                                     name: None,
                                                     value: StringRef(
@@ -155,15 +155,14 @@
                                                     ),
                                                 },
                                             ],
-                                            argument_ordering: [],
+                                            args_known: None,
+                                            arg_ordering: [],
                                             within_group: [],
                                             filter: None,
                                             all: false,
                                             distinct: false,
                                             over: false,
                                             variadic: None,
-                                            trim_direction: None,
-                                            overlay_args: None,
                                         },
                                     ),
                                 ),
