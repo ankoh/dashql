@@ -834,36 +834,3 @@ pub fn translate_ast<'text, 'ast, 'arena>(
     }
     Ok(Program { statements: stmts })
 }
-
-// #[cfg(all(test, not(target_arch = "wasm32")))]
-// mod test {
-//     use super::super::ast::*;
-//     use super::super::sql_nodes::*;
-//     use super::translate_ast;
-//     use std::error::Error;
-//
-//     fn test_translation(text: &str, expected: Program<'static>) -> Result<(), Box<dyn Error + Send + Sync>> {
-//         let ast_buffer = crate::grammar::parse(text)?;
-//         let ast = ast_buffer.get_root();
-//         let translated = translate_ast(text, ast)?;
-//         assert_eq!(&format!("{:#?}", &translated), &format!("{:#?}", &expected));
-//         Ok(())
-//     }
-//
-//     #[test]
-//     fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
-//         test_translation(
-//             "select 1;",
-//             Program {
-//                 statements: vec![Statement::Select(SelectStatement {
-//                     targets: vec![ResultTarget::Value {
-//                         value: Box::new(Expression::StringRef("1")),
-//                         alias: None,
-//                     }],
-//                     ..Default::default()
-//                 })],
-//             },
-//         )
-//     }
-// }
-//
