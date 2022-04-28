@@ -1490,28 +1490,36 @@ sql_func_expr_common_subexpr:
         };
     }
   | EXTRACT '(' sql_extract_list ')' {
-        $$ = Concat(std::move($3), {
+        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS, std::move($3));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::EXTRACT)),
-        });
+            Attr(Key::SQL_FUNCTION_EXTRACT_ARGS, std::move(args)),
+        };
     }
   | OVERLAY '(' sql_overlay_list ')' {
-        $$ = Concat(std::move($3), {
+        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS, std::move($3));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::OVERLAY)),
-        });
+            Attr(Key::SQL_FUNCTION_OVERLAY_ARGS, std::move(args)),
+        };
     }
   | POSITION '(' sql_position_list ')' {
-        $$ = Concat(std::move($3), {
+        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS, std::move($3));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::POSITION)),
-        });
+            Attr(Key::SQL_FUNCTION_POSITION_ARGS, std::move(args)),
+        };
     }
   | SUBSTRING '(' sql_substr_list ')' {
-        $$ = Concat(std::move($3), {
+        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, std::move($3));
+        $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::SUBSTRING)),
-        });
+            Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, std::move(args)),
+        };
     }
   | TRIM '(' BOTH sql_trim_list ')' {
         $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::BOTH)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
@@ -1519,7 +1527,7 @@ sql_func_expr_common_subexpr:
     }
   | TRIM '(' LEADING sql_trim_list ')' {
         $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::LEADING)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
@@ -1527,14 +1535,14 @@ sql_func_expr_common_subexpr:
     }
   | TRIM '(' TRAILING sql_trim_list ')' {
         $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::TRAILING)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), std::move($4));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
         };
     }
   | TRIM '(' sql_trim_list ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4}), std::move($3));
+        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($3));
         $$ = Concat(std::move($3), {
             Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
