@@ -8,5 +8,5 @@ mod dson;
 mod enums;
 mod sql_nodes;
 
-pub use ast_to_xml::write_ast_as_xml;
-pub use ast_translation::translate_ast;
+pub use ast_to_xml::serialize_ast_as_xml;
+pub use ast_translation::deserialize_ast;

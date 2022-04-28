@@ -15,7 +15,7 @@ fn oom() -> ! {
     panic!("out of memory")
 }
 
-pub fn translate_ast<'text, 'ast, 'arena>(
+pub fn deserialize_ast<'text, 'ast, 'arena>(
     arena: &'arena bumpalo::Bump,
     text: &'text str,
     buffer: sx::Program<'ast>,

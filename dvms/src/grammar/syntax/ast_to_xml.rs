@@ -35,7 +35,7 @@ fn encode_error<'writer, 'text, 'ast>(writer: &mut BytesStart<'writer>, error: s
     encode_location(writer, error.location().copied().unwrap_or_default(), text);
 }
 
-pub fn write_ast_as_xml<'text, 'ast, W>(
+pub fn serialize_ast_as_xml<'text, 'ast, W>(
     writer: &mut Writer<W>,
     ast: sx::Program<'ast>,
     text: &'text str,
@@ -198,7 +198,7 @@ mod test {
         let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
         let ast_buffer = crate::grammar::parse(text)?;
         let ast = ast_buffer.get_root();
-        write_ast_as_xml(&mut writer, ast, text)?;
+        serialize_ast_as_xml(&mut writer, ast, text)?;
         let buffer = writer.into_inner();
         let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");
         assert_eq!(expected.trim(), xml_str);

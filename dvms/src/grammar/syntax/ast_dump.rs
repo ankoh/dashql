@@ -1,6 +1,5 @@
 use super::ast::Program;
-use super::ast_to_xml;
-use super::write_ast_as_xml;
+use super::serialize_ast_as_xml;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
@@ -64,7 +63,7 @@ impl<'text, 'arena> ASTDump<'text, 'arena> {
         writer.write_event(Event::End(BytesEnd::borrowed(b"input")))?;
         if let Some(ast) = &self.parsed {
             writer.write_event(Event::Start(BytesStart::borrowed_name(b"parsed")))?;
-            write_ast_as_xml(writer, ast.get_root(), self.input)?;
+            serialize_ast_as_xml(writer, ast.get_root(), self.input)?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
         }
         if let Some(prog) = &self.translated {
@@ -87,7 +86,7 @@ mod test {
     use std::io::BufReader;
     use std::path::PathBuf;
 
-    use crate::grammar::translate_ast;
+    use crate::grammar::deserialize_ast;
 
     fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
@@ -152,7 +151,7 @@ mod test {
                         let have_ast = have.get_root();
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
-                        crate::grammar::write_ast_as_xml(&mut have_writer, have_ast, have_input)?;
+                        crate::grammar::serialize_ast_as_xml(&mut have_writer, have_ast, have_input)?;
                         let have_str = String::from_utf8(have_writer.into_inner())?;
                         // Compare output
                         assert_eq!(have_str, expected_str);
@@ -176,7 +175,7 @@ mod test {
                         // Translate the ast
                         let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
                         let ast = ast_buffer.as_ref().expect("expected ast buffer").get_root();
-                        let translated = translate_ast(
+                        let translated = deserialize_ast(
                             &arena,
                             script_text.as_ref().expect("expected script text").as_str(),
                             ast,
