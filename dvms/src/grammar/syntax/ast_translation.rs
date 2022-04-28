@@ -337,16 +337,10 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CONST_CAST_TYPE, ASTNode::StringRef(t)) => cast_type = Some(t.clone()),
                     (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone()),
                     (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => func_name = Some(read_name(arena, n)),
-                    (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => {
-                        func_args = read_exprs(arena, nodes)
-                    },
-                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => {
-                        func_arg_ordering = unpack_nodes!(nodes, OrderSpecification);
-                    },
+                    (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => func_args = read_exprs(arena, nodes),
+                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => interval = Some(i),
-                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => {
-                        interval = Some(arena.alloc(IntervalSpecification::Raw(s)));
-                    }
+                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => interval = Some(arena.alloc(IntervalSpecification::Raw(s)))
                 }
                 ASTNode::Expression(Expression::ConstCast(arena.alloc(ConstCastExpression {
                     cast_type: cast_type.unwrap_or_default(),
@@ -363,12 +357,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 let mut column_definitions: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s)) => name = s,
-                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => {
-                        column_names = unpack_strings!(nodes, StringRef)
-                    },
-                    (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => {
-                        column_definitions = unpack_nodes!(nodes, ColumnDefinition)
-                    }
+                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => column_names = unpack_strings!(nodes, StringRef),
+                    (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => column_definitions = unpack_nodes!(nodes, ColumnDefinition)
                 }
                 ASTNode::Alias(Alias {
                     name,
@@ -423,9 +413,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                         let using = unpack_strings!(nodes, StringRef);
                         qualifier = Some(JoinQualifier::Using(using));
                     },
-                    (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => {
-                        input = unpack_nodes!(nodes, TableRef);
-                    }
+                    (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => input = unpack_nodes!(nodes, TableRef)
                 }
                 ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
             }
@@ -461,13 +449,9 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 let mut ordinality = false;
                 let mut rows_from: &[_] = &[];
                 read_attributes! {
-                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => {
-                        function = Some(f)
-                    },
+                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(f),
                     (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(b)) => ordinality = *b,
-                    (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => {
-                        rows_from = unpack_nodes!(nodes, RowsFromItem);
-                    }
+                    (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => rows_from = unpack_nodes!(nodes, RowsFromItem)
                 }
                 ASTNode::FunctionTable(FunctionTable {
                     function,
@@ -592,12 +576,8 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                         }))
                     },
                     (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeInfo(t)) => base = Some(SQLBaseType::Bit(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => {
-                        base = Some(SQLBaseType::Character(t.clone()))
-                    },
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeInfo(t)) => {
-                        base = Some(SQLBaseType::Timestamp(t.clone()))
-                    },
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => base = Some(SQLBaseType::Character(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeInfo(t)) => base = Some(SQLBaseType::Timestamp(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalTypeInfo(t)) => base = Some(SQLBaseType::Interval(t.clone())),
                     (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = *b,
                     (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(arena, n)
@@ -614,9 +594,7 @@ pub fn translate_ast<'text, 'ast, 'arena>(
                 let mut extra = None;
                 read_attributes! {
                     (Key::DASHQL_VIZ_COMPONENT_TYPE, ASTNode::VizComponentType(t)) => component_type = Some(t.clone()),
-                    (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods)) => {
-                        type_modifiers = *mods
-                    },
+                    (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods)) => type_modifiers = *mods,
                     (Key::DASHQL_VIZ_COMPONENT_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
                 ASTNode::VizComponent(VizComponent {
