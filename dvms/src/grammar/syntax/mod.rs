@@ -3,7 +3,6 @@ pub mod ast_dump;
 mod ast_node;
 mod ast_printing;
 mod ast_translation;
-mod ast_translation_helper;
 mod dashql_nodes;
 mod dson;
 mod enums;
