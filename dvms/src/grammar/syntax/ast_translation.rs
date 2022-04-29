@@ -860,46 +860,123 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     temp,
                 })
             }
+            sx::NodeType::OBJECT_SQL_CTE => {
+                let mut name = &"";
+                let mut columns: &[_] = &[];
+                let mut stmt = None;
+                read_attributes! {
+                    (Key::SQL_CTE_NAME, ASTNode::StringRef(s)) => name = s,
+                    (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_strings!(nodes, StringRef),
+                    (Key::SQL_CTE_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s)
+                }
+                ASTNode::CommonTableExpression(CommonTableExpression {
+                    name,
+                    columns,
+                    statement: stmt.unwrap(),
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
+                let mut with_ctes: &[_] = &[];
+                let mut with_recursive = false;
+
+                let mut values = None;
+                let mut table = None;
+                let mut combine_operation = None;
+                let mut combine_modifier = sx::CombineModifier::NONE;
+                let mut combine_input: &[_] = &[];
+
                 let mut targets: &[_] = &[];
+                let mut all = false;
+                let mut distinct = false;
+                let mut into = None;
                 let mut from: &[_] = &[];
                 let mut where_clause = None;
-                let mut into = None;
+                let mut group_by: &[_] = &[];
+                let mut having = None;
+                let mut sample = None;
+
                 let mut limit = None;
                 let mut offset = None;
-                let mut sample = None;
-                let mut having = None;
-                let mut row_locking: &[_] = &[];
-                let mut group_by: &[_] = &[];
                 let mut order_by: &[_] = &[];
+                let mut row_locking: &[_] = &[];
+
                 read_attributes! {
-                    (Key::SQL_SELECT_WHERE, n) => where_clause = Some(read_expr(n)),
+                    (Key::SQL_SELECT_WITH_CTES, ASTNode::Array(nodes)) => with_ctes = unpack_nodes!(nodes, CommonTableExpression),
+                    (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b)) => with_recursive = *b,
+
+                    (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t)) => table = Some(t),
+                    (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples)) => {
+                        type Tuple<'text, 'arena> = &'arena [Expression<'text, 'arena>];
+                        let tuples_layout = std::alloc::Layout::array::<Tuple<'text, 'arena>>(tuples.len()).unwrap_or_else(|_| oom());
+                        let tuples_mem = arena.alloc_layout(tuples_layout).cast::<Tuple<'text, 'arena>>();
+                        let mut tuples_writer = 0;
+                        for i in 0..tuples.len() {
+                            match tuples[i] {
+                                ASTNode::Array(tuple) => {
+                                    let tuple_exprs = read_exprs(arena, tuple);
+                                    unsafe {
+                                        std::ptr::write(tuples_mem.as_ptr().add(tuples_writer), tuple_exprs);
+                                    }
+                                    tuples_writer += 1;
+                                }
+                                _ => {
+                                    debug_assert!(false, "unexpected node: {:?}", &tuples[i]);
+                                }
+                            };
+                        }
+                        values = Some(unsafe { std::slice::from_raw_parts_mut(tuples_mem.as_ptr(), tuples_writer) })
+                    },
+                    (Key::SQL_COMBINE_OPERATION, ASTNode::CombineOperation(op)) => combine_operation = Some(*op),
+                    (Key::SQL_COMBINE_MODIFIER, ASTNode::CombineModifier(m)) => combine_modifier = *m,
+                    (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes)) => combine_input = unpack_nodes!(nodes, SelectStatement),
+
+                    (Key::SQL_SELECT_ALL, ASTNode::Boolean(b)) => all = *b,
+                    (Key::SQL_SELECT_DISTINCT, ASTNode::Boolean(b)) => distinct = *b,
+                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
                     (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
+                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),
+                    (Key::SQL_SELECT_WHERE, n) => where_clause = Some(read_expr(n)),
+                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem),
+                    (Key::SQL_SELECT_HAVING, n) => having = Some(read_expr(n)),
+                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
+
+                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(true)) => limit = Some(Limit::ALL),
                     (Key::SQL_SELECT_LIMIT, n) => limit = Some(Limit::Expression(read_expr(n))),
                     (Key::SQL_SELECT_OFFSET, n) => offset = Some(read_expr(n)),
-                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
-                    (Key::SQL_SELECT_HAVING, n) => having = Some(read_expr(n)),
-                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
-                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = unpack_nodes!(nodes, RowLocking),
-                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
-                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),
-                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem)
+                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = unpack_nodes!(nodes, RowLocking)
                 }
                 ASTNode::SelectStatement(SelectStatement {
-                    all: false,
-                    targets,
-                    into,
-                    from,
-                    where_clause,
-                    group_by,
+                    with_ctes,
+                    with_recursive,
+                    data: if let Some(values) = values {
+                        SelectData::Values(values)
+                    } else if let Some(table) = table {
+                        SelectData::Table(table)
+                    } else if let Some(combine_op) = combine_operation {
+                        SelectData::Combine(CombineOperation {
+                            operation: combine_op,
+                            modifier: combine_modifier,
+                            input: combine_input,
+                        })
+                    } else {
+                        SelectData::From(SelectFromStatement {
+                            all,
+                            distinct,
+                            targets,
+                            into,
+                            from,
+                            where_clause,
+                            group_by,
+                            having,
+                            windows: false,
+                            sample,
+                        })
+                    },
                     order_by,
-                    having,
-                    windows: false,
-                    sample,
-                    row_locking,
                     limit,
                     offset,
+                    row_locking,
                 })
             }
             sx::NodeType::OBJECT_DSON => {

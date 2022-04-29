@@ -389,17 +389,47 @@ pub struct RowLocking<'text, 'arena> {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct SelectStatement<'text, 'arena> {
+pub struct SelectFromStatement<'text, 'arena> {
     pub all: bool,
+    pub distinct: bool,
     pub targets: &'arena [&'arena ResultTarget<'text, 'arena>],
     pub into: Option<&'arena Into<'text, 'arena>>,
     pub from: &'arena [&'arena TableRef<'text, 'arena>],
     pub where_clause: Option<Expression<'text, 'arena>>,
-    pub order_by: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub group_by: &'arena [&'arena GroupByItem<'text, 'arena>],
     pub having: Option<Expression<'text, 'arena>>,
     pub windows: bool,
     pub sample: Option<&'arena Sample<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CombineOperation<'text, 'arena> {
+    pub operation: sx::CombineOperation,
+    pub modifier: sx::CombineModifier,
+    pub input: &'arena [&'arena SelectStatement<'text, 'arena>],
+}
+
+#[derive(Debug, Clone)]
+pub enum SelectData<'text, 'arena> {
+    From(SelectFromStatement<'text, 'arena>),
+    Table(&'arena TableRef<'text, 'arena>),
+    Values(&'arena [&'arena [Expression<'text, 'arena>]]),
+    Combine(CombineOperation<'text, 'arena>),
+}
+
+#[derive(Debug, Clone)]
+pub struct CommonTableExpression<'text, 'arena> {
+    pub name: &'text str,
+    pub columns: &'arena [&'text str],
+    pub statement: &'arena SelectStatement<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SelectStatement<'text, 'arena> {
+    pub with_ctes: &'arena [&'arena CommonTableExpression<'text, 'arena>],
+    pub with_recursive: bool,
+    pub data: SelectData<'text, 'arena>,
+    pub order_by: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub row_locking: &'arena [&'arena RowLocking<'text, 'arena>],
     pub limit: Option<Limit<'text, 'arena>>,
     pub offset: Option<Expression<'text, 'arena>>,

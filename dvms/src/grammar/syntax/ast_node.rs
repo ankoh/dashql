@@ -88,6 +88,7 @@ pub enum ASTNode<'text, 'arena> {
 
     CreateAs(CreateAsStatement<'text, 'arena>),
     CreateView(CreateViewStatement<'text, 'arena>),
+    CommonTableExpression(CommonTableExpression<'text, 'arena>),
     SelectStatement(SelectStatement<'text, 'arena>),
     SetStatement(SetStatement<'text, 'arena>),
     FetchStatement(FetchStatement<'text, 'arena>),

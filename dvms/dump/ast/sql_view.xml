@@ -35,23 +35,30 @@
                 ],
                 columns: [],
                 statement: SelectStatement {
-                    all: false,
-                    targets: [
-                        Value {
-                            value: StringRef(
-                                &quot;1&quot;,
-                            ),
-                            alias: None,
+                    with_ctes: [],
+                    with_recursive: false,
+                    data: From(
+                        SelectFromStatement {
+                            all: false,
+                            distinct: false,
+                            targets: [
+                                Value {
+                                    value: StringRef(
+                                        &quot;1&quot;,
+                                    ),
+                                    alias: None,
+                                },
+                            ],
+                            into: None,
+                            from: [],
+                            where_clause: None,
+                            group_by: [],
+                            having: None,
+                            windows: false,
+                            sample: None,
                         },
-                    ],
-                    into: None,
-                    from: [],
-                    where_clause: None,
+                    ),
                     order_by: [],
-                    group_by: [],
-                    having: None,
-                    windows: false,
-                    sample: None,
                     row_locking: [],
                     limit: None,
                     offset: None,
