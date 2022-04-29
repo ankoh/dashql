@@ -1275,8 +1275,11 @@ sql_a_expr:
             Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
             Attr(Key::SQL_SUBQUERY_QUANTIFIER, std::move($3)),
         });
-        auto a2 = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($4));
-        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move(a2));
+        auto s = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, std::move($4));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+            Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
+        });
+        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move(s));
     }
   | sql_a_expr sql_subquery_op sql_subquery_quantifier '(' sql_a_expr ')'        %prec Op {
         auto op = ctx.Add(Loc({@2, @3}), sx::NodeType::OBJECT_SQL_SUBQUERY_OPERATOR, {
@@ -1357,13 +1360,25 @@ sql_c_expr:
     }
   | sql_case_expr                             { $$ = $1; }
   | sql_func_expr                             { $$ = $1; }
-  | sql_select_with_parens      %prec UMINUS  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($1)); }
-  | sql_select_with_parens sql_indirection {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, Concat(std::move($1), {
-          Attr(Key::SQL_RESULT_INDIRECTION, ctx.Add(@2, std::move($2))),
-      }));
+  | sql_select_with_parens      %prec UMINUS  {
+        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+            Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
+        });
     }
-  | EXISTS sql_select_with_parens { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION, std::move($2)); }
+  | sql_select_with_parens sql_indirection {
+        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+            Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s),
+            Attr(Key::SQL_SELECT_EXPRESSION_INDIRECTION, ctx.Add(@2, std::move($2))),
+        });
+    }
+  | EXISTS sql_select_with_parens {
+        auto s = ctx.Add(@2, sx::NodeType::OBJECT_SQL_SELECT, move($2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION, {
+            Attr(Key::SQL_EXISTS_EXPRESSION_STATEMENT, s),
+        });
+    }
     ;
 
 sql_func_application:
@@ -1941,8 +1956,13 @@ sql_trim_list:
     ;
 
 sql_in_expr:
-    sql_select_with_parens  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($1)); }
-  | '(' sql_expr_list ')'   { $$ = ctx.Add(@$, std::move($2)); }
+    sql_select_with_parens  {
+        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, std::move($1));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+            Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
+        });
+    }
+  | '(' sql_expr_list ')' { $$ = ctx.Add(@$, std::move($2)); }
     ;
 
 // Define SQL-style CASE clause.
