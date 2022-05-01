@@ -653,6 +653,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     indirection,
                 })
             }
+            sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION => {
+                let mut stmt = None;
+                read_attributes! {
+                    (Key::SQL_EXISTS_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s)
+                }
+                ASTNode::ExistsExpression(ExistsExpression {
+                    statement: stmt.unwrap(),
+                })
+            }
             sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
                 let mut precision = None;
                 let mut with_timezone = false;
@@ -1064,6 +1073,7 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
+        ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null
