@@ -1271,22 +1271,24 @@ sql_a_expr:
   | sql_a_expr IN_P sql_in_expr                                                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IN), $1, $3); }
   | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_IN), $1, $4); }
   | sql_a_expr sql_subquery_op sql_subquery_quantifier sql_select_with_parens    %prec Op {
-        auto op = ctx.Add(Loc({@2, @3}), sx::NodeType::OBJECT_SQL_SUBQUERY_OPERATOR, {
-            Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
-            Attr(Key::SQL_SUBQUERY_QUANTIFIER, std::move($3)),
-        });
         auto s = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, std::move($4));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+        auto e = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
             Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
         });
-        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move(s));
-    }
-  | sql_a_expr sql_subquery_op sql_subquery_quantifier '(' sql_a_expr ')'        %prec Op {
-        auto op = ctx.Add(Loc({@2, @3}), sx::NodeType::OBJECT_SQL_SUBQUERY_OPERATOR, {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
+            Attr(Key::SQL_SUBQUERY_ARG0, std::move($1)),
+            Attr(Key::SQL_SUBQUERY_ARG1, std::move(e)),
             Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
             Attr(Key::SQL_SUBQUERY_QUANTIFIER, std::move($3)),
         });
-        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move($5));
+    }
+  | sql_a_expr sql_subquery_op sql_subquery_quantifier '(' sql_a_expr ')'        %prec Op {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
+            Attr(Key::SQL_SUBQUERY_ARG0, std::move($1)),
+            Attr(Key::SQL_SUBQUERY_ARG1, std::move($5)),
+            Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
+            Attr(Key::SQL_SUBQUERY_QUANTIFIER, std::move($3)),
+        });
     }
   | DEFAULT { $$ = Expr(ctx, @$, Enum(@1, ExprFunc::DEFAULT)); }
     ;

@@ -624,6 +624,35 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     typename: typename.unwrap(),
                 })
             }
+            sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
+                let mut arg0 = Expression::Null;
+                let mut arg1 = Expression::Null;
+                let mut operator = sx::ExpressionOperator::EQUAL;
+                let mut quantifier = sx::SubqueryQuantifier::ALL;
+                read_attributes! {
+                    (Key::SQL_SUBQUERY_ARG0, v) => arg0 = read_expr(v),
+                    (Key::SQL_SUBQUERY_ARG1, v) => arg1 = read_expr(v),
+                    (Key::SQL_SUBQUERY_OPERATOR, ASTNode::ExpressionOperator(op)) => operator = *op,
+                    (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant)) => quantifier = *quant
+                }
+                ASTNode::SubqueryExpression(SubqueryExpression {
+                    operator,
+                    quantifier,
+                    args: [arg0, arg1],
+                })
+            }
+            sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION => {
+                let mut stmt = None;
+                let mut indirection = None;
+                read_attributes! {
+                    (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s),
+                    (Key::SQL_SELECT_EXPRESSION_INDIRECTION, ASTNode::Array(a)) => indirection = Some(read_name(arena, a))
+                }
+                ASTNode::SelectStatementExpression(SelectStatementExpression {
+                    statement: stmt.unwrap(),
+                    indirection,
+                })
+            }
             sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
                 let mut precision = None;
                 let mut with_timezone = false;
@@ -1033,6 +1062,8 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
         ASTNode::ColumnRef(ref c) => Expression::ColumnRef(c.clone()),
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
+        ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
+        ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null

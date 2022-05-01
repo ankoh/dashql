@@ -62,6 +62,19 @@ pub struct TypecastExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct SubqueryExpression<'text, 'arena> {
+    pub operator: sx::ExpressionOperator,
+    pub quantifier: sx::SubqueryQuantifier,
+    pub args: [Expression<'text, 'arena>; 2],
+}
+
+#[derive(Debug, Clone)]
+pub struct SelectStatementExpression<'text, 'arena> {
+    pub statement: &'arena SelectStatement<'text, 'arena>,
+    pub indirection: Option<NamePath<'text, 'arena>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
     True,
@@ -72,6 +85,8 @@ pub enum Expression<'text, 'arena> {
     ConstCast(&'arena ConstCastExpression<'text, 'arena>),
     Typecast(&'arena TypecastExpression<'text, 'arena>),
     FunctionCall(&'arena FunctionExpression<'text, 'arena>),
+    SelectStatement(&'arena SelectStatementExpression<'text, 'arena>),
+    Subquery(&'arena SubqueryExpression<'text, 'arena>),
 }
 
 impl<'text, 'arena> Default for Expression<'text, 'arena> {

@@ -6580,6 +6580,72 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: SelectStatement(
+                                    SelectStatementExpression {
+                                        statement: SelectStatement {
+                                            with_ctes: [],
+                                            with_recursive: false,
+                                            data: From(
+                                                SelectFromStatement {
+                                                    all: false,
+                                                    distinct: false,
+                                                    targets: [
+                                                        Value {
+                                                            value: StringRef(
+                                                                &quot;1&quot;,
+                                                            ),
+                                                            alias: None,
+                                                        },
+                                                    ],
+                                                    into: None,
+                                                    from: [],
+                                                    where_clause: None,
+                                                    group_by: [],
+                                                    having: None,
+                                                    windows: false,
+                                                    sample: None,
+                                                },
+                                            ),
+                                            order_by: [],
+                                            row_locking: [],
+                                            limit: None,
+                                            offset: None,
+                                        },
+                                        indirection: None,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_select_2">
         <input>select (select a from b).foo</input>
@@ -6623,6 +6689,93 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: SelectStatement(
+                                    SelectStatementExpression {
+                                        statement: SelectStatement {
+                                            with_ctes: [],
+                                            with_recursive: false,
+                                            data: From(
+                                                SelectFromStatement {
+                                                    all: false,
+                                                    distinct: false,
+                                                    targets: [
+                                                        Value {
+                                                            value: ColumnRef(
+                                                                [
+                                                                    Name(
+                                                                        &quot;a&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            alias: None,
+                                                        },
+                                                    ],
+                                                    into: None,
+                                                    from: [
+                                                        Relation(
+                                                            RelationRef {
+                                                                name: [
+                                                                    Name(
+                                                                        &quot;b&quot;,
+                                                                    ),
+                                                                ],
+                                                                inherit: true,
+                                                            },
+                                                        ),
+                                                    ],
+                                                    where_clause: None,
+                                                    group_by: [],
+                                                    having: None,
+                                                    windows: false,
+                                                    sample: None,
+                                                },
+                                            ),
+                                            order_by: [],
+                                            row_locking: [],
+                                            limit: None,
+                                            offset: None,
+                                        },
+                                        indirection: Some(
+                                            [
+                                                Name(
+                                                    &quot;foo&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_select_3">
         <input>select exists (select a)</input>
@@ -6720,6 +6873,88 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Nary(
+                                    NaryExpression {
+                                        operator: IN,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            SelectStatement(
+                                                SelectStatementExpression {
+                                                    statement: SelectStatement {
+                                                        with_ctes: [],
+                                                        with_recursive: false,
+                                                        data: From(
+                                                            SelectFromStatement {
+                                                                all: false,
+                                                                distinct: false,
+                                                                targets: [
+                                                                    Value {
+                                                                        value: StringRef(
+                                                                            &quot;1&quot;,
+                                                                        ),
+                                                                        alias: None,
+                                                                    },
+                                                                ],
+                                                                into: None,
+                                                                from: [],
+                                                                where_clause: None,
+                                                                group_by: [],
+                                                                having: None,
+                                                                windows: false,
+                                                                sample: None,
+                                                            },
+                                                        ),
+                                                        order_by: [],
+                                                        row_locking: [],
+                                                        limit: None,
+                                                        offset: None,
+                                                    },
+                                                    indirection: None,
+                                                },
+                                            ),
+                                            Null,
+                                        ],
+                                        postfix: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_in_2">
         <input>select a in (2, 3)</input>
@@ -6809,23 +7044,23 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..28" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..28" text="a like all..(select 1)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..28" text="a like all..(select 1)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_SUBQUERY_EXPRESSION" loc="7..28" text="a like all..(select 1)">
+                                    <node key="SQL_SUBQUERY_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT" loc="18..28" text="(select 1)">
-                                        <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                            <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
-                                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>
+                                    <node key="SQL_SUBQUERY_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="7..28" text="a like all..(select 1)">
+                                        <node key="SQL_SELECT_EXPRESSION_STATEMENT" type="OBJECT_SQL_SELECT" loc="18..28" text="(select 1)">
+                                            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                                <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
+                                                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>
+                                                </node>
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..17" text="like all">
-                                        <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
-                                        <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ALL"/>
-                                    </node>
+                                    <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ALL"/>
                                 </node>
                             </node>
                         </node>
@@ -6837,6 +7072,87 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Subquery(
+                                    SubqueryExpression {
+                                        operator: LIKE,
+                                        quantifier: ALL,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            SelectStatement(
+                                                SelectStatementExpression {
+                                                    statement: SelectStatement {
+                                                        with_ctes: [],
+                                                        with_recursive: false,
+                                                        data: From(
+                                                            SelectFromStatement {
+                                                                all: false,
+                                                                distinct: false,
+                                                                targets: [
+                                                                    Value {
+                                                                        value: StringRef(
+                                                                            &quot;1&quot;,
+                                                                        ),
+                                                                        alias: None,
+                                                                    },
+                                                                ],
+                                                                into: None,
+                                                                from: [],
+                                                                where_clause: None,
+                                                                group_by: [],
+                                                                having: None,
+                                                                windows: false,
+                                                                sample: None,
+                                                            },
+                                                        ),
+                                                        order_by: [],
+                                                        row_locking: [],
+                                                        limit: None,
+                                                        offset: None,
+                                                    },
+                                                    indirection: None,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_subquery_2">
         <input>select a like any (select 1);</input>
@@ -6846,23 +7162,23 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..28" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..28" text="a like any..(select 1)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..28" text="a like any..(select 1)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_SUBQUERY_EXPRESSION" loc="7..28" text="a like any..(select 1)">
+                                    <node key="SQL_SUBQUERY_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT" loc="18..28" text="(select 1)">
-                                        <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                            <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
-                                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>
+                                    <node key="SQL_SUBQUERY_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="7..28" text="a like any..(select 1)">
+                                        <node key="SQL_SELECT_EXPRESSION_STATEMENT" type="OBJECT_SQL_SELECT" loc="18..28" text="(select 1)">
+                                            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                                <node type="OBJECT_SQL_RESULT_TARGET" loc="26..27" text="1">
+                                                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="26..27" text="1"/>
+                                                </node>
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..17" text="like any">
-                                        <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
-                                        <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ANY"/>
-                                    </node>
+                                    <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="ANY"/>
                                 </node>
                             </node>
                         </node>
@@ -6874,6 +7190,87 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Subquery(
+                                    SubqueryExpression {
+                                        operator: LIKE,
+                                        quantifier: ANY,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            SelectStatement(
+                                                SelectStatementExpression {
+                                                    statement: SelectStatement {
+                                                        with_ctes: [],
+                                                        with_recursive: false,
+                                                        data: From(
+                                                            SelectFromStatement {
+                                                                all: false,
+                                                                distinct: false,
+                                                                targets: [
+                                                                    Value {
+                                                                        value: StringRef(
+                                                                            &quot;1&quot;,
+                                                                        ),
+                                                                        alias: None,
+                                                                    },
+                                                                ],
+                                                                into: None,
+                                                                from: [],
+                                                                where_clause: None,
+                                                                group_by: [],
+                                                                having: None,
+                                                                windows: false,
+                                                                sample: None,
+                                                            },
+                                                        ),
+                                                        order_by: [],
+                                                        row_locking: [],
+                                                        limit: None,
+                                                        offset: None,
+                                                    },
+                                                    indirection: None,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_subquery_3">
         <input>select a like some (select 1);</input>
@@ -6883,23 +7280,23 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..29" text="select a l..(select 1)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..29" text="a like som..(select 1)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..29" text="a like som..(select 1)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_SUBQUERY_EXPRESSION" loc="7..29" text="a like som..(select 1)">
+                                    <node key="SQL_SUBQUERY_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT" loc="19..29" text="(select 1)">
-                                        <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                            <node type="OBJECT_SQL_RESULT_TARGET" loc="27..28" text="1">
-                                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="27..28" text="1"/>
+                                    <node key="SQL_SUBQUERY_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="7..29" text="a like som..(select 1)">
+                                        <node key="SQL_SELECT_EXPRESSION_STATEMENT" type="OBJECT_SQL_SELECT" loc="19..29" text="(select 1)">
+                                            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                                <node type="OBJECT_SQL_RESULT_TARGET" loc="27..28" text="1">
+                                                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="27..28" text="1"/>
+                                                </node>
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..18" text="like some">
-                                        <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
-                                        <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
-                                    </node>
+                                    <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
                                 </node>
                             </node>
                         </node>
@@ -6911,6 +7308,87 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Subquery(
+                                    SubqueryExpression {
+                                        operator: LIKE,
+                                        quantifier: SOME,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            SelectStatement(
+                                                SelectStatementExpression {
+                                                    statement: SelectStatement {
+                                                        with_ctes: [],
+                                                        with_recursive: false,
+                                                        data: From(
+                                                            SelectFromStatement {
+                                                                all: false,
+                                                                distinct: false,
+                                                                targets: [
+                                                                    Value {
+                                                                        value: StringRef(
+                                                                            &quot;1&quot;,
+                                                                        ),
+                                                                        alias: None,
+                                                                    },
+                                                                ],
+                                                                into: None,
+                                                                from: [],
+                                                                where_clause: None,
+                                                                group_by: [],
+                                                                having: None,
+                                                                windows: false,
+                                                                sample: None,
+                                                            },
+                                                        ),
+                                                        order_by: [],
+                                                        row_locking: [],
+                                                        limit: None,
+                                                        offset: None,
+                                                    },
+                                                    indirection: None,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_subquery_4">
         <input>select a like some (foo(&apos;bar&apos;));</input>
@@ -6920,13 +7398,13 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..31" text="select a l..oo(&apos;bar&apos;))">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..31" text="a like som..oo(&apos;bar&apos;))">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..31" text="a like som..oo(&apos;bar&apos;))">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_SUBQUERY_EXPRESSION" loc="7..31" text="a like som..oo(&apos;bar&apos;))">
+                                    <node key="SQL_SUBQUERY_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..30" text="foo(&apos;bar&apos;)">
+                                    <node key="SQL_SUBQUERY_ARG1" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..30" text="foo(&apos;bar&apos;)">
                                         <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                             <node type="OBJECT_SQL_FUNCTION_ARG" loc="24..29" text="&apos;bar&apos;">
                                                 <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="24..29" text="&apos;bar&apos;"/>
@@ -6934,10 +7412,8 @@
                                         </node>
                                         <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="20..23" text="foo"/>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="9..18" text="like some">
-                                        <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
-                                        <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
-                                    </node>
+                                    <node key="SQL_SUBQUERY_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LIKE"/>
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" type="ENUM_SQL_SUBQUERY_QUANTIFIER" value="SOME"/>
                                 </node>
                             </node>
                         </node>
@@ -6949,6 +7425,76 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Subquery(
+                                    SubqueryExpression {
+                                        operator: LIKE,
+                                        quantifier: SOME,
+                                        args: [
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            FunctionCall(
+                                                FunctionExpression {
+                                                    name: Unknown(
+                                                        &quot;foo&quot;,
+                                                    ),
+                                                    args: [
+                                                        FunctionArgument {
+                                                            name: None,
+                                                            value: StringRef(
+                                                                &quot;&apos;bar&apos;&quot;,
+                                                            ),
+                                                        },
+                                                    ],
+                                                    args_known: None,
+                                                    arg_ordering: [],
+                                                    within_group: [],
+                                                    filter: None,
+                                                    all: false,
+                                                    distinct: false,
+                                                    over: false,
+                                                    variadic: None,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_default">
         <input>select somefunc(default);</input>

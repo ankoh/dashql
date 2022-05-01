@@ -84,6 +84,8 @@ pub enum ASTNode<'text, 'arena> {
     FunctionArgument(FunctionArgument<'text, 'arena>),
     FunctionExpression(FunctionExpression<'text, 'arena>),
     TypecastExpression(TypecastExpression<'text, 'arena>),
+    SubqueryExpression(SubqueryExpression<'text, 'arena>),
+    SelectStatementExpression(SelectStatementExpression<'text, 'arena>),
     SQLType(SQLType<'text, 'arena>),
 
     CreateAs(CreateAsStatement<'text, 'arena>),
