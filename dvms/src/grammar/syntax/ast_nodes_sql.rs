@@ -368,18 +368,18 @@ pub enum KnownFunctionArguments<'text, 'arena> {
     Treat(&'arena TreatFunctionArguments<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
     pub args: &'arena [FunctionArgument<'text, 'arena>],
     pub args_known: Option<KnownFunctionArguments<'text, 'arena>>,
     pub arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
+    pub variadic: Option<&'arena FunctionArgument<'text, 'arena>>,
     pub within_group: &'arena [&'arena OrderSpecification<'text, 'arena>],
-    pub filter: Option<Expression<'text, 'arena>>,
+    pub filter: Expression<'text, 'arena>,
     pub all: bool,
     pub distinct: bool,
     pub over: bool,
-    pub variadic: Option<Box<FunctionArgument<'text, 'arena>>>,
 }
 
 #[derive(Debug, Clone)]

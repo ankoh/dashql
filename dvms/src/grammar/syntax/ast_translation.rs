@@ -579,10 +579,20 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut func_args: &[_] = &[];
                 let mut arg_ordering: &[_] = &[];
                 let mut args_known = None;
+                let mut within_group: &[_] = &[];
+                let mut filter = Expression::Null;
+                let mut all = false;
+                let mut distinct = false;
+                let mut variadic = None;
                 read_attributes! {
+                    (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg)) => variadic = Some(arg),
+                    (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b)) => all = *b,
+                    (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b)) => distinct = *b,
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
                     (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f)) => func_name = FunctionName::Known(f.clone()),
                     (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => arg_ordering = unpack_nodes!(nodes, OrderSpecification),
+                    (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes)) => within_group = unpack_nodes!(nodes, OrderSpecification),
+                    (Key::SQL_FUNCTION_FILTER, n) => filter = read_expr(n),
                     (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                         let args = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
@@ -609,7 +619,12 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     args: func_args,
                     args_known,
                     arg_ordering,
-                    ..Default::default()
+                    within_group,
+                    filter,
+                    all,
+                    distinct,
+                    variadic,
+                    over: false,
                 })
             }
             sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {

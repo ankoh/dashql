@@ -87,11 +87,11 @@ pub enum ASTNode<'text, 'arena> {
     SubqueryExpression(SubqueryExpression<'text, 'arena>),
     SelectStatementExpression(SelectStatementExpression<'text, 'arena>),
     ExistsExpression(ExistsExpression<'text, 'arena>),
+    CommonTableExpression(CommonTableExpression<'text, 'arena>),
     SQLType(SQLType<'text, 'arena>),
 
     CreateAs(CreateAsStatement<'text, 'arena>),
     CreateView(CreateViewStatement<'text, 'arena>),
-    CommonTableExpression(CommonTableExpression<'text, 'arena>),
     SelectStatement(SelectStatement<'text, 'arena>),
     SetStatement(SetStatement<'text, 'arena>),
     FetchStatement(FetchStatement<'text, 'arena>),
