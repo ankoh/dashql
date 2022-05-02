@@ -4249,7 +4249,6 @@
                                     <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="7..15" text="somefunc"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="7..15" text="somefunc"/>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="16..21" text="&apos;foo&apos;"/>
                                 </node>
                             </node>
@@ -4262,6 +4261,52 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: None,
+                        targets: [
+                            Value {
+                                value: ConstFunctionCast(
+                                    ConstFunctionCastExpression {
+                                        value: &quot;&apos;foo&apos;&quot;,
+                                        func_name: Some(
+                                            [
+                                                Name(
+                                                    &quot;somefunc&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                        func_args: [],
+                                        func_arg_ordering: [],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_funcconst_2">
         <input>select somefunc(1) &apos;foo&apos;;</input>
@@ -6371,14 +6416,12 @@
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="8..12" text="date"/>
                                             </node>
-                                            <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="8..12" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="13..25" text="&apos;2021-01-10&apos;"/>
                                         </node>
                                         <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="27..44" text="date &apos;2021-02-01&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..31" text="date"/>
                                             </node>
-                                            <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="27..31" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="32..44" text="&apos;2021-02-01&apos;"/>
                                         </node>
                                     </node>
@@ -6387,14 +6430,12 @@
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="56..60" text="date"/>
                                             </node>
-                                            <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="56..60" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="61..73" text="&apos;2021-01-20&apos;"/>
                                         </node>
                                         <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="75..92" text="date &apos;2021-02-10&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="75..79" text="date"/>
                                             </node>
-                                            <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="75..79" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="80..92" text="&apos;2021-02-10&apos;"/>
                                         </node>
                                     </node>
@@ -6410,6 +6451,51 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: None,
+                        targets: [
+                            Value {
+                                value: Nary(
+                                    NaryExpression {
+                                        operator: Known(
+                                            OVERLAPS,
+                                        ),
+                                        args: [
+                                            Null,
+                                            Null,
+                                            Null,
+                                        ],
+                                        postfix: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_distinct_1">
         <input>select a is distinct from b;</input>

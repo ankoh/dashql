@@ -2188,7 +2188,6 @@ sql_a_expr_const:
     }
   | sql_func_name SCONST {
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::FUNCTION)),
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
       });
