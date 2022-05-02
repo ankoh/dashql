@@ -86,7 +86,6 @@ pub enum ASTNode<'text, 'arena> {
     IntervalSpecification(IntervalSpecification<'text>),
     ResultTarget(ResultTarget<'text, 'arena>),
     TableSample(TableSample<'text>),
-    ColumnRef(NamePath<'text, 'arena>),
     FunctionArgument(FunctionArgument<'text, 'arena>),
     FunctionExpression(FunctionExpression<'text, 'arena>),
     TypecastExpression(TypecastExpression<'text, 'arena>),

@@ -1189,7 +1189,6 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::Boolean(false) => Expression::False,
         ASTNode::Boolean(true) => Expression::True,
         ASTNode::CaseExpression(ref c) => Expression::Case(c),
-        ASTNode::ColumnRef(ref c) => Expression::ColumnRef(c.clone()),
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         ASTNode::Expression(ref e) => e.clone(),
         ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),
