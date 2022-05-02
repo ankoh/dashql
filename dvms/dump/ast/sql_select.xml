@@ -4301,7 +4301,12 @@
                                             ],
                                         ),
                                         func_args: [
-                                            Null,
+                                            FunctionArgument {
+                                                name: None,
+                                                value: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                            },
                                         ],
                                         func_arg_ordering: [],
                                         value: &quot;&apos;foo&apos;&quot;,

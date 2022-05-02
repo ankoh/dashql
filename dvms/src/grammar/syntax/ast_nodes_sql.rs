@@ -58,7 +58,7 @@ pub struct NaryExpression<'text, 'arena> {
 pub struct ConstCastExpression<'text, 'arena> {
     pub cast_type: &'text str,
     pub func_name: Option<NamePath<'text, 'arena>>,
-    pub func_args: &'arena [Expression<'text, 'arena>],
+    pub func_args: &'arena [&'arena FunctionArgument<'text, 'arena>],
     pub func_arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
     pub value: &'text str,
     pub interval: Option<&'arena IntervalSpecification<'text>>,
