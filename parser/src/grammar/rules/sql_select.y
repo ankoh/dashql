@@ -1344,14 +1344,14 @@ sql_c_expr:
   | sql_a_expr_const  { $$ = $1; }
   | '?' sql_opt_indirection {
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
-          Attr(Key::SQL_PARAMETER_NAME, String(@1)),
-          Attr(Key::SQL_PARAMETER_INDIRECTION, ctx.Add(@2, std::move($2))),
+          Attr(Key::SQL_PARAMETER_PREFIX, String(@1)),
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
       });
   }
   | PARAM sql_opt_indirection {
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
-          Attr(Key::SQL_PARAMETER_NAME, String(@1)),
-          Attr(Key::SQL_PARAMETER_INDIRECTION, ctx.Add(@2, std::move($2))),
+          Attr(Key::SQL_PARAMETER_PREFIX, String(@1)),
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
       });
   }
   | '(' sql_a_expr ')' sql_opt_indirection {

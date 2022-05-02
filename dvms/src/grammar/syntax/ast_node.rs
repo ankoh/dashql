@@ -77,6 +77,7 @@ pub enum ASTNode<'text, 'arena> {
 
     CaseExpression(CaseExpression<'text, 'arena>),
     CaseExpressionClause(CaseExpressionClause<'text, 'arena>),
+    ParameterRef(ParameterRef<'text, 'arena>),
     RowLocking(RowLocking<'text, 'arena>),
     OrderSpecification(OrderSpecification<'text, 'arena>),
     GroupByItem(GroupByItem<'text, 'arena>),

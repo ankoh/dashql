@@ -102,6 +102,12 @@ pub struct CaseExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct ParameterRef<'text, 'arena> {
+    pub prefix: &'text str,
+    pub name: NamePath<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
     True,
@@ -116,6 +122,7 @@ pub enum Expression<'text, 'arena> {
     Subquery(&'arena SubqueryExpression<'text, 'arena>),
     Exists(&'arena ExistsExpression<'text, 'arena>),
     Case(&'arena CaseExpression<'text, 'arena>),
+    ParameterRef(&'arena ParameterRef<'text, 'arena>),
 }
 
 impl<'text, 'arena> Default for Expression<'text, 'arena> {

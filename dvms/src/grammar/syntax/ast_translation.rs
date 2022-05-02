@@ -240,6 +240,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     }
                 })
             }
+            sx::NodeType::OBJECT_SQL_PARAMETER_REF => {
+                let mut prefix = "";
+                let mut name = NamePath::default();
+                read_attributes! {
+                    (Key::SQL_PARAMETER_PREFIX, ASTNode::StringRef(p)) => prefix = p,
+                    (Key::SQL_PARAMETER_NAME, ASTNode::Array(n)) => name = read_name(arena, n)
+                }
+                ASTNode::ParameterRef(ParameterRef { prefix, name })
+            }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let args = arena.alloc_slice_fill_default(3);
                 let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
@@ -1177,17 +1186,18 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
 
 fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<'text, 'arena> {
     match node {
-        ASTNode::Boolean(true) => Expression::True,
         ASTNode::Boolean(false) => Expression::False,
+        ASTNode::Boolean(true) => Expression::True,
+        ASTNode::CaseExpression(ref c) => Expression::Case(c),
+        ASTNode::ColumnRef(ref c) => Expression::ColumnRef(c.clone()),
+        ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         ASTNode::Expression(ref e) => e.clone(),
         ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),
-        ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
-        ASTNode::ColumnRef(ref c) => Expression::ColumnRef(c.clone()),
-        ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
-        ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
+        ASTNode::ParameterRef(ref p) => Expression::ParameterRef(p),
         ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
-        ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
-        ASTNode::CaseExpression(ref c) => Expression::Case(c),
+        ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
+        ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
+        ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null

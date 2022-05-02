@@ -6493,7 +6493,7 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="?">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..8" text="?">
-                                    <node key="SQL_PARAMETER_NAME" type="STRING_REF" loc="7..8" text="?"/>
+                                    <node key="SQL_PARAMETER_PREFIX" type="STRING_REF" loc="7..8" text="?"/>
                                 </node>
                             </node>
                         </node>
@@ -6505,6 +6505,55 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: ParameterRef(
+                                    ParameterRef {
+                                        prefix: &quot;?&quot;,
+                                        name: [],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [
+                            Relation(
+                                RelationRef {
+                                    name: [
+                                        Name(
+                                            &quot;c&quot;,
+                                        ),
+                                    ],
+                                    inherit: true,
+                                },
+                            ),
+                        ],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_param_2">
         <input>select $1 from c</input>
@@ -6523,7 +6572,7 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..9" text="$1">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..9" text="$1">
-                                    <node key="SQL_PARAMETER_NAME" type="STRING_REF" loc="7..9" text="$1"/>
+                                    <node key="SQL_PARAMETER_PREFIX" type="STRING_REF" loc="7..9" text="$1"/>
                                 </node>
                             </node>
                         </node>
@@ -6535,6 +6584,55 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: ParameterRef(
+                                    ParameterRef {
+                                        prefix: &quot;$1&quot;,
+                                        name: [],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [
+                            Relation(
+                                RelationRef {
+                                    name: [
+                                        Name(
+                                            &quot;c&quot;,
+                                        ),
+                                    ],
+                                    inherit: true,
+                                },
+                            ),
+                        ],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_param_3">
         <input>select $1.a from c</input>
@@ -6553,10 +6651,10 @@
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..11" text="$1.a">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..11" text="$1.a">
-                                    <node key="SQL_PARAMETER_INDIRECTION" type="ARRAY">
+                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="10..11" text="a"/>
                                     </node>
-                                    <node key="SQL_PARAMETER_NAME" type="STRING_REF" loc="7..9" text="$1"/>
+                                    <node key="SQL_PARAMETER_PREFIX" type="STRING_REF" loc="7..9" text="$1"/>
                                 </node>
                             </node>
                         </node>
@@ -6568,6 +6666,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: ParameterRef(
+                                    ParameterRef {
+                                        prefix: &quot;$1&quot;,
+                                        name: [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [
+                            Relation(
+                                RelationRef {
+                                    name: [
+                                        Name(
+                                            &quot;c&quot;,
+                                        ),
+                                    ],
+                                    inherit: true,
+                                },
+                            ),
+                        ],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_func_1">
         <input>select somefunc(1)</input>
