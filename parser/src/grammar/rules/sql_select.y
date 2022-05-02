@@ -261,7 +261,7 @@ sql_all_or_distinct:
 // should be placed in the DISTINCT list during parsetree analysis.
 
 sql_distinct_clause:
-    DISTINCT                            { $$ = Bool(@1, true); }
+    DISTINCT                            { $$ = ctx.Add(@$, {}, false); }
   | DISTINCT ON '(' sql_expr_list ')'   { $$ = ctx.Add(@$, move($4)); }
     ;
 

@@ -191,6 +191,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     })
                 })
             }
+            sx::NodeType::OBJECT_SQL_BIT_TYPE => {
+                let mut varying = false;
+                let mut length = None;
+                read_attributes! {
+                    (Key::SQL_BIT_TYPE_LENGTH, e) => length = Some(read_expr(e)),
+                    (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b)) => varying = *b
+                }
+                ASTNode::BitTypeSpec(BitType { varying, length })
+            }
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name: Option<&'text str> = None;
                 let mut modifiers: &[Expression<'text, 'arena>] = &[];
@@ -1076,7 +1085,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
 
                 let mut targets: &[_] = &[];
                 let mut all = false;
-                let mut distinct = false;
+                let mut distinct = None;
                 let mut into = None;
                 let mut from: &[_] = &[];
                 let mut where_clause = None;
@@ -1120,7 +1129,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes)) => combine_input = unpack_nodes!(nodes, SelectStatement),
 
                     (Key::SQL_SELECT_ALL, ASTNode::Boolean(b)) => all = *b,
-                    (Key::SQL_SELECT_DISTINCT, ASTNode::Boolean(b)) => distinct = *b,
+                    (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n)) => distinct = Some(read_exprs(arena, n)),
                     (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
                     (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
                     (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),

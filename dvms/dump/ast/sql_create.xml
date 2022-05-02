@@ -42,7 +42,7 @@
                     data: From(
                         SelectFromStatement {
                             all: false,
-                            distinct: false,
+                            distinct: None,
                             targets: [
                                 Value {
                                     value: StringRef(

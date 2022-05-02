@@ -27,7 +27,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -82,7 +82,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -137,7 +137,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -196,7 +196,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -259,7 +259,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -322,7 +322,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -385,7 +385,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -454,7 +454,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -509,7 +509,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -564,7 +564,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -620,7 +620,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -712,7 +712,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -785,7 +785,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -868,7 +868,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -954,7 +954,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1041,7 +1041,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1132,7 +1132,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1236,7 +1236,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1343,7 +1343,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1674,7 +1674,8 @@
             <statements>
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..24" text="select dis..t a from b">
-                        <node key="SQL_SELECT_DISTINCT" type="BOOL" value="true"/>
+                        <node key="SQL_SELECT_DISTINCT" type="ARRAY">
+                        </node>
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="23..24" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -1709,7 +1710,9 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: true,
+                        distinct: Some(
+                            [],
+                        ),
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -1789,6 +1792,66 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: Some(
+                            [
+                                ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;a&quot;,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        targets: [
+                            Value {
+                                value: ColumnRef(
+                                    [
+                                        Name(
+                                            &quot;a&quot;,
+                                        ),
+                                    ],
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [
+                            Relation(
+                                RelationRef {
+                                    name: [
+                                        Name(
+                                            &quot;b&quot;,
+                                        ),
+                                    ],
+                                    inherit: true,
+                                },
+                            ),
+                        ],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_all_from_1rel">
         <input>select all from b</input>
@@ -1822,7 +1885,7 @@
                 data: From(
                     SelectFromStatement {
                         all: true,
-                        distinct: false,
+                        distinct: None,
                         targets: [],
                         into: None,
                         from: [
@@ -2101,7 +2164,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2130,7 +2193,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2214,7 +2277,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2243,7 +2306,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2327,7 +2390,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2356,7 +2419,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2439,7 +2502,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2468,7 +2531,7 @@
                                 data: From(
                                     SelectFromStatement {
                                         all: false,
-                                        distinct: false,
+                                        distinct: None,
                                         targets: [
                                             Value {
                                                 value: StringRef(
@@ -2548,7 +2611,7 @@
                             data: From(
                                 SelectFromStatement {
                                     all: false,
-                                    distinct: false,
+                                    distinct: None,
                                     targets: [
                                         Value {
                                             value: StringRef(
@@ -2577,7 +2640,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -2659,7 +2722,7 @@
                             data: From(
                                 SelectFromStatement {
                                     all: false,
-                                    distinct: false,
+                                    distinct: None,
                                     targets: [
                                         Value {
                                             value: StringRef(
@@ -2692,7 +2755,7 @@
                             data: From(
                                 SelectFromStatement {
                                     all: false,
-                                    distinct: false,
+                                    distinct: None,
                                     targets: [
                                         Value {
                                             value: StringRef(
@@ -2721,7 +2784,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -2804,7 +2867,7 @@
                             data: From(
                                 SelectFromStatement {
                                     all: false,
-                                    distinct: false,
+                                    distinct: None,
                                     targets: [
                                         Value {
                                             value: StringRef(
@@ -2837,7 +2900,7 @@
                             data: From(
                                 SelectFromStatement {
                                     all: false,
-                                    distinct: false,
+                                    distinct: None,
                                     targets: [
                                         Value {
                                             value: StringRef(
@@ -2866,7 +2929,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -2934,7 +2997,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -3025,7 +3088,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -3129,7 +3192,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -3239,7 +3302,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -3355,7 +3418,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -3395,7 +3458,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -3545,7 +3608,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: StringRef(
@@ -3585,7 +3648,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -3790,7 +3853,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -3978,7 +4041,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(
@@ -4111,7 +4174,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -4238,7 +4301,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ConstFunctionCast(
@@ -4316,7 +4379,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ConstTypeCast(
@@ -4388,7 +4451,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ConstIntervalCast(
@@ -4456,7 +4519,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ConstIntervalCast(
@@ -4524,7 +4587,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ConstIntervalCast(
@@ -4597,7 +4660,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -4694,7 +4757,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -4792,7 +4855,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -4889,7 +4952,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -4987,7 +5050,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -5085,7 +5148,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -5183,7 +5246,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -5270,6 +5333,72 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: None,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Bit(
+                                                            BitType {
+                                                                varying: false,
+                                                                length: None,
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_bit_type_2">
         <input>select cast(&apos;1&apos; as bit(2));</input>
@@ -5301,6 +5430,76 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: None,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Bit(
+                                                            BitType {
+                                                                varying: false,
+                                                                length: Some(
+                                                                    StringRef(
+                                                                        &quot;2&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_bit_type_3">
         <input>select cast(&apos;1&apos; as bit varying(2));</input>
@@ -5332,6 +5531,76 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: None,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Bit(
+                                                            BitType {
+                                                                varying: true,
+                                                                length: Some(
+                                                                    StringRef(
+                                                                        &quot;2&quot;,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_operators_1">
         <input>select 1 operator(someschema.+) 2;</input>
@@ -5368,7 +5637,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5445,7 +5714,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5521,7 +5790,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5597,7 +5866,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5673,7 +5942,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5749,7 +6018,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5825,7 +6094,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5900,7 +6169,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -5974,7 +6243,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Typecast(
@@ -6049,7 +6318,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -6182,7 +6451,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -6271,7 +6540,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -6360,7 +6629,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -6443,7 +6712,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -6537,7 +6806,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Case(
@@ -6639,7 +6908,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Case(
@@ -6727,7 +6996,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ParameterRef(
@@ -6806,7 +7075,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ParameterRef(
@@ -6888,7 +7157,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ParameterRef(
@@ -6968,7 +7237,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -7095,7 +7364,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -7202,7 +7471,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -7309,7 +7578,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: SelectStatement(
@@ -7320,7 +7589,7 @@
                                             data: From(
                                                 SelectFromStatement {
                                                     all: false,
-                                                    distinct: false,
+                                                    distinct: None,
                                                     targets: [
                                                         Value {
                                                             value: StringRef(
@@ -7418,7 +7687,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: SelectStatement(
@@ -7429,7 +7698,7 @@
                                             data: From(
                                                 SelectFromStatement {
                                                     all: false,
-                                                    distinct: false,
+                                                    distinct: None,
                                                     targets: [
                                                         Value {
                                                             value: ColumnRef(
@@ -7537,7 +7806,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Exists(
@@ -7548,7 +7817,7 @@
                                             data: From(
                                                 SelectFromStatement {
                                                     all: false,
-                                                    distinct: false,
+                                                    distinct: None,
                                                     targets: [
                                                         Value {
                                                             value: ColumnRef(
@@ -7635,7 +7904,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Indirection(
@@ -7719,7 +7988,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -7743,7 +8012,7 @@
                                                         data: From(
                                                             SelectFromStatement {
                                                                 all: false,
-                                                                distinct: false,
+                                                                distinct: None,
                                                                 targets: [
                                                                     Value {
                                                                         value: StringRef(
@@ -7834,7 +8103,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Nary(
@@ -7922,7 +8191,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Subquery(
@@ -7947,7 +8216,7 @@
                                                         data: From(
                                                             SelectFromStatement {
                                                                 all: false,
-                                                                distinct: false,
+                                                                distinct: None,
                                                                 targets: [
                                                                     Value {
                                                                         value: StringRef(
@@ -8042,7 +8311,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Subquery(
@@ -8067,7 +8336,7 @@
                                                         data: From(
                                                             SelectFromStatement {
                                                                 all: false,
-                                                                distinct: false,
+                                                                distinct: None,
                                                                 targets: [
                                                                     Value {
                                                                         value: StringRef(
@@ -8162,7 +8431,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Subquery(
@@ -8187,7 +8456,7 @@
                                                         data: From(
                                                             SelectFromStatement {
                                                                 all: false,
-                                                                distinct: false,
+                                                                distinct: None,
                                                                 targets: [
                                                                     Value {
                                                                         value: StringRef(
@@ -8281,7 +8550,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: Subquery(
@@ -8382,7 +8651,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8469,7 +8738,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8539,7 +8808,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8609,7 +8878,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8679,7 +8948,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8749,7 +9018,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8822,7 +9091,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8902,7 +9171,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -8982,7 +9251,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9062,7 +9331,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9139,7 +9408,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9209,7 +9478,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9279,7 +9548,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9349,7 +9618,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9419,7 +9688,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9489,7 +9758,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9565,7 +9834,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9659,7 +9928,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9755,7 +10024,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9854,7 +10123,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -9951,7 +10220,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10039,7 +10308,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10128,7 +10397,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10222,7 +10491,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10317,7 +10586,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10405,7 +10674,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10492,7 +10761,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10590,7 +10859,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10691,7 +10960,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10783,7 +11052,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10871,7 +11140,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -10960,7 +11229,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -11053,7 +11322,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -11140,7 +11409,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -11226,7 +11495,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: FunctionCall(
@@ -11324,7 +11593,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -11424,7 +11693,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -11538,7 +11807,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -11695,7 +11964,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -11905,7 +12174,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12067,7 +12336,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12152,7 +12421,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12238,7 +12507,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12325,7 +12594,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12414,7 +12683,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12523,7 +12792,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12660,7 +12929,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12809,7 +13078,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -12953,7 +13222,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13084,7 +13353,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13187,7 +13456,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13303,7 +13572,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13447,7 +13716,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13591,7 +13860,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13735,7 +14004,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13870,7 +14139,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -13993,7 +14262,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14007,7 +14276,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14154,7 +14423,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14168,7 +14437,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14315,7 +14584,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14329,7 +14598,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14476,7 +14745,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14490,7 +14759,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14637,7 +14906,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14651,7 +14920,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14803,7 +15072,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14817,7 +15086,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -14976,7 +15245,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -14990,7 +15259,7 @@
                                         data: From(
                                             SelectFromStatement {
                                                 all: false,
-                                                distinct: false,
+                                                distinct: None,
                                                 targets: [
                                                     Star,
                                                 ],
@@ -15120,7 +15389,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15212,7 +15481,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15285,7 +15554,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15361,7 +15630,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15437,7 +15706,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15513,7 +15782,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15590,7 +15859,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Star,
                         ],
@@ -15688,7 +15957,7 @@
                 data: From(
                     SelectFromStatement {
                         all: false,
-                        distinct: false,
+                        distinct: None,
                         targets: [
                             Value {
                                 value: ColumnRef(

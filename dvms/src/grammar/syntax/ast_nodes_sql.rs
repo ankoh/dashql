@@ -467,7 +467,7 @@ pub struct RowLocking<'text, 'arena> {
 #[derive(Default, Debug, Clone)]
 pub struct SelectFromStatement<'text, 'arena> {
     pub all: bool,
-    pub distinct: bool,
+    pub distinct: Option<&'arena [Expression<'text, 'arena>]>,
     pub targets: &'arena [&'arena ResultTarget<'text, 'arena>],
     pub into: Option<&'arena Into<'text, 'arena>>,
     pub from: &'arena [&'arena TableRef<'text, 'arena>],
