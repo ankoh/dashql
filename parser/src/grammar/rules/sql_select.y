@@ -942,10 +942,17 @@ sql_simple_typename:
   | sql_bit                             { $$ = $1; }
   | sql_const_character                 { $$ = $1; }
   | sql_const_datetime                  { $$ = $1; }
-  | sql_const_interval sql_opt_interval { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($2), false); }
-  | sql_const_interval '(' ICONST ')'   { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-        Attr(Key::SQL_INTERVAL_PRECISION, String(@3)),
-    }); }
+  | sql_const_interval sql_opt_interval {
+        if ($2 == Null()) {
+            $2 = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {});
+        }
+        $$ = $2;
+    }
+  | sql_const_interval '(' ICONST ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_PRECISION, String(@3)),
+        });
+    }
     ;
 
 // We have a separate ConstTypename to allow defaulting fixed-length
@@ -1126,38 +1133,74 @@ sql_opt_timezone:
     ;
 
 sql_opt_interval:
-    YEAR_P    { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR)) }; }
-  | MONTH_P   { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MONTH)) }; }
-  | DAY_P     { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY)) }; }
-  | HOUR_P    { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR)) }; }
-  | MINUTE_P  { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MINUTE)) }; }
+    YEAR_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR))
+        });
+    }
+  | MONTH_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MONTH))
+        });
+    }
+  | DAY_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY))
+        });
+    }
+  | HOUR_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR))
+        });
+    }
+  | MINUTE_P  {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MINUTE))
+        });
+    }
   | sql_interval_second {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
             Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($1)),
-        };
+        });
   }
-  | YEAR_P TO MONTH_P     { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR_TO_MONTH)) }; }
-  | DAY_P TO HOUR_P       { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_HOUR)) }; }
-  | DAY_P TO MINUTE_P     { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_MINUTE)) }; }
+  | YEAR_P TO MONTH_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR_TO_MONTH))
+        });
+    }
+  | DAY_P TO HOUR_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_HOUR))
+        });
+    }
+  | DAY_P TO MINUTE_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_MINUTE))
+        });
+    }
   | DAY_P TO sql_interval_second {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
             Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
-        };
+        });
   }
-  | HOUR_P TO MINUTE_P    { $$ = { Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR_TO_MINUTE)) }; }
+  | HOUR_P TO MINUTE_P {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR_TO_MINUTE))
+        });
+    }
   | HOUR_P TO sql_interval_second {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
             Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
-        };
+        });
   }
   | MINUTE_P TO sql_interval_second {
-        $$ = {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
             Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MINUTE_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
-        };
+        });
   }
   | %empty  { $$ = { }; }
     ;
@@ -2135,21 +2178,23 @@ sql_a_expr_const:
   | BCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
   | XCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
   | sql_const_typename SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, std::move($1)),
-        Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
-      });
+        auto t = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+            Attr(Key::SQL_TYPENAME_TYPE, std::move($1))
+        });
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_TYPE_CAST, {
+            Attr(Key::SQL_CONST_CAST_TYPE, t),
+            Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
+        });
     }
   | sql_func_name SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
         Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::FUNCTION)),
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
       });
   }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::FUNCTION)),
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ctx.Add(@3, std::move($3))),
         Attr(Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, std::move($4)),
@@ -2157,24 +2202,21 @@ sql_a_expr_const:
       });
   }
   | sql_const_interval '(' sql_a_expr ')' SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::INTERVAL)),
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@5)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }
   | sql_const_interval SCONST sql_opt_interval {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::INTERVAL)),
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
-        Attr(Key::SQL_CONST_CAST_INTERVAL, ctx.Add(@3, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($3))),
+        Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }
   | sql_const_interval ICONST sql_opt_interval {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Attr(Key::SQL_CONST_CAST_TYPE, Const(ctx, @1, sx::AConstType::INTERVAL)),
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
-        Attr(Key::SQL_CONST_CAST_INTERVAL, ctx.Add(@3, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($3))),
+        Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }
   | TRUE_P    { $$ = Bool(@1, true); }

@@ -4182,7 +4182,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..21" text="select som..func &apos;foo&apos;">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..21" text="somefunc &apos;foo&apos;">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..21" text="somefunc &apos;foo&apos;">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="7..21" text="somefunc &apos;foo&apos;">
                                     <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="7..15" text="somefunc"/>
                                     </node>
@@ -4199,54 +4199,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: false,
-                        targets: [
-                            Value {
-                                value: ConstCast(
-                                    ConstCastExpression {
-                                        cast_type: &quot;somefunc&quot;,
-                                        func_name: Some(
-                                            [
-                                                Name(
-                                                    &quot;somefunc&quot;,
-                                                ),
-                                            ],
-                                        ),
-                                        func_args: [],
-                                        func_arg_ordering: [],
-                                        value: &quot;&apos;foo&apos;&quot;,
-                                        interval: None,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: false,
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_funcconst_2">
         <input>select somefunc(1) &apos;foo&apos;;</input>
@@ -4256,7 +4208,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..24" text="select som..c(1) &apos;foo&apos;">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..24" text="somefunc(1) &apos;foo&apos;">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..24" text="somefunc(1) &apos;foo&apos;">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="7..24" text="somefunc(1) &apos;foo&apos;">
                                     <node key="SQL_CONST_CAST_FUNC_ARGS_LIST" type="ARRAY">
                                         <node type="OBJECT_SQL_FUNCTION_ARG" loc="16..17" text="1">
                                             <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="16..17" text="1"/>
@@ -4265,7 +4217,6 @@
                                     <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                         <node type="STRING_REF" loc="7..15" text="somefunc"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="7..15" text="somefunc"/>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="19..24" text="&apos;foo&apos;"/>
                                 </node>
                             </node>
@@ -4290,9 +4241,9 @@
                         distinct: false,
                         targets: [
                             Value {
-                                value: ConstCast(
-                                    ConstCastExpression {
-                                        cast_type: &quot;somefunc&quot;,
+                                value: ConstFunctionCast(
+                                    ConstFunctionCastExpression {
+                                        value: &quot;&apos;foo&apos;&quot;,
                                         func_name: Some(
                                             [
                                                 Name(
@@ -4309,8 +4260,6 @@
                                             },
                                         ],
                                         func_arg_ordering: [],
-                                        value: &quot;&apos;foo&apos;&quot;,
-                                        interval: None,
                                     },
                                 ),
                                 alias: None,
@@ -4342,8 +4291,10 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..18" text="select integer &apos;1&apos;">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..18" text="integer &apos;1&apos;">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..18" text="integer &apos;1&apos;">
-                                    <node key="SQL_CONST_CAST_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_TYPE_CAST" loc="7..18" text="integer &apos;1&apos;">
+                                    <node key="SQL_CONST_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="7..18" text="integer &apos;1&apos;">
+                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    </node>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="15..18" text="&apos;1&apos;"/>
                                 </node>
                             </node>
@@ -4356,6 +4307,53 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: ConstTypeCast(
+                                    ConstTypeCastExpression {
+                                        value: &quot;&apos;1&apos;&quot;,
+                                        sql_type: SQLType {
+                                            base_type: Numeric(
+                                                NumericType {
+                                                    base: INT4,
+                                                    modifiers: [],
+                                                },
+                                            ),
+                                            array_bounds: [],
+                                            set_of: false,
+                                        },
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_const_interval_1">
         <input>select interval &apos;90&apos; minute to second;</input>
@@ -4365,11 +4363,10 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..37" text="select int.. to second">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..37" text="interval &apos;.. to second">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..37" text="interval &apos;.. to second">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="7..37" text="interval &apos;.. to second">
                                     <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="21..37" text="minute to second">
                                         <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="MINUTE_TO_SECOND"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="7..15" text="interval"/>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="16..20" text="&apos;90&apos;"/>
                                 </node>
                             </node>
@@ -4394,19 +4391,15 @@
                         distinct: false,
                         targets: [
                             Value {
-                                value: ConstCast(
-                                    ConstCastExpression {
-                                        cast_type: &quot;interval&quot;,
-                                        func_name: None,
-                                        func_args: [],
-                                        func_arg_ordering: [],
+                                value: ConstIntervalCast(
+                                    ConstIntervalCastExpression {
                                         value: &quot;&apos;90&apos;&quot;,
-                                        interval: Some(
-                                            Type {
-                                                interval_type: MINUTE_TO_SECOND,
-                                                precision: None,
-                                            },
-                                        ),
+                                        interval: IntervalSpecification {
+                                            interval_type: Some(
+                                                MINUTE_TO_SECOND,
+                                            ),
+                                            precision: None,
+                                        },
                                     },
                                 ),
                                 alias: None,
@@ -4438,11 +4431,10 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..25" text="select int.. &apos;90&apos; hour">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..25" text="interval &apos;90&apos; hour">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..25" text="interval &apos;90&apos; hour">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="7..25" text="interval &apos;90&apos; hour">
                                     <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="21..25" text="hour">
                                         <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="HOUR"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="7..15" text="interval"/>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="16..20" text="&apos;90&apos;"/>
                                 </node>
                             </node>
@@ -4467,19 +4459,15 @@
                         distinct: false,
                         targets: [
                             Value {
-                                value: ConstCast(
-                                    ConstCastExpression {
-                                        cast_type: &quot;interval&quot;,
-                                        func_name: None,
-                                        func_args: [],
-                                        func_arg_ordering: [],
+                                value: ConstIntervalCast(
+                                    ConstIntervalCastExpression {
                                         value: &quot;&apos;90&apos;&quot;,
-                                        interval: Some(
-                                            Type {
-                                                interval_type: HOUR,
-                                                precision: None,
-                                            },
-                                        ),
+                                        interval: IntervalSpecification {
+                                            interval_type: Some(
+                                                HOUR,
+                                            ),
+                                            precision: None,
+                                        },
                                     },
                                 ),
                                 alias: None,
@@ -4511,11 +4499,10 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..22" text="select int..val 1 hour">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..22" text="interval 1 hour">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_CAST" loc="7..22" text="interval 1 hour">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="7..22" text="interval 1 hour">
                                     <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="18..22" text="hour">
                                         <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="HOUR"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="7..15" text="interval"/>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="16..17" text="1"/>
                                 </node>
                             </node>
@@ -4540,19 +4527,15 @@
                         distinct: false,
                         targets: [
                             Value {
-                                value: ConstCast(
-                                    ConstCastExpression {
-                                        cast_type: &quot;interval&quot;,
-                                        func_name: None,
-                                        func_args: [],
-                                        func_arg_ordering: [],
+                                value: ConstIntervalCast(
+                                    ConstIntervalCastExpression {
                                         value: &quot;1&quot;,
-                                        interval: Some(
-                                            Type {
-                                                interval_type: HOUR,
-                                                precision: None,
-                                            },
-                                        ),
+                                        interval: IntervalSpecification {
+                                            interval_type: Some(
+                                                HOUR,
+                                            ),
+                                            precision: None,
+                                        },
                                     },
                                 ),
                                 alias: None,
@@ -4977,7 +4960,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..33" text="cast(&apos;1&apos; a..rval year)">
                                     <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..33" text="(&apos;1&apos; as in..rval year)">
                                         <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="19..32" text="interval year">
-                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="19..32" text="interval year">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="28..32" text="year">
                                                 <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="YEAR"/>
                                             </node>
                                         </node>
@@ -4995,6 +4978,74 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Interval(
+                                                            IntervalSpecification {
+                                                                interval_type: Some(
+                                                                    YEAR,
+                                                                ),
+                                                                precision: None,
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_interval_type_2">
         <input>select cast(&apos;1&apos; as interval(2));</input>
@@ -5025,6 +5076,74 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Interval(
+                                                            IntervalSpecification {
+                                                                interval_type: None,
+                                                                precision: Some(
+                                                                    &quot;2&quot;,
+                                                                ),
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_generic_type_1">
         <input>select cast(&apos;1&apos; as sometype);</input>
@@ -5863,7 +5982,7 @@
                                         value: StringRef(
                                             &quot;1&quot;,
                                         ),
-                                        typename: SQLType {
+                                        sql_type: SQLType {
                                             base_type: Numeric(
                                                 NumericType {
                                                     base: INT4,
@@ -5979,14 +6098,14 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..93" text="(date &apos;202..21-02-10&apos;)">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..93" text="(date &apos;202..21-02-10&apos;)">
                                     <node key="SQL_EXPRESSION_ARG0" type="ARRAY">
-                                        <node type="OBJECT_SQL_CONST_CAST" loc="8..25" text="date &apos;2021-01-10&apos;">
+                                        <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="8..25" text="date &apos;2021-01-10&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="8..12" text="date"/>
                                             </node>
                                             <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="8..12" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="13..25" text="&apos;2021-01-10&apos;"/>
                                         </node>
-                                        <node type="OBJECT_SQL_CONST_CAST" loc="27..44" text="date &apos;2021-02-01&apos;">
+                                        <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="27..44" text="date &apos;2021-02-01&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="27..31" text="date"/>
                                             </node>
@@ -5995,14 +6114,14 @@
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
-                                        <node type="OBJECT_SQL_CONST_CAST" loc="56..73" text="date &apos;2021-01-20&apos;">
+                                        <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="56..73" text="date &apos;2021-01-20&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="56..60" text="date"/>
                                             </node>
                                             <node key="SQL_CONST_CAST_TYPE" type="STRING_REF" loc="56..60" text="date"/>
                                             <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="61..73" text="&apos;2021-01-20&apos;"/>
                                         </node>
-                                        <node type="OBJECT_SQL_CONST_CAST" loc="75..92" text="date &apos;2021-02-10&apos;">
+                                        <node type="OBJECT_SQL_CONST_FUNCTION_CAST" loc="75..92" text="date &apos;2021-02-10&apos;">
                                             <node key="SQL_CONST_CAST_FUNC_NAME" type="ARRAY">
                                                 <node type="STRING_REF" loc="75..79" text="date"/>
                                             </node>
@@ -6022,51 +6141,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: false,
-                        targets: [
-                            Value {
-                                value: Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            OVERLAPS,
-                                        ),
-                                        args: [
-                                            Null,
-                                            Null,
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: false,
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_distinct_1">
         <input>select a is distinct from b;</input>

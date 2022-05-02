@@ -1470,7 +1470,7 @@
                                                     over: false,
                                                 },
                                             ),
-                                            typename: SQLType {
+                                            sql_type: SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
                                                         base: INT4,
@@ -1632,7 +1632,7 @@
                                                     over: false,
                                                 },
                                             ),
-                                            typename: SQLType {
+                                            sql_type: SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
                                                         base: INT4,

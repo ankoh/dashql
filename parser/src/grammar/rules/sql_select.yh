@@ -29,7 +29,6 @@
 %type <NodeVector> sql_opt_for_locking_clause;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
-%type <NodeVector> sql_opt_interval;
 %type <NodeVector> sql_opt_name_list;
 %type <NodeVector> sql_opt_partition_clause;
 %type <NodeVector> sql_opt_select_limit;
@@ -109,6 +108,7 @@
 %type <sx::Node> sql_opt_asc_desc;
 %type <sx::Node> sql_opt_col_def_list;
 %type <sx::Node> sql_opt_collate_clause;
+%type <sx::Node> sql_opt_interval;
 %type <sx::Node> sql_opt_nowait_or_skip;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_ordinality;

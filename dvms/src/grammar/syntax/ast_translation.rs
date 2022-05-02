@@ -198,7 +198,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s.clone()),
                     (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => modifiers = read_exprs(arena, a)
                 }
-                ASTNode::GenericTypeInfo(GenericType {
+                ASTNode::GenericTypeSpec(GenericType {
                     name: name.unwrap_or_default(),
                     modifiers,
                 })
@@ -225,8 +225,8 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => ty = Some(t.clone()),
                     (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone())
                 }
-                ASTNode::IntervalSpecification(IntervalSpecification::Type {
-                    interval_type: ty.unwrap_or_default(),
+                ASTNode::IntervalSpecification(IntervalSpecification {
+                    interval_type: ty,
                     precision: precision,
                 })
             }
@@ -367,30 +367,51 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     seed,
                 })
             }
-            sx::NodeType::OBJECT_SQL_CONST_CAST => {
-                let mut cast_type = None;
+            sx::NodeType::OBJECT_SQL_CONST_TYPE_CAST => {
+                let mut sql_type = None;
+                let mut value = None;
+                read_attributes! {
+                    (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s)) => sql_type = Some(s),
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone())
+                }
+                ASTNode::Expression(Expression::ConstTypeCast(arena.alloc(ConstTypeCastExpression {
+                    sql_type: sql_type.unwrap(),
+                    value: value.unwrap_or_default(),
+                })))
+            }
+            sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
+                let mut interval: Option<&IntervalSpecification> = None;
+                let mut value = None;
+                read_attributes! {
+                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t)) => interval = Some(t),
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone())
+                }
+                ASTNode::Expression(Expression::ConstIntervalCast(arena.alloc(
+                    ConstIntervalCastExpression {
+                        value: value.unwrap_or_default(),
+                        interval: interval.unwrap(),
+                    },
+                )))
+            }
+            sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
                 let mut func_name = None;
                 let mut func_args: &[_] = &[];
                 let mut func_arg_ordering: &[_] = &[];
-                let mut interval = None;
                 let mut value = None;
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_TYPE, ASTNode::StringRef(t)) => cast_type = Some(t.clone()),
                     (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone()),
                     (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n)) => func_name = Some(read_name(arena, n)),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => func_args = unpack_nodes!(nodes, FunctionArgument),
-                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification),
-                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(i)) => interval = Some(i),
-                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::StringRef(s)) => interval = Some(arena.alloc(IntervalSpecification::Raw(s)))
+                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification)
                 }
-                ASTNode::Expression(Expression::ConstCast(arena.alloc(ConstCastExpression {
-                    cast_type: cast_type.unwrap_or_default(),
-                    func_name,
-                    func_args,
-                    func_arg_ordering,
-                    value: value.unwrap_or_default(),
-                    interval,
-                })))
+                ASTNode::Expression(Expression::ConstFunctionCast(arena.alloc(
+                    ConstFunctionCastExpression {
+                        value: value.unwrap_or_default(),
+                        func_name,
+                        func_args,
+                        func_arg_ordering,
+                    },
+                )))
             }
             sx::NodeType::OBJECT_SQL_ALIAS => {
                 let mut name = "";
@@ -671,8 +692,8 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t)) => typename = Some(t.clone())
                 }
                 ASTNode::TypecastExpression(TypecastExpression {
+                    sql_type: typename.unwrap(),
                     value: value.unwrap(),
-                    typename: typename.unwrap(),
                 })
             }
             sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
@@ -720,7 +741,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
                 }
-                ASTNode::TimestampTypeInfo(TimestampType {
+                ASTNode::TimestampTypeSpec(TimestampType {
                     precision,
                     with_timezone,
                 })
@@ -732,7 +753,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
                 }
-                ASTNode::TimeTypeInfo(TimeType {
+                ASTNode::TimeTypeSpec(TimeType {
                     precision,
                     with_timezone,
                 })
@@ -761,19 +782,19 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut set_of = false;
                 let mut array_bounds: &[_] = &[];
                 read_attributes! {
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeInfo(t)) => base = Some(SQLBaseType::Generic(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeInfo(t)) => base = Some(SQLBaseType::Numeric(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeSpec(t)) => base = Some(SQLBaseType::Generic(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeSpec(t)) => base = Some(SQLBaseType::Numeric(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t)) => {
                         base = Some(SQLBaseType::Numeric(NumericType {
                             base: *t,
                             modifiers: &[],
                         }))
                     },
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeInfo(t)) => base = Some(SQLBaseType::Time(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeInfo(t)) => base = Some(SQLBaseType::Bit(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => base = Some(SQLBaseType::Character(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeInfo(t)) => base = Some(SQLBaseType::Timestamp(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalTypeInfo(t)) => base = Some(SQLBaseType::Interval(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeSpec(t)) => base = Some(SQLBaseType::Time(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeSpec(t)) => base = Some(SQLBaseType::Bit(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeSpec(t)) => base = Some(SQLBaseType::Character(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeSpec(t)) => base = Some(SQLBaseType::Timestamp(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalSpecification(t)) => base = Some(SQLBaseType::Interval(t.clone())),
                     (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = *b,
                     (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(arena, n)
                 }
@@ -842,7 +863,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c)) => base = c.clone(),
                     (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l)) => length = Some(l.clone())
                 }
-                ASTNode::CharacterTypeInfo(CharacterType { base, length })
+                ASTNode::CharacterTypeSpec(CharacterType { base, length })
             }
             sx::NodeType::OBJECT_SQL_INTO => {
                 let mut temp_type = sx::TempType::DEFAULT;

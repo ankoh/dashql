@@ -61,19 +61,36 @@ pub struct NaryExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ConstCastExpression<'text, 'arena> {
-    pub cast_type: &'text str,
+pub struct ConstTypeCastExpression<'text, 'arena> {
+    pub value: &'text str,
+    pub sql_type: &'arena SQLType<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConstIntervalCastExpression<'text, 'arena> {
+    pub value: &'text str,
+    pub interval: &'arena IntervalSpecification<'text>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConstFunctionCastExpression<'text, 'arena> {
+    pub value: &'text str,
     pub func_name: Option<NamePath<'text, 'arena>>,
     pub func_args: &'arena [&'arena FunctionArgument<'text, 'arena>],
     pub func_arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
-    pub value: &'text str,
-    pub interval: Option<&'arena IntervalSpecification<'text>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConstCastExpression<'text, 'arena> {
+    Function(ConstFunctionCastExpression<'text, 'arena>),
+    Interval(ConstIntervalCastExpression<'text, 'arena>),
+    Type(ConstTypeCastExpression<'text, 'arena>),
 }
 
 #[derive(Debug, Clone)]
 pub struct TypecastExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
-    pub typename: SQLType<'text, 'arena>,
+    pub sql_type: SQLType<'text, 'arena>,
 }
 
 #[derive(Debug, Clone)]
@@ -121,7 +138,9 @@ pub enum Expression<'text, 'arena> {
     StringRef(&'text str),
     ColumnRef(NamePath<'text, 'arena>),
     Nary(&'arena NaryExpression<'text, 'arena>),
-    ConstCast(&'arena ConstCastExpression<'text, 'arena>),
+    ConstTypeCast(&'arena ConstTypeCastExpression<'text, 'arena>),
+    ConstIntervalCast(&'arena ConstIntervalCastExpression<'text, 'arena>),
+    ConstFunctionCast(&'arena ConstFunctionCastExpression<'text, 'arena>),
     Typecast(&'arena TypecastExpression<'text, 'arena>),
     FunctionCall(&'arena FunctionExpression<'text, 'arena>),
     SelectStatement(&'arena SelectStatementExpression<'text, 'arena>),
@@ -155,12 +174,9 @@ pub enum GroupByItem<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
-pub enum IntervalSpecification<'text> {
-    Raw(&'text str),
-    Type {
-        interval_type: sx::IntervalType,
-        precision: Option<&'text str>,
-    },
+pub struct IntervalSpecification<'text> {
+    pub interval_type: Option<sx::IntervalType>,
+    pub precision: Option<&'text str>,
 }
 
 #[derive(Debug, Clone)]
@@ -223,7 +239,7 @@ pub enum SQLBaseType<'text, 'arena> {
     Character(CharacterType<'text>),
     Time(TimeType<'text>),
     Timestamp(TimestampType<'text>),
-    Interval(IntervalType<'text>),
+    Interval(IntervalSpecification<'text>),
 }
 
 #[derive(Debug, Clone)]
