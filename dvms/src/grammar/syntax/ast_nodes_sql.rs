@@ -554,7 +554,7 @@ pub struct ColumnConstraintArgument<'text, 'arena> {
 pub struct ColumnConstraint<'text, 'arena> {
     pub constraint_name: Option<&'text str>,
     pub constraint_type: Option<sx::ColumnConstraint>,
-    // pub value: any, XXX
+    pub value: Option<Expression<'text, 'arena>>,
     pub arguments: &'arena [&'arena ColumnConstraintArgument<'text, 'arena>],
     pub no_inherit: bool,
 }

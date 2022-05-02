@@ -531,6 +531,59 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Create(
+            CreateStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                elements: [
+                    ColumnDefinition {
+                        name: &quot;a&quot;,
+                        sql_type: SQLType {
+                            base_type: Numeric(
+                                NumericType {
+                                    base: INT4,
+                                    modifiers: [],
+                                },
+                            ),
+                            array_bounds: [],
+                            set_of: false,
+                        },
+                        collate: [],
+                        constraints: [
+                            Constraint(
+                                ColumnConstraint {
+                                    constraint_name: None,
+                                    constraint_type: Some(
+                                        COLLATE,
+                                    ),
+                                    value: Some(
+                                        StringRef(
+                                            &quot;\&quot;de_DE\&quot;&quot;,
+                                        ),
+                                    ),
+                                    arguments: [],
+                                    no_inherit: false,
+                                },
+                            ),
+                        ],
+                        options: [],
+                    },
+                ],
+                temp: Some(
+                    DEFAULT,
+                ),
+                on_commit: Some(
+                    NOOP,
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="create_table_8">
         <input>create temporary table foo (a integer)</input>
@@ -678,6 +731,7 @@
                                     constraint_type: Some(
                                         NOT_NULL,
                                     ),
+                                    value: None,
                                     arguments: [],
                                     no_inherit: false,
                                 },
@@ -759,6 +813,7 @@
                                     constraint_type: Some(
                                         PRIMARY_KEY,
                                     ),
+                                    value: None,
                                     arguments: [],
                                     no_inherit: false,
                                 },
@@ -814,5 +869,69 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Create(
+            CreateStatement {
+                name: [
+                    Name(
+                        &quot;foo&quot;,
+                    ),
+                ],
+                elements: [
+                    ColumnDefinition {
+                        name: &quot;a&quot;,
+                        sql_type: SQLType {
+                            base_type: Numeric(
+                                NumericType {
+                                    base: INT4,
+                                    modifiers: [],
+                                },
+                            ),
+                            array_bounds: [],
+                            set_of: false,
+                        },
+                        collate: [],
+                        constraints: [
+                            Constraint(
+                                ColumnConstraint {
+                                    constraint_name: None,
+                                    constraint_type: Some(
+                                        NOT_NULL,
+                                    ),
+                                    value: None,
+                                    arguments: [],
+                                    no_inherit: false,
+                                },
+                            ),
+                            Constraint(
+                                ColumnConstraint {
+                                    constraint_name: None,
+                                    constraint_type: Some(
+                                        DEFAULT,
+                                    ),
+                                    value: Some(
+                                        StringRef(
+                                            &quot;42&quot;,
+                                        ),
+                                    ),
+                                    arguments: [],
+                                    no_inherit: false,
+                                },
+                            ),
+                        ],
+                        options: [],
+                    },
+                ],
+                temp: Some(
+                    DEFAULT,
+                ),
+                on_commit: Some(
+                    NOOP,
+                ),
+            },
+        ),
+    ],
+}</translated>
     </astdump>
 </astdumps>

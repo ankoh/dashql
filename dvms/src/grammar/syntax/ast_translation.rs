@@ -899,18 +899,19 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut constraint_name = None;
                 let mut constraint_type = None;
                 let mut arguments: &[_] = &[];
-                // value XXX
+                let mut value = None;
                 let mut no_inherit = false;
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c)) => constraint_type = Some(c.clone()),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n)) => constraint_name = Some(n.clone()),
-                    // OBJECT_SQL_COLUMN_CONSTRAINT.SQL_COLUMN_CONSTRAINT_VALUE
+                    (Key::SQL_COLUMN_CONSTRAINT_VALUE, n) => value = Some(read_expr(n)),
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => arguments = unpack_nodes!(nodes, ColumnConstraintArgument),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
                 }
                 ASTNode::ColumnConstraintInfo(ColumnConstraint {
                     constraint_name,
                     constraint_type,
+                    value,
                     arguments,
                     no_inherit,
                 })
