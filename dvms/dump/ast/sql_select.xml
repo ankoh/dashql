@@ -390,7 +390,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: GREATER_THAN,
+                                        operator: Known(
+                                            GREATER_THAN,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -3612,7 +3614,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -3623,7 +3627,9 @@
                                         ),
                                         Nary(
                                             NaryExpression {
-                                                operator: PLUS,
+                                                operator: Known(
+                                                    PLUS,
+                                                ),
                                                 args: [
                                                     ColumnRef(
                                                         [
@@ -3823,11 +3829,15 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: AND,
+                                    operator: Known(
+                                        AND,
+                                    ),
                                     args: [
                                         Nary(
                                             NaryExpression {
-                                                operator: EQUAL,
+                                                operator: Known(
+                                                    EQUAL,
+                                                ),
                                                 args: [
                                                     ColumnRef(
                                                         [
@@ -3856,7 +3866,9 @@
                                         ),
                                         Nary(
                                             NaryExpression {
-                                                operator: EQUAL,
+                                                operator: Known(
+                                                    EQUAL,
+                                                ),
                                                 args: [
                                                     ColumnRef(
                                                         [
@@ -5089,6 +5101,58 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Nary(
+                                    NaryExpression {
+                                        operator: Qualified(
+                                            [
+                                                &quot;someschema&quot;,
+                                                &quot;PLUS&quot;,
+                                            ],
+                                        ),
+                                        args: [
+                                            StringRef(
+                                                &quot;1&quot;,
+                                            ),
+                                            StringRef(
+                                                &quot;2&quot;,
+                                            ),
+                                            Null,
+                                        ],
+                                        postfix: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_between_1">
         <input>select 1 between 0 and 3;</input>
@@ -5128,7 +5192,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: BETWEEN_SYMMETRIC,
+                                        operator: Known(
+                                            BETWEEN_SYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5202,7 +5268,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: BETWEEN_ASYMMETRIC,
+                                        operator: Known(
+                                            BETWEEN_ASYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5276,7 +5344,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: NOT_BETWEEN_SYMMETRIC,
+                                        operator: Known(
+                                            NOT_BETWEEN_SYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5350,7 +5420,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: NOT_BETWEEN_ASYMMETRIC,
+                                        operator: Known(
+                                            NOT_BETWEEN_ASYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5424,7 +5496,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: BETWEEN_SYMMETRIC,
+                                        operator: Known(
+                                            BETWEEN_SYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5498,7 +5572,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: NOT_BETWEEN_SYMMETRIC,
+                                        operator: Known(
+                                            NOT_BETWEEN_SYMMETRIC,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5571,7 +5647,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: AT_TIMEZONE,
+                                        operator: Known(
+                                            AT_TIMEZONE,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;&apos;2001-02-16 20:38:40&apos;&quot;,
@@ -5718,7 +5796,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: COLLATE,
+                                        operator: Known(
+                                            COLLATE,
+                                        ),
                                         args: [
                                             StringRef(
                                                 &quot;1&quot;,
@@ -5817,7 +5897,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: OVERLAPS,
+                                        operator: Known(
+                                            OVERLAPS,
+                                        ),
                                         args: [
                                             Null,
                                             Null,
@@ -5892,7 +5974,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IS_DISTINCT_FROM,
+                                        operator: Known(
+                                            IS_DISTINCT_FROM,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -5979,7 +6063,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IS_NOT_DISTINCT_FROM,
+                                        operator: Known(
+                                            IS_NOT_DISTINCT_FROM,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -6066,7 +6152,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IS_OF,
+                                        operator: Known(
+                                            IS_OF,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -6147,7 +6235,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IS_NOT_OF,
+                                        operator: Known(
+                                            IS_NOT_OF,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -6650,7 +6740,9 @@
                                         within_group: [],
                                         filter: Nary(
                                             NaryExpression {
-                                                operator: EQUAL,
+                                                operator: Known(
+                                                    EQUAL,
+                                                ),
                                                 args: [
                                                     ColumnRef(
                                                         [
@@ -7100,7 +7192,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IN,
+                                        operator: Known(
+                                            IN,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -7213,7 +7307,9 @@
                             Value {
                                 value: Nary(
                                     NaryExpression {
-                                        operator: IN,
+                                        operator: Known(
+                                            IN,
+                                        ),
                                         args: [
                                             ColumnRef(
                                                 [
@@ -7299,7 +7395,9 @@
                             Value {
                                 value: Subquery(
                                     SubqueryExpression {
-                                        operator: LIKE,
+                                        operator: Known(
+                                            LIKE,
+                                        ),
                                         quantifier: ALL,
                                         args: [
                                             ColumnRef(
@@ -7417,7 +7515,9 @@
                             Value {
                                 value: Subquery(
                                     SubqueryExpression {
-                                        operator: LIKE,
+                                        operator: Known(
+                                            LIKE,
+                                        ),
                                         quantifier: ANY,
                                         args: [
                                             ColumnRef(
@@ -7535,7 +7635,9 @@
                             Value {
                                 value: Subquery(
                                     SubqueryExpression {
-                                        operator: LIKE,
+                                        operator: Known(
+                                            LIKE,
+                                        ),
                                         quantifier: SOME,
                                         args: [
                                             ColumnRef(
@@ -7652,7 +7754,9 @@
                             Value {
                                 value: Subquery(
                                     SubqueryExpression {
-                                        operator: LIKE,
+                                        operator: Known(
+                                            LIKE,
+                                        ),
                                         quantifier: SOME,
                                         args: [
                                             ColumnRef(
@@ -7759,7 +7863,9 @@
                                                 name: None,
                                                 value: Nary(
                                                     NaryExpression {
-                                                        operator: DEFAULT,
+                                                        operator: Known(
+                                                            DEFAULT,
+                                                        ),
                                                         args: [
                                                             Null,
                                                             Null,
@@ -11907,7 +12013,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -12042,7 +12150,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -12173,7 +12283,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -12315,7 +12427,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -12663,7 +12777,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -12805,7 +12921,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -12947,7 +13065,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -13089,7 +13209,9 @@
                                             On(
                                                 Nary(
                                                     NaryExpression {
-                                                        operator: EQUAL,
+                                                        operator: Known(
+                                                            EQUAL,
+                                                        ),
                                                         args: [
                                                             ColumnRef(
                                                                 [
@@ -13395,7 +13517,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -13554,7 +13678,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -13713,7 +13839,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -13872,7 +14000,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -14031,7 +14161,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -14201,7 +14333,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [
@@ -14374,7 +14508,9 @@
                         where_clause: Some(
                             Nary(
                                 NaryExpression {
-                                    operator: EQUAL,
+                                    operator: Known(
+                                        EQUAL,
+                                    ),
                                     args: [
                                         ColumnRef(
                                             [

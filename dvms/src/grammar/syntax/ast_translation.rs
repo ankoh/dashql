@@ -5,6 +5,7 @@ use super::ast_nodes_sql::*;
 use super::dson::*;
 use crate::error::RawError;
 use dashql_proto::syntax as sx;
+use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::GroupByItemType;
 use std::error::Error;
 use sx::AttributeKey as Key;
@@ -241,17 +242,17 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
             }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let args = arena.alloc_slice_fill_default(3);
-                let mut operator: sx::ExpressionOperator = sx::ExpressionOperator::PLUS;
+                let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
                 let mut postfix = false;
                 read_attributes! {
                     (Key::SQL_EXPRESSION_ARG0, n) => args[0] = read_expr(n),
                     (Key::SQL_EXPRESSION_ARG1, n) => args[1] = read_expr(n),
                     (Key::SQL_EXPRESSION_ARG2, n) => args[2] = read_expr(n),
                     (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(p)) => postfix = p.clone(),
-                    (Key::SQL_EXPRESSION_OPERATOR, ASTNode::ExpressionOperator(op)) => operator = op.clone()
+                    (Key::SQL_EXPRESSION_OPERATOR, n) => operator_name = read_expression_operator(arena, n)
                 }
                 ASTNode::Expression(Expression::Nary(arena.alloc(NaryExpression {
-                    operator,
+                    operator: operator_name,
                     args,
                     postfix,
                 })))
@@ -642,16 +643,16 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
             sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
                 let mut arg0 = Expression::Null;
                 let mut arg1 = Expression::Null;
-                let mut operator = sx::ExpressionOperator::EQUAL;
+                let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
                 let mut quantifier = sx::SubqueryQuantifier::ALL;
                 read_attributes! {
                     (Key::SQL_SUBQUERY_ARG0, v) => arg0 = read_expr(v),
                     (Key::SQL_SUBQUERY_ARG1, v) => arg1 = read_expr(v),
-                    (Key::SQL_SUBQUERY_OPERATOR, ASTNode::ExpressionOperator(op)) => operator = *op,
-                    (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant)) => quantifier = *quant
+                    (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant)) => quantifier = *quant,
+                    (Key::SQL_SUBQUERY_OPERATOR, n) => operator_name = read_expression_operator(arena, n)
                 }
                 ASTNode::SubqueryExpression(SubqueryExpression {
-                    operator,
+                    operator: operator_name,
                     quantifier,
                     args: [arg0, arg1],
                 })
@@ -1123,6 +1124,33 @@ fn read_name<'text, 'arena>(
         }
     }
     path
+}
+
+fn read_expression_operator<'text, 'arena>(
+    alloc: &'arena bumpalo::Bump,
+    node: &'arena ASTNode<'text, 'arena>,
+) -> ExpressionOperatorName<'text, 'arena> {
+    match &node {
+        ASTNode::ExpressionOperator(op) => ExpressionOperatorName::Known(*op),
+        ASTNode::Array(elems) => {
+            let path = alloc.alloc_slice_fill_default(elems.len());
+            for (i, n) in elems.iter().enumerate() {
+                path[i] = match n {
+                    ASTNode::StringRef(s) => s,
+                    ASTNode::ExpressionOperator(op) => op.variant_name().unwrap_or_default(),
+                    _ => {
+                        log::warn!("invalid expression operator name: {:?}", n);
+                        "?"
+                    }
+                }
+            }
+            ExpressionOperatorName::Qualified(path)
+        }
+        n => {
+            log::warn!("invalid expression operator name: {:?}", n);
+            ExpressionOperatorName::Known(ExpressionOperator::DEFAULT)
+        }
+    }
 }
 
 fn read_array_bounds<'text, 'arena>(

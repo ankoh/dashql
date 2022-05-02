@@ -17,13 +17,11 @@ pub enum Indirection<'text, 'arena> {
     Index(IndirectionIndex<'text, 'arena>),
     Bounds(IndirectionBounds<'text, 'arena>),
 }
-
 impl<'text, 'arena> Default for Indirection<'text, 'arena> {
     fn default() -> Self {
         Indirection::Name("")
     }
 }
-
 pub type NamePath<'text, 'arena> = &'arena [Indirection<'text, 'arena>];
 
 #[derive(Debug, Clone)]
@@ -39,8 +37,19 @@ impl<'text> Default for ArrayBound<'text> {
 }
 
 #[derive(Debug, Clone)]
+pub enum ExpressionOperatorName<'text, 'arena> {
+    Known(sx::ExpressionOperator),
+    Qualified(&'arena [&'text str]),
+}
+impl<'text, 'arena> Default for ExpressionOperatorName<'text, 'arena> {
+    fn default() -> Self {
+        ExpressionOperatorName::Known(sx::ExpressionOperator::EQUAL)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct NaryExpression<'text, 'arena> {
-    pub operator: sx::ExpressionOperator,
+    pub operator: ExpressionOperatorName<'text, 'arena>,
     pub args: &'arena [Expression<'text, 'arena>],
     pub postfix: bool,
 }
@@ -63,7 +72,7 @@ pub struct TypecastExpression<'text, 'arena> {
 
 #[derive(Debug, Clone)]
 pub struct SubqueryExpression<'text, 'arena> {
-    pub operator: sx::ExpressionOperator,
+    pub operator: ExpressionOperatorName<'text, 'arena>,
     pub quantifier: sx::SubqueryQuantifier,
     pub args: [Expression<'text, 'arena>; 2],
 }
