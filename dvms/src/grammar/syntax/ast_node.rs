@@ -93,6 +93,7 @@ pub enum ASTNode<'text, 'arena> {
     CommonTableExpression(CommonTableExpression<'text, 'arena>),
     SQLType(SQLType<'text, 'arena>),
 
+    Create(CreateStatement<'text, 'arena>),
     CreateAs(CreateAsStatement<'text, 'arena>),
     CreateView(CreateViewStatement<'text, 'arena>),
     SelectStatement(SelectStatement<'text, 'arena>),

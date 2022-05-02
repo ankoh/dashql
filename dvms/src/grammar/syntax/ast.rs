@@ -8,6 +8,7 @@ pub enum Statement<'text, 'arena> {
     Fetch(&'arena FetchStatement<'text, 'arena>),
     Load(&'arena LoadStatement<'text, 'arena>),
     Viz(&'arena VizStatement<'text, 'arena>),
+    Create(&'arena CreateStatement<'text, 'arena>),
     CreateAs(&'arena CreateAsStatement<'text, 'arena>),
     CreateView(&'arena CreateViewStatement<'text, 'arena>),
     Set(&'arena SetStatement<'text, 'arena>),

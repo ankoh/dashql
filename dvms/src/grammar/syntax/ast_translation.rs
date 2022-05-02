@@ -417,23 +417,6 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 }
                 ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
             }
-            sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
-                let mut elem_name = "";
-                let mut elem_type = None;
-                let mut collate: &[_] = &[];
-                let mut options: &[_] = &[];
-                read_attributes! {
-                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
-                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t),
-                    (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::Array(nodes)) => options = unpack_nodes!(nodes, GenericOption),
-                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_strings!(nodes, StringRef)
-                }
-                ASTNode::ColumnDefinition(ColumnDefinition {
-                    name: elem_name,
-                    sql_type: elem_type.unwrap(),
-                    collate,
-                })
-            }
             sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
                 let mut function = None;
                 let mut columns: &[_] = &[];
@@ -840,6 +823,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c)) => constraint_type = Some(c.clone()),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n)) => constraint_name = Some(n.clone()),
+                    // OBJECT_SQL_COLUMN_CONSTRAINT.SQL_COLUMN_CONSTRAINT_VALUE
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => definition = unpack_nodes!(nodes, ColumnConstraintDefinition),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
                 }
@@ -897,6 +881,55 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                         value: v,
                         unit: count_unit,
                     }),
+                })
+            }
+            sx::NodeType::OBJECT_SQL_CREATE => {
+                let mut name = NamePath::default();
+                let mut elements: &[_] = &[];
+                let mut temp = None;
+                let mut on_commit = None;
+                read_attributes! {
+                    (Key::SQL_CREATE_TABLE_NAME, ASTNode::Array(n)) => name = read_name(arena, n),
+                    (Key::SQL_CREATE_TABLE_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
+                    (Key::SQL_CREATE_TABLE_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
+                    (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes)) => elements = unpack_nodes!(nodes, ColumnDefinition)
+                }
+                ASTNode::Create(CreateStatement {
+                    name,
+                    elements,
+                    on_commit,
+                    temp,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
+                let mut name = "";
+                let mut sql_type = None;
+                let mut collate: &[_] = &[];
+                let mut options: &[_] = &[];
+                let mut constraints: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(n)) => name = n,
+                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => sql_type = Some(t),
+                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_strings!(nodes, StringRef),
+                    (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::OnCommitOption(o)) => options = unpack_nodes!(nodes, GenericOption),
+                    (Key::SQL_COLUMN_DEF_CONSTRAINTS, ASTNode::Array(nodes)) => {
+                        let cs = arena.alloc_slice_fill_default(nodes.len());
+                        for (i, node) in nodes.iter().enumerate() {
+                            match node {
+                                ASTNode::ColumnConstraintInfo(c) => cs[i] = ColumnConstraintVariant::Constraint(c),
+                                ASTNode::ConstraintAttribute(c) => cs[i] = ColumnConstraintVariant::Attribute(c.clone()),
+                                _ => return Err(RawError::from(format!("invalid colum constraint: {:?}", node)).boxed()),
+                            }
+                        }
+                        constraints = cs;
+                    }
+                }
+                ASTNode::ColumnDefinition(ColumnDefinition {
+                    name,
+                    sql_type: sql_type.unwrap(),
+                    collate,
+                    options,
+                    constraints,
                 })
             }
             sx::NodeType::OBJECT_SQL_CREATE_AS => {
@@ -1098,6 +1131,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
             ASTNode::FetchStatement(s) => Statement::Fetch(s),
             ASTNode::VizStatement(s) => Statement::Viz(s),
             ASTNode::LoadStatement(s) => Statement::Load(s),
+            ASTNode::Create(s) => Statement::Create(s),
             ASTNode::CreateAs(s) => Statement::CreateAs(s),
             ASTNode::CreateView(s) => Statement::CreateView(s),
             ASTNode::SetStatement(s) => Statement::Set(s),

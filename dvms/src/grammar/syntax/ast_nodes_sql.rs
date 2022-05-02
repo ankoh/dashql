@@ -216,6 +216,8 @@ pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
     pub sql_type: &'text SQLType<'text, 'arena>,
     pub collate: &'arena [&'text str],
+    pub constraints: &'arena [ColumnConstraintVariant<'text, 'arena>],
+    pub options: &'arena [&'arena GenericOption<'text>],
 }
 
 #[derive(Debug, Clone)]
@@ -466,6 +468,14 @@ pub struct SelectStatement<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct CreateStatement<'text, 'arena> {
+    pub name: NamePath<'text, 'arena>,
+    pub elements: &'arena [&'arena ColumnDefinition<'text, 'arena>],
+    pub temp: Option<sx::TempType>,
+    pub on_commit: Option<sx::OnCommitOption>,
+}
+
+#[derive(Debug, Clone)]
 pub struct CreateAsStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
     pub columns: &'arena [&'text str],
@@ -508,5 +518,10 @@ pub struct ColumnConstraint<'text, 'arena> {
 #[derive(Debug, Clone)]
 pub enum ColumnConstraintVariant<'text, 'arena> {
     Attribute(sx::ConstraintAttribute),
-    Constraint(ColumnConstraint<'text, 'arena>),
+    Constraint(&'arena ColumnConstraint<'text, 'arena>),
+}
+impl<'text, 'arena> Default for ColumnConstraintVariant<'text, 'arena> {
+    fn default() -> Self {
+        ColumnConstraintVariant::Attribute(sx::ConstraintAttribute::DEFERRABLE)
+    }
 }
