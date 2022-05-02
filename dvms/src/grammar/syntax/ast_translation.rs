@@ -1201,12 +1201,12 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         ASTNode::Expression(ref e) => e.clone(),
         ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),
+        ASTNode::IndirectionExpression(ref c) => Expression::Indirection(c),
         ASTNode::ParameterRef(ref p) => Expression::ParameterRef(p),
         ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
         ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
-        ASTNode::IndirectionExpression(ref c) => Expression::Indirection(c),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null
