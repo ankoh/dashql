@@ -73,7 +73,7 @@ sql_col_constraint:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($3));
     }
   | sql_col_constraint_elem { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($1)); }
-  | sql_constraint_attr     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, { std::move($1) }); }
+  | sql_constraint_attr     { $$ = std::move($1); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::COLLATE)),
         Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, String(@2)),
@@ -142,12 +142,12 @@ sql_col_constraint_elem:
   | NULL_P                    { $$ = { Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::NULL_)) }; }
   | UNIQUE sql_opt_definition { $$ = {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::UNIQUE)),
-        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@2, std::move($2))),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ctx.Add(@2, std::move($2))),
     };
   }
   | PRIMARY KEY sql_opt_definition { $$ = {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::PRIMARY_KEY)),
-        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@3, std::move($3))),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ctx.Add(@3, std::move($3))),
     };
   }
   | CHECK_P '(' sql_a_expr ')' sql_opt_no_inherit { $$ = {

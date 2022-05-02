@@ -421,9 +421,11 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut elem_name = "";
                 let mut elem_type = None;
                 let mut collate: &[_] = &[];
+                let mut options: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(s)) => elem_name = s,
                     (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t)) => elem_type = Some(t),
+                    (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::Array(nodes)) => options = unpack_nodes!(nodes, GenericOption),
                     (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes)) => collate = unpack_strings!(nodes, StringRef)
                 }
                 ASTNode::ColumnDefinition(ColumnDefinition {
@@ -507,6 +509,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     substr_for,
                     substr_from,
                 })
+            }
+            sx::NodeType::OBJECT_SQL_GENERIC_OPTION => {
+                let mut key = "";
+                let mut value = "";
+                read_attributes! {
+                    (Key::SQL_GENERIC_OPTION_KEY, ASTNode::StringRef(k)) => key = k,
+                    (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::StringRef(v)) => value = v
+                }
+                ASTNode::GenericOption(GenericOption { key, value })
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
                 let mut input = None;
@@ -818,6 +829,24 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 ASTNode::Into(Into {
                     temp: temp_type,
                     name: temp_name,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
+                let mut constraint_name = None;
+                let mut constraint_type = None;
+                let mut definition: &[_] = &[];
+                let mut no_inherit = false;
+                read_attributes! {
+                    (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c)) => constraint_type = Some(c.clone()),
+                    (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n)) => constraint_name = Some(n.clone()),
+                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => definition = unpack_nodes!(nodes, ColumnConstraintDefinition),
+                    (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
+                }
+                ASTNode::ColumnConstraintInfo(ColumnConstraint {
+                    constraint_name,
+                    constraint_type,
+                    definition,
+                    no_inherit,
                 })
             }
             sx::NodeType::OBJECT_SQL_ROW_LOCKING => {

@@ -56,6 +56,9 @@ pub enum ASTNode<'text, 'arena> {
     Alias(Alias<'text, 'arena>),
     Into(Into<'text, 'arena>),
 
+    ColumnConstraintDefinition(ColumnConstraintDefinition<'text, 'arena>),
+    ColumnConstraintInfo(ColumnConstraint<'text, 'arena>),
+    GenericOption(GenericOption<'text>),
     RowsFromItem(RowsFromItem<'text, 'arena>),
     ColumnDefinition(ColumnDefinition<'text, 'arena>),
     FunctionTable(FunctionTable<'text, 'arena>),

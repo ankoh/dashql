@@ -483,3 +483,30 @@ pub struct CreateViewStatement<'text, 'arena> {
     pub statement: &'arena SelectStatement<'text, 'arena>,
     pub temp: Option<sx::TempType>,
 }
+
+#[derive(Debug, Clone)]
+pub struct GenericOption<'text> {
+    pub key: &'text str,
+    pub value: &'text str,
+}
+
+#[derive(Debug, Clone)]
+pub struct ColumnConstraintDefinition<'text, 'arena> {
+    pub name: &'text str,
+    pub value: Expression<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ColumnConstraint<'text, 'arena> {
+    pub constraint_name: Option<&'text str>,
+    pub constraint_type: Option<sx::ColumnConstraint>,
+    // pub value: any, XXX
+    pub definition: &'arena [&'arena ColumnConstraintDefinition<'text, 'arena>],
+    pub no_inherit: bool,
+}
+
+#[derive(Debug, Clone)]
+pub enum ColumnConstraintVariant<'text, 'arena> {
+    Attribute(sx::ConstraintAttribute),
+    Constraint(ColumnConstraint<'text, 'arena>),
+}

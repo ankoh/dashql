@@ -239,9 +239,7 @@
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..38" text="a integer ..deferrable">
                                 <node key="SQL_COLUMN_DEF_CONSTRAINTS" type="ARRAY">
-                                    <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="28..38" text="deferrable">
-                                        <node type="ENUM_SQL_CONSTRAINT_ATTRIBUTE" value="DEFERRABLE"/>
-                                    </node>
+                                    <node type="ENUM_SQL_CONSTRAINT_ATTRIBUTE" value="DEFERRABLE"/>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
@@ -337,6 +335,9 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [],
+}</translated>
     </astdump>
     <astdump name="create_table_10">
         <input>create table foo (a integer constraint a not null)</input>
