@@ -75,6 +75,8 @@ pub enum ASTNode<'text, 'arena> {
     CastFunctionArguments(CastFunctionArguments<'text, 'arena>),
     TreatFunctionArguments(TreatFunctionArguments<'text, 'arena>),
 
+    CaseExpression(CaseExpression<'text, 'arena>),
+    CaseExpressionClause(CaseExpressionClause<'text, 'arena>),
     RowLocking(RowLocking<'text, 'arena>),
     OrderSpecification(OrderSpecification<'text, 'arena>),
     GroupByItem(GroupByItem<'text, 'arena>),

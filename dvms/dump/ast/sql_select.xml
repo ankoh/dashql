@@ -6315,6 +6315,68 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Case(
+                                    CaseExpression {
+                                        argument: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                        cases: [
+                                            CaseExpressionClause {
+                                                when: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                                then: StringRef(
+                                                    &quot;2&quot;,
+                                                ),
+                                            },
+                                            CaseExpressionClause {
+                                                when: StringRef(
+                                                    &quot;2&quot;,
+                                                ),
+                                                then: StringRef(
+                                                    &quot;3&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        default: None,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_case_2">
         <input>select case a
@@ -6355,6 +6417,64 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Case(
+                                    CaseExpression {
+                                        argument: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                        cases: [
+                                            CaseExpressionClause {
+                                                when: StringRef(
+                                                    &quot;1&quot;,
+                                                ),
+                                                then: StringRef(
+                                                    &quot;2&quot;,
+                                                ),
+                                            },
+                                        ],
+                                        default: Some(
+                                            StringRef(
+                                                &quot;3&quot;,
+                                            ),
+                                        ),
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_param_1">
         <input>select ? from c</input>

@@ -257,6 +257,30 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     postfix,
                 })))
             }
+            sx::NodeType::OBJECT_SQL_CASE_CLAUSE => {
+                let mut when = Expression::Null;
+                let mut then = Expression::Null;
+                read_attributes! {
+                    (Key::SQL_CASE_CLAUSE_WHEN, e) => when = read_expr(e),
+                    (Key::SQL_CASE_CLAUSE_THEN, e) => then = read_expr(e)
+                }
+                ASTNode::CaseExpressionClause(CaseExpressionClause { when, then })
+            }
+            sx::NodeType::OBJECT_SQL_CASE => {
+                let mut argument = Expression::Null;
+                let mut cases: &[_] = &[];
+                let mut default = None;
+                read_attributes! {
+                    (Key::SQL_CASE_ARGUMENT, n) => argument = read_expr(n),
+                    (Key::SQL_CASE_CLAUSES, ASTNode::Array(nodes)) => cases = unpack_nodes!(nodes, CaseExpressionClause),
+                    (Key::SQL_CASE_DEFAULT, n) => default = Some(read_expr(n))
+                }
+                ASTNode::CaseExpression(CaseExpression {
+                    argument,
+                    cases,
+                    default,
+                })
+            }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 let mut name = None;
                 let mut inherit = false;
@@ -1154,6 +1178,7 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
+        ASTNode::CaseExpression(ref c) => Expression::Case(c),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null

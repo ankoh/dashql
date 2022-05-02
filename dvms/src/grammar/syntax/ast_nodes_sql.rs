@@ -89,6 +89,19 @@ pub struct ExistsExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct CaseExpressionClause<'text, 'arena> {
+    pub when: Expression<'text, 'arena>,
+    pub then: Expression<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CaseExpression<'text, 'arena> {
+    pub argument: Expression<'text, 'arena>,
+    pub cases: &'arena [&'arena CaseExpressionClause<'text, 'arena>],
+    pub default: Option<Expression<'text, 'arena>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
     True,
@@ -102,6 +115,7 @@ pub enum Expression<'text, 'arena> {
     SelectStatement(&'arena SelectStatementExpression<'text, 'arena>),
     Subquery(&'arena SubqueryExpression<'text, 'arena>),
     Exists(&'arena ExistsExpression<'text, 'arena>),
+    Case(&'arena CaseExpression<'text, 'arena>),
 }
 
 impl<'text, 'arena> Default for Expression<'text, 'arena> {
