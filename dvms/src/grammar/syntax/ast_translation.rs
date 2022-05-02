@@ -164,6 +164,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
             sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => as_enum!(SampleCountUnit),
             sx::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
 
+            sx::NodeType::OBJECT_SQL_INDIRECTION => {
+                let mut value = Expression::Null;
+                let mut path = NamePath::default();
+                read_attributes! {
+                    (Key::SQL_INDIRECTION_VALUE, n) => value = read_expr(n),
+                    (Key::SQL_INDIRECTION_PATH, ASTNode::Array(nodes)) => path = read_name(arena, nodes)
+                }
+                ASTNode::IndirectionExpression(IndirectionExpression { value, path })
+            }
             sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX => {
                 let mut val = None;
                 let mut lb = None;
@@ -182,7 +191,6 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     })
                 })
             }
-
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name: Option<&'text str> = None;
                 let mut modifiers: &[Expression<'text, 'arena>] = &[];
@@ -761,6 +769,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                             modifiers: &[],
                         }))
                     },
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeInfo(t)) => base = Some(SQLBaseType::Time(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeInfo(t)) => base = Some(SQLBaseType::Bit(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeInfo(t)) => base = Some(SQLBaseType::Character(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeInfo(t)) => base = Some(SQLBaseType::Timestamp(t.clone())),
@@ -1197,6 +1206,7 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::TypecastExpression(ref c) => Expression::Typecast(c),
+        ASTNode::IndirectionExpression(ref c) => Expression::Indirection(c),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null

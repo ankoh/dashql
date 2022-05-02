@@ -1,6 +1,12 @@
 use dashql_proto::syntax as sx;
 
 #[derive(Debug, Clone)]
+pub struct IndirectionExpression<'text, 'arena> {
+    pub value: Expression<'text, 'arena>,
+    pub path: NamePath<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
 pub struct IndirectionIndex<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
 }
@@ -123,6 +129,7 @@ pub enum Expression<'text, 'arena> {
     Exists(&'arena ExistsExpression<'text, 'arena>),
     Case(&'arena CaseExpression<'text, 'arena>),
     ParameterRef(&'arena ParameterRef<'text, 'arena>),
+    Indirection(&'arena IndirectionExpression<'text, 'arena>),
 }
 
 impl<'text, 'arena> Default for Expression<'text, 'arena> {

@@ -4800,6 +4800,72 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Time(
+                                                            TimeType {
+                                                                precision: None,
+                                                                with_timezone: true,
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_datetime_type_4">
         <input>select cast(&apos;1&apos; as time (2) with time zone);</input>
@@ -4831,6 +4897,74 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: FunctionCall(
+                                    FunctionExpression {
+                                        name: Known(
+                                            CAST,
+                                        ),
+                                        args: [],
+                                        args_known: Some(
+                                            Cast(
+                                                CastFunctionArguments {
+                                                    value: StringRef(
+                                                        &quot;&apos;1&apos;&quot;,
+                                                    ),
+                                                    as_type: SQLType {
+                                                        base_type: Time(
+                                                            TimeType {
+                                                                precision: Some(
+                                                                    &quot;2&quot;,
+                                                                ),
+                                                                with_timezone: true,
+                                                            },
+                                                        ),
+                                                        array_bounds: [],
+                                                        set_of: false,
+                                                    },
+                                                },
+                                            ),
+                                        ),
+                                        arg_ordering: [],
+                                        variadic: None,
+                                        within_group: [],
+                                        filter: Null,
+                                        all: false,
+                                        distinct: false,
+                                        over: false,
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="sql_interval_type_1">
         <input>select cast(&apos;1&apos; as interval year);</input>
@@ -7418,6 +7552,54 @@
             <comments/>
             <dson_keys/>
         </parsed>
+        <translated>Program {
+    statements: [
+        Select(
+            SelectStatement {
+                with_ctes: [],
+                with_recursive: false,
+                data: From(
+                    SelectFromStatement {
+                        all: false,
+                        distinct: false,
+                        targets: [
+                            Value {
+                                value: Indirection(
+                                    IndirectionExpression {
+                                        value: ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;a&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                        path: [
+                                            Name(
+                                                &quot;foo&quot;,
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                alias: None,
+                            },
+                        ],
+                        into: None,
+                        from: [],
+                        where_clause: None,
+                        group_by: [],
+                        having: None,
+                        windows: false,
+                        sample: None,
+                    },
+                ),
+                order_by: [],
+                row_locking: [],
+                limit: None,
+                offset: None,
+            },
+        ),
+    ],
+}</translated>
     </astdump>
     <astdump name="select_in_1">
         <input>select a in (select 1)</input>
