@@ -678,7 +678,7 @@
                                     constraint_type: Some(
                                         NOT_NULL,
                                     ),
-                                    definition: [],
+                                    arguments: [],
                                     no_inherit: false,
                                 },
                             ),
@@ -759,7 +759,7 @@
                                     constraint_type: Some(
                                         PRIMARY_KEY,
                                     ),
-                                    definition: [],
+                                    arguments: [],
                                     no_inherit: false,
                                 },
                             ),

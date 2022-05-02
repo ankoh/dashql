@@ -515,7 +515,7 @@ pub struct GenericOption<'text> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ColumnConstraintDefinition<'text, 'arena> {
+pub struct ColumnConstraintArgument<'text, 'arena> {
     pub name: &'text str,
     pub value: Expression<'text, 'arena>,
 }
@@ -525,7 +525,7 @@ pub struct ColumnConstraint<'text, 'arena> {
     pub constraint_name: Option<&'text str>,
     pub constraint_type: Option<sx::ColumnConstraint>,
     // pub value: any, XXX
-    pub definition: &'arena [&'arena ColumnConstraintDefinition<'text, 'arena>],
+    pub arguments: &'arena [&'arena ColumnConstraintArgument<'text, 'arena>],
     pub no_inherit: bool,
 }
 

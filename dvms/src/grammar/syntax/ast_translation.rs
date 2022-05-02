@@ -838,23 +838,32 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     name: temp_name,
                 })
             }
+            sx::NodeType::OBJECT_SQL_DEF_ARG => {
+                let mut name = "";
+                let mut value = Expression::Null;
+                read_attributes! {
+                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n)) => name = n,
+                    (Key::SQL_DEFINITION_ARG_VALUE, n) => value = read_expr(n)
+                }
+                ASTNode::ColumnConstraintArgument(ColumnConstraintArgument { name, value })
+            }
             sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = None;
                 let mut constraint_type = None;
-                let mut definition: &[_] = &[];
+                let mut arguments: &[_] = &[];
                 // value XXX
                 let mut no_inherit = false;
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c)) => constraint_type = Some(c.clone()),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n)) => constraint_name = Some(n.clone()),
                     // OBJECT_SQL_COLUMN_CONSTRAINT.SQL_COLUMN_CONSTRAINT_VALUE
-                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => definition = unpack_nodes!(nodes, ColumnConstraintDefinition),
+                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => arguments = unpack_nodes!(nodes, ColumnConstraintArgument),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
                 }
                 ASTNode::ColumnConstraintInfo(ColumnConstraint {
                     constraint_name,
                     constraint_type,
-                    definition,
+                    arguments,
                     no_inherit,
                 })
             }
