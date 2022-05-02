@@ -835,6 +835,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut constraint_name = None;
                 let mut constraint_type = None;
                 let mut definition: &[_] = &[];
+                // value XXX
                 let mut no_inherit = false;
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c)) => constraint_type = Some(c.clone()),
