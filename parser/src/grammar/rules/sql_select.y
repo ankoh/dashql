@@ -1005,19 +1005,19 @@ sql_numeric:
   | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericType::FLOAT4); }
   | DECIMAL_P sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE, Enum(@1, sx::NumericType::NUMERIC)),
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }
   | DEC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE, Enum(@1, sx::NumericType::NUMERIC)),
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }
   | NUMERIC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE, Enum(@1, sx::NumericType::NUMERIC)),
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }

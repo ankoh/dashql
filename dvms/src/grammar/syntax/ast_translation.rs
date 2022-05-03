@@ -203,6 +203,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     })
                 })
             }
+            sx::NodeType::OBJECT_SQL_NUMERIC_TYPE => {
+                let mut base = sx::NumericType::NUMERIC;
+                let mut modifiers: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t)) => base = *t,
+                    (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes)) => modifiers = read_exprs(arena, nodes)
+                }
+                ASTNode::NumericTypeSpec(NumericType { base, modifiers })
+            }
             sx::NodeType::OBJECT_SQL_BIT_TYPE => {
                 let mut varying = false;
                 let mut length = None;
