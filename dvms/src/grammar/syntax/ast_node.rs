@@ -61,9 +61,7 @@ pub enum ASTNode<'text, 'arena> {
     RowsFromItem(RowsFromItem<'text, 'arena>),
     ColumnDefinition(ColumnDefinition<'text, 'arena>),
     FunctionTable(FunctionTable<'text, 'arena>),
-    FunctionTableRef(FunctionTableRef<'text, 'arena>),
     JoinedTable(JoinedTable<'text, 'arena>),
-    JoinedTableRef(JoinedTableRef<'text, 'arena>),
     TableRef(TableRef<'text, 'arena>),
 
     TrimFunctionArguments(TrimFunctionArguments<'text, 'arena>),
