@@ -1683,7 +1683,9 @@ sql_over_clause:
 
 sql_window_specification:
     '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, Concat(move($2), move($3), move($5)));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, Concat(move($2), move($3), move($5), {
+            Attr(Key::SQL_WINDOW_FRAME_ORDER, $4)
+        }), false);
     }
     ;
 

@@ -1074,6 +1074,50 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     statement: stmt.unwrap(),
                 })
             }
+            sx::NodeType::OBJECT_SQL_WINDOW_BOUND => {
+                let mut mode = sx::WindowBoundMode::UNBOUNDED;
+                let mut direction = None;
+                let mut value = Expression::Null;
+                read_attributes! {
+                    (Key::SQL_WINDOW_BOUND_MODE, ASTNode::WindowBoundMode(m)) => mode = *m,
+                    (Key::SQL_WINDOW_BOUND_DIRECTION, ASTNode::WindowBoundDirection(d)) => direction = Some(*d),
+                    (Key::SQL_WINDOW_BOUND_VALUE, n) => value = read_expr(n)
+                }
+                ASTNode::WindowFrameBound(WindowFrameBound { mode, direction, value })
+            }
+            sx::NodeType::OBJECT_SQL_WINDOW_FRAME => {
+                let mut name = None;
+                let mut partition_by: &[_] = &[];
+                let mut order_by: &[_] = &[];
+                let mut frame_mode = None;
+                let mut frame_bounds: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n)) => name = Some(n.clone()),
+                    (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes)) => partition_by = read_exprs(arena, nodes),
+                    (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
+                    (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m)) => frame_mode = Some(*m),
+                    (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes)) => frame_bounds = unpack_nodes!(nodes, WindowFrameBound)
+                }
+                ASTNode::WindowFrame(WindowFrame {
+                    name,
+                    partition_by,
+                    order_by,
+                    frame_mode,
+                    frame_bounds,
+                })
+            }
+            sx::NodeType::OBJECT_SQL_WINDOW_DEF => {
+                let mut name = None;
+                let mut frame = None;
+                read_attributes! {
+                    (Key::SQL_WINDOW_DEF_NAME, ASTNode::StringRef(n)) => name = Some(n.clone()),
+                    (Key::SQL_WINDOW_DEF_FRAME, ASTNode::WindowFrame(f)) => frame = Some(f)
+                }
+                ASTNode::WindowDefinition(WindowDefinition {
+                    name: name.unwrap(),
+                    frame: frame.unwrap(),
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut with_ctes: &[_] = &[];
                 let mut with_recursive = false;
@@ -1092,6 +1136,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut where_clause = None;
                 let mut group_by: &[_] = &[];
                 let mut having = None;
+                let mut windows: &[_] = &[];
                 let mut sample = None;
 
                 let mut limit = None;
@@ -1138,6 +1183,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem),
                     (Key::SQL_SELECT_HAVING, n) => having = Some(read_expr(n)),
                     (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
+                    (Key::SQL_SELECT_WINDOWS, ASTNode::Array(nodes)) => windows = unpack_nodes!(nodes, WindowDefinition),
 
                     (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(true)) => limit = Some(Limit::ALL),
@@ -1168,7 +1214,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                             where_clause,
                             group_by,
                             having,
-                            windows: false,
+                            windows,
                             sample,
                         })
                     },

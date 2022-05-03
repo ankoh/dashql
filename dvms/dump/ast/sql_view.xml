@@ -54,7 +54,7 @@
                             where_clause: None,
                             group_by: [],
                             having: None,
-                            windows: false,
+                            windows: [],
                             sample: None,
                         },
                     ),

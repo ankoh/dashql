@@ -474,7 +474,7 @@ pub struct SelectFromStatement<'text, 'arena> {
     pub where_clause: Option<Expression<'text, 'arena>>,
     pub group_by: &'arena [&'arena GroupByItem<'text, 'arena>],
     pub having: Option<Expression<'text, 'arena>>,
-    pub windows: bool,
+    pub windows: &'arena [&'arena WindowDefinition<'text, 'arena>],
     pub sample: Option<&'arena Sample<'text>>,
 }
 
@@ -568,4 +568,26 @@ impl<'text, 'arena> Default for ColumnConstraintVariant<'text, 'arena> {
     fn default() -> Self {
         ColumnConstraintVariant::Attribute(sx::ConstraintAttribute::DEFERRABLE)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct WindowFrameBound<'text, 'arena> {
+    pub mode: sx::WindowBoundMode,
+    pub direction: Option<sx::WindowBoundDirection>,
+    pub value: Expression<'text, 'arena>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WindowFrame<'text, 'arena> {
+    pub name: Option<&'text str>,
+    pub partition_by: &'arena [Expression<'text, 'arena>],
+    pub order_by: &'arena [&'arena OrderSpecification<'text, 'arena>],
+    pub frame_mode: Option<sx::WindowRangeMode>,
+    pub frame_bounds: &'arena [&'arena WindowFrameBound<'text, 'arena>],
+}
+
+#[derive(Debug, Clone)]
+pub struct WindowDefinition<'text, 'arena> {
+    pub name: &'text str,
+    pub frame: &'arena WindowFrame<'text, 'arena>,
 }

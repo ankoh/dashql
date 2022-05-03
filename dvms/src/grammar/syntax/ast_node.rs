@@ -95,6 +95,10 @@ pub enum ASTNode<'text, 'arena> {
     TypecastExpression(TypecastExpression<'text, 'arena>),
     SQLType(SQLType<'text, 'arena>),
 
+    WindowFrameBound(WindowFrameBound<'text, 'arena>),
+    WindowFrame(WindowFrame<'text, 'arena>),
+    WindowDefinition(WindowDefinition<'text, 'arena>),
+
     Create(CreateStatement<'text, 'arena>),
     CreateAs(CreateAsStatement<'text, 'arena>),
     CreateView(CreateViewStatement<'text, 'arena>),
