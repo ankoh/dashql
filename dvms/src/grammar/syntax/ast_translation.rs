@@ -123,13 +123,6 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
         macro_rules! read_expr {
             ($node:expr) => {{
                 read_expr(arena, $node)
-                //                match read_expr($node) {
-                //                    Expression::Null => {
-                //                        log::warn!("expression null for node type: {:?}", node_type);
-                //                        Expression::Null
-                //                    }
-                //                    e => e,
-                //                }
             }};
         }
 
