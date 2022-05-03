@@ -395,10 +395,11 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s)) => sql_type = Some(s),
                     (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone())
                 }
-                ASTNode::Expression(Expression::ConstTypeCast(arena.alloc(ConstTypeCastExpression {
+                let cast = arena.alloc(ConstTypeCastExpression {
                     sql_type: sql_type.unwrap(),
                     value: value.unwrap_or_default(),
-                })))
+                });
+                ASTNode::ConstCastExpression(ConstCastExpression::Type(cast))
             }
             sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
                 let mut interval: Option<&IntervalSpecification> = None;
@@ -407,12 +408,11 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t)) => interval = Some(t),
                     (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t)) => value = Some(t.clone())
                 }
-                ASTNode::Expression(Expression::ConstIntervalCast(arena.alloc(
-                    ConstIntervalCastExpression {
-                        value: value.unwrap_or_default(),
-                        interval: interval.unwrap(),
-                    },
-                )))
+                let cast = arena.alloc(ConstIntervalCastExpression {
+                    value: value.unwrap_or_default(),
+                    interval: interval.unwrap(),
+                });
+                ASTNode::ConstCastExpression(ConstCastExpression::Interval(cast))
             }
             sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
                 let mut func_name = None;
@@ -425,14 +425,13 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes)) => func_args = unpack_nodes!(nodes, FunctionArgument),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes)) => func_arg_ordering = unpack_nodes!(nodes, OrderSpecification)
                 }
-                ASTNode::Expression(Expression::ConstFunctionCast(arena.alloc(
-                    ConstFunctionCastExpression {
-                        value: value.unwrap_or_default(),
-                        func_name,
-                        func_args,
-                        func_arg_ordering,
-                    },
-                )))
+                let cast = arena.alloc(ConstFunctionCastExpression {
+                    value: value.unwrap_or_default(),
+                    func_name,
+                    func_args,
+                    func_arg_ordering,
+                });
+                ASTNode::ConstCastExpression(ConstCastExpression::Function(cast))
             }
             sx::NodeType::OBJECT_SQL_ALIAS => {
                 let mut name = "";
@@ -1307,6 +1306,7 @@ fn read_expr<'text, 'arena>(
         ASTNode::Boolean(false) => Expression::False,
         ASTNode::Boolean(true) => Expression::True,
         ASTNode::CaseExpression(ref c) => Expression::Case(c),
+        ASTNode::ConstCastExpression(ref c) => Expression::ConstCast(c),
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         ASTNode::Expression(ref e) => e.clone(),
         ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),

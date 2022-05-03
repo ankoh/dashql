@@ -4681,19 +4681,21 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstFunctionCast(
-                                    ConstFunctionCastExpression {
-                                        value: &quot;&apos;foo&apos;&quot;,
-                                        func_name: Some(
-                                            [
-                                                Name(
-                                                    &quot;somefunc&quot;,
-                                                ),
-                                            ],
-                                        ),
-                                        func_args: [],
-                                        func_arg_ordering: [],
-                                    },
+                                value: ConstCast(
+                                    Function(
+                                        ConstFunctionCastExpression {
+                                            value: &quot;&apos;foo&apos;&quot;,
+                                            func_name: Some(
+                                                [
+                                                    Name(
+                                                        &quot;somefunc&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            func_args: [],
+                                            func_arg_ordering: [],
+                                        },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -4757,26 +4759,28 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstFunctionCast(
-                                    ConstFunctionCastExpression {
-                                        value: &quot;&apos;foo&apos;&quot;,
-                                        func_name: Some(
-                                            [
-                                                Name(
-                                                    &quot;somefunc&quot;,
-                                                ),
+                                value: ConstCast(
+                                    Function(
+                                        ConstFunctionCastExpression {
+                                            value: &quot;&apos;foo&apos;&quot;,
+                                            func_name: Some(
+                                                [
+                                                    Name(
+                                                        &quot;somefunc&quot;,
+                                                    ),
+                                                ],
+                                            ),
+                                            func_args: [
+                                                FunctionArgument {
+                                                    name: None,
+                                                    value: StringRef(
+                                                        &quot;1&quot;,
+                                                    ),
+                                                },
                                             ],
-                                        ),
-                                        func_args: [
-                                            FunctionArgument {
-                                                name: None,
-                                                value: StringRef(
-                                                    &quot;1&quot;,
-                                                ),
-                                            },
-                                        ],
-                                        func_arg_ordering: [],
-                                    },
+                                            func_arg_ordering: [],
+                                        },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -4835,20 +4839,22 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstTypeCast(
-                                    ConstTypeCastExpression {
-                                        value: &quot;&apos;1&apos;&quot;,
-                                        sql_type: SQLType {
-                                            base_type: Numeric(
-                                                NumericType {
-                                                    base: INT4,
-                                                    modifiers: [],
-                                                },
-                                            ),
-                                            array_bounds: [],
-                                            set_of: false,
+                                value: ConstCast(
+                                    Type(
+                                        ConstTypeCastExpression {
+                                            value: &quot;&apos;1&apos;&quot;,
+                                            sql_type: SQLType {
+                                                base_type: Numeric(
+                                                    NumericType {
+                                                        base: INT4,
+                                                        modifiers: [],
+                                                    },
+                                                ),
+                                                array_bounds: [],
+                                                set_of: false,
+                                            },
                                         },
-                                    },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -4907,16 +4913,18 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstIntervalCast(
-                                    ConstIntervalCastExpression {
-                                        value: &quot;&apos;90&apos;&quot;,
-                                        interval: IntervalSpecification {
-                                            interval_type: Some(
-                                                MINUTE_TO_SECOND,
-                                            ),
-                                            precision: None,
+                                value: ConstCast(
+                                    Interval(
+                                        ConstIntervalCastExpression {
+                                            value: &quot;&apos;90&apos;&quot;,
+                                            interval: IntervalSpecification {
+                                                interval_type: Some(
+                                                    MINUTE_TO_SECOND,
+                                                ),
+                                                precision: None,
+                                            },
                                         },
-                                    },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -4975,16 +4983,18 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstIntervalCast(
-                                    ConstIntervalCastExpression {
-                                        value: &quot;&apos;90&apos;&quot;,
-                                        interval: IntervalSpecification {
-                                            interval_type: Some(
-                                                HOUR,
-                                            ),
-                                            precision: None,
+                                value: ConstCast(
+                                    Interval(
+                                        ConstIntervalCastExpression {
+                                            value: &quot;&apos;90&apos;&quot;,
+                                            interval: IntervalSpecification {
+                                                interval_type: Some(
+                                                    HOUR,
+                                                ),
+                                                precision: None,
+                                            },
                                         },
-                                    },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -5043,16 +5053,18 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: ConstIntervalCast(
-                                    ConstIntervalCastExpression {
-                                        value: &quot;1&quot;,
-                                        interval: IntervalSpecification {
-                                            interval_type: Some(
-                                                HOUR,
-                                            ),
-                                            precision: None,
+                                value: ConstCast(
+                                    Interval(
+                                        ConstIntervalCastExpression {
+                                            value: &quot;1&quot;,
+                                            interval: IntervalSpecification {
+                                                interval_type: Some(
+                                                    HOUR,
+                                                ),
+                                                precision: None,
+                                            },
                                         },
-                                    },
+                                    ),
                                 ),
                                 alias: None,
                             },
@@ -6885,65 +6897,73 @@
                                         args: [
                                             Array(
                                                 [
-                                                    ConstFunctionCast(
-                                                        ConstFunctionCastExpression {
-                                                            value: &quot;&apos;2021-01-10&apos;&quot;,
-                                                            func_name: Some(
-                                                                [
-                                                                    Name(
-                                                                        &quot;date&quot;,
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                            func_args: [],
-                                                            func_arg_ordering: [],
-                                                        },
+                                                    ConstCast(
+                                                        Function(
+                                                            ConstFunctionCastExpression {
+                                                                value: &quot;&apos;2021-01-10&apos;&quot;,
+                                                                func_name: Some(
+                                                                    [
+                                                                        Name(
+                                                                            &quot;date&quot;,
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                                func_args: [],
+                                                                func_arg_ordering: [],
+                                                            },
+                                                        ),
                                                     ),
-                                                    ConstFunctionCast(
-                                                        ConstFunctionCastExpression {
-                                                            value: &quot;&apos;2021-02-01&apos;&quot;,
-                                                            func_name: Some(
-                                                                [
-                                                                    Name(
-                                                                        &quot;date&quot;,
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                            func_args: [],
-                                                            func_arg_ordering: [],
-                                                        },
+                                                    ConstCast(
+                                                        Function(
+                                                            ConstFunctionCastExpression {
+                                                                value: &quot;&apos;2021-02-01&apos;&quot;,
+                                                                func_name: Some(
+                                                                    [
+                                                                        Name(
+                                                                            &quot;date&quot;,
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                                func_args: [],
+                                                                func_arg_ordering: [],
+                                                            },
+                                                        ),
                                                     ),
                                                 ],
                                             ),
                                             Array(
                                                 [
-                                                    ConstFunctionCast(
-                                                        ConstFunctionCastExpression {
-                                                            value: &quot;&apos;2021-01-20&apos;&quot;,
-                                                            func_name: Some(
-                                                                [
-                                                                    Name(
-                                                                        &quot;date&quot;,
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                            func_args: [],
-                                                            func_arg_ordering: [],
-                                                        },
+                                                    ConstCast(
+                                                        Function(
+                                                            ConstFunctionCastExpression {
+                                                                value: &quot;&apos;2021-01-20&apos;&quot;,
+                                                                func_name: Some(
+                                                                    [
+                                                                        Name(
+                                                                            &quot;date&quot;,
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                                func_args: [],
+                                                                func_arg_ordering: [],
+                                                            },
+                                                        ),
                                                     ),
-                                                    ConstFunctionCast(
-                                                        ConstFunctionCastExpression {
-                                                            value: &quot;&apos;2021-02-10&apos;&quot;,
-                                                            func_name: Some(
-                                                                [
-                                                                    Name(
-                                                                        &quot;date&quot;,
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                            func_args: [],
-                                                            func_arg_ordering: [],
-                                                        },
+                                                    ConstCast(
+                                                        Function(
+                                                            ConstFunctionCastExpression {
+                                                                value: &quot;&apos;2021-02-10&apos;&quot;,
+                                                                func_name: Some(
+                                                                    [
+                                                                        Name(
+                                                                            &quot;date&quot;,
+                                                                        ),
+                                                                    ],
+                                                                ),
+                                                                func_args: [],
+                                                                func_arg_ordering: [],
+                                                            },
+                                                        ),
                                                     ),
                                                 ],
                                             ),

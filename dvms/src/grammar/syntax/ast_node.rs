@@ -77,6 +77,7 @@ pub enum ASTNode<'text, 'arena> {
     CaseExpression(CaseExpression<'text, 'arena>),
     CaseExpressionClause(CaseExpressionClause<'text, 'arena>),
     CommonTableExpression(CommonTableExpression<'text, 'arena>),
+    ConstCastExpression(ConstCastExpression<'text, 'arena>),
     ExistsExpression(ExistsExpression<'text, 'arena>),
     Expression(Expression<'text, 'arena>),
     FunctionArgument(FunctionArgument<'text, 'arena>),

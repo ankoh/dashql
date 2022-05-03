@@ -65,6 +65,13 @@ pub struct ConstFunctionCastExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub enum ConstCastExpression<'text, 'arena> {
+    Type(&'arena ConstTypeCastExpression<'text, 'arena>),
+    Interval(&'arena ConstIntervalCastExpression<'text, 'arena>),
+    Function(&'arena ConstFunctionCastExpression<'text, 'arena>),
+}
+
+#[derive(Debug, Clone)]
 pub struct TypeCastExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub sql_type: SQLType<'text, 'arena>,
@@ -122,9 +129,7 @@ pub enum Expression<'text, 'arena> {
     Array(&'arena [Expression<'text, 'arena>]),
     Case(&'arena CaseExpression<'text, 'arena>),
     ColumnRef(NamePath<'text, 'arena>),
-    ConstFunctionCast(&'arena ConstFunctionCastExpression<'text, 'arena>),
-    ConstIntervalCast(&'arena ConstIntervalCastExpression<'text, 'arena>),
-    ConstTypeCast(&'arena ConstTypeCastExpression<'text, 'arena>),
+    ConstCast(&'arena ConstCastExpression<'text, 'arena>),
     Exists(&'arena ExistsExpression<'text, 'arena>),
     FunctionCall(&'arena FunctionExpression<'text, 'arena>),
     Indirection(&'arena IndirectionExpression<'text, 'arena>),
