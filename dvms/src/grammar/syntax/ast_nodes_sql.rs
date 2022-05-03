@@ -434,7 +434,7 @@ pub struct FunctionExpression<'text, 'arena> {
     pub filter: Expression<'text, 'arena>,
     pub all: bool,
     pub distinct: bool,
-    pub over: bool,
+    pub over: Option<&'arena WindowFrame<'text, 'arena>>,
 }
 
 #[derive(Debug, Clone)]

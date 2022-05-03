@@ -650,6 +650,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 let mut all = false;
                 let mut distinct = false;
                 let mut variadic = None;
+                let mut over = None;
                 read_attributes! {
                     (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg)) => variadic = Some(arg),
                     (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b)) => all = *b,
@@ -659,6 +660,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => arg_ordering = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes)) => within_group = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_FILTER, n) => filter = read_expr(n),
+                    (Key::SQL_FUNCTION_OVER, ASTNode::WindowFrame(f)) => over = Some(f),
                     (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
                         let args = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
@@ -690,7 +692,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     all,
                     distinct,
                     variadic,
-                    over: false,
+                    over,
                 })
             }
             sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {
