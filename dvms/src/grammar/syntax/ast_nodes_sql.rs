@@ -23,11 +23,6 @@ pub enum Indirection<'text, 'arena> {
     Index(IndirectionIndex<'text, 'arena>),
     Bounds(IndirectionBounds<'text, 'arena>),
 }
-impl<'text, 'arena> Default for Indirection<'text, 'arena> {
-    fn default() -> Self {
-        Indirection::Name("")
-    }
-}
 pub type NamePath<'text, 'arena> = &'arena [Indirection<'text, 'arena>];
 
 #[derive(Debug, Clone)]
@@ -36,21 +31,10 @@ pub enum ArrayBound<'text> {
     Index(&'text str),
 }
 
-impl<'text> Default for ArrayBound<'text> {
-    fn default() -> Self {
-        ArrayBound::Empty
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum ExpressionOperatorName<'text, 'arena> {
     Known(sx::ExpressionOperator),
     Qualified(&'arena [&'text str]),
-}
-impl<'text, 'arena> Default for ExpressionOperatorName<'text, 'arena> {
-    fn default() -> Self {
-        ExpressionOperatorName::Known(sx::ExpressionOperator::EQUAL)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -149,12 +133,6 @@ pub enum Expression<'text, 'arena> {
     Case(&'arena CaseExpression<'text, 'arena>),
     ParameterRef(&'arena ParameterRef<'text, 'arena>),
     Indirection(&'arena IndirectionExpression<'text, 'arena>),
-}
-
-impl<'text, 'arena> Default for Expression<'text, 'arena> {
-    fn default() -> Self {
-        Expression::Null
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -352,12 +330,6 @@ pub struct FunctionArgument<'text, 'arena> {
 pub enum FunctionName<'text> {
     Unknown(&'text str),
     Known(sx::KnownFunction),
-}
-
-impl<'text, 'arena> Default for FunctionName<'text> {
-    fn default() -> Self {
-        FunctionName::Unknown("")
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -563,11 +535,6 @@ pub struct ColumnConstraint<'text, 'arena> {
 pub enum ColumnConstraintVariant<'text, 'arena> {
     Attribute(sx::ConstraintAttribute),
     Constraint(&'arena ColumnConstraint<'text, 'arena>),
-}
-impl<'text, 'arena> Default for ColumnConstraintVariant<'text, 'arena> {
-    fn default() -> Self {
-        ColumnConstraintVariant::Attribute(sx::ConstraintAttribute::DEFERRABLE)
-    }
 }
 
 #[derive(Debug, Clone)]
