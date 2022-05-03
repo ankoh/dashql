@@ -6783,7 +6783,13 @@
                                             StringRef(
                                                 &quot;1&quot;,
                                             ),
-                                            Null,
+                                            Array(
+                                                [
+                                                    StringRef(
+                                                        &quot;foo&quot;,
+                                                    ),
+                                                ],
+                                            ),
                                             Null,
                                         ],
                                         postfix: false,
@@ -6877,8 +6883,70 @@
                                             OVERLAPS,
                                         ),
                                         args: [
-                                            Null,
-                                            Null,
+                                            Array(
+                                                [
+                                                    ConstFunctionCast(
+                                                        ConstFunctionCastExpression {
+                                                            value: &quot;&apos;2021-01-10&apos;&quot;,
+                                                            func_name: Some(
+                                                                [
+                                                                    Name(
+                                                                        &quot;date&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            func_args: [],
+                                                            func_arg_ordering: [],
+                                                        },
+                                                    ),
+                                                    ConstFunctionCast(
+                                                        ConstFunctionCastExpression {
+                                                            value: &quot;&apos;2021-02-01&apos;&quot;,
+                                                            func_name: Some(
+                                                                [
+                                                                    Name(
+                                                                        &quot;date&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            func_args: [],
+                                                            func_arg_ordering: [],
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
+                                            Array(
+                                                [
+                                                    ConstFunctionCast(
+                                                        ConstFunctionCastExpression {
+                                                            value: &quot;&apos;2021-01-20&apos;&quot;,
+                                                            func_name: Some(
+                                                                [
+                                                                    Name(
+                                                                        &quot;date&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            func_args: [],
+                                                            func_arg_ordering: [],
+                                                        },
+                                                    ),
+                                                    ConstFunctionCast(
+                                                        ConstFunctionCastExpression {
+                                                            value: &quot;&apos;2021-02-10&apos;&quot;,
+                                                            func_name: Some(
+                                                                [
+                                                                    Name(
+                                                                        &quot;date&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            func_args: [],
+                                                            func_arg_ordering: [],
+                                                        },
+                                                    ),
+                                                ],
+                                            ),
                                             Null,
                                         ],
                                         postfix: false,

@@ -122,7 +122,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
         }
         macro_rules! read_expr {
             ($node:expr) => {{
-                read_expr($node)
+                read_expr(arena, $node)
                 //                match read_expr($node) {
                 //                    Expression::Null => {
                 //                        log::warn!("expression null for node type: {:?}", node_type);
@@ -1284,7 +1284,10 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
     Ok(Program { statements: stmts })
 }
 
-fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<'text, 'arena> {
+fn read_expr<'text, 'arena>(
+    arena: &'arena bumpalo::Bump,
+    node: &'arena ASTNode<'text, 'arena>,
+) -> Expression<'text, 'arena> {
     match node {
         ASTNode::Boolean(false) => Expression::False,
         ASTNode::Boolean(true) => Expression::True,
@@ -1300,6 +1303,7 @@ fn read_expr<'text, 'arena>(node: &'arena ASTNode<'text, 'arena>) -> Expression<
         ASTNode::TypeCastExpression(ref c) => Expression::TypeCast(c),
         ASTNode::InExpression(ref i) => Expression::In(i),
         ASTNode::TypeTestExpression(ref t) => Expression::TypeTest(t),
+        ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null
@@ -1313,7 +1317,7 @@ fn read_exprs<'text, 'arena>(
 ) -> &'arena [Expression<'text, 'arena>] {
     let exprs = alloc.alloc_slice_fill_default(nodes.len());
     for i in 0..nodes.len() {
-        exprs[i] = read_expr(&nodes[i]);
+        exprs[i] = read_expr(alloc, &nodes[i]);
     }
     exprs
 }
@@ -1397,6 +1401,6 @@ fn read_dson<'text, 'arena>(
         ASTNode::Expression(e) => DsonValue::Expression(e.clone()),
         ASTNode::StringRef(s) => DsonValue::Expression(Expression::StringRef(s)),
         ASTNode::FunctionExpression(f) => DsonValue::Expression(Expression::FunctionCall(f)),
-        e => DsonValue::Expression(read_expr(e)),
+        e => DsonValue::Expression(read_expr(alloc, e)),
     }
 }
