@@ -1445,8 +1445,8 @@
                                     alias: None,
                                 },
                                 Value {
-                                    value: Typecast(
-                                        TypecastExpression {
+                                    value: TypeCast(
+                                        TypeCastExpression {
                                             value: FunctionCall(
                                                 FunctionExpression {
                                                     name: Unknown(
@@ -1607,8 +1607,8 @@
                                     alias: None,
                                 },
                                 Value {
-                                    value: Typecast(
-                                        TypecastExpression {
+                                    value: TypeCast(
+                                        TypeCastExpression {
                                             value: FunctionCall(
                                                 FunctionExpression {
                                                     name: Unknown(

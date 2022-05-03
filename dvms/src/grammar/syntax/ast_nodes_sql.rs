@@ -65,14 +65,7 @@ pub struct ConstFunctionCastExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
-pub enum ConstCastExpression<'text, 'arena> {
-    Function(ConstFunctionCastExpression<'text, 'arena>),
-    Interval(ConstIntervalCastExpression<'text, 'arena>),
-    Type(ConstTypeCastExpression<'text, 'arena>),
-}
-
-#[derive(Debug, Clone)]
-pub struct TypecastExpression<'text, 'arena> {
+pub struct TypeCastExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub sql_type: SQLType<'text, 'arena>,
 }
@@ -115,6 +108,21 @@ pub struct ParameterRef<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
+pub struct TypeTestExpression<'text, 'arena> {
+    pub negate: bool,
+    pub value: Expression<'text, 'arena>,
+    pub of_types: &'arena [&'arena SQLType<'text, 'arena>],
+}
+
+#[derive(Debug, Clone)]
+pub struct InExpression<'text, 'arena> {
+    pub negate: bool,
+    pub value: Expression<'text, 'arena>,
+    pub in_result: Option<&'arena SelectStatement<'text, 'arena>>,
+    pub in_values: &'arena [Expression<'text, 'arena>],
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
     True,
@@ -125,7 +133,7 @@ pub enum Expression<'text, 'arena> {
     ConstTypeCast(&'arena ConstTypeCastExpression<'text, 'arena>),
     ConstIntervalCast(&'arena ConstIntervalCastExpression<'text, 'arena>),
     ConstFunctionCast(&'arena ConstFunctionCastExpression<'text, 'arena>),
-    Typecast(&'arena TypecastExpression<'text, 'arena>),
+    TypeCast(&'arena TypeCastExpression<'text, 'arena>),
     FunctionCall(&'arena FunctionExpression<'text, 'arena>),
     SelectStatement(&'arena SelectStatementExpression<'text, 'arena>),
     Subquery(&'arena SubqueryExpression<'text, 'arena>),
@@ -133,6 +141,8 @@ pub enum Expression<'text, 'arena> {
     Case(&'arena CaseExpression<'text, 'arena>),
     ParameterRef(&'arena ParameterRef<'text, 'arena>),
     Indirection(&'arena IndirectionExpression<'text, 'arena>),
+    In(&'arena InExpression<'text, 'arena>),
+    TypeTest(&'arena TypeTestExpression<'text, 'arena>),
 }
 
 #[derive(Debug, Clone)]

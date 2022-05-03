@@ -6699,8 +6699,8 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: Typecast(
-                                    TypecastExpression {
+                                value: TypeCast(
+                                    TypeCastExpression {
                                         value: StringRef(
                                             &quot;1&quot;,
                                         ),
