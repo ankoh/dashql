@@ -1132,6 +1132,21 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                     frame: frame.unwrap(),
                 })
             }
+            sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION => {
+                let mut negate = false;
+                let mut value = None;
+                let mut of_types: &[_] = &[];
+                read_attributes! {
+                    (Key::SQL_TYPETEST_NEGATE, ASTNode::Boolean(neg)) => negate = *neg,
+                    (Key::SQL_TYPETEST_VALUE, n) => value = Some(read_expr!(n)),
+                    (Key::SQL_TYPETEST_TYPES, ASTNode::Array(nodes)) => of_types = unpack_nodes!(nodes, SQLType)
+                }
+                ASTNode::TypeTestExpression(TypeTestExpression {
+                    negate,
+                    value: value.unwrap(),
+                    of_types,
+                })
+            }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut with_ctes: &[_] = &[];
                 let mut with_recursive = false;
@@ -1301,7 +1316,6 @@ fn read_expr<'text, 'arena>(
         ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::TypeCastExpression(ref c) => Expression::TypeCast(c),
-        ASTNode::InExpression(ref i) => Expression::In(i),
         ASTNode::TypeTestExpression(ref t) => Expression::TypeTest(t),
         ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         _ => {

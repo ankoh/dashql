@@ -82,7 +82,6 @@ pub enum ASTNode<'text, 'arena> {
     FunctionArgument(FunctionArgument<'text, 'arena>),
     FunctionExpression(FunctionExpression<'text, 'arena>),
     GroupByItem(GroupByItem<'text, 'arena>),
-    InExpression(InExpression<'text, 'arena>),
     Indirection(Indirection<'text, 'arena>),
     IndirectionExpression(IndirectionExpression<'text, 'arena>),
     IntervalSpecification(IntervalSpecification<'text>),

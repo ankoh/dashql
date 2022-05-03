@@ -115,14 +115,6 @@ pub struct TypeTestExpression<'text, 'arena> {
 }
 
 #[derive(Debug, Clone)]
-pub struct InExpression<'text, 'arena> {
-    pub negate: bool,
-    pub value: Expression<'text, 'arena>,
-    pub in_result: Option<&'arena SelectStatement<'text, 'arena>>,
-    pub in_values: &'arena [Expression<'text, 'arena>],
-}
-
-#[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
     True,
@@ -135,7 +127,6 @@ pub enum Expression<'text, 'arena> {
     ConstTypeCast(&'arena ConstTypeCastExpression<'text, 'arena>),
     Exists(&'arena ExistsExpression<'text, 'arena>),
     FunctionCall(&'arena FunctionExpression<'text, 'arena>),
-    In(&'arena InExpression<'text, 'arena>),
     Indirection(&'arena IndirectionExpression<'text, 'arena>),
     Nary(&'arena NaryExpression<'text, 'arena>),
     ParameterRef(&'arena ParameterRef<'text, 'arena>),
