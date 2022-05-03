@@ -1304,15 +1304,34 @@ sql_a_expr:
   | sql_a_expr IS NOT UNKNOWN                       %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_UNKNOWN), $1); }
   | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_DISTINCT_FROM), $1, $5); }
   | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4, @5}), ExprFunc::IS_NOT_DISTINCT_FROM), $1, $6); }
-  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_OF), $1, ctx.Add(@5, move($5))); }
-  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_OF), $1, ctx.Add(@6, move($6))); }
-
+  | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
+            Attr(Key::SQL_TYPETEST_VALUE, $1),
+            Attr(Key::SQL_TYPETEST_TYPES, ctx.Add(@5, std::move($5))),
+        });
+    }
+  | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
+            Attr(Key::SQL_TYPETEST_VALUE, $1),
+            Attr(Key::SQL_TYPETEST_TYPES, ctx.Add(@6, std::move($6))),
+        });
+    }
   | sql_a_expr BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr         %prec BETWEEN   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), $3 ? ExprFunc::BETWEEN_ASYMMETRIC : ExprFunc::BETWEEN_SYMMETRIC), $1, $4, $6); }
   | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr  %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), $4 ? ExprFunc::NOT_BETWEEN_ASYMMETRIC : ExprFunc::NOT_BETWEEN_SYMMETRIC), $1, $5, $7); }
   | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                  %prec BETWEEN   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::BETWEEN_SYMMETRIC), $1, $4, $6); }
   | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr           %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::NOT_BETWEEN_SYMMETRIC), $1, $5, $7); }
-  | sql_a_expr IN_P sql_in_expr                                                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IN), $1, $3); }
-  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_IN), $1, $4); }
+  | sql_a_expr IN_P sql_in_expr {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_IN_EXPRESSION, {
+            Attr(Key::SQL_IN_INPUT, $1),
+            Attr(Key::SQL_IN_VALUES, std::move($3)),
+        });
+    }
+  | sql_a_expr NOT_LA IN_P sql_in_expr %prec NOT_LA {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_IN_EXPRESSION, {
+            Attr(Key::SQL_IN_INPUT, $1),
+            Attr(Key::SQL_IN_VALUES, std::move($4)),
+        });
+    }
   | sql_a_expr sql_subquery_op sql_subquery_quantifier sql_select_with_parens    %prec Op {
         auto s = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, std::move($4));
         auto e = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {

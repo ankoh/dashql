@@ -7091,18 +7091,17 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..24" text="select a i.. (integer)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..24" text="a is of (integer)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..24" text="a is of (integer)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPETEST_EXPRESSION" loc="7..24" text="a is of (integer)">
+                                    <node key="SQL_TYPETEST_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
+                                    <node key="SQL_TYPETEST_TYPES" type="ARRAY">
                                         <node type="OBJECT_SQL_TYPENAME" loc="16..23" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="IS_OF"/>
                                 </node>
                             </node>
                         </node>
@@ -7114,57 +7113,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: None,
-                        targets: [
-                            Value {
-                                value: Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            IS_OF,
-                                        ),
-                                        args: [
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;a&quot;,
-                                                    ),
-                                                ],
-                                            ),
-                                            Null,
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: [],
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_isof_2">
         <input>select a is not of (integer);</input>
@@ -7174,18 +7122,17 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..28" text="select a i.. (integer)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..28" text="a is not o.. (integer)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..28" text="a is not o.. (integer)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPETEST_EXPRESSION" loc="7..28" text="a is not o.. (integer)">
+                                    <node key="SQL_TYPETEST_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
+                                    <node key="SQL_TYPETEST_TYPES" type="ARRAY">
                                         <node type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="IS_NOT_OF"/>
                                 </node>
                             </node>
                         </node>
@@ -7197,57 +7144,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: None,
-                        targets: [
-                            Value {
-                                value: Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            IS_NOT_OF,
-                                        ),
-                                        args: [
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;a&quot;,
-                                                    ),
-                                                ],
-                                            ),
-                                            Null,
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: [],
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_case_1">
         <input>select case a
@@ -8517,13 +8413,13 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..22" text="select a i..(select 1)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..22" text="a in (select 1)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..22" text="a in (select 1)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_IN_EXPRESSION" loc="7..22" text="a in (select 1)">
+                                    <node key="SQL_IN_INPUT" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="12..22" text="(select 1)">
+                                    <node key="SQL_IN_VALUES" type="OBJECT_SQL_SELECT_EXPRESSION" loc="12..22" text="(select 1)">
                                         <node key="SQL_SELECT_EXPRESSION_STATEMENT" type="OBJECT_SQL_SELECT" loc="12..22" text="(select 1)">
                                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="1">
@@ -8532,7 +8428,6 @@
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="IN"/>
                                 </node>
                             </node>
                         </node>
@@ -8544,90 +8439,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: None,
-                        targets: [
-                            Value {
-                                value: Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            IN,
-                                        ),
-                                        args: [
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;a&quot;,
-                                                    ),
-                                                ],
-                                            ),
-                                            SelectStatement(
-                                                SelectStatementExpression {
-                                                    statement: SelectStatement {
-                                                        with_ctes: [],
-                                                        with_recursive: false,
-                                                        data: From(
-                                                            SelectFromStatement {
-                                                                all: false,
-                                                                distinct: None,
-                                                                targets: [
-                                                                    Value {
-                                                                        value: StringRef(
-                                                                            &quot;1&quot;,
-                                                                        ),
-                                                                        alias: None,
-                                                                    },
-                                                                ],
-                                                                into: None,
-                                                                from: [],
-                                                                where_clause: None,
-                                                                group_by: [],
-                                                                having: None,
-                                                                windows: [],
-                                                                sample: None,
-                                                            },
-                                                        ),
-                                                        order_by: [],
-                                                        row_locking: [],
-                                                        limit: None,
-                                                        offset: None,
-                                                    },
-                                                    indirection: None,
-                                                },
-                                            ),
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: [],
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_in_2">
         <input>select a in (2, 3)</input>
@@ -8637,17 +8448,16 @@
                     <node type="OBJECT_SQL_SELECT" loc="0..18" text="select a in (2, 3)">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..18" text="a in (2, 3)">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_NARY_EXPRESSION" loc="7..18" text="a in (2, 3)">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_IN_EXPRESSION" loc="7..18" text="a in (2, 3)">
+                                    <node key="SQL_IN_INPUT" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                             <node type="STRING_REF" loc="7..8" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="ARRAY">
+                                    <node key="SQL_IN_VALUES" type="ARRAY">
                                         <node type="STRING_REF" loc="13..14" text="2"/>
                                         <node type="STRING_REF" loc="16..17" text="3"/>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="IN"/>
                                 </node>
                             </node>
                         </node>
@@ -8659,57 +8469,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: None,
-                        targets: [
-                            Value {
-                                value: Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            IN,
-                                        ),
-                                        args: [
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;a&quot;,
-                                                    ),
-                                                ],
-                                            ),
-                                            Null,
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [],
-                        where_clause: None,
-                        group_by: [],
-                        having: None,
-                        windows: [],
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: None,
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="select_subquery_1">
         <input>select a like all (select 1);</input>
