@@ -1,8 +1,13 @@
 use super::program_text::*;
 use dashql_proto::syntax as sx;
+use std::collections::BinaryHeap;
 
-pub type StatementMapping = (usize, usize);
-pub type StatementMappings = Vec<StatementMapping>;
+// The fraction of nodes that must be equal between statements to emit an UPDATE.
+// (Instead of DELETE + INSERT)
+const UPDATE_SIMILARITY_THRESHOLD: f64 = 0.75;
+
+type StatementMapping = (usize, usize);
+type StatementMappings = Vec<StatementMapping>;
 
 pub enum DiffOpCode {
     Delete,
@@ -13,22 +18,32 @@ pub enum DiffOpCode {
 }
 
 #[derive(PartialEq, Eq)]
-pub enum SimilarityEstimate {
+enum SimilarityEstimate {
     Equal,
     Similar,
     NotEqual,
 }
 
 #[derive(Default)]
-pub struct StatementSimilarity {
+struct StatementSimilarity {
     total_nodes: usize,
     matching_nodes: usize,
 }
 
+impl StatementSimilarity {
+    fn score(&self) -> f64 {
+        if self.total_nodes == 0 {
+            0.0
+        } else {
+            self.matching_nodes as f64 / self.total_nodes as f64
+        }
+    }
+}
+
 pub struct DiffOp {
-    op_code: DiffOpCode,
-    source: Option<usize>,
-    target: Option<usize>,
+    pub op_code: DiffOpCode,
+    pub source: Option<usize>,
+    pub target: Option<usize>,
 }
 
 pub struct ProgramDiffCtx<'text, 'ast> {
@@ -515,6 +530,24 @@ fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
     lcs
 }
 
+#[derive(Eq, PartialEq)]
+struct SimilarityScoreEntry {
+    entry_id: usize,
+    score: u64,
+}
+
+impl std::cmp::PartialOrd for SimilarityScoreEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.score.partial_cmp(&other.score)
+    }
+}
+
+impl std::cmp::Ord for SimilarityScoreEntry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.score.cmp(&other.score)
+    }
+}
+
 pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDiffCtx<'_, '_>) -> Vec<DiffOp> {
     // Unpack arguments
     let source_stmts = source.ast.statements().unwrap_or_default();
@@ -528,34 +561,18 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
     // Build the LCS
     let lcs = find_lcs(&unique_pairs);
 
-    // Track which statements were emitted
-    let mut source_emitted = Vec::new();
-    let mut target_emitted = Vec::new();
-    source_emitted.resize(source_stmts.len(), false);
-    target_emitted.resize(target_stmts.len(), false);
-
-    // Helper to emit diff ops
-    let mut ops = Vec::new();
-    let emit = &mut |code: DiffOpCode, source_id: Option<usize>, target_id: Option<usize>| {
-        ops.push(DiffOp {
-            op_code: code,
-            source: source_id,
-            target: target_id,
-        });
-        if let Some(source_id) = source_id {
-            source_emitted[source_id] = true;
-        }
-        if let Some(target_id) = target_id {
-            target_emitted[target_id] = true;
-        }
-    };
-
     // Iterate over LCS sections
-    let mut prev = (0, 0);
+    let mut prev: (usize, usize);
     let mut next = (0, 0);
     let mut lcs_iter = 0;
     lcs_iter -= 1;
 
+    // Track which target statements were emitted
+    let mut target_emitted = Vec::new();
+    target_emitted.resize(target_stmts.len(), false);
+
+    // Derive diff ops
+    let mut ops = Vec::new();
     loop {
         // Find next mapping range
         lcs_iter += 1;
@@ -570,11 +587,96 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
 
         // Iterate over all source statements in the section
         for source_id in prev_source_id..next_source_id {
+            let mut source_emitted = false;
+
             // Are the equal pairs?
             // We have to emit equal pairs that are either ambiguous or unique but cross section boundaries.
-            // XXX
-        }
-    }
+            let equal_begin = equal_pairs.partition_point(|(source, _)| *source < source_id);
+            let equal_end = equal_pairs.partition_point(|(source, _)| *source > source_id);
+            for equal_iter in equal_begin..equal_end {
+                let (_, target_id) = equal_pairs[equal_iter];
+                if target_emitted[target_id] {
+                    continue;
+                }
+                ops.push(DiffOp {
+                    op_code: DiffOpCode::Move,
+                    source: Some(source_id),
+                    target: Some(target_id),
+                });
+                source_emitted = true;
+                target_emitted[target_id] = true;
+                break;
+            }
+            if source_emitted {
+                continue;
+            }
 
-    Vec::new()
+            // Find best match among the remaining targets in the section.
+            // This will result in a FCFS assignment of updated statements.
+            // We could model this as bi-partite weighted matching problem but it's probably not worth it.
+            // FCFS might be the more intuitive mapping anyway.
+            let mut matches = BinaryHeap::new();
+            for target_id in prev_target_id..next_target_id {
+                if target_emitted[target_id] {
+                    continue;
+                }
+                // The similiarity computation of unmatched statements is the most expensive operation in this diff.
+                // We want to do it as rarely as possible and therefore do an additional fast estimation upfront.
+                match estimate_similarity((source, source_id), (target, target_id)) {
+                    SimilarityEstimate::NotEqual => continue,
+                    SimilarityEstimate::Equal => {
+                        ops.push(DiffOp {
+                            op_code: DiffOpCode::Keep,
+                            source: Some(source_id),
+                            target: Some(target_id),
+                        });
+                        target_emitted[target_id] = true;
+                        break;
+                    }
+                    SimilarityEstimate::Similar => {
+                        let sim = compute_similarity((source, source_id), (target, target_id));
+                        let sim_score = sim.score();
+                        // Qualifies as similar statement?
+                        // Add to min-heap
+                        if sim_score >= UPDATE_SIMILARITY_THRESHOLD {
+                            matches.push(SimilarityScoreEntry {
+                                entry_id: target_id,
+                                score: (sim_score * 1000000000.0) as u64,
+                            });
+                        }
+                    }
+                }
+
+                // Found nothing?
+                match matches.pop() {
+                    Some(m) => {
+                        ops.push(DiffOp {
+                            op_code: DiffOpCode::Update,
+                            source: Some(source_id),
+                            target: Some(m.entry_id),
+                        });
+                    }
+                    None => {
+                        ops.push(DiffOp {
+                            op_code: DiffOpCode::Delete,
+                            source: Some(source_id),
+                            target: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Reached end?
+        if lcs_iter == lcs.len() {
+            break;
+        }
+        // Otherwise emit diff operation for boundary
+        ops.push(DiffOp {
+            op_code: DiffOpCode::Keep,
+            source: Some(next_source_id),
+            target: Some(next_target_id),
+        });
+    }
+    ops
 }
