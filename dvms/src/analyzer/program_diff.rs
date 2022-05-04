@@ -12,6 +12,7 @@ pub enum DiffOpCode {
     Update,
 }
 
+#[derive(PartialEq, Eq)]
 pub enum SimilarityEstimate {
     Equal,
     Similar,
@@ -30,13 +31,13 @@ pub struct DiffOp {
     target: Option<usize>,
 }
 
-pub struct ProgramAnalysisContext<'text, 'ast> {
+pub struct ProgramDiffCtx<'text, 'ast> {
     pub text: &'text str,
     pub ast: sx::Program<'ast>,
     pub subtree_sizes: Vec<usize>,
 }
 
-pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramAnalysisContext<'text, 'ast>, node_id: usize) -> usize {
+pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id: usize) -> usize {
     // Init tree sizes
     let nodes = ctx.ast.nodes().unwrap_or_default();
     if ctx.subtree_sizes.len() != nodes.len() {
@@ -100,15 +101,15 @@ pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramAnalysisContext<'text, 'a
 }
 
 pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
-    source: (&'source_txt str, sx::Program<'source_ast>, usize),
-    target: (&'source_txt str, sx::Program<'source_ast>, usize),
+    source: (&ProgramDiffCtx<'_, '_>, usize),
+    target: (&ProgramDiffCtx<'_, '_>, usize),
 ) -> SimilarityEstimate {
-    let (source_txt, source_prog, source_stmt_id) = source;
-    let (target_txt, target_prog, target_stmt_id) = target;
-    let source_nodes = source_prog.nodes().unwrap_or_default();
-    let target_nodes = target_prog.nodes().unwrap_or_default();
-    let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
+    let (source_ctx, source_stmt_id) = source;
+    let (target_ctx, target_stmt_id) = target;
+    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
+    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
 
     // Different root node types?
     let s = source_nodes[source_stmt.root_node() as usize];
@@ -120,8 +121,8 @@ pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     // Do a string comparison if the strings are equal in size and number of root attributes.
     // This will bypass us the tree diffing for all unchanged statements.
     if (s.children_count() == t.children_count()) && (s.location().length() == t.location().length()) {
-        let st = text_at(source_txt, *s.location());
-        let tt = text_at(target_txt, *t.location());
+        let st = text_at(source_ctx.text, *s.location());
+        let tt = text_at(target_ctx.text, *t.location());
         if st == tt {
             return SimilarityEstimate::Equal;
         }
@@ -130,8 +131,8 @@ pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
 }
 
 pub fn compute_similarity(
-    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
-    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    source: (&mut ProgramDiffCtx<'_, '_>, usize),
+    target: (&mut ProgramDiffCtx<'_, '_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
@@ -272,8 +273,8 @@ pub fn compute_similarity(
 }
 
 pub fn check_deep_equality(
-    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
-    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    source: (&mut ProgramDiffCtx<'_, '_>, usize),
+    target: (&mut ProgramDiffCtx<'_, '_>, usize),
 ) -> bool {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
@@ -387,8 +388,70 @@ pub fn check_deep_equality(
     true
 }
 
-// // Find unique statement pair in two lists of statement ids
-// pub fn map_statements(
-//     source: (&'source_txt str, sx::Program<'source_ast>),
-//     target: (&'target_txt str, sx::Program<'target_ast>),
-// )
+// Find unique statement pair in two lists of statement ids
+pub fn map_statements(
+    source: &mut ProgramDiffCtx<'_, '_>,
+    target: &mut ProgramDiffCtx<'_, '_>,
+    unique_pairs: &mut StatementMappings,
+    equal_pairs: &mut StatementMappings,
+) {
+    // Maps target ids to matched source ids
+    let mut source_ambiguous: Vec<bool> = Vec::new();
+    let mut target_ambiguous: Vec<bool> = Vec::new();
+    let mut target_mapping: Vec<Option<usize>> = Vec::new();
+    let source_stmts = source.ast.statements().unwrap_or_default();
+    let target_stmts = target.ast.statements().unwrap_or_default();
+    source_ambiguous.resize(source_stmts.len(), false);
+    target_ambiguous.resize(target_stmts.len(), false);
+    target_mapping.resize(target_stmts.len(), None);
+
+    // We deviate from PatienceDiff sightly here:
+    //
+    // PatienceDiff first makes both sides unique and then finds mappings between unique records.
+    // We assume that our statements are unique most of the time and therefore compute the mapping directly.
+    // We also short-circuit the equality checks which makes the quadratic behavior acceptable here.
+    //
+    for source_id in 0..source_stmts.len() {
+        let mut previous_match: Option<usize> = None;
+        for target_id in 0..target_stmts.len() {
+            let estimate = estimate_similarity((source, source_id), (target, target_id));
+            match estimate {
+                SimilarityEstimate::NotEqual => continue,
+                SimilarityEstimate::Similar => {
+                    if !check_deep_equality((source, source_id), (target, target_id)) {
+                        continue;
+                    }
+                }
+                SimilarityEstimate::Equal => (),
+            }
+            equal_pairs.push((source_id, target_id));
+
+            // Mapping ambiguous?
+            // Two target statements map to the same source statement
+            if let Some(existing) = target_mapping[target_id] {
+                source_ambiguous[source_id] = true;
+                source_ambiguous[existing] = true;
+                target_ambiguous[target_id] = true;
+                continue;
+            } else if let Some(previous_match) = previous_match {
+                // Target statement maps to two source statements
+                source_ambiguous[source_id] = true;
+                target_ambiguous[previous_match] = true;
+                target_ambiguous[target_id] = true;
+                continue;
+            }
+            target_mapping[target_id] = Some(source_id);
+            previous_match = Some(target_id);
+        }
+    }
+
+    // Emit non-ambiguous
+    for target_id in 0..target_stmts.len() {
+        if let Some(source_id) = target_mapping[target_id] {
+            if !source_ambiguous[source_id] && !target_ambiguous[target_id] {
+                unique_pairs.push((source_id, target_id));
+            }
+        }
+    }
+    unique_pairs.sort_unstable();
+}
