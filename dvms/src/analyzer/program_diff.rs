@@ -1,8 +1,8 @@
 use super::program_text::*;
 use dashql_proto::syntax as sx;
 
-type StatementMapping = (usize, usize);
-type StatementMappings = Vec<StatementMapping>;
+pub type StatementMapping = (usize, usize);
+pub type StatementMappings = Vec<StatementMapping>;
 
 pub enum DiffOpCode {
     Delete,
@@ -30,14 +30,20 @@ pub struct DiffOp {
     target: Option<usize>,
 }
 
-pub fn compute_tree_size<'a>(prog: sx::Program<'a>, root: usize, sizes: &mut Vec<usize>) -> usize {
+pub struct ProgramAnalysisContext<'text, 'ast> {
+    pub text: &'text str,
+    pub ast: sx::Program<'ast>,
+    pub subtree_sizes: Vec<usize>,
+}
+
+pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramAnalysisContext<'text, 'ast>, node_id: usize) -> usize {
     // Init tree sizes
-    let nodes = prog.nodes().unwrap_or_default();
-    if sizes.len() != nodes.len() {
-        sizes.resize(nodes.len(), 0);
-    } else if sizes[root] > 0 {
+    let nodes = ctx.ast.nodes().unwrap_or_default();
+    if ctx.subtree_sizes.len() != nodes.len() {
+        ctx.subtree_sizes.resize(nodes.len(), 0);
+    } else if ctx.subtree_sizes[node_id] > 0 {
         // Already computed
-        return sizes[root];
+        return ctx.subtree_sizes[node_id];
     }
 
     /// Run a DFS starting at every program statement
@@ -51,8 +57,8 @@ pub fn compute_tree_size<'a>(prog: sx::Program<'a>, root: usize, sizes: &mut Vec
     pending.reserve(32);
     pending.push(DFSNode {
         visited: false,
-        target: root,
-        parent: root,
+        target: node_id,
+        parent: node_id,
     });
 
     // Traverse the tree
@@ -63,15 +69,15 @@ pub fn compute_tree_size<'a>(prog: sx::Program<'a>, root: usize, sizes: &mut Vec
         // Already visited?
         if top.visited {
             if pending.len() == 1 {
-                total = sizes[top.target];
+                total = ctx.subtree_sizes[top.target];
                 break;
             }
-            sizes[top.parent] += sizes[top.target];
+            ctx.subtree_sizes[top.parent] += ctx.subtree_sizes[top.target];
             pending.pop();
         }
 
         // Set subtree size and mark as visited
-        sizes[top.target] = 1;
+        ctx.subtree_sizes[top.target] = 1;
         pending.last_mut().unwrap().visited = true;
 
         // Discover children
@@ -123,21 +129,21 @@ pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     SimilarityEstimate::Similar
 }
 
-pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
-    source: (&'source_txt str, sx::Program<'source_ast>, usize, &mut Vec<usize>),
-    target: (&'target_txt str, sx::Program<'target_ast>, usize, &mut Vec<usize>),
+pub fn compute_similarity(
+    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
-    let (source_txt, source_prog, source_stmt_id, source_sizes) = source;
-    let (target_txt, target_prog, target_stmt_id, target_sizes) = target;
-    let source_nodes = source_prog.nodes().unwrap_or_default();
-    let target_nodes = target_prog.nodes().unwrap_or_default();
-    let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
+    let (source_ctx, source_stmt_id) = source;
+    let (target_ctx, target_stmt_id) = target;
+    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
+    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
 
     // Compute tree sizes
-    let source_size = compute_tree_size(source_prog, source_stmt_id, source_sizes);
-    let target_size = compute_tree_size(target_prog, target_stmt_id, target_sizes);
+    let source_size = compute_tree_size(source_ctx, source_stmt.root_node() as usize);
+    let target_size = compute_tree_size(target_ctx, target_stmt.root_node() as usize);
     let node_count = source_size.max(target_size);
     if node_count == 0 {
         return StatementSimilarity::default();
@@ -196,7 +202,7 @@ pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
             sx::NodeType::STRING_REF => {
-                text_at(source_txt, *source.location()) == text_at(target_txt, *target.location())
+                text_at(source_ctx.text, *source.location()) == text_at(target_ctx.text, *target.location())
             }
             sx::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
@@ -265,21 +271,21 @@ pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     sim
 }
 
-pub fn check_deep_equality<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
-    source: (&'source_txt str, sx::Program<'source_ast>, usize, &mut Vec<usize>),
-    target: (&'target_txt str, sx::Program<'target_ast>, usize, &mut Vec<usize>),
+pub fn check_deep_equality(
+    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
 ) -> bool {
     // Unpack arguments
-    let (source_txt, source_prog, source_stmt_id, source_sizes) = source;
-    let (target_txt, target_prog, target_stmt_id, target_sizes) = target;
-    let source_nodes = source_prog.nodes().unwrap_or_default();
-    let target_nodes = target_prog.nodes().unwrap_or_default();
-    let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
+    let (source_ctx, source_stmt_id) = source;
+    let (target_ctx, target_stmt_id) = target;
+    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
+    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
 
     // Compute tree sizes
-    let source_size = compute_tree_size(source_prog, source_stmt_id, source_sizes);
-    let target_size = compute_tree_size(target_prog, target_stmt_id, target_sizes);
+    let source_size = compute_tree_size(source_ctx, source_stmt.root_node() as usize);
+    let target_size = compute_tree_size(target_ctx, target_stmt.root_node() as usize);
     let node_count = source_size.max(target_size);
     if node_count == 0 {
         return true;
@@ -317,7 +323,7 @@ pub fn check_deep_equality<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
             sx::NodeType::STRING_REF => {
-                text_at(source_txt, *source.location()) == text_at(target_txt, *target.location())
+                text_at(source_ctx.text, *source.location()) == text_at(target_ctx.text, *target.location())
             }
             sx::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
@@ -380,3 +386,9 @@ pub fn check_deep_equality<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     }
     true
 }
+
+// // Find unique statement pair in two lists of statement ids
+// pub fn map_statements(
+//     source: (&'source_txt str, sx::Program<'source_ast>),
+//     target: (&'target_txt str, sx::Program<'target_ast>),
+// )
