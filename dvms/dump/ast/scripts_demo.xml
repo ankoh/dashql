@@ -1881,7 +1881,9 @@
                                                                         DsonField {
                                                                             key: &quot;DSON_ZERO&quot;,
                                                                             value: Expression(
-                                                                                True,
+                                                                                Boolean(
+                                                                                    true,
+                                                                                ),
                                                                             ),
                                                                         },
                                                                     ],
@@ -2069,7 +2071,9 @@
                                                                         DsonField {
                                                                             key: &quot;DSON_ZERO&quot;,
                                                                             value: Expression(
-                                                                                True,
+                                                                                Boolean(
+                                                                                    true,
+                                                                                ),
                                                                             ),
                                                                         },
                                                                     ],

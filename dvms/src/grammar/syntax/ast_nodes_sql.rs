@@ -124,8 +124,7 @@ pub struct TypeTestExpression<'text, 'arena> {
 #[derive(Debug, Clone)]
 pub enum Expression<'text, 'arena> {
     Null,
-    True,
-    False,
+    Boolean(bool),
     Array(&'arena [Expression<'text, 'arena>]),
     Case(&'arena CaseExpression<'text, 'arena>),
     ColumnRef(NamePath<'text, 'arena>),

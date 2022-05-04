@@ -1305,8 +1305,7 @@ fn read_expr<'text, 'arena>(
     node: &'arena ASTNode<'text, 'arena>,
 ) -> Expression<'text, 'arena> {
     match node {
-        ASTNode::Boolean(false) => Expression::False,
-        ASTNode::Boolean(true) => Expression::True,
+        ASTNode::Boolean(b) => Expression::Boolean(*b),
         ASTNode::CaseExpression(ref c) => Expression::Case(c),
         ASTNode::ConstCastExpression(ref c) => Expression::ConstCast(c),
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
