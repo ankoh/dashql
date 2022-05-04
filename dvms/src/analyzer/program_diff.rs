@@ -94,21 +94,20 @@ pub fn compute_tree_size<'a>(prog: sx::Program<'a>, root: usize, sizes: &mut Vec
 }
 
 pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
-    source: (&'source_txt str, sx::Program<'source_ast>, usize),
-    target: (&'target_txt str, sx::Program<'target_ast>, usize),
-    sizes: &mut Vec<usize>,
+    source: (&'source_txt str, sx::Program<'source_ast>, usize, &mut Vec<usize>),
+    target: (&'target_txt str, sx::Program<'target_ast>, usize, &mut Vec<usize>),
 ) -> StatementSimilarity {
     // Unpack arguments
-    let (source_txt, source_prog, source_stmt_id) = source;
-    let (target_txt, target_prog, target_stmt_id) = target;
+    let (source_txt, source_prog, source_stmt_id, source_sizes) = source;
+    let (target_txt, target_prog, target_stmt_id, target_sizes) = target;
     let source_nodes = source_prog.nodes().unwrap_or_default();
     let target_nodes = target_prog.nodes().unwrap_or_default();
     let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
     let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
 
     // Compute tree sizes
-    let source_size = compute_tree_size(source_prog, source_stmt_id, sizes);
-    let target_size = compute_tree_size(target_prog, target_stmt_id, sizes);
+    let source_size = compute_tree_size(source_prog, source_stmt_id, source_sizes);
+    let target_size = compute_tree_size(target_prog, target_stmt_id, target_sizes);
     let node_count = source_size.max(target_size);
     if node_count == 0 {
         return StatementSimilarity::default();
@@ -138,7 +137,7 @@ pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     while !pending.is_empty() {
         let top = pending.last().unwrap().clone();
         let source = source_nodes[top.source_node];
-        let target = source_nodes[top.target_node];
+        let target = target_nodes[top.target_node];
 
         // Already visited?
         if top.visited {
@@ -234,4 +233,120 @@ pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
         }
     }
     sim
+}
+
+pub fn check_deep_equality<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
+    source: (&'source_txt str, sx::Program<'source_ast>, usize, &mut Vec<usize>),
+    target: (&'target_txt str, sx::Program<'target_ast>, usize, &mut Vec<usize>),
+) -> bool {
+    // Unpack arguments
+    let (source_txt, source_prog, source_stmt_id, source_sizes) = source;
+    let (target_txt, target_prog, target_stmt_id, target_sizes) = target;
+    let source_nodes = source_prog.nodes().unwrap_or_default();
+    let target_nodes = target_prog.nodes().unwrap_or_default();
+    let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
+    let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
+
+    // Compute tree sizes
+    let source_size = compute_tree_size(source_prog, source_stmt_id, source_sizes);
+    let target_size = compute_tree_size(target_prog, target_stmt_id, target_sizes);
+    let node_count = source_size.max(target_size);
+    if node_count == 0 {
+        return true;
+    }
+
+    // Do a DFS traversal starting at the root node
+    #[derive(Clone)]
+    struct DFSNode {
+        source_node: usize,
+        target_node: usize,
+    }
+    let mut pending: Vec<DFSNode> = Vec::new();
+    pending.reserve(32);
+    pending.push(DFSNode {
+        source_node: source_stmt.root_node() as usize,
+        target_node: target_stmt.root_node() as usize,
+    });
+
+    // Traverse the tree
+    while !pending.is_empty() {
+        let top = pending.last().unwrap().clone();
+        let source = source_nodes[top.source_node];
+        let target = target_nodes[top.target_node];
+        pending.pop();
+
+        // Different node type?
+        if source.node_type() != target.node_type() {
+            return false;
+        }
+
+        // Enum or literal
+        let is_equal = match source.node_type() {
+            sx::NodeType::NONE => true,
+            sx::NodeType::BOOL | sx::NodeType::UI32 | sx::NodeType::UI32_BITMAP => {
+                source.children_begin_or_value() == target.children_begin_or_value()
+            }
+            sx::NodeType::STRING_REF => {
+                text_at(source_txt, *source.location()) == text_at(target_txt, *target.location())
+            }
+            sx::NodeType::ARRAY => {
+                let sb = source.children_begin_or_value();
+                let tb = target.children_begin_or_value();
+                let sc = source.children_count();
+                let tc = target.children_count();
+                if sc != tc {
+                    return false;
+                }
+                for i in 0..sc {
+                    pending.push(DFSNode {
+                        source_node: (sb + i) as usize,
+                        target_node: (tb + i) as usize,
+                    });
+                }
+                true
+            }
+            node_type => {
+                debug_assert!(node_type.0 > sx::NodeType::ENUM_KEYS_.0);
+                if node_type.0 > sx::NodeType::OBJECT_KEYS_.0 {
+                    // Is object?
+                    // Attribute lists are sorted, so a simple merge is enough
+                    let sc = source.children_count();
+                    let tc = target.children_count();
+                    let mut si = source.children_begin_or_value() as usize;
+                    let mut ti = target.children_begin_or_value() as usize;
+                    let se = si + source.children_count() as usize;
+                    if sc != tc {
+                        return false;
+                    }
+                    while si < se {
+                        let sk = source_nodes[si].attribute_key();
+                        let tk = target_nodes[ti].attribute_key();
+                        if sk != tk {
+                            return false;
+                        } else {
+                            pending.push(DFSNode {
+                                source_node: si,
+                                target_node: ti,
+                            });
+                            si += 1;
+                            ti += 1;
+                        }
+                    }
+                    true
+                } else if node_type.0 > sx::NodeType::ENUM_KEYS_.0 {
+                    // Is enum?
+                    // Match the value.
+                    source.children_begin_or_value() == target.children_begin_or_value()
+                } else {
+                    true
+                }
+            }
+        };
+
+        // Node differs?
+        if !is_equal {
+            return false;
+        }
+    }
+    true
 }
