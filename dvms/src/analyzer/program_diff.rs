@@ -153,7 +153,7 @@ pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
             continue;
         }
         pending.last_mut().unwrap().visited = true;
-        let mut pile_idx = pending.len() - 1;
+        let pile_idx = pending.len() - 1;
 
         // Different node type?
         if source.node_type() != target.node_type() {
