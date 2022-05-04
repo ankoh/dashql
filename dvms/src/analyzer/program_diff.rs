@@ -37,7 +37,7 @@ pub struct ProgramDiffCtx<'text, 'ast> {
     pub subtree_sizes: Vec<usize>,
 }
 
-pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id: usize) -> usize {
+fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id: usize) -> usize {
     // Init tree sizes
     let nodes = ctx.ast.nodes().unwrap_or_default();
     if ctx.subtree_sizes.len() != nodes.len() {
@@ -100,7 +100,7 @@ pub fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, nod
     total
 }
 
-pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
+fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     source: (&ProgramDiffCtx<'_, '_>, usize),
     target: (&ProgramDiffCtx<'_, '_>, usize),
 ) -> SimilarityEstimate {
@@ -130,7 +130,7 @@ pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     SimilarityEstimate::Similar
 }
 
-pub fn compute_similarity(
+fn compute_similarity(
     source: (&mut ProgramDiffCtx<'_, '_>, usize),
     target: (&mut ProgramDiffCtx<'_, '_>, usize),
 ) -> StatementSimilarity {
@@ -272,7 +272,7 @@ pub fn compute_similarity(
     sim
 }
 
-pub fn check_deep_equality(
+fn check_deep_equality(
     source: (&mut ProgramDiffCtx<'_, '_>, usize),
     target: (&mut ProgramDiffCtx<'_, '_>, usize),
 ) -> bool {
@@ -389,7 +389,7 @@ pub fn check_deep_equality(
 }
 
 // Find unique statement pair in two lists of statement ids
-pub fn map_statements(
+fn map_statements(
     source: &mut ProgramDiffCtx<'_, '_>,
     target: &mut ProgramDiffCtx<'_, '_>,
     unique_pairs: &mut StatementMappings,
@@ -456,7 +456,7 @@ pub fn map_statements(
     unique_pairs.sort_unstable();
 }
 
-pub fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
+fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
     let mut lcs = StatementMappings::default();
     struct Entry {
         source_id: usize,
@@ -513,4 +513,68 @@ pub fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
     }
     lcs.reverse();
     lcs
+}
+
+pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDiffCtx<'_, '_>) -> Vec<DiffOp> {
+    // Unpack arguments
+    let source_stmts = source.ast.statements().unwrap_or_default();
+    let target_stmts = target.ast.statements().unwrap_or_default();
+
+    // Find statement mappings
+    let mut unique_pairs = Vec::new();
+    let mut equal_pairs = Vec::new();
+    map_statements(source, target, &mut unique_pairs, &mut equal_pairs);
+
+    // Build the LCS
+    let lcs = find_lcs(&unique_pairs);
+
+    // Track which statements were emitted
+    let mut source_emitted = Vec::new();
+    let mut target_emitted = Vec::new();
+    source_emitted.resize(source_stmts.len(), false);
+    target_emitted.resize(target_stmts.len(), false);
+
+    // Helper to emit diff ops
+    let mut ops = Vec::new();
+    let emit = &mut |code: DiffOpCode, source_id: Option<usize>, target_id: Option<usize>| {
+        ops.push(DiffOp {
+            op_code: code,
+            source: source_id,
+            target: target_id,
+        });
+        if let Some(source_id) = source_id {
+            source_emitted[source_id] = true;
+        }
+        if let Some(target_id) = target_id {
+            target_emitted[target_id] = true;
+        }
+    };
+
+    // Iterate over LCS sections
+    let mut prev = (0, 0);
+    let mut next = (0, 0);
+    let mut lcs_iter = 0;
+    lcs_iter -= 1;
+
+    loop {
+        // Find next mapping range
+        lcs_iter += 1;
+        prev = next;
+        next = if lcs_iter < lcs.len() {
+            lcs[lcs_iter]
+        } else {
+            (source_stmts.len(), target_stmts.len())
+        };
+        let (prev_source_id, prev_target_id) = prev;
+        let (next_source_id, next_target_id) = next;
+
+        // Iterate over all source statements in the section
+        for source_id in prev_source_id..next_source_id {
+            // Are the equal pairs?
+            // We have to emit equal pairs that are either ambiguous or unique but cross section boundaries.
+            // XXX
+        }
+    }
+
+    Vec::new()
 }
