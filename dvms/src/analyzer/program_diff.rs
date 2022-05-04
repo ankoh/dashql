@@ -455,3 +455,62 @@ pub fn map_statements(
     }
     unique_pairs.sort_unstable();
 }
+
+pub fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
+    let mut lcs = StatementMappings::default();
+    struct Entry {
+        source_id: usize,
+        target_id: usize,
+        prev_pile_size: usize,
+    }
+    type Pile = Vec<Entry>;
+
+    // Build the piles
+    let mut piles: Vec<Pile> = Vec::new();
+    for (source_id, target_id) in unique_pairs.iter() {
+        match piles
+            .iter()
+            .enumerate()
+            .find(|(_, pile)| pile.last().unwrap().target_id >= *target_id)
+        {
+            Some((pile_id, _)) => {
+                let prev_pile_id = pile_id.max(1) - 1;
+                let prev_pile_size = piles[prev_pile_id].len();
+                piles[pile_id].push(Entry {
+                    source_id: *source_id,
+                    target_id: *target_id,
+                    prev_pile_size,
+                });
+            }
+            None => {
+                piles.push(Vec::new());
+                let prev_pile_id = piles.len().max(2) - 2;
+                let prev_pile_size = piles[prev_pile_id].len();
+                piles.last_mut().unwrap().push(Entry {
+                    source_id: *source_id,
+                    target_id: *target_id,
+                    prev_pile_size,
+                });
+            }
+        }
+    }
+
+    // No piles?
+    if piles.is_empty() {
+        return lcs;
+    }
+
+    // Build the LCS
+    let mut entry_id = piles.last().unwrap().len();
+    for pile_id in (0..piles.len()).rev() {
+        let entry = &piles[pile_id][entry_id];
+        lcs.push((entry.source_id, entry.target_id));
+        if pile_id == 0 {
+            break;
+        }
+        debug_assert!(entry.prev_pile_size >= 1);
+        entry_id = entry.prev_pile_size - 1;
+    }
+    lcs.reverse();
+    lcs
+}
