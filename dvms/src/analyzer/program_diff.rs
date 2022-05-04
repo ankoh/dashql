@@ -93,6 +93,36 @@ pub fn compute_tree_size<'a>(prog: sx::Program<'a>, root: usize, sizes: &mut Vec
     total
 }
 
+pub fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
+    source: (&'source_txt str, sx::Program<'source_ast>, usize),
+    target: (&'source_txt str, sx::Program<'source_ast>, usize),
+) -> SimilarityEstimate {
+    let (source_txt, source_prog, source_stmt_id) = source;
+    let (target_txt, target_prog, target_stmt_id) = target;
+    let source_nodes = source_prog.nodes().unwrap_or_default();
+    let target_nodes = target_prog.nodes().unwrap_or_default();
+    let source_stmt = source_prog.statements().unwrap_or_default().get(source_stmt_id);
+    let target_stmt = target_prog.statements().unwrap_or_default().get(target_stmt_id);
+
+    // Different root node types?
+    let s = source_nodes[source_stmt.root_node() as usize];
+    let t = target_nodes[target_stmt.root_node() as usize];
+    if s.node_type() != t.node_type() {
+        return SimilarityEstimate::NotEqual;
+    }
+
+    // Do a string comparison if the strings are equal in size and number of root attributes.
+    // This will bypass us the tree diffing for all unchanged statements.
+    if (s.children_count() == t.children_count()) && (s.location().length() == t.location().length()) {
+        let st = text_at(source_txt, *s.location());
+        let tt = text_at(target_txt, *t.location());
+        if st == tt {
+            return SimilarityEstimate::Equal;
+        }
+    }
+    SimilarityEstimate::Similar
+}
+
 pub fn compute_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     source: (&'source_txt str, sx::Program<'source_ast>, usize, &mut Vec<usize>),
     target: (&'target_txt str, sx::Program<'target_ast>, usize, &mut Vec<usize>),
