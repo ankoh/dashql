@@ -1297,7 +1297,10 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
         };
         stmts.push(stmt);
     }
-    Ok(Program { statements: stmts })
+    Ok(Program {
+        nodes,
+        statements: stmts,
+    })
 }
 
 fn read_expr<'text, 'arena>(
