@@ -10,10 +10,10 @@ use sx::AttributeKey as Key;
 const INLINE_LOCATION_CAP: usize = 20;
 const LOCATION_HINT_LENGTH: usize = 10;
 
-pub fn serialize_ast_as_xml<'text, 'ast, W>(
+pub fn serialize_ast_as_xml<'a, W>(
     writer: &mut Writer<W>,
-    ast: sx::Program<'ast>,
-    text: &'text str,
+    ast: sx::Program<'a>,
+    text: &'a str,
 ) -> Result<(), Box<dyn Error + Send + Sync>>
 where
     W: std::io::Write,
@@ -162,7 +162,7 @@ where
     Ok(())
 }
 
-fn encode_location<'writer, 'text>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'text str) {
+fn encode_location<'writer, 'a>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'a str) {
     let begin = loc.offset() as usize;
     let end = (loc.offset() + loc.length()) as usize;
     if begin >= text.len() || end > text.len() {
@@ -182,7 +182,7 @@ fn encode_location<'writer, 'text>(writer: &mut BytesStart<'writer>, loc: sx::Lo
     writer.extend_attributes([loc_attr, ("text", &out)]);
 }
 
-fn encode_error<'writer, 'text, 'ast>(writer: &mut BytesStart<'writer>, error: sx::Error<'ast>, text: &'text str) {
+fn encode_error<'writer, 'a>(writer: &mut BytesStart<'writer>, error: sx::Error<'a>, text: &'a str) {
     writer.extend_attributes([("message", error.message().unwrap_or_default())]);
     encode_location(writer, error.location().copied().unwrap_or_default(), text);
 }
@@ -195,9 +195,9 @@ mod test {
     use std::error::Error;
 
     fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let alloc = bumpalo::Bump::new();
         let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
-        let ast_buffer = crate::grammar::parse(text)?;
-        let ast = ast_buffer.get_root();
+        let ast = crate::grammar::parse(&alloc, text)?;
         serialize_ast_as_xml(&mut writer, ast, text)?;
         let buffer = writer.into_inner();
         let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");

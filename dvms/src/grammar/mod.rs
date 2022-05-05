@@ -1,4 +1,4 @@
-pub use dashql_parser::{parse, ASTBuffer};
+pub use dashql_parser::parse;
 pub mod syntax;
 
 pub use syntax::ast::*;

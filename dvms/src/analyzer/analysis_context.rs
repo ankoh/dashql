@@ -15,33 +15,33 @@ impl Default for ProgramAnalysisSettings {
     }
 }
 
-pub struct ProgramAnalysisContext<'arena, 'text, 'ast> {
+pub struct ProgramAnalysisContext<'a> {
     pub settings: Rc<ProgramAnalysisSettings>,
 
     // AST state
-    pub arena: &'arena bumpalo::Bump,
-    pub script_text: &'text str,
-    pub program_flat: sx::Program<'ast>,
-    pub program_translated: Rc<Program<'text, 'arena>>,
+    pub arena: &'a bumpalo::Bump,
+    pub script_text: &'a str,
+    pub program_flat: sx::Program<'a>,
+    pub program_translated: Rc<Program<'a>>,
 
     // Name resolution of statements
-    pub statement_names: Vec<Option<NamePath<'text, 'arena>>>,
-    pub statement_by_name: HashMap<NamePath<'text, 'arena>, usize>,
+    pub statement_names: Vec<Option<NamePath<'a>>>,
+    pub statement_by_name: HashMap<NamePath<'a>, usize>,
     pub statement_by_root: HashMap<usize, usize>,
     pub statement_deps: Vec<sx::DependencyT>,
 
     // Cached subtree sizes and diffs
     pub cached_subtree_sizes: Vec<usize>,
-    pub cached_default_schema: Option<&'arena str>,
+    pub cached_default_schema: Option<&'a str>,
 }
 
-impl<'arena, 'text, 'ast> ProgramAnalysisContext<'arena, 'text, 'ast> {
+impl<'a> ProgramAnalysisContext<'a> {
     pub fn new(
         settings: Rc<ProgramAnalysisSettings>,
-        arena: &'arena bumpalo::Bump,
-        text: &'text str,
-        program_flat: sx::Program<'ast>,
-        program_translated: Rc<Program<'text, 'arena>>,
+        arena: &'a bumpalo::Bump,
+        text: &'a str,
+        program_flat: sx::Program<'a>,
+        program_translated: Rc<Program<'a>>,
     ) -> Self {
         let mut ctx = ProgramAnalysisContext {
             settings,

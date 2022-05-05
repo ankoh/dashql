@@ -16,16 +16,16 @@ fn oom() -> ! {
     panic!("out of memory")
 }
 
-pub fn deserialize_ast<'text, 'ast, 'arena>(
-    arena: &'arena bumpalo::Bump,
-    text: &'text str,
-    buffer: sx::Program<'ast>,
-) -> Result<Program<'text, 'arena>, Box<dyn Error + Send + Sync>> {
+pub fn deserialize_ast<'a>(
+    arena: &'a bumpalo::Bump,
+    text: &'a str,
+    buffer: sx::Program<'a>,
+) -> Result<Program<'a>, Box<dyn Error + Send + Sync>> {
     let buffer_stmts = buffer.statements().unwrap_or_default();
     let buffer_nodes = buffer.nodes().unwrap_or_default();
 
     // Translate all nodes from left-to-right
-    let mut nodes: Vec<&'arena ASTNode<'text, 'arena>> = Vec::new();
+    let mut nodes: Vec<&'a ASTNode<'a>> = Vec::new();
     nodes.reserve(buffer_nodes.len());
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
@@ -108,15 +108,15 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 unpack_nodes!($nodes, $ast_node, $ast_node)
             };
             ($nodes:expr, $ast_node:ident, $inner:ident) => {{
-                let layout = std::alloc::Layout::array::<&'arena $inner>($nodes.len()).unwrap_or_else(|_| oom());
-                let out = arena.alloc_layout(layout).cast::<&'arena $inner>();
+                let layout = std::alloc::Layout::array::<&'a $inner>($nodes.len()).unwrap_or_else(|_| oom());
+                let out = arena.alloc_layout(layout).cast::<&'a $inner>();
                 unpack_nodes_inner!($nodes, $ast_node, out)
             }};
         }
         macro_rules! unpack_strings {
             ($nodes:expr, $ast_node:ident) => {{
-                let layout = std::alloc::Layout::array::<&'text str>($nodes.len()).unwrap_or_else(|_| oom());
-                let out = arena.alloc_layout(layout).cast::<&'text str>();
+                let layout = std::alloc::Layout::array::<&'a str>($nodes.len()).unwrap_or_else(|_| oom());
+                let out = arena.alloc_layout(layout).cast::<&'a str>();
                 unpack_nodes_inner!($nodes, $ast_node, out)
             }};
         }
@@ -215,8 +215,8 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 ASTNode::BitTypeSpec(BitType { varying, length })
             }
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
-                let mut name: Option<&'text str> = None;
-                let mut modifiers: &[Expression<'text, 'arena>] = &[];
+                let mut name: Option<&'a str> = None;
+                let mut modifiers: &[Expression<'a>] = &[];
                 read_attributes! {
                     (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s.clone()),
                     (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => modifiers = read_exprs(arena, a)
@@ -1180,9 +1180,9 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
 
                     (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t)) => table = Some(t),
                     (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples)) => {
-                        type Tuple<'text, 'arena> = &'arena [Expression<'text, 'arena>];
-                        let tuples_layout = std::alloc::Layout::array::<Tuple<'text, 'arena>>(tuples.len()).unwrap_or_else(|_| oom());
-                        let tuples_mem = arena.alloc_layout(tuples_layout).cast::<Tuple<'text, 'arena>>();
+                        type Tuple<'a> = &'a [Expression<'a>];
+                        let tuples_layout = std::alloc::Layout::array::<Tuple<'a>>(tuples.len()).unwrap_or_else(|_| oom());
+                        let tuples_mem = arena.alloc_layout(tuples_layout).cast::<Tuple<'a>>();
                         let mut tuples_writer = 0;
                         for i in 0..tuples.len() {
                             match tuples[i] {
@@ -1280,7 +1280,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
     }
 
     // Do a postorder dfs traversal
-    let mut stmts: Vec<Statement<'text, 'arena>> = Vec::new();
+    let mut stmts: Vec<Statement<'a>> = Vec::new();
     for statement in buffer_stmts.iter() {
         let node = &nodes[statement.root_node() as usize];
         let stmt = match node {
@@ -1303,10 +1303,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
     })
 }
 
-fn read_expr<'text, 'arena>(
-    arena: &'arena bumpalo::Bump,
-    node: &'arena ASTNode<'text, 'arena>,
-) -> Expression<'text, 'arena> {
+fn read_expr<'a>(arena: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> Expression<'a> {
     match node {
         ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         ASTNode::Boolean(b) => Expression::Boolean(*b),
@@ -1330,10 +1327,7 @@ fn read_expr<'text, 'arena>(
     }
 }
 
-fn read_exprs<'text, 'arena>(
-    alloc: &'arena bumpalo::Bump,
-    nodes: &[&'arena ASTNode<'text, 'arena>],
-) -> &'arena [Expression<'text, 'arena>] {
+fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> &'a [Expression<'a>] {
     let exprs = alloc.alloc_slice_fill_default(nodes.len());
     for i in 0..nodes.len() {
         exprs[i] = read_expr(alloc, &nodes[i]);
@@ -1341,10 +1335,7 @@ fn read_exprs<'text, 'arena>(
     exprs
 }
 
-fn read_name<'text, 'arena>(
-    alloc: &'arena bumpalo::Bump,
-    nodes: &[&'arena ASTNode<'text, 'arena>],
-) -> NamePath<'text, 'arena> {
+fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> NamePath<'a> {
     let path = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         path[i] = match n {
@@ -1359,10 +1350,7 @@ fn read_name<'text, 'arena>(
     path
 }
 
-fn read_expression_operator<'text, 'arena>(
-    alloc: &'arena bumpalo::Bump,
-    node: &'arena ASTNode<'text, 'arena>,
-) -> ExpressionOperatorName<'text, 'arena> {
+fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> ExpressionOperatorName<'a> {
     match &node {
         ASTNode::ExpressionOperator(op) => ExpressionOperatorName::Known(*op),
         ASTNode::Array(elems) => {
@@ -1386,10 +1374,7 @@ fn read_expression_operator<'text, 'arena>(
     }
 }
 
-fn read_array_bounds<'text, 'arena>(
-    alloc: &'arena bumpalo::Bump,
-    nodes: &[&'arena ASTNode<'text, 'arena>],
-) -> &'arena [ArrayBound<'text>] {
+fn read_array_bounds<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> &'a [ArrayBound<'a>] {
     let bounds = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         bounds[i] = match n {
@@ -1404,10 +1389,7 @@ fn read_array_bounds<'text, 'arena>(
     bounds
 }
 
-fn read_dson<'text, 'arena>(
-    alloc: &'arena bumpalo::Bump,
-    node: &'arena ASTNode<'text, 'arena>,
-) -> DsonValue<'text, 'arena> {
+fn read_dson<'a>(alloc: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> DsonValue<'a> {
     match node {
         ASTNode::Dson(value) => value.clone(),
         ASTNode::Array(nodes) => {

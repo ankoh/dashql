@@ -2,14 +2,8 @@ use super::analysis_context::*;
 use crate::grammar::{ASTNode, Indirection, Statement, TableRef};
 use dashql_proto::syntax as sx;
 
-fn normalize_name<'arena, 'text, 'ast>(
-    ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>,
-    name: &'arena [Indirection<'text, 'arena>],
-) -> &'arena [Indirection<'text, 'arena>]
-where
-    'text: 'arena,
-{
-    let mut path: [&'text str; 3] = [""; 3];
+fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirection<'a>]) -> &'a [Indirection<'a>] {
+    let mut path: [&'a str; 3] = [""; 3];
     let mut path_length = 0;
     for (i, elem) in name.iter().enumerate().take(3) {
         match elem {
@@ -22,7 +16,7 @@ where
     }
     let path = &path[0..path_length];
     if path.len() == 1 {
-        let node: Indirection<'text, 'arena> = if let Some(schema) = ctx.cached_default_schema {
+        let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema {
             Indirection::Name(schema)
         } else {
             let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
@@ -34,10 +28,7 @@ where
     }
 }
 
-pub fn normalize_statement_names<'arena, 'text, 'ast>(ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>)
-where
-    'text: 'arena,
-{
+pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     let prog = ctx.program_translated.clone();
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
@@ -56,10 +47,7 @@ where
     }
 }
 
-pub fn discover_statement_dependencies<'arena, 'text, 'ast>(ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>)
-where
-    'text: 'arena,
-{
+pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     for (node_id, node_flat) in ctx.program_flat.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = &ctx.program_translated.nodes[node_id];
         match node_flat.node_type() {

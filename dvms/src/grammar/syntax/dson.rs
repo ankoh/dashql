@@ -1,19 +1,19 @@
 use super::ast_nodes_sql::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct DsonField<'text, 'bump> {
-    pub key: &'text str,
-    pub value: DsonValue<'text, 'bump>,
+pub struct DsonField<'arena> {
+    pub key: &'arena str,
+    pub value: DsonValue<'arena>,
 }
 
 #[derive(Debug, Clone)]
-pub enum DsonValue<'text, 'bump> {
-    Object(&'bump [DsonField<'text, 'bump>]),
-    Array(&'bump [DsonValue<'text, 'bump>]),
-    Expression(Expression<'text, 'bump>),
+pub enum DsonValue<'arena> {
+    Object(&'arena [DsonField<'arena>]),
+    Array(&'arena [DsonValue<'arena>]),
+    Expression(Expression<'arena>),
 }
 
-impl<'text, 'bump> Default for DsonValue<'text, 'bump> {
+impl<'arena> Default for DsonValue<'arena> {
     fn default() -> Self {
         DsonValue::Expression(Expression::Null)
     }

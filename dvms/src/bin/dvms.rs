@@ -1,6 +1,7 @@
 use dashql::*;
 
 fn main() {
-    grammar::parse("select 1;").ok();
+    let alloc = bumpalo::Bump::new();
+    grammar::parse(&alloc, "select 1;").ok();
     println!("Hello, world!");
 }

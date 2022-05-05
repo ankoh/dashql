@@ -1,5 +1,6 @@
 use super::ast::Program;
 use super::ast_to_xml::serialize_ast_as_xml;
+use dashql_proto::syntax as sx;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
@@ -24,11 +25,11 @@ pub struct ASTDumpTemplate {
 }
 
 #[derive(Debug)]
-pub struct ASTDumpFile<'text, 'arena> {
-    pub dumps: Vec<ASTDump<'text, 'arena>>,
+pub struct ASTDumpFile<'a> {
+    pub dumps: Vec<ASTDump<'a>>,
 }
 
-impl<'text, 'arena> ASTDumpFile<'text, 'arena> {
+impl<'a> ASTDumpFile<'a> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
         W: Write + Clone,
@@ -43,14 +44,14 @@ impl<'text, 'arena> ASTDumpFile<'text, 'arena> {
 }
 
 #[derive(Debug)]
-pub struct ASTDump<'text, 'arena> {
+pub struct ASTDump<'a> {
     pub name: String,
-    pub input: &'text str,
-    pub parsed: Option<dashql_parser::ASTBuffer>,
-    pub translated: Option<Program<'text, 'arena>>,
+    pub input: &'a str,
+    pub parsed: Option<sx::Program<'a>>,
+    pub translated: Option<Program<'a>>,
 }
 
-impl<'text, 'arena> ASTDump<'text, 'arena> {
+impl<'a> ASTDump<'a> {
     pub fn write_xml<W>(&self, writer: &mut Writer<W>) -> Result<(), Box<dyn Error + Send + Sync>>
     where
         W: Write + Clone,
@@ -63,7 +64,7 @@ impl<'text, 'arena> ASTDump<'text, 'arena> {
         writer.write_event(Event::End(BytesEnd::borrowed(b"input")))?;
         if let Some(ast) = &self.parsed {
             writer.write_event(Event::Start(BytesStart::borrowed_name(b"parsed")))?;
-            serialize_ast_as_xml(writer, ast.get_root(), self.input)?;
+            serialize_ast_as_xml(writer, *ast, self.input)?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
         }
         if let Some(prog) = &self.translated {
@@ -89,7 +90,7 @@ mod test {
     use super::super::ast_translation::deserialize_ast;
 
     fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let arena = bumpalo::Bump::new();
+        let mut arena = bumpalo::Bump::new();
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let dump_dir = base.join("dump").join("ast");
         let dump_path = dump_dir.join(name);
@@ -146,12 +147,12 @@ mod test {
                         let expected_str = String::from_utf8(expected_writer.into_inner())?;
                         expected_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         // Parse the input text
+                        arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let have = crate::grammar::parse(have_input)?;
-                        let have_ast = have.get_root();
+                        let have = crate::grammar::parse(&arena, have_input)?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
-                        crate::grammar::serialize_ast_as_xml(&mut have_writer, have_ast, have_input)?;
+                        crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
                         let have_str = String::from_utf8(have_writer.into_inner())?;
                         // Compare output
                         assert_eq!(have_str, expected_str);
@@ -174,11 +175,11 @@ mod test {
 
                         // Translate the ast
                         let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
-                        let ast = ast_buffer.as_ref().expect("expected ast buffer").get_root();
+                        let ast = ast_buffer.as_ref().expect("expected ast buffer");
                         let translated = deserialize_ast(
                             &arena,
                             script_text.as_ref().expect("expected script text").as_str(),
-                            ast,
+                            *ast,
                         )?;
                         assert_eq!(&format!("{:#?}", translated), &unescaped);
                     }

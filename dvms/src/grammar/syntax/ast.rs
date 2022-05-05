@@ -3,25 +3,25 @@ use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 
 #[derive(Debug, Clone)]
-pub enum Statement<'text, 'arena> {
-    Select(&'arena SelectStatement<'text, 'arena>),
-    Input(&'arena InputStatement<'text, 'arena>),
-    Fetch(&'arena FetchStatement<'text, 'arena>),
-    Load(&'arena LoadStatement<'text, 'arena>),
-    Viz(&'arena VizStatement<'text, 'arena>),
-    Create(&'arena CreateStatement<'text, 'arena>),
-    CreateAs(&'arena CreateAsStatement<'text, 'arena>),
-    CreateView(&'arena CreateViewStatement<'text, 'arena>),
-    Set(&'arena SetStatement<'text, 'arena>),
+pub enum Statement<'arena> {
+    Select(&'arena SelectStatement<'arena>),
+    Input(&'arena InputStatement<'arena>),
+    Fetch(&'arena FetchStatement<'arena>),
+    Load(&'arena LoadStatement<'arena>),
+    Viz(&'arena VizStatement<'arena>),
+    Create(&'arena CreateStatement<'arena>),
+    CreateAs(&'arena CreateAsStatement<'arena>),
+    CreateView(&'arena CreateViewStatement<'arena>),
+    Set(&'arena SetStatement<'arena>),
 }
 
 #[derive(Clone, Default)]
-pub struct Program<'text, 'arena> {
-    pub nodes: Vec<&'arena ASTNode<'text, 'arena>>,
-    pub statements: Vec<Statement<'text, 'arena>>,
+pub struct Program<'arena> {
+    pub nodes: Vec<&'arena ASTNode<'arena>>,
+    pub statements: Vec<Statement<'arena>>,
 }
 
-impl<'text, 'arena> std::fmt::Debug for Program<'text, 'arena> {
+impl<'arena> std::fmt::Debug for Program<'arena> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Program").field("statements", &self.statements).finish()
     }

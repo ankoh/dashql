@@ -3,43 +3,43 @@ use super::dson::*;
 use dashql_proto::syntax as sx;
 
 #[derive(Debug, Clone)]
-pub struct InputStatement<'text, 'arena> {
-    pub name: NamePath<'text, 'arena>,
-    pub value_type: &'arena SQLType<'text, 'arena>,
+pub struct InputStatement<'a> {
+    pub name: NamePath<'a>,
+    pub value_type: &'a SQLType<'a>,
     pub component_type: Option<sx::InputComponentType>,
-    pub extra: Option<DsonValue<'text, 'arena>>,
+    pub extra: Option<DsonValue<'a>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct FetchStatement<'text, 'arena> {
-    pub name: NamePath<'text, 'arena>,
+pub struct FetchStatement<'a> {
+    pub name: NamePath<'a>,
     pub method: sx::FetchMethodType,
-    pub from_uri: Option<Expression<'text, 'arena>>,
-    pub extra: Option<DsonValue<'text, 'arena>>,
+    pub from_uri: Option<Expression<'a>>,
+    pub extra: Option<DsonValue<'a>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct LoadStatement<'text, 'arena> {
-    pub name: NamePath<'text, 'arena>,
-    pub source: NamePath<'text, 'arena>,
+pub struct LoadStatement<'a> {
+    pub name: NamePath<'a>,
+    pub source: NamePath<'a>,
     pub method: sx::LoadMethodType,
-    pub extra: Option<DsonValue<'text, 'arena>>,
+    pub extra: Option<DsonValue<'a>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct VizStatement<'text, 'arena> {
-    pub target: &'arena TableRef<'text, 'arena>,
-    pub components: &'arena [&'arena VizComponent<'text, 'arena>],
+pub struct VizStatement<'a> {
+    pub target: &'a TableRef<'a>,
+    pub components: &'a [&'a VizComponent<'a>],
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct VizComponent<'text, 'arena> {
+pub struct VizComponent<'a> {
     pub component_type: Option<sx::VizComponentType>,
     pub type_modifiers: u32,
-    pub extra: Option<DsonValue<'text, 'arena>>,
+    pub extra: Option<DsonValue<'a>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct SetStatement<'text, 'arena> {
-    pub fields: DsonValue<'text, 'arena>,
+pub struct SetStatement<'a> {
+    pub fields: DsonValue<'a>,
 }

@@ -110,6 +110,7 @@ dependencies = [
 name = "dashql_parser"
 version = "0.1.0"
 dependencies = [
+ "bumpalo",
  "cmake",
  "dashql_proto",
  "flatbuffers",

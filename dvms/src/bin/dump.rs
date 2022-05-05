@@ -57,9 +57,10 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             let dump_file: ASTDumpTemplateFile = quick_xml::de::from_reader(input_reader)?;
 
             let mut dumps = Vec::new();
+            let alloc = bumpalo::Bump::new();
             for dump in dump_file.dumps.iter() {
-                let ast_buffer = grammar::parse(&dump.input)?;
-                let translated = match grammar::deserialize_ast(&arena, &dump.input, ast_buffer.get_root()) {
+                let ast = grammar::parse(&alloc, &dump.input)?;
+                let translated = match grammar::deserialize_ast(&arena, &dump.input, ast) {
                     Ok(p) => Some(p),
                     Err(e) => {
                         warn!("{}", e);
@@ -69,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 dumps.push(ASTDump {
                     name: dump.name.clone(),
                     input: &dump.input,
-                    parsed: Some(ast_buffer),
+                    parsed: Some(ast),
                     translated,
                 });
             }
