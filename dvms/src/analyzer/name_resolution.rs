@@ -1,6 +1,6 @@
 use super::analysis_context::*;
 use crate::grammar::{ASTNode, Indirection, Statement, TableRef};
-use dashql_proto::syntax::{self as sx, DependencyT};
+use dashql_proto::syntax as sx;
 
 fn normalize_name<'arena, 'text, 'ast>(
     ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>,
