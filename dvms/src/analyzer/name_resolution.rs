@@ -144,6 +144,16 @@ mod test {
         test_name_resolution(
             r#"
 CREATE TABLE foo AS SELECT 1;
+        "#,
+            &[],
+        )
+    }
+
+    #[test]
+    fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_name_resolution(
+            r#"
+CREATE TABLE foo AS SELECT 1;
 VISUALIZE foo USING TABLE;
         "#,
             &[DependencyTest {
@@ -151,6 +161,53 @@ VISUALIZE foo USING TABLE;
                 source_statement: 0,
                 target_statement: 1,
             }],
+        )
+    }
+
+    #[test]
+    fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_name_resolution(
+            r#"
+CREATE TABLE foo AS SELECT 1;
+VISUALIZE foo USING TABLE;
+VISUALIZE foo USING BAR CHART;
+        "#,
+            &[
+                DependencyTest {
+                    dep_type: DependencyType::TABLE_REF,
+                    source_statement: 0,
+                    target_statement: 1,
+                },
+                DependencyTest {
+                    dep_type: DependencyType::TABLE_REF,
+                    source_statement: 0,
+                    target_statement: 2,
+                },
+            ],
+        )
+    }
+
+    #[test]
+    fn test_simple_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_name_resolution(
+            r#"
+CREATE TABLE foo AS SELECT 1;
+CREATE TABLE foo2 AS SELECT 2;
+VISUALIZE foo USING TABLE;
+VISUALIZE foo2 USING BAR CHART;
+        "#,
+            &[
+                DependencyTest {
+                    dep_type: DependencyType::TABLE_REF,
+                    source_statement: 0,
+                    target_statement: 2,
+                },
+                DependencyTest {
+                    dep_type: DependencyType::TABLE_REF,
+                    source_statement: 1,
+                    target_statement: 3,
+                },
+            ],
         )
     }
 }
