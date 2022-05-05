@@ -31,7 +31,7 @@ fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirecti
 fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -> usize {
     let nodes = ctx.program_flat.nodes().unwrap_or_default();
     let mut cursor = node_id;
-    while (nodes[cursor].parent() as usize) < nodes.len() {
+    while (nodes[cursor].parent() as usize) != cursor {
         cursor = nodes[cursor].parent() as usize;
     }
     match ctx.statement_by_root.get(&cursor) {
@@ -48,6 +48,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
         let name = match stmt {
+            Statement::CreateAs(create) => Some(normalize_name(ctx, create.name)),
             Statement::Create(create) => Some(normalize_name(ctx, create.name)),
             Statement::CreateView(view) => Some(normalize_name(ctx, view.name)),
             Statement::Fetch(fetch) => Some(normalize_name(ctx, fetch.name)),
@@ -146,7 +147,7 @@ CREATE TABLE foo AS SELECT 1;
 VISUALIZE foo USING TABLE;
         "#,
             &[DependencyTest {
-                dep_type: DependencyType::COLUMN_REF,
+                dep_type: DependencyType::TABLE_REF,
                 source_statement: 0,
                 target_statement: 1,
             }],
