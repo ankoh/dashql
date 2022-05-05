@@ -533,7 +533,7 @@ pub fn deserialize_ast<'text, 'ast, 'arena>(
                 read_attributes! {
                     (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a)) => name = Some(read_name(arena, a))
                 }
-                ASTNode::Expression(Expression::ColumnRef(name.unwrap_or_default()))
+                ASTNode::ColumnRef(name.unwrap_or_default())
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_ARG => {
                 let mut name = None;
@@ -1308,8 +1308,10 @@ fn read_expr<'text, 'arena>(
     node: &'arena ASTNode<'text, 'arena>,
 ) -> Expression<'text, 'arena> {
     match node {
+        ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         ASTNode::Boolean(b) => Expression::Boolean(*b),
         ASTNode::CaseExpression(ref c) => Expression::Case(c),
+        ASTNode::ColumnRef(ref s) => Expression::ColumnRef(s.clone()),
         ASTNode::ConstCastExpression(ref c) => Expression::ConstCast(c),
         ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
         ASTNode::Expression(ref e) => e.clone(),
@@ -1321,7 +1323,6 @@ fn read_expr<'text, 'arena>(
         ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
         ASTNode::TypeCastExpression(ref c) => Expression::TypeCast(c),
         ASTNode::TypeTestExpression(ref t) => Expression::TypeTest(t),
-        ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null

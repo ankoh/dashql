@@ -1,23 +1,23 @@
 use dashql_proto::syntax as sx;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct IndirectionExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub path: NamePath<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct IndirectionIndex<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct IndirectionBounds<'text, 'arena> {
     pub lower_bound: Expression<'text, 'arena>,
     pub upper_bound: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Indirection<'text, 'arena> {
     Name(&'text str),
     Index(IndirectionIndex<'text, 'arena>),
@@ -25,38 +25,38 @@ pub enum Indirection<'text, 'arena> {
 }
 pub type NamePath<'text, 'arena> = &'arena [Indirection<'text, 'arena>];
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ArrayBound<'text> {
     Empty,
     Index(&'text str),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ExpressionOperatorName<'text, 'arena> {
     Known(sx::ExpressionOperator),
     Qualified(&'arena [&'text str]),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NaryExpression<'text, 'arena> {
     pub operator: ExpressionOperatorName<'text, 'arena>,
     pub args: &'arena [Expression<'text, 'arena>],
     pub postfix: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ConstTypeCastExpression<'text, 'arena> {
     pub value: &'text str,
     pub sql_type: &'arena SQLType<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ConstIntervalCastExpression<'text, 'arena> {
     pub value: &'text str,
     pub interval: &'arena IntervalSpecification<'text>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ConstFunctionCastExpression<'text, 'arena> {
     pub value: &'text str,
     pub func_name: Option<NamePath<'text, 'arena>>,
@@ -64,64 +64,64 @@ pub struct ConstFunctionCastExpression<'text, 'arena> {
     pub func_arg_ordering: &'arena [&'arena OrderSpecification<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ConstCastExpression<'text, 'arena> {
     Type(&'arena ConstTypeCastExpression<'text, 'arena>),
     Interval(&'arena ConstIntervalCastExpression<'text, 'arena>),
     Function(&'arena ConstFunctionCastExpression<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TypeCastExpression<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub sql_type: SQLType<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SubqueryExpression<'text, 'arena> {
     pub operator: ExpressionOperatorName<'text, 'arena>,
     pub quantifier: sx::SubqueryQuantifier,
     pub args: [Expression<'text, 'arena>; 2],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SelectStatementExpression<'text, 'arena> {
     pub statement: &'arena SelectStatement<'text, 'arena>,
     pub indirection: Option<NamePath<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ExistsExpression<'text, 'arena> {
     pub statement: &'arena SelectStatement<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CaseExpressionClause<'text, 'arena> {
     pub when: Expression<'text, 'arena>,
     pub then: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'text, 'arena> {
     pub argument: Expression<'text, 'arena>,
     pub cases: &'arena [&'arena CaseExpressionClause<'text, 'arena>],
     pub default: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ParameterRef<'text, 'arena> {
     pub prefix: &'text str,
     pub name: NamePath<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TypeTestExpression<'text, 'arena> {
     pub negate: bool,
     pub value: Expression<'text, 'arena>,
     pub of_types: &'arena [&'arena SQLType<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Expression<'text, 'arena> {
     Null,
     Boolean(bool),
@@ -141,14 +141,14 @@ pub enum Expression<'text, 'arena> {
     TypeTest(&'arena TypeTestExpression<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct OrderSpecification<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub direction: Option<sx::OrderDirection>,
     pub null_rule: Option<sx::OrderNullRule>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupByItem<'text, 'arena> {
     Empty,
     Expression(Expression<'text, 'arena>),
@@ -157,13 +157,13 @@ pub enum GroupByItem<'text, 'arena> {
     GroupingSets(&'arena [&'arena GroupByItem<'text, 'arena>]),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct IntervalSpecification<'text> {
     pub interval_type: Option<sx::IntervalType>,
     pub precision: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ResultTarget<'text, 'arena> {
     Star,
     Value {
@@ -172,49 +172,49 @@ pub enum ResultTarget<'text, 'arena> {
     },
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct GenericType<'text, 'arena> {
     pub name: &'text str,
     pub modifiers: &'arena [Expression<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct NumericType<'text, 'arena> {
     pub base: sx::NumericType,
     pub modifiers: &'arena [Expression<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct BitType<'text, 'arena> {
     pub varying: bool,
     pub length: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CharacterType<'text> {
     pub base: sx::CharacterType,
     pub length: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TimestampType<'text> {
     pub precision: Option<&'text str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TimeType<'text> {
     pub precision: Option<&'text str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct IntervalType<'text> {
     pub base: Option<sx::IntervalType>,
     pub precision: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SQLBaseType<'text, 'arena> {
     Invalid,
     Generic(GenericType<'text, 'arena>),
@@ -226,20 +226,20 @@ pub enum SQLBaseType<'text, 'arena> {
     Interval(IntervalSpecification<'text>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SQLType<'text, 'arena> {
     pub base_type: SQLBaseType<'text, 'arena>,
     pub array_bounds: &'arena [ArrayBound<'text>],
     pub set_of: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Into<'text, 'arena> {
     pub temp: sx::TempType,
     pub name: NamePath<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ColumnDefinition<'text, 'arena> {
     pub name: &'text str,
     pub sql_type: &'text SQLType<'text, 'arena>,
@@ -248,14 +248,14 @@ pub struct ColumnDefinition<'text, 'arena> {
     pub options: &'arena [&'arena GenericOption<'text>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Alias<'text, 'arena> {
     pub name: &'text str,
     pub column_names: &'arena [&'text str],
     pub column_definitions: &'arena [&'arena ColumnDefinition<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TableSample<'text> {
     pub count: &'text str,
     pub unit: sx::SampleCountUnit,
@@ -264,7 +264,7 @@ pub struct TableSample<'text> {
     pub seed: Option<&'text str>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SelectStatementRef<'text, 'arena> {
     pub table: &'arena SelectStatement<'text, 'arena>,
     pub alias: Option<&'arena Alias<'text, 'arena>>,
@@ -272,20 +272,20 @@ pub struct SelectStatementRef<'text, 'arena> {
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct RowsFromItem<'text, 'arena> {
     pub function: &'arena FunctionExpression<'text, 'arena>,
     pub columns: &'arena [&'arena ColumnDefinition<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FunctionTable<'text, 'arena> {
     pub function: Option<&'arena FunctionExpression<'text, 'arena>>,
     pub rows_from: &'arena [&'arena RowsFromItem<'text, 'arena>],
     pub with_ordinality: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FunctionTableRef<'text, 'arena> {
     pub table: &'arena FunctionTable<'text, 'arena>,
     pub alias: Option<&'arena Alias<'text, 'arena>>,
@@ -293,32 +293,32 @@ pub struct FunctionTableRef<'text, 'arena> {
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum JoinQualifier<'text, 'arena> {
     On(Expression<'text, 'arena>),
     Using(&'arena [&'text str]),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct JoinedTable<'text, 'arena> {
     pub join: sx::JoinType,
     pub qualifier: Option<JoinQualifier<'text, 'arena>>,
     pub input: &'arena [&'arena TableRef<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct JoinedTableRef<'text, 'arena> {
     pub table: &'arena JoinedTable<'text, 'arena>,
     pub alias: Option<&'arena Alias<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Default, Hash)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct RelationRef<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
     pub inherit: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum TableRef<'text, 'arena> {
     Relation(RelationRef<'text, 'arena>),
     Select(SelectStatementRef<'text, 'arena>),
@@ -326,19 +326,19 @@ pub enum TableRef<'text, 'arena> {
     Join(JoinedTableRef<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Default, Hash)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct FunctionArgument<'text, 'arena> {
     pub name: Option<&'text str>,
     pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum FunctionName<'text> {
     Unknown(&'text str),
     Known(sx::KnownFunction),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct OverlayFunctionArguments<'text, 'arena> {
     pub input: Expression<'text, 'arena>,
     pub placing: Expression<'text, 'arena>,
@@ -346,51 +346,51 @@ pub struct OverlayFunctionArguments<'text, 'arena> {
     pub substr_for: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ExtractFunctionTarget<'text> {
     Unknown(&'text str),
     Known(sx::ExtractTarget),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ExtractFunctionArguments<'text, 'arena> {
     pub target: ExtractFunctionTarget<'text>,
     pub input: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SubstringFunctionArguments<'text, 'arena> {
     pub input: Expression<'text, 'arena>,
     pub substr_from: Option<Expression<'text, 'arena>>,
     pub substr_for: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct PositionFunctionArguments<'text, 'arena> {
     pub search: Expression<'text, 'arena>,
     pub input: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TrimFunctionArguments<'text, 'arena> {
     pub direction: sx::TrimDirection,
     pub characters: Option<Expression<'text, 'arena>>,
     pub input: &'arena [Expression<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CastFunctionArguments<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub as_type: &'arena SQLType<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TreatFunctionArguments<'text, 'arena> {
     pub value: Expression<'text, 'arena>,
     pub as_type: &'arena SQLType<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum KnownFunctionArguments<'text, 'arena> {
     Trim(&'arena TrimFunctionArguments<'text, 'arena>),
     Substring(&'arena SubstringFunctionArguments<'text, 'arena>),
@@ -401,7 +401,7 @@ pub enum KnownFunctionArguments<'text, 'arena> {
     Treat(&'arena TreatFunctionArguments<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FunctionExpression<'text, 'arena> {
     pub name: FunctionName<'text>,
     pub args: &'arena [FunctionArgument<'text, 'arena>],
@@ -415,19 +415,19 @@ pub struct FunctionExpression<'text, 'arena> {
     pub over: Option<&'arena WindowFrame<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Limit<'text, 'arena> {
     ALL,
     Expression(Expression<'text, 'arena>),
 }
 
-#[derive(Default, Debug, Clone, Hash)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SampleCount<'text> {
     pub value: &'text str,
     pub unit: sx::SampleCountUnit,
 }
 
-#[derive(Default, Debug, Clone, Hash)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Sample<'text> {
     pub function: &'text str,
     pub seed: Option<&'text str>,
@@ -435,14 +435,14 @@ pub struct Sample<'text> {
     pub count: Option<SampleCount<'text>>,
 }
 
-#[derive(Default, Debug, Clone, Hash)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct RowLocking<'text, 'arena> {
     pub strength: sx::RowLockingStrength,
     pub of: &'arena [NamePath<'text, 'arena>],
     pub block_behavior: Option<sx::RowLockingBlockBehavior>,
 }
 
-#[derive(Default, Debug, Clone, Hash)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SelectFromStatement<'text, 'arena> {
     pub all: bool,
     pub distinct: Option<&'arena [Expression<'text, 'arena>]>,
@@ -456,14 +456,14 @@ pub struct SelectFromStatement<'text, 'arena> {
     pub sample: Option<&'arena Sample<'text>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CombineOperation<'text, 'arena> {
     pub operation: sx::CombineOperation,
     pub modifier: sx::CombineModifier,
     pub input: &'arena [&'arena SelectStatement<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SelectData<'text, 'arena> {
     From(SelectFromStatement<'text, 'arena>),
     Table(&'arena TableRef<'text, 'arena>),
@@ -471,14 +471,14 @@ pub enum SelectData<'text, 'arena> {
     Combine(CombineOperation<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CommonTableExpression<'text, 'arena> {
     pub name: &'text str,
     pub columns: &'arena [&'text str],
     pub statement: &'arena SelectStatement<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SelectStatement<'text, 'arena> {
     pub with_ctes: &'arena [&'arena CommonTableExpression<'text, 'arena>],
     pub with_recursive: bool,
@@ -489,7 +489,7 @@ pub struct SelectStatement<'text, 'arena> {
     pub offset: Option<Expression<'text, 'arena>>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
     pub elements: &'arena [&'arena ColumnDefinition<'text, 'arena>],
@@ -497,7 +497,7 @@ pub struct CreateStatement<'text, 'arena> {
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CreateAsStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
     pub columns: &'arena [&'text str],
@@ -508,7 +508,7 @@ pub struct CreateAsStatement<'text, 'arena> {
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CreateViewStatement<'text, 'arena> {
     pub name: NamePath<'text, 'arena>,
     pub columns: &'arena [&'text str],
@@ -516,19 +516,19 @@ pub struct CreateViewStatement<'text, 'arena> {
     pub temp: Option<sx::TempType>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct GenericOption<'text> {
     pub key: &'text str,
     pub value: &'text str,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ColumnConstraintArgument<'text, 'arena> {
     pub name: &'text str,
     pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ColumnConstraint<'text, 'arena> {
     pub constraint_name: Option<&'text str>,
     pub constraint_type: Option<sx::ColumnConstraint>,
@@ -537,20 +537,20 @@ pub struct ColumnConstraint<'text, 'arena> {
     pub no_inherit: bool,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ColumnConstraintVariant<'text, 'arena> {
     Attribute(sx::ConstraintAttribute),
     Constraint(&'arena ColumnConstraint<'text, 'arena>),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct WindowFrameBound<'text, 'arena> {
     pub mode: sx::WindowBoundMode,
     pub direction: Option<sx::WindowBoundDirection>,
     pub value: Expression<'text, 'arena>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'text, 'arena> {
     pub name: Option<&'text str>,
     pub partition_by: &'arena [Expression<'text, 'arena>],
@@ -559,7 +559,7 @@ pub struct WindowFrame<'text, 'arena> {
     pub frame_bounds: &'arena [&'arena WindowFrameBound<'text, 'arena>],
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct WindowDefinition<'text, 'arena> {
     pub name: &'text str,
     pub frame: &'arena WindowFrame<'text, 'arena>,

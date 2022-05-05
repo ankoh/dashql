@@ -63,6 +63,7 @@ pub enum ASTNode<'text, 'arena> {
     FunctionTable(FunctionTable<'text, 'arena>),
     JoinedTable(JoinedTable<'text, 'arena>),
     TableRef(TableRef<'text, 'arena>),
+    ColumnRef(NamePath<'text, 'arena>),
 
     TrimFunctionArguments(TrimFunctionArguments<'text, 'arena>),
     OverlayFunctionArguments(OverlayFunctionArguments<'text, 'arena>),
