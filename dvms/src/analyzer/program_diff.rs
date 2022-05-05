@@ -732,16 +732,19 @@ pub fn compute_diff(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar;
+    use crate::grammar::{self, Program};
     use std::error::Error;
+    use std::rc::Rc;
 
     // Test a difference
     fn test_diff(script0: &str, script1: &str, expected: &[DiffOp]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let ast0 = grammar::parse(script0)?;
         let ast1 = grammar::parse(script1)?;
-        let mut ctx0 = ProgramAnalysisContext::new(&arena, script0, ast0.get_root());
-        let mut ctx1 = ProgramAnalysisContext::new(&arena, script1, ast1.get_root());
+        let prog0 = Rc::new(Program::default());
+        let prog1 = Rc::new(Program::default());
+        let mut ctx0 = ProgramAnalysisContext::new(&arena, script0, ast0.get_root(), prog0);
+        let mut ctx1 = ProgramAnalysisContext::new(&arena, script1, ast1.get_root(), prog1);
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

@@ -15,7 +15,7 @@ pub enum Statement<'text, 'arena> {
     Set(&'arena SetStatement<'text, 'arena>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Program<'text, 'arena> {
     pub nodes: Vec<&'arena ASTNode<'text, 'arena>>,
     pub statements: Vec<Statement<'text, 'arena>>,
