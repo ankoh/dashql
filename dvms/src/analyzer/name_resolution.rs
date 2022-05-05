@@ -98,3 +98,58 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>)
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use dashql_proto::syntax::DependencyType;
+
+    use super::*;
+    use crate::analyzer::analysis_context::ProgramAnalysisSettings;
+    use crate::grammar;
+    use std::error::Error;
+    use std::rc::Rc;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct DependencyTest {
+        dep_type: DependencyType,
+        source_statement: usize,
+        target_statement: usize,
+    }
+
+    // Test a difference
+    fn test_name_resolution(script: &str, expected: &[DependencyTest]) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let settings = Rc::new(ProgramAnalysisSettings::default());
+        let arena = bumpalo::Bump::new();
+        let ast = grammar::parse(&arena, script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
+        let mut ctx = ProgramAnalysisContext::new(settings.clone(), &arena, script, ast, prog);
+        normalize_statement_names(&mut ctx);
+        discover_statement_dependencies(&mut ctx);
+        let have: Vec<_> = ctx
+            .statement_deps
+            .iter()
+            .map(|dep| DependencyTest {
+                dep_type: dep.type_,
+                source_statement: dep.source_statement as usize,
+                target_statement: dep.target_statement as usize,
+            })
+            .collect();
+        assert_eq!(&have, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_name_resolution(
+            r#"
+CREATE TABLE foo AS SELECT 1;
+VISUALIZE foo USING TABLE;
+        "#,
+            &[DependencyTest {
+                dep_type: DependencyType::COLUMN_REF,
+                source_statement: 0,
+                target_statement: 1,
+            }],
+        )
+    }
+}
