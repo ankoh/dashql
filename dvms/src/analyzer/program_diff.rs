@@ -1,3 +1,4 @@
+use super::analysis_context::ProgramAnalysisContext;
 use super::program_text::*;
 use dashql_proto::syntax as sx;
 use std::collections::BinaryHeap;
@@ -48,25 +49,9 @@ pub struct DiffOp {
     pub target: Option<usize>,
 }
 
-pub struct ProgramDiffCtx<'text, 'ast> {
-    pub text: &'text str,
-    pub ast: sx::Program<'ast>,
-    pub subtree_sizes: Vec<usize>,
-}
-
-impl<'text, 'ast> ProgramDiffCtx<'text, 'ast> {
-    pub fn new(text: &'text str, ast: sx::Program<'ast>) -> Self {
-        ProgramDiffCtx {
-            text,
-            ast,
-            subtree_sizes: Vec::new(),
-        }
-    }
-}
-
-fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id: usize) -> usize {
+fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramAnalysisContext<'text, 'ast>, node_id: usize) -> usize {
     // Init tree sizes
-    let nodes = ctx.ast.nodes().unwrap_or_default();
+    let nodes = ctx.script_ast.nodes().unwrap_or_default();
     if ctx.subtree_sizes.len() != nodes.len() {
         ctx.subtree_sizes.resize(nodes.len(), 0);
     } else if ctx.subtree_sizes[node_id] > 0 {
@@ -128,15 +113,23 @@ fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id
 }
 
 fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
-    source: (&ProgramDiffCtx<'_, '_>, usize),
-    target: (&ProgramDiffCtx<'_, '_>, usize),
+    source: (&ProgramAnalysisContext<'_, '_>, usize),
+    target: (&ProgramAnalysisContext<'_, '_>, usize),
 ) -> SimilarityEstimate {
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
-    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
+    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(source_stmt_id);
+    let target_stmt = target_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(target_stmt_id);
 
     // Different root node types?
     let s = source_nodes[source_stmt.root_node() as usize];
@@ -148,8 +141,8 @@ fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
     // Do a string comparison if the strings are equal in size and number of root attributes.
     // This will bypass us the tree diffing for all unchanged statements.
     if (s.children_count() == t.children_count()) && (s.location().length() == t.location().length()) {
-        let st = text_at(source_ctx.text, *s.location());
-        let tt = text_at(target_ctx.text, *t.location());
+        let st = text_at(source_ctx.script_text, *s.location());
+        let tt = text_at(target_ctx.script_text, *t.location());
         if st == tt {
             return SimilarityEstimate::Equal;
         }
@@ -158,16 +151,24 @@ fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
 }
 
 fn compute_similarity(
-    source: (&mut ProgramDiffCtx<'_, '_>, usize),
-    target: (&mut ProgramDiffCtx<'_, '_>, usize),
+    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
-    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
+    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(source_stmt_id);
+    let target_stmt = target_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(target_stmt_id);
 
     // Compute tree sizes
     let source_size = compute_tree_size(source_ctx, source_stmt.root_node() as usize);
@@ -230,7 +231,8 @@ fn compute_similarity(
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
             sx::NodeType::STRING_REF => {
-                text_at(source_ctx.text, *source.location()) == text_at(target_ctx.text, *target.location())
+                text_at(source_ctx.script_text, *source.location())
+                    == text_at(target_ctx.script_text, *target.location())
             }
             sx::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
@@ -300,16 +302,24 @@ fn compute_similarity(
 }
 
 fn check_deep_equality(
-    source: (&mut ProgramDiffCtx<'_, '_>, usize),
-    target: (&mut ProgramDiffCtx<'_, '_>, usize),
+    source: (&mut ProgramAnalysisContext<'_, '_>, usize),
+    target: (&mut ProgramAnalysisContext<'_, '_>, usize),
 ) -> bool {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.ast.nodes().unwrap_or_default();
-    let source_stmt = source_ctx.ast.statements().unwrap_or_default().get(source_stmt_id);
-    let target_stmt = target_ctx.ast.statements().unwrap_or_default().get(target_stmt_id);
+    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_stmt = source_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(source_stmt_id);
+    let target_stmt = target_ctx
+        .script_ast
+        .statements()
+        .unwrap_or_default()
+        .get(target_stmt_id);
 
     // Compute tree sizes
     let source_size = compute_tree_size(source_ctx, source_stmt.root_node() as usize);
@@ -351,7 +361,8 @@ fn check_deep_equality(
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
             sx::NodeType::STRING_REF => {
-                text_at(source_ctx.text, *source.location()) == text_at(target_ctx.text, *target.location())
+                text_at(source_ctx.script_text, *source.location())
+                    == text_at(target_ctx.script_text, *target.location())
             }
             sx::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
@@ -417,8 +428,8 @@ fn check_deep_equality(
 
 // Find unique statement pair in two lists of statement ids
 fn map_statements(
-    source: &mut ProgramDiffCtx<'_, '_>,
-    target: &mut ProgramDiffCtx<'_, '_>,
+    source: &mut ProgramAnalysisContext<'_, '_>,
+    target: &mut ProgramAnalysisContext<'_, '_>,
     unique_pairs: &mut StatementMappings,
     equal_pairs: &mut StatementMappings,
 ) {
@@ -426,8 +437,8 @@ fn map_statements(
     let mut source_ambiguous: Vec<bool> = Vec::new();
     let mut target_ambiguous: Vec<bool> = Vec::new();
     let mut target_mapping: Vec<Option<usize>> = Vec::new();
-    let source_stmts = source.ast.statements().unwrap_or_default();
-    let target_stmts = target.ast.statements().unwrap_or_default();
+    let source_stmts = source.script_ast.statements().unwrap_or_default();
+    let target_stmts = target.script_ast.statements().unwrap_or_default();
     source_ambiguous.resize(source_stmts.len(), false);
     target_ambiguous.resize(target_stmts.len(), false);
     target_mapping.resize(target_stmts.len(), None);
@@ -561,10 +572,13 @@ impl std::cmp::Ord for SimilarityScoreEntry {
     }
 }
 
-pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDiffCtx<'_, '_>) -> Vec<DiffOp> {
+pub fn compute_diff(
+    source: &mut ProgramAnalysisContext<'_, '_>,
+    target: &mut ProgramAnalysisContext<'_, '_>,
+) -> Vec<DiffOp> {
     // Unpack arguments
-    let source_stmts = source.ast.statements().unwrap_or_default();
-    let target_stmts = target.ast.statements().unwrap_or_default();
+    let source_stmts = source.script_ast.statements().unwrap_or_default();
+    let target_stmts = target.script_ast.statements().unwrap_or_default();
     let mut source_emitted = Vec::new();
     let mut target_emitted = Vec::new();
     source_emitted.resize(source_stmts.len(), false);
@@ -722,8 +736,8 @@ mod test {
     fn test_diff(script0: &str, script1: &str, expected: &[DiffOp]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let ast0 = grammar::parse(script0)?;
         let ast1 = grammar::parse(script1)?;
-        let mut ctx0 = ProgramDiffCtx::new(script0, ast0.get_root());
-        let mut ctx1 = ProgramDiffCtx::new(script1, ast1.get_root());
+        let mut ctx0 = ProgramAnalysisContext::new(script0, ast0.get_root());
+        let mut ctx1 = ProgramAnalysisContext::new(script1, ast1.get_root());
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())
