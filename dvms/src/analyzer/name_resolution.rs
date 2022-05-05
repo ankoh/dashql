@@ -5,7 +5,10 @@ use dashql_proto::syntax as sx;
 fn normalize_name<'arena, 'text, 'ast>(
     ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>,
     name: &'arena [Indirection<'text, 'arena>],
-) -> &'arena [Indirection<'text, 'arena>] {
+) -> &'arena [Indirection<'text, 'arena>]
+where
+    'text: 'arena,
+{
     let mut path: [&'text str; 3] = [""; 3];
     let mut path_length = 0;
     for (i, elem) in name.iter().enumerate().take(3) {
@@ -19,19 +22,22 @@ fn normalize_name<'arena, 'text, 'ast>(
     }
     let path = &path[0..path_length];
     if path.len() == 1 {
-        let schema = if let Some(schema) = ctx.cached_default_schema {
-            schema
+        let node: Indirection<'text, 'arena> = if let Some(schema) = ctx.cached_default_schema {
+            Indirection::Name(schema)
         } else {
-            ctx.arena.alloc_str(&ctx.settings.default_schema)
+            let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
+            Indirection::Name(s)
         };
-        let node = Indirection::Name(schema);
-        ctx.arena.alloc_slice_clone(&[node, name[0]]).as_ref()
+        ctx.arena.alloc_slice_clone(&[node, name[0].clone()])
     } else {
         name
     }
 }
 
-pub fn normalize_statement_names(ctx: &mut ProgramAnalysisContext<'_, '_, '_>) {
+pub fn normalize_statement_names<'arena, 'text, 'ast>(ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>)
+where
+    'text: 'arena,
+{
     let prog = ctx.program_translated.clone();
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
@@ -50,7 +56,10 @@ pub fn normalize_statement_names(ctx: &mut ProgramAnalysisContext<'_, '_, '_>) {
     }
 }
 
-pub fn discover_statement_dependencies(ctx: &mut ProgramAnalysisContext<'_, '_, '_>) {
+pub fn discover_statement_dependencies<'arena, 'text, 'ast>(ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>)
+where
+    'text: 'arena,
+{
     for (node_id, node_flat) in ctx.program_flat.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = &ctx.program_translated.nodes[node_id];
         match node_flat.node_type() {

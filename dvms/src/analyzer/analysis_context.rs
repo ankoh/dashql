@@ -32,7 +32,7 @@ pub struct ProgramAnalysisContext<'arena, 'text, 'ast> {
 
     // Cached subtree sizes and diffs
     pub cached_subtree_sizes: Vec<usize>,
-    pub cached_default_schema: Option<&'ast str>,
+    pub cached_default_schema: Option<&'arena str>,
 }
 
 impl<'arena, 'text, 'ast> ProgramAnalysisContext<'arena, 'text, 'ast> {
