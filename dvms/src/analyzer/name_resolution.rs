@@ -6,7 +6,29 @@ fn normalize_name<'arena, 'text, 'ast>(
     ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>,
     name: &'arena [Indirection<'text, 'arena>],
 ) -> &'arena [Indirection<'text, 'arena>] {
-    name
+    let mut path: [&'text str; 3] = [""; 3];
+    let mut path_length = 0;
+    for (i, elem) in name.iter().enumerate().take(3) {
+        match elem {
+            Indirection::Name(s) => {
+                path[i] = s.clone();
+                path_length += 1;
+            }
+            _ => break,
+        }
+    }
+    let path = &path[0..path_length];
+    if path.len() == 1 {
+        let schema = if let Some(schema) = ctx.cached_default_schema {
+            schema
+        } else {
+            ctx.arena.alloc_str(&ctx.settings.default_schema)
+        };
+        let node = Indirection::Name(schema);
+        ctx.arena.alloc_slice_clone(&[node, name[0]]).as_ref()
+    } else {
+        name
+    }
 }
 
 pub fn normalize_statement_names(ctx: &mut ProgramAnalysisContext<'_, '_, '_>) {

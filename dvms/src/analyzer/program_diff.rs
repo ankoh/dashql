@@ -55,11 +55,11 @@ fn compute_tree_size<'arena, 'text, 'ast>(
 ) -> usize {
     // Init tree sizes
     let nodes = ctx.program_flat.nodes().unwrap_or_default();
-    if ctx.subtree_sizes.len() != nodes.len() {
-        ctx.subtree_sizes.resize(nodes.len(), 0);
-    } else if ctx.subtree_sizes[node_id] > 0 {
+    if ctx.cached_subtree_sizes.len() != nodes.len() {
+        ctx.cached_subtree_sizes.resize(nodes.len(), 0);
+    } else if ctx.cached_subtree_sizes[node_id] > 0 {
         // Already computed
-        return ctx.subtree_sizes[node_id];
+        return ctx.cached_subtree_sizes[node_id];
     }
 
     /// Run a DFS starting at every program statement
@@ -85,15 +85,15 @@ fn compute_tree_size<'arena, 'text, 'ast>(
         // Already visited?
         if top.visited {
             if pending.len() == 1 {
-                total = ctx.subtree_sizes[top.target];
+                total = ctx.cached_subtree_sizes[top.target];
                 break;
             }
-            ctx.subtree_sizes[top.parent] += ctx.subtree_sizes[top.target];
+            ctx.cached_subtree_sizes[top.parent] += ctx.cached_subtree_sizes[top.target];
             pending.pop();
         }
 
         // Set subtree size and mark as visited
-        ctx.subtree_sizes[top.target] = 1;
+        ctx.cached_subtree_sizes[top.target] = 1;
         pending.last_mut().unwrap().visited = true;
 
         // Discover children
@@ -732,19 +732,21 @@ pub fn compute_diff(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::analyzer::analysis_context::ProgramAnalysisSettings;
     use crate::grammar;
     use std::error::Error;
     use std::rc::Rc;
 
     // Test a difference
     fn test_diff(script0: &str, script1: &str, expected: &[DiffOp]) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
         let ast0 = grammar::parse(script0)?;
         let ast1 = grammar::parse(script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0.get_root())?);
         let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1.get_root())?);
-        let mut ctx0 = ProgramAnalysisContext::new(&arena, script0, ast0.get_root(), prog0);
-        let mut ctx1 = ProgramAnalysisContext::new(&arena, script1, ast1.get_root(), prog1);
+        let mut ctx0 = ProgramAnalysisContext::new(settings.clone(), &arena, script0, ast0.get_root(), prog0);
+        let mut ctx1 = ProgramAnalysisContext::new(settings, &arena, script1, ast1.get_root(), prog1);
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())
