@@ -51,7 +51,7 @@ pub struct DiffOp {
 
 fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramAnalysisContext<'text, 'ast>, node_id: usize) -> usize {
     // Init tree sizes
-    let nodes = ctx.script_ast.nodes().unwrap_or_default();
+    let nodes = ctx.program_flat.nodes().unwrap_or_default();
     if ctx.subtree_sizes.len() != nodes.len() {
         ctx.subtree_sizes.resize(nodes.len(), 0);
     } else if ctx.subtree_sizes[node_id] > 0 {
@@ -118,15 +118,15 @@ fn estimate_similarity<'source_txt, 'source_ast, 'target_txt, 'target_ast>(
 ) -> SimilarityEstimate {
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -157,15 +157,15 @@ fn compute_similarity(
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -308,15 +308,15 @@ fn check_deep_equality(
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.script_ast.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.script_ast.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .script_ast
+        .program_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -437,8 +437,8 @@ fn map_statements(
     let mut source_ambiguous: Vec<bool> = Vec::new();
     let mut target_ambiguous: Vec<bool> = Vec::new();
     let mut target_mapping: Vec<Option<usize>> = Vec::new();
-    let source_stmts = source.script_ast.statements().unwrap_or_default();
-    let target_stmts = target.script_ast.statements().unwrap_or_default();
+    let source_stmts = source.program_flat.statements().unwrap_or_default();
+    let target_stmts = target.program_flat.statements().unwrap_or_default();
     source_ambiguous.resize(source_stmts.len(), false);
     target_ambiguous.resize(target_stmts.len(), false);
     target_mapping.resize(target_stmts.len(), None);
@@ -577,8 +577,8 @@ pub fn compute_diff(
     target: &mut ProgramAnalysisContext<'_, '_>,
 ) -> Vec<DiffOp> {
     // Unpack arguments
-    let source_stmts = source.script_ast.statements().unwrap_or_default();
-    let target_stmts = target.script_ast.statements().unwrap_or_default();
+    let source_stmts = source.program_flat.statements().unwrap_or_default();
+    let target_stmts = target.program_flat.statements().unwrap_or_default();
     let mut source_emitted = Vec::new();
     let mut target_emitted = Vec::new();
     source_emitted.resize(source_stmts.len(), false);

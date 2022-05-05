@@ -10,5 +10,6 @@ mod ast_translation;
 mod dson;
 mod enums;
 
+pub use ast::Program;
 pub use ast_to_xml::serialize_ast_as_xml;
 pub use ast_translation::deserialize_ast;

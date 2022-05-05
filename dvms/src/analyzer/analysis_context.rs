@@ -1,19 +1,22 @@
+use super::super::grammar::Program;
 use dashql_proto::syntax as sx;
 
 pub struct ProgramAnalysisContext<'text, 'ast> {
     pub script_text: &'text str,
-    pub script_ast: sx::Program<'ast>,
+    pub program_flat: sx::Program<'ast>,
+    pub program_translated: Option<Program<'text, 'ast>>,
     pub subtree_sizes: Vec<usize>,
-    pub dependencies: Vec<sx::DependencyT>,
+    pub statement_deps: Vec<sx::DependencyT>,
 }
 
 impl<'text, 'ast> ProgramAnalysisContext<'text, 'ast> {
     pub fn new(text: &'text str, ast: sx::Program<'ast>) -> Self {
         ProgramAnalysisContext {
             script_text: text,
-            script_ast: ast,
+            program_flat: ast,
+            program_translated: None,
             subtree_sizes: Vec::new(),
-            dependencies: Vec::new(),
+            statement_deps: Vec::new(),
         }
     }
 }
