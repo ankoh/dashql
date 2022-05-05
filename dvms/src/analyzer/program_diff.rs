@@ -9,14 +9,6 @@ const UPDATE_SIMILARITY_THRESHOLD: f64 = 0.75;
 type StatementMapping = (usize, usize);
 type StatementMappings = Vec<StatementMapping>;
 
-pub enum DiffOpCode {
-    Delete,
-    Insert,
-    Keep,
-    Move,
-    Update,
-}
-
 #[derive(PartialEq, Eq)]
 enum SimilarityEstimate {
     Equal,
@@ -40,6 +32,16 @@ impl StatementSimilarity {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum DiffOpCode {
+    Delete,
+    Insert,
+    Keep,
+    Move,
+    Update,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct DiffOp {
     pub op_code: DiffOpCode,
     pub source: Option<usize>,
@@ -50,6 +52,16 @@ pub struct ProgramDiffCtx<'text, 'ast> {
     pub text: &'text str,
     pub ast: sx::Program<'ast>,
     pub subtree_sizes: Vec<usize>,
+}
+
+impl<'text, 'ast> ProgramDiffCtx<'text, 'ast> {
+    pub fn new(text: &'text str, ast: sx::Program<'ast>) -> Self {
+        ProgramDiffCtx {
+            text,
+            ast,
+            subtree_sizes: Vec::new(),
+        }
+    }
 }
 
 fn compute_tree_size<'text, 'ast>(ctx: &mut ProgramDiffCtx<'text, 'ast>, node_id: usize) -> usize {
@@ -473,6 +485,7 @@ fn map_statements(
 
 fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
     let mut lcs = StatementMappings::default();
+    #[derive(Debug)]
     struct Entry {
         source_id: usize,
         target_id: usize,
@@ -516,7 +529,7 @@ fn find_lcs(unique_pairs: &StatementMappings) -> StatementMappings {
     }
 
     // Build the LCS
-    let mut entry_id = piles.last().unwrap().len();
+    let mut entry_id = piles.last().unwrap().len() - 1;
     for pile_id in (0..piles.len()).rev() {
         let entry = &piles[pile_id][entry_id];
         lcs.push((entry.source_id, entry.target_id));
@@ -552,6 +565,10 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
     // Unpack arguments
     let source_stmts = source.ast.statements().unwrap_or_default();
     let target_stmts = target.ast.statements().unwrap_or_default();
+    let mut source_emitted = Vec::new();
+    let mut target_emitted = Vec::new();
+    source_emitted.resize(source_stmts.len(), false);
+    target_emitted.resize(target_stmts.len(), false);
 
     // Find statement mappings
     let mut unique_pairs = Vec::new();
@@ -561,38 +578,43 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
     // Build the LCS
     let lcs = find_lcs(&unique_pairs);
 
-    // Iterate over LCS sections
-    let mut prev: (usize, usize);
-    let mut next = (0, 0);
-    let mut lcs_iter = 0;
-    lcs_iter -= 1;
-
-    // Track which target statements were emitted
-    let mut target_emitted = Vec::new();
-    target_emitted.resize(target_stmts.len(), false);
-
     // Derive diff ops
     let mut ops = Vec::new();
-    loop {
+    let mut prev: (usize, usize);
+    let mut next = (0, 0);
+    let mut next_lcs = 0;
+    while next_lcs <= lcs.len() {
         // Find next mapping range
-        lcs_iter += 1;
         prev = next;
-        next = if lcs_iter < lcs.len() {
-            lcs[lcs_iter]
+        next = if next_lcs < lcs.len() {
+            lcs[next_lcs as usize]
         } else {
             (source_stmts.len(), target_stmts.len())
         };
+        next_lcs += 1;
         let (prev_source_id, prev_target_id) = prev;
         let (next_source_id, next_target_id) = next;
 
-        // Iterate over all source statements in the section
-        for source_id in prev_source_id..next_source_id {
-            let mut source_emitted = false;
+        // Emit diff operation for unique upper bound in lcs
+        if next != (source_stmts.len(), target_stmts.len()) {
+            ops.push(DiffOp {
+                op_code: DiffOpCode::Keep,
+                source: Some(next_source_id),
+                target: Some(next_target_id),
+            });
+            source_emitted[next_source_id] = true;
+            target_emitted[next_target_id] = true;
+        }
 
-            // Are the equal pairs?
+        // Iterate over all source statements between lower and upper bound
+        for source_id in prev_source_id..next_source_id {
+            if source_emitted[source_id] {
+                continue;
+            }
+            // Are there equal pairs?
             // We have to emit equal pairs that are either ambiguous or unique but cross section boundaries.
             let equal_begin = equal_pairs.partition_point(|(source, _)| *source < source_id);
-            let equal_end = equal_pairs.partition_point(|(source, _)| *source > source_id);
+            let equal_end = equal_pairs.partition_point(|(source, _)| *source <= source_id);
             for equal_iter in equal_begin..equal_end {
                 let (_, target_id) = equal_pairs[equal_iter];
                 if target_emitted[target_id] {
@@ -603,11 +625,11 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
                     source: Some(source_id),
                     target: Some(target_id),
                 });
-                source_emitted = true;
+                source_emitted[source_id] = true;
                 target_emitted[target_id] = true;
                 break;
             }
-            if source_emitted {
+            if source_emitted[source_id] {
                 continue;
             }
 
@@ -646,37 +668,326 @@ pub fn compute_diff(source: &mut ProgramDiffCtx<'_, '_>, target: &mut ProgramDif
                         }
                     }
                 }
+            }
 
-                // Found nothing?
-                match matches.pop() {
-                    Some(m) => {
-                        ops.push(DiffOp {
-                            op_code: DiffOpCode::Update,
-                            source: Some(source_id),
-                            target: Some(m.entry_id),
-                        });
-                    }
-                    None => {
-                        ops.push(DiffOp {
-                            op_code: DiffOpCode::Delete,
-                            source: Some(source_id),
-                            target: None,
-                        });
-                    }
+            // Found nothing?
+            match matches.pop() {
+                Some(m) => {
+                    target_emitted[m.entry_id] = true;
+                    ops.push(DiffOp {
+                        op_code: DiffOpCode::Update,
+                        source: Some(source_id),
+                        target: Some(m.entry_id),
+                    });
+                }
+                None => {
+                    ops.push(DiffOp {
+                        op_code: DiffOpCode::Delete,
+                        source: Some(source_id),
+                        target: None,
+                    });
                 }
             }
         }
 
-        // Reached end?
-        if lcs_iter == lcs.len() {
-            break;
+        // Create new statements
+        for target_id in prev_target_id..next_target_id {
+            if target_emitted[target_id] {
+                continue;
+            }
+            ops.push(DiffOp {
+                op_code: DiffOpCode::Insert,
+                source: None,
+                target: Some(target_id),
+            });
         }
-        // Otherwise emit diff operation for boundary
-        ops.push(DiffOp {
-            op_code: DiffOpCode::Keep,
-            source: Some(next_source_id),
-            target: Some(next_target_id),
-        });
     }
+    // Sort by the source id
+    ops.sort_unstable_by(|l, r| match (l.source, r.source) {
+        (None, None) => std::cmp::Ordering::Less,
+        (None, _) => std::cmp::Ordering::Greater,
+        (_, None) => std::cmp::Ordering::Less,
+        (Some(a), Some(b)) => a.cmp(&b),
+    });
     ops
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::grammar;
+    use std::error::Error;
+
+    // Test a difference
+    fn test_diff(script0: &str, script1: &str, expected: &[DiffOp]) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let ast0 = grammar::parse(script0)?;
+        let ast1 = grammar::parse(script1)?;
+        let mut ctx0 = ProgramDiffCtx::new(script0, ast0.get_root());
+        let mut ctx1 = ProgramDiffCtx::new(script1, ast1.get_root());
+        let diff = compute_diff(&mut ctx0, &mut ctx1);
+        assert_eq!(diff, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_equal_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            "SELECT 1",
+            "SELECT 1",
+            &[DiffOp {
+                op_code: DiffOpCode::Keep,
+                source: Some(0),
+                target: Some(0),
+            }],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_delete_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"SELECT 1; SELECT 42;"#,
+            r#"SELECT 1;"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Delete,
+                    source: Some(1),
+                    target: None,
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_insert_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"SELECT 1;"#,
+            r#"SELECT 1;SELECT 42;"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Insert,
+                    source: None,
+                    target: Some(1),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_insert_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"SELECT 1;"#,
+            r#"SELECT 42;SELECT 1;"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(1),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Insert,
+                    source: None,
+                    target: Some(0),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_move_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"SELECT 1;SELECT 2;SELECT 3;"#,
+            r#"SELECT 1;SELECT 3;SELECT 2;"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Move,
+                    source: Some(1),
+                    target: Some(2),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(2),
+                    target: Some(1),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_script_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 4;
+SELECT 2 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+"#,
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 1 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+VIZ weather_avg_2 USING BAR;
+"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Delete,
+                    source: Some(1),
+                    target: None,
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Update,
+                    source: Some(2),
+                    target: Some(1),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(3),
+                    target: Some(2),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Insert,
+                    source: None,
+                    target: Some(3),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_script_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 4;
+SELECT 2 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+"#,
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 1 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Delete,
+                    source: Some(1),
+                    target: None,
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Update,
+                    source: Some(2),
+                    target: Some(1),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(3),
+                    target: Some(2),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_script_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 2 INTO weather_avg FROM weather;
+SELECT 4;
+VIZ weather_avg USING LINE;
+"#,
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+VIZ weather_avg USING LINE;
+"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Delete,
+                    source: Some(1),
+                    target: None,
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Delete,
+                    source: Some(2),
+                    target: None,
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(3),
+                    target: Some(1),
+                },
+            ],
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_diff_script_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_diff(
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 1 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+"#,
+            r#"
+LOAD weather FROM weather_csv USING CSV;
+SELECT 2 INTO weather_avg FROM weather;
+VIZ weather_avg USING LINE;
+"#,
+            &[
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(0),
+                    target: Some(0),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Update,
+                    source: Some(1),
+                    target: Some(1),
+                },
+                DiffOp {
+                    op_code: DiffOpCode::Keep,
+                    source: Some(2),
+                    target: Some(2),
+                },
+            ],
+        )?;
+        Ok(())
+    }
 }
