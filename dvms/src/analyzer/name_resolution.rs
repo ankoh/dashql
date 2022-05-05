@@ -28,6 +28,21 @@ fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirecti
     }
 }
 
+fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -> usize {
+    let nodes = ctx.program_flat.nodes().unwrap_or_default();
+    let mut cursor = node_id;
+    while (nodes[cursor].parent() as usize) < nodes.len() {
+        cursor = nodes[cursor].parent() as usize;
+    }
+    match ctx.statement_by_root.get(&cursor) {
+        Some(stmt_id) => stmt_id.clone(),
+        None => {
+            debug_assert!(false, "failed to resolve statement id from node: {}", node_id);
+            0_usize
+        }
+    }
+}
+
 pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     let prog = ctx.program_translated.clone();
     let stmts = &prog.statements;
@@ -54,11 +69,12 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>)
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
                     let target = normalize_name(ctx, name);
-                    if let Some(stmt) = ctx.statement_by_name.get(target) {
+                    if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
+                        let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_deps.push(sx::DependencyT {
                             type_: sx::DependencyType::COLUMN_REF,
-                            source_statement: *stmt as u32,
-                            target_statement: 0, // XXX
+                            source_statement: stmt as u32,
+                            target_statement: target_stmt_id,
                             target_node: node_id as u32,
                         });
                     }
@@ -67,11 +83,12 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>)
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
                     let target = normalize_name(ctx, rel.name);
-                    if let Some(stmt) = ctx.statement_by_name.get(target) {
+                    if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
+                        let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_deps.push(sx::DependencyT {
                             type_: sx::DependencyType::TABLE_REF,
-                            source_statement: *stmt as u32,
-                            target_statement: 0, // XXX
+                            source_statement: stmt as u32,
+                            target_statement: target_stmt_id,
                             target_node: node_id as u32,
                         });
                     }
