@@ -1,6 +1,9 @@
 pub use dashql_parser::{parse, ASTBuffer};
 pub mod syntax;
 
-pub use syntax::deserialize_ast;
-pub use syntax::serialize_ast_as_xml;
-pub use syntax::Program;
+pub use syntax::ast::Program;
+pub use syntax::ast_node::*;
+pub use syntax::ast_nodes_dashql::*;
+pub use syntax::ast_nodes_sql::*;
+pub use syntax::ast_to_xml::serialize_ast_as_xml;
+pub use syntax::ast_translation::deserialize_ast;

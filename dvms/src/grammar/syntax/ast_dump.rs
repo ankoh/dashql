@@ -1,5 +1,5 @@
 use super::ast::Program;
-use super::serialize_ast_as_xml;
+use super::ast_to_xml::serialize_ast_as_xml;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
@@ -86,7 +86,7 @@ mod test {
     use std::io::BufReader;
     use std::path::PathBuf;
 
-    use crate::grammar::deserialize_ast;
+    use super::super::ast_translation::deserialize_ast;
 
     fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();

@@ -11,7 +11,6 @@ pub enum SQLTextElement<'text> {
 }
 
 pub struct SQLWriter<'text> {
-    next_id: u64,
     buffer: Vec<SQLTextElement<'text>>,
 }
 
