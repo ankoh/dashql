@@ -1,6 +1,6 @@
 use super::analysis_context::*;
 use crate::grammar::{ASTNode, Indirection, Statement, TableRef};
-use dashql_proto::syntax as sx;
+use dashql_proto::syntax::{self as sx, DependencyT};
 
 fn normalize_name<'arena, 'text, 'ast>(
     ctx: &mut ProgramAnalysisContext<'arena, 'text, 'ast>,
@@ -35,13 +35,27 @@ pub fn discover_statement_dependencies(ctx: &mut ProgramAnalysisContext<'_, '_, 
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
                     let target = normalize_name(ctx, name);
-                    let stmt = ctx.statement_by_name.get(target);
+                    if let Some(stmt) = ctx.statement_by_name.get(target) {
+                        ctx.statement_deps.push(sx::DependencyT {
+                            type_: sx::DependencyType::COLUMN_REF,
+                            source_statement: *stmt as u32,
+                            target_statement: 0, // XXX
+                            target_node: node_id as u32,
+                        });
+                    }
                 }
             }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
                     let target = normalize_name(ctx, rel.name);
-                    let stmt = ctx.statement_by_name.get(target);
+                    if let Some(stmt) = ctx.statement_by_name.get(target) {
+                        ctx.statement_deps.push(sx::DependencyT {
+                            type_: sx::DependencyType::TABLE_REF,
+                            source_statement: *stmt as u32,
+                            target_statement: 0, // XXX
+                            target_node: node_id as u32,
+                        });
+                    }
                 }
             }
             _ => {}
