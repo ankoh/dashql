@@ -1,41 +1,107 @@
-pub enum SQLTextElement<'text> {
-    Keyword(&'static str),
-    TextStatic(&'static str),
-    TextDynamic(&'text str),
-    LineBreak,
+use std::cell::Cell;
+
+pub enum SQLTextElement<'arena, 'text> {
     Comma,
-    BracketRoundBegin(u64),
-    BracketRoundEnd(u64),
-    IndentBegin(u64),
-    IndentEnd(u64),
+    Semicolon,
+    AttributeEqual,
+    InlineSpace,
+    Stack(&'arena [SQLText<'arena, 'text>]),
+    Float(&'arena [SQLText<'arena, 'text>]),
+    RoundBrackets(&'arena [SQLText<'arena, 'text>]),
+    Keyword(&'static str),
+    TextDynamic(&'text str),
+    TextStatic(&'static str),
 }
 
-pub struct SQLWriter<'text> {
-    buffer: Vec<SQLTextElement<'text>>,
+pub struct SQLText<'arena, 'text> {
+    pub element: SQLTextElement<'arena, 'text>,
+    pub inline_text_length: Cell<usize>,
 }
 
-impl<'text> SQLWriter<'text> {
-    pub fn keyword(&mut self, k: &'static str) -> &mut Self {
-        self.buffer.push(SQLTextElement::Keyword(k));
-        self
+pub trait SQLWritable<'text> {
+    fn as_sql<'arena>(arena: &'arena bumpalo::Bump) -> SQLText<'arena, 'text>;
+}
+
+fn compute_inline_lengths<'arena, 'text>(text: &'arena SQLText<'arena, 'text>) {
+    #[derive(Clone)]
+    struct DFSNode<'arena, 'text> {
+        text: &'arena SQLText<'arena, 'text>,
+        visited: bool
     }
-    pub fn text_dynamic(&mut self, t: &'text str) -> &mut Self {
-        self.buffer.push(SQLTextElement::TextDynamic(t));
-        self
+    let mut pending: Vec<DFSNode<'arena, 'text>> = Vec::new();
+    pending.push(DFSNode { text: text, visited: false });
+    while !pending.is_empty() {
+        let top = pending.last().unwrap().clone();
+        if !top.visited {
+            pending.last_mut().unwrap().visited = true;
+            match top.text.element {
+                SQLTextElement::Stack(elems) | SQLTextElement::Float(elems) => {
+                    for elem in elems.iter().rev() {
+                        pending.push(DFSNode { 
+                            text: elem,
+                            visited: false
+                        });
+                    }
+                },
+                SQLTextElement::RoundBrackets(elems) => {
+                    for elem in elems.iter().rev() {
+                        pending.push(DFSNode { 
+                            text: elem,
+                            visited: false
+                        });
+                    }
+                },
+                _ => {},
+            }
+        } else {
+            pending.pop();
+            match top.text.element {
+                SQLTextElement::InlineSpace => {
+                    top.text.inline_text_length.set(1);
+                },
+                SQLTextElement::Comma => {
+                    top.text.inline_text_length.set(2);
+                },
+                SQLTextElement::Semicolon => {
+                    top.text.inline_text_length.set(1);
+                },
+                SQLTextElement::AttributeEqual => {
+                    top.text.inline_text_length.set(3);
+                },
+                SQLTextElement::Keyword(s) => {
+                    top.text.inline_text_length.set(s.len());
+                },
+                SQLTextElement::TextDynamic(s) => {
+                    top.text.inline_text_length.set(s.len());
+                },
+                SQLTextElement::TextStatic(s) => {
+                    top.text.inline_text_length.set(s.len());
+                },
+                SQLTextElement::Stack(elems) | SQLTextElement::Float(elems) => {
+                    let mut length = 0;
+                    for elem in elems.iter() {
+                        length += elem.inline_text_length.get();
+                    }
+                    top.text.inline_text_length.set(length);
+                },
+                SQLTextElement::RoundBrackets(elems) => {
+                    let mut length = 2;
+                    for elem in elems.iter() {
+                        length += elem.inline_text_length.get();
+                    }
+                    top.text.inline_text_length.set(length);
+                }
+            }
+        }
     }
-    pub fn text_static(&mut self, t: &'static str) -> &mut Self {
-        self.buffer.push(SQLTextElement::TextStatic(t));
-        self
-    }
-    pub fn linebreak(&mut self) -> &mut Self {
-        self.buffer.push(SQLTextElement::LineBreak);
-        self
-    }
-    pub fn comma(&mut self) -> &mut Self {
-        self.buffer.push(SQLTextElement::Comma);
-        self
-    }
-    pub fn bracket_round_begin(&mut self) -> &mut Self {
-        self
-    }
+}
+
+pub struct SQLWriterConfig {
+    indent_by: usize,
+    max_width: usize,
+}
+
+pub fn write_sql_string<'arena, 'text>(text: &SQLText<'arena, 'text>) {
+    compute_inline_lengths(text);
+
 }
