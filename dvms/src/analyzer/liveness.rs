@@ -18,7 +18,7 @@ pub fn identify_dead_statements<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     }
 
     // Propagate dependencies
-    while pending.is_empty() {
+    while !pending.is_empty() {
         let next = *pending.last().unwrap();
         pending.pop();
         ctx.statement_liveness[next] = true;
@@ -29,5 +29,56 @@ pub fn identify_dead_statements<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
         for ((_, dep), _) in ctx.statement_depends_on.range((next, 0)..(next + 1, 0)) {
             pending.push(*dep);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
+    use crate::analyzer::name_resolution::*;
+    use crate::grammar;
+    use std::error::Error;
+    use std::rc::Rc;
+
+    fn test_liveness(script: &str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let settings = Rc::new(ProgramAnalysisSettings::default());
+        let arena = bumpalo::Bump::new();
+        let ast = grammar::parse(&arena, script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
+        let mut ctx = ProgramAnalysisContext::new(settings.clone(), &arena, script, ast, prog);
+        normalize_statement_names(&mut ctx);
+        discover_statement_dependencies(&mut ctx);
+        identify_dead_statements(&mut ctx);
+        assert_eq!(&ctx.statement_liveness, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_liveness(r#"SELECT 1"#, &[false])
+    }
+
+    #[test]
+    fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_liveness(
+            r#"
+            CREATE TABLE foo AS SELECT 1;
+            VISUALIZE foo USING TABLE;
+        "#,
+            &[true, true],
+        )
+    }
+
+    #[test]
+    fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_liveness(
+            r#"
+            CREATE TABLE dead AS SELECT 42;
+            CREATE TABLE foo AS SELECT 1;
+            VISUALIZE foo USING TABLE;
+        "#,
+            &[false, true, true],
+        )
     }
 }
