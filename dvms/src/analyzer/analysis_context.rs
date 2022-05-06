@@ -28,7 +28,8 @@ pub struct ProgramAnalysisContext<'a> {
     pub statement_names: Vec<Option<NamePath<'a>>>,
     pub statement_by_name: HashMap<NamePath<'a>, usize>,
     pub statement_by_root: HashMap<usize, usize>,
-    pub statement_deps: Vec<sx::DependencyT>,
+    pub dependencies_by_source: HashMap<usize, Vec<sx::DependencyT>>,
+    pub dependencies_by_target: HashMap<usize, Vec<sx::DependencyT>>,
 
     // Cached subtree sizes and diffs
     pub cached_subtree_sizes: Vec<usize>,
@@ -52,7 +53,8 @@ impl<'a> ProgramAnalysisContext<'a> {
             statement_names: Vec::new(),
             statement_by_name: HashMap::default(),
             statement_by_root: HashMap::default(),
-            statement_deps: Vec::new(),
+            dependencies_by_source: HashMap::new(),
+            dependencies_by_target: HashMap::new(),
             cached_subtree_sizes: Vec::new(),
             cached_default_schema: None,
         };
