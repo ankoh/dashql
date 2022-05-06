@@ -726,7 +726,7 @@ pub fn compute_diff(source: &mut ProgramAnalysisContext<'_>, target: &mut Progra
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::analyzer::analysis_context::ProgramAnalysisSettings;
+    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::grammar;
     use std::error::Error;
     use std::rc::Rc;

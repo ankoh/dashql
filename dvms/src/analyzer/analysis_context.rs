@@ -1,37 +1,31 @@
 use super::super::grammar::*;
+use super::analysis_settings::ProgramAnalysisSettings;
 use dashql_proto::syntax as sx;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub struct ProgramAnalysisSettings {
-    pub default_schema: String,
-}
-
-impl Default for ProgramAnalysisSettings {
-    fn default() -> Self {
-        Self {
-            default_schema: "main".to_string(),
-        }
-    }
-}
+pub type StatementID = usize;
+pub type NodeID = usize;
 
 pub struct ProgramAnalysisContext<'a> {
     pub settings: Rc<ProgramAnalysisSettings>,
 
-    // AST state
+    // AST buffer
     pub arena: &'a bumpalo::Bump,
     pub script_text: &'a str,
     pub program_flat: sx::Program<'a>,
     pub program_translated: Rc<Program<'a>>,
 
-    // Name resolution of statements
+    // Analysis output
     pub statement_names: Vec<Option<NamePath<'a>>>,
     pub statement_by_name: HashMap<NamePath<'a>, usize>,
     pub statement_by_root: HashMap<usize, usize>,
-    pub dependencies_by_source: HashMap<usize, Vec<sx::DependencyT>>,
-    pub dependencies_by_target: HashMap<usize, Vec<sx::DependencyT>>,
+    pub statement_required_for: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
+    pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
+    pub statement_liveness: Vec<bool>,
 
-    // Cached subtree sizes and diffs
+    // Cached properties during analysis
     pub cached_subtree_sizes: Vec<usize>,
     pub cached_default_schema: Option<&'a str>,
 }
@@ -53,8 +47,9 @@ impl<'a> ProgramAnalysisContext<'a> {
             statement_names: Vec::new(),
             statement_by_name: HashMap::default(),
             statement_by_root: HashMap::default(),
-            dependencies_by_source: HashMap::new(),
-            dependencies_by_target: HashMap::new(),
+            statement_required_for: BTreeMap::new(),
+            statement_depends_on: BTreeMap::new(),
+            statement_liveness: Vec::new(),
             cached_subtree_sizes: Vec::new(),
             cached_default_schema: None,
         };

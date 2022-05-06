@@ -72,17 +72,14 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>)
                     let target = normalize_name(ctx, name);
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
-                        let dep = sx::DependencyT {
-                            type_: sx::DependencyType::COLUMN_REF,
-                            source_statement: stmt as u32,
-                            target_statement: target_stmt_id,
-                            target_node: node_id as u32,
-                        };
-                        ctx.dependencies_by_source.entry(stmt).or_default().push(dep.clone());
-                        ctx.dependencies_by_target
-                            .entry(target_stmt_id as usize)
-                            .or_default()
-                            .push(dep.clone());
+                        ctx.statement_required_for.insert(
+                            (stmt, target_stmt_id as usize),
+                            (sx::DependencyType::COLUMN_REF, node_id),
+                        );
+                        ctx.statement_depends_on.insert(
+                            (target_stmt_id as usize, stmt),
+                            (sx::DependencyType::COLUMN_REF, node_id),
+                        );
                     }
                 }
             }
@@ -91,17 +88,14 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>)
                     let target = normalize_name(ctx, rel.name);
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
-                        let dep = sx::DependencyT {
-                            type_: sx::DependencyType::TABLE_REF,
-                            source_statement: stmt as u32,
-                            target_statement: target_stmt_id,
-                            target_node: node_id as u32,
-                        };
-                        ctx.dependencies_by_source.entry(stmt).or_default().push(dep.clone());
-                        ctx.dependencies_by_target
-                            .entry(target_stmt_id as usize)
-                            .or_default()
-                            .push(dep.clone());
+                        ctx.statement_required_for.insert(
+                            (stmt, target_stmt_id as usize),
+                            (sx::DependencyType::TABLE_REF, node_id),
+                        );
+                        ctx.statement_depends_on.insert(
+                            (target_stmt_id as usize, stmt),
+                            (sx::DependencyType::TABLE_REF, node_id),
+                        );
                     }
                 }
             }
@@ -115,7 +109,7 @@ mod test {
     use dashql_proto::syntax::DependencyType;
 
     use super::*;
-    use crate::analyzer::analysis_context::ProgramAnalysisSettings;
+    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::grammar;
     use std::error::Error;
     use std::rc::Rc;
@@ -137,14 +131,12 @@ mod test {
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx
-            .dependencies_by_source
+            .statement_required_for
             .iter()
-            .map(|(_, deps)| deps)
-            .flatten()
-            .map(|dep| DependencyTest {
-                dep_type: dep.type_,
-                source_statement: dep.source_statement as usize,
-                target_statement: dep.target_statement as usize,
+            .map(|((source, target), (dep_type, _))| DependencyTest {
+                dep_type: *dep_type,
+                source_statement: *source as usize,
+                target_statement: *target as usize,
             })
             .collect();
         assert_eq!(&have, expected);
