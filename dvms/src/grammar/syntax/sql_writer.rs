@@ -1,109 +1,101 @@
-use std::cell::Cell;
-
-pub enum SQLTextElement<'arena, 'text> {
+#[derive(Debug, Clone)]
+pub enum SQLTextElement<'arena> {
     InlineSpace,
     StaticStr(&'static str),
-    DynamicStr(&'text str),
-    Stack(&'arena [SQLText<'arena, 'text>]),
-    Float(&'arena [SQLText<'arena, 'text>]),
-    Brackets(&'static str, &'static str, &'arena [SQLText<'arena, 'text>]),
+    DynamicStr(&'arena str),
+    Stack(&'arena [SQLText<'arena>]),
+    Float(&'arena [SQLText<'arena>]),
+    Brackets(&'static str, &'static str, &'arena [SQLText<'arena>]),
     Keyword(&'static str),
 }
 
-pub struct SQLText<'arena, 'text> {
-    pub element: SQLTextElement<'arena, 'text>,
-    pub inline_text_length: Cell<usize>,
+#[derive(Debug, Clone)]
+pub struct SQLText<'arena> {
+    pub element: SQLTextElement<'arena>,
+    pub inline_length: usize,
 }
 
-pub trait SQLWritable<'text> {
-    fn as_sql<'arena>(arena: &'arena bumpalo::Bump) -> SQLText<'arena, 'text>;
+pub struct SQLWriter<'arena> {
+    arena: &'arena bumpalo::Bump,
 }
 
-fn compute_inline_lengths<'arena, 'text>(text: &'arena SQLText<'arena, 'text>) {
-    #[derive(Clone)]
-    struct DFSNode<'arena, 'text> {
-        text: &'arena SQLText<'arena, 'text>,
-        visited: bool,
+impl<'arena> SQLWriter<'arena> {
+    pub fn inline_space(&self) -> SQLText<'arena> {
+        SQLText {
+            element: SQLTextElement::InlineSpace,
+            inline_length: 1,
+        }
     }
-    let mut pending: Vec<DFSNode<'arena, 'text>> = Vec::new();
-    pending.push(DFSNode {
-        text: text,
-        visited: false,
-    });
-
-    while !pending.is_empty() {
-        let top = pending.last().unwrap().clone();
-        if !top.visited {
-            pending.last_mut().unwrap().visited = true;
-            match top.text.element {
-                SQLTextElement::Stack(elems) | SQLTextElement::Float(elems) => {
-                    for elem in elems.iter().rev() {
-                        pending.push(DFSNode {
-                            text: elem,
-                            visited: false,
-                        });
-                    }
-                }
-                SQLTextElement::Brackets(_, _, elems) => {
-                    for elem in elems.iter().rev() {
-                        pending.push(DFSNode {
-                            text: elem,
-                            visited: false,
-                        });
-                    }
-                }
-                _ => {}
-            }
-        } else {
-            pending.pop();
-            match top.text.element {
-                SQLTextElement::InlineSpace => {
-                    top.text.inline_text_length.set(1);
-                }
-                SQLTextElement::StaticStr(s) => {
-                    top.text.inline_text_length.set(s.len());
-                }
-                SQLTextElement::DynamicStr(s) => {
-                    top.text.inline_text_length.set(s.len());
-                }
-                SQLTextElement::Stack(elems) | SQLTextElement::Float(elems) => {
-                    let mut length = 0;
-                    for elem in elems.iter() {
-                        length += elem.inline_text_length.get();
-                    }
-                    top.text.inline_text_length.set(length);
-                }
-                SQLTextElement::Brackets(bropen, brclose, elems) => {
-                    let mut length = bropen.len() + brclose.len();
-                    for elem in elems.iter() {
-                        length += elem.inline_text_length.get();
-                    }
-                    top.text.inline_text_length.set(length);
-                }
-                _ => {}
-            }
+    pub fn str_static(&self, s: &'static str) -> SQLText<'arena> {
+        SQLText {
+            element: SQLTextElement::StaticStr(s),
+            inline_length: s.len(),
+        }
+    }
+    pub fn str_dynamic(&self, s: &'arena str) -> SQLText<'arena> {
+        SQLText {
+            element: SQLTextElement::DynamicStr(s),
+            inline_length: s.len(),
+        }
+    }
+    pub fn stack(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+        let mut len = 0;
+        for elem in elems.iter() {
+            len += elem.inline_length;
+        }
+        SQLText {
+            element: SQLTextElement::Stack(self.arena.alloc_slice_clone(elems)),
+            inline_length: len,
+        }
+    }
+    pub fn float(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+        let mut len = 0;
+        for elem in elems.iter() {
+            len += elem.inline_length;
+        }
+        SQLText {
+            element: SQLTextElement::Float(self.arena.alloc_slice_clone(elems)),
+            inline_length: len,
+        }
+    }
+    pub fn round_brackets(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+        let mut len = 2;
+        for elem in elems.iter() {
+            len += elem.inline_length;
+        }
+        SQLText {
+            element: SQLTextElement::Brackets("(", ")", self.arena.alloc_slice_clone(elems)),
+            inline_length: len,
+        }
+    }
+    pub fn keyword(&self, k: &'static str) -> SQLText<'arena> {
+        SQLText {
+            element: SQLTextElement::Keyword(k),
+            inline_length: k.len(),
         }
     }
 }
 
-pub struct SQLWriterConfig {
+pub trait SQLWritable {
+    fn as_sql<'arena>(writer: &SQLWriter<'arena>) -> SQLText<'arena>;
+}
+
+pub struct SQLTextConfig {
     indent_by: usize,
     max_width: usize,
 }
 
-pub fn write_sql_string<'arena, 'text>(text: &'arena SQLText<'arena, 'text>, config: &SQLWriterConfig) {
-    compute_inline_lengths(text);
-
+pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextConfig) {
     #[derive(Clone)]
-    struct DFSNode<'arena, 'text> {
-        text: &'arena SQLText<'arena, 'text>,
+    struct DFSNode<'arena> {
+        text: &'arena SQLText<'arena>,
         visited: bool,
         break_to: usize,
         inline: bool,
     }
-    let mut pending: Vec<DFSNode<'arena, 'text>> = Vec::new();
+    let mut pending: Vec<DFSNode<'arena>> = Vec::new();
     pending.push(DFSNode {
-        text,
+        text: root,
         visited: false,
         break_to: 0,
         inline: true,
@@ -114,7 +106,7 @@ pub fn write_sql_string<'arena, 'text>(text: &'arena SQLText<'arena, 'text>, con
 
     while !pending.is_empty() {
         let top = pending.last().unwrap().clone();
-        let inline_text_length = top.text.inline_text_length.get();
+        let inline_text_length = top.text.inline_length;
 
         if !top.visited {
             pending.last_mut().unwrap().visited = true;
