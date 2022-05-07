@@ -15,6 +15,15 @@ pub struct SQLText<'arena> {
     pub inline_length: usize,
 }
 
+impl<'arena> Default for SQLText<'arena> {
+    fn default() -> Self {
+        SQLText {
+            element: SQLTextElement::InlineSpace,
+            inline_length: 1,
+        }
+    }
+}
+
 pub struct SQLWriter<'arena> {
     arena: &'arena bumpalo::Bump,
 }
@@ -73,6 +82,26 @@ impl<'arena> SQLWriter<'arena> {
             element: SQLTextElement::Keyword(k),
             inline_length: k.len(),
         }
+    }
+}
+
+pub struct SQLTextArray<'arena> {
+    array: &'arena mut [SQLText<'arena>],
+    writer: usize,
+}
+
+impl<'arena> SQLTextArray<'arena> {
+    pub fn with_capacity(writer: &SQLWriter<'arena>, cap: usize) -> Self {
+        let array: &mut [SQLText<'arena>] = writer.arena.alloc_slice_fill_default(cap);
+        Self { array, writer: 0 }
+    }
+    pub fn push(mut self, elem: SQLText<'arena>) -> Self {
+        self.array[self.writer.min(self.array.len() - 1)] = elem;
+        self.writer += 1;
+        self
+    }
+    pub fn finish(self) -> &'arena [SQLText<'arena>] {
+        self.array
     }
 }
 
