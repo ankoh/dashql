@@ -242,4 +242,8 @@ mod test {
     fn test_select_from_foo_qual() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select * from main.foo")
     }
+    #[test]
+    fn test_select_colref() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select f.g from main.foo f")
+    }
 }
