@@ -364,7 +364,7 @@ pub fn deserialize_ast<'a>(
                         lateral,
                     })
                 } else if let Some(name) = name {
-                    TableRef::Relation(RelationRef { name, inherit })
+                    TableRef::Relation(RelationRef { name, inherit, alias })
                 } else {
                     return Err(RawError::from(format!("invalid table ref")).boxed());
                 })

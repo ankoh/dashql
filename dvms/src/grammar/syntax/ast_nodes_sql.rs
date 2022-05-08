@@ -316,6 +316,7 @@ pub struct JoinedTableRef<'a> {
 pub struct RelationRef<'a> {
     pub name: NamePath<'a>,
     pub inherit: bool,
+    pub alias: Option<&'a Alias<'a>>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

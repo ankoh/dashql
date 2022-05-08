@@ -2,14 +2,27 @@ use super::ast::*;
 use super::ast_nodes_sql::*;
 use super::script_writer::*;
 
+impl<'a> AsScript for Alias<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 1);
+        a.push(w.str(self.name));
+        // todo: column defs
+        w.float(a.finish())
+    }
+}
+
 impl<'a> AsScript for RelationRef<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3);
+        let mut a = ScriptTextArray::with_capacity(w, 5);
         if !self.inherit {
             a.push(w.keyword("only"));
             a.push(w.space());
         }
         a.push(name_as_script(w, self.name));
+        if let Some(alias) = self.alias {
+            a.push(w.space());
+            a.push(alias.as_script(w))
+        }
         w.float(a.finish())
     }
 }
@@ -205,7 +218,7 @@ mod test {
         let script_text = prog.statements[0].as_script(&writer);
         let script_string = write_script_string(&script_text, &ScriptTextConfig::default());
 
-        assert_eq!(text, &script_string);
+        assert_eq!(text, &script_string, "{:?}", prog);
         Ok(())
     }
 
@@ -220,6 +233,10 @@ mod test {
     #[test]
     fn test_select_from_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select * from foo")
+    }
+    #[test]
+    fn test_select_from_foo_inherit() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from only foo f")
     }
     #[test]
     fn test_select_from_foo_qual() -> Result<(), Box<dyn Error + Send + Sync>> {

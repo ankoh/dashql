@@ -235,6 +235,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
@@ -351,6 +352,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [

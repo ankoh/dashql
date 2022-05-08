@@ -358,6 +358,7 @@
                                         ),
                                     ],
                                     inherit: true,
+                                    alias: None,
                                 },
                             ),
                         ],
@@ -384,6 +385,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
@@ -478,6 +480,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
@@ -1296,6 +1299,7 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: None,
                                     },
                                 ),
                                 Relation(
@@ -1306,6 +1310,7 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: None,
                                     },
                                 ),
                                 Relation(
@@ -1316,6 +1321,7 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: None,
                                     },
                                 ),
                             ],
@@ -1497,6 +1503,13 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: Some(
+                                            Alias {
+                                                name: &quot;h&quot;,
+                                                column_names: [],
+                                                column_definitions: [],
+                                            },
+                                        ),
                                     },
                                 ),
                                 Relation(
@@ -1507,6 +1520,13 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: Some(
+                                            Alias {
+                                                name: &quot;v&quot;,
+                                                column_names: [],
+                                                column_definitions: [],
+                                            },
+                                        ),
                                     },
                                 ),
                             ],
@@ -1659,6 +1679,13 @@
                                             ),
                                         ],
                                         inherit: true,
+                                        alias: Some(
+                                            Alias {
+                                                name: &quot;v&quot;,
+                                                column_names: [],
+                                                column_definitions: [],
+                                            },
+                                        ),
                                     },
                                 ),
                             ],
@@ -1702,6 +1729,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
@@ -1777,6 +1805,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
@@ -1959,6 +1988,7 @@
                             ),
                         ],
                         inherit: true,
+                        alias: None,
                     },
                 ),
                 components: [
