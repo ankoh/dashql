@@ -2,6 +2,27 @@ use super::ast::*;
 use super::ast_nodes_sql::*;
 use super::script_writer::*;
 
+impl<'a> AsScript for RelationRef<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 3);
+        if !self.inherit {
+            a.push(w.keyword("only"));
+            a.push(w.space());
+        }
+        a.push(name_as_script(w, self.name));
+        w.float(a.finish())
+    }
+}
+
+impl<'a> AsScript for TableRef<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        match self {
+            TableRef::Relation(rel) => rel.as_script(w),
+            _ => todo!(),
+        }
+    }
+}
+
 impl<'a> AsScript for ResultTarget<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
@@ -21,7 +42,7 @@ impl<'a> AsScript for ResultTarget<'a> {
 
 impl<'a> AsScript for SelectFromStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3);
+        let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.len() * 3 + self.from.len() * 3);
         a.push(w.keyword("select"));
         for (i, target) in self.targets.iter().enumerate() {
             if i > 0 {
@@ -29,6 +50,17 @@ impl<'a> AsScript for SelectFromStatement<'a> {
             }
             a.push(w.space());
             a.push(target.as_script(w));
+        }
+        if !self.from.is_empty() {
+            a.push(w.space());
+            a.push(w.keyword("from"));
+            for (i, table) in self.from.iter().enumerate() {
+                if i > 0 {
+                    a.push(w.str_const(","));
+                }
+                a.push(w.space());
+                a.push(table.as_script(w));
+            }
         }
         w.float(a.finish())
     }
@@ -104,32 +136,7 @@ impl<'a> AsScript for Expression<'a> {
                 f.push(w.keyword("end"));
                 w.float(f.finish())
             }
-            Expression::ColumnRef(name) => {
-                let mut t = ScriptTextArray::with_capacity(w, 5 * name.len());
-                for (i, e) in name.iter().enumerate() {
-                    match e {
-                        Indirection::Name(n) => {
-                            if i > 0 {
-                                t.push(w.str_const("."));
-                            }
-                            t.push(w.str(n));
-                        }
-                        Indirection::Index(idx) => {
-                            t.push(w.str_const("["));
-                            t.push(idx.value.as_script(w));
-                            t.push(w.str_const("]"));
-                        }
-                        Indirection::Bounds(bounds) => {
-                            t.push(w.str_const("["));
-                            t.push(bounds.lower_bound.as_script(w));
-                            t.push(w.str_const(", "));
-                            t.push(bounds.upper_bound.as_script(w));
-                            t.push(w.str_const("]"));
-                        }
-                    }
-                }
-                w.float(t.finish())
-            }
+            Expression::ColumnRef(name) => name_as_script(w, name),
             Expression::ConstCast(_) => todo!(),
             Expression::Exists(e) => {
                 let mut t = ScriptTextArray::with_capacity(w, 3);
@@ -149,6 +156,36 @@ impl<'a> AsScript for Expression<'a> {
             Expression::TypeTest(_) => todo!(),
         }
     }
+}
+
+pub fn name_as_script<'writer, 'ast: 'writer>(
+    w: &ScriptWriter<'writer>,
+    name: &'ast [Indirection<'ast>],
+) -> ScriptText<'writer> {
+    let mut t = ScriptTextArray::with_capacity(w, 5 * name.len());
+    for (i, e) in name.iter().enumerate() {
+        match e {
+            Indirection::Name(n) => {
+                if i > 0 {
+                    t.push(w.str_const("."));
+                }
+                t.push(w.str(n));
+            }
+            Indirection::Index(idx) => {
+                t.push(w.str_const("["));
+                t.push(idx.value.as_script(w));
+                t.push(w.str_const("]"));
+            }
+            Indirection::Bounds(bounds) => {
+                t.push(w.str_const("["));
+                t.push(bounds.lower_bound.as_script(w));
+                t.push(w.str_const(", "));
+                t.push(bounds.upper_bound.as_script(w));
+                t.push(w.str_const("]"));
+            }
+        }
+    }
+    w.float(t.finish())
 }
 
 #[cfg(test)]
@@ -179,5 +216,13 @@ mod test {
     #[test]
     fn test_select_null() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select null")
+    }
+    #[test]
+    fn test_select_from_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from foo")
+    }
+    #[test]
+    fn test_select_from_foo_qual() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from main.foo")
     }
 }
