@@ -307,11 +307,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::CaseExpressionClause(CaseExpressionClause { when, then })
             }
             sx::NodeType::OBJECT_SQL_CASE => {
-                let mut argument = Expression::Null;
+                let mut argument = None;
                 let mut cases: &[_] = &[];
                 let mut default = None;
                 read_attributes! {
-                    (Key::SQL_CASE_ARGUMENT, n) => argument = read_expr!(n),
+                    (Key::SQL_CASE_ARGUMENT, n) => argument = Some(read_expr!(n)),
                     (Key::SQL_CASE_CLAUSES, ASTNode::Array(nodes)) => cases = unpack_nodes!(nodes, CaseExpressionClause),
                     (Key::SQL_CASE_DEFAULT, n) => default = Some(read_expr!(n))
                 }

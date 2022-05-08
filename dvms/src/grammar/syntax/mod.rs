@@ -4,6 +4,7 @@ pub mod ast_node;
 pub mod ast_nodes_dashql;
 pub mod ast_nodes_sql;
 pub mod ast_nodes_sql_traits;
+pub mod ast_to_sql;
 pub mod ast_to_xml;
 pub mod ast_translation;
 pub mod dson;

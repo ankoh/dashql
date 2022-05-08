@@ -7402,12 +7402,14 @@
                             Value {
                                 value: Case(
                                     CaseExpression {
-                                        argument: ColumnRef(
-                                            [
-                                                Name(
-                                                    &quot;a&quot;,
-                                                ),
-                                            ],
+                                        argument: Some(
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
                                         ),
                                         cases: [
                                             CaseExpressionClause {
@@ -7504,12 +7506,14 @@
                             Value {
                                 value: Case(
                                     CaseExpression {
-                                        argument: ColumnRef(
-                                            [
-                                                Name(
-                                                    &quot;a&quot;,
-                                                ),
-                                            ],
+                                        argument: Some(
+                                            ColumnRef(
+                                                [
+                                                    Name(
+                                                        &quot;a&quot;,
+                                                    ),
+                                                ],
+                                            ),
                                         ),
                                         cases: [
                                             CaseExpressionClause {

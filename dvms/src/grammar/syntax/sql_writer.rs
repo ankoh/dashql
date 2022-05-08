@@ -29,19 +29,19 @@ pub struct SQLWriter<'arena> {
 }
 
 impl<'arena> SQLWriter<'arena> {
-    pub fn inline_space(&self) -> SQLText<'arena> {
+    pub fn space(&self) -> SQLText<'arena> {
         SQLText {
             element: SQLTextElement::InlineSpace,
             inline_length: 1,
         }
     }
-    pub fn str_static(&self, s: &'static str) -> SQLText<'arena> {
+    pub fn str_const(&self, s: &'static str) -> SQLText<'arena> {
         SQLText {
             element: SQLTextElement::StaticStr(s),
             inline_length: s.len(),
         }
     }
-    pub fn str_dynamic(&self, s: &'arena str) -> SQLText<'arena> {
+    pub fn str(&self, s: &'arena str) -> SQLText<'arena> {
         SQLText {
             element: SQLTextElement::DynamicStr(s),
             inline_length: s.len(),
@@ -92,13 +92,18 @@ pub struct SQLTextArray<'arena> {
 
 impl<'arena> SQLTextArray<'arena> {
     pub fn with_capacity(writer: &SQLWriter<'arena>, cap: usize) -> Self {
+        debug_assert!(cap > 0, "array capacity must be > 0");
         let array: &mut [SQLText<'arena>] = writer.arena.alloc_slice_fill_default(cap);
         Self { array, writer: 0 }
     }
-    pub fn push(mut self, elem: SQLText<'arena>) -> Self {
+    pub fn with_pushed(mut self, elem: SQLText<'arena>) -> Self {
         self.array[self.writer.min(self.array.len() - 1)] = elem;
         self.writer += 1;
         self
+    }
+    pub fn push(&mut self, elem: SQLText<'arena>) {
+        self.array[self.writer.min(self.array.len() - 1)] = elem;
+        self.writer += 1;
     }
     pub fn finish(self) -> &'arena [SQLText<'arena>] {
         self.array
@@ -106,7 +111,7 @@ impl<'arena> SQLTextArray<'arena> {
 }
 
 pub trait SQLWritable {
-    fn as_sql<'arena>(writer: &SQLWriter<'arena>) -> SQLText<'arena>;
+    fn as_sql<'writer, 'ast: 'writer>(&'ast self, writer: &SQLWriter<'writer>) -> SQLText<'writer>;
 }
 
 pub struct SQLTextConfig {

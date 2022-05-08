@@ -103,7 +103,7 @@ pub struct CaseExpressionClause<'a> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
-    pub argument: Expression<'a>,
+    pub argument: Option<Expression<'a>>,
     pub cases: &'a [&'a CaseExpressionClause<'a>],
     pub default: Option<Expression<'a>>,
 }
