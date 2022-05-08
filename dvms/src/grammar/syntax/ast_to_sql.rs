@@ -2,6 +2,12 @@ use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::sql_writer::*;
 
+impl<'a> SQLWritable for SelectStatement<'a> {
+    fn as_sql<'writer, 'ast: 'writer>(&'ast self, w: &SQLWriter<'writer>) -> SQLText<'writer> {
+        w.str_const("?")
+    }
+}
+
 impl<'a> SQLWritable for Expression<'a> {
     fn as_sql<'writer, 'ast: 'writer>(&'ast self, w: &SQLWriter<'writer>) -> SQLText<'writer> {
         match self {
@@ -77,7 +83,13 @@ impl<'a> SQLWritable for Expression<'a> {
                 w.float(t.finish())
             }
             Expression::ConstCast(_) => todo!(),
-            Expression::Exists(_) => todo!(),
+            Expression::Exists(e) => {
+                let mut t = SQLTextArray::with_capacity(w, 3);
+                t.push(w.keyword("EXISTS"));
+                t.push(w.space());
+                t.push(e.statement.as_sql(w));
+                w.float(t.finish())
+            }
             Expression::FunctionCall(_) => todo!(),
             Expression::Indirection(_) => todo!(),
             Expression::Nary(_) => todo!(),
