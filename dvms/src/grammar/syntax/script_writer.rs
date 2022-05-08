@@ -1,128 +1,143 @@
 #[derive(Debug, Clone)]
-pub enum SQLTextElement<'arena> {
+pub enum ScriptTextElement<'arena> {
     InlineSpace,
     StaticStr(&'static str),
     DynamicStr(&'arena str),
-    Stack(&'arena [SQLText<'arena>]),
-    Float(&'arena [SQLText<'arena>]),
-    Brackets(&'static str, &'static str, &'arena [SQLText<'arena>]),
+    Stack(&'arena [ScriptText<'arena>]),
+    Float(&'arena [ScriptText<'arena>]),
+    Brackets(&'static str, &'static str, &'arena [ScriptText<'arena>]),
     Keyword(&'static str),
 }
 
 #[derive(Debug, Clone)]
-pub struct SQLText<'arena> {
-    pub element: SQLTextElement<'arena>,
+pub struct ScriptText<'arena> {
+    pub element: ScriptTextElement<'arena>,
     pub inline_length: usize,
 }
 
-impl<'arena> Default for SQLText<'arena> {
+impl<'arena> Default for ScriptText<'arena> {
     fn default() -> Self {
-        SQLText {
-            element: SQLTextElement::InlineSpace,
+        ScriptText {
+            element: ScriptTextElement::InlineSpace,
             inline_length: 1,
         }
     }
 }
 
-pub struct SQLWriter<'arena> {
+pub struct ScriptWriter<'arena> {
     arena: &'arena bumpalo::Bump,
 }
 
-impl<'arena> SQLWriter<'arena> {
-    pub fn space(&self) -> SQLText<'arena> {
-        SQLText {
-            element: SQLTextElement::InlineSpace,
+impl<'arena> ScriptWriter<'arena> {
+    pub fn with_arena(arena: &'arena bumpalo::Bump) -> Self {
+        Self { arena }
+    }
+}
+
+impl<'arena> ScriptWriter<'arena> {
+    pub fn space(&self) -> ScriptText<'arena> {
+        ScriptText {
+            element: ScriptTextElement::InlineSpace,
             inline_length: 1,
         }
     }
-    pub fn str_const(&self, s: &'static str) -> SQLText<'arena> {
-        SQLText {
-            element: SQLTextElement::StaticStr(s),
+    pub fn str_const(&self, s: &'static str) -> ScriptText<'arena> {
+        ScriptText {
+            element: ScriptTextElement::StaticStr(s),
             inline_length: s.len(),
         }
     }
-    pub fn str(&self, s: &'arena str) -> SQLText<'arena> {
-        SQLText {
-            element: SQLTextElement::DynamicStr(s),
+    pub fn str(&self, s: &'arena str) -> ScriptText<'arena> {
+        ScriptText {
+            element: ScriptTextElement::DynamicStr(s),
             inline_length: s.len(),
         }
     }
-    pub fn stack(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+    pub fn stack(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
-        SQLText {
-            element: SQLTextElement::Stack(self.arena.alloc_slice_clone(elems)),
+        ScriptText {
+            element: ScriptTextElement::Stack(self.arena.alloc_slice_clone(elems)),
             inline_length: len,
         }
     }
-    pub fn float(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+    pub fn float(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
-        SQLText {
-            element: SQLTextElement::Float(self.arena.alloc_slice_clone(elems)),
+        ScriptText {
+            element: ScriptTextElement::Float(self.arena.alloc_slice_clone(elems)),
             inline_length: len,
         }
     }
-    pub fn round_brackets(&self, elems: &[SQLText<'arena>]) -> SQLText<'arena> {
+    pub fn round_brackets(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 2;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
-        SQLText {
-            element: SQLTextElement::Brackets("(", ")", self.arena.alloc_slice_clone(elems)),
+        ScriptText {
+            element: ScriptTextElement::Brackets("(", ")", self.arena.alloc_slice_clone(elems)),
             inline_length: len,
         }
     }
-    pub fn keyword(&self, k: &'static str) -> SQLText<'arena> {
-        SQLText {
-            element: SQLTextElement::Keyword(k),
+    pub fn keyword(&self, k: &'static str) -> ScriptText<'arena> {
+        ScriptText {
+            element: ScriptTextElement::Keyword(k),
             inline_length: k.len(),
         }
     }
 }
 
-pub struct SQLTextArray<'arena> {
-    array: &'arena mut [SQLText<'arena>],
+pub struct ScriptTextArray<'arena> {
+    array: &'arena mut [ScriptText<'arena>],
     writer: usize,
 }
 
-impl<'arena> SQLTextArray<'arena> {
-    pub fn with_capacity(writer: &SQLWriter<'arena>, cap: usize) -> Self {
+impl<'arena> ScriptTextArray<'arena> {
+    pub fn with_capacity(writer: &ScriptWriter<'arena>, cap: usize) -> Self {
         debug_assert!(cap > 0, "array capacity must be > 0");
-        let array: &mut [SQLText<'arena>] = writer.arena.alloc_slice_fill_default(cap);
+        let array: &mut [ScriptText<'arena>] = writer.arena.alloc_slice_fill_default(cap);
         Self { array, writer: 0 }
     }
-    pub fn with_pushed(mut self, elem: SQLText<'arena>) -> Self {
+    pub fn with_pushed(mut self, elem: ScriptText<'arena>) -> Self {
         self.array[self.writer.min(self.array.len() - 1)] = elem;
         self.writer += 1;
         self
     }
-    pub fn push(&mut self, elem: SQLText<'arena>) {
+    pub fn push(&mut self, elem: ScriptText<'arena>) {
         self.array[self.writer.min(self.array.len() - 1)] = elem;
         self.writer += 1;
     }
-    pub fn finish(self) -> &'arena [SQLText<'arena>] {
-        self.array
+    pub fn finish(self) -> &'arena [ScriptText<'arena>] {
+        &self.array[0..self.writer]
     }
 }
 
-pub trait SQLWritable {
-    fn as_sql<'writer, 'ast: 'writer>(&'ast self, writer: &SQLWriter<'writer>) -> SQLText<'writer>;
+pub trait AsScript {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, writer: &ScriptWriter<'writer>) -> ScriptText<'writer>;
 }
 
-pub struct SQLTextConfig {
-    indent_by: usize,
-    max_width: usize,
+pub struct ScriptTextConfig {
+    pub indent_by: usize,
+    pub max_width: usize,
 }
 
-pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextConfig) {
+impl Default for ScriptTextConfig {
+    fn default() -> Self {
+        ScriptTextConfig {
+            indent_by: 4,
+            max_width: 120,
+        }
+    }
+}
+
+pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTextConfig) -> String {
     #[derive(Clone)]
     struct DFSNode<'arena> {
-        text: &'arena SQLText<'arena>,
+        text: &'arena ScriptText<'arena>,
         visited: bool,
         break_to: usize,
         inline: bool,
@@ -152,21 +167,21 @@ pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextC
             }
 
             match top.text.element {
-                SQLTextElement::InlineSpace => {
+                ScriptTextElement::InlineSpace => {
                     if top.inline {
                         buffer.push_str(" ");
                         writer_offset += 1;
                     }
                 }
-                SQLTextElement::Keyword(s) | SQLTextElement::StaticStr(s) => {
+                ScriptTextElement::Keyword(s) | ScriptTextElement::StaticStr(s) => {
                     buffer.push_str(s);
                     writer_offset += s.len();
                 }
-                SQLTextElement::DynamicStr(s) => {
+                ScriptTextElement::DynamicStr(s) => {
                     buffer.push_str(s);
                     writer_offset += s.len();
                 }
-                SQLTextElement::Stack(elems) => {
+                ScriptTextElement::Stack(elems) => {
                     if (writer_offset + inline_text_length) <= config.max_width {
                         for (i, elem) in elems.iter().enumerate().rev() {
                             pending.push(DFSNode {
@@ -187,7 +202,7 @@ pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextC
                         }
                     }
                 }
-                SQLTextElement::Float(elems) => {
+                ScriptTextElement::Float(elems) => {
                     if (writer_offset + inline_text_length) <= config.max_width {
                         for elem in elems.iter().rev() {
                             pending.push(DFSNode {
@@ -223,7 +238,7 @@ pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextC
                         }
                     }
                 }
-                SQLTextElement::Brackets(bropen, _, elems) => {
+                ScriptTextElement::Brackets(bropen, _, elems) => {
                     buffer.push_str(bropen);
                     writer_offset += 1;
                     if (writer_offset + inline_text_length) <= config.max_width {
@@ -251,7 +266,7 @@ pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextC
             pending.pop();
 
             match top.text.element {
-                SQLTextElement::Brackets(_, brclose, _) => {
+                ScriptTextElement::Brackets(_, brclose, _) => {
                     if !top.inline {
                         buffer.push_str("\n");
                         buffer.push_str(&" ".repeat(top.break_to * config.indent_by));
@@ -264,4 +279,5 @@ pub fn write_sql_string<'arena>(root: &'arena SQLText<'arena>, config: &SQLTextC
             }
         }
     }
+    buffer
 }

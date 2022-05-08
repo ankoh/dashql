@@ -9,4 +9,4 @@ pub mod ast_to_xml;
 pub mod ast_translation;
 pub mod dson;
 pub mod enums;
-pub mod sql_writer;
+pub mod script_writer;
