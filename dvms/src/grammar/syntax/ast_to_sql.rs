@@ -50,7 +50,32 @@ impl<'a> SQLWritable for Expression<'a> {
                 f.push(w.keyword("end"));
                 w.float(f.finish())
             }
-            Expression::ColumnRef(_) => todo!(),
+            Expression::ColumnRef(name) => {
+                let mut t = SQLTextArray::with_capacity(w, 5 * name.len());
+                for (i, e) in name.iter().enumerate() {
+                    match e {
+                        Indirection::Name(n) => {
+                            if i > 0 {
+                                t.push(w.str_const("."));
+                            }
+                            t.push(w.str(n));
+                        }
+                        Indirection::Index(idx) => {
+                            t.push(w.str_const("["));
+                            t.push(idx.value.as_sql(w));
+                            t.push(w.str_const("]"));
+                        }
+                        Indirection::Bounds(bounds) => {
+                            t.push(w.str_const("["));
+                            t.push(bounds.lower_bound.as_sql(w));
+                            t.push(w.str_const(", "));
+                            t.push(bounds.upper_bound.as_sql(w));
+                            t.push(w.str_const("]"));
+                        }
+                    }
+                }
+                w.float(t.finish())
+            }
             Expression::ConstCast(_) => todo!(),
             Expression::Exists(_) => todo!(),
             Expression::FunctionCall(_) => todo!(),
