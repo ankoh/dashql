@@ -300,7 +300,7 @@ mod test {
     use crate::grammar;
     use std::error::Error;
 
-    fn test_statement_writing(text: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_pipe(text: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
         let prog = grammar::deserialize_ast(&arena, text, ast)?;
@@ -317,16 +317,19 @@ mod test {
 
     #[test]
     fn test_select() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select 1")?;
-        test_statement_writing("select null")?;
-        test_statement_writing("select * from foo")?;
-        test_statement_writing("select * from only foo f")?;
-        test_statement_writing("select * from main.foo")?;
-        test_statement_writing("select f.g from main.foo f")?;
-        test_statement_writing("select * from A join B using (a, b)")?;
-        test_statement_writing("select * from A join B on a = b")?;
-        test_statement_writing("select * from A cross join B")?;
-        test_statement_writing("select * from A left outer join B on a = b")?;
+        test_pipe("select 1")?;
+        test_pipe("select null")?;
+        test_pipe("select * from foo")?;
+        test_pipe("select * from only foo f")?;
+        test_pipe("select * from main.foo")?;
+        test_pipe("select f.g from main.foo f")?;
+        test_pipe("select * from A cross join B")?;
+        test_pipe("select * from A join B using (a, b)")?;
+        test_pipe("select * from A join B on a = b")?;
+        test_pipe("select * from A left join B on a = b")?;
+        test_pipe("select * from A left outer join B on a = b")?;
+        test_pipe("select * from A right join B on a = b")?;
+        test_pipe("select * from A right outer join B on a = b")?;
         Ok(())
     }
 }
