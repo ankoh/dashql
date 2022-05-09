@@ -316,43 +316,17 @@ mod test {
     }
 
     #[test]
-    fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select 1")
-    }
-    #[test]
-    fn test_select_null() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select null")
-    }
-    #[test]
-    fn test_select_from_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from foo")
-    }
-    #[test]
-    fn test_select_from_foo_inherit() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from only foo f")
-    }
-    #[test]
-    fn test_select_from_foo_qual() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from main.foo")
-    }
-    #[test]
-    fn test_select_colref() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select f.g from main.foo f")
-    }
-    #[test]
-    fn test_join_1() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from A join B using (a, b)")
-    }
-    #[test]
-    fn test_join_2() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from A join B on a = b")
-    }
-    #[test]
-    fn test_join_3() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from A cross join B")
-    }
-    #[test]
-    fn test_join_4() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_statement_writing("select * from A left outer join B on a = b")
+    fn test_select() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select 1")?;
+        test_statement_writing("select null")?;
+        test_statement_writing("select * from foo")?;
+        test_statement_writing("select * from only foo f")?;
+        test_statement_writing("select * from main.foo")?;
+        test_statement_writing("select f.g from main.foo f")?;
+        test_statement_writing("select * from A join B using (a, b)")?;
+        test_statement_writing("select * from A join B on a = b")?;
+        test_statement_writing("select * from A cross join B")?;
+        test_statement_writing("select * from A left outer join B on a = b")?;
+        Ok(())
     }
 }
