@@ -29,6 +29,19 @@ impl<'a> AsScript for OrderSpecification<'a> {
     }
 }
 
+impl<'a> AsScript for Limit<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 3);
+        a.push(w.keyword("limit"));
+        a.push(w.space());
+        a.push(match self {
+            Limit::ALL => w.keyword("all"),
+            Limit::Expression(e) => e.as_script(w),
+        });
+        w.float(a.finish())
+    }
+}
+
 impl<'a> AsScript for DsonKey<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
@@ -228,7 +241,7 @@ impl<'a> AsScript for SelectFromStatement<'a> {
 
 impl<'a> AsScript for SelectStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 7 + 3 * self.order_by.len());
+        let mut a = ScriptTextArray::with_capacity(w, 11 + 3 * self.order_by.len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
             SelectData::Combine(c) => todo!(),
@@ -248,6 +261,16 @@ impl<'a> AsScript for SelectStatement<'a> {
                 }
                 a.push(constraint.as_script(w));
             }
+        }
+        if let Some(limit) = &self.limit {
+            a.push(w.space());
+            a.push(limit.as_script(w));
+        }
+        if let Some(offset) = &self.offset {
+            a.push(w.space());
+            a.push(w.keyword("offset"));
+            a.push(w.space());
+            a.push(offset.as_script(w));
         }
         w.float(a.finish())
     }
@@ -443,6 +466,9 @@ mod test {
         test_pipe("select * from A order by a desc")?;
         test_pipe("select * from A order by a nulls first")?;
         test_pipe("select * from A order by a asc nulls first, b desc")?;
+        test_pipe("select * from A order by a limit 10")?;
+        test_pipe("select * from A order by a limit 10 offset 10")?;
+        test_pipe("select * from A order by a limit all")?;
         Ok(())
     }
 }
