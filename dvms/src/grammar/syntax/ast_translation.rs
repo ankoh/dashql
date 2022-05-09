@@ -1263,9 +1263,11 @@ pub fn deserialize_ast<'a>(
                         let ki = k.0 - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0;
                         let dson_keys = buffer.dson_keys().unwrap_or_default();
                         let dson_key = dson_keys[ki as usize];
-                        &text[(dson_key.offset() as usize)..((dson_key.offset() + dson_key.length()) as usize)]
+                        DsonKey::Unknown(
+                            &text[(dson_key.offset() as usize)..((dson_key.offset() + dson_key.length()) as usize)],
+                        )
                     } else {
-                        k.variant_name().unwrap_or_default()
+                        DsonKey::Known(k)
                     };
                     let value = read_dson(arena, c);
                     fields[i] = DsonField { key: ks, value };

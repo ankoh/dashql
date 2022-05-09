@@ -128,7 +128,9 @@
                     Object(
                         [
                             DsonField {
-                                key: &quot;DSON_LABEL&quot;,
+                                key: Known(
+                                    DSON_LABEL,
+                                ),
                                 value: Expression(
                                     StringRef(
                                         &quot;&apos;Foo&apos;&quot;,

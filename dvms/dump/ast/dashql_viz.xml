@@ -97,11 +97,15 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_POSITION&quot;,
+                                        key: Known(
+                                            DSON_POSITION,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_ROW&quot;,
+                                                    key: Known(
+                                                        DSON_ROW,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;0&quot;,
@@ -109,7 +113,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    key: Known(
+                                                        DSON_COLUMN,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;0&quot;,
@@ -117,7 +123,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    key: Known(
+                                                        DSON_WIDTH,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;4&quot;,
@@ -125,7 +133,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    key: Known(
+                                                        DSON_HEIGHT,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;15&quot;,
@@ -136,7 +146,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_X&quot;,
+                                        key: Known(
+                                            DSON_X,
+                                        ),
                                         value: Expression(
                                             ColumnRef(
                                                 [
@@ -148,7 +160,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_Y&quot;,
+                                        key: Known(
+                                            DSON_Y,
+                                        ),
                                         value: Expression(
                                             ColumnRef(
                                                 [
@@ -186,7 +200,9 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_SCALE&quot;,
+                                        key: Known(
+                                            DSON_SCALE,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;linear&apos;&quot;,
@@ -206,7 +222,9 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_SCALE&quot;,
+                                        key: Known(
+                                            DSON_SCALE,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;log&apos;&quot;,
@@ -290,11 +308,15 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_POSITION&quot;,
+                                        key: Known(
+                                            DSON_POSITION,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_ROW&quot;,
+                                                    key: Known(
+                                                        DSON_ROW,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;8&quot;,
@@ -302,7 +324,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_COLUMN&quot;,
+                                                    key: Known(
+                                                        DSON_COLUMN,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;0&quot;,
@@ -310,7 +334,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_WIDTH&quot;,
+                                                    key: Known(
+                                                        DSON_WIDTH,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;6&quot;,
@@ -318,7 +344,9 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_HEIGHT&quot;,
+                                                    key: Known(
+                                                        DSON_HEIGHT,
+                                                    ),
                                                     value: Expression(
                                                         StringRef(
                                                             &quot;5&quot;,
@@ -329,7 +357,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_TITLE&quot;,
+                                        key: Known(
+                                            DSON_TITLE,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;Stacked Area Chart&apos;&quot;,
@@ -479,15 +509,21 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_ENCODING&quot;,
+                                        key: Known(
+                                            DSON_ENCODING,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_X&quot;,
+                                                    key: Known(
+                                                        DSON_X,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     ColumnRef(
                                                                         [
@@ -499,7 +535,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;nominal&apos;&quot;,
@@ -510,11 +548,15 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_Y&quot;,
+                                                    key: Known(
+                                                        DSON_Y,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     ColumnRef(
                                                                         [
@@ -526,7 +568,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;quantitative&apos;&quot;,
@@ -540,7 +584,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_MARK&quot;,
+                                        key: Known(
+                                            DSON_MARK,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;bar&apos;&quot;,
@@ -649,15 +695,21 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_ENCODING&quot;,
+                                        key: Known(
+                                            DSON_ENCODING,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_X&quot;,
+                                                    key: Known(
+                                                        DSON_X,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     ColumnRef(
                                                                         [
@@ -669,7 +721,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;nominal&apos;&quot;,
@@ -680,11 +734,15 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_Y&quot;,
+                                                    key: Known(
+                                                        DSON_Y,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_TITLE&quot;,
+                                                                key: Known(
+                                                                    DSON_TITLE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;Number of cars&apos;&quot;,
@@ -692,7 +750,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_AGGREGATE&quot;,
+                                                                key: Known(
+                                                                    DSON_AGGREGATE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;count&apos;&quot;,
@@ -706,7 +766,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_MARK&quot;,
+                                        key: Known(
+                                            DSON_MARK,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;bar&apos;&quot;,
@@ -815,15 +877,21 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_ENCODING&quot;,
+                                        key: Known(
+                                            DSON_ENCODING,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_X&quot;,
+                                                    key: Known(
+                                                        DSON_X,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     ColumnRef(
                                                                         [
@@ -838,11 +906,15 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_Y&quot;,
+                                                    key: Known(
+                                                        DSON_Y,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_TITLE&quot;,
+                                                                key: Known(
+                                                                    DSON_TITLE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;population&apos;&quot;,
@@ -850,7 +922,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_AGGREGATE&quot;,
+                                                                key: Known(
+                                                                    DSON_AGGREGATE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;sum&apos;&quot;,
@@ -858,7 +932,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;people&apos;&quot;,
@@ -872,7 +948,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_MARK&quot;,
+                                        key: Known(
+                                            DSON_MARK,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;bar&apos;&quot;,
@@ -1244,15 +1322,21 @@
                             Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_ENCODING&quot;,
+                                        key: Known(
+                                            DSON_ENCODING,
+                                        ),
                                         value: Object(
                                             [
                                                 DsonField {
-                                                    key: &quot;DSON_COLOR&quot;,
+                                                    key: Known(
+                                                        DSON_COLOR,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;site&apos;&quot;,
@@ -1260,11 +1344,15 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_SCALE&quot;,
+                                                                key: Known(
+                                                                    DSON_SCALE,
+                                                                ),
                                                                 value: Object(
                                                                     [
                                                                         DsonField {
-                                                                            key: &quot;DSON_DOMAIN&quot;,
+                                                                            key: Known(
+                                                                                DSON_DOMAIN,
+                                                                            ),
                                                                             value: Array(
                                                                                 [
                                                                                     Expression(
@@ -1289,7 +1377,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;nominal&apos;&quot;,
@@ -1300,11 +1390,15 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_X&quot;,
+                                                    key: Known(
+                                                        DSON_X,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;time&apos;&quot;,
@@ -1312,11 +1406,15 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_SCALE&quot;,
+                                                                key: Known(
+                                                                    DSON_SCALE,
+                                                                ),
                                                                 value: Object(
                                                                     [
                                                                         DsonField {
-                                                                            key: &quot;DSON_DOMAIN&quot;,
+                                                                            key: Known(
+                                                                                DSON_DOMAIN,
+                                                                            ),
                                                                             value: Array(
                                                                                 [
                                                                                     Expression(
@@ -1336,7 +1434,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;temporal&apos;&quot;,
@@ -1347,11 +1447,15 @@
                                                     ),
                                                 },
                                                 DsonField {
-                                                    key: &quot;DSON_Y&quot;,
+                                                    key: Known(
+                                                        DSON_Y,
+                                                    ),
                                                     value: Object(
                                                         [
                                                             DsonField {
-                                                                key: &quot;DSON_FIELD&quot;,
+                                                                key: Known(
+                                                                    DSON_FIELD,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;hits&apos;&quot;,
@@ -1359,11 +1463,15 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_SCALE&quot;,
+                                                                key: Known(
+                                                                    DSON_SCALE,
+                                                                ),
                                                                 value: Object(
                                                                     [
                                                                         DsonField {
-                                                                            key: &quot;DSON_DOMAIN&quot;,
+                                                                            key: Known(
+                                                                                DSON_DOMAIN,
+                                                                            ),
                                                                             value: Array(
                                                                                 [
                                                                                     Expression(
@@ -1383,7 +1491,9 @@
                                                                 ),
                                                             },
                                                             DsonField {
-                                                                key: &quot;DSON_TYPE&quot;,
+                                                                key: Known(
+                                                                    DSON_TYPE,
+                                                                ),
                                                                 value: Expression(
                                                                     StringRef(
                                                                         &quot;&apos;quantitative&apos;&quot;,
@@ -1397,7 +1507,9 @@
                                         ),
                                     },
                                     DsonField {
-                                        key: &quot;DSON_MARK&quot;,
+                                        key: Known(
+                                            DSON_MARK,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;line&apos;&quot;,

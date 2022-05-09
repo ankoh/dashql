@@ -56,7 +56,9 @@
                     Object(
                         [
                             DsonField {
-                                key: &quot;DSON_URL&quot;,
+                                key: Known(
+                                    DSON_URL,
+                                ),
                                 value: Expression(
                                     StringRef(
                                         &quot;&apos;https://static.dashql.com/data/uni/de/all.zip&apos;&quot;,
@@ -302,7 +304,9 @@
                     Object(
                         [
                             DsonField {
-                                key: &quot;DSON_URL&quot;,
+                                key: Known(
+                                    DSON_URL,
+                                ),
                                 value: Expression(
                                     StringRef(
                                         &quot;&apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;&quot;,
@@ -310,11 +314,15 @@
                                 ),
                             },
                             DsonField {
-                                key: &quot;headers&quot;,
+                                key: Unknown(
+                                    &quot;headers&quot;,
+                                ),
                                 value: Object(
                                     [
                                         DsonField {
-                                            key: &quot;Ocp-Apim-Subscription-Key&quot;,
+                                            key: Unknown(
+                                                &quot;Ocp-Apim-Subscription-Key&quot;,
+                                            ),
                                             value: Expression(
                                                 StringRef(
                                                     &quot;&apos;somekey&apos;&quot;,

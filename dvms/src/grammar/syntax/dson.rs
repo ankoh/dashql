@@ -1,9 +1,21 @@
 use super::ast_nodes_sql::*;
 use dashql_proto::syntax as sx;
 
+#[derive(Debug, Clone)]
+pub enum DsonKey<'arena> {
+    Known(sx::AttributeKey),
+    Unknown(&'arena str),
+}
+
+impl<'arena> Default for DsonKey<'arena> {
+    fn default() -> Self {
+        Self::Unknown("")
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DsonField<'arena> {
-    pub key: &'arena str,
+    pub key: DsonKey<'arena>,
     pub value: DsonValue<'arena>,
 }
 
@@ -20,41 +32,53 @@ impl<'arena> Default for DsonValue<'arena> {
     }
 }
 
-impl<'arena> std::ops::Index<sx::AttributeKey> for DsonValue<'arena> {
-    type Output = Option<DsonValue<'arena>>;
+pub trait DsonAccess<Idx>
+where
+    Idx: Sized,
+{
+    type Output: Sized;
+    fn get(&self, index: Idx) -> Option<Self::Output>;
+}
 
-    fn index(&self, index: sx::AttributeKey) -> &Self::Output {
+impl<'arena> DsonAccess<usize> for DsonValue<'arena> {
+    type Output = &'arena DsonValue<'arena>;
+    fn get(&self, index: usize) -> Option<Self::Output> {
         match self {
-            DsonValue::Object(o) => (),
-            DsonValue::Array(a) => (),
-            DsonValue::Expression(e) => (),
+            DsonValue::Expression(_) | DsonValue::Object(_) => None,
+            DsonValue::Array(a) => Some(&a[index]),
         }
-        todo!()
     }
 }
 
-impl<'arena> std::ops::Index<usize> for DsonValue<'arena> {
-    type Output = Option<DsonValue<'arena>>;
-
-    fn index(&self, index: usize) -> &Self::Output {
+impl<'arena> DsonAccess<sx::AttributeKey> for DsonValue<'arena> {
+    type Output = &'arena DsonValue<'arena>;
+    fn get(&self, index: sx::AttributeKey) -> Option<Self::Output> {
         match self {
-            DsonValue::Object(o) => (),
-            DsonValue::Array(a) => (),
-            DsonValue::Expression(e) => (),
+            DsonValue::Object(o) => o
+                .binary_search_by(|f| match f.key {
+                    DsonKey::Known(probe) => probe.cmp(&index),
+                    DsonKey::Unknown(_) => std::cmp::Ordering::Greater,
+                })
+                .ok()
+                .map(|idx| &o[idx].value),
+            DsonValue::Expression(_) | DsonValue::Array(_) => None,
         }
-        todo!()
     }
 }
 
-impl<'arena> std::ops::Index<&str> for DsonValue<'arena> {
-    type Output = Option<DsonValue<'arena>>;
+impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
+    type Output = &'arena DsonValue<'arena>;
 
-    fn index(&self, index: &str) -> &Self::Output {
+    fn get(&self, index: &str) -> Option<Self::Output> {
         match self {
-            DsonValue::Object(o) => (),
-            DsonValue::Array(a) => (),
-            DsonValue::Expression(e) => (),
+            DsonValue::Object(o) => o
+                .iter()
+                .find(|f| match f.key {
+                    DsonKey::Known(probe) => probe.variant_name().unwrap_or_default() == index,
+                    DsonKey::Unknown(probe) => probe == index,
+                })
+                .map(|f| &f.value),
+            DsonValue::Expression(_) | DsonValue::Array(_) => None,
         }
-        todo!()
     }
 }

@@ -23,7 +23,9 @@
                 fields: Object(
                     [
                         DsonField {
-                            key: &quot;DSON_TITLE&quot;,
+                            key: Known(
+                                DSON_TITLE,
+                            ),
                             value: Expression(
                                 StringRef(
                                     &quot;&apos;foo&apos;&quot;,
@@ -63,11 +65,15 @@
                 fields: Object(
                     [
                         DsonField {
-                            key: &quot;DSON_DASHQL&quot;,
+                            key: Known(
+                                DSON_DASHQL,
+                            ),
                             value: Object(
                                 [
                                     DsonField {
-                                        key: &quot;DSON_TITLE&quot;,
+                                        key: Known(
+                                            DSON_TITLE,
+                                        ),
                                         value: Expression(
                                             StringRef(
                                                 &quot;&apos;foo&apos;&quot;,
@@ -108,7 +114,9 @@
                 fields: Object(
                     [
                         DsonField {
-                            key: &quot;DSON_DESCRIPTION&quot;,
+                            key: Known(
+                                DSON_DESCRIPTION,
+                            ),
                             value: Expression(
                                 StringRef(
                                     &quot;&apos;bar&apos;&quot;,
