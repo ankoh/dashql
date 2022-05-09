@@ -32,6 +32,50 @@ impl<'arena> Default for DsonValue<'arena> {
     }
 }
 
+impl<'arena> DsonValue<'arena> {
+    pub fn len(&self) -> usize {
+        match self {
+            DsonValue::Object(fields) => fields.len(),
+            DsonValue::Array(elems) => elems.len(),
+            DsonValue::Expression(_) => 0,
+        }
+    }
+
+    pub fn is_object(&self) -> bool {
+        match self {
+            DsonValue::Object(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_array(&self) -> bool {
+        match self {
+            DsonValue::Array(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_expression(&self) -> bool {
+        match self {
+            DsonValue::Expression(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn as_object(&self) -> &'arena [DsonField<'arena>] {
+        match self {
+            DsonValue::Object(fields) => fields,
+            DsonValue::Array(_) => &[],
+            DsonValue::Expression(_) => &[],
+        }
+    }
+    pub fn as_array(&self) -> &'arena [DsonValue<'arena>] {
+        match self {
+            DsonValue::Object(_) => &[],
+            DsonValue::Array(values) => values,
+            DsonValue::Expression(_) => &[],
+        }
+    }
+}
+
 pub trait DsonAccess<Idx>
 where
     Idx: Sized,

@@ -5,6 +5,7 @@ pub enum ScriptTextElement<'arena> {
     DynamicStr(&'arena str),
     Stack(&'arena [ScriptText<'arena>]),
     Float(&'arena [ScriptText<'arena>]),
+    Block(&'arena [ScriptText<'arena>]),
     Brackets(&'static str, &'static str, &'arena [ScriptText<'arena>]),
     Keyword(&'static str),
 }
@@ -53,33 +54,64 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: s.len(),
         }
     }
-    pub fn stack(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn stack(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
         ScriptText {
-            element: ScriptTextElement::Stack(self.arena.alloc_slice_clone(elems)),
+            element: ScriptTextElement::Stack(elems),
             inline_length: len,
         }
     }
-    pub fn float(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn float(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
         ScriptText {
-            element: ScriptTextElement::Float(self.arena.alloc_slice_clone(elems)),
+            element: ScriptTextElement::Float(elems),
             inline_length: len,
         }
     }
-    pub fn round_brackets(&self, elems: &[ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn block(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+        let mut len = 0;
+        for elem in elems.iter() {
+            len += elem.inline_length;
+        }
+        ScriptText {
+            element: ScriptTextElement::Block(elems),
+            inline_length: len,
+        }
+    }
+    pub fn round_brackets(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
         let mut len = 2;
         for elem in elems.iter() {
             len += elem.inline_length;
         }
         ScriptText {
-            element: ScriptTextElement::Brackets("(", ")", self.arena.alloc_slice_clone(elems)),
+            element: ScriptTextElement::Brackets("(", ")", elems),
+            inline_length: len,
+        }
+    }
+    pub fn square_brackets(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+        let mut len = 2;
+        for elem in elems.iter() {
+            len += elem.inline_length;
+        }
+        ScriptText {
+            element: ScriptTextElement::Brackets("[", "]", elems),
+            inline_length: len,
+        }
+    }
+    pub fn single_quotes(&self, elem: ScriptText<'arena>) -> ScriptText<'arena> {
+        let array: &mut [ScriptText<'arena>] = self.arena.alloc_slice_fill_default(3);
+        let len = elem.inline_length + 2;
+        array[0] = self.str_const("'");
+        array[1] = elem;
+        array[2] = self.str_const("'");
+        ScriptText {
+            element: ScriptTextElement::Block(array),
             inline_length: len,
         }
     }
@@ -180,6 +212,16 @@ pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &Sc
                 ScriptTextElement::DynamicStr(s) => {
                     buffer.push_str(s);
                     writer_offset += s.len();
+                }
+                ScriptTextElement::Block(elems) => {
+                    for elem in elems.iter().rev() {
+                        pending.push(DFSNode {
+                            text: elem,
+                            visited: false,
+                            break_to: top.break_to,
+                            inline: true,
+                        });
+                    }
                 }
                 ScriptTextElement::Stack(elems) => {
                     if (writer_offset + inline_text_length) <= config.max_width {

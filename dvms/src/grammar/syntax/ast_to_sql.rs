@@ -1,8 +1,54 @@
+use crate::grammar::SetStatement;
+
 use super::ast::*;
 use super::ast_nodes_sql::*;
+use super::dson::*;
 use super::script_writer::*;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
+
+impl<'a> AsScript for DsonKey<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        match self {
+            DsonKey::Known(k) => w.str(k.variant_name().unwrap_or_default()),
+            DsonKey::Unknown(k) => w.str(k),
+        }
+    }
+}
+
+impl<'a> AsScript for DsonValue<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        match self {
+            DsonValue::Object(fields) => {
+                let mut a = ScriptTextArray::with_capacity(w, 7 * fields.len());
+                for (i, field) in fields.iter().enumerate() {
+                    if i > 0 {
+                        a.push(w.str_const(","));
+                        a.push(w.space());
+                    }
+                    a.push(w.single_quotes(field.key.as_script(w)));
+                    a.push(w.space());
+                    a.push(w.str_const("="));
+                    a.push(w.space());
+                    a.push(field.value.as_script(w));
+                }
+                w.round_brackets(a.finish())
+            }
+            DsonValue::Array(vs) => {
+                let mut a = ScriptTextArray::with_capacity(w, 3 * vs.len());
+                for (i, v) in vs.iter().enumerate() {
+                    if i > 0 {
+                        a.push(w.str_const(","));
+                        a.push(w.space());
+                    }
+                    a.push(v.as_script(w));
+                }
+                w.square_brackets(a.finish())
+            }
+            DsonValue::Expression(e) => e.as_script(w),
+        }
+    }
+}
 
 impl<'a> AsScript for Alias<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
@@ -175,8 +221,26 @@ impl<'a> AsScript for Statement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match &self {
             Statement::Select(s) => s.as_script(w),
+            Statement::Set(s) => s.as_script(w),
             _ => todo!(),
         }
+    }
+}
+
+impl<'a> AsScript for SetStatement<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let fields = self.fields.as_object();
+        assert!(!fields.is_empty(), "unexpected set statement value type");
+        assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
+        let mut a = ScriptTextArray::with_capacity(w, 7);
+        a.push(w.keyword("set"));
+        a.push(w.space());
+        a.push(w.single_quotes(fields[0].key.as_script(w)));
+        a.push(w.space());
+        a.push(w.str_const("="));
+        a.push(w.space());
+        a.push(fields[0].value.as_script(w));
+        w.float(a.finish())
     }
 }
 
@@ -312,6 +376,12 @@ mod test {
         let script_string = write_script_string(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(text, &script_string, "{:?}", prog);
+        Ok(())
+    }
+
+    #[test]
+    fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("set 'foo' = 42")?;
         Ok(())
     }
 
