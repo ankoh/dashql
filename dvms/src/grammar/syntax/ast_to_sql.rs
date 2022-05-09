@@ -1,6 +1,7 @@
 use super::ast::*;
 use super::ast_nodes_sql::*;
 use super::script_writer::*;
+use dashql_proto::syntax as sx;
 
 impl<'a> AsScript for Alias<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
@@ -27,10 +28,86 @@ impl<'a> AsScript for RelationRef<'a> {
     }
 }
 
+impl<'a> AsScript for JoinedTable<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 15);
+        a.push(self.input[0].as_script(w));
+        a.push(w.space());
+        if (self.join.0 & sx::JoinType::NATURAL_.0) != 0_u8 {
+            a.push(w.keyword("natural"));
+            a.push(w.space());
+        }
+        match sx::JoinType(self.join.0 & (sx::JoinType::OUTER_.0 - 1)) {
+            sx::JoinType::NONE => {
+                a.push(w.keyword("cross"));
+                a.push(w.space());
+            }
+            sx::JoinType::INNER => {}
+            sx::JoinType::FULL => {
+                a.push(w.keyword("full"));
+                a.push(w.space());
+            }
+            sx::JoinType::LEFT => {
+                a.push(w.keyword("left"));
+                a.push(w.space());
+            }
+            sx::JoinType::RIGHT => {
+                a.push(w.keyword("right"));
+                a.push(w.space());
+            }
+            _ => {}
+        }
+        if (self.join.0 & sx::JoinType::OUTER_.0) != 0_u8 {
+            a.push(w.keyword("outer"));
+            a.push(w.space());
+        }
+        a.push(w.keyword("join"));
+        a.push(w.space());
+        a.push(self.input[1].as_script(w));
+        match &self.qualifier {
+            Some(JoinQualifier::On(expr)) => {
+                a.push(w.space());
+                a.push(w.keyword("on"));
+                a.push(w.space());
+                a.push(expr.as_script(w));
+            }
+            Some(JoinQualifier::Using(cols)) => {
+                a.push(w.space());
+                a.push(w.keyword("using"));
+                a.push(w.space());
+                let mut using = ScriptTextArray::with_capacity(w, cols.len() * 3);
+                for (i, col) in cols.iter().enumerate() {
+                    if i > 0 {
+                        using.push(w.str_const(","));
+                        using.push(w.space());
+                    }
+                    using.push(w.str(col));
+                }
+                a.push(w.round_brackets(using.finish()));
+            }
+            _ => {}
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'a> AsScript for JoinedTableRef<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 3);
+        a.push(self.table.as_script(w));
+        if let Some(alias) = self.alias {
+            a.push(w.space());
+            a.push(alias.as_script(w));
+        }
+        w.float(a.finish())
+    }
+}
+
 impl<'a> AsScript for TableRef<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             TableRef::Relation(rel) => rel.as_script(w),
+            TableRef::Join(joined) => joined.as_script(w),
             _ => todo!(),
         }
     }
@@ -67,11 +144,12 @@ impl<'a> AsScript for SelectFromStatement<'a> {
         if !self.from.is_empty() {
             a.push(w.space());
             a.push(w.keyword("from"));
+            a.push(w.space());
             for (i, table) in self.from.iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
+                    a.push(w.space());
                 }
-                a.push(w.space());
                 a.push(table.as_script(w));
             }
         }
@@ -245,5 +323,9 @@ mod test {
     #[test]
     fn test_select_colref() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select f.g from main.foo f")
+    }
+    #[test]
+    fn test_join_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from A join B using (a, b)")
     }
 }

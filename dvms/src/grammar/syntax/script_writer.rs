@@ -212,51 +212,49 @@ pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &Sc
                                 inline: true,
                             });
                         }
-                        writer_offset += inline_text_length;
                     } else {
-                        let pending_len = pending.len();
+                        let begin = pending.len();
                         for elem in elems.iter() {
-                            if (writer_offset + inline_text_length) <= config.max_width {
-                                pending.push(DFSNode {
-                                    text: elem,
-                                    visited: false,
-                                    break_to: top.break_to,
-                                    inline: true,
-                                });
-                                writer_offset += inline_text_length;
-                            } else {
-                                writer_offset = top.break_to;
+                            let inline_text_length = elem.inline_length;
+                            if (writer_offset + inline_text_length) > config.max_width {
                                 pending.push(DFSNode {
                                     text: elem,
                                     visited: false,
                                     break_to: top.break_to,
                                     inline: false,
                                 });
-                                writer_offset += inline_text_length;
+                            } else {
+                                pending.push(DFSNode {
+                                    text: elem,
+                                    visited: false,
+                                    break_to: top.break_to,
+                                    inline: true,
+                                });
                             }
-                            pending[pending_len..].reverse();
+                            pending[begin..].reverse();
                         }
                     }
                 }
                 ScriptTextElement::Brackets(bropen, _, elems) => {
                     buffer.push_str(bropen);
                     writer_offset += 1;
-                    if (writer_offset + inline_text_length) <= config.max_width {
-                        for elem in elems.iter().rev() {
-                            pending.push(DFSNode {
-                                text: elem,
-                                visited: false,
-                                break_to: top.break_to,
-                                inline: true,
-                            });
-                        }
-                    } else {
-                        for elem in elems.iter().rev() {
+                    for elem in elems.iter().rev() {
+                        let inline_text_length = elem.inline_length;
+                        if (writer_offset + inline_text_length) > config.max_width {
                             pending.push(DFSNode {
                                 text: elem,
                                 visited: false,
                                 break_to: top.break_to,
                                 inline: false,
+                            });
+                            writer_offset = top.break_to;
+                            writer_offset += inline_text_length;
+                        } else {
+                            pending.push(DFSNode {
+                                text: elem,
+                                visited: false,
+                                break_to: top.break_to,
+                                inline: true,
                             });
                         }
                     }
