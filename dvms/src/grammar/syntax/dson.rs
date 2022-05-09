@@ -82,3 +82,34 @@ impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::grammar::{self, Statement};
+    use std::error::Error;
+
+    #[test]
+    fn test_set_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let text = r#"
+            set 'key' = 'value';
+        "#;
+        let arena = bumpalo::Bump::new();
+        let ast = grammar::parse(&arena, text)?;
+        let prog = grammar::deserialize_ast(&arena, text, ast)?;
+        assert_eq!(prog.statements.len(), 1);
+
+        let stmt = match &prog.statements[0] {
+            Statement::Set(set) => set,
+            _ => panic!("unexpected statement: {:?}", &prog.statements[0]),
+        };
+        assert!(stmt.fields.get("key").is_some());
+        match stmt.fields.get("key") {
+            Some(DsonValue::Expression(Expression::StringRef(s))) => {
+                assert_eq!(s.clone(), "'value'");
+            }
+            _ => panic!("unexpected dson value: {:?}", stmt.fields),
+        };
+        Ok(())
+    }
+}
