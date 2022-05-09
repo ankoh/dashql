@@ -347,4 +347,12 @@ mod test {
     fn test_join_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select * from A join B on a = b")
     }
+    #[test]
+    fn test_join_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from A cross join B")
+    }
+    #[test]
+    fn test_join_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from A left outer join B on a = b")
+    }
 }
