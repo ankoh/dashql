@@ -2,6 +2,7 @@ use super::ast::*;
 use super::ast_nodes_sql::*;
 use super::script_writer::*;
 use dashql_proto::syntax as sx;
+use dashql_proto::syntax::ExpressionOperator;
 
 impl<'a> AsScript for Alias<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
@@ -238,7 +239,21 @@ impl<'a> AsScript for Expression<'a> {
             }
             Expression::FunctionCall(_) => todo!(),
             Expression::Indirection(_) => todo!(),
-            Expression::Nary(_) => todo!(),
+            Expression::Nary(nary) => match nary.operator {
+                ExpressionOperatorName::Known(op) => match op {
+                    ExpressionOperator::EQUAL => {
+                        let mut a = ScriptTextArray::with_capacity(w, 5);
+                        a.push(nary.args[0].as_script(w));
+                        a.push(w.space());
+                        a.push(w.keyword("="));
+                        a.push(w.space());
+                        a.push(nary.args[1].as_script(w));
+                        w.float(a.finish())
+                    }
+                    _ => todo!(),
+                },
+                ExpressionOperatorName::Qualified(name) => todo!(),
+            },
             Expression::ParameterRef(_) => todo!(),
             Expression::SelectStatement(_) => todo!(),
             Expression::StringRef(s) => w.str(s.clone()),
@@ -327,5 +342,9 @@ mod test {
     #[test]
     fn test_join_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_statement_writing("select * from A join B using (a, b)")
+    }
+    #[test]
+    fn test_join_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_statement_writing("select * from A join B on a = b")
     }
 }
