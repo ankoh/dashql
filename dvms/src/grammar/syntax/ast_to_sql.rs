@@ -7,6 +7,28 @@ use super::script_writer::*;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 
+impl<'a> AsScript for OrderSpecification<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 5);
+        a.push(self.value.as_script(w));
+        if let Some(dir) = self.direction {
+            a.push(w.space());
+            a.push(match dir.clone() {
+                sx::OrderDirection::ASCENDING => w.keyword("asc"),
+                _ => w.keyword("desc"),
+            });
+        }
+        if let Some(nulls) = self.null_rule {
+            a.push(w.space());
+            a.push(match nulls.clone() {
+                sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
+                _ => w.keyword("nulls last"),
+            });
+        }
+        w.float(a.finish())
+    }
+}
+
 impl<'a> AsScript for DsonKey<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
@@ -206,12 +228,26 @@ impl<'a> AsScript for SelectFromStatement<'a> {
 
 impl<'a> AsScript for SelectStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 1);
+        let mut a = ScriptTextArray::with_capacity(w, 7 + 3 * self.order_by.len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
             SelectData::Combine(c) => todo!(),
             SelectData::Table(t) => todo!(),
             SelectData::Values(to) => todo!(),
+        }
+        if !self.order_by.is_empty() {
+            a.push(w.space());
+            a.push(w.keyword("order"));
+            a.push(w.space());
+            a.push(w.keyword("by"));
+            a.push(w.space());
+            for (i, constraint) in self.order_by.iter().enumerate() {
+                if i > 0 {
+                    a.push(w.str_const(","));
+                    a.push(w.space());
+                }
+                a.push(constraint.as_script(w));
+            }
         }
         w.float(a.finish())
     }
@@ -400,6 +436,13 @@ mod test {
         test_pipe("select * from A left outer join B on a = b")?;
         test_pipe("select * from A right join B on a = b")?;
         test_pipe("select * from A right outer join B on a = b")?;
+        test_pipe("select * from A order by a")?;
+        test_pipe("select * from A order by a, b")?;
+        test_pipe("select * from A order by a asc")?;
+        test_pipe("select * from A order by a asc nulls first")?;
+        test_pipe("select * from A order by a desc")?;
+        test_pipe("select * from A order by a nulls first")?;
+        test_pipe("select * from A order by a asc nulls first, b desc")?;
         Ok(())
     }
 }
