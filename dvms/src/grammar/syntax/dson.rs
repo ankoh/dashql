@@ -92,7 +92,7 @@ mod test {
     #[test]
     fn test_set_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         let text = r#"
-            set 'key' = 'value';
+            set 'key' = 42;
         "#;
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
@@ -106,7 +106,7 @@ mod test {
         assert!(stmt.fields.get("key").is_some());
         match stmt.fields.get("key") {
             Some(DsonValue::Expression(Expression::StringRef(s))) => {
-                assert_eq!(s.clone(), "'value'");
+                assert_eq!(s.clone(), "42");
             }
             _ => panic!("unexpected dson value: {:?}", stmt.fields),
         };
