@@ -566,6 +566,7 @@ mod test {
         test_pipe("viz a using stacked bar chart, x axis ('some' = 'config')")?;
         test_pipe("viz a using clustered bar chart")?;
         test_pipe("viz a using (mark = 'bar')")?;
+        test_pipe("viz a using (encoding = ('x' = ('some' = 'thing')), mark = 'bar')")?;
         Ok(())
     }
 
