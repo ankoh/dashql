@@ -11,27 +11,25 @@ use dashql_proto::syntax::VizComponentTypeModifier;
 
 impl<'a> AsScript for CommonTableExpression<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3);
+        let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.str(self.name));
         if self.columns.len() > 0 {
-            let mut cols = ScriptTextArray::with_capacity(w, self.columns.len());
+            let mut cols = ScriptTextArray::with_capacity(w, 2 * self.columns.len());
             for (i, col) in self.columns.iter().enumerate() {
                 if i > 0 {
-                    cols.push(w.str(","));
-                    cols.push(w.space());
+                    cols.push(w.str(",").pad_right());
                 }
                 cols.push(w.str(col));
             }
-            a.push(w.space());
-            a.push(w.round_brackets(cols.finish()));
+            a.push(w.round_brackets(cols.finish()).pad_left());
         }
-        a.push(w.space());
-        a.push(w.keyword("as"));
-        a.push(w.space());
-        w.round_brackets(
-            ScriptTextArray::with_capacity(w, 1)
-                .with_pushed(self.statement.as_script(w))
-                .finish(),
+        a.push(w.keyword("as").pad_left().pad_right());
+        a.push(
+            w.round_brackets(
+                ScriptTextArray::with_capacity(w, 1)
+                    .with_pushed(self.statement.as_script(w))
+                    .finish(),
+            ),
         );
         w.float(a.finish())
     }
@@ -39,21 +37,25 @@ impl<'a> AsScript for CommonTableExpression<'a> {
 
 impl<'a> AsScript for OrderSpecification<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 5);
+        let mut a = ScriptTextArray::with_capacity(w, 3);
         a.push(self.value.as_script(w));
         if let Some(dir) = self.direction {
-            a.push(w.space());
-            a.push(match dir.clone() {
-                sx::OrderDirection::ASCENDING => w.keyword("asc"),
-                _ => w.keyword("desc"),
-            });
+            a.push(
+                match dir.clone() {
+                    sx::OrderDirection::ASCENDING => w.keyword("asc"),
+                    _ => w.keyword("desc"),
+                }
+                .pad_left(),
+            );
         }
         if let Some(nulls) = self.null_rule {
-            a.push(w.space());
-            a.push(match nulls.clone() {
-                sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
-                _ => w.keyword("nulls last"),
-            });
+            a.push(
+                match nulls.clone() {
+                    sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
+                    _ => w.keyword("nulls last"),
+                }
+                .pad_left(),
+            );
         }
         w.float(a.finish())
     }
@@ -61,9 +63,8 @@ impl<'a> AsScript for OrderSpecification<'a> {
 
 impl<'a> AsScript for Limit<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3);
-        a.push(w.keyword("limit"));
-        a.push(w.space());
+        let mut a = ScriptTextArray::with_capacity(w, 2);
+        a.push(w.keyword("limit").pad_right());
         a.push(match self {
             Limit::ALL => w.keyword("all"),
             Limit::Expression(e) => e.as_script(w),
@@ -85,26 +86,22 @@ impl<'a> AsScript for DsonValue<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             DsonValue::Object(fields) => {
-                let mut a = ScriptTextArray::with_capacity(w, 7 * fields.len());
+                let mut a = ScriptTextArray::with_capacity(w, 4 * fields.len());
                 for (i, field) in fields.iter().enumerate() {
                     if i > 0 {
-                        a.push(w.str_const(","));
-                        a.push(w.space());
+                        a.push(w.str_const(",").pad_right());
                     }
                     a.push(w.single_quotes(field.key.as_script(w)));
-                    a.push(w.space());
-                    a.push(w.str_const("="));
-                    a.push(w.space());
-                    a.push(field.value.as_script(w));
+                    a.push(w.str_const("=").pad_left());
+                    a.push(field.value.as_script(w).pad_left());
                 }
                 w.round_brackets(a.finish())
             }
             DsonValue::Array(vs) => {
-                let mut a = ScriptTextArray::with_capacity(w, 3 * vs.len());
+                let mut a = ScriptTextArray::with_capacity(w, 2 * vs.len());
                 for (i, v) in vs.iter().enumerate() {
                     if i > 0 {
-                        a.push(w.str_const(","));
-                        a.push(w.space());
+                        a.push(w.str_const(",").pad_right());
                     }
                     a.push(v.as_script(w));
                 }
@@ -126,15 +123,13 @@ impl<'a> AsScript for Alias<'a> {
 
 impl<'a> AsScript for RelationRef<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 5);
+        let mut a = ScriptTextArray::with_capacity(w, 3);
         if !self.inherit {
-            a.push(w.keyword("only"));
-            a.push(w.space());
+            a.push(w.keyword("only").pad_right());
         }
         a.push(name_as_script(w, self.name));
         if let Some(alias) = self.alias {
-            a.push(w.space());
-            a.push(alias.as_script(w))
+            a.push(alias.as_script(w).pad_left())
         }
         w.float(a.finish())
     }
@@ -142,60 +137,39 @@ impl<'a> AsScript for RelationRef<'a> {
 
 impl<'a> AsScript for JoinedTable<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 15);
+        let mut a = ScriptTextArray::with_capacity(w, 8);
         a.push(self.input[0].as_script(w));
-        a.push(w.space());
         if (self.join.0 & sx::JoinType::NATURAL_.0) != 0_u8 {
-            a.push(w.keyword("natural"));
-            a.push(w.space());
+            a.push(w.keyword("natural").pad_left());
         }
         match sx::JoinType(self.join.0 & (sx::JoinType::OUTER_.0 - 1)) {
-            sx::JoinType::NONE => {
-                a.push(w.keyword("cross"));
-                a.push(w.space());
-            }
+            sx::JoinType::NONE => a.push(w.keyword("cross").pad_left()),
             sx::JoinType::INNER => {}
-            sx::JoinType::FULL => {
-                a.push(w.keyword("full"));
-                a.push(w.space());
-            }
-            sx::JoinType::LEFT => {
-                a.push(w.keyword("left"));
-                a.push(w.space());
-            }
-            sx::JoinType::RIGHT => {
-                a.push(w.keyword("right"));
-                a.push(w.space());
-            }
+            sx::JoinType::FULL => a.push(w.keyword("full").pad_left()),
+            sx::JoinType::LEFT => a.push(w.keyword("left").pad_left()),
+            sx::JoinType::RIGHT => a.push(w.keyword("right").pad_left()),
             _ => {}
         }
         if (self.join.0 & sx::JoinType::OUTER_.0) != 0_u8 {
-            a.push(w.keyword("outer"));
-            a.push(w.space());
+            a.push(w.keyword("outer").pad_left());
         }
-        a.push(w.keyword("join"));
-        a.push(w.space());
-        a.push(self.input[1].as_script(w));
+        a.push(w.keyword("join").pad_left());
+        a.push(self.input[1].as_script(w).pad_left());
         match &self.qualifier {
             Some(JoinQualifier::On(expr)) => {
-                a.push(w.space());
-                a.push(w.keyword("on"));
-                a.push(w.space());
-                a.push(expr.as_script(w));
+                a.push(w.keyword("on").pad_left());
+                a.push(expr.as_script(w).pad_left());
             }
             Some(JoinQualifier::Using(cols)) => {
-                a.push(w.space());
-                a.push(w.keyword("using"));
-                a.push(w.space());
+                a.push(w.keyword("using").pad_left());
                 let mut using = ScriptTextArray::with_capacity(w, cols.len() * 3);
                 for (i, col) in cols.iter().enumerate() {
                     if i > 0 {
-                        using.push(w.str_const(","));
-                        using.push(w.space());
+                        using.push(w.str_const(",").pad_right());
                     }
                     using.push(w.str(col));
                 }
-                a.push(w.round_brackets(using.finish()));
+                a.push(w.round_brackets(using.finish()).pad_left());
             }
             _ => {}
         }
@@ -205,11 +179,10 @@ impl<'a> AsScript for JoinedTable<'a> {
 
 impl<'a> AsScript for JoinedTableRef<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3);
+        let mut a = ScriptTextArray::with_capacity(w, 2);
         a.push(self.table.as_script(w));
         if let Some(alias) = self.alias {
-            a.push(w.space());
-            a.push(alias.as_script(w));
+            a.push(alias.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -230,11 +203,10 @@ impl<'a> AsScript for ResultTarget<'a> {
         match self {
             ResultTarget::Star => w.str_const("*"),
             ResultTarget::Value { value, alias } => {
-                let mut a = ScriptTextArray::with_capacity(w, 3);
+                let mut a = ScriptTextArray::with_capacity(w, 2);
                 a.push(value.as_script(w));
                 if let Some(alias) = alias {
-                    a.push(w.space());
-                    a.push(w.str(alias));
+                    a.push(w.str(alias).pad_left());
                 }
                 w.float(a.finish())
             }
@@ -250,19 +222,15 @@ impl<'a> AsScript for SelectFromStatement<'a> {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(w.space());
-            a.push(target.as_script(w));
+            a.push(target.as_script(w).pad_left());
         }
         if !self.from.is_empty() {
-            a.push(w.space());
-            a.push(w.keyword("from"));
-            a.push(w.space());
+            a.push(w.keyword("from").pad_left());
             for (i, table) in self.from.iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
-                    a.push(w.space());
                 }
-                a.push(table.as_script(w));
+                a.push(table.as_script(w).pad_left());
             }
         }
         w.float(a.finish())
@@ -271,7 +239,7 @@ impl<'a> AsScript for SelectFromStatement<'a> {
 
 impl<'a> AsScript for SelectStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 11 + 3 * self.order_by.len());
+        let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
             SelectData::Combine(c) => todo!(),
@@ -279,28 +247,21 @@ impl<'a> AsScript for SelectStatement<'a> {
             SelectData::Values(to) => todo!(),
         }
         if !self.order_by.is_empty() {
-            a.push(w.space());
-            a.push(w.keyword("order"));
-            a.push(w.space());
-            a.push(w.keyword("by"));
-            a.push(w.space());
+            a.push(w.keyword("order").pad_left());
+            a.push(w.keyword("by").pad_left());
             for (i, constraint) in self.order_by.iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
-                    a.push(w.space());
                 }
-                a.push(constraint.as_script(w));
+                a.push(constraint.as_script(w).pad_left());
             }
         }
         if let Some(limit) = &self.limit {
-            a.push(w.space());
-            a.push(limit.as_script(w));
+            a.push(limit.as_script(w).pad_left());
         }
         if let Some(offset) = &self.offset {
-            a.push(w.space());
-            a.push(w.keyword("offset"));
-            a.push(w.space());
-            a.push(offset.as_script(w));
+            a.push(w.keyword("offset").pad_left());
+            a.push(offset.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -321,25 +282,24 @@ impl<'a> AsScript for Statement<'a> {
 
 impl<'a> AsScript for FetchStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 9);
+        let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("fetch"));
-        a.push(w.space());
-        a.push(name_as_script(w, self.name));
-        a.push(w.space());
-        a.push(w.keyword("from"));
-        a.push(w.space());
+        a.push(name_as_script(w, self.name).pad_left());
+        a.push(w.keyword("from").pad_left());
         if let Some(uri) = &self.from_uri {
-            a.push(uri.as_script(w));
+            a.push(uri.as_script(w).pad_left());
         } else {
-            a.push(w.keyword(match self.method {
-                sx::FetchMethodType::FILE => "file",
-                sx::FetchMethodType::HTTP => "http",
-                _ => "none",
-            }));
+            a.push(
+                w.keyword(match self.method {
+                    sx::FetchMethodType::FILE => "file",
+                    sx::FetchMethodType::HTTP => "http",
+                    _ => "none",
+                })
+                .pad_left(),
+            );
         }
         if let Some(extra) = &self.extra {
-            a.push(w.space());
-            a.push(extra.as_script(w));
+            a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -347,26 +307,23 @@ impl<'a> AsScript for FetchStatement<'a> {
 
 impl<'a> AsScript for LoadStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 13);
+        let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
-        a.push(w.space());
-        a.push(name_as_script(w, self.name));
-        a.push(w.space());
-        a.push(w.keyword("from"));
-        a.push(w.space());
-        a.push(name_as_script(w, self.source));
-        a.push(w.space());
-        a.push(w.keyword("using"));
-        a.push(w.space());
-        a.push(w.keyword(match self.method {
-            sx::LoadMethodType::CSV => "csv",
-            sx::LoadMethodType::JSON => "json",
-            sx::LoadMethodType::PARQUET => "parquet",
-            _ => "none",
-        }));
+        a.push(name_as_script(w, self.name).pad_left());
+        a.push(w.keyword("from").pad_left());
+        a.push(name_as_script(w, self.source).pad_left());
+        a.push(w.keyword("using").pad_left());
+        a.push(
+            w.keyword(match self.method {
+                sx::LoadMethodType::CSV => "csv",
+                sx::LoadMethodType::JSON => "json",
+                sx::LoadMethodType::PARQUET => "parquet",
+                _ => "none",
+            })
+            .pad_left(),
+        );
         if let Some(extra) = &self.extra {
-            a.push(w.space());
-            a.push(extra.as_script(w));
+            a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -375,52 +332,52 @@ impl<'a> AsScript for LoadStatement<'a> {
 impl<'a> AsScript for VizComponent<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.count_ones() as usize);
-        let mut pad = false;
         if let Some(ct) = &self.component_type {
             if *ct != sx::VizComponentType::SPEC {
                 let mut mods = self.type_modifiers;
                 let mut ti = 0;
                 while mods != 0 && ti <= sx::VizComponentTypeModifier::ENUM_MAX {
                     if (mods & 0b1) != 0 {
-                        a.push(w.keyword(match VizComponentTypeModifier(ti) {
-                            VizComponentTypeModifier::STACKED => "stacked",
-                            VizComponentTypeModifier::CLUSTERED => "clustered",
-                            VizComponentTypeModifier::MULTI => "multi",
-                            VizComponentTypeModifier::DEPENDENT => "dependent",
-                            VizComponentTypeModifier::INDEPENDENT => "independent",
-                            VizComponentTypeModifier::POLAR => "polar",
-                            VizComponentTypeModifier::X => "x",
-                            VizComponentTypeModifier::Y => "y",
-                            _ => "none",
-                        }));
-                        a.push(w.space())
-                    };
+                        a.push(
+                            w.keyword(match VizComponentTypeModifier(ti) {
+                                VizComponentTypeModifier::STACKED => "stacked",
+                                VizComponentTypeModifier::CLUSTERED => "clustered",
+                                VizComponentTypeModifier::MULTI => "multi",
+                                VizComponentTypeModifier::DEPENDENT => "dependent",
+                                VizComponentTypeModifier::INDEPENDENT => "independent",
+                                VizComponentTypeModifier::POLAR => "polar",
+                                VizComponentTypeModifier::X => "x",
+                                VizComponentTypeModifier::Y => "y",
+                                _ => "none",
+                            })
+                            .pad_left(),
+                        );
+                    }
                     mods >>= 1;
                     ti += 1;
                 }
-                a.push(w.keyword(match ct.clone() {
-                    sx::VizComponentType::AREA => "area chart",
-                    sx::VizComponentType::AXIS => "axis",
-                    sx::VizComponentType::BAR => "bar chart",
-                    sx::VizComponentType::BOX => "box",
-                    sx::VizComponentType::CANDLESTICK => "candlestick chart",
-                    sx::VizComponentType::ERROR_BAR => "errorbar chart",
-                    sx::VizComponentType::HEX => "hex",
-                    sx::VizComponentType::JSON => "json",
-                    sx::VizComponentType::LINE => "line chart",
-                    sx::VizComponentType::PIE => "pie chart",
-                    sx::VizComponentType::SCATTER => "scatter plot",
-                    sx::VizComponentType::TABLE => "table",
-                    _ => "none",
-                }));
-                pad = true;
+                a.push(
+                    w.keyword(match ct.clone() {
+                        sx::VizComponentType::AREA => "area chart",
+                        sx::VizComponentType::AXIS => "axis",
+                        sx::VizComponentType::BAR => "bar chart",
+                        sx::VizComponentType::BOX => "box",
+                        sx::VizComponentType::CANDLESTICK => "candlestick chart",
+                        sx::VizComponentType::ERROR_BAR => "errorbar chart",
+                        sx::VizComponentType::HEX => "hex",
+                        sx::VizComponentType::JSON => "json",
+                        sx::VizComponentType::LINE => "line chart",
+                        sx::VizComponentType::PIE => "pie chart",
+                        sx::VizComponentType::SCATTER => "scatter plot",
+                        sx::VizComponentType::TABLE => "table",
+                        _ => "none",
+                    })
+                    .pad_left(),
+                );
             }
         }
         if let Some(extra) = &self.extra {
-            if pad {
-                a.push(w.space());
-            }
-            a.push(extra.as_script(w));
+            a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -428,17 +385,14 @@ impl<'a> AsScript for VizComponent<'a> {
 
 impl<'a> AsScript for VizStatement<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 5 + 3 * self.components.len());
+        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.len());
         a.push(w.keyword("viz"));
-        a.push(w.space());
-        a.push(self.target.as_script(w));
-        a.push(w.space());
-        a.push(w.keyword("using"));
+        a.push(self.target.as_script(w).pad_left());
+        a.push(w.keyword("using").pad_left());
         for (i, component) in self.components.iter().enumerate() {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(w.space());
             a.push(component.as_script(w));
         }
         w.float(a.finish())
@@ -450,14 +404,11 @@ impl<'a> AsScript for SetStatement<'a> {
         let fields = self.fields.as_object();
         assert!(!fields.is_empty(), "unexpected set statement value type");
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
-        let mut a = ScriptTextArray::with_capacity(w, 7);
+        let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.keyword("set"));
-        a.push(w.space());
-        a.push(w.single_quotes(fields[0].key.as_script(w)));
-        a.push(w.space());
-        a.push(w.str_const("="));
-        a.push(w.space());
-        a.push(fields[0].value.as_script(w));
+        a.push(w.single_quotes(fields[0].key.as_script(w)).pad_left());
+        a.push(w.str_const("=").pad_left());
+        a.push(fields[0].value.as_script(w).pad_left());
         w.float(a.finish())
     }
 }
@@ -477,37 +428,29 @@ impl<'a> AsScript for Expression<'a> {
                 let mut a = ScriptTextArray::with_capacity(w, 3 * elems.len());
                 for (i, e) in elems.iter().enumerate() {
                     if i > 0 {
-                        a.push(w.str_const(","));
-                        a.push(w.space());
+                        a.push(w.str_const(",").pad_right());
                     }
                     a.push(e.as_script(w));
                 }
                 w.round_brackets(a.finish())
             }
             Expression::Case(c) => {
-                let mut f = ScriptTextArray::with_capacity(w, 8 + 8 * c.cases.len());
+                let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.len());
                 f.push(w.keyword("case"));
                 if let Some(arg) = &c.argument {
-                    f.push(w.space());
-                    f.push(arg.as_script(w));
+                    f.push(arg.as_script(w).pad_left());
                 }
-                f.push(w.space());
                 for case in c.cases.iter() {
-                    f.push(w.keyword("when"));
-                    f.push(w.space());
-                    f.push(case.when.as_script(w));
-                    f.push(w.space());
-                    f.push(w.keyword("then"));
-                    f.push(w.space());
-                    f.push(case.then.as_script(w));
-                    f.push(w.space());
+                    f.push(w.keyword("when").pad_left());
+                    f.push(case.when.as_script(w).pad_left());
+                    f.push(w.keyword("then").pad_left());
+                    f.push(case.then.as_script(w).pad_left());
                 }
                 if let Some(default) = &c.default {
-                    f.push(w.keyword("else"));
-                    f.push(default.as_script(w));
-                    f.push(w.space());
+                    f.push(w.keyword("else").pad_left());
+                    f.push(default.as_script(w).pad_left());
                 }
-                f.push(w.keyword("end"));
+                f.push(w.keyword("end").pad_left());
                 w.float(f.finish())
             }
             Expression::ColumnRef(name) => name_as_script(w, name),
@@ -515,8 +458,7 @@ impl<'a> AsScript for Expression<'a> {
             Expression::Exists(e) => {
                 let mut t = ScriptTextArray::with_capacity(w, 3);
                 t.push(w.keyword("EXISTS"));
-                t.push(w.space());
-                t.push(e.statement.as_script(w));
+                t.push(e.statement.as_script(w).pad_left());
                 w.float(t.finish())
             }
             Expression::FunctionCall(_) => todo!(),
@@ -524,12 +466,10 @@ impl<'a> AsScript for Expression<'a> {
             Expression::Nary(nary) => match nary.operator {
                 ExpressionOperatorName::Known(op) => match op {
                     ExpressionOperator::EQUAL => {
-                        let mut a = ScriptTextArray::with_capacity(w, 5);
+                        let mut a = ScriptTextArray::with_capacity(w, 3);
                         a.push(nary.args[0].as_script(w));
-                        a.push(w.space());
-                        a.push(w.keyword("="));
-                        a.push(w.space());
-                        a.push(nary.args[1].as_script(w));
+                        a.push(w.keyword("=").pad_left());
+                        a.push(nary.args[1].as_script(w).pad_left());
                         w.float(a.finish())
                     }
                     _ => todo!(),
