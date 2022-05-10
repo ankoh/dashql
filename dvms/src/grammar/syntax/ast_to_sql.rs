@@ -75,10 +75,7 @@ impl<'a> AsScript for Limit<'a> {
 
 impl<'a> AsScript for DsonKey<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        match self {
-            DsonKey::Known(k) => w.str(k.variant_name().unwrap_or_default()),
-            DsonKey::Unknown(k) => w.str(k),
-        }
+        w.str(self.as_str())
     }
 }
 
