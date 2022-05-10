@@ -75,7 +75,10 @@ impl<'a> AsScript for Limit<'a> {
 
 impl<'a> AsScript for DsonKey<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        w.str(self.as_str())
+        match self {
+            DsonKey::Known(k) => w.str(self.as_str()),
+            DsonKey::Unknown(k) => w.single_quotes(w.str(k)),
+        }
     }
 }
 
@@ -88,7 +91,7 @@ impl<'a> AsScript for DsonValue<'a> {
                     if i > 0 {
                         a.push(w.str_const(",").pad_right());
                     }
-                    a.push(w.single_quotes(field.key.as_script(w)));
+                    a.push(field.key.as_script(w));
                     a.push(w.str_const("=").pad_left());
                     a.push(field.value.as_script(w).pad_left());
                 }
@@ -403,7 +406,7 @@ impl<'a> AsScript for SetStatement<'a> {
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
         let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.keyword("set"));
-        a.push(w.single_quotes(fields[0].key.as_script(w)).pad_left());
+        a.push(fields[0].key.as_script(w).pad_left());
         a.push(w.str_const("=").pad_left());
         a.push(fields[0].value.as_script(w).pad_left());
         w.float(a.finish())
@@ -543,7 +546,7 @@ mod test {
     #[test]
     fn test_from() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe("fetch foo from 'http://someremote'")?;
-        test_pipe("fetch foo from http ('url' = 'http://someremote')")?;
+        test_pipe("fetch foo from http (url = 'http://someremote')")?;
         Ok(())
     }
 
@@ -562,7 +565,7 @@ mod test {
         test_pipe("viz a using stacked bar chart")?;
         test_pipe("viz a using stacked bar chart, x axis ('some' = 'config')")?;
         test_pipe("viz a using clustered bar chart")?;
-        test_pipe("viz a using ('mark' = 'bar')")?;
+        test_pipe("viz a using (mark = 'bar')")?;
         Ok(())
     }
 
