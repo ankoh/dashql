@@ -1,11 +1,41 @@
 use crate::grammar::SetStatement;
 
 use super::ast::*;
+use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::dson::*;
 use super::script_writer::*;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
+use dashql_proto::syntax::VizComponentTypeModifier;
+
+impl<'a> AsScript for CommonTableExpression<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 3);
+        a.push(w.str(self.name));
+        if self.columns.len() > 0 {
+            let mut cols = ScriptTextArray::with_capacity(w, self.columns.len());
+            for (i, col) in self.columns.iter().enumerate() {
+                if i > 0 {
+                    cols.push(w.str(","));
+                    cols.push(w.space());
+                }
+                cols.push(w.str(col));
+            }
+            a.push(w.space());
+            a.push(w.round_brackets(cols.finish()));
+        }
+        a.push(w.space());
+        a.push(w.keyword("as"));
+        a.push(w.space());
+        w.round_brackets(
+            ScriptTextArray::with_capacity(w, 1)
+                .with_pushed(self.statement.as_script(w))
+                .finish(),
+        );
+        w.float(a.finish())
+    }
+}
 
 impl<'a> AsScript for OrderSpecification<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
@@ -281,8 +311,137 @@ impl<'a> AsScript for Statement<'a> {
         match &self {
             Statement::Select(s) => s.as_script(w),
             Statement::Set(s) => s.as_script(w),
+            Statement::Fetch(s) => s.as_script(w),
+            Statement::Load(s) => s.as_script(w),
+            Statement::Viz(s) => s.as_script(w),
             _ => todo!(),
         }
+    }
+}
+
+impl<'a> AsScript for FetchStatement<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 9);
+        a.push(w.keyword("fetch"));
+        a.push(w.space());
+        a.push(name_as_script(w, self.name));
+        a.push(w.space());
+        a.push(w.keyword("from"));
+        a.push(w.space());
+        if let Some(uri) = &self.from_uri {
+            a.push(uri.as_script(w));
+        } else {
+            a.push(w.keyword(match self.method {
+                sx::FetchMethodType::FILE => "file",
+                sx::FetchMethodType::HTTP => "http",
+                _ => "none",
+            }));
+        }
+        if let Some(extra) = &self.extra {
+            a.push(w.space());
+            a.push(extra.as_script(w));
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'a> AsScript for LoadStatement<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 13);
+        a.push(w.keyword("load"));
+        a.push(w.space());
+        a.push(name_as_script(w, self.name));
+        a.push(w.space());
+        a.push(w.keyword("from"));
+        a.push(w.space());
+        a.push(name_as_script(w, self.source));
+        a.push(w.space());
+        a.push(w.keyword("using"));
+        a.push(w.space());
+        a.push(w.keyword(match self.method {
+            sx::LoadMethodType::CSV => "csv",
+            sx::LoadMethodType::JSON => "json",
+            sx::LoadMethodType::PARQUET => "parquet",
+            _ => "none",
+        }));
+        if let Some(extra) = &self.extra {
+            a.push(w.space());
+            a.push(extra.as_script(w));
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'a> AsScript for VizComponent<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.count_ones() as usize);
+        let mut pad = false;
+        if let Some(ct) = &self.component_type {
+            if *ct != sx::VizComponentType::SPEC {
+                let mut mods = self.type_modifiers;
+                let mut ti = 0;
+                while mods != 0 && ti <= sx::VizComponentTypeModifier::ENUM_MAX {
+                    if (mods & 0b1) != 0 {
+                        a.push(w.keyword(match VizComponentTypeModifier(ti) {
+                            VizComponentTypeModifier::STACKED => "stacked",
+                            VizComponentTypeModifier::CLUSTERED => "clustered",
+                            VizComponentTypeModifier::MULTI => "multi",
+                            VizComponentTypeModifier::DEPENDENT => "dependent",
+                            VizComponentTypeModifier::INDEPENDENT => "independent",
+                            VizComponentTypeModifier::POLAR => "polar",
+                            VizComponentTypeModifier::X => "x",
+                            VizComponentTypeModifier::Y => "y",
+                            _ => "none",
+                        }));
+                        a.push(w.space())
+                    };
+                    mods >>= 1;
+                    ti += 1;
+                }
+                a.push(w.keyword(match ct.clone() {
+                    sx::VizComponentType::AREA => "area chart",
+                    sx::VizComponentType::AXIS => "axis",
+                    sx::VizComponentType::BAR => "bar chart",
+                    sx::VizComponentType::BOX => "box",
+                    sx::VizComponentType::CANDLESTICK => "candlestick chart",
+                    sx::VizComponentType::ERROR_BAR => "errorbar chart",
+                    sx::VizComponentType::HEX => "hex",
+                    sx::VizComponentType::JSON => "json",
+                    sx::VizComponentType::LINE => "line chart",
+                    sx::VizComponentType::PIE => "pie chart",
+                    sx::VizComponentType::SCATTER => "scatter plot",
+                    sx::VizComponentType::TABLE => "table",
+                    _ => "none",
+                }));
+                pad = true;
+            }
+        }
+        if let Some(extra) = &self.extra {
+            if pad {
+                a.push(w.space());
+            }
+            a.push(extra.as_script(w));
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'a> AsScript for VizStatement<'a> {
+    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut a = ScriptTextArray::with_capacity(w, 5 + 3 * self.components.len());
+        a.push(w.keyword("viz"));
+        a.push(w.space());
+        a.push(self.target.as_script(w));
+        a.push(w.space());
+        a.push(w.keyword("using"));
+        for (i, component) in self.components.iter().enumerate() {
+            if i > 0 {
+                a.push(w.str_const(","));
+            }
+            a.push(w.space());
+            a.push(component.as_script(w));
+        }
+        w.float(a.finish())
     }
 }
 
@@ -441,6 +600,32 @@ mod test {
     #[test]
     fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe("set 'foo' = 42")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_from() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("fetch foo from 'http://someremote'")?;
+        test_pipe("fetch foo from http ('url' = 'http://someremote')")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_load() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("load a from b using json")?;
+        test_pipe("load a from b using csv")?;
+        test_pipe("load a from b using parquet")?;
+        test_pipe("load a from b using parquet ('someextra' = 'foo')")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_viz() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("viz a using table")?;
+        test_pipe("viz a using stacked bar chart")?;
+        test_pipe("viz a using stacked bar chart, x axis ('some' = 'config')")?;
+        test_pipe("viz a using clustered bar chart")?;
+        test_pipe("viz a using ('mark' = 'bar')")?;
         Ok(())
     }
 
