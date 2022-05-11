@@ -43,7 +43,7 @@ impl<'arena> Default for ScriptText<'arena> {
 }
 
 pub struct ScriptWriter<'arena> {
-    arena: &'arena bumpalo::Bump,
+    pub arena: &'arena bumpalo::Bump,
 }
 
 impl<'arena> ScriptWriter<'arena> {

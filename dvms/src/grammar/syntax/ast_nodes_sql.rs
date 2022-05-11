@@ -125,6 +125,7 @@ pub struct TypeTestExpression<'a> {
 pub enum Expression<'a> {
     Null,
     Boolean(bool),
+    Uint32(u32),
     Array(&'a [Expression<'a>]),
     Case(&'a CaseExpression<'a>),
     ColumnRef(NamePath<'a>),

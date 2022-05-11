@@ -417,6 +417,7 @@ impl<'a> AsScript for Expression<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             Expression::Null => w.str_const("null"),
+            Expression::Uint32(v) => w.str(w.arena.alloc_str(&v.to_string())),
             Expression::Boolean(b) => {
                 if *b {
                     w.str_const("true")
