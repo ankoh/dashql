@@ -25,7 +25,7 @@ pub struct CardPosition {
 pub fn edit_viz_statement<'arena, 'edit>(
     arena: &'arena bumpalo::Bump,
     stmt: &'arena VizStatement<'arena>,
-    edits: &[StatementEditOperation],
+    edits: &[EditOperation],
 ) -> &'arena VizStatement<'arena> {
     // Clone all components
     let mut components: Vec<VizComponent<'arena>> = stmt.components.iter().map(|c| c.clone().clone()).collect();
@@ -39,7 +39,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
     }
     // Apply all edit operations
     for op in edits.iter() {
-        match &op.variant {
+        match &op {
             EditOperation::SetCardPosition(pos) => {
                 for extra in extras.iter_mut() {
                     extra.retain(|field| match field.key {
@@ -102,11 +102,7 @@ mod test {
     use crate::grammar::{self, Statement};
     use std::error::Error;
 
-    fn test_viz_edits(
-        text: &str,
-        expected: &str,
-        edits: &[StatementEditOperation],
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_viz_edits(text: &str, expected: &str, edits: &[EditOperation]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
         let prog = grammar::deserialize_ast(&arena, text, ast)?;
@@ -133,28 +129,22 @@ mod test {
         test_viz_edits(
             "viz foo using table",
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
-            &[StatementEditOperation {
-                statement_id: 0,
-                variant: EditOperation::SetCardPosition(CardPosition {
-                    row: 1,
-                    column: 0,
-                    width: 10,
-                    height: 3,
-                }),
-            }],
+            &[EditOperation::SetCardPosition(CardPosition {
+                row: 1,
+                column: 0,
+                width: 10,
+                height: 3,
+            })],
         )?;
         test_viz_edits(
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
             "viz foo using table (position = (row = 2, column = 0, width = 12, height = 4))",
-            &[StatementEditOperation {
-                statement_id: 0,
-                variant: EditOperation::SetCardPosition(CardPosition {
-                    row: 2,
-                    column: 0,
-                    width: 12,
-                    height: 4,
-                }),
-            }],
+            &[EditOperation::SetCardPosition(CardPosition {
+                row: 2,
+                column: 0,
+                width: 12,
+                height: 4,
+            })],
         )?;
         Ok(())
     }
