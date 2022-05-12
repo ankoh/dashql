@@ -46,3 +46,11 @@ pub struct Card<'arena> {
     pub input_component: sx::InputComponentType,
     pub input_extra: Option<DsonValue<'arena>>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AnalyzedProgram<'arena> {
+    pub node_error_messages: Vec<NodeError>,
+    pub node_linter_messages: Vec<LinterMessage>,
+    pub statement_liveness: Vec<bool>,
+    pub cards: Vec<Card<'arena>>,
+}
