@@ -8,16 +8,16 @@ pub struct LogicalDecimalType {
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct LogicalStructType {
-    fields: Vec<(String, SQLType)>,
+    fields: Vec<(String, LogicalType)>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct LogicalListType {
-    value: Box<SQLType>,
+    value: Box<LogicalType>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub enum SQLType {
+pub enum LogicalType {
     Invalid,
     Null,
     Unknown,
@@ -46,20 +46,21 @@ pub enum SQLType {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub enum SQLValueData {
+pub enum PhysicalData {
     Null,
     I64(i64),
     F64(f64),
     String(String),
-    List(Vec<SQLValueData>),
-    Struct(Vec<SQLValueData>),
+    List(Vec<PhysicalData>),
+    Struct(Vec<PhysicalData>),
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct SQLValue {
     #[serde(rename = "type")]
-    pub sql_type: SQLType,
-    pub data: SQLValueData,
+    pub logical_type: LogicalType,
+    #[serde(rename = "data")]
+    pub physical_data: PhysicalData,
 }
 
 #[cfg(test)]
@@ -70,8 +71,8 @@ mod test {
     #[test]
     pub fn test_42() -> Result<(), Box<dyn Error + Send + Sync>> {
         let value = SQLValue {
-            sql_type: SQLType::Int64,
-            data: SQLValueData::I64(0),
+            logical_type: LogicalType::Int64,
+            physical_data: PhysicalData::I64(0),
         };
         let vs = serde_json::to_string(&value)?;
         assert_eq!(vs, r#"{"type":"Int64","data":{"I64":0}}"#);
