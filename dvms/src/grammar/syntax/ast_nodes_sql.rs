@@ -1,23 +1,25 @@
+use super::enums_serde::*;
 use dashql_proto::syntax as sx;
+use serde::Serialize;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionExpression<'a> {
     pub value: Expression<'a>,
     pub path: NamePath<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionIndex<'a> {
     pub value: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionBounds<'a> {
     pub lower_bound: Expression<'a>,
     pub upper_bound: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum Indirection<'a> {
     Name(&'a str),
     Index(IndirectionIndex<'a>),
@@ -25,38 +27,39 @@ pub enum Indirection<'a> {
 }
 pub type NamePath<'a> = &'a [Indirection<'a>];
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ArrayBound<'a> {
     Empty,
     Index(&'a str),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ExpressionOperatorName<'a> {
+    #[serde(with = "serde_expression_operator")]
     Known(sx::ExpressionOperator),
     Qualified(&'a [&'a str]),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NaryExpression<'a> {
     pub operator: ExpressionOperatorName<'a>,
     pub args: &'a [Expression<'a>],
     pub postfix: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstTypeCastExpression<'a> {
     pub value: &'a str,
     pub sql_type: &'a SQLType<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstIntervalCastExpression<'a> {
     pub value: &'a str,
     pub interval: &'a IntervalSpecification<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstFunctionCastExpression<'a> {
     pub value: &'a str,
     pub func_name: Option<NamePath<'a>>,
@@ -64,64 +67,65 @@ pub struct ConstFunctionCastExpression<'a> {
     pub func_arg_ordering: &'a [&'a OrderSpecification<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ConstCastExpression<'a> {
     Type(&'a ConstTypeCastExpression<'a>),
     Interval(&'a ConstIntervalCastExpression<'a>),
     Function(&'a ConstFunctionCastExpression<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TypeCastExpression<'a> {
     pub value: Expression<'a>,
     pub sql_type: SQLType<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SubqueryExpression<'a> {
     pub operator: ExpressionOperatorName<'a>,
+    #[serde(with = "serde_subquery_quantifier")]
     pub quantifier: sx::SubqueryQuantifier,
     pub args: [Expression<'a>; 2],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatementExpression<'a> {
     pub statement: &'a SelectStatement<'a>,
     pub indirection: Option<NamePath<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ExistsExpression<'a> {
     pub statement: &'a SelectStatement<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpressionClause<'a> {
     pub when: Expression<'a>,
     pub then: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
     pub argument: Option<Expression<'a>>,
     pub cases: &'a [&'a CaseExpressionClause<'a>],
     pub default: Option<Expression<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ParameterRef<'a> {
     pub prefix: &'a str,
     pub name: NamePath<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TypeTestExpression<'a> {
     pub negate: bool,
     pub value: Expression<'a>,
     pub of_types: &'a [&'a SQLType<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum Expression<'a> {
     Null,
     Boolean(bool),
@@ -142,14 +146,16 @@ pub enum Expression<'a> {
     TypeTest(&'a TypeTestExpression<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct OrderSpecification<'a> {
     pub value: Expression<'a>,
+    #[serde(with = "serde_order_direction::opt")]
     pub direction: Option<sx::OrderDirection>,
+    #[serde(with = "serde_order_null_rule::opt")]
     pub null_rule: Option<sx::OrderNullRule>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum GroupByItem<'a> {
     Empty,
     Expression(Expression<'a>),
@@ -158,13 +164,14 @@ pub enum GroupByItem<'a> {
     GroupingSets(&'a [&'a GroupByItem<'a>]),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalSpecification<'a> {
+    #[serde(with = "serde_interval_type::opt")]
     pub interval_type: Option<sx::IntervalType>,
     pub precision: Option<&'a str>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ResultTarget<'a> {
     Star,
     Value {
@@ -173,49 +180,52 @@ pub enum ResultTarget<'a> {
     },
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct GenericType<'a> {
     pub name: &'a str,
     pub modifiers: &'a [Expression<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NumericType<'a> {
+    #[serde(with = "serde_numeric_type")]
     pub base: sx::NumericType,
     pub modifiers: &'a [Expression<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct BitType<'a> {
     pub varying: bool,
     pub length: Option<Expression<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CharacterType<'a> {
+    #[serde(with = "serde_character_type")]
     pub base: sx::CharacterType,
     pub length: Option<&'a str>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TimestampType<'a> {
     pub precision: Option<&'a str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TimeType<'a> {
     pub precision: Option<&'a str>,
     pub with_timezone: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalType<'a> {
+    #[serde(with = "serde_interval_type::opt")]
     pub base: Option<sx::IntervalType>,
     pub precision: Option<&'a str>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SQLBaseType<'a> {
     Invalid,
     Generic(GenericType<'a>),
@@ -227,20 +237,21 @@ pub enum SQLBaseType<'a> {
     Interval(IntervalSpecification<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SQLType<'a> {
     pub base_type: SQLBaseType<'a>,
     pub array_bounds: &'a [ArrayBound<'a>],
     pub set_of: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Into<'a> {
+    #[serde(with = "serde_temp_type")]
     pub temp: sx::TempType,
     pub name: NamePath<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnDefinition<'a> {
     pub name: &'a str,
     pub sql_type: &'a SQLType<'a>,
@@ -249,23 +260,24 @@ pub struct ColumnDefinition<'a> {
     pub options: &'a [&'a GenericOption<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Alias<'a> {
     pub name: &'a str,
     pub column_names: &'a [&'a str],
     pub column_definitions: &'a [&'a ColumnDefinition<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TableSample<'a> {
     pub count: &'a str,
+    #[serde(with = "serde_sample_count_unit")]
     pub unit: sx::SampleCountUnit,
     pub function: Option<&'a str>,
     pub repeat: Option<&'a str>,
     pub seed: Option<&'a str>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatementRef<'a> {
     pub table: &'a SelectStatement<'a>,
     pub alias: Option<&'a Alias<'a>>,
@@ -273,20 +285,20 @@ pub struct SelectStatementRef<'a> {
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct RowsFromItem<'a> {
     pub function: &'a FunctionExpression<'a>,
     pub columns: &'a [&'a ColumnDefinition<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionTable<'a> {
     pub function: Option<&'a FunctionExpression<'a>>,
     pub rows_from: &'a [&'a RowsFromItem<'a>],
     pub with_ordinality: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionTableRef<'a> {
     pub table: &'a FunctionTable<'a>,
     pub alias: Option<&'a Alias<'a>>,
@@ -294,33 +306,34 @@ pub struct FunctionTableRef<'a> {
     pub lateral: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum JoinQualifier<'a> {
     On(Expression<'a>),
     Using(&'a [&'a str]),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct JoinedTable<'a> {
+    #[serde(with = "serde_join_type")]
     pub join: sx::JoinType,
     pub qualifier: Option<JoinQualifier<'a>>,
     pub input: &'a [&'a TableRef<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct JoinedTableRef<'a> {
     pub table: &'a JoinedTable<'a>,
     pub alias: Option<&'a Alias<'a>>,
 }
 
-#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct RelationRef<'a> {
     pub name: NamePath<'a>,
     pub inherit: bool,
     pub alias: Option<&'a Alias<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum TableRef<'a> {
     Relation(RelationRef<'a>),
     Select(SelectStatementRef<'a>),
@@ -328,19 +341,20 @@ pub enum TableRef<'a> {
     Join(JoinedTableRef<'a>),
 }
 
-#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct FunctionArgument<'a> {
     pub name: Option<&'a str>,
     pub value: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum FunctionName<'a> {
     Unknown(&'a str),
+    #[serde(with = "serde_known_function")]
     Known(sx::KnownFunction),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct OverlayFunctionArguments<'a> {
     pub input: Expression<'a>,
     pub placing: Expression<'a>,
@@ -348,51 +362,53 @@ pub struct OverlayFunctionArguments<'a> {
     pub substr_for: Option<Expression<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ExtractFunctionTarget<'a> {
     Unknown(&'a str),
+    #[serde(with = "serde_extract_target")]
     Known(sx::ExtractTarget),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ExtractFunctionArguments<'a> {
     pub target: ExtractFunctionTarget<'a>,
     pub input: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SubstringFunctionArguments<'a> {
     pub input: Expression<'a>,
     pub substr_from: Option<Expression<'a>>,
     pub substr_for: Option<Expression<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct PositionFunctionArguments<'a> {
     pub search: Expression<'a>,
     pub input: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TrimFunctionArguments<'a> {
+    #[serde(with = "serde_trim_direction")]
     pub direction: sx::TrimDirection,
     pub characters: Option<Expression<'a>>,
     pub input: &'a [Expression<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CastFunctionArguments<'a> {
     pub value: Expression<'a>,
     pub as_type: &'a SQLType<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TreatFunctionArguments<'a> {
     pub value: Expression<'a>,
     pub as_type: &'a SQLType<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum KnownFunctionArguments<'a> {
     Trim(&'a TrimFunctionArguments<'a>),
     Substring(&'a SubstringFunctionArguments<'a>),
@@ -403,7 +419,7 @@ pub enum KnownFunctionArguments<'a> {
     Treat(&'a TreatFunctionArguments<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionExpression<'a> {
     pub name: FunctionName<'a>,
     pub args: &'a [FunctionArgument<'a>],
@@ -417,19 +433,20 @@ pub struct FunctionExpression<'a> {
     pub over: Option<&'a WindowFrame<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum Limit<'a> {
     ALL,
     Expression(Expression<'a>),
 }
 
-#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SampleCount<'a> {
     pub value: &'a str,
+    #[serde(with = "serde_sample_count_unit")]
     pub unit: sx::SampleCountUnit,
 }
 
-#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Sample<'a> {
     pub function: &'a str,
     pub seed: Option<&'a str>,
@@ -437,14 +454,16 @@ pub struct Sample<'a> {
     pub count: Option<SampleCount<'a>>,
 }
 
-#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct RowLocking<'a> {
+    #[serde(with = "serde_row_locking_strength")]
     pub strength: sx::RowLockingStrength,
     pub of: &'a [NamePath<'a>],
+    #[serde(with = "serde_row_locking_block_behavior::opt")]
     pub block_behavior: Option<sx::RowLockingBlockBehavior>,
 }
 
-#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectFromStatement<'a> {
     pub all: bool,
     pub distinct: Option<&'a [Expression<'a>]>,
@@ -458,14 +477,16 @@ pub struct SelectFromStatement<'a> {
     pub sample: Option<&'a Sample<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CombineOperation<'a> {
+    #[serde(with = "serde_combine_operation")]
     pub operation: sx::CombineOperation,
+    #[serde(with = "serde_combine_modifier")]
     pub modifier: sx::CombineModifier,
     pub input: &'a [&'a SelectStatement<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SelectData<'a> {
     From(SelectFromStatement<'a>),
     Table(&'a TableRef<'a>),
@@ -473,14 +494,14 @@ pub enum SelectData<'a> {
     Combine(CombineOperation<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CommonTableExpression<'a> {
     pub name: &'a str,
     pub columns: &'a [&'a str],
     pub statement: &'a SelectStatement<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatement<'a> {
     pub with_ctes: &'a [&'a CommonTableExpression<'a>],
     pub with_recursive: bool,
@@ -491,77 +512,87 @@ pub struct SelectStatement<'a> {
     pub offset: Option<Expression<'a>>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'a> {
     pub name: NamePath<'a>,
     pub elements: &'a [&'a ColumnDefinition<'a>],
+    #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
+    #[serde(with = "serde_on_commit_option::opt")]
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateAsStatement<'a> {
     pub name: NamePath<'a>,
     pub columns: &'a [&'a str],
     pub statement: &'a SelectStatement<'a>,
     pub if_not_exists: bool,
     pub with_data: bool,
+    #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
+    #[serde(with = "serde_on_commit_option::opt")]
     pub on_commit: Option<sx::OnCommitOption>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateViewStatement<'a> {
     pub name: NamePath<'a>,
     pub columns: &'a [&'a str],
     pub statement: &'a SelectStatement<'a>,
+    #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct GenericOption<'a> {
     pub key: &'a str,
     pub value: &'a str,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraintArgument<'a> {
     pub name: &'a str,
     pub value: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraint<'a> {
     pub constraint_name: Option<&'a str>,
+    #[serde(with = "serde_column_constraint::opt")]
     pub constraint_type: Option<sx::ColumnConstraint>,
     pub value: Option<Expression<'a>>,
     pub arguments: &'a [&'a ColumnConstraintArgument<'a>],
     pub no_inherit: bool,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ColumnConstraintVariant<'a> {
+    #[serde(with = "serde_constraint_attribute")]
     Attribute(sx::ConstraintAttribute),
     Constraint(&'a ColumnConstraint<'a>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrameBound<'a> {
+    #[serde(with = "serde_window_bound_mode")]
     pub mode: sx::WindowBoundMode,
+    #[serde(with = "serde_window_bound_direction::opt")]
     pub direction: Option<sx::WindowBoundDirection>,
     pub value: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'a> {
     pub name: Option<&'a str>,
     pub partition_by: &'a [Expression<'a>],
     pub order_by: &'a [&'a OrderSpecification<'a>],
+    #[serde(with = "serde_window_range_mode::opt")]
     pub frame_mode: Option<sx::WindowRangeMode>,
     pub frame_bounds: &'a [&'a WindowFrameBound<'a>],
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowDefinition<'a> {
     pub name: &'a str,
     pub frame: &'a WindowFrame<'a>,

@@ -1,25 +1,18 @@
+use super::program_analysis::CardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{Expression, VizComponent, VizStatement};
 use dashql_proto::syntax as sx;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct StatementEditOperation {
     pub statement_id: u32,
     pub variant: EditOperation,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub enum EditOperation {
     SetCardPosition(CardPosition),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CardPosition {
-    pub row: u32,
-    pub column: u32,
-    pub width: u32,
-    pub height: u32,
 }
 
 pub fn edit_viz_statement<'arena, 'edit>(

@@ -1,5 +1,6 @@
 use super::ast_nodes_sql::*;
 use dashql_proto::syntax as sx;
+use serde::{ser::SerializeMap, Serialize};
 
 #[derive(Debug, Clone)]
 pub enum DsonKey<'arena> {
@@ -308,6 +309,25 @@ pub enum DsonValue<'arena> {
     Object(&'arena [DsonField<'arena>]),
     Array(&'arena [DsonValue<'arena>]),
     Expression(Expression<'arena>),
+}
+
+impl<'arena> Serialize for DsonValue<'arena> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match &self {
+            DsonValue::Object(fields) => {
+                let mut m = serializer.serialize_map(Some(fields.len()))?;
+                for field in fields.iter() {
+                    m.serialize_entry(field.key.as_str(), &field.value)?;
+                }
+                m.end()
+            }
+            DsonValue::Array(a) => a.serialize(serializer),
+            DsonValue::Expression(e) => e.serialize(serializer),
+        }
+    }
 }
 
 impl<'arena> Default for DsonValue<'arena> {
