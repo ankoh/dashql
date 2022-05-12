@@ -1,4 +1,3 @@
-pub mod ast;
 pub mod ast_dump;
 pub mod ast_node;
 pub mod ast_nodes_dashql;
@@ -10,4 +9,5 @@ pub mod ast_translation;
 pub mod dson;
 pub mod enums;
 pub mod enums_serde;
+pub mod program;
 pub mod script_writer;

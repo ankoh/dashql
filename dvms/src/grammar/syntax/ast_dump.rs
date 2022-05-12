@@ -1,5 +1,5 @@
-use super::ast::Program;
 use super::ast_to_xml::serialize_ast_as_xml;
+use super::program::Program;
 use dashql_proto::syntax as sx;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;

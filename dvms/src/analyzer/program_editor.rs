@@ -2,7 +2,7 @@ use super::program_analysis::CardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{Expression, VizComponent, VizStatement};
 use dashql_proto::syntax as sx;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct StatementEditOperation {
@@ -63,7 +63,6 @@ pub fn edit_viz_statement<'arena, 'edit>(
                     value: fields,
                 });
             }
-            _ => (),
         }
     }
     // Allocate all extras and store them in the clones

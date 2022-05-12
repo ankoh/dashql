@@ -78,3 +78,5 @@ pub struct TaskGraph {
     pub setup_tasks: Vec<SetupTask>,
     pub program_tasks: Vec<ProgramTask>,
 }
+
+pub struct TaskPlanner {}

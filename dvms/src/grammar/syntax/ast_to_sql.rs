@@ -1,9 +1,9 @@
 use crate::grammar::SetStatement;
 
-use super::ast::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::dson::*;
+use super::program::*;
 use super::script_writer::*;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
@@ -76,7 +76,7 @@ impl<'a> AsScript for Limit<'a> {
 impl<'a> AsScript for DsonKey<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
-            DsonKey::Known(k) => w.str(self.as_str()),
+            DsonKey::Known(_k) => w.str(self.as_str()),
             DsonKey::Unknown(k) => w.single_quotes(w.str(k)),
         }
     }
