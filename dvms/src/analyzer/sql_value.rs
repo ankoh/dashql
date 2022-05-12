@@ -78,4 +78,15 @@ mod test {
         assert_eq!(vs, r#"{"type":"Int64","data":{"I64":0}}"#);
         Ok(())
     }
+
+    #[test]
+    pub fn test_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let value = SQLValue {
+            logical_type: LogicalType::Varchar,
+            physical_data: PhysicalData::String("foo".to_string()),
+        };
+        let vs = serde_json::to_string(&value)?;
+        assert_eq!(vs, r#"{"type":"Varchar","data":{"String":"foo"}}"#);
+        Ok(())
+    }
 }
