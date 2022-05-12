@@ -63,13 +63,13 @@ impl<'a> AsScript for OrderSpecification<'a> {
 
 impl<'a> AsScript for Limit<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 2);
-        a.push(w.keyword("limit").pad_right());
-        a.push(match self {
-            Limit::ALL => w.keyword("all"),
-            Limit::Expression(e) => e.as_script(w),
-        });
-        w.float(a.finish())
+        w.float(w.alloc_slice(&[
+            w.keyword("limit").pad_right(),
+            match self {
+                Limit::ALL => w.keyword("all"),
+                Limit::Expression(e) => e.as_script(w),
+            },
+        ]))
     }
 }
 

@@ -56,6 +56,9 @@ impl<'arena> ScriptWriter<'arena> {
     pub fn with_arena(arena: &'arena bumpalo::Bump) -> Self {
         Self { arena }
     }
+    pub fn alloc_slice(&self, elems: &[ScriptText<'arena>]) -> &'arena [ScriptText<'arena>] {
+        self.arena.alloc_slice_clone(elems)
+    }
 }
 
 impl<'arena> ScriptWriter<'arena> {
