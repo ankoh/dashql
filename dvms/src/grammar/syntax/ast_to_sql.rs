@@ -86,24 +86,28 @@ impl<'a> AsScript for DsonValue<'a> {
     fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             DsonValue::Object(fields) => {
-                let mut a = ScriptTextArray::with_capacity(w, 4 * fields.len());
+                let mut entries = ScriptTextArray::with_capacity(w, fields.len());
                 for (i, field) in fields.iter().enumerate() {
+                    let mut kv = ScriptTextArray::with_capacity(w, 4);
                     if i > 0 {
-                        a.push(w.str_const(",").pad_right());
+                        kv.push(w.str_const(",").pad_right());
                     }
-                    a.push(field.key.as_script(w));
-                    a.push(w.str_const("=").pad_left());
-                    a.push(field.value.as_script(w).pad_left());
+                    kv.push(field.key.as_script(w).breakpoint_before());
+                    kv.push(w.str_const("=").pad_left());
+                    kv.push(field.value.as_script(w).pad_left());
+                    entries.push(w.float(kv.finish()))
                 }
-                w.round_brackets(a.finish())
+                w.round_brackets(entries.finish())
             }
             DsonValue::Array(vs) => {
-                let mut a = ScriptTextArray::with_capacity(w, 2 * vs.len());
+                let mut a = ScriptTextArray::with_capacity(w, vs.len());
                 for (i, v) in vs.iter().enumerate() {
+                    let mut elem = ScriptTextArray::with_capacity(w, 4);
                     if i > 0 {
-                        a.push(w.str_const(",").pad_right());
+                        elem.push(w.str_const(",").pad_right());
                     }
-                    a.push(v.as_script(w));
+                    elem.push(v.as_script(w).breakpoint_before());
+                    a.push(w.float(elem.finish()))
                 }
                 w.square_brackets(a.finish())
             }
@@ -596,6 +600,17 @@ mod test {
         test_pipe("select * from A order by a limit 10")?;
         test_pipe("select * from A order by a limit 10 offset 10")?;
         test_pipe("select * from A order by a limit all")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_linebreaks() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(
+            &r#"viz a using table (
+    position = (row = 0, column = 1, width = 10, height = 4),
+    encoding = (x = ('foo' = 'bar'), y = ('foo' = 'bar2'))
+)"#,
+        )?;
         Ok(())
     }
 }
