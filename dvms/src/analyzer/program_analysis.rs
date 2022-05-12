@@ -48,7 +48,7 @@ pub struct Card<'arena> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct AnalyzedProgram<'arena> {
+pub struct ProgramAnalysis<'arena> {
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<LinterMessage>,
     pub statement_liveness: Vec<bool>,
