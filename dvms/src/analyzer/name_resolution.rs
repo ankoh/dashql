@@ -29,7 +29,7 @@ fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirecti
 }
 
 fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -> usize {
-    let nodes = ctx.program_flat.nodes().unwrap_or_default();
+    let nodes = ctx.program_proto.nodes().unwrap_or_default();
     let mut cursor = node_id;
     while (nodes[cursor].parent() as usize) != cursor {
         cursor = nodes[cursor].parent() as usize;
@@ -44,7 +44,7 @@ fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize
 }
 
 pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
-    let prog = ctx.program_translated.clone();
+    let prog = ctx.program.clone();
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
         let name = match stmt {
@@ -64,9 +64,9 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
 }
 
 pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
-    for (node_id, node_flat) in ctx.program_flat.nodes().unwrap_or_default().iter().enumerate() {
-        let node_translated = &ctx.program_translated.nodes[node_id];
-        match node_flat.node_type() {
+    for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
+        let node_translated = &ctx.program.nodes[node_id];
+        match node_proto.node_type() {
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
                     let target = normalize_name(ctx, name);

@@ -14,8 +14,8 @@ pub struct ProgramAnalysisContext<'a> {
     // AST buffer
     pub arena: &'a bumpalo::Bump,
     pub script_text: &'a str,
-    pub program_flat: sx::Program<'a>,
-    pub program_translated: Rc<Program<'a>>,
+    pub program_proto: sx::Program<'a>,
+    pub program: Rc<Program<'a>>,
 
     // Analysis output
     pub statement_names: Vec<Option<NamePath<'a>>>,
@@ -35,15 +35,15 @@ impl<'a> ProgramAnalysisContext<'a> {
         settings: Rc<ProgramAnalysisSettings>,
         arena: &'a bumpalo::Bump,
         text: &'a str,
-        program_flat: sx::Program<'a>,
+        program_proto: sx::Program<'a>,
         program_translated: Rc<Program<'a>>,
     ) -> Self {
         let mut ctx = ProgramAnalysisContext {
             settings,
             arena,
             script_text: text,
-            program_flat,
-            program_translated,
+            program_proto: program_proto,
+            program: program_translated,
             statement_names: Vec::new(),
             statement_by_name: HashMap::default(),
             statement_by_root: HashMap::default(),
@@ -53,11 +53,11 @@ impl<'a> ProgramAnalysisContext<'a> {
             cached_subtree_sizes: Vec::new(),
             cached_default_schema: None,
         };
-        let stmts_flat = program_flat.statements().unwrap_or_default();
-        ctx.statement_names.resize(stmts_flat.len(), None);
-        ctx.statement_by_name.reserve(stmts_flat.len());
-        ctx.statement_by_root.reserve(stmts_flat.len());
-        for (stmt_id, stmt) in stmts_flat.iter().enumerate() {
+        let stmts_proto = program_proto.statements().unwrap_or_default();
+        ctx.statement_names.resize(stmts_proto.len(), None);
+        ctx.statement_by_name.reserve(stmts_proto.len());
+        ctx.statement_by_root.reserve(stmts_proto.len());
+        for (stmt_id, stmt) in stmts_proto.iter().enumerate() {
             ctx.statement_by_root.insert(stmt.root_node() as usize, stmt_id);
         }
         ctx

@@ -1,10 +1,16 @@
+use super::analysis_settings::ProgramAnalysisSettings;
 use super::sql_value::SQLValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::error::Error;
+use std::rc::Rc;
 
+use crate::analyzer::analysis_context::ProgramAnalysisContext;
+use crate::analyzer::liveness::determine_statement_liveness;
+use crate::analyzer::name_resolution::{discover_statement_dependencies, normalize_statement_names};
 use crate::grammar::syntax::dson::DsonValue;
 use crate::grammar::syntax::enums_serde::*;
+use crate::grammar::Program;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NodeLinterMessage {
@@ -64,10 +70,17 @@ pub struct ProgramAnalysis<'arena> {
 }
 
 pub fn analyze_program<'arena>(
+    settings: Rc<ProgramAnalysisSettings>,
     arena: &'arena bumpalo::Bump,
     text: &'arena str,
-    program: sx::Program<'arena>,
+    program_proto: sx::Program<'arena>,
+    program: Rc<Program<'arena>>,
     input: &[InputValue],
 ) -> Result<ProgramAnalysis<'arena>, Box<dyn Error + Send + Sync>> {
+    let mut ctx = ProgramAnalysisContext::new(settings, arena, text, program_proto, program);
+    normalize_statement_names(&mut ctx);
+    discover_statement_dependencies(&mut ctx);
+    determine_statement_liveness(&mut ctx);
+
     todo!();
 }

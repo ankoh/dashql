@@ -3,14 +3,13 @@ use crate::grammar::Statement;
 use super::analysis_context::ProgramAnalysisContext;
 use std::collections::HashSet;
 
-pub fn identify_dead_statements<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
-    ctx.statement_liveness
-        .resize(ctx.program_translated.statements.len(), false);
+pub fn determine_statement_liveness<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
+    ctx.statement_liveness.resize(ctx.program.statements.len(), false);
 
     // Prepare DFSs starting from viz and input statements
     let mut pending = Vec::new();
     let mut visited = HashSet::new();
-    for (stmt_id, stmt) in ctx.program_translated.statements.iter().enumerate() {
+    for (stmt_id, stmt) in ctx.program.statements.iter().enumerate() {
         match stmt {
             Statement::Viz(_) | Statement::Input(_) => pending.push(stmt_id),
             _ => {}
@@ -49,7 +48,7 @@ mod test {
         let mut ctx = ProgramAnalysisContext::new(settings.clone(), &arena, script, ast, prog);
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
-        identify_dead_statements(&mut ctx);
+        determine_statement_liveness(&mut ctx);
         assert_eq!(&ctx.statement_liveness, expected);
         Ok(())
     }
