@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use super::program_analysis::ProgramAnalysis;
+
 #[derive(Debug, Clone, Serialize)]
 pub enum TaskClass {
     SetupTask,
@@ -79,4 +81,8 @@ pub struct TaskGraph {
     pub program_tasks: Vec<ProgramTask>,
 }
 
-pub struct TaskPlanner {}
+fn translate_statements<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
+
+fn identify_applicable_tasks<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
+
+fn migrate_task_graph<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
