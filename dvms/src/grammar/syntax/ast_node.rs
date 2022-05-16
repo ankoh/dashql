@@ -3,7 +3,7 @@ use super::ast_nodes_sql::*;
 use super::dson::*;
 use dashql_proto::syntax as sx;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub enum ASTNode<'a> {
     Null,
 

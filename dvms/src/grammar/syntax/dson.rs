@@ -2,7 +2,7 @@ use super::ast_nodes_sql::*;
 use dashql_proto::syntax as sx;
 use serde::{ser::SerializeMap, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq)]
 pub enum DsonKey<'arena> {
     Known(sx::AttributeKey),
     Unknown(&'arena str),
@@ -298,13 +298,13 @@ impl<'arena> DsonKey<'arena> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Hash, PartialEq, Default)]
 pub struct DsonField<'arena> {
     pub key: DsonKey<'arena>,
     pub value: DsonValue<'arena>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq)]
 pub enum DsonValue<'arena> {
     Object(&'arena [DsonField<'arena>]),
     Array(&'arena [DsonValue<'arena>]),
