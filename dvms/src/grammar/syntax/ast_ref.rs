@@ -29,6 +29,18 @@ where
     }
 }
 
+impl<V> From<V> for ASTRef<V>
+where
+    V: Debug + Serialize + Clone + PartialEq + Hash,
+{
+    fn from(v: V) -> Self {
+        Self {
+            node_id: None,
+            inner: v,
+        }
+    }
+}
+
 impl<V> AsRef<V> for ASTRef<V>
 where
     V: Debug + Serialize + Clone + PartialEq + Hash,
