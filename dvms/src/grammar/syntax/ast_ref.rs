@@ -1,7 +1,3 @@
-use super::ast_nodes_dashql::*;
-use super::ast_nodes_sql::*;
-use super::dson::*;
-use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -10,8 +6,27 @@ pub struct ASTRef<V>
 where
     V: Debug + Serialize + Clone + PartialEq + Hash,
 {
-    pub(super) node_id: usize,
+    pub(super) node_id: Option<usize>,
     pub inner: V,
+}
+
+impl<V> ASTRef<V>
+where
+    V: Debug + Serialize + Clone + PartialEq + Hash,
+{
+    pub fn with_node_id(mut self, node_id: usize) -> Self {
+        self.node_id = Some(node_id);
+        self
+    }
+    pub fn get_node_id(&self) -> Option<usize> {
+        self.node_id
+    }
+    pub fn get_inner(&self) -> &V {
+        &self.inner
+    }
+    pub fn get_inner_mut(&mut self) -> &mut V {
+        &mut self.inner
+    }
 }
 
 impl<V> AsRef<V> for ASTRef<V>
