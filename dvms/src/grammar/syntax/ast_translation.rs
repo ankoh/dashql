@@ -129,7 +129,7 @@ pub fn deserialize_ast<'a>(
         // Translate the node
         let translated = match node_type {
             sx::NodeType::NONE => ASTNode::Null,
-            sx::NodeType::BOOL => ASTNode::Boolean(node.children_begin_or_value() != 0),
+            sx::NodeType::BOOL => ASTNode::Boolean((node.children_begin_or_value() != 0).into()),
             sx::NodeType::UI32 => ASTNode::UInt32(node.children_begin_or_value()),
             sx::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(node.children_begin_or_value()),
             sx::NodeType::STRING_REF => ASTNode::StringRef(
@@ -210,7 +210,7 @@ pub fn deserialize_ast<'a>(
                 let mut length = None;
                 read_attributes! {
                     (Key::SQL_BIT_TYPE_LENGTH, e) => length = Some(read_expr!(e)),
-                    (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b)) => varying = *b
+                    (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b)) => varying = b.get()
                 }
                 ASTNode::BitTypeSpec(BitType { varying, length })
             }
@@ -258,7 +258,7 @@ pub fn deserialize_ast<'a>(
                 let mut alias = None;
                 let mut star = false;
                 read_attributes! {
-                    (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(true)) => star = true,
+                    (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(b)) => star = b.get(),
                     (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s)) => alias = Some(s.clone())
                 }
@@ -288,7 +288,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_EXPRESSION_ARG0, n) => args[0] = read_expr!(n),
                     (Key::SQL_EXPRESSION_ARG1, n) => args[1] = read_expr!(n),
                     (Key::SQL_EXPRESSION_ARG2, n) => args[2] = read_expr!(n),
-                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(p)) => postfix = p.clone(),
+                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v)) => postfix = v.get(),
                     (Key::SQL_EXPRESSION_OPERATOR, n) => operator_name = read_expression_operator(arena, n)
                 }
                 ASTNode::Expression(Expression::Nary(arena.alloc(NaryExpression {
@@ -332,7 +332,7 @@ pub fn deserialize_ast<'a>(
                 let mut sample = None;
                 read_attributes! {
                     (Key::SQL_TABLEREF_NAME, ASTNode::Array(n)) => name = Some(read_name(arena, n)),
-                    (Key::SQL_TABLEREF_INHERIT, ASTNode::Boolean(b)) => inherit = *b,
+                    (Key::SQL_TABLEREF_INHERIT, ASTNode::Boolean(v)) => inherit = v.get(),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::SelectStatement(s)) => select = Some(s),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t)) => joined = Some(t),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t)) => func = Some(t),
@@ -344,7 +344,7 @@ pub fn deserialize_ast<'a>(
                             column_definitions: &[],
                         }))
                     },
-                    (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(b)) => lateral = *b,
+                    (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(v)) => lateral = v.get(),
                     (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(s)
                 }
                 ASTNode::TableRef(if let Some(table) = select {
@@ -519,7 +519,7 @@ pub fn deserialize_ast<'a>(
                 let mut rows_from: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(f),
-                    (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(b)) => ordinality = *b,
+                    (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(v)) => ordinality = v.get(),
                     (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => rows_from = unpack_nodes!(nodes, RowsFromItem)
                 }
                 ASTNode::FunctionTable(FunctionTable {
@@ -666,8 +666,8 @@ pub fn deserialize_ast<'a>(
                 let mut over = None;
                 read_attributes! {
                     (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg)) => variadic = Some(arg),
-                    (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b)) => all = *b,
-                    (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b)) => distinct = *b,
+                    (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b)) => all = b.get(),
+                    (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b)) => distinct = b.get(),
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
                     (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f)) => func_name = FunctionName::Known(f.clone()),
                     (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => arg_ordering = unpack_nodes!(nodes, OrderSpecification),
@@ -763,7 +763,7 @@ pub fn deserialize_ast<'a>(
                 let mut with_timezone = false;
                 read_attributes! {
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
-                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
+                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz.get()
                 }
                 ASTNode::TimestampTypeSpec(TimestampType {
                     precision,
@@ -775,7 +775,7 @@ pub fn deserialize_ast<'a>(
                 let mut with_timezone = false;
                 read_attributes! {
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
-                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
+                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = tz.get()
                 }
                 ASTNode::TimeTypeSpec(TimeType {
                     precision,
@@ -819,7 +819,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeSpec(t)) => base = Some(SQLBaseType::Character(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeSpec(t)) => base = Some(SQLBaseType::Timestamp(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalSpecification(t)) => base = Some(SQLBaseType::Interval(t.clone())),
-                    (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = *b,
+                    (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = b.get(),
                     (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(arena, n)
                 }
                 ASTNode::SQLType(SQLType {
@@ -921,7 +921,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n)) => constraint_name = Some(n.clone()),
                     (Key::SQL_COLUMN_CONSTRAINT_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => arguments = unpack_nodes!(nodes, ColumnConstraintArgument),
-                    (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
+                    (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = b.get()
                 }
                 ASTNode::ColumnConstraintInfo(ColumnConstraint {
                     constraint_name,
@@ -1040,8 +1040,8 @@ pub fn deserialize_ast<'a>(
                 read_attributes! {
                     (Key::SQL_CREATE_AS_NAME, ASTNode::Array(n)) => name = read_name(arena, n),
                     (Key::SQL_CREATE_AS_STATEMENT, ASTNode::SelectStatement(s)) => select = Some(s),
-                    (Key::SQL_CREATE_AS_WITH_DATA, ASTNode::Boolean(b)) => with_data = *b,
-                    (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b)) => if_not_exists = *b,
+                    (Key::SQL_CREATE_AS_WITH_DATA, ASTNode::Boolean(b)) => with_data = b.get(),
+                    (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b)) => if_not_exists = b.get(),
                     (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
                     (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
                     (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_strings!(nodes, StringRef)
@@ -1138,7 +1138,7 @@ pub fn deserialize_ast<'a>(
                 let mut value = None;
                 let mut of_types: &[_] = &[];
                 read_attributes! {
-                    (Key::SQL_TYPETEST_NEGATE, ASTNode::Boolean(neg)) => negate = *neg,
+                    (Key::SQL_TYPETEST_NEGATE, ASTNode::Boolean(neg)) => negate = neg.get(),
                     (Key::SQL_TYPETEST_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_TYPETEST_TYPES, ASTNode::Array(nodes)) => of_types = unpack_nodes!(nodes, SQLType)
                 }
@@ -1176,7 +1176,7 @@ pub fn deserialize_ast<'a>(
 
                 read_attributes! {
                     (Key::SQL_SELECT_WITH_CTES, ASTNode::Array(nodes)) => with_ctes = unpack_nodes!(nodes, CommonTableExpression),
-                    (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b)) => with_recursive = *b,
+                    (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b)) => with_recursive = b.get(),
 
                     (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t)) => table = Some(t),
                     (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples)) => {
@@ -1204,7 +1204,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_COMBINE_MODIFIER, ASTNode::CombineModifier(m)) => combine_modifier = *m,
                     (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes)) => combine_input = unpack_nodes!(nodes, SelectStatement),
 
-                    (Key::SQL_SELECT_ALL, ASTNode::Boolean(b)) => all = *b,
+                    (Key::SQL_SELECT_ALL, ASTNode::Boolean(b)) => all = b.get(),
                     (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n)) => distinct = Some(read_exprs(arena, n)),
                     (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
                     (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
@@ -1216,7 +1216,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SELECT_WINDOWS, ASTNode::Array(nodes)) => windows = unpack_nodes!(nodes, WindowDefinition),
 
                     (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
-                    (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(true)) => limit = Some(Limit::ALL),
+                    (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(v)) => if v.get() { limit = Some(Limit::ALL) },
                     (Key::SQL_SELECT_LIMIT, n) => limit = Some(Limit::Expression(read_expr!(n))),
                     (Key::SQL_SELECT_OFFSET, n) => offset = Some(read_expr!(n)),
                     (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = unpack_nodes!(nodes, RowLocking)
@@ -1308,7 +1308,7 @@ pub fn deserialize_ast<'a>(
 fn read_expr<'a>(arena: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> Expression<'a> {
     match node {
         ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
-        ASTNode::Boolean(b) => Expression::Boolean(*b),
+        ASTNode::Boolean(b) => Expression::Boolean(b.get()),
         ASTNode::CaseExpression(ref c) => Expression::Case(c),
         ASTNode::ColumnRef(ref s) => Expression::ColumnRef(s.clone()),
         ASTNode::ConstCastExpression(ref c) => Expression::ConstCast(c),

@@ -1,3 +1,4 @@
+use super::ast_cell::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::dson::*;
@@ -7,7 +8,7 @@ use dashql_proto::syntax as sx;
 pub enum ASTNode<'a> {
     Null,
 
-    Boolean(bool),
+    Boolean(ASTCell<bool>),
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'a str),

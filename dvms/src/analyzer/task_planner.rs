@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::error::Error;
 
 use super::program_analysis::ProgramAnalysis;
 
@@ -81,8 +82,16 @@ pub struct TaskGraph {
     pub program_tasks: Vec<ProgramTask>,
 }
 
-fn translate_statements<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
+pub struct TaskPlannerContext {}
 
-fn identify_applicable_tasks<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
+fn translate_statements<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    Ok(())
+}
 
-fn migrate_task_graph<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {}
+fn identify_applicable_tasks<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    Ok(())
+}
+
+fn migrate_task_graph<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    Ok(())
+}
