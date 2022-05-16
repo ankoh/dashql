@@ -1,4 +1,4 @@
-use super::analysis_context::ProgramAnalysisContext;
+use super::program_analysis::ProgramAnalysis;
 use super::program_text::*;
 use dashql_proto::syntax as sx;
 use std::collections::BinaryHeap;
@@ -49,7 +49,7 @@ pub struct DiffOp {
     pub target: Option<usize>,
 }
 
-fn compute_tree_size<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -> usize {
+fn compute_tree_size<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> usize {
     // Init tree sizes
     let nodes = ctx.program_proto.nodes().unwrap_or_default();
     if ctx.cached_subtree_sizes.len() != nodes.len() {
@@ -113,8 +113,8 @@ fn compute_tree_size<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -
 }
 
 fn estimate_similarity(
-    source: (&ProgramAnalysisContext<'_>, usize),
-    target: (&ProgramAnalysisContext<'_>, usize),
+    source: (&ProgramAnalysis<'_>, usize),
+    target: (&ProgramAnalysis<'_>, usize),
 ) -> SimilarityEstimate {
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
@@ -151,8 +151,8 @@ fn estimate_similarity(
 }
 
 fn compute_similarity(
-    source: (&mut ProgramAnalysisContext<'_>, usize),
-    target: (&mut ProgramAnalysisContext<'_>, usize),
+    source: (&mut ProgramAnalysis<'_>, usize),
+    target: (&mut ProgramAnalysis<'_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
@@ -301,10 +301,7 @@ fn compute_similarity(
     sim
 }
 
-fn check_deep_equality(
-    source: (&mut ProgramAnalysisContext<'_>, usize),
-    target: (&mut ProgramAnalysisContext<'_>, usize),
-) -> bool {
+fn check_deep_equality(source: (&mut ProgramAnalysis<'_>, usize), target: (&mut ProgramAnalysis<'_>, usize)) -> bool {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
@@ -428,8 +425,8 @@ fn check_deep_equality(
 
 // Find unique statement pair in two lists of statement ids
 fn map_statements(
-    source: &mut ProgramAnalysisContext<'_>,
-    target: &mut ProgramAnalysisContext<'_>,
+    source: &mut ProgramAnalysis<'_>,
+    target: &mut ProgramAnalysis<'_>,
     unique_pairs: &mut StatementMappings,
     equal_pairs: &mut StatementMappings,
 ) {
@@ -572,7 +569,7 @@ impl std::cmp::Ord for SimilarityScoreEntry {
     }
 }
 
-pub fn compute_diff(source: &mut ProgramAnalysisContext<'_>, target: &mut ProgramAnalysisContext<'_>) -> Vec<DiffOp> {
+pub fn compute_diff(source: &mut ProgramAnalysis<'_>, target: &mut ProgramAnalysis<'_>) -> Vec<DiffOp> {
     // Unpack arguments
     let source_stmts = source.program_proto.statements().unwrap_or_default();
     let target_stmts = target.program_proto.statements().unwrap_or_default();
@@ -739,8 +736,8 @@ mod test {
         let ast1 = grammar::parse(&arena, script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0)?);
         let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1)?);
-        let mut ctx0 = ProgramAnalysisContext::new(settings.clone(), &arena, script0, ast0, prog0);
-        let mut ctx1 = ProgramAnalysisContext::new(settings, &arena, script1, ast1, prog1);
+        let mut ctx0 = ProgramAnalysis::new(settings.clone(), &arena, script0, ast0, prog0);
+        let mut ctx1 = ProgramAnalysis::new(settings, &arena, script1, ast1, prog1);
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

@@ -1,8 +1,8 @@
-use super::analysis_context::*;
+use super::program_analysis::*;
 use crate::grammar::{ASTNode, Indirection, Statement, TableRef};
 use dashql_proto::syntax as sx;
 
-fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirection<'a>]) -> &'a [Indirection<'a>] {
+fn normalize_name<'a>(ctx: &mut ProgramAnalysis<'a>, name: &'a [Indirection<'a>]) -> &'a [Indirection<'a>] {
     let mut path: [&'a str; 3] = [""; 3];
     let mut path_length = 0;
     for (i, elem) in name.iter().enumerate().take(3) {
@@ -28,7 +28,7 @@ fn normalize_name<'a>(ctx: &mut ProgramAnalysisContext<'a>, name: &'a [Indirecti
     }
 }
 
-fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize) -> usize {
+fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> usize {
     let nodes = ctx.program_proto.nodes().unwrap_or_default();
     let mut cursor = node_id;
     while (nodes[cursor].parent() as usize) != cursor {
@@ -43,7 +43,7 @@ fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysisContext<'a>, node_id: usize
     }
 }
 
-pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
+pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysis<'a>) {
     let prog = ctx.program.clone();
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
@@ -63,7 +63,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
     }
 }
 
-pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysisContext<'a>) {
+pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysis<'a>) {
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = &ctx.program.nodes[node_id];
         match node_proto.node_type() {
@@ -127,7 +127,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramAnalysisContext::new(settings.clone(), &arena, script, ast, prog);
+        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog);
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx

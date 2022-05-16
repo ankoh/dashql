@@ -1,16 +1,99 @@
+use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
 use super::sql_value::SQLValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
+use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
 
-use crate::analyzer::analysis_context::ProgramAnalysisContext;
 use crate::analyzer::liveness::determine_statement_liveness;
 use crate::analyzer::name_resolution::{discover_statement_dependencies, normalize_statement_names};
 use crate::grammar::syntax::dson::DsonValue;
 use crate::grammar::syntax::enums_serde::*;
 use crate::grammar::Program;
+
+pub type StatementID = usize;
+pub type NodeID = usize;
+
+pub struct ProgramAnalysis<'a> {
+    pub settings: Rc<ProgramAnalysisSettings>,
+
+    // AST buffer
+    pub arena: &'a bumpalo::Bump,
+    pub script_text: &'a str,
+    pub program_proto: sx::Program<'a>,
+    pub program: Rc<Program<'a>>,
+
+    // Analysis output
+    pub node_error_messages: Vec<NodeError>,
+    pub node_linter_messages: Vec<NodeLinterMessage>,
+    pub statement_names: Vec<Option<NamePath<'a>>>,
+    pub statement_by_name: HashMap<NamePath<'a>, usize>,
+    pub statement_by_root: HashMap<usize, usize>,
+    pub statement_required_for: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
+    pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
+    pub statement_liveness: Vec<bool>,
+    pub cards: Vec<Card<'a>>,
+
+    // Cached properties during analysis
+    pub(super) cached_subtree_sizes: Vec<usize>,
+    pub(super) cached_default_schema: Option<&'a str>,
+}
+
+impl<'a> ProgramAnalysis<'a> {
+    pub fn new(
+        settings: Rc<ProgramAnalysisSettings>,
+        arena: &'a bumpalo::Bump,
+        text: &'a str,
+        program_proto: sx::Program<'a>,
+        program_translated: Rc<Program<'a>>,
+    ) -> Self {
+        let mut ctx = ProgramAnalysis {
+            settings,
+            arena,
+            script_text: text,
+            program_proto: program_proto,
+            program: program_translated,
+            node_error_messages: Vec::new(),
+            node_linter_messages: Vec::new(),
+            statement_names: Vec::new(),
+            statement_by_name: HashMap::default(),
+            statement_by_root: HashMap::default(),
+            statement_required_for: BTreeMap::new(),
+            statement_depends_on: BTreeMap::new(),
+            statement_liveness: Vec::new(),
+            cards: Vec::new(),
+            cached_subtree_sizes: Vec::new(),
+            cached_default_schema: None,
+        };
+        let stmts_proto = program_proto.statements().unwrap_or_default();
+        ctx.statement_names.resize(stmts_proto.len(), None);
+        ctx.statement_by_name.reserve(stmts_proto.len());
+        ctx.statement_by_root.reserve(stmts_proto.len());
+        for (stmt_id, stmt) in stmts_proto.iter().enumerate() {
+            ctx.statement_by_root.insert(stmt.root_node() as usize, stmt_id);
+        }
+        ctx
+    }
+}
+
+pub fn analyze_program<'arena>(
+    settings: Rc<ProgramAnalysisSettings>,
+    arena: &'arena bumpalo::Bump,
+    text: &'arena str,
+    program_proto: sx::Program<'arena>,
+    program: Rc<Program<'arena>>,
+    input: &[InputValue],
+) -> Result<ProgramAnalysis<'arena>, Box<dyn Error + Send + Sync>> {
+    let mut ctx = ProgramAnalysis::new(settings, arena, text, program_proto, program);
+    normalize_statement_names(&mut ctx);
+    discover_statement_dependencies(&mut ctx);
+    determine_statement_liveness(&mut ctx);
+
+    todo!();
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NodeLinterMessage {
@@ -51,36 +134,12 @@ pub struct CardPosition {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Card<'arena> {
+pub struct Card<'a> {
     pub card_type: CardType,
     pub card_title: String,
     pub card_position: CardPosition,
     pub statement_id: u32,
     #[serde(with = "serde_input_component_type")]
     pub input_component: sx::InputComponentType,
-    pub input_extra: Option<DsonValue<'arena>>,
-}
-
-#[derive(Default, Debug, Clone, Serialize)]
-pub struct ProgramAnalysis<'arena> {
-    pub node_error_messages: Vec<NodeError>,
-    pub node_linter_messages: Vec<NodeLinterMessage>,
-    pub statement_liveness: Vec<bool>,
-    pub cards: Vec<Card<'arena>>,
-}
-
-pub fn analyze_program<'arena>(
-    settings: Rc<ProgramAnalysisSettings>,
-    arena: &'arena bumpalo::Bump,
-    text: &'arena str,
-    program_proto: sx::Program<'arena>,
-    program: Rc<Program<'arena>>,
-    input: &[InputValue],
-) -> Result<ProgramAnalysis<'arena>, Box<dyn Error + Send + Sync>> {
-    let mut ctx = ProgramAnalysisContext::new(settings, arena, text, program_proto, program);
-    normalize_statement_names(&mut ctx);
-    discover_statement_dependencies(&mut ctx);
-    determine_statement_liveness(&mut ctx);
-
-    todo!();
+    pub input_extra: Option<DsonValue<'a>>,
 }
