@@ -1,11 +1,12 @@
+use super::ast_cell::*;
 use super::enums_serde::*;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionExpression<'a> {
-    pub value: Expression<'a>,
-    pub path: NamePath<'a>,
+    pub value: ASTCell<Expression<'a>>,
+    pub path: ASTCell<NamePath<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

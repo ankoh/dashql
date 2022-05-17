@@ -1,3 +1,4 @@
+use super::ast_cell::*;
 use super::ast_node::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
@@ -170,11 +171,11 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
 
             sx::NodeType::OBJECT_SQL_INDIRECTION => {
-                let mut value = Expression::Null;
-                let mut path = NamePath::default();
+                let mut value = ASTCell::with_value(Expression::Null);
+                let mut path = ASTCell::with_value(NamePath::default());
                 read_attributes! {
-                    (Key::SQL_INDIRECTION_VALUE, n, _ci) => value = read_expr!(n),
-                    (Key::SQL_INDIRECTION_PATH, ASTNode::Array(nodes), _ci) => path = read_name(arena, nodes)
+                    (Key::SQL_INDIRECTION_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
+                    (Key::SQL_INDIRECTION_PATH, ASTNode::Array(nodes), ci) => path = ASTCell::with_node(read_name(arena, nodes), ci)
                 }
                 ASTNode::IndirectionExpression(arena.alloc(IndirectionExpression { value, path }))
             }

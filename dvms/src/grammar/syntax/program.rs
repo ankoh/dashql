@@ -63,6 +63,6 @@ impl ProgramContainer {
         &self.text
     }
     pub fn get_program<'buffer>(&'buffer self) -> &'buffer Program<'buffer> {
-        &self.program
+        unsafe { std::mem::transmute::<&'buffer Program<'static>, &'buffer Program<'buffer>>(&self.program) }
     }
 }
