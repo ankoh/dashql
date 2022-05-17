@@ -34,18 +34,18 @@ pub enum ArrayBound<'a> {
     Index(&'a str),
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum ExpressionOperatorName<'a> {
     #[serde(with = "serde_expression_operator")]
     Known(sx::ExpressionOperator),
-    Qualified(&'a [&'a str]),
+    Qualified(&'a [ASTCell<&'a str>]),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NaryExpression<'a> {
-    pub operator: ExpressionOperatorName<'a>,
+    pub operator: ASTCell<ExpressionOperatorName<'a>>,
     pub args: &'a [ASTCell<Expression<'a>>],
-    pub postfix: bool,
+    pub postfix: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

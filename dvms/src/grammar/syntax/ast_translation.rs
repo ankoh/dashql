@@ -283,14 +283,15 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let args = arena.alloc_slice_fill_default(3);
-                let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
-                let mut postfix = false;
+                let mut operator_name =
+                    ASTCell::with_value(ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS));
+                let mut postfix = ASTCell::with_value(false);
                 read_attributes! {
                     (Key::SQL_EXPRESSION_ARG0, n, ci) => args[0] = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_EXPRESSION_ARG1, n, ci) => args[1] = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_EXPRESSION_ARG2, n, ci) => args[2] = ASTCell::with_node(read_expr!(n), ci),
-                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), _ci) => postfix = *v,
-                    (Key::SQL_EXPRESSION_OPERATOR, n, _ci) => operator_name = read_expression_operator(arena, n)
+                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), ci) => postfix = ASTCell::with_value(*v),
+                    (Key::SQL_EXPRESSION_OPERATOR, n, ci) => operator_name = ASTCell::with_node(read_expression_operator(arena, n), ci)
                 }
                 ASTNode::Expression(Expression::Nary(arena.alloc(NaryExpression {
                     operator: operator_name,
@@ -1365,17 +1366,20 @@ fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>], ni: usize) -> 
 fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) -> ExpressionOperatorName<'a> {
     match &node {
         ASTNode::ExpressionOperator(op) => ExpressionOperatorName::Known(*op),
-        ASTNode::Array(elems, _ni) => {
+        ASTNode::Array(elems, ni) => {
             let path = alloc.alloc_slice_fill_default(elems.len());
             for (i, n) in elems.iter().enumerate() {
-                path[i] = match n {
-                    ASTNode::StringRef(s) => s,
-                    ASTNode::ExpressionOperator(op) => op.variant_name().unwrap_or_default(),
-                    _ => {
-                        log::warn!("invalid expression operator name: {:?}", n);
-                        "?"
-                    }
-                }
+                path[i] = ASTCell::with_node(
+                    match n {
+                        ASTNode::StringRef(s) => *s,
+                        ASTNode::ExpressionOperator(op) => op.variant_name().unwrap_or_default(),
+                        _ => {
+                            log::warn!("invalid expression operator name: {:?}", n);
+                            "?"
+                        }
+                    },
+                    ni + i,
+                )
             }
             ExpressionOperatorName::Qualified(path)
         }

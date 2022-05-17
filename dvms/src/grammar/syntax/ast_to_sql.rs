@@ -469,7 +469,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
             }
             Expression::FunctionCall(_) => todo!(),
             Expression::Indirection(_) => todo!(),
-            Expression::Nary(nary) => match nary.operator {
+            Expression::Nary(nary) => match nary.operator.get() {
                 ExpressionOperatorName::Known(op) => match op {
                     ExpressionOperator::EQUAL => {
                         let mut a = ScriptTextArray::with_capacity(w, 3);
