@@ -19,11 +19,11 @@ pub struct IndirectionBounds<'a> {
     pub upper_bound: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum Indirection<'a> {
     Name(&'a str),
-    Index(IndirectionIndex<'a>),
-    Bounds(IndirectionBounds<'a>),
+    Index(&'a IndirectionIndex<'a>),
+    Bounds(&'a IndirectionBounds<'a>),
 }
 pub type NamePath<'a> = &'a [Indirection<'a>];
 
@@ -67,7 +67,7 @@ pub struct ConstFunctionCastExpression<'a> {
     pub func_arg_ordering: &'a [&'a OrderSpecification<'a>],
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ConstCastExpression<'a> {
     Type(&'a ConstTypeCastExpression<'a>),
     Interval(&'a ConstIntervalCastExpression<'a>),
@@ -77,7 +77,7 @@ pub enum ConstCastExpression<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TypeCastExpression<'a> {
     pub value: Expression<'a>,
-    pub sql_type: SQLType<'a>,
+    pub sql_type: &'a SQLType<'a>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -133,7 +133,7 @@ pub enum Expression<'a> {
     Array(&'a [Expression<'a>]),
     Case(&'a CaseExpression<'a>),
     ColumnRef(NamePath<'a>),
-    ConstCast(&'a ConstCastExpression<'a>),
+    ConstCast(ConstCastExpression<'a>),
     Exists(&'a ExistsExpression<'a>),
     FunctionCall(&'a FunctionExpression<'a>),
     Indirection(&'a IndirectionExpression<'a>),
@@ -155,7 +155,7 @@ pub struct OrderSpecification<'a> {
     pub null_rule: Option<sx::OrderNullRule>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum GroupByItem<'a> {
     Empty,
     Expression(Expression<'a>),
@@ -228,13 +228,13 @@ pub struct IntervalType<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SQLBaseType<'a> {
     Invalid,
-    Generic(GenericType<'a>),
-    Numeric(NumericType<'a>),
-    Bit(BitType<'a>),
-    Character(CharacterType<'a>),
-    Time(TimeType<'a>),
-    Timestamp(TimestampType<'a>),
-    Interval(IntervalSpecification<'a>),
+    Generic(&'a GenericType<'a>),
+    Numeric(&'a NumericType<'a>),
+    Bit(&'a BitType<'a>),
+    Character(&'a CharacterType<'a>),
+    Time(&'a TimeType<'a>),
+    Timestamp(&'a TimestampType<'a>),
+    Interval(&'a IntervalSpecification<'a>),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -333,12 +333,12 @@ pub struct RelationRef<'a> {
     pub alias: Option<&'a Alias<'a>>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum TableRef<'a> {
-    Relation(RelationRef<'a>),
-    Select(SelectStatementRef<'a>),
-    Function(FunctionTableRef<'a>),
-    Join(JoinedTableRef<'a>),
+    Relation(&'a RelationRef<'a>),
+    Select(&'a SelectStatementRef<'a>),
+    Function(&'a FunctionTableRef<'a>),
+    Join(&'a JoinedTableRef<'a>),
 }
 
 #[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
@@ -422,7 +422,7 @@ pub enum KnownFunctionArguments<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionExpression<'a> {
     pub name: FunctionName<'a>,
-    pub args: &'a [FunctionArgument<'a>],
+    pub args: &'a [&'a FunctionArgument<'a>],
     pub args_known: Option<KnownFunctionArguments<'a>>,
     pub arg_ordering: &'a [&'a OrderSpecification<'a>],
     pub variadic: Option<&'a FunctionArgument<'a>>,
@@ -488,10 +488,10 @@ pub struct CombineOperation<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SelectData<'a> {
-    From(SelectFromStatement<'a>),
+    From(&'a SelectFromStatement<'a>),
     Table(&'a TableRef<'a>),
     Values(&'a [&'a [Expression<'a>]]),
-    Combine(CombineOperation<'a>),
+    Combine(&'a CombineOperation<'a>),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

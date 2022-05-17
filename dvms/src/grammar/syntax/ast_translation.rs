@@ -25,7 +25,7 @@ pub fn deserialize_ast<'a>(
     let buffer_nodes = buffer.nodes().unwrap_or_default();
 
     // Translate all nodes from left-to-right
-    let mut nodes: Vec<&'a ASTNode<'a>> = Vec::new();
+    let mut nodes: Vec<ASTNode<'a>> = Vec::new();
     nodes.reserve(buffer_nodes.len());
     for node_id in 0..buffer_nodes.len() {
         let node = buffer_nodes[node_id];
@@ -176,7 +176,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_INDIRECTION_VALUE, n) => value = read_expr!(n),
                     (Key::SQL_INDIRECTION_PATH, ASTNode::Array(nodes)) => path = read_name(arena, nodes)
                 }
-                ASTNode::IndirectionExpression(IndirectionExpression { value, path })
+                ASTNode::IndirectionExpression(arena.alloc(IndirectionExpression { value, path }))
             }
             sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX => {
                 let mut val = None;
@@ -188,12 +188,12 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, n) => ub = Some(read_expr!(n))
                 }
                 ASTNode::Indirection(if let Some(val) = val {
-                    Indirection::Index(IndirectionIndex { value: val })
+                    Indirection::Index(arena.alloc(IndirectionIndex { value: val }))
                 } else {
-                    Indirection::Bounds(IndirectionBounds {
+                    Indirection::Bounds(arena.alloc(IndirectionBounds {
                         lower_bound: lb.unwrap_or(Expression::Null),
                         upper_bound: ub.unwrap_or(Expression::Null),
-                    })
+                    }))
                 })
             }
             sx::NodeType::OBJECT_SQL_NUMERIC_TYPE => {
@@ -203,7 +203,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t)) => base = *t,
                     (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes)) => modifiers = read_exprs(arena, nodes)
                 }
-                ASTNode::NumericTypeSpec(NumericType { base, modifiers })
+                ASTNode::NumericTypeSpec(arena.alloc(NumericType { base, modifiers }))
             }
             sx::NodeType::OBJECT_SQL_BIT_TYPE => {
                 let mut varying = false;
@@ -212,7 +212,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_BIT_TYPE_LENGTH, e) => length = Some(read_expr!(e)),
                     (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b)) => varying = *b
                 }
-                ASTNode::BitTypeSpec(BitType { varying, length })
+                ASTNode::BitTypeSpec(arena.alloc(BitType { varying, length }))
             }
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name: Option<&'a str> = None;
@@ -221,10 +221,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s)) => name = Some(s.clone()),
                     (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a)) => modifiers = read_exprs(arena, a)
                 }
-                ASTNode::GenericTypeSpec(GenericType {
+                ASTNode::GenericTypeSpec(arena.alloc(GenericType {
                     name: name.unwrap_or_default(),
                     modifiers,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_ORDER => {
                 let mut value = None;
@@ -235,11 +235,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d)) => direction = Some(d.clone()),
                     (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n)) => null_rule = Some(n.clone())
                 }
-                ASTNode::OrderSpecification(OrderSpecification {
+                ASTNode::OrderSpecification(arena.alloc(OrderSpecification {
                     value: value.unwrap_or(Expression::Null),
                     direction,
                     null_rule,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_INTERVAL_TYPE => {
                 let mut ty = None;
@@ -248,10 +248,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t)) => ty = Some(t.clone()),
                     (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone())
                 }
-                ASTNode::IntervalSpecification(IntervalSpecification {
+                ASTNode::IntervalSpecification(arena.alloc(IntervalSpecification {
                     interval_type: ty,
                     precision: precision,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_RESULT_TARGET => {
                 let mut value = None;
@@ -262,14 +262,14 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_RESULT_TARGET_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s)) => alias = Some(s.clone())
                 }
-                ASTNode::ResultTarget(if star {
+                ASTNode::ResultTarget(arena.alloc(if star {
                     ResultTarget::Star
                 } else {
                     ResultTarget::Value {
                         value: value.unwrap_or(Expression::Null),
                         alias,
                     }
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_PARAMETER_REF => {
                 let mut prefix = "";
@@ -278,7 +278,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_PARAMETER_PREFIX, ASTNode::StringRef(p)) => prefix = p,
                     (Key::SQL_PARAMETER_NAME, ASTNode::Array(n)) => name = read_name(arena, n)
                 }
-                ASTNode::ParameterRef(ParameterRef { prefix, name })
+                ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
             }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let args = arena.alloc_slice_fill_default(3);
@@ -304,7 +304,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CASE_CLAUSE_WHEN, e) => when = read_expr!(e),
                     (Key::SQL_CASE_CLAUSE_THEN, e) => then = read_expr!(e)
                 }
-                ASTNode::CaseExpressionClause(CaseExpressionClause { when, then })
+                ASTNode::CaseExpressionClause(arena.alloc(CaseExpressionClause { when, then }))
             }
             sx::NodeType::OBJECT_SQL_CASE => {
                 let mut argument = None;
@@ -315,11 +315,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CASE_CLAUSES, ASTNode::Array(nodes)) => cases = unpack_nodes!(nodes, CaseExpressionClause),
                     (Key::SQL_CASE_DEFAULT, n) => default = Some(read_expr!(n))
                 }
-                ASTNode::CaseExpression(CaseExpression {
+                ASTNode::CaseExpression(arena.alloc(CaseExpression {
                     argument,
                     cases,
                     default,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 let mut name = None;
@@ -336,7 +336,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TABLEREF_TABLE, ASTNode::SelectStatement(s)) => select = Some(s),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t)) => joined = Some(t),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t)) => func = Some(t),
-                    (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a)) => alias = Some(a),
+                    (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a)) => alias = Some(*a),
                     (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s)) => {
                         alias = Some(arena.alloc(Alias {
                             name: s,
@@ -345,26 +345,26 @@ pub fn deserialize_ast<'a>(
                         }))
                     },
                     (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(v)) => lateral = *v,
-                    (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(s)
+                    (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s)) => sample = Some(*s)
                 }
                 ASTNode::TableRef(if let Some(table) = select {
-                    TableRef::Select(SelectStatementRef {
+                    TableRef::Select(arena.alloc(SelectStatementRef {
                         table,
                         alias,
                         sample,
                         lateral,
-                    })
+                    }))
                 } else if let Some(table) = joined {
-                    TableRef::Join(JoinedTableRef { table, alias })
+                    TableRef::Join(arena.alloc(JoinedTableRef { table, alias }))
                 } else if let Some(table) = func {
-                    TableRef::Function(FunctionTableRef {
+                    TableRef::Function(arena.alloc(FunctionTableRef {
                         table,
                         alias,
                         sample,
                         lateral,
-                    })
+                    }))
                 } else if let Some(name) = name {
-                    TableRef::Relation(RelationRef { name, inherit, alias })
+                    TableRef::Relation(arena.alloc(RelationRef { name, inherit, alias }))
                 } else {
                     return Err(RawError::from(format!("invalid table ref")).boxed());
                 })
@@ -382,13 +382,13 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v)) => count = Some(v.clone()),
                     (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => count_unit = Some(u.clone())
                 }
-                ASTNode::TableSample(TableSample {
+                ASTNode::TableSample(arena.alloc(TableSample {
                     function: function,
                     count: count.unwrap_or_default(),
                     unit: count_unit.unwrap_or(sx::SampleCountUnit::ROWS),
                     repeat,
                     seed,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_CONST_TYPE_CAST => {
                 let mut sql_type = None;
@@ -444,11 +444,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes)) => column_names = unpack_strings!(nodes, StringRef),
                     (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes)) => column_definitions = unpack_nodes!(nodes, ColumnDefinition)
                 }
-                ASTNode::Alias(Alias {
+                ASTNode::Alias(arena.alloc(Alias {
                     name,
                     column_names,
                     column_definitions,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_FETCH => {
                 let mut name = NamePath::default();
@@ -461,12 +461,12 @@ pub fn deserialize_ast<'a>(
                     (Key::DASHQL_FETCH_FROM_URI, n) => from_uri = Some(read_expr!(n)),
                     (Key::DASHQL_FETCH_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
-                ASTNode::FetchStatement(FetchStatement {
+                ASTNode::FetchStatement(arena.alloc(FetchStatement {
                     name,
                     method,
                     from_uri,
                     extra,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_LOAD => {
                 let mut name = NamePath::default();
@@ -479,12 +479,12 @@ pub fn deserialize_ast<'a>(
                     (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m)) => method = m.clone(),
                     (Key::DASHQL_LOAD_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
-                ASTNode::LoadStatement(LoadStatement {
+                ASTNode::LoadStatement(arena.alloc(LoadStatement {
                     name,
                     source,
                     method,
                     extra,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
                 let mut join = sx::JoinType::NONE;
@@ -499,7 +499,7 @@ pub fn deserialize_ast<'a>(
                     },
                     (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes)) => input = unpack_nodes!(nodes, TableRef)
                 }
-                ASTNode::JoinedTable(JoinedTable { join, qualifier, input })
+                ASTNode::JoinedTable(arena.alloc(JoinedTable { join, qualifier, input }))
             }
             sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
                 let mut function = None;
@@ -508,25 +508,25 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_ROWSFROM_ITEM_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(f),
                     (Key::SQL_ROWSFROM_ITEM_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_nodes!(nodes, ColumnDefinition)
                 }
-                ASTNode::RowsFromItem(RowsFromItem {
+                ASTNode::RowsFromItem(arena.alloc(RowsFromItem {
                     function: function.unwrap(),
                     columns,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
                 let mut function = None;
                 let mut ordinality = false;
                 let mut rows_from: &[_] = &[];
                 read_attributes! {
-                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(f),
+                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f)) => function = Some(*f),
                     (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(v)) => ordinality = *v,
                     (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes)) => rows_from = unpack_nodes!(nodes, RowsFromItem)
                 }
-                ASTNode::FunctionTable(FunctionTable {
+                ASTNode::FunctionTable(arena.alloc(FunctionTable {
                     function,
                     rows_from,
                     with_ordinality: ordinality,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 let mut name: Option<NamePath> = None;
@@ -542,10 +542,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => name = Some(s.clone()),
                     (Key::SQL_FUNCTION_ARG_VALUE, n) => value = Some(read_expr!(n))
                 }
-                ASTNode::FunctionArgument(FunctionArgument {
+                ASTNode::FunctionArgument(arena.alloc(FunctionArgument {
                     name: name,
                     value: value.unwrap_or(Expression::Null),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => {
                 let mut direction = sx::TrimDirection::LEADING;
@@ -556,11 +556,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes)) => input = read_exprs(arena, nodes),
                     (Key::SQL_FUNCTION_TRIM_DIRECTION, ASTNode::TrimDirection(d)) => direction = *d
                 }
-                ASTNode::TrimFunctionArguments(TrimFunctionArguments {
+                ASTNode::TrimFunctionArguments(arena.alloc(TrimFunctionArguments {
                     direction,
                     characters,
                     input,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => {
                 let mut input = None;
@@ -571,11 +571,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_SUBSTRING_FROM, n) => substr_from = Some(read_expr!(n)),
                     (Key::SQL_FUNCTION_SUBSTRING_FOR, n) => substr_for = Some(read_expr!(n))
                 }
-                ASTNode::SubstringFunctionArguments(SubstringFunctionArguments {
+                ASTNode::SubstringFunctionArguments(arena.alloc(SubstringFunctionArguments {
                     input: input.unwrap(),
                     substr_for,
                     substr_from,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_GENERIC_OPTION => {
                 let mut key = "";
@@ -584,7 +584,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_GENERIC_OPTION_KEY, ASTNode::StringRef(k)) => key = k,
                     (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::StringRef(v)) => value = v
                 }
-                ASTNode::GenericOption(GenericOption { key, value })
+                ASTNode::GenericOption(arena.alloc(GenericOption { key, value }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
                 let mut input = None;
@@ -597,12 +597,12 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_OVERLAY_FROM, n) => substr_from = Some(read_expr!(n)),
                     (Key::SQL_FUNCTION_OVERLAY_FOR, n) => substr_for = Some(read_expr!(n))
                 }
-                ASTNode::OverlayFunctionArguments(OverlayFunctionArguments {
+                ASTNode::OverlayFunctionArguments(arena.alloc(OverlayFunctionArguments {
                     input: input.unwrap(),
                     placing: placing.unwrap(),
                     substr_from: substr_from.unwrap(),
                     substr_for,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => {
                 let mut input = None;
@@ -611,10 +611,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_POSITION_SEARCH, n) => search = Some(read_expr!(n)),
                     (Key::SQL_FUNCTION_POSITION_INPUT, n) => input = Some(read_expr!(n))
                 }
-                ASTNode::PositionFunctionArguments(PositionFunctionArguments {
+                ASTNode::PositionFunctionArguments(arena.alloc(PositionFunctionArguments {
                     input: input.unwrap(),
                     search: search.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => {
                 let mut target = ExtractFunctionTarget::Known(sx::ExtractTarget::SECOND);
@@ -624,10 +624,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::ExtractTarget(t)) => target = ExtractFunctionTarget::Known(*t),
                     (Key::SQL_FUNCTION_EXTRACT_INPUT, n) => input = Some(read_expr!(n))
                 }
-                ASTNode::ExtractFunctionArguments(ExtractFunctionArguments {
+                ASTNode::ExtractFunctionArguments(arena.alloc(ExtractFunctionArguments {
                     target,
                     input: input.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
                 let mut value = None;
@@ -636,10 +636,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_CAST_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t)) => as_type = Some(t)
                 }
-                ASTNode::CastFunctionArguments(CastFunctionArguments {
+                ASTNode::CastFunctionArguments(arena.alloc(CastFunctionArguments {
                     value: value.unwrap(),
                     as_type: as_type.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
                 let mut value = None;
@@ -648,10 +648,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_TREAT_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_FUNCTION_TREAT_TYPE, ASTNode::SQLType(t)) => as_type = Some(t)
                 }
-                ASTNode::TreatFunctionArguments(TreatFunctionArguments {
+                ASTNode::TreatFunctionArguments(arena.alloc(TreatFunctionArguments {
                     value: value.unwrap(),
                     as_type: as_type.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                 let mut func_name = FunctionName::default();
@@ -665,7 +665,7 @@ pub fn deserialize_ast<'a>(
                 let mut variadic = None;
                 let mut over = None;
                 read_attributes! {
-                    (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg)) => variadic = Some(arg),
+                    (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg)) => variadic = Some(*arg),
                     (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b)) => all = *b,
                     (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b)) => distinct = *b,
                     (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s)) => func_name = FunctionName::Unknown(s),
@@ -673,19 +673,24 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes)) => arg_ordering = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes)) => within_group = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_FUNCTION_FILTER, n) => filter = read_expr!(n),
-                    (Key::SQL_FUNCTION_OVER, ASTNode::WindowFrame(f)) => over = Some(f),
+                    (Key::SQL_FUNCTION_OVER, ASTNode::WindowFrame(f)) => over = Some(*f),
                     (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes)) => {
-                        let args = arena.alloc_slice_fill_default(nodes.len());
+                        type Arg<'a> = &'a FunctionArgument<'a>;
+                        let args_layout = std::alloc::Layout::array::<Arg<'a>>(nodes.len()).unwrap_or_else(|_| oom());
+                        let args_mem = arena.alloc_layout(args_layout).cast::<Arg<'a>>();
                         for (i, node) in nodes.iter().enumerate() {
-                            match node {
-                                ASTNode::FunctionArgument(t) => args[i] = t.clone(),
-                                e => args[i] = FunctionArgument {
+                            let arg = match node {
+                                ASTNode::FunctionArgument(t) => t.clone(),
+                                e => arena.alloc(FunctionArgument {
                                     name: None,
                                     value: read_expr!(e),
-                                },
+                                }),
+                            };
+                            unsafe {
+                                std::ptr::write(args_mem.as_ptr().add(i), arg);
                             }
                         }
-                        func_args = args;
+                        func_args = unsafe { std::slice::from_raw_parts(args_mem.as_ptr(), nodes.len()) };
                     },
                     (Key::SQL_FUNCTION_TRIM_ARGS, ASTNode::TrimFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Trim(a)),
                     (Key::SQL_FUNCTION_OVERLAY_ARGS, ASTNode::OverlayFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Overlay(a)),
@@ -695,7 +700,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Cast(a)),
                     (Key::SQL_FUNCTION_TREAT_ARGS, ASTNode::TreatFunctionArguments(a)) => args_known = Some(KnownFunctionArguments::Treat(a))
                 }
-                ASTNode::FunctionExpression(FunctionExpression {
+                ASTNode::FunctionExpression(arena.alloc(FunctionExpression {
                     name: func_name,
                     args: func_args,
                     args_known,
@@ -706,7 +711,7 @@ pub fn deserialize_ast<'a>(
                     distinct,
                     variadic,
                     over,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {
                 let mut value = None;
@@ -715,10 +720,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TYPECAST_VALUE, v) => value = Some(read_expr!(v)),
                     (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t)) => typename = Some(t.clone())
                 }
-                ASTNode::TypeCastExpression(TypeCastExpression {
+                ASTNode::TypeCastExpression(arena.alloc(TypeCastExpression {
                     sql_type: typename.unwrap(),
                     value: value.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
                 let mut arg0 = Expression::Null;
@@ -731,11 +736,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant)) => quantifier = *quant,
                     (Key::SQL_SUBQUERY_OPERATOR, n) => operator_name = read_expression_operator(arena, n)
                 }
-                ASTNode::SubqueryExpression(SubqueryExpression {
+                ASTNode::SubqueryExpression(arena.alloc(SubqueryExpression {
                     operator: operator_name,
                     quantifier,
                     args: [arg0, arg1],
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION => {
                 let mut stmt = None;
@@ -744,19 +749,19 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s),
                     (Key::SQL_SELECT_EXPRESSION_INDIRECTION, ASTNode::Array(a)) => indirection = Some(read_name(arena, a))
                 }
-                ASTNode::SelectStatementExpression(SelectStatementExpression {
+                ASTNode::SelectStatementExpression(arena.alloc(SelectStatementExpression {
                     statement: stmt.unwrap(),
                     indirection,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION => {
                 let mut stmt = None;
                 read_attributes! {
                     (Key::SQL_EXISTS_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s)
                 }
-                ASTNode::ExistsExpression(ExistsExpression {
+                ASTNode::ExistsExpression(arena.alloc(ExistsExpression {
                     statement: stmt.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
                 let mut precision = None;
@@ -765,10 +770,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
                 }
-                ASTNode::TimestampTypeSpec(TimestampType {
+                ASTNode::TimestampTypeSpec(arena.alloc(TimestampType {
                     precision,
                     with_timezone,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_TIME_TYPE => {
                 let mut precision = None;
@@ -777,10 +782,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s)) => precision = Some(s.clone()),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz)) => with_timezone = *tz
                 }
-                ASTNode::TimeTypeSpec(TimeType {
+                ASTNode::TimeTypeSpec(arena.alloc(TimeType {
                     precision,
                     with_timezone,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM => {
                 let mut item_type = GroupByItemType::EMPTY;
@@ -809,10 +814,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeSpec(t)) => base = Some(SQLBaseType::Generic(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeSpec(t)) => base = Some(SQLBaseType::Numeric(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t)) => {
-                        base = Some(SQLBaseType::Numeric(NumericType {
+                        base = Some(SQLBaseType::Numeric(arena.alloc(NumericType {
                             base: *t,
                             modifiers: &[],
-                        }))
+                        })))
                     },
                     (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeSpec(t)) => base = Some(SQLBaseType::Time(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeSpec(t)) => base = Some(SQLBaseType::Bit(t.clone())),
@@ -822,11 +827,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b)) => set_of = *b,
                     (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n)) => array_bounds = read_array_bounds(arena, n)
                 }
-                ASTNode::SQLType(SQLType {
+                ASTNode::SQLType(arena.alloc(SQLType {
                     base_type: base.unwrap_or(SQLBaseType::Invalid),
                     set_of,
                     array_bounds,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT => {
                 let mut component_type = None;
@@ -837,23 +842,23 @@ pub fn deserialize_ast<'a>(
                     (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods)) => type_modifiers = *mods,
                     (Key::DASHQL_VIZ_COMPONENT_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
-                ASTNode::VizComponent(VizComponent {
+                ASTNode::VizComponent(arena.alloc(VizComponent {
                     component_type,
                     type_modifiers,
                     extra,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_VIZ => {
                 let mut target = None;
                 let mut components: &[_] = &[];
                 read_attributes! {
                     (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t)) => target = Some(t),
-                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(ref nodes)) => components = unpack_nodes!(nodes, VizComponent)
+                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes)) => components = unpack_nodes!(nodes, VizComponent)
                 }
-                ASTNode::VizStatement(VizStatement {
+                ASTNode::VizStatement(arena.alloc(VizStatement {
                     target: target.unwrap(),
                     components,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_INPUT => {
                 let mut name = NamePath::default();
@@ -866,19 +871,19 @@ pub fn deserialize_ast<'a>(
                     (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t)) => component_type = Some(t.clone()),
                     (Key::DASHQL_INPUT_EXTRA, n) => extra = Some(read_dson(arena, n))
                 }
-                ASTNode::InputStatement(InputStatement {
+                ASTNode::InputStatement(arena.alloc(InputStatement {
                     name,
                     value_type: value_type.unwrap(),
                     component_type,
                     extra,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DASHQL_SET => {
                 let mut value = None;
                 read_attributes! {
                     (Key::DASHQL_SET_FIELDS, n) => value = Some(read_dson(arena, n))
                 }
-                ASTNode::SetStatement(SetStatement { fields: value.unwrap() })
+                ASTNode::SetStatement(arena.alloc(SetStatement { fields: value.unwrap() }))
             }
             sx::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
                 let mut base = sx::CharacterType::VARCHAR;
@@ -887,7 +892,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c)) => base = c.clone(),
                     (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l)) => length = Some(l.clone())
                 }
-                ASTNode::CharacterTypeSpec(CharacterType { base, length })
+                ASTNode::CharacterTypeSpec(arena.alloc(CharacterType { base, length }))
             }
             sx::NodeType::OBJECT_SQL_INTO => {
                 let mut temp_type = sx::TempType::DEFAULT;
@@ -896,10 +901,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TEMP_NAME, ASTNode::Array(nodes)) => temp_name = read_name(arena, nodes),
                     (Key::SQL_TEMP_TYPE, ASTNode::TempType(t)) => temp_type = t.clone()
                 }
-                ASTNode::Into(Into {
+                ASTNode::Into(arena.alloc(Into {
                     temp: temp_type,
                     name: temp_name,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_DEF_ARG => {
                 let mut name = "";
@@ -908,7 +913,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n)) => name = n,
                     (Key::SQL_DEFINITION_ARG_VALUE, n) => value = read_expr!(n)
                 }
-                ASTNode::ColumnConstraintArgument(ColumnConstraintArgument { name, value })
+                ASTNode::ColumnConstraintArgument(arena.alloc(ColumnConstraintArgument { name, value }))
             }
             sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = None;
@@ -923,13 +928,13 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes)) => arguments = unpack_nodes!(nodes, ColumnConstraintArgument),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b)) => no_inherit = *b
                 }
-                ASTNode::ColumnConstraintInfo(ColumnConstraint {
+                ASTNode::ColumnConstraintInfo(arena.alloc(ColumnConstraint {
                     constraint_name,
                     constraint_type,
                     value,
                     arguments,
                     no_inherit,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
                 let mut strength = sx::RowLockingStrength::READ_ONLY;
@@ -951,11 +956,11 @@ pub fn deserialize_ast<'a>(
                         of = names;
                     }
                 }
-                ASTNode::RowLocking(RowLocking {
+                ASTNode::RowLocking(arena.alloc(RowLocking {
                     strength,
                     of,
                     block_behavior,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
                 let mut function = "";
@@ -970,7 +975,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u)) => count_unit = u.clone(),
                     (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(s)) => count_value = Some(s)
                 }
-                ASTNode::Sample(Sample {
+                ASTNode::Sample(arena.alloc(Sample {
                     function,
                     repeat,
                     seed,
@@ -978,7 +983,7 @@ pub fn deserialize_ast<'a>(
                         value: v,
                         unit: count_unit,
                     }),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_CREATE => {
                 let mut name = NamePath::default();
@@ -991,12 +996,12 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CREATE_TABLE_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
                     (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes)) => elements = unpack_nodes!(nodes, ColumnDefinition)
                 }
-                ASTNode::Create(CreateStatement {
+                ASTNode::Create(arena.alloc(CreateStatement {
                     name,
                     elements,
                     on_commit,
                     temp,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
                 let mut name = "";
@@ -1021,13 +1026,13 @@ pub fn deserialize_ast<'a>(
                         constraints = cs;
                     }
                 }
-                ASTNode::ColumnDefinition(ColumnDefinition {
+                ASTNode::ColumnDefinition(arena.alloc(ColumnDefinition {
                     name,
                     sql_type: sql_type.unwrap(),
                     collate,
                     options,
                     constraints,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_CREATE_AS => {
                 let mut name = NamePath::default();
@@ -1046,7 +1051,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o)) => on_commit = Some(o.clone()),
                     (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_strings!(nodes, StringRef)
                 }
-                ASTNode::CreateAs(CreateAsStatement {
+                ASTNode::CreateAs(arena.alloc(CreateAsStatement {
                     name,
                     columns,
                     statement: select.unwrap(),
@@ -1054,7 +1059,7 @@ pub fn deserialize_ast<'a>(
                     on_commit,
                     temp,
                     with_data,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_VIEW => {
                 let mut name = NamePath::default();
@@ -1067,12 +1072,12 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_VIEW_TEMP, ASTNode::TempType(t)) => temp = Some(t.clone()),
                     (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols)) => columns = unpack_strings!(cols, StringRef)
                 }
-                ASTNode::CreateView(CreateViewStatement {
+                ASTNode::CreateView(arena.alloc(CreateViewStatement {
                     name,
                     columns,
                     statement: select.unwrap(),
                     temp,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_CTE => {
                 let mut name = &"";
@@ -1083,11 +1088,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes)) => columns = unpack_strings!(nodes, StringRef),
                     (Key::SQL_CTE_STATEMENT, ASTNode::SelectStatement(s)) => stmt = Some(s)
                 }
-                ASTNode::CommonTableExpression(CommonTableExpression {
+                ASTNode::CommonTableExpression(arena.alloc(CommonTableExpression {
                     name,
                     columns,
                     statement: stmt.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_WINDOW_BOUND => {
                 let mut mode = sx::WindowBoundMode::UNBOUNDED;
@@ -1098,7 +1103,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_WINDOW_BOUND_DIRECTION, ASTNode::WindowBoundDirection(d)) => direction = Some(*d),
                     (Key::SQL_WINDOW_BOUND_VALUE, n) => value = read_expr!(n)
                 }
-                ASTNode::WindowFrameBound(WindowFrameBound { mode, direction, value })
+                ASTNode::WindowFrameBound(arena.alloc(WindowFrameBound { mode, direction, value }))
             }
             sx::NodeType::OBJECT_SQL_WINDOW_FRAME => {
                 let mut name = None;
@@ -1113,13 +1118,13 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m)) => frame_mode = Some(*m),
                     (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes)) => frame_bounds = unpack_nodes!(nodes, WindowFrameBound)
                 }
-                ASTNode::WindowFrame(WindowFrame {
+                ASTNode::WindowFrame(arena.alloc(WindowFrame {
                     name,
                     partition_by,
                     order_by,
                     frame_mode,
                     frame_bounds,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_WINDOW_DEF => {
                 let mut name = None;
@@ -1128,10 +1133,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_WINDOW_DEF_NAME, ASTNode::StringRef(n)) => name = Some(n.clone()),
                     (Key::SQL_WINDOW_DEF_FRAME, ASTNode::WindowFrame(f)) => frame = Some(f)
                 }
-                ASTNode::WindowDefinition(WindowDefinition {
+                ASTNode::WindowDefinition(arena.alloc(WindowDefinition {
                     name: name.unwrap(),
                     frame: frame.unwrap(),
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION => {
                 let mut negate = false;
@@ -1142,11 +1147,11 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TYPETEST_VALUE, n) => value = Some(read_expr!(n)),
                     (Key::SQL_TYPETEST_TYPES, ASTNode::Array(nodes)) => of_types = unpack_nodes!(nodes, SQLType)
                 }
-                ASTNode::TypeTestExpression(TypeTestExpression {
+                ASTNode::TypeTestExpression(arena.alloc(TypeTestExpression {
                     negate,
                     value: value.unwrap(),
                     of_types,
-                })
+                }))
             }
             sx::NodeType::OBJECT_SQL_SELECT => {
                 let mut with_ctes: &[_] = &[];
@@ -1207,12 +1212,12 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SELECT_ALL, ASTNode::Boolean(b)) => all = *b,
                     (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n)) => distinct = Some(read_exprs(arena, n)),
                     (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes)) => targets = unpack_nodes!(nodes, ResultTarget),
-                    (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(i),
+                    (Key::SQL_SELECT_INTO, ASTNode::Into(i)) => into = Some(*i),
                     (Key::SQL_SELECT_FROM, ASTNode::Array(nodes)) => from = unpack_nodes!(nodes, TableRef),
                     (Key::SQL_SELECT_WHERE, n) => where_clause = Some(read_expr!(n)),
                     (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes)) => group_by = unpack_nodes!(nodes, GroupByItem),
                     (Key::SQL_SELECT_HAVING, n) => having = Some(read_expr!(n)),
-                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(s),
+                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s)) => sample = Some(*s),
                     (Key::SQL_SELECT_WINDOWS, ASTNode::Array(nodes)) => windows = unpack_nodes!(nodes, WindowDefinition),
 
                     (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes)) => order_by = unpack_nodes!(nodes, OrderSpecification),
@@ -1221,7 +1226,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SELECT_OFFSET, n) => offset = Some(read_expr!(n)),
                     (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes)) => row_locking = unpack_nodes!(nodes, RowLocking)
                 }
-                ASTNode::SelectStatement(SelectStatement {
+                ASTNode::SelectStatement(arena.alloc(SelectStatement {
                     with_ctes,
                     with_recursive,
                     data: if let Some(values) = values {
@@ -1229,13 +1234,13 @@ pub fn deserialize_ast<'a>(
                     } else if let Some(table) = table {
                         SelectData::Table(table)
                     } else if let Some(combine_op) = combine_operation {
-                        SelectData::Combine(CombineOperation {
+                        SelectData::Combine(arena.alloc(CombineOperation {
                             operation: combine_op,
                             modifier: combine_modifier,
                             input: combine_input,
-                        })
+                        }))
                     } else {
-                        SelectData::From(SelectFromStatement {
+                        SelectData::From(arena.alloc(SelectFromStatement {
                             all,
                             distinct,
                             targets,
@@ -1246,13 +1251,13 @@ pub fn deserialize_ast<'a>(
                             having,
                             windows,
                             sample,
-                        })
+                        }))
                     },
                     order_by,
                     limit,
                     offset,
                     row_locking,
-                })
+                }))
             }
             sx::NodeType::OBJECT_DSON => {
                 let fields = arena.alloc_slice_fill_default(children.len());
@@ -1278,7 +1283,7 @@ pub fn deserialize_ast<'a>(
         };
 
         // Remember translated node
-        nodes.push(arena.alloc(translated));
+        nodes.push(translated);
     }
 
     // Do a postorder dfs traversal
@@ -1305,23 +1310,23 @@ pub fn deserialize_ast<'a>(
     })
 }
 
-fn read_expr<'a>(arena: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> Expression<'a> {
+fn read_expr<'a, 'b>(arena: &'a bumpalo::Bump, node: &ASTNode<'a>) -> Expression<'a> {
     match node {
         ASTNode::Array(nodes) => Expression::Array(read_exprs(arena, nodes)),
         ASTNode::Boolean(b) => Expression::Boolean(*b),
-        ASTNode::CaseExpression(ref c) => Expression::Case(c),
-        ASTNode::ColumnRef(ref s) => Expression::ColumnRef(s.clone()),
-        ASTNode::ConstCastExpression(ref c) => Expression::ConstCast(c),
-        ASTNode::ExistsExpression(ref e) => Expression::Exists(e),
-        ASTNode::Expression(ref e) => e.clone(),
-        ASTNode::FunctionExpression(ref f) => Expression::FunctionCall(f),
-        ASTNode::IndirectionExpression(ref c) => Expression::Indirection(c),
-        ASTNode::ParameterRef(ref p) => Expression::ParameterRef(p),
-        ASTNode::SelectStatementExpression(ref s) => Expression::SelectStatement(s),
-        ASTNode::StringRef(ref s) => Expression::StringRef(s.clone()),
-        ASTNode::SubqueryExpression(ref e) => Expression::Subquery(e),
-        ASTNode::TypeCastExpression(ref c) => Expression::TypeCast(c),
-        ASTNode::TypeTestExpression(ref t) => Expression::TypeTest(t),
+        ASTNode::CaseExpression(c) => Expression::Case(c),
+        ASTNode::ColumnRef(s) => Expression::ColumnRef(s.clone()),
+        ASTNode::ConstCastExpression(c) => Expression::ConstCast(c.clone()),
+        ASTNode::ExistsExpression(e) => Expression::Exists(e),
+        ASTNode::Expression(e) => e.clone(),
+        ASTNode::FunctionExpression(f) => Expression::FunctionCall(f),
+        ASTNode::IndirectionExpression(c) => Expression::Indirection(c),
+        ASTNode::ParameterRef(p) => Expression::ParameterRef(p),
+        ASTNode::SelectStatementExpression(s) => Expression::SelectStatement(s),
+        ASTNode::StringRef(s) => Expression::StringRef(s.clone()),
+        ASTNode::SubqueryExpression(e) => Expression::Subquery(e),
+        ASTNode::TypeCastExpression(c) => Expression::TypeCast(c),
+        ASTNode::TypeTestExpression(t) => Expression::TypeTest(t),
         _ => {
             log::warn!("invalid expression node: {:?}", node);
             Expression::Null
@@ -1329,7 +1334,7 @@ fn read_expr<'a>(arena: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> Expression<
     }
 }
 
-fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> &'a [Expression<'a>] {
+fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> &'a [Expression<'a>] {
     let exprs = alloc.alloc_slice_fill_default(nodes.len());
     for i in 0..nodes.len() {
         exprs[i] = read_expr(alloc, &nodes[i]);
@@ -1337,7 +1342,7 @@ fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> &'a [E
     exprs
 }
 
-fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> NamePath<'a> {
+fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> NamePath<'a> {
     let path = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         path[i] = match n {
@@ -1376,7 +1381,7 @@ fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &'a ASTNode<'a>)
     }
 }
 
-fn read_array_bounds<'a>(alloc: &'a bumpalo::Bump, nodes: &[&'a ASTNode<'a>]) -> &'a [ArrayBound<'a>] {
+fn read_array_bounds<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> &'a [ArrayBound<'a>] {
     let bounds = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         bounds[i] = match n {

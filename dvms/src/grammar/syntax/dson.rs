@@ -304,7 +304,7 @@ pub struct DsonField<'arena> {
     pub value: DsonValue<'arena>,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq)]
 pub enum DsonValue<'arena> {
     Object(&'arena [DsonField<'arena>]),
     Array(&'arena [DsonValue<'arena>]),

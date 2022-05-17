@@ -20,7 +20,7 @@ pub enum Statement<'arena> {
 
 #[derive(Clone, Default)]
 pub struct Program<'arena> {
-    pub nodes: Vec<&'arena ASTNode<'arena>>,
+    pub nodes: Vec<ASTNode<'arena>>,
     pub statements: Vec<Statement<'arena>>,
 }
 
