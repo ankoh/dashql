@@ -8,7 +8,7 @@ use dashql_proto::syntax as sx;
 pub enum ASTNode<'a> {
     Null,
 
-    Boolean(ASTCell<bool>),
+    Boolean(bool),
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'a str),
