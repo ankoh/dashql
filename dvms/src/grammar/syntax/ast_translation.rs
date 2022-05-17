@@ -396,8 +396,8 @@ pub fn deserialize_ast<'a>(
                 let mut sql_type = None;
                 let mut value = None;
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s), _ci) => sql_type = Some(s),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), _ci) => value = Some(t.clone())
+                    (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s), ci) => sql_type = Some(ASTCell::with_node(*s, ci)),
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = Some(ASTCell::with_node(t.clone(), ci))
                 }
                 let cast = arena.alloc(ConstTypeCastExpression {
                     sql_type: sql_type.unwrap(),
@@ -406,11 +406,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::ConstCastExpression(ConstCastExpression::Type(cast))
             }
             sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
-                let mut interval: Option<&IntervalSpecification> = None;
+                let mut interval = None;
                 let mut value = None;
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t), _ci) => interval = Some(t),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), _ci) => value = Some(t.clone())
+                    (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t), ci) => interval = Some(ASTCell::with_node(*t, ci)),
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = Some(ASTCell::with_node(t.clone(), ci))
                 }
                 let cast = arena.alloc(ConstIntervalCastExpression {
                     value: value.unwrap_or_default(),

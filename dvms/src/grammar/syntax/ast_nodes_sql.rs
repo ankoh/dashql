@@ -50,14 +50,14 @@ pub struct NaryExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstTypeCastExpression<'a> {
-    pub value: &'a str,
-    pub sql_type: &'a SQLType<'a>,
+    pub value: ASTCell<&'a str>,
+    pub sql_type: ASTCell<&'a SQLType<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstIntervalCastExpression<'a> {
-    pub value: &'a str,
-    pub interval: &'a IntervalSpecification<'a>,
+    pub value: ASTCell<&'a str>,
+    pub interval: ASTCell<&'a IntervalSpecification<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
