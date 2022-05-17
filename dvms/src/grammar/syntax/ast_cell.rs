@@ -99,3 +99,15 @@ where
 }
 
 impl<V> Eq for ASTCell<V> where V: Debug + Clone + Copy + PartialEq + Eq + Hash {}
+
+impl<V> Default for ASTCell<V>
+where
+    V: Default + Debug + Clone + Copy + PartialEq + Eq + Hash,
+{
+    fn default() -> Self {
+        Self {
+            node_id: Default::default(),
+            inner: Default::default(),
+        }
+    }
+}

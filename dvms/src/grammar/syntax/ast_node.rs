@@ -11,7 +11,7 @@ pub enum ASTNode<'a> {
     UInt32(u32),
     UInt32Bitmap(u32),
     StringRef(&'a str),
-    Array(&'a [ASTNode<'a>]),
+    Array(&'a [ASTNode<'a>], usize),
 
     CharacterType(sx::CharacterType),
     ColumnConstraint(sx::ColumnConstraint),

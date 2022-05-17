@@ -1,5 +1,6 @@
 use crate::grammar::SetStatement;
 
+use super::ast_cell::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::dson::*;
@@ -493,11 +494,11 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
 
 pub fn name_as_script<'writer, 'ast: 'writer>(
     w: &ScriptWriter<'writer>,
-    name: &'ast [Indirection<'ast>],
+    name: &'ast [ASTCell<Indirection<'ast>>],
 ) -> ScriptText<'writer> {
     let mut t = ScriptTextArray::with_capacity(w, 5 * name.len());
     for (i, e) in name.iter().enumerate() {
-        match e {
+        match e.get() {
             Indirection::Name(n) => {
                 if i > 0 {
                     t.push(w.str_const("."));

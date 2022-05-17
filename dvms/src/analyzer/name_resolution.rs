@@ -1,12 +1,15 @@
 use super::program_analysis::*;
-use crate::grammar::{ASTNode, Indirection, Statement, TableRef};
+use crate::grammar::{ASTCell, ASTNode, Indirection, Statement, TableRef};
 use dashql_proto::syntax as sx;
 
-fn normalize_name<'a>(ctx: &mut ProgramAnalysis<'a>, name: &'a [Indirection<'a>]) -> &'a [Indirection<'a>] {
+fn normalize_name<'a>(
+    ctx: &mut ProgramAnalysis<'a>,
+    name: &'a [ASTCell<Indirection<'a>>],
+) -> &'a [ASTCell<Indirection<'a>>] {
     let mut path: [&'a str; 3] = [""; 3];
     let mut path_length = 0;
     for (i, elem) in name.iter().enumerate().take(3) {
-        match elem {
+        match elem.get() {
             Indirection::Name(s) => {
                 path[i] = s.clone();
                 path_length += 1;
@@ -22,7 +25,8 @@ fn normalize_name<'a>(ctx: &mut ProgramAnalysis<'a>, name: &'a [Indirection<'a>]
             let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
             Indirection::Name(s)
         };
-        ctx.arena.alloc_slice_clone(&[node, name[0].clone()])
+        ctx.arena
+            .alloc_slice_clone(&[ASTCell::with_value(node), name[0].clone()])
     } else {
         name
     }

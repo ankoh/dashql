@@ -26,7 +26,7 @@ pub enum Indirection<'a> {
     Index(&'a IndirectionIndex<'a>),
     Bounds(&'a IndirectionBounds<'a>),
 }
-pub type NamePath<'a> = &'a [Indirection<'a>];
+pub type NamePath<'a> = &'a [ASTCell<Indirection<'a>>];
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ArrayBound<'a> {
