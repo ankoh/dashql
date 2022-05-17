@@ -9,8 +9,8 @@ use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::VizComponentTypeModifier;
 
-impl<'a> AsScript for CommonTableExpression<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for CommonTableExpression<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.str(self.name));
         if self.columns.len() > 0 {
@@ -35,8 +35,8 @@ impl<'a> AsScript for CommonTableExpression<'a> {
     }
 }
 
-impl<'a> AsScript for OrderSpecification<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for OrderSpecification<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3);
         a.push(self.value.as_script(w));
         if let Some(dir) = self.direction {
@@ -61,8 +61,8 @@ impl<'a> AsScript for OrderSpecification<'a> {
     }
 }
 
-impl<'a> AsScript for Limit<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Limit<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         w.float(w.alloc_slice(&[
             w.keyword("limit").pad_right(),
             match self {
@@ -73,8 +73,8 @@ impl<'a> AsScript for Limit<'a> {
     }
 }
 
-impl<'a> AsScript for DsonKey<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for DsonKey<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             DsonKey::Known(_k) => w.str(self.as_str()),
             DsonKey::Unknown(k) => w.single_quotes(w.str(k)),
@@ -82,8 +82,8 @@ impl<'a> AsScript for DsonKey<'a> {
     }
 }
 
-impl<'a> AsScript for DsonValue<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for DsonValue<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             DsonValue::Object(fields) => {
                 let mut entries = ScriptTextArray::with_capacity(w, fields.len());
@@ -116,8 +116,8 @@ impl<'a> AsScript for DsonValue<'a> {
     }
 }
 
-impl<'a> AsScript for Alias<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Alias<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 1);
         a.push(w.str(self.name));
         // todo: column defs
@@ -125,8 +125,8 @@ impl<'a> AsScript for Alias<'a> {
     }
 }
 
-impl<'a> AsScript for RelationRef<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for RelationRef<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3);
         if !self.inherit {
             a.push(w.keyword("only").pad_right());
@@ -139,8 +139,8 @@ impl<'a> AsScript for RelationRef<'a> {
     }
 }
 
-impl<'a> AsScript for JoinedTable<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 8);
         a.push(self.input[0].as_script(w));
         if (self.join.0 & sx::JoinType::NATURAL_.0) != 0_u8 {
@@ -181,8 +181,8 @@ impl<'a> AsScript for JoinedTable<'a> {
     }
 }
 
-impl<'a> AsScript for JoinedTableRef<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTableRef<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 2);
         a.push(self.table.as_script(w));
         if let Some(alias) = self.alias {
@@ -192,8 +192,8 @@ impl<'a> AsScript for JoinedTableRef<'a> {
     }
 }
 
-impl<'a> AsScript for TableRef<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for TableRef<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             TableRef::Relation(rel) => rel.as_script(w),
             TableRef::Join(joined) => joined.as_script(w),
@@ -202,8 +202,8 @@ impl<'a> AsScript for TableRef<'a> {
     }
 }
 
-impl<'a> AsScript for ResultTarget<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for ResultTarget<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             ResultTarget::Star => w.str_const("*"),
             ResultTarget::Value { value, alias } => {
@@ -218,8 +218,8 @@ impl<'a> AsScript for ResultTarget<'a> {
     }
 }
 
-impl<'a> AsScript for SelectFromStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectFromStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.len() * 3 + self.from.len() * 3);
         a.push(w.keyword("select"));
         for (i, target) in self.targets.iter().enumerate() {
@@ -241,8 +241,8 @@ impl<'a> AsScript for SelectFromStatement<'a> {
     }
 }
 
-impl<'a> AsScript for SelectStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
@@ -271,8 +271,8 @@ impl<'a> AsScript for SelectStatement<'a> {
     }
 }
 
-impl<'a> AsScript for Statement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Statement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match &self {
             Statement::Select(s) => s.as_script(w),
             Statement::Set(s) => s.as_script(w),
@@ -284,8 +284,8 @@ impl<'a> AsScript for Statement<'a> {
     }
 }
 
-impl<'a> AsScript for FetchStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for FetchStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("fetch"));
         a.push(name_as_script(w, self.name).pad_left());
@@ -309,8 +309,8 @@ impl<'a> AsScript for FetchStatement<'a> {
     }
 }
 
-impl<'a> AsScript for LoadStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for LoadStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
         a.push(name_as_script(w, self.name).pad_left());
@@ -333,8 +333,8 @@ impl<'a> AsScript for LoadStatement<'a> {
     }
 }
 
-impl<'a> AsScript for VizComponent<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for VizComponent<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.count_ones() as usize);
         if let Some(ct) = &self.component_type {
             if *ct != sx::VizComponentType::SPEC {
@@ -387,8 +387,8 @@ impl<'a> AsScript for VizComponent<'a> {
     }
 }
 
-impl<'a> AsScript for VizStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for VizStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.len());
         a.push(w.keyword("viz"));
         a.push(self.target.as_script(w).pad_left());
@@ -403,8 +403,8 @@ impl<'a> AsScript for VizStatement<'a> {
     }
 }
 
-impl<'a> AsScript for SetStatement<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SetStatement<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let fields = self.fields.as_object();
         assert!(!fields.is_empty(), "unexpected set statement value type");
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
@@ -417,8 +417,8 @@ impl<'a> AsScript for SetStatement<'a> {
     }
 }
 
-impl<'a> AsScript for Expression<'a> {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         match self {
             Expression::Null => w.str_const("null"),
             Expression::Uint32(v) => w.str(w.arena.alloc_str(&v.to_string())),
@@ -506,14 +506,14 @@ pub fn name_as_script<'writer, 'ast: 'writer>(
             }
             Indirection::Index(idx) => {
                 t.push(w.str_const("["));
-                t.push(idx.value.as_script(w));
+                t.push(idx.value.get().as_script(w));
                 t.push(w.str_const("]"));
             }
             Indirection::Bounds(bounds) => {
                 t.push(w.str_const("["));
-                t.push(bounds.lower_bound.as_script(w));
+                t.push(bounds.lower_bound.get().as_script(w));
                 t.push(w.str_const(", "));
-                t.push(bounds.upper_bound.as_script(w));
+                t.push(bounds.upper_bound.get().as_script(w));
                 t.push(w.str_const("]"));
             }
         }

@@ -195,8 +195,8 @@ impl<'arena> ScriptTextArray<'arena> {
     }
 }
 
-pub trait AsScript {
-    fn as_script<'writer, 'ast: 'writer>(&'ast self, writer: &ScriptWriter<'writer>) -> ScriptText<'writer>;
+pub trait AsScript<'writer, 'ast: 'writer> {
+    fn as_script(&self, writer: &ScriptWriter<'writer>) -> ScriptText<'writer>;
 }
 
 pub struct ScriptTextConfig {

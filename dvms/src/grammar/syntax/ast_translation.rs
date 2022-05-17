@@ -184,16 +184,16 @@ pub fn deserialize_ast<'a>(
                 let mut lb = None;
                 let mut ub = None;
                 read_attributes! {
-                    (Key::SQL_INDIRECTION_INDEX_VALUE, n, _ci) => val = Some(read_expr!(n)),
-                    (Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, n, _ci) => lb = Some(read_expr!(n)),
-                    (Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, n, _ci) => ub = Some(read_expr!(n))
+                    (Key::SQL_INDIRECTION_INDEX_VALUE, n, ci) => val = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, n, ci) => lb = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, n, ci) => ub = Some(ASTCell::with_node(read_expr!(n), ci))
                 }
                 ASTNode::Indirection(if let Some(val) = val {
                     Indirection::Index(arena.alloc(IndirectionIndex { value: val }))
                 } else {
                     Indirection::Bounds(arena.alloc(IndirectionBounds {
-                        lower_bound: lb.unwrap_or(Expression::Null),
-                        upper_bound: ub.unwrap_or(Expression::Null),
+                        lower_bound: lb.unwrap_or(ASTCell::with_value(Expression::Null)),
+                        upper_bound: ub.unwrap_or(ASTCell::with_value(Expression::Null)),
                     }))
                 })
             }

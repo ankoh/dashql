@@ -11,13 +11,13 @@ pub struct IndirectionExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionIndex<'a> {
-    pub value: Expression<'a>,
+    pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionBounds<'a> {
-    pub lower_bound: Expression<'a>,
-    pub upper_bound: Expression<'a>,
+    pub lower_bound: ASTCell<Expression<'a>>,
+    pub upper_bound: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
