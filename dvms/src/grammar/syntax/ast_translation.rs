@@ -852,7 +852,7 @@ pub fn deserialize_ast<'a>(
                 let mut target = None;
                 let mut components: &[_] = &[];
                 read_attributes! {
-                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t)) => target = Some(t),
+                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t)) => target = Some(t.clone()),
                     (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes)) => components = unpack_nodes!(nodes, VizComponent)
                 }
                 ASTNode::VizStatement(arena.alloc(VizStatement {
@@ -1183,7 +1183,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_SELECT_WITH_CTES, ASTNode::Array(nodes)) => with_ctes = unpack_nodes!(nodes, CommonTableExpression),
                     (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b)) => with_recursive = *b,
 
-                    (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t)) => table = Some(t),
+                    (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t)) => table = Some(t.clone()),
                     (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples)) => {
                         type Tuple<'a> = &'a [Expression<'a>];
                         let tuples_layout = std::alloc::Layout::array::<Tuple<'a>>(tuples.len()).unwrap_or_else(|_| oom());
@@ -1357,7 +1357,7 @@ fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> NamePath<'a
     path
 }
 
-fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> ExpressionOperatorName<'a> {
+fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) -> ExpressionOperatorName<'a> {
     match &node {
         ASTNode::ExpressionOperator(op) => ExpressionOperatorName::Known(*op),
         ASTNode::Array(elems) => {
@@ -1396,7 +1396,7 @@ fn read_array_bounds<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> &'a
     bounds
 }
 
-fn read_dson<'a>(alloc: &'a bumpalo::Bump, node: &'a ASTNode<'a>) -> DsonValue<'a> {
+fn read_dson<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) -> DsonValue<'a> {
     match node {
         ASTNode::Dson(value) => value.clone(),
         ASTNode::Array(nodes) => {

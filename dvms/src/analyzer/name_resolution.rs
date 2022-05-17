@@ -65,7 +65,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysis<'a>) {
 
 pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysis<'a>) {
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
-        let node_translated = &ctx.program.nodes[node_id];
+        let node_translated = ctx.program.nodes[node_id];
         match node_proto.node_type() {
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {

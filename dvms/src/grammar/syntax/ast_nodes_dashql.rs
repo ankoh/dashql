@@ -33,7 +33,7 @@ pub struct LoadStatement<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq)]
 pub struct VizStatement<'a> {
-    pub target: &'a TableRef<'a>,
+    pub target: TableRef<'a>,
     pub components: &'a [&'a VizComponent<'a>],
 }
 

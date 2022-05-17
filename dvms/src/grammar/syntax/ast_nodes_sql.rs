@@ -489,7 +489,7 @@ pub struct CombineOperation<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SelectData<'a> {
     From(&'a SelectFromStatement<'a>),
-    Table(&'a TableRef<'a>),
+    Table(TableRef<'a>),
     Values(&'a [&'a [Expression<'a>]]),
     Combine(&'a CombineOperation<'a>),
 }
