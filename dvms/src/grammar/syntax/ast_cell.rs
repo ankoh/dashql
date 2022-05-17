@@ -5,7 +5,7 @@ use std::hash::Hash;
 
 pub struct ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     pub(super) node_id: Option<usize>,
     pub inner: Cell<V>,
@@ -13,7 +13,7 @@ where
 
 impl<V> ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     pub fn with_node_id(mut self, node_id: usize) -> Self {
         self.node_id = Some(node_id);
@@ -29,7 +29,7 @@ where
 
 impl<V> From<V> for ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     fn from(v: V) -> Self {
         Self {
@@ -41,7 +41,7 @@ where
 
 impl<V> Debug for ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.inner.get().fmt(f)
@@ -62,7 +62,7 @@ where
 
 impl<V> Hash for ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.inner.get().hash(state);
@@ -71,7 +71,7 @@ where
 
 impl<V> PartialEq for ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     fn eq(&self, other: &Self) -> bool {
         self.inner.get() == other.inner.get()
@@ -80,7 +80,7 @@ where
 
 impl<V> Clone for ASTCell<V>
 where
-    V: Debug + Serialize + Clone + Copy + PartialEq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Hash,
 {
     fn clone(&self) -> Self {
         Self {
