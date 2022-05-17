@@ -44,7 +44,7 @@ pub enum ExpressionOperatorName<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NaryExpression<'a> {
     pub operator: ExpressionOperatorName<'a>,
-    pub args: &'a [Expression<'a>],
+    pub args: &'a [ASTCell<Expression<'a>>],
     pub postfix: bool,
 }
 
@@ -86,7 +86,7 @@ pub struct SubqueryExpression<'a> {
     pub operator: ExpressionOperatorName<'a>,
     #[serde(with = "serde_subquery_quantifier")]
     pub quantifier: sx::SubqueryQuantifier,
-    pub args: [Expression<'a>; 2],
+    pub args: [ASTCell<Expression<'a>>; 2],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -131,7 +131,7 @@ pub enum Expression<'a> {
     Null,
     Boolean(bool),
     Uint32(u32),
-    Array(&'a [Expression<'a>]),
+    Array(&'a [ASTCell<Expression<'a>>]),
     Case(&'a CaseExpression<'a>),
     ColumnRef(NamePath<'a>),
     ConstCast(ConstCastExpression<'a>),
@@ -160,8 +160,8 @@ pub struct OrderSpecification<'a> {
 pub enum GroupByItem<'a> {
     Empty,
     Expression(Expression<'a>),
-    Cube(&'a [Expression<'a>]),
-    Rollup(&'a [Expression<'a>]),
+    Cube(&'a [ASTCell<Expression<'a>>]),
+    Rollup(&'a [ASTCell<Expression<'a>>]),
     GroupingSets(&'a [&'a GroupByItem<'a>]),
 }
 
@@ -184,14 +184,14 @@ pub enum ResultTarget<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct GenericType<'a> {
     pub name: &'a str,
-    pub modifiers: &'a [Expression<'a>],
+    pub modifiers: &'a [ASTCell<Expression<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NumericType<'a> {
     #[serde(with = "serde_numeric_type")]
     pub base: sx::NumericType,
-    pub modifiers: &'a [Expression<'a>],
+    pub modifiers: &'a [ASTCell<Expression<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -394,7 +394,7 @@ pub struct TrimFunctionArguments<'a> {
     #[serde(with = "serde_trim_direction")]
     pub direction: sx::TrimDirection,
     pub characters: Option<Expression<'a>>,
-    pub input: &'a [Expression<'a>],
+    pub input: &'a [ASTCell<Expression<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -467,7 +467,7 @@ pub struct RowLocking<'a> {
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectFromStatement<'a> {
     pub all: bool,
-    pub distinct: Option<&'a [Expression<'a>]>,
+    pub distinct: Option<&'a [ASTCell<Expression<'a>>]>,
     pub targets: &'a [&'a ResultTarget<'a>],
     pub into: Option<&'a Into<'a>>,
     pub from: &'a [&'a TableRef<'a>],
@@ -491,7 +491,7 @@ pub struct CombineOperation<'a> {
 pub enum SelectData<'a> {
     From(&'a SelectFromStatement<'a>),
     Table(TableRef<'a>),
-    Values(&'a [&'a [Expression<'a>]]),
+    Values(&'a [&'a [ASTCell<Expression<'a>>]]),
     Combine(&'a CombineOperation<'a>),
 }
 
@@ -586,7 +586,7 @@ pub struct WindowFrameBound<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'a> {
     pub name: Option<&'a str>,
-    pub partition_by: &'a [Expression<'a>],
+    pub partition_by: &'a [ASTCell<Expression<'a>>],
     pub order_by: &'a [&'a OrderSpecification<'a>],
     #[serde(with = "serde_window_range_mode::opt")]
     pub frame_mode: Option<sx::WindowRangeMode>,

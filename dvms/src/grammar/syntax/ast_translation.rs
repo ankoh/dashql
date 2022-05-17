@@ -202,7 +202,7 @@ pub fn deserialize_ast<'a>(
                 let mut modifiers: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t), _ci) => base = *t,
-                    (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes, _ni), _ci) => modifiers = read_exprs(arena, nodes)
+                    (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes, ni), _ci) => modifiers = read_exprs(arena, nodes, *ni)
                 }
                 ASTNode::NumericTypeSpec(arena.alloc(NumericType { base, modifiers }))
             }
@@ -217,10 +217,10 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name: Option<&'a str> = None;
-                let mut modifiers: &[Expression<'a>] = &[];
+                let mut modifiers: &[ASTCell<Expression<'a>>] = &[];
                 read_attributes! {
                     (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s), _ci) => name = Some(s.clone()),
-                    (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a, _ni), _ci) => modifiers = read_exprs(arena, a)
+                    (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a, ni), _ci) => modifiers = read_exprs(arena, a, *ni)
                 }
                 ASTNode::GenericTypeSpec(arena.alloc(GenericType {
                     name: name.unwrap_or_default(),
@@ -286,9 +286,9 @@ pub fn deserialize_ast<'a>(
                 let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
                 let mut postfix = false;
                 read_attributes! {
-                    (Key::SQL_EXPRESSION_ARG0, n, _ci) => args[0] = read_expr!(n),
-                    (Key::SQL_EXPRESSION_ARG1, n, _ci) => args[1] = read_expr!(n),
-                    (Key::SQL_EXPRESSION_ARG2, n, _ci) => args[2] = read_expr!(n),
+                    (Key::SQL_EXPRESSION_ARG0, n, ci) => args[0] = ASTCell::with_node(read_expr!(n), ci),
+                    (Key::SQL_EXPRESSION_ARG1, n, ci) => args[1] = ASTCell::with_node(read_expr!(n), ci),
+                    (Key::SQL_EXPRESSION_ARG2, n, ci) => args[2] = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), _ci) => postfix = *v,
                     (Key::SQL_EXPRESSION_OPERATOR, n, _ci) => operator_name = read_expression_operator(arena, n)
                 }
@@ -554,7 +554,7 @@ pub fn deserialize_ast<'a>(
                 let mut input: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_FUNCTION_TRIM_CHARACTERS, n, _ci) => characters = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes, _ni), _ci) => input = read_exprs(arena, nodes),
+                    (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes, ni), _ci) => input = read_exprs(arena, nodes, *ni),
                     (Key::SQL_FUNCTION_TRIM_DIRECTION, ASTNode::TrimDirection(d), _ci) => direction = *d
                 }
                 ASTNode::TrimFunctionArguments(arena.alloc(TrimFunctionArguments {
@@ -727,13 +727,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
-                let mut arg0 = Expression::Null;
-                let mut arg1 = Expression::Null;
+                let mut arg0 = ASTCell::with_value(Expression::Null);
+                let mut arg1 = ASTCell::with_value(Expression::Null);
                 let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
                 let mut quantifier = sx::SubqueryQuantifier::ALL;
                 read_attributes! {
-                    (Key::SQL_SUBQUERY_ARG0, v, _ci) => arg0 = read_expr!(v),
-                    (Key::SQL_SUBQUERY_ARG1, v, _ci) => arg1 = read_expr!(v),
+                    (Key::SQL_SUBQUERY_ARG0, v, ci) => arg0 = ASTCell::with_node(read_expr!(v), ci),
+                    (Key::SQL_SUBQUERY_ARG1, v, ci) => arg1 = ASTCell::with_node(read_expr!(v), ci),
                     (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant), _ci) => quantifier = *quant,
                     (Key::SQL_SUBQUERY_OPERATOR, n, _ci) => operator_name = read_expression_operator(arena, n)
                 }
@@ -792,16 +792,20 @@ pub fn deserialize_ast<'a>(
                 let mut item_type = GroupByItemType::EMPTY;
                 let mut expr = None;
                 let mut args: &[_] = &[];
+                let mut args_ofs: usize = 0;
                 read_attributes! {
                     (Key::SQL_GROUP_BY_ITEM_TYPE, ASTNode::GroupByItemType(t), _ci) => item_type = t.clone(),
                     (Key::SQL_GROUP_BY_ITEM_ARG, n, _ci) => expr = Some(read_expr!(n)),
-                    (Key::SQL_GROUP_BY_ITEM_ARGS, ASTNode::Array(nodes, _ni), _ci) => args = nodes
+                    (Key::SQL_GROUP_BY_ITEM_ARGS, ASTNode::Array(nodes, ni), _ci) => {
+                        args = nodes;
+                        args_ofs = *ni;
+                    }
                 }
                 let item = match item_type {
                     GroupByItemType::EMPTY => GroupByItem::Empty,
                     GroupByItemType::EXPRESSION => GroupByItem::Expression(expr.unwrap()),
-                    GroupByItemType::CUBE => GroupByItem::Cube(read_exprs(arena, args)),
-                    GroupByItemType::ROLLUP => GroupByItem::Rollup(read_exprs(arena, args)),
+                    GroupByItemType::CUBE => GroupByItem::Cube(read_exprs(arena, args, args_ofs)),
+                    GroupByItemType::ROLLUP => GroupByItem::Rollup(read_exprs(arena, args, args_ofs)),
                     GroupByItemType::GROUPING_SETS => GroupByItem::GroupingSets(unpack_nodes!(args, GroupByItem)),
                     _ => return Err(RawError::from(format!("invalid group by item type: {:?}", item_type)).boxed()),
                 };
@@ -1114,7 +1118,7 @@ pub fn deserialize_ast<'a>(
                 let mut frame_bounds: &[_] = &[];
                 read_attributes! {
                     (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n), _ci) => name = Some(n.clone()),
-                    (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, _ni), _ci) => partition_by = read_exprs(arena, nodes),
+                    (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, ni), _ci) => partition_by = read_exprs(arena, nodes, *ni),
                     (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes, _ni), _ci) => order_by = unpack_nodes!(nodes, OrderSpecification),
                     (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m), _ci) => frame_mode = Some(*m),
                     (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes, _ni), _ci) => frame_bounds = unpack_nodes!(nodes, WindowFrameBound)
@@ -1186,14 +1190,14 @@ pub fn deserialize_ast<'a>(
 
                     (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t), _ci) => table = Some(t.clone()),
                     (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples, _ni), _ci) => {
-                        type Tuple<'a> = &'a [Expression<'a>];
+                        type Tuple<'a> = &'a [ASTCell<Expression<'a>>];
                         let tuples_layout = std::alloc::Layout::array::<Tuple<'a>>(tuples.len()).unwrap_or_else(|_| oom());
                         let tuples_mem = arena.alloc_layout(tuples_layout).cast::<Tuple<'a>>();
                         let mut tuples_writer = 0;
                         for i in 0..tuples.len() {
                             match tuples[i] {
-                                ASTNode::Array(tuple, _ni) => {
-                                    let tuple_exprs = read_exprs(arena, tuple);
+                                ASTNode::Array(tuple, ni) => {
+                                    let tuple_exprs = read_exprs(arena, tuple, ni);
                                     unsafe {
                                         std::ptr::write(tuples_mem.as_ptr().add(tuples_writer), tuple_exprs);
                                     }
@@ -1211,7 +1215,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes, _ni), _ci) => combine_input = unpack_nodes!(nodes, SelectStatement),
 
                     (Key::SQL_SELECT_ALL, ASTNode::Boolean(b), _ci) => all = *b,
-                    (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n, _ni), _ci) => distinct = Some(read_exprs(arena, n)),
+                    (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n, ni), _ci) => distinct = Some(read_exprs(arena, n, *ni)),
                     (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes, _ni), _ci) => targets = unpack_nodes!(nodes, ResultTarget),
                     (Key::SQL_SELECT_INTO, ASTNode::Into(i), _ci) => into = Some(*i),
                     (Key::SQL_SELECT_FROM, ASTNode::Array(nodes, _ni), _ci) => from = unpack_nodes!(nodes, TableRef),
@@ -1313,7 +1317,7 @@ pub fn deserialize_ast<'a>(
 
 fn read_expr<'a, 'b>(arena: &'a bumpalo::Bump, node: &ASTNode<'a>) -> Expression<'a> {
     match node {
-        ASTNode::Array(nodes, _ni) => Expression::Array(read_exprs(arena, nodes)),
+        ASTNode::Array(nodes, ni) => Expression::Array(read_exprs(arena, nodes, *ni)),
         ASTNode::Boolean(b) => Expression::Boolean(*b),
         ASTNode::CaseExpression(c) => Expression::Case(c),
         ASTNode::ColumnRef(s) => Expression::ColumnRef(s.clone()),
@@ -1335,10 +1339,10 @@ fn read_expr<'a, 'b>(arena: &'a bumpalo::Bump, node: &ASTNode<'a>) -> Expression
     }
 }
 
-fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> &'a [Expression<'a>] {
+fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>], ni: usize) -> &'a [ASTCell<Expression<'a>>] {
     let exprs = alloc.alloc_slice_fill_default(nodes.len());
     for i in 0..nodes.len() {
-        exprs[i] = read_expr(alloc, &nodes[i]);
+        exprs[i] = ASTCell::with_node(read_expr(alloc, &nodes[i]), ni + i);
     }
     exprs
 }

@@ -436,7 +436,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                     if i > 0 {
                         a.push(w.str_const(",").pad_right());
                     }
-                    a.push(e.as_script(w));
+                    a.push(e.get().as_script(w));
                 }
                 w.round_brackets(a.finish())
             }
@@ -473,9 +473,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                 ExpressionOperatorName::Known(op) => match op {
                     ExpressionOperator::EQUAL => {
                         let mut a = ScriptTextArray::with_capacity(w, 3);
-                        a.push(nary.args[0].as_script(w));
+                        a.push(nary.args[0].get().as_script(w));
                         a.push(w.keyword("=").pad_left());
-                        a.push(nary.args[1].as_script(w).pad_left());
+                        a.push(nary.args[1].get().as_script(w).pad_left());
                         w.float(a.finish())
                     }
                     _ => todo!(),
