@@ -125,7 +125,7 @@ pub struct TypeTestExpression<'a> {
     pub of_types: &'a [&'a SQLType<'a>],
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum Expression<'a> {
     Null,
     Boolean(bool),
