@@ -1136,8 +1136,8 @@ pub fn deserialize_ast<'a>(
                 let mut name = None;
                 let mut frame = None;
                 read_attributes! {
-                    (Key::SQL_WINDOW_DEF_NAME, ASTNode::StringRef(n), _ci) => name = Some(n.clone()),
-                    (Key::SQL_WINDOW_DEF_FRAME, ASTNode::WindowFrame(f), _ci) => frame = Some(f)
+                    (Key::SQL_WINDOW_DEF_NAME, ASTNode::StringRef(n), ci) => name = Some(ASTCell::with_node(n.clone(), ci)),
+                    (Key::SQL_WINDOW_DEF_FRAME, ASTNode::WindowFrame(f), ci) => frame = Some(ASTCell::with_node(*f, ci))
                 }
                 ASTNode::WindowDefinition(arena.alloc(WindowDefinition {
                     name: name.unwrap(),

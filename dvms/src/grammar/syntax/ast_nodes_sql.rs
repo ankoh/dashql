@@ -595,6 +595,6 @@ pub struct WindowFrame<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowDefinition<'a> {
-    pub name: &'a str,
-    pub frame: &'a WindowFrame<'a>,
+    pub name: ASTCell<&'a str>,
+    pub frame: ASTCell<&'a WindowFrame<'a>>,
 }

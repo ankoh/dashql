@@ -7,8 +7,8 @@ pub struct ASTCell<V>
 where
     V: Debug + Clone + Copy + PartialEq + Eq + Hash,
 {
-    pub(super) node_id: Option<usize>,
-    pub inner: Cell<V>,
+    node_id: Option<usize>,
+    inner: Cell<V>,
 }
 
 impl<V> ASTCell<V>
