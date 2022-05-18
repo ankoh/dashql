@@ -441,20 +441,20 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                 w.round_brackets(a.finish())
             }
             Expression::Case(c) => {
-                let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.len());
+                let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
                 f.push(w.keyword("case"));
                 if let Some(arg) = &c.argument {
-                    f.push(arg.as_script(w).pad_left());
+                    f.push(arg.get().as_script(w).pad_left());
                 }
-                for case in c.cases.iter() {
+                for case in c.cases.get().iter() {
                     f.push(w.keyword("when").pad_left());
-                    f.push(case.get().when.as_script(w).pad_left());
+                    f.push(case.get().when.get().as_script(w).pad_left());
                     f.push(w.keyword("then").pad_left());
-                    f.push(case.get().then.as_script(w).pad_left());
+                    f.push(case.get().then.get().as_script(w).pad_left());
                 }
                 if let Some(default) = &c.default {
                     f.push(w.keyword("else").pad_left());
-                    f.push(default.as_script(w).pad_left());
+                    f.push(default.get().as_script(w).pad_left());
                 }
                 f.push(w.keyword("end").pad_left());
                 w.float(f.finish())
@@ -464,7 +464,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
             Expression::Exists(e) => {
                 let mut t = ScriptTextArray::with_capacity(w, 3);
                 t.push(w.keyword("EXISTS"));
-                t.push(e.statement.as_script(w).pad_left());
+                t.push(e.statement.get().as_script(w).pad_left());
                 w.float(t.finish())
             }
             Expression::FunctionCall(_) => todo!(),

@@ -108,15 +108,15 @@ pub struct CaseExpressionClause<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
-    pub argument: Option<Expression<'a>>,
-    pub cases: &'a [ASTCell<&'a CaseExpressionClause<'a>>],
-    pub default: Option<Expression<'a>>,
+    pub argument: Option<ASTCell<Expression<'a>>>,
+    pub cases: ASTCell<&'a [ASTCell<&'a CaseExpressionClause<'a>>]>,
+    pub default: Option<ASTCell<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ParameterRef<'a> {
-    pub prefix: &'a str,
-    pub name: NamePath<'a>,
+    pub prefix: ASTCell<&'a str>,
+    pub name: ASTCell<NamePath<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

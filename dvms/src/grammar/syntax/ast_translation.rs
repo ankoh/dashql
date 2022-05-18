@@ -273,11 +273,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_PARAMETER_REF => {
-                let mut prefix = "";
-                let mut name = NamePath::default();
+                let mut prefix = ASTCell::with_value("");
+                let mut name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
-                    (Key::SQL_PARAMETER_PREFIX, ASTNode::StringRef(p), _ci) => prefix = p,
-                    (Key::SQL_PARAMETER_NAME, ASTNode::Array(n, ni), _ci) => name = read_name(arena, n, *ni)
+                    (Key::SQL_PARAMETER_PREFIX, ASTNode::StringRef(p), ci) => prefix = ASTCell::with_node(p, ci),
+                    (Key::SQL_PARAMETER_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci)
                 }
                 ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
             }
@@ -310,12 +310,12 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_CASE => {
                 let mut argument = None;
-                let mut cases: &[_] = &[];
+                let mut cases: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut default = None;
                 read_attributes! {
-                    (Key::SQL_CASE_ARGUMENT, n, _ci) => argument = Some(read_expr!(n)),
-                    (Key::SQL_CASE_CLAUSES, ASTNode::Array(nodes, ni), _ci) => cases = unpack_nodes!(nodes, ni, CaseExpressionClause),
-                    (Key::SQL_CASE_DEFAULT, n, _ci) => default = Some(read_expr!(n))
+                    (Key::SQL_CASE_ARGUMENT, n, ci) => argument = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_CASE_CLAUSES, ASTNode::Array(nodes, ni), ci) => cases = ASTCell::with_node(unpack_nodes!(nodes, ni, CaseExpressionClause), ci),
+                    (Key::SQL_CASE_DEFAULT, n, ci) => default = Some(ASTCell::with_node(read_expr!(n), ci))
                 }
                 ASTNode::CaseExpression(arena.alloc(CaseExpression {
                     argument,
