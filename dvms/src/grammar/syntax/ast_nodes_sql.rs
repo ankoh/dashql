@@ -97,13 +97,13 @@ pub struct SelectStatementExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ExistsExpression<'a> {
-    pub statement: &'a SelectStatement<'a>,
+    pub statement: ASTCell<&'a SelectStatement<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpressionClause<'a> {
-    pub when: Expression<'a>,
-    pub then: Expression<'a>,
+    pub when: ASTCell<Expression<'a>>,
+    pub then: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

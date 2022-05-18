@@ -300,11 +300,11 @@ pub fn deserialize_ast<'a>(
                 })))
             }
             sx::NodeType::OBJECT_SQL_CASE_CLAUSE => {
-                let mut when = Expression::Null;
-                let mut then = Expression::Null;
+                let mut when = ASTCell::with_value(Expression::Null);
+                let mut then = ASTCell::with_value(Expression::Null);
                 read_attributes! {
-                    (Key::SQL_CASE_CLAUSE_WHEN, e, _ci) => when = read_expr!(e),
-                    (Key::SQL_CASE_CLAUSE_THEN, e, _ci) => then = read_expr!(e)
+                    (Key::SQL_CASE_CLAUSE_WHEN, e, ci) => when = ASTCell::with_node(read_expr!(e), ci),
+                    (Key::SQL_CASE_CLAUSE_THEN, e, ci) => then = ASTCell::with_node(read_expr!(e), ci)
                 }
                 ASTNode::CaseExpressionClause(arena.alloc(CaseExpressionClause { when, then }))
             }
@@ -752,7 +752,7 @@ pub fn deserialize_ast<'a>(
                 let mut stmt = None;
                 let mut indirection = None;
                 read_attributes! {
-                    (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = Some(ASTCell::with_node(s, ci)),
+                    (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = Some(ASTCell::with_node(*s, ci)),
                     (Key::SQL_SELECT_EXPRESSION_INDIRECTION, ASTNode::Array(a, ni), ci) => indirection = Some(ASTCell::with_node(read_name(arena, a, *ni), ci))
                 }
                 ASTNode::SelectStatementExpression(arena.alloc(SelectStatementExpression {
@@ -763,7 +763,7 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION => {
                 let mut stmt = None;
                 read_attributes! {
-                    (Key::SQL_EXISTS_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), _ci) => stmt = Some(s)
+                    (Key::SQL_EXISTS_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = Some(ASTCell::with_node(*s, ci))
                 }
                 ASTNode::ExistsExpression(arena.alloc(ExistsExpression {
                     statement: stmt.unwrap(),
