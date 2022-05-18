@@ -348,7 +348,7 @@ pub struct FunctionArgument<'a> {
     pub value: Expression<'a>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum FunctionName<'a> {
     Unknown(&'a str),
     #[serde(with = "serde_known_function")]
@@ -409,7 +409,7 @@ pub struct TreatFunctionArguments<'a> {
     pub as_type: &'a SQLType<'a>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum KnownFunctionArguments<'a> {
     Trim(&'a TrimFunctionArguments<'a>),
     Substring(&'a SubstringFunctionArguments<'a>),
@@ -422,16 +422,16 @@ pub enum KnownFunctionArguments<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionExpression<'a> {
-    pub name: FunctionName<'a>,
-    pub args: &'a [ASTCell<&'a FunctionArgument<'a>>],
-    pub args_known: Option<KnownFunctionArguments<'a>>,
-    pub arg_ordering: &'a [ASTCell<&'a OrderSpecification<'a>>],
-    pub variadic: Option<&'a FunctionArgument<'a>>,
-    pub within_group: &'a [ASTCell<&'a OrderSpecification<'a>>],
-    pub filter: Expression<'a>,
-    pub all: bool,
-    pub distinct: bool,
-    pub over: Option<&'a WindowFrame<'a>>,
+    pub name: ASTCell<FunctionName<'a>>,
+    pub args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
+    pub args_known: Option<ASTCell<KnownFunctionArguments<'a>>>,
+    pub arg_ordering: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
+    pub variadic: Option<ASTCell<&'a FunctionArgument<'a>>>,
+    pub within_group: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
+    pub filter: ASTCell<Expression<'a>>,
+    pub all: ASTCell<bool>,
+    pub distinct: ASTCell<bool>,
+    pub over: Option<ASTCell<&'a WindowFrame<'a>>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]

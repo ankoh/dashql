@@ -656,27 +656,27 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
-                let mut func_name = FunctionName::default();
-                let mut func_args: &[_] = &[];
-                let mut arg_ordering: &[_] = &[];
+                let mut func_name = ASTCell::with_value(FunctionName::default());
+                let mut func_args: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut args_known = None;
-                let mut within_group: &[_] = &[];
-                let mut filter = Expression::Null;
-                let mut all = false;
-                let mut distinct = false;
+                let mut within_group: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut filter = ASTCell::with_value(Expression::Null);
+                let mut all = ASTCell::with_value(false);
+                let mut distinct = ASTCell::with_value(false);
                 let mut variadic = None;
                 let mut over = None;
                 read_attributes! {
-                    (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg), _ci) => variadic = Some(*arg),
-                    (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b), _ci) => all = *b,
-                    (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b), _ci) => distinct = *b,
-                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), _ci) => func_name = FunctionName::Unknown(s),
-                    (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f), _ci) => func_name = FunctionName::Known(f.clone()),
-                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes, ni), _ci) => arg_ordering = unpack_nodes!(nodes, ni, OrderSpecification),
-                    (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes, ni), _ci) => within_group = unpack_nodes!(nodes, ni, OrderSpecification),
-                    (Key::SQL_FUNCTION_FILTER, n, _ci) => filter = read_expr!(n),
-                    (Key::SQL_FUNCTION_OVER, ASTNode::WindowFrame(f), _ci) => over = Some(*f),
-                    (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes, ni), _ci) => {
+                    (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg), ci) => variadic = Some(ASTCell::with_node(*arg, ci)),
+                    (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b), ci) => all = ASTCell::with_node(*b, ci),
+                    (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b), ci) => distinct = ASTCell::with_node(*b, ci),
+                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), ci) => func_name = ASTCell::with_node(FunctionName::Unknown(s), ci),
+                    (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f), ci) => func_name = ASTCell::with_node(FunctionName::Known(f.clone()), ci),
+                    (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes, ni), ci) => arg_ordering = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
+                    (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes, ni), ci) => within_group = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
+                    (Key::SQL_FUNCTION_FILTER, n, ci) => filter = ASTCell::with_node(read_expr!(n), ci),
+                    (Key::SQL_FUNCTION_OVER, ASTNode::WindowFrame(f), ci) => over = Some(ASTCell::with_node(*f, ci)),
+                    (Key::SQL_FUNCTION_ARGUMENTS, ASTNode::Array(nodes, ni), ci) => {
                         type Arg<'a> = ASTCell<&'a FunctionArgument<'a>>;
                         let args_layout = std::alloc::Layout::array::<Arg<'a>>(nodes.len()).unwrap_or_else(|_| oom());
                         let args_mem = arena.alloc_layout(args_layout).cast::<Arg<'a>>();
@@ -695,15 +695,15 @@ pub fn deserialize_ast<'a>(
                                 std::ptr::write(args_mem.as_ptr().add(i), arg);
                             }
                         }
-                        func_args = unsafe { std::slice::from_raw_parts(args_mem.as_ptr(), nodes.len()) };
+                        func_args = ASTCell::with_value(unsafe { std::slice::from_raw_parts(args_mem.as_ptr(), nodes.len()) });
                     },
-                    (Key::SQL_FUNCTION_TRIM_ARGS, ASTNode::TrimFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Trim(a)),
-                    (Key::SQL_FUNCTION_OVERLAY_ARGS, ASTNode::OverlayFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Overlay(a)),
-                    (Key::SQL_FUNCTION_POSITION_ARGS, ASTNode::PositionFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Position(a)),
-                    (Key::SQL_FUNCTION_SUBSTRING_ARGS, ASTNode::SubstringFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Substring(a)),
-                    (Key::SQL_FUNCTION_EXTRACT_ARGS, ASTNode::ExtractFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Extract(a)),
-                    (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Cast(a)),
-                    (Key::SQL_FUNCTION_TREAT_ARGS, ASTNode::TreatFunctionArguments(a), _ci) => args_known = Some(KnownFunctionArguments::Treat(a))
+                    (Key::SQL_FUNCTION_TRIM_ARGS, ASTNode::TrimFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Trim(a), ci)),
+                    (Key::SQL_FUNCTION_OVERLAY_ARGS, ASTNode::OverlayFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Overlay(a), ci)),
+                    (Key::SQL_FUNCTION_POSITION_ARGS, ASTNode::PositionFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Position(a), ci)),
+                    (Key::SQL_FUNCTION_SUBSTRING_ARGS, ASTNode::SubstringFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Substring(a), ci)),
+                    (Key::SQL_FUNCTION_EXTRACT_ARGS, ASTNode::ExtractFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Extract(a), ci)),
+                    (Key::SQL_FUNCTION_CAST_ARGS, ASTNode::CastFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Cast(a), ci)),
+                    (Key::SQL_FUNCTION_TREAT_ARGS, ASTNode::TreatFunctionArguments(a), ci) => args_known = Some(ASTCell::with_node(KnownFunctionArguments::Treat(a), ci))
                 }
                 ASTNode::FunctionExpression(arena.alloc(FunctionExpression {
                     name: func_name,
