@@ -198,11 +198,11 @@ pub fn deserialize_ast<'a>(
                 })
             }
             sx::NodeType::OBJECT_SQL_NUMERIC_TYPE => {
-                let mut base = sx::NumericType::NUMERIC;
-                let mut modifiers: &[_] = &[];
+                let mut base = ASTCell::with_value(sx::NumericType::NUMERIC);
+                let mut modifiers: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t), _ci) => base = *t,
-                    (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes, ni), _ci) => modifiers = read_exprs(arena, nodes, *ni)
+                    (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t), ci) => base = ASTCell::with_node(*t, ci),
+                    (Key::SQL_NUMERIC_TYPE_MODIFIERS, ASTNode::Array(nodes, ni), ci) => modifiers = ASTCell::with_node(read_exprs(arena, nodes, *ni), ci)
                 }
                 ASTNode::NumericTypeSpec(arena.alloc(NumericType { base, modifiers }))
             }
@@ -825,10 +825,10 @@ pub fn deserialize_ast<'a>(
                 read_attributes! {
                     (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeSpec(t), _ci) => base = Some(SQLBaseType::Generic(t.clone())),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeSpec(t), _ci) => base = Some(SQLBaseType::Numeric(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t), _ci) => {
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t), ci) => {
                         base = Some(SQLBaseType::Numeric(arena.alloc(NumericType {
-                            base: *t,
-                            modifiers: &[],
+                            base: ASTCell::with_node(*t, ci),
+                            modifiers: ASTCell::with_value(&[]),
                         })))
                     },
                     (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeSpec(t), _ci) => base = Some(SQLBaseType::Time(t.clone())),

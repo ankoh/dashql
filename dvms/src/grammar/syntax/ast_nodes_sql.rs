@@ -189,9 +189,9 @@ pub struct GenericType<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct NumericType<'a> {
-    #[serde(with = "serde_numeric_type")]
-    pub base: sx::NumericType,
-    pub modifiers: &'a [ASTCell<Expression<'a>>],
+    #[serde(with = "serde_numeric_type::cell")]
+    pub base: ASTCell<sx::NumericType>,
+    pub modifiers: ASTCell<&'a [ASTCell<Expression<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
