@@ -44,6 +44,55 @@ macro_rules! derive_enum_serde {
                     Ok(Some($remote(id_unchecked as u8)))
                 }
             }
+
+            pub mod cell {
+                use super::super::super::ast_cell::*;
+                use super::*;
+
+                pub fn serialize<S>(value: &ASTCell<$remote>, ser: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+                {
+                    ser.serialize_i32(value.get().0.into())
+                }
+
+                pub fn deserialize<'de, D>(de: D) -> Result<Option<ASTCell<$remote>>, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    let id_unchecked: i32 = serde::de::Deserialize::deserialize(de)?;
+                    if id_unchecked == -1 {
+                        return Ok(None);
+                    }
+                    Ok(Some(ASTCell::with_value($remote(id_unchecked as u8))))
+                }
+            }
+
+            pub mod opt_cell {
+                use super::super::super::ast_cell::*;
+                use super::*;
+
+                pub fn serialize<S>(value: &Option<ASTCell<$remote>>, ser: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+                {
+                    match value {
+                        Some(v) => ser.serialize_i32(v.get().0.into()),
+                        None => ser.serialize_i32(-1),
+                    }
+                }
+
+                pub fn deserialize<'de, D>(de: D) -> Result<Option<ASTCell<$remote>>, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    let id_unchecked: i32 = serde::de::Deserialize::deserialize(de)?;
+                    if id_unchecked == -1 {
+                        return Ok(None);
+                    }
+                    Ok(Some(ASTCell::with_value($remote(id_unchecked as u8))))
+                }
+            }
         }
     };
 }
