@@ -919,11 +919,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_DEF_ARG => {
-                let mut name = "";
-                let mut value = Expression::Null;
+                let mut name = ASTCell::with_value("");
+                let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
-                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n), _ci) => name = n,
-                    (Key::SQL_DEFINITION_ARG_VALUE, n, _ci) => value = read_expr!(n)
+                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(n, ci),
+                    (Key::SQL_DEFINITION_ARG_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci)
                 }
                 ASTNode::ColumnConstraintArgument(arena.alloc(ColumnConstraintArgument { name, value }))
             }
@@ -1074,15 +1074,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_VIEW => {
-                let mut name = NamePath::default();
+                let mut name = ASTCell::with_value(NamePath::default());
                 let mut select = None;
-                let mut columns: &[_] = &[];
+                let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut temp = None;
                 read_attributes! {
-                    (Key::SQL_VIEW_NAME, ASTNode::Array(n, ni), _ci) => name = read_name(arena, n, *ni),
-                    (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s), _ci) => select = Some(s),
-                    (Key::SQL_VIEW_TEMP, ASTNode::TempType(t), _ci) => temp = Some(t.clone()),
-                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols, ni), _ci) => columns = unpack_strings!(cols, ni, StringRef)
+                    (Key::SQL_VIEW_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
+                    (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s), ci) => select = Some(ASTCell::with_node(*s, ci)),
+                    (Key::SQL_VIEW_TEMP, ASTNode::TempType(t), ci) => temp = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols, ni), ci) => columns = ASTCell::with_node(unpack_strings!(cols, ni, StringRef), ci)
                 }
                 ASTNode::CreateView(arena.alloc(CreateViewStatement {
                     name,

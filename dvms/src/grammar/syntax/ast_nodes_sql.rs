@@ -538,11 +538,11 @@ pub struct CreateAsStatement<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateViewStatement<'a> {
-    pub name: NamePath<'a>,
-    pub columns: &'a [ASTCell<&'a str>],
-    pub statement: &'a SelectStatement<'a>,
-    #[serde(with = "serde_temp_type::opt")]
-    pub temp: Option<sx::TempType>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub columns: ASTCell<&'a [ASTCell<&'a str>]>,
+    pub statement: ASTCell<&'a SelectStatement<'a>>,
+    #[serde(with = "serde_temp_type::opt_cell")]
+    pub temp: Option<ASTCell<sx::TempType>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -553,8 +553,8 @@ pub struct GenericOption<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraintArgument<'a> {
-    pub name: &'a str,
-    pub value: Expression<'a>,
+    pub name: ASTCell<&'a str>,
+    pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
