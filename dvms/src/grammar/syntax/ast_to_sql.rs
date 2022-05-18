@@ -13,10 +13,10 @@ use dashql_proto::syntax::VizComponentTypeModifier;
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for CommonTableExpression<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 4);
-        a.push(w.str(self.name));
-        if self.columns.len() > 0 {
-            let mut cols = ScriptTextArray::with_capacity(w, 2 * self.columns.len());
-            for (i, col) in self.columns.iter().enumerate() {
+        a.push(w.str(self.name.get()));
+        if self.columns.get().len() > 0 {
+            let mut cols = ScriptTextArray::with_capacity(w, 2 * self.columns.get().len());
+            for (i, col) in self.columns.get().iter().enumerate() {
                 if i > 0 {
                     cols.push(w.str(",").pad_right());
                 }
@@ -28,7 +28,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for CommonTableExpression<'
         a.push(
             w.round_brackets(
                 ScriptTextArray::with_capacity(w, 1)
-                    .with_pushed(self.statement.as_script(w))
+                    .with_pushed(self.statement.get().as_script(w))
                     .finish(),
             ),
         );

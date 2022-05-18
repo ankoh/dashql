@@ -497,9 +497,9 @@ pub enum SelectData<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CommonTableExpression<'a> {
-    pub name: &'a str,
-    pub columns: &'a [ASTCell<&'a str>],
-    pub statement: &'a SelectStatement<'a>,
+    pub name: ASTCell<&'a str>,
+    pub columns: ASTCell<&'a [ASTCell<&'a str>]>,
+    pub statement: ASTCell<&'a SelectStatement<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

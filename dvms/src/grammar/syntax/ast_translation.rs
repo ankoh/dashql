@@ -1092,13 +1092,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_CTE => {
-                let mut name = &"";
-                let mut columns: &[_] = &[];
+                let mut name = ASTCell::with_value("");
+                let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut stmt = None;
                 read_attributes! {
-                    (Key::SQL_CTE_NAME, ASTNode::StringRef(s), _ci) => name = s,
-                    (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes, ni), _ci) => columns = unpack_strings!(nodes, ni, StringRef),
-                    (Key::SQL_CTE_STATEMENT, ASTNode::SelectStatement(s), _ci) => stmt = Some(s)
+                    (Key::SQL_CTE_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(s, ci),
+                    (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_CTE_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = Some(ASTCell::with_node(*s, ci))
                 }
                 ASTNode::CommonTableExpression(arena.alloc(CommonTableExpression {
                     name,
