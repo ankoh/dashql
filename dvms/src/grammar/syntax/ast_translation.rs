@@ -949,15 +949,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
-                let mut strength = sx::RowLockingStrength::READ_ONLY;
-                let mut of: &[_] = &[];
+                let mut strength = ASTCell::with_value(sx::RowLockingStrength::READ_ONLY);
+                let mut of: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut block_behavior = None;
                 read_attributes! {
-                    (Key::SQL_ROW_LOCKING_STRENGTH, ASTNode::RowLockingStrength(s), _ci) => strength = s.clone(),
-                    (Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, ASTNode::RowLockingBlockBehavior(b), _ci) => {
-                        block_behavior = Some(b.clone());
+                    (Key::SQL_ROW_LOCKING_STRENGTH, ASTNode::RowLockingStrength(s), ci) => strength = ASTCell::with_node(s.clone(), ci),
+                    (Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, ASTNode::RowLockingBlockBehavior(b), ci) => {
+                        block_behavior = Some(ASTCell::with_node(b.clone(), ci));
                     },
-                    (Key::SQL_ROW_LOCKING_OF, ASTNode::Array(nodes, _ni), _ci) => {
+                    (Key::SQL_ROW_LOCKING_OF, ASTNode::Array(nodes, _ni), ci) => {
                         let names = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
                             match node {
@@ -965,7 +965,7 @@ pub fn deserialize_ast<'a>(
                                 _ => err_unexpected_element!(sx::NodeType::OBJECT_SQL_ROW_LOCKING, node),
                             }
                         }
-                        of = names;
+                        of = ASTCell::with_node(names, ci);
                     }
                 }
                 ASTNode::RowLocking(arena.alloc(RowLocking {
@@ -975,17 +975,17 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
-                let mut function = "";
+                let mut function = ASTCell::with_value("");
                 let mut repeat = None;
                 let mut seed = None;
                 let mut count_value = None;
-                let mut count_unit = sx::SampleCountUnit::ROWS;
+                let mut count_unit = ASTCell::with_value(sx::SampleCountUnit::ROWS);
                 read_attributes! {
-                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f), _ci) => function = f,
-                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v), _ci) => repeat = Some(v.clone()),
-                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v), _ci) => seed = Some(v.clone()),
-                    (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), _ci) => count_unit = u.clone(),
-                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(s), _ci) => count_value = Some(s)
+                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f), ci) => function = ASTCell::with_node(f, ci),
+                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v), ci) => repeat = Some(ASTCell::with_node(v.clone(), ci)),
+                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v), ci) => seed = Some(ASTCell::with_node(v.clone(), ci)),
+                    (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), ci) => count_unit = ASTCell::with_node(u.clone(), ci),
+                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(s), ci) => count_value = Some(ASTCell::with_node(*s, ci))
                 }
                 ASTNode::Sample(arena.alloc(Sample {
                     function,

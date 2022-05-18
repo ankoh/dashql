@@ -442,26 +442,26 @@ pub enum Limit<'a> {
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SampleCount<'a> {
-    pub value: &'a str,
-    #[serde(with = "serde_sample_count_unit")]
-    pub unit: sx::SampleCountUnit,
+    pub value: ASTCell<&'a str>,
+    #[serde(with = "serde_sample_count_unit::cell")]
+    pub unit: ASTCell<sx::SampleCountUnit>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Sample<'a> {
-    pub function: &'a str,
-    pub seed: Option<&'a str>,
-    pub repeat: Option<&'a str>,
+    pub function: ASTCell<&'a str>,
+    pub seed: Option<ASTCell<&'a str>>,
+    pub repeat: Option<ASTCell<&'a str>>,
     pub count: Option<SampleCount<'a>>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct RowLocking<'a> {
-    #[serde(with = "serde_row_locking_strength")]
-    pub strength: sx::RowLockingStrength,
-    pub of: &'a [NamePath<'a>],
-    #[serde(with = "serde_row_locking_block_behavior::opt")]
-    pub block_behavior: Option<sx::RowLockingBlockBehavior>,
+    #[serde(with = "serde_row_locking_strength::cell")]
+    pub strength: ASTCell<sx::RowLockingStrength>,
+    pub of: ASTCell<&'a [NamePath<'a>]>,
+    #[serde(with = "serde_row_locking_block_behavior::opt_cell")]
+    pub block_behavior: Option<ASTCell<sx::RowLockingBlockBehavior>>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
