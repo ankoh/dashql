@@ -1,6 +1,6 @@
 use super::program_analysis::CardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
-use crate::grammar::{Expression, VizComponent, VizStatement};
+use crate::grammar::{ASTCell, Expression, VizComponent, VizStatement};
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 
@@ -21,7 +21,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
     edits: &[EditOperation],
 ) -> &'arena VizStatement<'arena> {
     // Clone all components
-    let mut components: Vec<VizComponent<'arena>> = stmt.components.iter().map(|c| c.clone().clone()).collect();
+    let mut components: Vec<VizComponent<'arena>> = stmt.components.iter().map(|c| c.get().clone().clone()).collect();
     let mut extras: Vec<Vec<DsonField<'arena>>> = Vec::new();
     extras.reserve(components.len());
     for c in components.iter() {
@@ -74,11 +74,11 @@ pub fn edit_viz_statement<'arena, 'edit>(
     }
 
     // Allocate new components
-    let new_components: Vec<&'arena VizComponent<'arena>> = components
+    let new_components: Vec<ASTCell<&'arena VizComponent<'arena>>> = components
         .iter()
         .map(|c| {
             let c: &'arena VizComponent<'arena> = arena.alloc(c.clone());
-            c
+            ASTCell::with_value(c)
         })
         .collect();
     arena.alloc(VizStatement {

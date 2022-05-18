@@ -20,7 +20,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for CommonTableExpression<'
                 if i > 0 {
                     cols.push(w.str(",").pad_right());
                 }
-                cols.push(w.str(col));
+                cols.push(w.str(col.get()));
             }
             a.push(w.round_brackets(cols.finish()).pad_left());
         }
@@ -143,7 +143,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for RelationRef<'ast> {
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 8);
-        a.push(self.input[0].as_script(w));
+        a.push(self.input[0].get().as_script(w));
         if (self.join.0 & sx::JoinType::NATURAL_.0) != 0_u8 {
             a.push(w.keyword("natural").pad_left());
         }
@@ -159,7 +159,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
             a.push(w.keyword("outer").pad_left());
         }
         a.push(w.keyword("join").pad_left());
-        a.push(self.input[1].as_script(w).pad_left());
+        a.push(self.input[1].get().as_script(w).pad_left());
         match &self.qualifier {
             Some(JoinQualifier::On(expr)) => {
                 a.push(w.keyword("on").pad_left());
@@ -172,7 +172,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
                     if i > 0 {
                         using.push(w.str_const(",").pad_right());
                     }
-                    using.push(w.str(col));
+                    using.push(w.str(col.get()));
                 }
                 a.push(w.round_brackets(using.finish()).pad_left());
             }
@@ -227,7 +227,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectFromStatement<'as
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(target.as_script(w).pad_left());
+            a.push(target.get().as_script(w).pad_left());
         }
         if !self.from.is_empty() {
             a.push(w.keyword("from").pad_left());
@@ -235,7 +235,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectFromStatement<'as
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(table.as_script(w).pad_left());
+                a.push(table.get().as_script(w).pad_left());
             }
         }
         w.float(a.finish())
@@ -258,7 +258,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectStatement<'ast> {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(constraint.as_script(w).pad_left());
+                a.push(constraint.get().as_script(w).pad_left());
             }
         }
         if let Some(limit) = &self.limit {
@@ -398,7 +398,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for VizStatement<'ast> {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(component.as_script(w));
+            a.push(component.get().as_script(w));
         }
         w.float(a.finish())
     }
@@ -448,9 +448,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                 }
                 for case in c.cases.iter() {
                     f.push(w.keyword("when").pad_left());
-                    f.push(case.when.as_script(w).pad_left());
+                    f.push(case.get().when.as_script(w).pad_left());
                     f.push(w.keyword("then").pad_left());
-                    f.push(case.then.as_script(w).pad_left());
+                    f.push(case.get().then.as_script(w).pad_left());
                 }
                 if let Some(default) = &c.default {
                     f.push(w.keyword("else").pad_left());

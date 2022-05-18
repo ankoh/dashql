@@ -64,8 +64,8 @@ pub struct ConstIntervalCastExpression<'a> {
 pub struct ConstFunctionCastExpression<'a> {
     pub value: &'a str,
     pub func_name: Option<NamePath<'a>>,
-    pub func_args: &'a [&'a FunctionArgument<'a>],
-    pub func_arg_ordering: &'a [&'a OrderSpecification<'a>],
+    pub func_args: &'a [ASTCell<&'a FunctionArgument<'a>>],
+    pub func_arg_ordering: &'a [ASTCell<&'a OrderSpecification<'a>>],
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -109,7 +109,7 @@ pub struct CaseExpressionClause<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
     pub argument: Option<Expression<'a>>,
-    pub cases: &'a [&'a CaseExpressionClause<'a>],
+    pub cases: &'a [ASTCell<&'a CaseExpressionClause<'a>>],
     pub default: Option<Expression<'a>>,
 }
 
@@ -123,7 +123,7 @@ pub struct ParameterRef<'a> {
 pub struct TypeTestExpression<'a> {
     pub negate: bool,
     pub value: Expression<'a>,
-    pub of_types: &'a [&'a SQLType<'a>],
+    pub of_types: &'a [ASTCell<&'a SQLType<'a>>],
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -162,7 +162,7 @@ pub enum GroupByItem<'a> {
     Expression(Expression<'a>),
     Cube(&'a [ASTCell<Expression<'a>>]),
     Rollup(&'a [ASTCell<Expression<'a>>]),
-    GroupingSets(&'a [&'a GroupByItem<'a>]),
+    GroupingSets(&'a [ASTCell<&'a GroupByItem<'a>>]),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -256,16 +256,16 @@ pub struct Into<'a> {
 pub struct ColumnDefinition<'a> {
     pub name: &'a str,
     pub sql_type: &'a SQLType<'a>,
-    pub collate: &'a [&'a str],
+    pub collate: &'a [ASTCell<&'a str>],
     pub constraints: &'a [ColumnConstraintVariant<'a>],
-    pub options: &'a [&'a GenericOption<'a>],
+    pub options: &'a [ASTCell<&'a GenericOption<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Alias<'a> {
     pub name: &'a str,
-    pub column_names: &'a [&'a str],
-    pub column_definitions: &'a [&'a ColumnDefinition<'a>],
+    pub column_names: &'a [ASTCell<&'a str>],
+    pub column_definitions: &'a [ASTCell<&'a ColumnDefinition<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -289,13 +289,13 @@ pub struct SelectStatementRef<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct RowsFromItem<'a> {
     pub function: &'a FunctionExpression<'a>,
-    pub columns: &'a [&'a ColumnDefinition<'a>],
+    pub columns: &'a [ASTCell<&'a ColumnDefinition<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionTable<'a> {
     pub function: Option<&'a FunctionExpression<'a>>,
-    pub rows_from: &'a [&'a RowsFromItem<'a>],
+    pub rows_from: &'a [ASTCell<&'a RowsFromItem<'a>>],
     pub with_ordinality: bool,
 }
 
@@ -310,7 +310,7 @@ pub struct FunctionTableRef<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum JoinQualifier<'a> {
     On(Expression<'a>),
-    Using(&'a [&'a str]),
+    Using(&'a [ASTCell<&'a str>]),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -318,7 +318,7 @@ pub struct JoinedTable<'a> {
     #[serde(with = "serde_join_type")]
     pub join: sx::JoinType,
     pub qualifier: Option<JoinQualifier<'a>>,
-    pub input: &'a [&'a TableRef<'a>],
+    pub input: &'a [ASTCell<&'a TableRef<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -423,11 +423,11 @@ pub enum KnownFunctionArguments<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionExpression<'a> {
     pub name: FunctionName<'a>,
-    pub args: &'a [&'a FunctionArgument<'a>],
+    pub args: &'a [ASTCell<&'a FunctionArgument<'a>>],
     pub args_known: Option<KnownFunctionArguments<'a>>,
-    pub arg_ordering: &'a [&'a OrderSpecification<'a>],
+    pub arg_ordering: &'a [ASTCell<&'a OrderSpecification<'a>>],
     pub variadic: Option<&'a FunctionArgument<'a>>,
-    pub within_group: &'a [&'a OrderSpecification<'a>],
+    pub within_group: &'a [ASTCell<&'a OrderSpecification<'a>>],
     pub filter: Expression<'a>,
     pub all: bool,
     pub distinct: bool,
@@ -468,13 +468,13 @@ pub struct RowLocking<'a> {
 pub struct SelectFromStatement<'a> {
     pub all: bool,
     pub distinct: Option<&'a [ASTCell<Expression<'a>>]>,
-    pub targets: &'a [&'a ResultTarget<'a>],
+    pub targets: &'a [ASTCell<&'a ResultTarget<'a>>],
     pub into: Option<&'a Into<'a>>,
-    pub from: &'a [&'a TableRef<'a>],
+    pub from: &'a [ASTCell<&'a TableRef<'a>>],
     pub where_clause: Option<Expression<'a>>,
-    pub group_by: &'a [&'a GroupByItem<'a>],
+    pub group_by: &'a [ASTCell<&'a GroupByItem<'a>>],
     pub having: Option<Expression<'a>>,
-    pub windows: &'a [&'a WindowDefinition<'a>],
+    pub windows: &'a [ASTCell<&'a WindowDefinition<'a>>],
     pub sample: Option<&'a Sample<'a>>,
 }
 
@@ -484,31 +484,31 @@ pub struct CombineOperation<'a> {
     pub operation: sx::CombineOperation,
     #[serde(with = "serde_combine_modifier")]
     pub modifier: sx::CombineModifier,
-    pub input: &'a [&'a SelectStatement<'a>],
+    pub input: &'a [ASTCell<&'a SelectStatement<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SelectData<'a> {
     From(&'a SelectFromStatement<'a>),
     Table(TableRef<'a>),
-    Values(&'a [&'a [ASTCell<Expression<'a>>]]),
+    Values(&'a [ASTCell<&'a [ASTCell<Expression<'a>>]>]),
     Combine(&'a CombineOperation<'a>),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CommonTableExpression<'a> {
     pub name: &'a str,
-    pub columns: &'a [&'a str],
+    pub columns: &'a [ASTCell<&'a str>],
     pub statement: &'a SelectStatement<'a>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatement<'a> {
-    pub with_ctes: &'a [&'a CommonTableExpression<'a>],
+    pub with_ctes: &'a [ASTCell<&'a CommonTableExpression<'a>>],
     pub with_recursive: bool,
     pub data: SelectData<'a>,
-    pub order_by: &'a [&'a OrderSpecification<'a>],
-    pub row_locking: &'a [&'a RowLocking<'a>],
+    pub order_by: &'a [ASTCell<&'a OrderSpecification<'a>>],
+    pub row_locking: &'a [ASTCell<&'a RowLocking<'a>>],
     pub limit: Option<Limit<'a>>,
     pub offset: Option<Expression<'a>>,
 }
@@ -516,7 +516,7 @@ pub struct SelectStatement<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'a> {
     pub name: NamePath<'a>,
-    pub elements: &'a [&'a ColumnDefinition<'a>],
+    pub elements: &'a [ASTCell<&'a ColumnDefinition<'a>>],
     #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
     #[serde(with = "serde_on_commit_option::opt")]
@@ -526,7 +526,7 @@ pub struct CreateStatement<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateAsStatement<'a> {
     pub name: NamePath<'a>,
-    pub columns: &'a [&'a str],
+    pub columns: &'a [ASTCell<&'a str>],
     pub statement: &'a SelectStatement<'a>,
     pub if_not_exists: bool,
     pub with_data: bool,
@@ -539,7 +539,7 @@ pub struct CreateAsStatement<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateViewStatement<'a> {
     pub name: NamePath<'a>,
-    pub columns: &'a [&'a str],
+    pub columns: &'a [ASTCell<&'a str>],
     pub statement: &'a SelectStatement<'a>,
     #[serde(with = "serde_temp_type::opt")]
     pub temp: Option<sx::TempType>,
@@ -563,7 +563,7 @@ pub struct ColumnConstraint<'a> {
     #[serde(with = "serde_column_constraint::opt")]
     pub constraint_type: Option<sx::ColumnConstraint>,
     pub value: Option<Expression<'a>>,
-    pub arguments: &'a [&'a ColumnConstraintArgument<'a>],
+    pub arguments: &'a [ASTCell<&'a ColumnConstraintArgument<'a>>],
     pub no_inherit: bool,
 }
 
@@ -587,10 +587,10 @@ pub struct WindowFrameBound<'a> {
 pub struct WindowFrame<'a> {
     pub name: Option<&'a str>,
     pub partition_by: &'a [ASTCell<Expression<'a>>],
-    pub order_by: &'a [&'a OrderSpecification<'a>],
+    pub order_by: &'a [ASTCell<&'a OrderSpecification<'a>>],
     #[serde(with = "serde_window_range_mode::opt")]
     pub frame_mode: Option<sx::WindowRangeMode>,
-    pub frame_bounds: &'a [&'a WindowFrameBound<'a>],
+    pub frame_bounds: &'a [ASTCell<&'a WindowFrameBound<'a>>],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
