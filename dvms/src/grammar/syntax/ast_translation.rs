@@ -216,11 +216,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::BitTypeSpec(arena.alloc(BitType { varying, length }))
             }
             sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
-                let mut name: Option<&'a str> = None;
-                let mut modifiers: &[ASTCell<Expression<'a>>] = &[];
+                let mut name = None;
+                let mut modifiers: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s), _ci) => name = Some(s.clone()),
-                    (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a, ni), _ci) => modifiers = read_exprs(arena, a, *ni)
+                    (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s), ci) => name = Some(ASTCell::with_node(s.clone(), ci)),
+                    (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a, ni), ci) => modifiers = ASTCell::with_node(read_exprs(arena, a, *ni), ci)
                 }
                 ASTNode::GenericTypeSpec(arena.alloc(GenericType {
                     name: name.unwrap_or_default(),
@@ -246,8 +246,8 @@ pub fn deserialize_ast<'a>(
                 let mut ty = None;
                 let mut precision = None;
                 read_attributes! {
-                    (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t), _ci) => ty = Some(t.clone()),
-                    (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s), _ci) => precision = Some(s.clone())
+                    (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t), ci) => ty = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s), ci) => precision = Some(ASTCell::with_node(s.clone(), ci))
                 }
                 ASTNode::IntervalSpecification(arena.alloc(IntervalSpecification {
                     interval_type: ty,
@@ -259,15 +259,15 @@ pub fn deserialize_ast<'a>(
                 let mut alias = None;
                 let mut star = false;
                 read_attributes! {
-                    (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(b), _ci) => star = *b,
-                    (Key::SQL_RESULT_TARGET_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s), _ci) => alias = Some(s.clone())
+                    (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(b), _) => star = *b,
+                    (Key::SQL_RESULT_TARGET_VALUE, n, ci) => value = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s), ci) => alias = Some(ASTCell::with_node(s.clone(), ci))
                 }
                 ASTNode::ResultTarget(arena.alloc(if star {
                     ResultTarget::Star
                 } else {
                     ResultTarget::Value {
-                        value: value.unwrap_or(Expression::Null),
+                        value: value.unwrap_or(ASTCell::with_value(Expression::Null)),
                         alias,
                     }
                 }))
@@ -580,11 +580,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_GENERIC_OPTION => {
-                let mut key = "";
-                let mut value = "";
+                let mut key = ASTCell::with_value("");
+                let mut value = ASTCell::with_value("");
                 read_attributes! {
-                    (Key::SQL_GENERIC_OPTION_KEY, ASTNode::StringRef(k), _ci) => key = k,
-                    (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::StringRef(v), _ci) => value = v
+                    (Key::SQL_GENERIC_OPTION_KEY, ASTNode::StringRef(k), ci) => key = ASTCell::with_node(k, ci),
+                    (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::StringRef(v), ci) => value = ASTCell::with_node(v, ci)
                 }
                 ASTNode::GenericOption(arena.alloc(GenericOption { key, value }))
             }

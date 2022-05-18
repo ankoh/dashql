@@ -167,24 +167,24 @@ pub enum GroupByItem<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalSpecification<'a> {
-    #[serde(with = "serde_interval_type::opt")]
-    pub interval_type: Option<sx::IntervalType>,
-    pub precision: Option<&'a str>,
+    #[serde(with = "serde_interval_type::opt_cell")]
+    pub interval_type: Option<ASTCell<sx::IntervalType>>,
+    pub precision: Option<ASTCell<&'a str>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum ResultTarget<'a> {
     Star,
     Value {
-        value: Expression<'a>,
-        alias: Option<&'a str>,
+        value: ASTCell<Expression<'a>>,
+        alias: Option<ASTCell<&'a str>>,
     },
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct GenericType<'a> {
-    pub name: &'a str,
-    pub modifiers: &'a [ASTCell<Expression<'a>>],
+    pub name: ASTCell<&'a str>,
+    pub modifiers: ASTCell<&'a [ASTCell<Expression<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -547,8 +547,8 @@ pub struct CreateViewStatement<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct GenericOption<'a> {
-    pub key: &'a str,
-    pub value: &'a str,
+    pub key: ASTCell<&'a str>,
+    pub value: ASTCell<&'a str>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

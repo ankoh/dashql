@@ -209,9 +209,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for ResultTarget<'ast> {
             ResultTarget::Star => w.str_const("*"),
             ResultTarget::Value { value, alias } => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
-                a.push(value.as_script(w));
+                a.push(value.get().as_script(w));
                 if let Some(alias) = alias {
-                    a.push(w.str(alias).pad_left());
+                    a.push(w.str(alias.get()).pad_left());
                 }
                 w.float(a.finish())
             }
