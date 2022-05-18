@@ -39,19 +39,19 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for CommonTableExpression<'
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for OrderSpecification<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3);
-        a.push(self.value.as_script(w));
-        if let Some(dir) = self.direction {
+        a.push(self.value.get().as_script(w));
+        if let Some(dir) = &self.direction {
             a.push(
-                match dir.clone() {
+                match dir.get() {
                     sx::OrderDirection::ASCENDING => w.keyword("asc"),
                     _ => w.keyword("desc"),
                 }
                 .pad_left(),
             );
         }
-        if let Some(nulls) = self.null_rule {
+        if let Some(nulls) = &self.null_rule {
             a.push(
-                match nulls.clone() {
+                match nulls.get() {
                     sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
                     _ => w.keyword("nulls last"),
                 }

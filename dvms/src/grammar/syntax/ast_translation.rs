@@ -232,12 +232,12 @@ pub fn deserialize_ast<'a>(
                 let mut direction = None;
                 let mut null_rule = None;
                 read_attributes! {
-                    (Key::SQL_ORDER_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d), _ci) => direction = Some(d.clone()),
-                    (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n), _ci) => null_rule = Some(n.clone())
+                    (Key::SQL_ORDER_VALUE, n, ci) => value = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_ORDER_DIRECTION, ASTNode::OrderDirection(d), ci) => direction = Some(ASTCell::with_node(d.clone(), ci)),
+                    (Key::SQL_ORDER_NULLRULE, ASTNode::OrderNullRule(n), ci) => null_rule = Some(ASTCell::with_node(n.clone(), ci))
                 }
                 ASTNode::OrderSpecification(arena.alloc(OrderSpecification {
-                    value: value.unwrap_or(Expression::Null),
+                    value: value.unwrap_or(ASTCell::with_value(Expression::Null)),
                     direction,
                     null_rule,
                 }))
@@ -1151,13 +1151,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION => {
-                let mut negate = false;
+                let mut negate = ASTCell::with_value(false);
                 let mut value = None;
-                let mut of_types: &[_] = &[];
+                let mut of_types: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_TYPETEST_NEGATE, ASTNode::Boolean(neg), _ci) => negate = *neg,
-                    (Key::SQL_TYPETEST_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_TYPETEST_TYPES, ASTNode::Array(nodes, ni), _ci) => of_types = unpack_nodes!(nodes, ni, SQLType)
+                    (Key::SQL_TYPETEST_NEGATE, ASTNode::Boolean(neg), ci) => negate = ASTCell::with_node(*neg, ci),
+                    (Key::SQL_TYPETEST_VALUE, n, ci) => value = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_TYPETEST_TYPES, ASTNode::Array(nodes, ni), ci) => of_types = ASTCell::with_node(unpack_nodes!(nodes, ni, SQLType), ci)
                 }
                 ASTNode::TypeTestExpression(arena.alloc(TypeTestExpression {
                     negate,

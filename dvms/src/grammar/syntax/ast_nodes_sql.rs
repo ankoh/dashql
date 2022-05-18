@@ -121,9 +121,9 @@ pub struct ParameterRef<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TypeTestExpression<'a> {
-    pub negate: bool,
-    pub value: Expression<'a>,
-    pub of_types: &'a [ASTCell<&'a SQLType<'a>>],
+    pub negate: ASTCell<bool>,
+    pub value: ASTCell<Expression<'a>>,
+    pub of_types: ASTCell<&'a [ASTCell<&'a SQLType<'a>>]>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -149,11 +149,11 @@ pub enum Expression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct OrderSpecification<'a> {
-    pub value: Expression<'a>,
-    #[serde(with = "serde_order_direction::opt")]
-    pub direction: Option<sx::OrderDirection>,
-    #[serde(with = "serde_order_null_rule::opt")]
-    pub null_rule: Option<sx::OrderNullRule>,
+    pub value: ASTCell<Expression<'a>>,
+    #[serde(with = "serde_order_direction::opt_cell")]
+    pub direction: Option<ASTCell<sx::OrderDirection>>,
+    #[serde(with = "serde_order_null_rule::opt_cell")]
+    pub null_rule: Option<ASTCell<sx::OrderNullRule>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
