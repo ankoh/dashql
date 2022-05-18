@@ -576,20 +576,20 @@ pub enum ColumnConstraintVariant<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrameBound<'a> {
-    #[serde(with = "serde_window_bound_mode")]
-    pub mode: sx::WindowBoundMode,
-    #[serde(with = "serde_window_bound_direction::opt")]
-    pub direction: Option<sx::WindowBoundDirection>,
-    pub value: Expression<'a>,
+    #[serde(with = "serde_window_bound_mode::cell")]
+    pub mode: ASTCell<sx::WindowBoundMode>,
+    #[serde(with = "serde_window_bound_direction::opt_cell")]
+    pub direction: Option<ASTCell<sx::WindowBoundDirection>>,
+    pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'a> {
-    pub name: Option<&'a str>,
+    pub name: Option<ASTCell<&'a str>>,
     pub partition_by: &'a [ASTCell<Expression<'a>>],
     pub order_by: &'a [ASTCell<&'a OrderSpecification<'a>>],
-    #[serde(with = "serde_window_range_mode::opt")]
-    pub frame_mode: Option<sx::WindowRangeMode>,
+    #[serde(with = "serde_window_range_mode::opt_cell")]
+    pub frame_mode: Option<ASTCell<sx::WindowRangeMode>>,
     pub frame_bounds: &'a [ASTCell<&'a WindowFrameBound<'a>>],
 }
 

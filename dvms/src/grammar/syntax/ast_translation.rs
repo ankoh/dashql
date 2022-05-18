@@ -1106,13 +1106,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_WINDOW_BOUND => {
-                let mut mode = sx::WindowBoundMode::UNBOUNDED;
+                let mut mode = ASTCell::with_value(sx::WindowBoundMode::UNBOUNDED);
                 let mut direction = None;
-                let mut value = Expression::Null;
+                let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
-                    (Key::SQL_WINDOW_BOUND_MODE, ASTNode::WindowBoundMode(m), _ci) => mode = *m,
-                    (Key::SQL_WINDOW_BOUND_DIRECTION, ASTNode::WindowBoundDirection(d), _ci) => direction = Some(*d),
-                    (Key::SQL_WINDOW_BOUND_VALUE, n, _ci) => value = read_expr!(n)
+                    (Key::SQL_WINDOW_BOUND_MODE, ASTNode::WindowBoundMode(m), ci) => mode = ASTCell::with_node(*m, ci),
+                    (Key::SQL_WINDOW_BOUND_DIRECTION, ASTNode::WindowBoundDirection(d), ci) => direction = Some(ASTCell::with_node(*d, ci)),
+                    (Key::SQL_WINDOW_BOUND_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci)
                 }
                 ASTNode::WindowFrameBound(arena.alloc(WindowFrameBound { mode, direction, value }))
             }
@@ -1123,10 +1123,10 @@ pub fn deserialize_ast<'a>(
                 let mut frame_mode = None;
                 let mut frame_bounds: &[_] = &[];
                 read_attributes! {
-                    (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n), _ci) => name = Some(n.clone()),
+                    (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n), ci) => name = Some(ASTCell::with_node(n.clone(), ci)),
                     (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, ni), _ci) => partition_by = read_exprs(arena, nodes, *ni),
                     (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes, ni), _ci) => order_by = unpack_nodes!(nodes, ni, OrderSpecification),
-                    (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m), _ci) => frame_mode = Some(*m),
+                    (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m), ci) => frame_mode = Some(ASTCell::with_node(*m, ci)),
                     (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes, ni), _ci) => frame_bounds = unpack_nodes!(nodes, ni, WindowFrameBound)
                 }
                 ASTNode::WindowFrame(arena.alloc(WindowFrame {
