@@ -290,7 +290,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_EXPRESSION_ARG0, n, ci) => args[0] = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_EXPRESSION_ARG1, n, ci) => args[1] = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_EXPRESSION_ARG2, n, ci) => args[2] = ASTCell::with_node(read_expr!(n), ci),
-                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), ci) => postfix = ASTCell::with_value(*v),
+                    (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), ci) => postfix = ASTCell::with_node(*v, ci),
                     (Key::SQL_EXPRESSION_OPERATOR, n, ci) => operator_name = ASTCell::with_node(read_expression_operator(arena, n), ci)
                 }
                 ASTNode::Expression(Expression::Nary(arena.alloc(NaryExpression {
@@ -929,15 +929,15 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = None;
                 let mut constraint_type = None;
-                let mut arguments: &[_] = &[];
+                let mut arguments: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = None;
-                let mut no_inherit = false;
+                let mut no_inherit = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), _ci) => constraint_type = Some(c.clone()),
-                    (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n), _ci) => constraint_name = Some(n.clone()),
-                    (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), _ci) => arguments = unpack_nodes!(nodes, ni, ColumnConstraintArgument),
-                    (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), _ci) => no_inherit = *b
+                    (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = Some(ASTCell::with_node(c.clone(), ci)),
+                    (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = Some(ASTCell::with_node(n.clone(), ci)),
+                    (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, ci) => value = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => arguments = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnConstraintArgument), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), ci) => no_inherit = ASTCell::with_node(*b, ci)
                 }
                 ASTNode::ColumnConstraintInfo(arena.alloc(ColumnConstraint {
                     constraint_name,
@@ -1118,16 +1118,16 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_WINDOW_FRAME => {
                 let mut name = None;
-                let mut partition_by: &[_] = &[];
-                let mut order_by: &[_] = &[];
+                let mut partition_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut order_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut frame_mode = None;
-                let mut frame_bounds: &[_] = &[];
+                let mut frame_bounds: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
                     (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n), ci) => name = Some(ASTCell::with_node(n.clone(), ci)),
-                    (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, ni), _ci) => partition_by = read_exprs(arena, nodes, *ni),
-                    (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes, ni), _ci) => order_by = unpack_nodes!(nodes, ni, OrderSpecification),
+                    (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, ni), ci) => partition_by = ASTCell::with_node(read_exprs(arena, nodes, *ni), ci),
+                    (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes, ni), ci) => order_by = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
                     (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m), ci) => frame_mode = Some(ASTCell::with_node(*m, ci)),
-                    (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes, ni), _ci) => frame_bounds = unpack_nodes!(nodes, ni, WindowFrameBound)
+                    (Key::SQL_WINDOW_FRAME_BOUNDS, ASTNode::Array(nodes, ni), ci) => frame_bounds = ASTCell::with_node(unpack_nodes!(nodes, ni, WindowFrameBound), ci)
                 }
                 ASTNode::WindowFrame(arena.alloc(WindowFrame {
                     name,

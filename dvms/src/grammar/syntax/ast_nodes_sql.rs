@@ -559,12 +559,12 @@ pub struct ColumnConstraintArgument<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraint<'a> {
-    pub constraint_name: Option<&'a str>,
-    #[serde(with = "serde_column_constraint::opt")]
-    pub constraint_type: Option<sx::ColumnConstraint>,
-    pub value: Option<Expression<'a>>,
-    pub arguments: &'a [ASTCell<&'a ColumnConstraintArgument<'a>>],
-    pub no_inherit: bool,
+    pub constraint_name: Option<ASTCell<&'a str>>,
+    #[serde(with = "serde_column_constraint::opt_cell")]
+    pub constraint_type: Option<ASTCell<sx::ColumnConstraint>>,
+    pub value: Option<ASTCell<Expression<'a>>>,
+    pub arguments: ASTCell<&'a [ASTCell<&'a ColumnConstraintArgument<'a>>]>,
+    pub no_inherit: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -586,11 +586,11 @@ pub struct WindowFrameBound<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'a> {
     pub name: Option<ASTCell<&'a str>>,
-    pub partition_by: &'a [ASTCell<Expression<'a>>],
-    pub order_by: &'a [ASTCell<&'a OrderSpecification<'a>>],
+    pub partition_by: ASTCell<&'a [ASTCell<Expression<'a>>]>,
+    pub order_by: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
     #[serde(with = "serde_window_range_mode::opt_cell")]
     pub frame_mode: Option<ASTCell<sx::WindowRangeMode>>,
-    pub frame_bounds: &'a [ASTCell<&'a WindowFrameBound<'a>>],
+    pub frame_bounds: ASTCell<&'a [ASTCell<&'a WindowFrameBound<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
