@@ -63,7 +63,7 @@ pub struct ConstIntervalCastExpression<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstFunctionCastExpression<'a> {
     pub value: ASTCell<&'a str>,
-    pub func_name: Option<ASTCell<NamePath<'a>>>,
+    pub func_name: ASTCell<Option<NamePath<'a>>>,
     pub func_args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
     pub func_arg_ordering: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
 }
@@ -92,7 +92,7 @@ pub struct SubqueryExpression<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatementExpression<'a> {
     pub statement: ASTCell<&'a SelectStatement<'a>>,
-    pub indirection: Option<ASTCell<NamePath<'a>>>,
+    pub indirection: ASTCell<Option<NamePath<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -108,9 +108,9 @@ pub struct CaseExpressionClause<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
-    pub argument: Option<ASTCell<Expression<'a>>>,
+    pub argument: ASTCell<Option<Expression<'a>>>,
     pub cases: ASTCell<&'a [ASTCell<&'a CaseExpressionClause<'a>>]>,
-    pub default: Option<ASTCell<Expression<'a>>>,
+    pub default: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -150,10 +150,10 @@ pub enum Expression<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct OrderSpecification<'a> {
     pub value: ASTCell<Expression<'a>>,
-    #[serde(with = "serde_order_direction::opt_cell")]
-    pub direction: Option<ASTCell<sx::OrderDirection>>,
-    #[serde(with = "serde_order_null_rule::opt_cell")]
-    pub null_rule: Option<ASTCell<sx::OrderNullRule>>,
+    #[serde(with = "serde_order_direction::cell_opt")]
+    pub direction: ASTCell<Option<sx::OrderDirection>>,
+    #[serde(with = "serde_order_null_rule::cell_opt")]
+    pub null_rule: ASTCell<Option<sx::OrderNullRule>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -167,9 +167,9 @@ pub enum GroupByItem<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalSpecification<'a> {
-    #[serde(with = "serde_interval_type::opt_cell")]
-    pub interval_type: Option<ASTCell<sx::IntervalType>>,
-    pub precision: Option<ASTCell<&'a str>>,
+    #[serde(with = "serde_interval_type::cell_opt")]
+    pub interval_type: ASTCell<Option<sx::IntervalType>>,
+    pub precision: ASTCell<Option<&'a str>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -177,7 +177,7 @@ pub enum ResultTarget<'a> {
     Star,
     Value {
         value: ASTCell<Expression<'a>>,
-        alias: Option<ASTCell<&'a str>>,
+        alias: ASTCell<Option<&'a str>>,
     },
 }
 
@@ -424,14 +424,14 @@ pub enum KnownFunctionArguments<'a> {
 pub struct FunctionExpression<'a> {
     pub name: ASTCell<FunctionName<'a>>,
     pub args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
-    pub args_known: Option<ASTCell<KnownFunctionArguments<'a>>>,
+    pub args_known: ASTCell<Option<KnownFunctionArguments<'a>>>,
     pub arg_ordering: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
-    pub variadic: Option<ASTCell<&'a FunctionArgument<'a>>>,
+    pub variadic: ASTCell<Option<&'a FunctionArgument<'a>>>,
     pub within_group: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
     pub filter: ASTCell<Expression<'a>>,
     pub all: ASTCell<bool>,
     pub distinct: ASTCell<bool>,
-    pub over: Option<ASTCell<&'a WindowFrame<'a>>>,
+    pub over: ASTCell<Option<&'a WindowFrame<'a>>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -447,12 +447,12 @@ pub struct SampleCount<'a> {
     pub unit: ASTCell<sx::SampleCountUnit>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Sample<'a> {
     pub function: ASTCell<&'a str>,
-    pub seed: Option<ASTCell<&'a str>>,
-    pub repeat: Option<ASTCell<&'a str>>,
-    pub count: Option<SampleCount<'a>>,
+    pub seed: ASTCell<Option<&'a str>>,
+    pub repeat: ASTCell<Option<&'a str>>,
+    pub count: ASTCell<Option<&'a SampleCount<'a>>>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -460,22 +460,22 @@ pub struct RowLocking<'a> {
     #[serde(with = "serde_row_locking_strength::cell")]
     pub strength: ASTCell<sx::RowLockingStrength>,
     pub of: ASTCell<&'a [NamePath<'a>]>,
-    #[serde(with = "serde_row_locking_block_behavior::opt_cell")]
-    pub block_behavior: Option<ASTCell<sx::RowLockingBlockBehavior>>,
+    #[serde(with = "serde_row_locking_block_behavior::cell_opt")]
+    pub block_behavior: ASTCell<Option<sx::RowLockingBlockBehavior>>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectFromStatement<'a> {
     pub all: ASTCell<bool>,
-    pub distinct: Option<ASTCell<&'a [ASTCell<Expression<'a>>]>>,
+    pub distinct: ASTCell<Option<&'a [ASTCell<Expression<'a>>]>>,
     pub targets: ASTCell<&'a [ASTCell<&'a ResultTarget<'a>>]>,
-    pub into: Option<ASTCell<&'a Into<'a>>>,
+    pub into: ASTCell<Option<&'a Into<'a>>>,
     pub from: ASTCell<&'a [ASTCell<&'a TableRef<'a>>]>,
-    pub where_clause: Option<ASTCell<Expression<'a>>>,
+    pub where_clause: ASTCell<Option<Expression<'a>>>,
     pub group_by: ASTCell<&'a [ASTCell<&'a GroupByItem<'a>>]>,
-    pub having: Option<ASTCell<Expression<'a>>>,
+    pub having: ASTCell<Option<Expression<'a>>>,
     pub windows: ASTCell<&'a [ASTCell<&'a WindowDefinition<'a>>]>,
-    pub sample: Option<ASTCell<&'a Sample<'a>>>,
+    pub sample: ASTCell<Option<&'a Sample<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -509,18 +509,18 @@ pub struct SelectStatement<'a> {
     pub data: SelectData<'a>,
     pub order_by: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
     pub row_locking: ASTCell<&'a [ASTCell<&'a RowLocking<'a>>]>,
-    pub limit: Option<ASTCell<Limit<'a>>>,
-    pub offset: Option<ASTCell<Expression<'a>>>,
+    pub limit: ASTCell<Option<Limit<'a>>>,
+    pub offset: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'a> {
     pub name: ASTCell<NamePath<'a>>,
     pub elements: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
-    #[serde(with = "serde_temp_type::opt_cell")]
-    pub temp: Option<ASTCell<sx::TempType>>,
-    #[serde(with = "serde_on_commit_option::opt_cell")]
-    pub on_commit: Option<ASTCell<sx::OnCommitOption>>,
+    #[serde(with = "serde_temp_type::cell_opt")]
+    pub temp: ASTCell<Option<sx::TempType>>,
+    #[serde(with = "serde_on_commit_option::cell_opt")]
+    pub on_commit: ASTCell<Option<sx::OnCommitOption>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -530,10 +530,10 @@ pub struct CreateAsStatement<'a> {
     pub statement: ASTCell<&'a SelectStatement<'a>>,
     pub if_not_exists: ASTCell<bool>,
     pub with_data: ASTCell<bool>,
-    #[serde(with = "serde_temp_type::opt_cell")]
-    pub temp: Option<ASTCell<sx::TempType>>,
-    #[serde(with = "serde_on_commit_option::opt_cell")]
-    pub on_commit: Option<ASTCell<sx::OnCommitOption>>,
+    #[serde(with = "serde_temp_type::cell_opt")]
+    pub temp: ASTCell<Option<sx::TempType>>,
+    #[serde(with = "serde_on_commit_option::cell_opt")]
+    pub on_commit: ASTCell<Option<sx::OnCommitOption>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -541,8 +541,8 @@ pub struct CreateViewStatement<'a> {
     pub name: ASTCell<NamePath<'a>>,
     pub columns: ASTCell<&'a [ASTCell<&'a str>]>,
     pub statement: ASTCell<&'a SelectStatement<'a>>,
-    #[serde(with = "serde_temp_type::opt_cell")]
-    pub temp: Option<ASTCell<sx::TempType>>,
+    #[serde(with = "serde_temp_type::cell_opt")]
+    pub temp: ASTCell<Option<sx::TempType>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -559,10 +559,10 @@ pub struct ColumnConstraintArgument<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraint<'a> {
-    pub constraint_name: Option<ASTCell<&'a str>>,
-    #[serde(with = "serde_column_constraint::opt_cell")]
-    pub constraint_type: Option<ASTCell<sx::ColumnConstraint>>,
-    pub value: Option<ASTCell<Expression<'a>>>,
+    pub constraint_name: ASTCell<Option<&'a str>>,
+    #[serde(with = "serde_column_constraint::cell_opt")]
+    pub constraint_type: ASTCell<Option<sx::ColumnConstraint>>,
+    pub value: ASTCell<Option<Expression<'a>>>,
     pub arguments: ASTCell<&'a [ASTCell<&'a ColumnConstraintArgument<'a>>]>,
     pub no_inherit: ASTCell<bool>,
 }
@@ -578,18 +578,18 @@ pub enum ColumnConstraintVariant<'a> {
 pub struct WindowFrameBound<'a> {
     #[serde(with = "serde_window_bound_mode::cell")]
     pub mode: ASTCell<sx::WindowBoundMode>,
-    #[serde(with = "serde_window_bound_direction::opt_cell")]
-    pub direction: Option<ASTCell<sx::WindowBoundDirection>>,
+    #[serde(with = "serde_window_bound_direction::cell_opt")]
+    pub direction: ASTCell<Option<sx::WindowBoundDirection>>,
     pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct WindowFrame<'a> {
-    pub name: Option<ASTCell<&'a str>>,
+    pub name: ASTCell<Option<&'a str>>,
     pub partition_by: ASTCell<&'a [ASTCell<Expression<'a>>]>,
     pub order_by: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
-    #[serde(with = "serde_window_range_mode::opt_cell")]
-    pub frame_mode: Option<ASTCell<sx::WindowRangeMode>>,
+    #[serde(with = "serde_window_range_mode::cell_opt")]
+    pub frame_mode: ASTCell<Option<sx::WindowRangeMode>>,
     pub frame_bounds: ASTCell<&'a [ASTCell<&'a WindowFrameBound<'a>>]>,
 }
 

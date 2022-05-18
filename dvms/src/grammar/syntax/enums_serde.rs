@@ -68,21 +68,21 @@ macro_rules! derive_enum_serde {
                 }
             }
 
-            pub mod opt_cell {
+            pub mod cell_opt {
                 use super::super::super::ast_cell::*;
                 use super::*;
 
-                pub fn serialize<S>(value: &Option<ASTCell<$remote>>, ser: S) -> Result<S::Ok, S::Error>
+                pub fn serialize<S>(value: &ASTCell<Option<$remote>>, ser: S) -> Result<S::Ok, S::Error>
                 where
                     S: Serializer,
                 {
-                    match value {
-                        Some(v) => ser.serialize_i32(v.get().0.into()),
+                    match value.get() {
+                        Some(v) => ser.serialize_i32(v.0.into()),
                         None => ser.serialize_i32(-1),
                     }
                 }
 
-                pub fn deserialize<'de, D>(de: D) -> Result<Option<ASTCell<$remote>>, D::Error>
+                pub fn deserialize<'de, D>(de: D) -> Result<Option<ASTCell<Option<$remote>>>, D::Error>
                 where
                     D: Deserializer<'de>,
                 {
@@ -90,7 +90,7 @@ macro_rules! derive_enum_serde {
                     if id_unchecked == -1 {
                         return Ok(None);
                     }
-                    Ok(Some(ASTCell::with_value($remote(id_unchecked as u8))))
+                    Ok(Some(ASTCell::with_value(Some($remote(id_unchecked as u8)))))
                 }
             }
         }

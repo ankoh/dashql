@@ -102,12 +102,48 @@ impl<V> Eq for ASTCell<V> where V: Debug + Clone + Copy + PartialEq + Eq + Hash 
 
 impl<V> Default for ASTCell<V>
 where
-    V: Default + Debug + Clone + Copy + PartialEq + Eq + Hash,
+    V: Debug + Clone + Copy + PartialEq + Eq + Hash + Default,
 {
     fn default() -> Self {
         Self {
-            node_id: Default::default(),
-            inner: Default::default(),
+            node_id: None,
+            inner: Cell::new(Default::default()),
+        }
+    }
+}
+
+impl<V> ASTCell<Option<V>>
+where
+    V: Debug + Clone + Copy + PartialEq + Eq + Hash,
+{
+    pub fn unwrap(self) -> ASTCell<V> {
+        ASTCell {
+            node_id: self.node_id,
+            inner: Cell::new(self.inner.get().unwrap()),
+        }
+    }
+    pub fn unwrap_or(self, value: V) -> ASTCell<V> {
+        ASTCell {
+            node_id: self.node_id,
+            inner: Cell::new(self.inner.get().unwrap_or(value)),
+        }
+    }
+    pub fn is_some(&self) -> bool {
+        self.inner.get().is_some()
+    }
+    pub fn is_none(&self) -> bool {
+        self.inner.get().is_none()
+    }
+}
+
+impl<V> ASTCell<Option<V>>
+where
+    V: Debug + Clone + Copy + PartialEq + Eq + Hash + Default,
+{
+    pub fn unwrap_or_default(self) -> ASTCell<V> {
+        ASTCell {
+            node_id: self.node_id,
+            inner: Cell::new(self.inner.get().unwrap_or_default()),
         }
     }
 }

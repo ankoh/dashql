@@ -40,18 +40,18 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for OrderSpecification<'ast
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3);
         a.push(self.value.get().as_script(w));
-        if let Some(dir) = &self.direction {
+        if let Some(dir) = self.direction.get() {
             a.push(
-                match dir.get() {
+                match dir {
                     sx::OrderDirection::ASCENDING => w.keyword("asc"),
                     _ => w.keyword("desc"),
                 }
                 .pad_left(),
             );
         }
-        if let Some(nulls) = &self.null_rule {
+        if let Some(nulls) = self.null_rule.get() {
             a.push(
-                match nulls.get() {
+                match nulls {
                     sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
                     _ => w.keyword("nulls last"),
                 }
@@ -210,8 +210,8 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for ResultTarget<'ast> {
             ResultTarget::Value { value, alias } => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
                 a.push(value.get().as_script(w));
-                if let Some(alias) = alias {
-                    a.push(w.str(alias.get()).pad_left());
+                if let Some(alias) = alias.get() {
+                    a.push(w.str(alias).pad_left());
                 }
                 w.float(a.finish())
             }
@@ -261,12 +261,12 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectStatement<'ast> {
                 a.push(constraint.get().as_script(w).pad_left());
             }
         }
-        if let Some(limit) = &self.limit {
-            a.push(limit.get().as_script(w).pad_left());
+        if let Some(limit) = self.limit.get() {
+            a.push(limit.as_script(w).pad_left());
         }
-        if let Some(offset) = &self.offset {
+        if let Some(offset) = self.offset.get() {
             a.push(w.keyword("offset").pad_left());
-            a.push(offset.get().as_script(w).pad_left());
+            a.push(offset.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -443,8 +443,8 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
             Expression::Case(c) => {
                 let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
                 f.push(w.keyword("case"));
-                if let Some(arg) = &c.argument {
-                    f.push(arg.get().as_script(w).pad_left());
+                if c.argument.is_some() {
+                    f.push(c.argument.get().unwrap().as_script(w).pad_left());
                 }
                 for case in c.cases.get().iter() {
                     f.push(w.keyword("when").pad_left());
@@ -452,9 +452,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                     f.push(w.keyword("then").pad_left());
                     f.push(case.get().then.get().as_script(w).pad_left());
                 }
-                if let Some(default) = &c.default {
+                if c.default.is_some() {
                     f.push(w.keyword("else").pad_left());
-                    f.push(default.get().as_script(w).pad_left());
+                    f.push(c.default.get().unwrap().as_script(w).pad_left());
                 }
                 f.push(w.keyword("end").pad_left());
                 w.float(f.finish())
