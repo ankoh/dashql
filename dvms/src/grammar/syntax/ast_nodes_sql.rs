@@ -434,7 +434,7 @@ pub struct FunctionExpression<'a> {
     pub over: Option<&'a WindowFrame<'a>>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum Limit<'a> {
     ALL,
     Expression(Expression<'a>),
@@ -466,32 +466,32 @@ pub struct RowLocking<'a> {
 
 #[derive(Default, Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectFromStatement<'a> {
-    pub all: bool,
-    pub distinct: Option<&'a [ASTCell<Expression<'a>>]>,
-    pub targets: &'a [ASTCell<&'a ResultTarget<'a>>],
-    pub into: Option<&'a Into<'a>>,
-    pub from: &'a [ASTCell<&'a TableRef<'a>>],
-    pub where_clause: Option<Expression<'a>>,
-    pub group_by: &'a [ASTCell<&'a GroupByItem<'a>>],
-    pub having: Option<Expression<'a>>,
-    pub windows: &'a [ASTCell<&'a WindowDefinition<'a>>],
-    pub sample: Option<&'a Sample<'a>>,
+    pub all: ASTCell<bool>,
+    pub distinct: Option<ASTCell<&'a [ASTCell<Expression<'a>>]>>,
+    pub targets: ASTCell<&'a [ASTCell<&'a ResultTarget<'a>>]>,
+    pub into: Option<ASTCell<&'a Into<'a>>>,
+    pub from: ASTCell<&'a [ASTCell<&'a TableRef<'a>>]>,
+    pub where_clause: Option<ASTCell<Expression<'a>>>,
+    pub group_by: ASTCell<&'a [ASTCell<&'a GroupByItem<'a>>]>,
+    pub having: Option<ASTCell<Expression<'a>>>,
+    pub windows: ASTCell<&'a [ASTCell<&'a WindowDefinition<'a>>]>,
+    pub sample: Option<ASTCell<&'a Sample<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CombineOperation<'a> {
-    #[serde(with = "serde_combine_operation")]
-    pub operation: sx::CombineOperation,
-    #[serde(with = "serde_combine_modifier")]
-    pub modifier: sx::CombineModifier,
-    pub input: &'a [ASTCell<&'a SelectStatement<'a>>],
+    #[serde(with = "serde_combine_operation::cell")]
+    pub operation: ASTCell<sx::CombineOperation>,
+    #[serde(with = "serde_combine_modifier::cell")]
+    pub modifier: ASTCell<sx::CombineModifier>,
+    pub input: ASTCell<&'a [ASTCell<&'a SelectStatement<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub enum SelectData<'a> {
+    Table(ASTCell<TableRef<'a>>),
+    Values(ASTCell<&'a [ASTCell<&'a [ASTCell<Expression<'a>>]>]>),
     From(&'a SelectFromStatement<'a>),
-    Table(TableRef<'a>),
-    Values(&'a [ASTCell<&'a [ASTCell<Expression<'a>>]>]),
     Combine(&'a CombineOperation<'a>),
 }
 
@@ -504,36 +504,36 @@ pub struct CommonTableExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatement<'a> {
-    pub with_ctes: &'a [ASTCell<&'a CommonTableExpression<'a>>],
-    pub with_recursive: bool,
+    pub with_ctes: ASTCell<&'a [ASTCell<&'a CommonTableExpression<'a>>]>,
+    pub with_recursive: ASTCell<bool>,
     pub data: SelectData<'a>,
-    pub order_by: &'a [ASTCell<&'a OrderSpecification<'a>>],
-    pub row_locking: &'a [ASTCell<&'a RowLocking<'a>>],
-    pub limit: Option<Limit<'a>>,
-    pub offset: Option<Expression<'a>>,
+    pub order_by: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
+    pub row_locking: ASTCell<&'a [ASTCell<&'a RowLocking<'a>>]>,
+    pub limit: Option<ASTCell<Limit<'a>>>,
+    pub offset: Option<ASTCell<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'a> {
-    pub name: NamePath<'a>,
-    pub elements: &'a [ASTCell<&'a ColumnDefinition<'a>>],
-    #[serde(with = "serde_temp_type::opt")]
-    pub temp: Option<sx::TempType>,
-    #[serde(with = "serde_on_commit_option::opt")]
-    pub on_commit: Option<sx::OnCommitOption>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub elements: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
+    #[serde(with = "serde_temp_type::opt_cell")]
+    pub temp: Option<ASTCell<sx::TempType>>,
+    #[serde(with = "serde_on_commit_option::opt_cell")]
+    pub on_commit: Option<ASTCell<sx::OnCommitOption>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateAsStatement<'a> {
-    pub name: NamePath<'a>,
-    pub columns: &'a [ASTCell<&'a str>],
-    pub statement: &'a SelectStatement<'a>,
-    pub if_not_exists: bool,
-    pub with_data: bool,
-    #[serde(with = "serde_temp_type::opt")]
-    pub temp: Option<sx::TempType>,
-    #[serde(with = "serde_on_commit_option::opt")]
-    pub on_commit: Option<sx::OnCommitOption>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub columns: ASTCell<&'a [ASTCell<&'a str>]>,
+    pub statement: ASTCell<&'a SelectStatement<'a>>,
+    pub if_not_exists: ASTCell<bool>,
+    pub with_data: ASTCell<bool>,
+    #[serde(with = "serde_temp_type::opt_cell")]
+    pub temp: Option<ASTCell<sx::TempType>>,
+    #[serde(with = "serde_on_commit_option::opt_cell")]
+    pub on_commit: Option<ASTCell<sx::OnCommitOption>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

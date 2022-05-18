@@ -998,15 +998,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_CREATE => {
-                let mut name = NamePath::default();
-                let mut elements: &[_] = &[];
+                let mut name = ASTCell::with_value(NamePath::default());
+                let mut elements: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut temp = None;
                 let mut on_commit = None;
                 read_attributes! {
-                    (Key::SQL_CREATE_TABLE_NAME, ASTNode::Array(n, ni), _ci) => name = read_name(arena, n, *ni),
-                    (Key::SQL_CREATE_TABLE_TEMP, ASTNode::TempType(t), _ci) => temp = Some(t.clone()),
-                    (Key::SQL_CREATE_TABLE_ON_COMMIT, ASTNode::OnCommitOption(o), _ci) => on_commit = Some(o.clone()),
-                    (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes, ni), _ci) => elements = unpack_nodes!(nodes, ni, ColumnDefinition)
+                    (Key::SQL_CREATE_TABLE_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
+                    (Key::SQL_CREATE_TABLE_TEMP, ASTNode::TempType(t), ci) => temp = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_CREATE_TABLE_ON_COMMIT, ASTNode::OnCommitOption(o), ci) => on_commit = Some(ASTCell::with_node(o.clone(), ci)),
+                    (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes, ni), ci) => elements = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnDefinition), ci)
                 }
                 ASTNode::Create(arena.alloc(CreateStatement {
                     name,
@@ -1047,21 +1047,21 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_CREATE_AS => {
-                let mut name = NamePath::default();
+                let mut name = ASTCell::with_value(NamePath::default());
                 let mut select = None;
-                let mut with_data = false;
-                let mut if_not_exists = false;
-                let mut columns: &[_] = &[];
+                let mut with_data = ASTCell::with_value(false);
+                let mut if_not_exists = ASTCell::with_value(false);
+                let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut temp = None;
                 let mut on_commit = None;
                 read_attributes! {
-                    (Key::SQL_CREATE_AS_NAME, ASTNode::Array(n, ni), _ci) => name = read_name(arena, n, *ni),
-                    (Key::SQL_CREATE_AS_STATEMENT, ASTNode::SelectStatement(s), _ci) => select = Some(s),
-                    (Key::SQL_CREATE_AS_WITH_DATA, ASTNode::Boolean(b), _ci) => with_data = *b,
-                    (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b), _ci) => if_not_exists = *b,
-                    (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t), _ci) => temp = Some(t.clone()),
-                    (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o), _ci) => on_commit = Some(o.clone()),
-                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes, ni), _ci) => columns = unpack_strings!(nodes, ni, StringRef)
+                    (Key::SQL_CREATE_AS_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
+                    (Key::SQL_CREATE_AS_STATEMENT, ASTNode::SelectStatement(s), ci) => select = Some(ASTCell::with_node(*s, ci)),
+                    (Key::SQL_CREATE_AS_WITH_DATA, ASTNode::Boolean(b), ci) => with_data = ASTCell::with_node(*b, ci),
+                    (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b), ci) => if_not_exists = ASTCell::with_node(*b, ci),
+                    (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t), ci) => temp = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o), ci) => on_commit = Some(ASTCell::with_node(o.clone(), ci)),
+                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci)
                 }
                 ASTNode::CreateAs(arena.alloc(CreateAsStatement {
                     name,
@@ -1166,37 +1166,37 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_SELECT => {
-                let mut with_ctes: &[_] = &[];
-                let mut with_recursive = false;
+                let mut with_ctes: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut with_recursive = ASTCell::with_value(false);
 
-                let mut values = None;
+                let mut values: Option<ASTCell<&'a [ASTCell<&'a [ASTCell<Expression<'a>>]>]>> = None;
                 let mut table = None;
                 let mut combine_operation = None;
-                let mut combine_modifier = sx::CombineModifier::NONE;
-                let mut combine_input: &[_] = &[];
+                let mut combine_modifier = ASTCell::with_value(sx::CombineModifier::NONE);
+                let mut combine_input: ASTCell<&[_]> = ASTCell::with_value(&[]);
 
-                let mut targets: &[_] = &[];
-                let mut all = false;
+                let mut targets: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut all = ASTCell::with_value(false);
                 let mut distinct = None;
                 let mut into = None;
-                let mut from: &[_] = &[];
+                let mut from: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut where_clause = None;
-                let mut group_by: &[_] = &[];
+                let mut group_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut having = None;
-                let mut windows: &[_] = &[];
+                let mut windows: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut sample = None;
 
                 let mut limit = None;
                 let mut offset = None;
-                let mut order_by: &[_] = &[];
-                let mut row_locking: &[_] = &[];
+                let mut order_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut row_locking: ASTCell<&[_]> = ASTCell::with_value(&[]);
 
                 read_attributes! {
-                    (Key::SQL_SELECT_WITH_CTES, ASTNode::Array(nodes, ni), _ci) => with_ctes = unpack_nodes!(nodes, ni, CommonTableExpression),
-                    (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b), _ci) => with_recursive = *b,
+                    (Key::SQL_SELECT_WITH_CTES, ASTNode::Array(nodes, ni), ci) => with_ctes = ASTCell::with_node(unpack_nodes!(nodes, ni, CommonTableExpression), ci),
+                    (Key::SQL_SELECT_WITH_RECURSIVE, ASTNode::Boolean(b), ci) => with_recursive = ASTCell::with_node(*b, ci),
 
-                    (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t), _ci) => table = Some(t.clone()),
-                    (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples, ni), _ci) => {
+                    (Key::SQL_SELECT_TABLE, ASTNode::TableRef(t), ci) => table = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_SELECT_VALUES, ASTNode::Array(tuples, ni), ci) => {
                         type Tuple<'a> = ASTCell<&'a [ASTCell<Expression<'a>>]>;
                         let tuples_layout = std::alloc::Layout::array::<Tuple<'a>>(tuples.len()).unwrap_or_else(|_| oom());
                         let tuples_mem = arena.alloc_layout(tuples_layout).cast::<Tuple<'a>>();
@@ -1215,56 +1215,58 @@ pub fn deserialize_ast<'a>(
                                 }
                             };
                         }
-                        values = Some(unsafe { std::slice::from_raw_parts_mut(tuples_mem.as_ptr(), tuples_writer) })
+                        let slice: &'a [Tuple<'a>] = unsafe { std::slice::from_raw_parts_mut(tuples_mem.as_ptr(), tuples_writer) };
+                        values = Some(ASTCell::with_node(slice, ci));
                     },
-                    (Key::SQL_COMBINE_OPERATION, ASTNode::CombineOperation(op), _ci) => combine_operation = Some(*op),
-                    (Key::SQL_COMBINE_MODIFIER, ASTNode::CombineModifier(m), _ci) => combine_modifier = *m,
-                    (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes, ni), _ci) => combine_input = unpack_nodes!(nodes, ni, SelectStatement),
+                    (Key::SQL_COMBINE_OPERATION, ASTNode::CombineOperation(op), ci) => combine_operation = Some(ASTCell::with_node(*op, ci)),
+                    (Key::SQL_COMBINE_MODIFIER, ASTNode::CombineModifier(m), ci) => combine_modifier = ASTCell::with_node(*m, ci),
+                    (Key::SQL_COMBINE_INPUT, ASTNode::Array(nodes, ni), ci) => combine_input = ASTCell::with_node(unpack_nodes!(nodes, ni, SelectStatement), ci),
 
-                    (Key::SQL_SELECT_ALL, ASTNode::Boolean(b), _ci) => all = *b,
-                    (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n, ni), _ci) => distinct = Some(read_exprs(arena, n, *ni)),
-                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes, ni), _ci) => targets = unpack_nodes!(nodes, ni, ResultTarget),
-                    (Key::SQL_SELECT_INTO, ASTNode::Into(i), _ci) => into = Some(*i),
-                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes, ni), _ci) => from = unpack_nodes!(nodes, ni, TableRef),
-                    (Key::SQL_SELECT_WHERE, n, _ci) => where_clause = Some(read_expr!(n)),
-                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes, ni), _ci) => group_by = unpack_nodes!(nodes, ni, GroupByItem),
-                    (Key::SQL_SELECT_HAVING, n, _ci) => having = Some(read_expr!(n)),
-                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s), _ci) => sample = Some(*s),
-                    (Key::SQL_SELECT_WINDOWS, ASTNode::Array(nodes, ni), _ci) => windows = unpack_nodes!(nodes, ni, WindowDefinition),
+                    (Key::SQL_SELECT_ALL, ASTNode::Boolean(b), ci) => all = ASTCell::with_node(*b, ci),
+                    (Key::SQL_SELECT_DISTINCT, ASTNode::Array(n, ni), ci) => distinct = Some(ASTCell::with_node(read_exprs(arena, n, *ni), ci)),
+                    (Key::SQL_SELECT_TARGETS, ASTNode::Array(nodes, ni), ci) => targets = ASTCell::with_node(unpack_nodes!(nodes, ni, ResultTarget), ci),
+                    (Key::SQL_SELECT_INTO, ASTNode::Into(i), ci) => into = Some(ASTCell::with_node(*i, ci)),
+                    (Key::SQL_SELECT_FROM, ASTNode::Array(nodes, ni), ci) => from = ASTCell::with_node(unpack_nodes!(nodes, ni, TableRef), ci),
+                    (Key::SQL_SELECT_WHERE, n, ci) => where_clause = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_SELECT_GROUPS, ASTNode::Array(nodes, ni), ci) => group_by = ASTCell::with_node(unpack_nodes!(nodes, ni, GroupByItem), ci),
+                    (Key::SQL_SELECT_HAVING, n, ci) => having = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_SELECT_SAMPLE, ASTNode::Sample(s), ci) => sample = Some(ASTCell::with_node(*s, ci)),
+                    (Key::SQL_SELECT_WINDOWS, ASTNode::Array(nodes, ni), ci) => windows = ASTCell::with_node(unpack_nodes!(nodes, ni, WindowDefinition), ci),
 
-                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes, ni), _ci) => order_by = unpack_nodes!(nodes, ni, OrderSpecification),
-                    (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(v), _ci) => if *v { limit = Some(Limit::ALL) },
-                    (Key::SQL_SELECT_LIMIT, n, _ci) => limit = Some(Limit::Expression(read_expr!(n))),
-                    (Key::SQL_SELECT_OFFSET, n, _ci) => offset = Some(read_expr!(n)),
-                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes, ni), _ci) => row_locking = unpack_nodes!(nodes, ni, RowLocking)
+                    (Key::SQL_SELECT_ORDER, ASTNode::Array(nodes, ni), ci) => order_by = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
+                    (Key::SQL_SELECT_LIMIT_ALL, ASTNode::Boolean(v), ci) => if *v { limit = Some(ASTCell::with_node(Limit::ALL, ci)) },
+                    (Key::SQL_SELECT_LIMIT, n, ci) => limit = Some(ASTCell::with_node(Limit::Expression(read_expr!(n)), ci)),
+                    (Key::SQL_SELECT_OFFSET, n, ci) => offset = Some(ASTCell::with_node(read_expr!(n), ci)),
+                    (Key::SQL_SELECT_ROW_LOCKING, ASTNode::Array(nodes, ni), ci) => row_locking = ASTCell::with_node(unpack_nodes!(nodes, ni, RowLocking), ci)
                 }
+                let data = if let Some(values) = values {
+                    SelectData::Values(values)
+                } else if let Some(table) = table {
+                    SelectData::Table(table)
+                } else if let Some(combine_op) = combine_operation {
+                    SelectData::Combine(arena.alloc(CombineOperation {
+                        operation: combine_op,
+                        modifier: combine_modifier,
+                        input: combine_input,
+                    }))
+                } else {
+                    SelectData::From(arena.alloc(SelectFromStatement {
+                        all,
+                        distinct,
+                        targets,
+                        into,
+                        from,
+                        where_clause,
+                        group_by,
+                        having,
+                        windows,
+                        sample,
+                    }))
+                };
                 ASTNode::SelectStatement(arena.alloc(SelectStatement {
                     with_ctes,
                     with_recursive,
-                    data: if let Some(values) = values {
-                        SelectData::Values(values)
-                    } else if let Some(table) = table {
-                        SelectData::Table(table)
-                    } else if let Some(combine_op) = combine_operation {
-                        SelectData::Combine(arena.alloc(CombineOperation {
-                            operation: combine_op,
-                            modifier: combine_modifier,
-                            input: combine_input,
-                        }))
-                    } else {
-                        SelectData::From(arena.alloc(SelectFromStatement {
-                            all,
-                            distinct,
-                            targets,
-                            into,
-                            from,
-                            where_clause,
-                            group_by,
-                            having,
-                            windows,
-                            sample,
-                        }))
-                    },
+                    data,
                     order_by,
                     limit,
                     offset,

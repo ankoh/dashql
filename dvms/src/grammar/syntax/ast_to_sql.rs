@@ -221,17 +221,17 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for ResultTarget<'ast> {
 
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectFromStatement<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.len() * 3 + self.from.len() * 3);
+        let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.get().len() * 3 + self.from.get().len() * 3);
         a.push(w.keyword("select"));
-        for (i, target) in self.targets.iter().enumerate() {
+        for (i, target) in self.targets.get().iter().enumerate() {
             if i > 0 {
                 a.push(w.str_const(","));
             }
             a.push(target.get().as_script(w).pad_left());
         }
-        if !self.from.is_empty() {
+        if !self.from.get().is_empty() {
             a.push(w.keyword("from").pad_left());
-            for (i, table) in self.from.iter().enumerate() {
+            for (i, table) in self.from.get().iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
@@ -244,17 +244,17 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectFromStatement<'as
 
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectStatement<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
-        let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.len());
+        let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.get().len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
             SelectData::Combine(c) => todo!(),
             SelectData::Table(t) => todo!(),
             SelectData::Values(to) => todo!(),
         }
-        if !self.order_by.is_empty() {
+        if !self.order_by.get().is_empty() {
             a.push(w.keyword("order").pad_left());
             a.push(w.keyword("by").pad_left());
-            for (i, constraint) in self.order_by.iter().enumerate() {
+            for (i, constraint) in self.order_by.get().iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
@@ -262,11 +262,11 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for SelectStatement<'ast> {
             }
         }
         if let Some(limit) = &self.limit {
-            a.push(limit.as_script(w).pad_left());
+            a.push(limit.get().as_script(w).pad_left());
         }
         if let Some(offset) = &self.offset {
             a.push(w.keyword("offset").pad_left());
-            a.push(offset.as_script(w).pad_left());
+            a.push(offset.get().as_script(w).pad_left());
         }
         w.float(a.finish())
     }

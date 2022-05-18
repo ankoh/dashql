@@ -52,8 +52,8 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysis<'a>) {
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
         let name = match stmt {
-            Statement::CreateAs(create) => Some(normalize_name(ctx, create.name)),
-            Statement::Create(create) => Some(normalize_name(ctx, create.name)),
+            Statement::CreateAs(create) => Some(normalize_name(ctx, create.name.get())),
+            Statement::Create(create) => Some(normalize_name(ctx, create.name.get())),
             Statement::CreateView(view) => Some(normalize_name(ctx, view.name.get())),
             Statement::Fetch(fetch) => Some(normalize_name(ctx, fetch.name)),
             Statement::Load(load) => Some(normalize_name(ctx, load.name)),
