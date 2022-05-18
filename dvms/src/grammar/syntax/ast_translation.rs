@@ -420,14 +420,14 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
                 let mut func_name = None;
-                let mut func_args: &[_] = &[];
-                let mut func_arg_ordering: &[_] = &[];
+                let mut func_args: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut func_arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = None;
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), _ci) => value = Some(t.clone()),
-                    (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n, ni), _ci) => func_name = Some(read_name(arena, n, *ni)),
-                    (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes, ni), _ci) => func_args = unpack_nodes!(nodes, ni, FunctionArgument),
-                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes, ni), _ci) => func_arg_ordering = unpack_nodes!(nodes, ni, OrderSpecification)
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = Some(ASTCell::with_node(t.clone(), ci)),
+                    (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n, ni), ci) => func_name = Some(ASTCell::with_node(read_name(arena, n, *ni), ci)),
+                    (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes, ni), ci) => func_args = ASTCell::with_node(unpack_nodes!(nodes, ni, FunctionArgument), ci),
+                    (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes, ni), ci) => func_arg_ordering = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci)
                 }
                 let cast = arena.alloc(ConstFunctionCastExpression {
                     value: value.unwrap_or_default(),
@@ -722,8 +722,8 @@ pub fn deserialize_ast<'a>(
                 let mut value = None;
                 let mut typename = None;
                 read_attributes! {
-                    (Key::SQL_TYPECAST_VALUE, v, _ci) => value = Some(read_expr!(v)),
-                    (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t), _ci) => typename = Some(t.clone())
+                    (Key::SQL_TYPECAST_VALUE, v, ci) => value = Some(ASTCell::with_node(read_expr!(v), ci)),
+                    (Key::SQL_TYPECAST_TYPE, ASTNode::SQLType(t), ci) => typename = Some(ASTCell::with_node(t.clone(), ci))
                 }
                 ASTNode::TypeCastExpression(arena.alloc(TypeCastExpression {
                     sql_type: typename.unwrap(),
@@ -733,13 +733,14 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
                 let mut arg0 = ASTCell::with_value(Expression::Null);
                 let mut arg1 = ASTCell::with_value(Expression::Null);
-                let mut operator_name = ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS);
-                let mut quantifier = sx::SubqueryQuantifier::ALL;
+                let mut operator_name =
+                    ASTCell::with_value(ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS));
+                let mut quantifier = ASTCell::with_value(sx::SubqueryQuantifier::ALL);
                 read_attributes! {
                     (Key::SQL_SUBQUERY_ARG0, v, ci) => arg0 = ASTCell::with_node(read_expr!(v), ci),
                     (Key::SQL_SUBQUERY_ARG1, v, ci) => arg1 = ASTCell::with_node(read_expr!(v), ci),
-                    (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant), _ci) => quantifier = *quant,
-                    (Key::SQL_SUBQUERY_OPERATOR, n, _ci) => operator_name = read_expression_operator(arena, n)
+                    (Key::SQL_SUBQUERY_QUANTIFIER, ASTNode::SubqueryQuantifier(quant), ci) => quantifier = ASTCell::with_node(*quant, ci),
+                    (Key::SQL_SUBQUERY_OPERATOR, n, ci) => operator_name = ASTCell::with_node(read_expression_operator(arena, n), ci)
                 }
                 ASTNode::SubqueryExpression(arena.alloc(SubqueryExpression {
                     operator: operator_name,
@@ -751,8 +752,8 @@ pub fn deserialize_ast<'a>(
                 let mut stmt = None;
                 let mut indirection = None;
                 read_attributes! {
-                    (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), _ci) => stmt = Some(s),
-                    (Key::SQL_SELECT_EXPRESSION_INDIRECTION, ASTNode::Array(a, ni), _ci) => indirection = Some(read_name(arena, a, *ni))
+                    (Key::SQL_SELECT_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = Some(ASTCell::with_node(s, ci)),
+                    (Key::SQL_SELECT_EXPRESSION_INDIRECTION, ASTNode::Array(a, ni), ci) => indirection = Some(ASTCell::with_node(read_name(arena, a, *ni), ci))
                 }
                 ASTNode::SelectStatementExpression(arena.alloc(SelectStatementExpression {
                     statement: stmt.unwrap(),

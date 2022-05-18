@@ -62,10 +62,10 @@ pub struct ConstIntervalCastExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstFunctionCastExpression<'a> {
-    pub value: &'a str,
-    pub func_name: Option<NamePath<'a>>,
-    pub func_args: &'a [ASTCell<&'a FunctionArgument<'a>>],
-    pub func_arg_ordering: &'a [ASTCell<&'a OrderSpecification<'a>>],
+    pub value: ASTCell<&'a str>,
+    pub func_name: Option<ASTCell<NamePath<'a>>>,
+    pub func_args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
+    pub func_arg_ordering: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -77,22 +77,22 @@ pub enum ConstCastExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TypeCastExpression<'a> {
-    pub value: Expression<'a>,
-    pub sql_type: &'a SQLType<'a>,
+    pub value: ASTCell<Expression<'a>>,
+    pub sql_type: ASTCell<&'a SQLType<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SubqueryExpression<'a> {
-    pub operator: ExpressionOperatorName<'a>,
-    #[serde(with = "serde_subquery_quantifier")]
-    pub quantifier: sx::SubqueryQuantifier,
+    pub operator: ASTCell<ExpressionOperatorName<'a>>,
+    #[serde(with = "serde_subquery_quantifier::cell")]
+    pub quantifier: ASTCell<sx::SubqueryQuantifier>,
     pub args: [ASTCell<Expression<'a>>; 2],
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatementExpression<'a> {
-    pub statement: &'a SelectStatement<'a>,
-    pub indirection: Option<NamePath<'a>>,
+    pub statement: ASTCell<&'a SelectStatement<'a>>,
+    pub indirection: Option<ASTCell<NamePath<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
