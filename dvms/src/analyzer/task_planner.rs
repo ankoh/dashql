@@ -1,7 +1,10 @@
 use serde::Serialize;
 use std::error::Error;
 
-use crate::grammar::{syntax::script_writer::AsScript, Statement};
+use crate::grammar::{
+    syntax::script_writer::{print_ast_as_script_with_defaults, ScriptTextConfig},
+    Statement,
+};
 
 use super::program_analysis::ProgramAnalysis;
 
@@ -105,6 +108,7 @@ pub struct TaskGraph {
 pub struct TaskPlannerContext {}
 
 fn translate_statements<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let config = ScriptTextConfig::default();
     let mut tasks: Vec<ProgramTask> = Vec::with_capacity(ctx.program.statements.len());
 
     for stmt_id in 0..ctx.program.statements.len() {
@@ -121,38 +125,47 @@ fn translate_statements<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn
         let task = match &ctx.program.statements[stmt_id] {
             Statement::Create(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
+                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 ..mixin
             },
             Statement::CreateAs(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
+                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 ..mixin
             },
             Statement::CreateView(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateView,
+                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 ..mixin
             },
             Statement::Input(i) => ProgramTask {
                 task_type: ProgramTaskType::Input,
+                name_qualified: Some(print_ast_as_script_with_defaults(&i.name.get())),
                 ..mixin
             },
             Statement::Fetch(f) => ProgramTask {
                 task_type: ProgramTaskType::Fetch,
+                name_qualified: Some(print_ast_as_script_with_defaults(&f.name.get())),
                 ..mixin
             },
             Statement::Load(l) => ProgramTask {
                 task_type: ProgramTaskType::Load,
+                name_qualified: Some(print_ast_as_script_with_defaults(&l.name.get())),
                 ..mixin
             },
             Statement::Viz(l) => ProgramTask {
                 task_type: ProgramTaskType::CreateViz,
+                name_qualified: None,
                 ..mixin
             },
-            Statement::Select(l) => ProgramTask {
+            Statement::Select(s) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
+                name_qualified: None,
                 ..mixin
             },
             Statement::Set(s) => ProgramTask {
                 task_type: ProgramTaskType::Set,
+                name_qualified: None,
                 ..mixin
             },
         };

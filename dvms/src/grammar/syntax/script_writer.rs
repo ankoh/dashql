@@ -220,7 +220,7 @@ impl Default for ScriptTextConfig {
     }
 }
 
-pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTextConfig) -> String {
+pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTextConfig) -> String {
     #[derive(Clone)]
     struct DFSNode<'arena> {
         text: &'arena ScriptText<'arena>,
@@ -379,8 +379,15 @@ pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &Sc
     buffer
 }
 
-pub fn write_ast_as_script_string<'ast, V: AsScript<'ast>>(v: &'ast V, config: &ScriptTextConfig) -> String {
+pub fn print_ast_as_script<'ast, V: AsScript<'ast>>(v: &V, config: &ScriptTextConfig) -> String {
     let writer = ScriptWriter::new();
     let text: ScriptText<'_> = v.as_script(&writer);
-    write_script_string(&text, config)
+    print_script(&text, config)
+}
+
+pub fn print_ast_as_script_with_defaults<'ast, V: AsScript<'ast>>(v: &V) -> String {
+    let config = ScriptTextConfig::default();
+    let writer = ScriptWriter::new();
+    let text: ScriptText<'_> = v.as_script(&writer);
+    print_script(&text, &config)
 }

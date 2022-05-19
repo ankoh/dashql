@@ -451,8 +451,7 @@ mod test {
             Statement::Set(set) => set,
             _ => panic!("unexpected statement: {:?}", &prog.statements[0]),
         };
-        assert!(stmt.fields.get("key").is_some());
-        match stmt.fields.get("key") {
+        match stmt.fields.get().get("key") {
             Some(DsonValue::Expression(Expression::StringRef(s))) => {
                 assert_eq!(s.clone(), "42");
             }

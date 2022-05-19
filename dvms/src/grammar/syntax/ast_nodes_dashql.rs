@@ -7,46 +7,46 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct InputStatement<'a> {
-    pub name: NamePath<'a>,
-    pub value_type: &'a SQLType<'a>,
-    #[serde(with = "serde_input_component_type::opt")]
-    pub component_type: Option<sx::InputComponentType>,
-    pub extra: Option<DsonValue<'a>>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub value_type: ASTCell<&'a SQLType<'a>>,
+    #[serde(with = "serde_input_component_type::cell_opt")]
+    pub component_type: ASTCell<Option<sx::InputComponentType>>,
+    pub extra: ASTCell<Option<DsonValue<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FetchStatement<'a> {
-    pub name: NamePath<'a>,
-    #[serde(with = "serde_fetch_method_type")]
-    pub method: sx::FetchMethodType,
-    pub from_uri: Option<Expression<'a>>,
-    pub extra: Option<DsonValue<'a>>,
+    pub name: ASTCell<NamePath<'a>>,
+    #[serde(with = "serde_fetch_method_type::cell")]
+    pub method: ASTCell<sx::FetchMethodType>,
+    pub from_uri: ASTCell<Option<Expression<'a>>>,
+    pub extra: ASTCell<Option<DsonValue<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct LoadStatement<'a> {
-    pub name: NamePath<'a>,
-    pub source: NamePath<'a>,
-    #[serde(with = "serde_load_method_type")]
-    pub method: sx::LoadMethodType,
-    pub extra: Option<DsonValue<'a>>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub source: ASTCell<NamePath<'a>>,
+    #[serde(with = "serde_load_method_type::cell")]
+    pub method: ASTCell<sx::LoadMethodType>,
+    pub extra: ASTCell<Option<DsonValue<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct VizStatement<'a> {
-    pub target: TableRef<'a>,
-    pub components: &'a [ASTCell<&'a VizComponent<'a>>],
+    pub target: ASTCell<TableRef<'a>>,
+    pub components: ASTCell<&'a [ASTCell<&'a VizComponent<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct VizComponent<'a> {
-    #[serde(with = "serde_viz_component_type::opt")]
-    pub component_type: Option<sx::VizComponentType>,
-    pub type_modifiers: u32,
-    pub extra: Option<DsonValue<'a>>,
+    #[serde(with = "serde_viz_component_type::cell_opt")]
+    pub component_type: ASTCell<Option<sx::VizComponentType>>,
+    pub type_modifiers: ASTCell<u32>,
+    pub extra: ASTCell<Option<DsonValue<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SetStatement<'a> {
-    pub fields: DsonValue<'a>,
+    pub fields: ASTCell<DsonValue<'a>>,
 }

@@ -334,13 +334,13 @@ impl<'ast> AsScript<'ast> for FetchStatement<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("fetch"));
-        a.push(self.name.as_script(w).pad_left());
+        a.push(self.name.get().as_script(w).pad_left());
         a.push(w.keyword("from").pad_left());
-        if let Some(uri) = &self.from_uri {
+        if let Some(uri) = self.from_uri.get() {
             a.push(uri.as_script(w).pad_left());
         } else {
             a.push(
-                w.keyword(match self.method {
+                w.keyword(match self.method.get() {
                     sx::FetchMethodType::FILE => "file",
                     sx::FetchMethodType::HTTP => "http",
                     _ => "none",
@@ -348,7 +348,7 @@ impl<'ast> AsScript<'ast> for FetchStatement<'ast> {
                 .pad_left(),
             );
         }
-        if let Some(extra) = &self.extra {
+        if let Some(extra) = self.extra.get() {
             a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
@@ -362,12 +362,12 @@ impl<'ast> AsScript<'ast> for LoadStatement<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
-        a.push(self.name.as_script(w).pad_left());
+        a.push(self.name.get().as_script(w).pad_left());
         a.push(w.keyword("from").pad_left());
-        a.push(self.source.as_script(w).pad_left());
+        a.push(self.source.get().as_script(w).pad_left());
         a.push(w.keyword("using").pad_left());
         a.push(
-            w.keyword(match self.method {
+            w.keyword(match self.method.get() {
                 sx::LoadMethodType::CSV => "csv",
                 sx::LoadMethodType::JSON => "json",
                 sx::LoadMethodType::PARQUET => "parquet",
@@ -375,7 +375,7 @@ impl<'ast> AsScript<'ast> for LoadStatement<'ast> {
             })
             .pad_left(),
         );
-        if let Some(extra) = &self.extra {
+        if let Some(extra) = self.extra.get() {
             a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
@@ -387,10 +387,10 @@ impl<'ast> AsScript<'ast> for VizComponent<'ast> {
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.count_ones() as usize);
-        if let Some(ct) = &self.component_type {
-            if *ct != sx::VizComponentType::SPEC {
-                let mut mods = self.type_modifiers;
+        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.get().count_ones() as usize);
+        if let Some(ct) = self.component_type.get() {
+            if ct != sx::VizComponentType::SPEC {
+                let mut mods = self.type_modifiers.get();
                 let mut ti = 0;
                 while mods != 0 && ti <= sx::VizComponentTypeModifier::ENUM_MAX {
                     if (mods & 0b1) != 0 {
@@ -432,7 +432,7 @@ impl<'ast> AsScript<'ast> for VizComponent<'ast> {
                 );
             }
         }
-        if let Some(extra) = &self.extra {
+        if let Some(extra) = self.extra.get() {
             a.push(extra.as_script(w).pad_left());
         }
         w.float(a.finish())
@@ -444,11 +444,11 @@ impl<'ast> AsScript<'ast> for VizStatement<'ast> {
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.len());
+        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.get().len());
         a.push(w.keyword("viz"));
-        a.push(self.target.as_script(w).pad_left());
+        a.push(self.target.get().as_script(w).pad_left());
         a.push(w.keyword("using").pad_left());
-        for (i, component) in self.components.iter().enumerate() {
+        for (i, component) in self.components.get().iter().enumerate() {
             if i > 0 {
                 a.push(w.str_const(","));
             }
@@ -463,7 +463,7 @@ impl<'ast> AsScript<'ast> for SetStatement<'ast> {
     where
         'ast: 'writer,
     {
-        let fields = self.fields.as_object();
+        let fields = self.fields.get().as_object();
         assert!(!fields.is_empty(), "unexpected set statement value type");
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
         let mut a = ScriptTextArray::with_capacity(w, 4);
@@ -503,8 +503,8 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             Expression::Case(c) => {
                 let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
                 f.push(w.keyword("case"));
-                if c.argument.is_some() {
-                    f.push(c.argument.get().unwrap().as_script(w).pad_left());
+                if let Some(argument) = c.argument.get() {
+                    f.push(argument.as_script(w).pad_left());
                 }
                 for case in c.cases.get().iter() {
                     f.push(w.keyword("when").pad_left());
@@ -599,7 +599,7 @@ mod test {
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);
         let script_text = prog.statements[0].as_script(&writer);
-        let script_string = write_script_string(&script_text, &ScriptTextConfig::default());
+        let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(text, &script_string, "{:?}", prog);
         Ok(())

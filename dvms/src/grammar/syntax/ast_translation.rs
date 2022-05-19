@@ -460,15 +460,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_FETCH => {
-                let mut name = NamePath::default();
-                let mut method = sx::FetchMethodType::NONE;
-                let mut from_uri = None;
-                let mut extra = None;
+                let mut name = ASTCell::with_value(NamePath::default());
+                let mut method = ASTCell::with_value(sx::FetchMethodType::NONE);
+                let mut from_uri = ASTCell::default();
+                let mut extra = ASTCell::default();
                 read_attributes! {
-                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), _ci) => name = read_name(arena, a, *ni),
-                    (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m), _ci) => method = m.clone(),
-                    (Key::DASHQL_FETCH_FROM_URI, n, _ci) => from_uri = Some(read_expr!(n)),
-                    (Key::DASHQL_FETCH_EXTRA, n, _ci) => extra = Some(read_dson(arena, n))
+                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), ci) => name = ASTCell::with_node(read_name(arena, a, *ni), ci),
+                    (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m), ci) => method = ASTCell::with_node(m.clone(), ci),
+                    (Key::DASHQL_FETCH_FROM_URI, n, ci) => from_uri = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::DASHQL_FETCH_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::FetchStatement(arena.alloc(FetchStatement {
                     name,
@@ -478,15 +478,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_LOAD => {
-                let mut name = NamePath::default();
-                let mut source = NamePath::default();
-                let mut method = sx::LoadMethodType::NONE;
-                let mut extra = None;
+                let mut name = ASTCell::with_value(NamePath::default());
+                let mut source = ASTCell::with_value(NamePath::default());
+                let mut method = ASTCell::with_value(sx::LoadMethodType::NONE);
+                let mut extra = ASTCell::default();
                 read_attributes! {
-                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), _ci) => name = read_name(arena, a, *ni),
-                    (Key::DASHQL_DATA_SOURCE, ASTNode::Array(a, ni), _ci) => source = read_name(arena, a, *ni),
-                    (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m), _ci) => method = m.clone(),
-                    (Key::DASHQL_LOAD_EXTRA, n, _ci) => extra = Some(read_dson(arena, n))
+                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), ci) => name = ASTCell::with_node(read_name(arena, a, *ni), ci),
+                    (Key::DASHQL_DATA_SOURCE, ASTNode::Array(a, ni), ci) => source = ASTCell::with_node(read_name(arena, a, *ni), ci),
+                    (Key::DASHQL_LOAD_METHOD, ASTNode::LoadMethodType(m), ci) => method = ASTCell::with_node(m.clone(), ci),
+                    (Key::DASHQL_LOAD_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::LoadStatement(arena.alloc(LoadStatement {
                     name,
@@ -853,13 +853,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT => {
-                let mut component_type = None;
-                let mut type_modifiers = 0_u32;
-                let mut extra = None;
+                let mut component_type = ASTCell::default();
+                let mut type_modifiers = ASTCell::with_value(0_u32);
+                let mut extra = ASTCell::default();
                 read_attributes! {
-                    (Key::DASHQL_VIZ_COMPONENT_TYPE, ASTNode::VizComponentType(t), _ci) => component_type = Some(t.clone()),
-                    (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods), _ci) => type_modifiers = *mods,
-                    (Key::DASHQL_VIZ_COMPONENT_EXTRA, n, _ci) => extra = Some(read_dson(arena, n))
+                    (Key::DASHQL_VIZ_COMPONENT_TYPE, ASTNode::VizComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods), ci) => type_modifiers = ASTCell::with_node(*mods, ci),
+                    (Key::DASHQL_VIZ_COMPONENT_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::VizComponent(arena.alloc(VizComponent {
                     component_type,
@@ -868,11 +868,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_VIZ => {
-                let mut target = None;
-                let mut components: &[_] = &[];
+                let mut target = ASTCell::default();
+                let mut components: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t), _ci) => target = Some(t.clone()),
-                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes, ni), _ci) => components = unpack_nodes!(nodes, ni, VizComponent)
+                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t), ci) => target = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes, ni), ci) => components = ASTCell::with_node(unpack_nodes!(nodes, ni, VizComponent), ci)
                 }
                 ASTNode::VizStatement(arena.alloc(VizStatement {
                     target: target.unwrap(),
@@ -880,15 +880,15 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_INPUT => {
-                let mut name = NamePath::default();
-                let mut value_type = None;
-                let mut component_type = Some(sx::InputComponentType::NONE);
-                let mut extra = None;
+                let mut name = ASTCell::with_value(NamePath::default());
+                let mut value_type = ASTCell::default();
+                let mut component_type = ASTCell::with_value(Some(sx::InputComponentType::NONE));
+                let mut extra = ASTCell::default();
                 read_attributes! {
-                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n, ni), _ci) => name = read_name(arena, n, *ni),
-                    (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t), _ci) => value_type = Some(t),
-                    (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t), _ci) => component_type = Some(t.clone()),
-                    (Key::DASHQL_INPUT_EXTRA, n, _ci) => extra = Some(read_dson(arena, n))
+                    (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
+                    (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t), ci) => value_type = ASTCell::with_node(Some(*t), ci),
+                    (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::DASHQL_INPUT_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::InputStatement(arena.alloc(InputStatement {
                     name,
@@ -898,9 +898,9 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_SET => {
-                let mut value = None;
+                let mut value = ASTCell::default();
                 read_attributes! {
-                    (Key::DASHQL_SET_FIELDS, n, _ci) => value = Some(read_dson(arena, n))
+                    (Key::DASHQL_SET_FIELDS, n, ci) => value = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::SetStatement(arena.alloc(SetStatement { fields: value.unwrap() }))
             }

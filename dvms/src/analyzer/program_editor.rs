@@ -21,11 +21,12 @@ pub fn edit_viz_statement<'arena, 'edit>(
     edits: &[EditOperation],
 ) -> &'arena VizStatement<'arena> {
     // Clone all components
-    let mut components: Vec<VizComponent<'arena>> = stmt.components.iter().map(|c| c.get().clone().clone()).collect();
+    let mut components: Vec<VizComponent<'arena>> =
+        stmt.components.get().iter().map(|c| c.get().clone().clone()).collect();
     let mut extras: Vec<Vec<DsonField<'arena>>> = Vec::new();
     extras.reserve(components.len());
     for c in components.iter() {
-        match &c.extra {
+        match c.extra.get() {
             Some(extra) => extras.push(extra.as_object().iter().map(|field| field.clone()).collect()),
             None => extras.push(Vec::new()),
         }
@@ -70,7 +71,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
         if extra.is_empty() {
             continue;
         }
-        components[i].extra = Some(DsonValue::Object(arena.alloc_slice_clone(&extra)));
+        components[i].extra = ASTCell::with_value(Some(DsonValue::Object(arena.alloc_slice_clone(&extra))));
     }
 
     // Allocate new components
@@ -82,15 +83,15 @@ pub fn edit_viz_statement<'arena, 'edit>(
         })
         .collect();
     arena.alloc(VizStatement {
-        target: stmt.target,
-        components: arena.alloc_slice_clone(&new_components),
+        target: stmt.target.clone(),
+        components: ASTCell::with_value(arena.alloc_slice_clone(&new_components)),
     })
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::syntax::script_writer::{write_script_string, AsScript, ScriptTextConfig, ScriptWriter};
+    use crate::grammar::syntax::script_writer::{print_script, AsScript, ScriptTextConfig, ScriptWriter};
     use crate::grammar::{self, Statement};
     use std::error::Error;
 
@@ -110,7 +111,7 @@ mod test {
 
         let writer = ScriptWriter::new();
         let script_text = edited.as_script(&writer);
-        let script_string = write_script_string(&script_text, &ScriptTextConfig::default());
+        let script_string = print_script(&script_text, &ScriptTextConfig::default());
         assert_eq!(&script_string, expected, "{:?}", prog);
         Ok(())
     }
