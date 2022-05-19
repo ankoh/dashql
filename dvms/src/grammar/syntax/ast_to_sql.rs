@@ -120,7 +120,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for DsonValue<'ast> {
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Alias<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 1);
-        a.push(w.str(self.name));
+        a.push(w.str(self.name.get()));
         // todo: column defs
         w.float(a.finish())
     }
@@ -129,12 +129,12 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Alias<'ast> {
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for RelationRef<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 3);
-        if !self.inherit {
+        if !self.inherit.get() {
             a.push(w.keyword("only").pad_right());
         }
-        a.push(name_as_script(w, self.name));
-        if let Some(alias) = self.alias {
-            a.push(alias.as_script(w).pad_left())
+        a.push(name_as_script(w, self.name.get()));
+        if self.alias.is_some() {
+            a.push(self.alias.get().unwrap().as_script(w).pad_left())
         }
         w.float(a.finish())
     }
@@ -143,11 +143,11 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for RelationRef<'ast> {
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 8);
-        a.push(self.input[0].get().as_script(w));
-        if (self.join.0 & sx::JoinType::NATURAL_.0) != 0_u8 {
+        a.push(self.input.get()[0].get().as_script(w));
+        if (self.join.get().0 & sx::JoinType::NATURAL_.0) != 0_u8 {
             a.push(w.keyword("natural").pad_left());
         }
-        match sx::JoinType(self.join.0 & (sx::JoinType::OUTER_.0 - 1)) {
+        match sx::JoinType(self.join.get().0 & (sx::JoinType::OUTER_.0 - 1)) {
             sx::JoinType::NONE => a.push(w.keyword("cross").pad_left()),
             sx::JoinType::INNER => {}
             sx::JoinType::FULL => a.push(w.keyword("full").pad_left()),
@@ -155,12 +155,12 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
             sx::JoinType::RIGHT => a.push(w.keyword("right").pad_left()),
             _ => {}
         }
-        if (self.join.0 & sx::JoinType::OUTER_.0) != 0_u8 {
+        if (self.join.get().0 & sx::JoinType::OUTER_.0) != 0_u8 {
             a.push(w.keyword("outer").pad_left());
         }
         a.push(w.keyword("join").pad_left());
-        a.push(self.input[1].get().as_script(w).pad_left());
-        match &self.qualifier {
+        a.push(self.input.get()[1].get().as_script(w).pad_left());
+        match &self.qualifier.get() {
             Some(JoinQualifier::On(expr)) => {
                 a.push(w.keyword("on").pad_left());
                 a.push(expr.as_script(w).pad_left());
@@ -185,9 +185,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTable<'ast> {
 impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for JoinedTableRef<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 2);
-        a.push(self.table.as_script(w));
-        if let Some(alias) = self.alias {
-            a.push(alias.as_script(w).pad_left());
+        a.push(self.table.get().as_script(w));
+        if self.alias.is_some() {
+            a.push(self.alias.get().unwrap().as_script(w).pad_left());
         }
         w.float(a.finish())
     }

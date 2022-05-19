@@ -324,65 +324,72 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
-                let mut name = None;
-                let mut inherit = false;
-                let mut select = None;
-                let mut joined = None;
-                let mut func = None;
-                let mut alias = None;
-                let mut lateral = false;
-                let mut sample = None;
+                let mut name = ASTCell::default();
+                let mut inherit = ASTCell::with_value(false);
+                let mut select = ASTCell::default();
+                let mut joined = ASTCell::default();
+                let mut func = ASTCell::default();
+                let mut alias = ASTCell::default();
+                let mut lateral = ASTCell::with_value(false);
+                let mut sample = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_TABLEREF_NAME, ASTNode::Array(n, ni), _ci) => name = Some(read_name(arena, n, *ni)),
-                    (Key::SQL_TABLEREF_INHERIT, ASTNode::Boolean(v), _ci) => inherit = *v,
-                    (Key::SQL_TABLEREF_TABLE, ASTNode::SelectStatement(s), _ci) => select = Some(s),
-                    (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t), _ci) => joined = Some(t),
-                    (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t), _ci) => func = Some(t),
-                    (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a), _ci) => alias = Some(*a),
-                    (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s), _ci) => {
-                        alias = Some(arena.alloc(Alias {
-                            name: s,
-                            column_names: &[],
-                            column_definitions: &[],
-                        }))
+                    (Key::SQL_TABLEREF_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(Some(read_name(arena, n, *ni)), ci),
+                    (Key::SQL_TABLEREF_INHERIT, ASTNode::Boolean(v), ci) => inherit = ASTCell::with_node(*v, ci),
+                    (Key::SQL_TABLEREF_TABLE, ASTNode::SelectStatement(s), ci) => select = ASTCell::with_node(Some(*s), ci),
+                    (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t), ci) => joined = ASTCell::with_node(Some(*t), ci),
+                    (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t), ci) => func = ASTCell::with_node(Some(*t), ci),
+                    (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a), ci) => alias = ASTCell::with_node(Some(*a), ci),
+                    (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s), ci) => {
+                        alias = ASTCell::with_node(Some(arena.alloc(Alias {
+                            name: ASTCell::with_node(*s, ci),
+                            column_names: ASTCell::with_value(&[]),
+                            column_definitions: ASTCell::with_value(&[]),
+                        })), ci)
                     },
-                    (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(v), _ci) => lateral = *v,
-                    (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s), _ci) => sample = Some(*s)
+                    (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(v), ci) => lateral = ASTCell::with_node(*v, ci),
+                    (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s), ci) => sample = ASTCell::with_node(Some(*s), ci)
                 }
-                ASTNode::TableRef(if let Some(table) = select {
+                ASTNode::TableRef(if select.is_some() {
                     TableRef::Select(arena.alloc(SelectStatementRef {
-                        table,
+                        table: select.unwrap(),
                         alias,
                         sample,
                         lateral,
                     }))
-                } else if let Some(table) = joined {
-                    TableRef::Join(arena.alloc(JoinedTableRef { table, alias }))
-                } else if let Some(table) = func {
+                } else if joined.is_some() {
+                    TableRef::Join(arena.alloc(JoinedTableRef {
+                        table: joined.unwrap(),
+                        alias,
+                    }))
+                } else if func.is_some() {
                     TableRef::Function(arena.alloc(FunctionTableRef {
-                        table,
+                        table: func.unwrap(),
                         alias,
                         sample,
                         lateral,
                     }))
-                } else if let Some(name) = name {
-                    TableRef::Relation(arena.alloc(RelationRef { name, inherit, alias }))
+                } else if name.is_some() {
+                    TableRef::Relation(arena.alloc(RelationRef {
+                        name: name.unwrap(),
+                        inherit,
+                        alias,
+                    }))
                 } else {
                     return Err(RawError::from(format!("invalid table ref")).boxed());
                 })
             }
             sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
-                let mut function = None;
-                let mut count = None;
-                let mut count_unit = None;
-                let mut repeat = None;
-                let mut seed = None;
+                let mut function = ASTCell::default();
+                let mut count = ASTCell::default();
+                let mut count_unit = ASTCell::default();
+                let mut repeat = ASTCell::default();
+                let mut seed = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(s), _ci) => function = Some(s.clone()),
-                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(s), _ci) => repeat = Some(s.clone()),
-                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(s), _ci) => seed = Some(s.clone()),
-                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v), _ci) => count = Some(v.clone()),
-                    (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), _ci) => count_unit = Some(u.clone())
+                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(s), ci) => function = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(s), ci) => repeat = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(s), ci) => seed = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v), ci) => count = ASTCell::with_node(Some(v.clone()), ci),
+                    (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), ci) => count_unit = ASTCell::with_node(Some(u.clone()), ci)
                 }
                 ASTNode::TableSample(arena.alloc(TableSample {
                     function: function,
@@ -438,13 +445,13 @@ pub fn deserialize_ast<'a>(
                 ASTNode::ConstCastExpression(ConstCastExpression::Function(cast))
             }
             sx::NodeType::OBJECT_SQL_ALIAS => {
-                let mut name = "";
-                let mut column_names: &[_] = &[];
-                let mut column_definitions: &[_] = &[];
+                let mut name = ASTCell::with_value("");
+                let mut column_names: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut column_definitions: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s), _ci) => name = s,
-                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes, ni), _ci) => column_names = unpack_strings!(nodes, ni, StringRef),
-                    (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes, ni), _ci) => column_definitions = unpack_nodes!(nodes, ni, ColumnDefinition)
+                    (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(s, ci),
+                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes, ni), ci) => column_names = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes, ni), ci) => column_definitions = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnDefinition), ci)
                 }
                 ASTNode::Alias(arena.alloc(Alias {
                     name,
@@ -489,26 +496,26 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
-                let mut join = sx::JoinType::NONE;
-                let mut qualifier = None;
-                let mut input: &[_] = &[];
+                let mut join = ASTCell::with_value(sx::JoinType::NONE);
+                let mut qualifier = ASTCell::default();
+                let mut input: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t), _ci) => join = t.clone(),
-                    (Key::SQL_JOIN_ON, n, _ci) => qualifier = Some(JoinQualifier::On(read_expr!(n))),
-                    (Key::SQL_JOIN_USING, ASTNode::Array(nodes, ni), _ci) => {
+                    (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t), ci) => join = ASTCell::with_node(t.clone(), ci),
+                    (Key::SQL_JOIN_ON, n, ci) => qualifier = ASTCell::with_node(Some(JoinQualifier::On(read_expr!(n))), ci),
+                    (Key::SQL_JOIN_USING, ASTNode::Array(nodes, ni), ci) => {
                         let using = unpack_strings!(nodes, ni, StringRef);
-                        qualifier = Some(JoinQualifier::Using(using));
+                        qualifier = ASTCell::with_node(Some(JoinQualifier::Using(using)), ci);
                     },
-                    (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes, ni), _ci) => input = unpack_nodes!(nodes, ni, TableRef)
+                    (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes, ni), ci) => input = ASTCell::with_node(unpack_nodes!(nodes, ni, TableRef), ci)
                 }
                 ASTNode::JoinedTable(arena.alloc(JoinedTable { join, qualifier, input }))
             }
             sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
-                let mut function = None;
-                let mut columns: &[_] = &[];
+                let mut function = ASTCell::default();
+                let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_ROWSFROM_ITEM_FUNCTION, ASTNode::FunctionExpression(f), _ci) => function = Some(f),
-                    (Key::SQL_ROWSFROM_ITEM_COLUMNS, ASTNode::Array(nodes, ni), _ci) => columns = unpack_nodes!(nodes, ni, ColumnDefinition)
+                    (Key::SQL_ROWSFROM_ITEM_FUNCTION, ASTNode::FunctionExpression(f), ci) => function = ASTCell::with_node(Some(*f), ci),
+                    (Key::SQL_ROWSFROM_ITEM_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnDefinition), ci)
                 }
                 ASTNode::RowsFromItem(arena.alloc(RowsFromItem {
                     function: function.unwrap(),
@@ -516,13 +523,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
-                let mut function = None;
-                let mut ordinality = false;
-                let mut rows_from: &[_] = &[];
+                let mut function = ASTCell::default();
+                let mut ordinality = ASTCell::default();
+                let mut rows_from: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f), _ci) => function = Some(*f),
-                    (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(v), _ci) => ordinality = *v,
-                    (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes, ni), _ci) => rows_from = unpack_nodes!(nodes, ni, RowsFromItem)
+                    (Key::SQL_FUNCTION_TABLE_FUNCTION, ASTNode::FunctionExpression(f), ci) => function = ASTCell::with_node(Some(*f), ci),
+                    (Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, ASTNode::Boolean(v), ci) => ordinality = ASTCell::with_node(*v, ci),
+                    (Key::SQL_FUNCTION_TABLE_ROWS_FROM, ASTNode::Array(nodes, ni), ci) => rows_from = ASTCell::with_node(unpack_nodes!(nodes, ni, RowsFromItem), ci)
                 }
                 ASTNode::FunctionTable(arena.alloc(FunctionTable {
                     function,

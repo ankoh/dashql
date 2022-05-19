@@ -89,7 +89,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysis<'a>) {
             }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
-                    let target = normalize_name(ctx, rel.name);
+                    let target = normalize_name(ctx, rel.name.get());
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_required_for.insert(

@@ -263,51 +263,51 @@ pub struct ColumnDefinition<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Alias<'a> {
-    pub name: &'a str,
-    pub column_names: &'a [ASTCell<&'a str>],
-    pub column_definitions: &'a [ASTCell<&'a ColumnDefinition<'a>>],
+    pub name: ASTCell<&'a str>,
+    pub column_names: ASTCell<&'a [ASTCell<&'a str>]>,
+    pub column_definitions: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TableSample<'a> {
-    pub count: &'a str,
-    #[serde(with = "serde_sample_count_unit")]
-    pub unit: sx::SampleCountUnit,
-    pub function: Option<&'a str>,
-    pub repeat: Option<&'a str>,
-    pub seed: Option<&'a str>,
+    pub count: ASTCell<&'a str>,
+    #[serde(with = "serde_sample_count_unit::cell")]
+    pub unit: ASTCell<sx::SampleCountUnit>,
+    pub function: ASTCell<Option<&'a str>>,
+    pub repeat: ASTCell<Option<&'a str>>,
+    pub seed: ASTCell<Option<&'a str>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SelectStatementRef<'a> {
-    pub table: &'a SelectStatement<'a>,
-    pub alias: Option<&'a Alias<'a>>,
-    pub sample: Option<&'a TableSample<'a>>,
-    pub lateral: bool,
+    pub table: ASTCell<&'a SelectStatement<'a>>,
+    pub alias: ASTCell<Option<&'a Alias<'a>>>,
+    pub sample: ASTCell<Option<&'a TableSample<'a>>>,
+    pub lateral: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct RowsFromItem<'a> {
-    pub function: &'a FunctionExpression<'a>,
-    pub columns: &'a [ASTCell<&'a ColumnDefinition<'a>>],
+    pub function: ASTCell<&'a FunctionExpression<'a>>,
+    pub columns: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionTable<'a> {
-    pub function: Option<&'a FunctionExpression<'a>>,
-    pub rows_from: &'a [ASTCell<&'a RowsFromItem<'a>>],
-    pub with_ordinality: bool,
+    pub function: ASTCell<Option<&'a FunctionExpression<'a>>>,
+    pub rows_from: ASTCell<&'a [ASTCell<&'a RowsFromItem<'a>>]>,
+    pub with_ordinality: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct FunctionTableRef<'a> {
-    pub table: &'a FunctionTable<'a>,
-    pub alias: Option<&'a Alias<'a>>,
-    pub sample: Option<&'a TableSample<'a>>,
-    pub lateral: bool,
+    pub table: ASTCell<&'a FunctionTable<'a>>,
+    pub alias: ASTCell<Option<&'a Alias<'a>>>,
+    pub sample: ASTCell<Option<&'a TableSample<'a>>>,
+    pub lateral: ASTCell<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum JoinQualifier<'a> {
     On(Expression<'a>),
     Using(&'a [ASTCell<&'a str>]),
@@ -315,23 +315,23 @@ pub enum JoinQualifier<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct JoinedTable<'a> {
-    #[serde(with = "serde_join_type")]
-    pub join: sx::JoinType,
-    pub qualifier: Option<JoinQualifier<'a>>,
-    pub input: &'a [ASTCell<&'a TableRef<'a>>],
+    #[serde(with = "serde_join_type::cell")]
+    pub join: ASTCell<sx::JoinType>,
+    pub qualifier: ASTCell<Option<JoinQualifier<'a>>>,
+    pub input: ASTCell<&'a [ASTCell<&'a TableRef<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct JoinedTableRef<'a> {
-    pub table: &'a JoinedTable<'a>,
-    pub alias: Option<&'a Alias<'a>>,
+    pub table: ASTCell<&'a JoinedTable<'a>>,
+    pub alias: ASTCell<Option<&'a Alias<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct RelationRef<'a> {
-    pub name: NamePath<'a>,
-    pub inherit: bool,
-    pub alias: Option<&'a Alias<'a>>,
+    pub name: ASTCell<NamePath<'a>>,
+    pub inherit: ASTCell<bool>,
+    pub alias: ASTCell<Option<&'a Alias<'a>>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
