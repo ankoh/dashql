@@ -1026,26 +1026,26 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
-                let mut name = "";
-                let mut sql_type = None;
-                let mut collate: &[_] = &[];
-                let mut options: &[_] = &[];
-                let mut constraints: &[_] = &[];
+                let mut name = ASTCell::with_value("");
+                let mut sql_type = ASTCell::default();
+                let mut collate: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut options: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut constraints: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(n), _ci) => name = n,
-                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t), _ci) => sql_type = Some(t),
-                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes, ni), _ci) => collate = unpack_strings!(nodes, ni, StringRef),
-                    (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::Array(nodes, ni), _ci) => options = unpack_nodes!(nodes, ni, GenericOption),
-                    (Key::SQL_COLUMN_DEF_CONSTRAINTS, ASTNode::Array(nodes, _ni), _ci) => {
+                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(n, ci),
+                    (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t), ci) => sql_type = ASTCell::with_node(Some(*t), ci),
+                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes, ni), ci) => collate = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::Array(nodes, ni), ci) => options = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericOption), ci),
+                    (Key::SQL_COLUMN_DEF_CONSTRAINTS, ASTNode::Array(nodes, ni), ci) => {
                         let cs = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
                             match node {
-                                ASTNode::ColumnConstraintInfo(c) => cs[i] = ColumnConstraintVariant::Constraint(c),
-                                ASTNode::ConstraintAttribute(c) => cs[i] = ColumnConstraintVariant::Attribute(c.clone()),
+                                ASTNode::ColumnConstraintInfo(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Constraint(c), ni + i),
+                                ASTNode::ConstraintAttribute(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Attribute(c.clone()), ni + i),
                                 _ => return Err(RawError::from(format!("invalid colum constraint: {:?}", node)).boxed()),
                             }
                         }
-                        constraints = cs;
+                        constraints = ASTCell::with_node(cs, ci);
                     }
                 }
                 ASTNode::ColumnDefinition(arena.alloc(ColumnDefinition {

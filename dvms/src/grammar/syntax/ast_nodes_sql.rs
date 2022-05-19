@@ -254,11 +254,11 @@ pub struct Into<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnDefinition<'a> {
-    pub name: &'a str,
-    pub sql_type: &'a SQLType<'a>,
-    pub collate: &'a [ASTCell<&'a str>],
-    pub constraints: &'a [ColumnConstraintVariant<'a>],
-    pub options: &'a [ASTCell<&'a GenericOption<'a>>],
+    pub name: ASTCell<&'a str>,
+    pub sql_type: ASTCell<&'a SQLType<'a>>,
+    pub collate: ASTCell<&'a [ASTCell<&'a str>]>,
+    pub constraints: ASTCell<&'a [ASTCell<ColumnConstraintVariant<'a>>]>,
+    pub options: ASTCell<&'a [ASTCell<&'a GenericOption<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -567,7 +567,7 @@ pub struct ColumnConstraint<'a> {
     pub no_inherit: ASTCell<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum ColumnConstraintVariant<'a> {
     #[serde(with = "serde_constraint_attribute")]
     Attribute(sx::ConstraintAttribute),
