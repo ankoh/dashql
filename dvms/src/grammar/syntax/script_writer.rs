@@ -1,25 +1,25 @@
 #[derive(Debug, Clone)]
-pub enum ScriptTextElement<'arena> {
+pub enum ScriptTextElement<'writer> {
     Void,
     StaticStr(&'static str),
-    DynamicStr(&'arena str),
-    Stack(&'arena [ScriptText<'arena>]),
-    Float(&'arena [ScriptText<'arena>]),
-    Block(&'arena [ScriptText<'arena>]),
-    Brackets(&'static str, &'static str, &'arena [ScriptText<'arena>]),
+    DynamicStr(&'writer str),
+    Stack(&'writer [ScriptText<'writer>]),
+    Float(&'writer [ScriptText<'writer>]),
+    Block(&'writer [ScriptText<'writer>]),
+    Brackets(&'static str, &'static str, &'writer [ScriptText<'writer>]),
     Keyword(&'static str),
 }
 
 #[derive(Debug, Clone)]
-pub struct ScriptText<'arena> {
-    pub element: ScriptTextElement<'arena>,
+pub struct ScriptText<'writer> {
+    pub element: ScriptTextElement<'writer>,
     pub breakpoint_before: bool,
     pub space_before: bool,
     pub space_after: bool,
     pub inline_length: usize,
 }
 
-impl<'arena> ScriptText<'arena> {
+impl<'writer> ScriptText<'writer> {
     pub fn pad_left(mut self) -> Self {
         self.inline_length += (!self.space_before) as usize;
         self.space_before = true;
@@ -48,21 +48,26 @@ impl<'arena> Default for ScriptText<'arena> {
     }
 }
 
-pub struct ScriptWriter<'arena> {
-    pub arena: &'arena bumpalo::Bump,
+pub struct ScriptWriter {
+    pub arena: bumpalo::Bump,
 }
 
-impl<'arena> ScriptWriter<'arena> {
-    pub fn with_arena(arena: &'arena bumpalo::Bump) -> Self {
+impl ScriptWriter {
+    pub fn new() -> Self {
+        Self {
+            arena: bumpalo::Bump::new(),
+        }
+    }
+    pub fn with_arena(arena: bumpalo::Bump) -> Self {
         Self { arena }
     }
-    pub fn alloc_slice(&self, elems: &[ScriptText<'arena>]) -> &'arena [ScriptText<'arena>] {
+    pub fn alloc_slice<'writer>(&'writer self, elems: &[ScriptText<'writer>]) -> &'writer [ScriptText<'writer>] {
         self.arena.alloc_slice_clone(elems)
     }
 }
 
-impl<'arena> ScriptWriter<'arena> {
-    pub fn str_const(&self, s: &'static str) -> ScriptText<'arena> {
+impl ScriptWriter {
+    pub fn str_const<'writer>(&'writer self, s: &'static str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::StaticStr(s),
             breakpoint_before: false,
@@ -71,7 +76,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: s.len(),
         }
     }
-    pub fn str(&self, s: &'arena str) -> ScriptText<'arena> {
+    pub fn str<'writer>(&'writer self, s: &'writer str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::DynamicStr(s),
             breakpoint_before: false,
@@ -80,7 +85,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: s.len(),
         }
     }
-    pub fn stack(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn stack<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
@@ -93,7 +98,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn float(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn float<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
@@ -106,7 +111,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn block(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn block<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
@@ -119,7 +124,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn round_brackets(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn round_brackets<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 2;
         for elem in elems.iter() {
             len += elem.inline_length;
@@ -132,7 +137,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn square_brackets(&self, elems: &'arena [ScriptText<'arena>]) -> ScriptText<'arena> {
+    pub fn square_brackets<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 2;
         for elem in elems.iter() {
             len += elem.inline_length;
@@ -145,8 +150,8 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn single_quotes(&self, elem: ScriptText<'arena>) -> ScriptText<'arena> {
-        let array: &mut [ScriptText<'arena>] = self.arena.alloc_slice_fill_default(3);
+    pub fn single_quotes<'writer>(&'writer self, elem: ScriptText<'writer>) -> ScriptText<'writer> {
+        let array: &mut [ScriptText<'writer>] = self.arena.alloc_slice_fill_default(3);
         let len = elem.inline_length + 2;
         array[0] = self.str_const("'");
         array[1] = elem;
@@ -159,7 +164,7 @@ impl<'arena> ScriptWriter<'arena> {
             inline_length: len,
         }
     }
-    pub fn keyword(&self, k: &'static str) -> ScriptText<'arena> {
+    pub fn keyword<'writer>(&'writer self, k: &'static str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::Keyword(k),
             breakpoint_before: false,
@@ -170,33 +175,35 @@ impl<'arena> ScriptWriter<'arena> {
     }
 }
 
-pub struct ScriptTextArray<'arena> {
-    array: &'arena mut [ScriptText<'arena>],
+pub struct ScriptTextArray<'writer> {
+    array: &'writer mut [ScriptText<'writer>],
     writer: usize,
 }
 
-impl<'arena> ScriptTextArray<'arena> {
-    pub fn with_capacity(writer: &ScriptWriter<'arena>, cap: usize) -> Self {
+impl<'writer> ScriptTextArray<'writer> {
+    pub fn with_capacity(writer: &'writer ScriptWriter, cap: usize) -> Self {
         debug_assert!(cap > 0, "array capacity must be > 0");
-        let array: &mut [ScriptText<'arena>] = writer.arena.alloc_slice_fill_default(cap);
+        let array: &mut [ScriptText<'writer>] = writer.arena.alloc_slice_fill_default(cap);
         Self { array, writer: 0 }
     }
-    pub fn with_pushed(mut self, elem: ScriptText<'arena>) -> Self {
+    pub fn with_pushed(mut self, elem: ScriptText<'writer>) -> Self {
         self.array[self.writer.min(self.array.len() - 1)] = elem;
         self.writer += 1;
         self
     }
-    pub fn push(&mut self, elem: ScriptText<'arena>) {
+    pub fn push(&mut self, elem: ScriptText<'writer>) {
         self.array[self.writer.min(self.array.len() - 1)] = elem;
         self.writer += 1;
     }
-    pub fn finish(self) -> &'arena [ScriptText<'arena>] {
+    pub fn finish(self) -> &'writer [ScriptText<'writer>] {
         &self.array[0..self.writer]
     }
 }
 
-pub trait AsScript<'writer, 'ast: 'writer> {
-    fn as_script(&self, writer: &ScriptWriter<'writer>) -> ScriptText<'writer>;
+pub trait AsScript<'ast> {
+    fn as_script<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer;
 }
 
 pub struct ScriptTextConfig {
@@ -370,4 +377,10 @@ pub fn write_script_string<'arena>(root: &'arena ScriptText<'arena>, config: &Sc
         }
     }
     buffer
+}
+
+pub fn write_ast_as_script_string<'ast, V: AsScript<'ast>>(v: &'ast V, config: &ScriptTextConfig) -> String {
+    let writer = ScriptWriter::new();
+    let text: ScriptText<'_> = v.as_script(&writer);
+    write_script_string(&text, config)
 }

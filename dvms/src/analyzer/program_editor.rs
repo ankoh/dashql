@@ -108,8 +108,7 @@ mod test {
 
         let edited = edit_viz_statement(&arena, viz.unwrap(), edits);
 
-        let writer_arena = bumpalo::Bump::new();
-        let writer = ScriptWriter::with_arena(&writer_arena);
+        let writer = ScriptWriter::new();
         let script_text = edited.as_script(&writer);
         let script_string = write_script_string(&script_text, &ScriptTextConfig::default());
         assert_eq!(&script_string, expected, "{:?}", prog);
