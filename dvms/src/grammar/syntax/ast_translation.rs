@@ -538,11 +538,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::ColumnRef(name.unwrap_or_default())
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_ARG => {
-                let mut name = None;
-                let mut value = None;
+                let mut name = ASTCell::default();
+                let mut value = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), _ci) => name = Some(s.clone()),
-                    (Key::SQL_FUNCTION_ARG_VALUE, n, _ci) => value = Some(read_expr!(n))
+                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_FUNCTION_ARG_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::FunctionArgument(arena.alloc(FunctionArgument {
                     name: name,
@@ -550,13 +550,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => {
-                let mut direction = sx::TrimDirection::LEADING;
-                let mut characters = None;
-                let mut input: &[_] = &[];
+                let mut direction = ASTCell::with_value(sx::TrimDirection::LEADING);
+                let mut characters = ASTCell::default();
+                let mut input: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_FUNCTION_TRIM_CHARACTERS, n, _ci) => characters = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes, ni), _ci) => input = read_exprs(arena, nodes, *ni),
-                    (Key::SQL_FUNCTION_TRIM_DIRECTION, ASTNode::TrimDirection(d), _ci) => direction = *d
+                    (Key::SQL_FUNCTION_TRIM_CHARACTERS, n, ci) => characters = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_TRIM_INPUT, ASTNode::Array(nodes, ni), ci) => input = ASTCell::with_node(read_exprs(arena, nodes, *ni), ci),
+                    (Key::SQL_FUNCTION_TRIM_DIRECTION, ASTNode::TrimDirection(d), ci) => direction = ASTCell::with_node(*d, ci)
                 }
                 ASTNode::TrimFunctionArguments(arena.alloc(TrimFunctionArguments {
                     direction,
@@ -565,13 +565,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => {
-                let mut input = None;
-                let mut substr_from = None;
-                let mut substr_for = None;
+                let mut input = ASTCell::default();
+                let mut substr_from = ASTCell::default();
+                let mut substr_for = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_SUBSTRING_INPUT, n, _ci) => input = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_SUBSTRING_FROM, n, _ci) => substr_from = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_SUBSTRING_FOR, n, _ci) => substr_for = Some(read_expr!(n))
+                    (Key::SQL_FUNCTION_SUBSTRING_INPUT, n, ci) => input = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_SUBSTRING_FROM, n, ci) => substr_from = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_SUBSTRING_FOR, n, ci) => substr_for = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::SubstringFunctionArguments(arena.alloc(SubstringFunctionArguments {
                     input: input.unwrap(),
@@ -589,15 +589,15 @@ pub fn deserialize_ast<'a>(
                 ASTNode::GenericOption(arena.alloc(GenericOption { key, value }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
-                let mut input = None;
-                let mut placing = None;
-                let mut substr_from = None;
-                let mut substr_for = None;
+                let mut input = ASTCell::default();
+                let mut placing = ASTCell::default();
+                let mut substr_from = ASTCell::default();
+                let mut substr_for = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_OVERLAY_INPUT, n, _ci) => input = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_OVERLAY_PLACING, n, _ci) => placing = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_OVERLAY_FROM, n, _ci) => substr_from = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_OVERLAY_FOR, n, _ci) => substr_for = Some(read_expr!(n))
+                    (Key::SQL_FUNCTION_OVERLAY_INPUT, n, ci) => input = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_OVERLAY_PLACING, n, ci) => placing = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_OVERLAY_FROM, n, ci) => substr_from = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_OVERLAY_FOR, n, ci) => substr_for = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::OverlayFunctionArguments(arena.alloc(OverlayFunctionArguments {
                     input: input.unwrap(),
@@ -607,11 +607,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => {
-                let mut input = None;
-                let mut search = None;
+                let mut input = ASTCell::default();
+                let mut search = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_POSITION_SEARCH, n, _ci) => search = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_POSITION_INPUT, n, _ci) => input = Some(read_expr!(n))
+                    (Key::SQL_FUNCTION_POSITION_SEARCH, n, ci) => search = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_POSITION_INPUT, n, ci) => input = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::PositionFunctionArguments(arena.alloc(PositionFunctionArguments {
                     input: input.unwrap(),
@@ -619,12 +619,12 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => {
-                let mut target = ExtractFunctionTarget::Known(sx::ExtractTarget::SECOND);
-                let mut input = None;
+                let mut target = ASTCell::with_value(ExtractFunctionTarget::Known(sx::ExtractTarget::SECOND));
+                let mut input = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::StringRef(s), _ci) => target = ExtractFunctionTarget::Unknown(s),
-                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::ExtractTarget(t), _ci) => target = ExtractFunctionTarget::Known(*t),
-                    (Key::SQL_FUNCTION_EXTRACT_INPUT, n, _ci) => input = Some(read_expr!(n))
+                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::StringRef(s), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Unknown(s), ci),
+                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::ExtractTarget(t), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Known(*t), ci),
+                    (Key::SQL_FUNCTION_EXTRACT_INPUT, n, ci) => input = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::ExtractFunctionArguments(arena.alloc(ExtractFunctionArguments {
                     target,
@@ -632,23 +632,23 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
-                let mut value = None;
-                let mut as_type = None;
+                let mut value = ASTCell::default();
+                let mut as_type = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_CAST_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t), _ci) => as_type = Some(t)
+                    (Key::SQL_FUNCTION_CAST_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
+                    (Key::SQL_FUNCTION_CAST_TYPE, ASTNode::SQLType(t), ci) => as_type = ASTCell::with_node(Some(*t), ci)
                 }
                 ASTNode::CastFunctionArguments(arena.alloc(CastFunctionArguments {
-                    value: value.unwrap(),
+                    value: value,
                     as_type: as_type.unwrap(),
                 }))
             }
             sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
-                let mut value = None;
-                let mut as_type = None;
+                let mut value = ASTCell::default();
+                let mut as_type = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_TREAT_VALUE, n, _ci) => value = Some(read_expr!(n)),
-                    (Key::SQL_FUNCTION_TREAT_TYPE, ASTNode::SQLType(t), _ci) => as_type = Some(t)
+                    (Key::SQL_FUNCTION_TREAT_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_FUNCTION_TREAT_TYPE, ASTNode::SQLType(t), ci) => as_type = ASTCell::with_node(Some(*t), ci)
                 }
                 ASTNode::TreatFunctionArguments(arena.alloc(TreatFunctionArguments {
                     value: value.unwrap(),
@@ -685,8 +685,8 @@ pub fn deserialize_ast<'a>(
                                 ASTNode::FunctionArgument(t) => ASTCell::with_node(t.clone(), ni + i),
                                 e => {
                                     let arg: &'a FunctionArgument = arena.alloc(FunctionArgument {
-                                        name: None,
-                                        value: read_expr!(e),
+                                        name: ASTCell::default(),
+                                        value: ASTCell::with_node(read_expr!(e), ni + i),
                                     });
                                     ASTCell::with_node(arg, ni + i)
                                 },

@@ -344,8 +344,8 @@ pub enum TableRef<'a> {
 
 #[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct FunctionArgument<'a> {
-    pub name: Option<&'a str>,
-    pub value: Expression<'a>,
+    pub name: ASTCell<Option<&'a str>>,
+    pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -357,13 +357,13 @@ pub enum FunctionName<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct OverlayFunctionArguments<'a> {
-    pub input: Expression<'a>,
-    pub placing: Expression<'a>,
-    pub substr_from: Expression<'a>,
-    pub substr_for: Option<Expression<'a>>,
+    pub input: ASTCell<Expression<'a>>,
+    pub placing: ASTCell<Expression<'a>>,
+    pub substr_from: ASTCell<Expression<'a>>,
+    pub substr_for: ASTCell<Option<Expression<'a>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum ExtractFunctionTarget<'a> {
     Unknown(&'a str),
     #[serde(with = "serde_extract_target")]
@@ -372,41 +372,41 @@ pub enum ExtractFunctionTarget<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ExtractFunctionArguments<'a> {
-    pub target: ExtractFunctionTarget<'a>,
-    pub input: Expression<'a>,
+    pub target: ASTCell<ExtractFunctionTarget<'a>>,
+    pub input: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SubstringFunctionArguments<'a> {
-    pub input: Expression<'a>,
-    pub substr_from: Option<Expression<'a>>,
-    pub substr_for: Option<Expression<'a>>,
+    pub input: ASTCell<Expression<'a>>,
+    pub substr_from: ASTCell<Option<Expression<'a>>>,
+    pub substr_for: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct PositionFunctionArguments<'a> {
-    pub search: Expression<'a>,
-    pub input: Expression<'a>,
+    pub search: ASTCell<Expression<'a>>,
+    pub input: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TrimFunctionArguments<'a> {
-    #[serde(with = "serde_trim_direction")]
-    pub direction: sx::TrimDirection,
-    pub characters: Option<Expression<'a>>,
-    pub input: &'a [ASTCell<Expression<'a>>],
+    #[serde(with = "serde_trim_direction::cell")]
+    pub direction: ASTCell<sx::TrimDirection>,
+    pub characters: ASTCell<Option<Expression<'a>>>,
+    pub input: ASTCell<&'a [ASTCell<Expression<'a>>]>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CastFunctionArguments<'a> {
-    pub value: Expression<'a>,
-    pub as_type: &'a SQLType<'a>,
+    pub value: ASTCell<Expression<'a>>,
+    pub as_type: ASTCell<&'a SQLType<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TreatFunctionArguments<'a> {
-    pub value: Expression<'a>,
-    pub as_type: &'a SQLType<'a>,
+    pub value: ASTCell<Expression<'a>>,
+    pub as_type: ASTCell<&'a SQLType<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
