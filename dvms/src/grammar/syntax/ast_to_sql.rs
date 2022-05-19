@@ -132,7 +132,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for RelationRef<'ast> {
         if !self.inherit.get() {
             a.push(w.keyword("only").pad_right());
         }
-        a.push(name_as_script(w, self.name.get()));
+        a.push(self.name.get().as_script(w));
         if self.alias.is_some() {
             a.push(self.alias.get().unwrap().as_script(w).pad_left())
         }
@@ -289,7 +289,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for FetchStatement<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("fetch"));
-        a.push(name_as_script(w, self.name).pad_left());
+        a.push(self.name.as_script(w).pad_left());
         a.push(w.keyword("from").pad_left());
         if let Some(uri) = &self.from_uri {
             a.push(uri.as_script(w).pad_left());
@@ -314,9 +314,9 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for LoadStatement<'ast> {
     fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
         let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
-        a.push(name_as_script(w, self.name).pad_left());
+        a.push(self.name.as_script(w).pad_left());
         a.push(w.keyword("from").pad_left());
-        a.push(name_as_script(w, self.source).pad_left());
+        a.push(self.source.as_script(w).pad_left());
         a.push(w.keyword("using").pad_left());
         a.push(
             w.keyword(match self.method {
@@ -459,7 +459,7 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
                 f.push(w.keyword("end").pad_left());
                 w.float(f.finish())
             }
-            Expression::ColumnRef(name) => name_as_script(w, name),
+            Expression::ColumnRef(name) => name.as_script(w),
             Expression::ConstCast(_) => todo!(),
             Expression::Exists(e) => {
                 let mut t = ScriptTextArray::with_capacity(w, 3);
@@ -492,34 +492,33 @@ impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for Expression<'ast> {
     }
 }
 
-pub fn name_as_script<'writer, 'ast: 'writer>(
-    w: &ScriptWriter<'writer>,
-    name: &'ast [ASTCell<Indirection<'ast>>],
-) -> ScriptText<'writer> {
-    let mut t = ScriptTextArray::with_capacity(w, 5 * name.len());
-    for (i, e) in name.iter().enumerate() {
-        match e.get() {
-            Indirection::Name(n) => {
-                if i > 0 {
-                    t.push(w.str_const("."));
+impl<'writer, 'ast: 'writer> AsScript<'writer, 'ast> for &'ast [ASTCell<Indirection<'ast>>] {
+    fn as_script(&self, w: &ScriptWriter<'writer>) -> ScriptText<'writer> {
+        let mut t = ScriptTextArray::with_capacity(w, 5 * self.len());
+        for (i, e) in self.iter().enumerate() {
+            match e.get() {
+                Indirection::Name(n) => {
+                    if i > 0 {
+                        t.push(w.str_const("."));
+                    }
+                    t.push(w.str(n));
                 }
-                t.push(w.str(n));
-            }
-            Indirection::Index(idx) => {
-                t.push(w.str_const("["));
-                t.push(idx.value.get().as_script(w));
-                t.push(w.str_const("]"));
-            }
-            Indirection::Bounds(bounds) => {
-                t.push(w.str_const("["));
-                t.push(bounds.lower_bound.get().as_script(w));
-                t.push(w.str_const(", "));
-                t.push(bounds.upper_bound.get().as_script(w));
-                t.push(w.str_const("]"));
+                Indirection::Index(idx) => {
+                    t.push(w.str_const("["));
+                    t.push(idx.value.get().as_script(w));
+                    t.push(w.str_const("]"));
+                }
+                Indirection::Bounds(bounds) => {
+                    t.push(w.str_const("["));
+                    t.push(bounds.lower_bound.get().as_script(w));
+                    t.push(w.str_const(", "));
+                    t.push(bounds.upper_bound.get().as_script(w));
+                    t.push(w.str_const("]"));
+                }
             }
         }
+        w.float(t.finish())
     }
-    w.float(t.finish())
 }
 
 #[cfg(test)]
