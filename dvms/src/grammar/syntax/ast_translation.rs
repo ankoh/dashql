@@ -349,26 +349,26 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TABLEREF_LATERAL, ASTNode::Boolean(v), ci) => lateral = ASTCell::with_node(*v, ci),
                     (Key::SQL_TABLEREF_SAMPLE, ASTNode::TableSample(s), ci) => sample = ASTCell::with_node(Some(*s), ci)
                 }
-                ASTNode::TableRef(if select.is_some() {
+                ASTNode::TableRef(if let Some(_) = select.get() {
                     TableRef::Select(arena.alloc(SelectStatementRef {
                         table: select.unwrap(),
                         alias,
                         sample,
                         lateral,
                     }))
-                } else if joined.is_some() {
+                } else if let Some(_) = joined.get() {
                     TableRef::Join(arena.alloc(JoinedTableRef {
                         table: joined.unwrap(),
                         alias,
                     }))
-                } else if func.is_some() {
+                } else if let Some(_) = func.get() {
                     TableRef::Function(arena.alloc(FunctionTableRef {
                         table: func.unwrap(),
                         alias,
                         sample,
                         lateral,
                     }))
-                } else if name.is_some() {
+                } else if let Some(_) = name.get() {
                     TableRef::Relation(arena.alloc(RelationRef {
                         name: name.unwrap(),
                         inherit,

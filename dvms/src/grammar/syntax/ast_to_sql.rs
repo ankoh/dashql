@@ -154,7 +154,7 @@ impl<'ast> AsScript<'ast> for RelationRef<'ast> {
             a.push(w.keyword("only").pad_right());
         }
         a.push(self.name.get().as_script(w));
-        if self.alias.is_some() {
+        if let Some(alias) = self.alias.get() {
             a.push(self.alias.get().unwrap().as_script(w).pad_left())
         }
         w.float(a.finish())
@@ -213,8 +213,8 @@ impl<'ast> AsScript<'ast> for JoinedTableRef<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 2);
         a.push(self.table.get().as_script(w));
-        if self.alias.is_some() {
-            a.push(self.alias.get().unwrap().as_script(w).pad_left());
+        if let Some(alias) = self.alias.get() {
+            a.push(alias.as_script(w).pad_left());
         }
         w.float(a.finish())
     }
@@ -512,9 +512,9 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     f.push(w.keyword("then").pad_left());
                     f.push(case.get().then.get().as_script(w).pad_left());
                 }
-                if c.default.is_some() {
+                if let Some(default) = c.default.get() {
                     f.push(w.keyword("else").pad_left());
-                    f.push(c.default.get().unwrap().as_script(w).pad_left());
+                    f.push(default.as_script(w).pad_left());
                 }
                 f.push(w.keyword("end").pad_left());
                 w.float(f.finish())

@@ -128,12 +128,6 @@ where
             inner: Cell::new(self.inner.get().unwrap_or(value)),
         }
     }
-    pub fn is_some(&self) -> bool {
-        self.inner.get().is_some()
-    }
-    pub fn is_none(&self) -> bool {
-        self.inner.get().is_none()
-    }
 }
 
 impl<V> ASTCell<Option<V>>
