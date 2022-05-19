@@ -196,37 +196,37 @@ pub struct NumericType<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct BitType<'a> {
-    pub varying: bool,
-    pub length: Option<Expression<'a>>,
+    pub varying: ASTCell<bool>,
+    pub length: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CharacterType<'a> {
-    #[serde(with = "serde_character_type")]
-    pub base: sx::CharacterType,
-    pub length: Option<&'a str>,
+    #[serde(with = "serde_character_type::cell")]
+    pub base: ASTCell<sx::CharacterType>,
+    pub length: ASTCell<Option<&'a str>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TimestampType<'a> {
-    pub precision: Option<&'a str>,
-    pub with_timezone: bool,
+    pub precision: ASTCell<Option<&'a str>>,
+    pub with_timezone: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TimeType<'a> {
-    pub precision: Option<&'a str>,
-    pub with_timezone: bool,
+    pub precision: ASTCell<Option<&'a str>>,
+    pub with_timezone: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalType<'a> {
-    #[serde(with = "serde_interval_type::opt")]
-    pub base: Option<sx::IntervalType>,
-    pub precision: Option<&'a str>,
+    #[serde(with = "serde_interval_type::cell_opt")]
+    pub base: ASTCell<Option<sx::IntervalType>>,
+    pub precision: ASTCell<Option<&'a str>>,
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum SQLBaseType<'a> {
     Invalid,
     Generic(&'a GenericType<'a>),
@@ -240,16 +240,16 @@ pub enum SQLBaseType<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SQLType<'a> {
-    pub base_type: SQLBaseType<'a>,
-    pub array_bounds: &'a [ArrayBound<'a>],
-    pub set_of: bool,
+    pub base_type: ASTCell<SQLBaseType<'a>>,
+    pub array_bounds: ASTCell<&'a [ArrayBound<'a>]>,
+    pub set_of: ASTCell<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct Into<'a> {
-    #[serde(with = "serde_temp_type")]
-    pub temp: sx::TempType,
-    pub name: NamePath<'a>,
+    #[serde(with = "serde_temp_type::cell")]
+    pub temp: ASTCell<sx::TempType>,
+    pub name: ASTCell<NamePath<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

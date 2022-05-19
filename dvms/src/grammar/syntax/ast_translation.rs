@@ -207,11 +207,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::NumericTypeSpec(arena.alloc(NumericType { base, modifiers }))
             }
             sx::NodeType::OBJECT_SQL_BIT_TYPE => {
-                let mut varying = false;
-                let mut length = None;
+                let mut varying = ASTCell::with_value(false);
+                let mut length = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_BIT_TYPE_LENGTH, e, _ci) => length = Some(read_expr!(e)),
-                    (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b), _ci) => varying = *b
+                    (Key::SQL_BIT_TYPE_LENGTH, e, ci) => length = ASTCell::with_node(Some(read_expr!(e)), ci),
+                    (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b), ci) => varying = ASTCell::with_node(*b, ci)
                 }
                 ASTNode::BitTypeSpec(arena.alloc(BitType { varying, length }))
             }
@@ -702,7 +702,7 @@ pub fn deserialize_ast<'a>(
                                 std::ptr::write(args_mem.as_ptr().add(i), arg);
                             }
                         }
-                        func_args = ASTCell::with_value(unsafe { std::slice::from_raw_parts(args_mem.as_ptr(), nodes.len()) });
+                        func_args = ASTCell::with_node(unsafe { std::slice::from_raw_parts(args_mem.as_ptr(), nodes.len()) }, ci);
                     },
                     (Key::SQL_FUNCTION_TRIM_ARGS, ASTNode::TrimFunctionArguments(a), ci) => args_known = ASTCell::with_node(Some(KnownFunctionArguments::Trim(a)), ci),
                     (Key::SQL_FUNCTION_OVERLAY_ARGS, ASTNode::OverlayFunctionArguments(a), ci) => args_known = ASTCell::with_node(Some(KnownFunctionArguments::Overlay(a)), ci),
@@ -777,11 +777,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
-                let mut precision = None;
-                let mut with_timezone = false;
+                let mut precision = ASTCell::default();
+                let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), _ci) => precision = Some(s.clone()),
-                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), _ci) => with_timezone = *tz
+                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), ci) => with_timezone = ASTCell::with_node(*tz, ci)
                 }
                 ASTNode::TimestampTypeSpec(arena.alloc(TimestampType {
                     precision,
@@ -789,11 +789,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_TIME_TYPE => {
-                let mut precision = None;
-                let mut with_timezone = false;
+                let mut precision = ASTCell::default();
+                let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), _ci) => precision = Some(s.clone()),
-                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), _ci) => with_timezone = *tz
+                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), ci) => with_timezone = ASTCell::with_node(*tz, ci)
                 }
                 ASTNode::TimeTypeSpec(arena.alloc(TimeType {
                     precision,
@@ -826,25 +826,25 @@ pub fn deserialize_ast<'a>(
                 ASTNode::GroupByItem(item)
             }
             sx::NodeType::OBJECT_SQL_TYPENAME => {
-                let mut base = None;
-                let mut set_of = false;
-                let mut array_bounds: &[_] = &[];
+                let mut base = ASTCell::default();
+                let mut set_of = ASTCell::with_value(false);
+                let mut array_bounds: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeSpec(t), _ci) => base = Some(SQLBaseType::Generic(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeSpec(t), _ci) => base = Some(SQLBaseType::Numeric(t.clone())),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::GenericTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Generic(t.clone())), ci),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::NumericTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Numeric(t.clone())), ci),
                     (Key::SQL_TYPENAME_TYPE, ASTNode::NumericType(t), ci) => {
-                        base = Some(SQLBaseType::Numeric(arena.alloc(NumericType {
+                        base = ASTCell::with_node(Some(SQLBaseType::Numeric(arena.alloc(NumericType {
                             base: ASTCell::with_node(*t, ci),
                             modifiers: ASTCell::with_value(&[]),
-                        })))
+                        }))), ci)
                     },
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeSpec(t), _ci) => base = Some(SQLBaseType::Time(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeSpec(t), _ci) => base = Some(SQLBaseType::Bit(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeSpec(t), _ci) => base = Some(SQLBaseType::Character(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeSpec(t), _ci) => base = Some(SQLBaseType::Timestamp(t.clone())),
-                    (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalSpecification(t), _ci) => base = Some(SQLBaseType::Interval(t.clone())),
-                    (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b), _ci) => set_of = *b,
-                    (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n, _ni), _ci) => array_bounds = read_array_bounds(arena, n)
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimeTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Time(t.clone())), ci),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::BitTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Bit(t.clone())), ci),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::CharacterTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Character(t.clone())), ci),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::TimestampTypeSpec(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Timestamp(t.clone())), ci),
+                    (Key::SQL_TYPENAME_TYPE, ASTNode::IntervalSpecification(t), ci) => base = ASTCell::with_node(Some(SQLBaseType::Interval(t.clone())), ci),
+                    (Key::SQL_TYPENAME_SETOF, ASTNode::Boolean(b), ci) => set_of = ASTCell::with_node(*b, ci),
+                    (Key::SQL_TYPENAME_ARRAY, ASTNode::Array(n, _ni), ci) => array_bounds = ASTCell::with_node(read_array_bounds(arena, n), ci)
                 }
                 ASTNode::SQLType(arena.alloc(SQLType {
                     base_type: base.unwrap_or(SQLBaseType::Invalid),
@@ -905,20 +905,20 @@ pub fn deserialize_ast<'a>(
                 ASTNode::SetStatement(arena.alloc(SetStatement { fields: value.unwrap() }))
             }
             sx::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
-                let mut base = sx::CharacterType::VARCHAR;
-                let mut length = None;
+                let mut base = ASTCell::with_value(sx::CharacterType::VARCHAR);
+                let mut length = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c), _ci) => base = c.clone(),
-                    (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l), _ci) => length = Some(l.clone())
+                    (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c), ci) => base = ASTCell::with_node(c.clone(), ci),
+                    (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l), ci) => length = ASTCell::with_node(Some(l.clone()), ci)
                 }
                 ASTNode::CharacterTypeSpec(arena.alloc(CharacterType { base, length }))
             }
             sx::NodeType::OBJECT_SQL_INTO => {
-                let mut temp_type = sx::TempType::DEFAULT;
-                let mut temp_name = NamePath::default();
+                let mut temp_type = ASTCell::with_value(sx::TempType::DEFAULT);
+                let mut temp_name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
-                    (Key::SQL_TEMP_NAME, ASTNode::Array(nodes, ni), _ci) => temp_name = read_name(arena, nodes, *ni),
-                    (Key::SQL_TEMP_TYPE, ASTNode::TempType(t), _ci) => temp_type = t.clone()
+                    (Key::SQL_TEMP_NAME, ASTNode::Array(nodes, ni), ci) => temp_name = ASTCell::with_node(read_name(arena, nodes, *ni), ci),
+                    (Key::SQL_TEMP_TYPE, ASTNode::TempType(t), ci) => temp_type = ASTCell::with_node(t.clone(), ci)
                 }
                 ASTNode::Into(arena.alloc(Into {
                     temp: temp_type,
