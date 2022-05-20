@@ -33,7 +33,7 @@ impl StatementSimilarity {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum DiffOpCode {
     Delete,
     Insert,
@@ -42,7 +42,7 @@ pub enum DiffOpCode {
     Update,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DiffOp {
     pub op_code: DiffOpCode,
     pub source: Option<usize>,

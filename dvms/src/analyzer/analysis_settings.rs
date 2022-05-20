@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct ProgramAnalysisSettings {
     pub default_schema: String,
 }

@@ -1,4 +1,4 @@
-use super::program_analysis::ProgramAnalysis;
+use super::{program_analysis::ProgramAnalysis, program_diff::DiffOp};
 use serde::Serialize;
 use std::error::Error;
 
@@ -105,7 +105,28 @@ pub struct TaskGraph {
     pub program_task_mapping: Vec<usize>,
 }
 
-pub struct TaskPlannerContext {}
+#[derive(Debug, Clone)]
+pub struct TaskPlannerContext<'a> {
+    /// The next program
+    pub next_program: &'a ProgramAnalysis<'a>,
+    /// The previous program
+    pub prev_program: Option<(&'a ProgramAnalysis<'a>, &'a TaskGraph)>,
+    /// The diff between the programs
+    pub diff: Vec<DiffOp>,
+    /// The reverse task mapping.
+    /// Maps an task to the corresponding previous task if the diff was either KEEP, MOVE or UPDATE.
+    /// We use this to figure out, whether the set of dependencies changed.
+    pub reverse_task_mapping: Vec<Option<usize>>,
+    /// The applicability of tasks in the previous task graph.
+    /// An task is applicable iff:
+    ///  1) The diff is either KEEP or MOVE
+    ///  2) The task is not affected by a parmeter update
+    ///  3) The dependency set stayed the same
+    ///  4) All dependencies are applicable
+    pub task_applicability: Vec<bool>,
+    /// The new task graph
+    pub task_graph: Box<TaskGraph>,
+}
 
 fn translate_statements<'a>(
     ctx: &mut ProgramAnalysis<'a>,

@@ -17,6 +17,7 @@ use crate::grammar::Program;
 pub type StatementID = usize;
 pub type NodeID = usize;
 
+#[derive(Debug, Clone)]
 pub struct ProgramAnalysis<'a> {
     pub settings: Rc<ProgramAnalysisSettings>,
 
