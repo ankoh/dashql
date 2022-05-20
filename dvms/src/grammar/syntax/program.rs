@@ -32,7 +32,7 @@ impl<'arena> std::fmt::Debug for Program<'arena> {
 
 #[allow(dead_code)]
 pub struct ProgramContainer {
-    arena: Box<bumpalo::Bump>,
+    arena: bumpalo::Bump,
     text: &'static str,
     program: Program<'static>,
 }
@@ -40,7 +40,7 @@ pub struct ProgramContainer {
 impl ProgramContainer {
     pub fn parse(text: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
         // Parse and deserialize the text
-        let arena = Box::new(bumpalo::Bump::new());
+        let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
         let ast = grammar::parse(&arena, &text)?;
         let program = grammar::deserialize_ast(&arena, &text, ast)?;
