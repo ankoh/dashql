@@ -311,6 +311,42 @@ impl<'ast> AsScript<'ast> for SelectStatement<'ast> {
     }
 }
 
+impl<'ast> AsScript<'ast> for CreateStatement<'ast> {
+    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        todo!()
+    }
+}
+
+impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
+    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        todo!()
+    }
+}
+
+impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
+    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        todo!()
+    }
+}
+
+impl<'ast> AsScript<'ast> for InputStatement<'ast> {
+    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        todo!()
+    }
+}
+
 impl<'ast> AsScript<'ast> for Statement<'ast> {
     fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
