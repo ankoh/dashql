@@ -336,7 +336,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     }
     let mut pending_tasks = TopologicalSort::new(deps);
     while !pending_tasks.is_empty() {
-        let (prev_task_id, prio) = pending_tasks.top().clone();
+        let (prev_task_id, _) = pending_tasks.top().clone();
         pending_tasks.pop();
 
         // Decrement key of depending tasks
@@ -422,7 +422,20 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 ctx.program_task_applicability[prev_task_id] = true;
                 break;
             }
-            _ => todo!(),
+
+            // UPDATE or DELETE?
+            // The statement did change, so we have to figure out what must be invalidated.
+            // We have to be very careful since any leftover tables will lead to broken dashboards.
+            DiffOpCode::Update | DiffOpCode::Delete => {
+                invalidate(ctx, prev_task_id);
+                break;
+            }
+
+            // A previous task is marked with INSERT in the diff?
+            // Cannot happen, must be a faulty diff.
+            DiffOpCode::Insert => {
+                unreachable!();
+            }
         }
     }
 
