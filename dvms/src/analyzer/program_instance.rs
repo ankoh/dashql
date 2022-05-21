@@ -29,7 +29,7 @@ pub struct ProgramInstance<'a> {
     pub program: Rc<Program<'a>>,
 
     // The input values
-    pub input: HashMap<u32, SQLValue>,
+    pub input: HashMap<usize, SQLValue>,
 
     // Analysis output
     pub node_error_messages: Vec<NodeError>,
@@ -56,7 +56,7 @@ impl<'a> ProgramInstance<'a> {
         program_translated: Rc<Program<'a>>,
         mut input: Vec<InputValue>,
     ) -> Self {
-        let input: HashMap<u32, SQLValue> = input.drain(..).map(|i| (i.statement_id, i.value)).collect();
+        let input: HashMap<usize, SQLValue> = input.drain(..).map(|i| (i.statement_id as usize, i.value)).collect();
         let mut ctx = ProgramInstance {
             settings,
             arena,

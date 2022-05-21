@@ -408,8 +408,19 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
                 if a.task_type == ProgramTaskType::Input {
-                    todo!()
+                    let prev_stmt_id = diff_op.source.unwrap_or_default();
+                    let next_stmt_id = diff_op.target.unwrap_or_default();
+                    let prev_param = prev_program.input.get(&prev_stmt_id);
+                    let next_param = prev_program.input.get(&next_stmt_id);
+                    if prev_param != next_param {
+                        invalidate(ctx, prev_task_id);
+                        break;
+                    }
                 }
+
+                // The task seems to be applicable, mark it as such
+                ctx.program_task_applicability[prev_task_id] = true;
+                break;
             }
             _ => todo!(),
         }
