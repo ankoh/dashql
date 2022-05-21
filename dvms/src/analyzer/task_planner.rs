@@ -1,20 +1,26 @@
-use super::{program_analysis::ProgramAnalysis, program_diff::DiffOp};
+use super::{
+    program_analysis::ProgramAnalysis,
+    program_diff::{compute_diff, DiffOp, DiffOpCode},
+};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::error::Error;
 
-use crate::grammar::{
-    syntax::script_writer::{print_ast_as_script_with_defaults, ScriptTextConfig},
-    Statement,
+use crate::{
+    grammar::{
+        syntax::script_writer::{print_ast_as_script_with_defaults, ScriptTextConfig},
+        Statement,
+    },
+    utils::topological_sort::TopologicalSort,
 };
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum TaskClass {
     SetupTask,
     ProgramTask,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum TaskStatusCode {
     Pending,
     Skipped,
@@ -65,7 +71,7 @@ pub struct SetupTask {
     pub name_qualified: u32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum ProgramTaskType {
     None,
     CreateTable,
@@ -102,21 +108,44 @@ pub struct TaskGraph {
     pub next_object_id: usize,
     pub setup_tasks: Vec<SetupTask>,
     pub program_tasks: Vec<ProgramTask>,
-    pub program_task_mapping: Vec<usize>,
+    pub program_task_by_statement: Vec<Option<usize>>,
 }
 
-fn translate_statements<'a>(
-    ctx: &mut ProgramAnalysis<'a>,
-    mut next_object_id: usize,
-) -> Result<TaskGraph, Box<dyn Error + Send + Sync>> {
-    let mut program_tasks: Vec<ProgramTask> = Vec::with_capacity(ctx.program.statements.len());
-    let mut program_task_mapping: Vec<usize> = Vec::new();
-    program_task_mapping.resize(ctx.program.statements.len(), usize::MAX);
+#[derive(Debug)]
+pub struct TaskPlannerContext<'a> {
+    /// The next progra
+    pub next_program: &'a ProgramAnalysis<'a>,
+    /// The previous program
+    pub prev_program: Option<(&'a ProgramAnalysis<'a>, &'a TaskGraph)>,
+    /// The diff between the programs
+    pub diff: Vec<DiffOp>,
+    /// The reverse task mapping.
+    /// Maps an task to the corresponding previous task if the diff was either KEEP, MOVE or UPDATE.
+    /// We use this to figure out, whether the set of dependencies changed.
+    pub reverse_task_mapping: Vec<Option<usize>>,
+    /// The applicability of tasks in the previous task graph.
+    /// An task is applicable iff:
+    ///  1) The diff is either KEEP or MOVE
+    ///  2) The task is not affected by a parmeter update
+    ///  3) The dependency set stayed the same
+    ///  4) All dependencies are applicable
+    pub program_task_applicability: Vec<bool>,
+    /// The next task graph
+    pub next_task_graph: Option<TaskGraph>,
+}
 
-    for stmt_id in 0..ctx.program.statements.len() {
+fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<TaskGraph, Box<dyn Error + Send + Sync>> {
+    let next = ctx.next_program;
+    let mut next_object_id = ctx.prev_program.map(|(_, t)| t.next_object_id).unwrap_or_default();
+
+    let mut program_tasks: Vec<ProgramTask> = Vec::with_capacity(next.program.statements.len());
+    let mut program_task_by_statement: Vec<Option<usize>> = Vec::new();
+    program_task_by_statement.resize(next.program.statements.len(), None);
+
+    for stmt_id in 0..next.program.statements.len() {
         let mixin = ProgramTask {
             task_type: ProgramTaskType::None,
-            task_status_code: if ctx.statement_liveness[stmt_id] {
+            task_status_code: if next.statement_liveness[stmt_id] {
                 TaskStatusCode::Pending
             } else {
                 TaskStatusCode::Skipped
@@ -128,7 +157,7 @@ fn translate_statements<'a>(
             name_qualified: None,
             script: None,
         };
-        let task = match &ctx.program.statements[stmt_id] {
+        let task = match &next.program.statements[stmt_id] {
             Statement::Create(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
                 name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
@@ -184,50 +213,52 @@ fn translate_statements<'a>(
             },
         };
         next_object_id += 1;
-        program_task_mapping[stmt_id] = program_tasks.len();
+        program_task_by_statement[stmt_id] = Some(program_tasks.len());
         program_tasks.push(task);
     }
 
     // Store dependencies
-    for ((a, b), _) in ctx.statement_depends_on.iter() {
-        let a_mapped = program_task_mapping[*a];
-        let b_mapped = program_task_mapping[*b];
-        if a_mapped == usize::MAX || b_mapped == usize::MAX {
-            continue;
+    for ((a, b), _) in next.statement_depends_on.iter() {
+        match (program_task_by_statement[*a], program_task_by_statement[*b]) {
+            (Some(a), Some(b)) => {
+                program_tasks[a].depends_on.push(b);
+                program_tasks[b].required_for.push(a);
+            }
+            (_, _) => continue,
         }
-        program_tasks[a_mapped].depends_on.push(b_mapped);
-        program_tasks[b_mapped].required_for.push(a_mapped);
     }
 
     Ok(TaskGraph {
         next_object_id,
         setup_tasks: Vec::new(),
         program_tasks,
-        program_task_mapping,
+        program_task_by_statement,
     })
 }
 
-#[derive(Debug, Clone)]
-pub struct TaskPlannerContext<'a> {
-    /// The next program
-    pub next_program: &'a ProgramAnalysis<'a>,
-    /// The previous program
-    pub prev_program: Option<(&'a ProgramAnalysis<'a>, &'a TaskGraph)>,
-    /// The diff between the programs
-    pub diff: Vec<DiffOp>,
-    /// The reverse task mapping.
-    /// Maps an task to the corresponding previous task if the diff was either KEEP, MOVE or UPDATE.
-    /// We use this to figure out, whether the set of dependencies changed.
-    pub reverse_task_mapping: Vec<Option<usize>>,
-    /// The applicability of tasks in the previous task graph.
-    /// An task is applicable iff:
-    ///  1) The diff is either KEEP or MOVE
-    ///  2) The task is not affected by a parmeter update
-    ///  3) The dependency set stayed the same
-    ///  4) All dependencies are applicable
-    pub program_task_applicability: Vec<bool>,
-    /// The new task graph
-    pub task_graph: Box<TaskGraph>,
+fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    // Compute the diff
+    let (prev_prog, prev_task) = match &mut ctx.prev_program {
+        Some((prog, task)) => (prog, task),
+        None => return Ok(()),
+    };
+    ctx.diff = compute_diff(prev_prog, ctx.next_program);
+
+    // Compute the reverse task mapping
+    let next_task_graph = ctx.next_task_graph.as_ref().unwrap();
+    ctx.reverse_task_mapping
+        .resize(next_task_graph.program_tasks.len(), None);
+    for diff_op in ctx.diff.iter() {
+        match diff_op.op_code {
+            DiffOpCode::Keep | DiffOpCode::Move | DiffOpCode::Update => continue,
+            _ => (),
+        }
+        match (diff_op.source, diff_op.target) {
+            (Some(src), Some(tgt)) => ctx.reverse_task_mapping[tgt] = Some(src),
+            _ => (),
+        }
+    }
+    Ok(())
 }
 
 fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -242,7 +273,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     // If a task is invalidated, we might have to propagate the invalidation to the tasks before us.
     // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
     // (Except for the cases where it's trivial to see that nobody else is affected)
-    let invalidate = |task_id: usize| {
+    let invalidate = |ctx: &mut TaskPlannerContext<'a>, task_id: usize| {
         let mut visited = HashSet::new();
         let mut pending = Vec::new();
         pending.push(task_id);
@@ -302,6 +333,86 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     deps.reserve(prev_tasks.program_tasks.len());
     for (i, t) in prev_tasks.program_tasks.iter().enumerate() {
         deps.push((i, t.depends_on.len()));
+    }
+    let mut pending_tasks = TopologicalSort::new(deps);
+    while !pending_tasks.is_empty() {
+        let (prev_task_id, prio) = pending_tasks.top().clone();
+        pending_tasks.pop();
+
+        // Decrement key of depending tasks
+        let a = &prev_tasks.program_tasks[prev_task_id];
+        for next in a.required_for.iter() {
+            pending_tasks.decrement_key(next);
+        }
+
+        // Task not completed?
+        // Irrelevant for the graph migration.
+        if a.task_status_code != TaskStatusCode::Completed {
+            invalidate(ctx, prev_task_id);
+            continue;
+        }
+        let next_task_graph = ctx.next_task_graph.as_mut().unwrap();
+
+        // Get the diff of the origin statement
+        let diff_op = ctx.diff[a.origin_statement].clone();
+        match diff_op.op_code {
+            // MOVE or KEEP?
+            // The statement didn't change so we should try to just reuse the output from before.
+            DiffOpCode::Move | DiffOpCode::Keep => {
+                // Check if all dependencies are applicable
+                let mut all_applicable = true;
+                for dep in a.depends_on.iter() {
+                    all_applicable &= ctx.program_task_applicability[*dep];
+                }
+                if !all_applicable {
+                    invalidate(ctx, prev_task_id);
+                    break;
+                }
+
+                // Check diff to find the corresponing new task.
+                debug_assert!(diff_op.target.is_some());
+                let next_task_id = match next_task_graph.program_task_by_statement[diff_op.target.unwrap()] {
+                    Some(tid) => tid,
+                    None => {
+                        invalidate(ctx, prev_task_id);
+                        break;
+                    }
+                };
+
+                // Does the dependency set differ?
+                // The diff is MOVE or KEEP but the dependency set changed.
+                // This will happen very rarely but is not impossible since we might introduce dependencies
+                // based on the location within the script later.
+                //
+                // E.g. INSERT or UPDATE statements.
+                let mut prev_deps = a.depends_on.clone();
+                let mut next_deps = next_task_graph.program_tasks[next_task_id].depends_on.clone();
+                let mut deps_mapped = true;
+                for dep in next_deps.iter_mut() {
+                    match ctx.reverse_task_mapping[*dep] {
+                        Some(prev_task) => *dep = prev_task,
+                        None => {
+                            deps_mapped = false;
+                            break;
+                        }
+                    }
+                }
+                prev_deps.sort_unstable();
+                next_deps.sort_unstable();
+                if !deps_mapped || next_deps != prev_deps {
+                    invalidate(ctx, prev_task_id);
+                    break;
+                }
+
+                // Input task?
+                // Then we also have to check whether the parameter value stayed the same.
+                // A changed parameter will propagate via the applicability.
+                if a.task_type == ProgramTaskType::Input {
+                    todo!()
+                }
+            }
+            _ => todo!(),
+        }
     }
 
     Ok(())

@@ -49,14 +49,15 @@ pub struct DiffOp {
     pub target: Option<usize>,
 }
 
-fn compute_tree_size<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> usize {
+fn compute_tree_size<'a>(ctx: &ProgramAnalysis<'a>, node_id: usize) -> usize {
     // Init tree sizes
     let nodes = ctx.program_proto.nodes().unwrap_or_default();
-    if ctx.cached_subtree_sizes.len() != nodes.len() {
-        ctx.cached_subtree_sizes.resize(nodes.len(), 0);
-    } else if ctx.cached_subtree_sizes[node_id] > 0 {
+    let mut cached_subtree_sizes = ctx.cached_subtree_sizes.borrow_mut();
+    if cached_subtree_sizes.len() != nodes.len() {
+        cached_subtree_sizes.resize(nodes.len(), 0);
+    } else if cached_subtree_sizes[node_id] > 0 {
         // Already computed
-        return ctx.cached_subtree_sizes[node_id];
+        return cached_subtree_sizes[node_id];
     }
 
     /// Run a DFS starting at every program statement
@@ -82,15 +83,15 @@ fn compute_tree_size<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> usize
         // Already visited?
         if top.visited {
             if pending.len() == 1 {
-                total = ctx.cached_subtree_sizes[top.target];
+                total = cached_subtree_sizes[top.target];
                 break;
             }
-            ctx.cached_subtree_sizes[top.parent] += ctx.cached_subtree_sizes[top.target];
+            cached_subtree_sizes[top.parent] += cached_subtree_sizes[top.target];
             pending.pop();
         }
 
         // Set subtree size and mark as visited
-        ctx.cached_subtree_sizes[top.target] = 1;
+        cached_subtree_sizes[top.target] = 1;
         pending.last_mut().unwrap().visited = true;
 
         // Discover children
@@ -151,8 +152,8 @@ fn estimate_similarity(
 }
 
 fn compute_similarity(
-    source: (&mut ProgramAnalysis<'_>, usize),
-    target: (&mut ProgramAnalysis<'_>, usize),
+    source: (&ProgramAnalysis<'_>, usize),
+    target: (&ProgramAnalysis<'_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
@@ -301,7 +302,7 @@ fn compute_similarity(
     sim
 }
 
-fn check_deep_equality(source: (&mut ProgramAnalysis<'_>, usize), target: (&mut ProgramAnalysis<'_>, usize)) -> bool {
+fn check_deep_equality(source: (&ProgramAnalysis<'_>, usize), target: (&ProgramAnalysis<'_>, usize)) -> bool {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
@@ -425,8 +426,8 @@ fn check_deep_equality(source: (&mut ProgramAnalysis<'_>, usize), target: (&mut 
 
 // Find unique statement pair in two lists of statement ids
 fn map_statements(
-    source: &mut ProgramAnalysis<'_>,
-    target: &mut ProgramAnalysis<'_>,
+    source: &ProgramAnalysis<'_>,
+    target: &ProgramAnalysis<'_>,
     unique_pairs: &mut StatementMappings,
     equal_pairs: &mut StatementMappings,
 ) {
@@ -569,7 +570,7 @@ impl std::cmp::Ord for SimilarityScoreEntry {
     }
 }
 
-pub fn compute_diff(source: &mut ProgramAnalysis<'_>, target: &mut ProgramAnalysis<'_>) -> Vec<DiffOp> {
+pub fn compute_diff(source: &ProgramAnalysis<'_>, target: &ProgramAnalysis<'_>) -> Vec<DiffOp> {
     // Unpack arguments
     let source_stmts = source.program_proto.statements().unwrap_or_default();
     let target_stmts = target.program_proto.statements().unwrap_or_default();
@@ -736,8 +737,8 @@ mod test {
         let ast1 = grammar::parse(&arena, script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0)?);
         let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1)?);
-        let mut ctx0 = ProgramAnalysis::new(settings.clone(), &arena, script0, ast0, prog0);
-        let mut ctx1 = ProgramAnalysis::new(settings, &arena, script1, ast1, prog1);
+        let mut ctx0 = ProgramAnalysis::new(settings.clone(), &arena, script0, ast0, prog0, Vec::new());
+        let mut ctx1 = ProgramAnalysis::new(settings, &arena, script1, ast1, prog1, Vec::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

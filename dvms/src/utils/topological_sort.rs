@@ -62,12 +62,12 @@ where
     }
 
     /// Heap is empty
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
     /// Get the min element
-    pub fn top<'a>(&'a self) -> &'a V {
-        &self.entries.first().unwrap().0
+    pub fn top<'a>(&'a self) -> &'a (V, usize) {
+        self.entries.first().unwrap()
     }
     /// Pop the min element
     pub fn pop(&mut self) {

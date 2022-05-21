@@ -19,7 +19,7 @@ fn normalize_name<'a>(
     }
     let path = &path[0..path_length];
     if path.len() == 1 {
-        let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema {
+        let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema.borrow().clone() {
             Indirection::Name(schema)
         } else {
             let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
@@ -131,7 +131,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog);
+        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog, Vec::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx

@@ -45,7 +45,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog);
+        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog, Vec::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         determine_statement_liveness(&mut ctx);

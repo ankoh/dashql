@@ -3,6 +3,7 @@ use super::analysis_settings::ProgramAnalysisSettings;
 use super::sql_value::SQLValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::error::Error;
@@ -27,6 +28,9 @@ pub struct ProgramAnalysis<'a> {
     pub program_proto: sx::Program<'a>,
     pub program: Rc<Program<'a>>,
 
+    // The input values
+    pub input: Vec<InputValue>,
+
     // Analysis output
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<NodeLinterMessage>,
@@ -39,8 +43,8 @@ pub struct ProgramAnalysis<'a> {
     pub cards: Vec<Card<'a>>,
 
     // Cached properties during analysis
-    pub(super) cached_subtree_sizes: Vec<usize>,
-    pub(super) cached_default_schema: Option<&'a str>,
+    pub(super) cached_subtree_sizes: RefCell<Vec<usize>>,
+    pub(super) cached_default_schema: RefCell<Option<&'a str>>,
 }
 
 impl<'a> ProgramAnalysis<'a> {
@@ -50,6 +54,7 @@ impl<'a> ProgramAnalysis<'a> {
         text: &'a str,
         program_proto: sx::Program<'a>,
         program_translated: Rc<Program<'a>>,
+        input: Vec<InputValue>,
     ) -> Self {
         let mut ctx = ProgramAnalysis {
             settings,
@@ -57,6 +62,7 @@ impl<'a> ProgramAnalysis<'a> {
             script_text: text,
             program_proto: program_proto,
             program: program_translated,
+            input,
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -66,8 +72,8 @@ impl<'a> ProgramAnalysis<'a> {
             statement_depends_on: BTreeMap::new(),
             statement_liveness: Vec::new(),
             cards: Vec::new(),
-            cached_subtree_sizes: Vec::new(),
-            cached_default_schema: None,
+            cached_subtree_sizes: RefCell::new(Vec::new()),
+            cached_default_schema: RefCell::new(None),
         };
         let stmts_proto = program_proto.statements().unwrap_or_default();
         ctx.statement_names.resize(stmts_proto.len(), None);
@@ -86,9 +92,9 @@ pub fn analyze_program<'arena>(
     text: &'arena str,
     program_proto: sx::Program<'arena>,
     program: Rc<Program<'arena>>,
-    input: &[InputValue],
+    input: Vec<InputValue>,
 ) -> Result<ProgramAnalysis<'arena>, Box<dyn Error + Send + Sync>> {
-    let mut ctx = ProgramAnalysis::new(settings, arena, text, program_proto, program);
+    let mut ctx = ProgramAnalysis::new(settings, arena, text, program_proto, program, input);
     normalize_statement_names(&mut ctx);
     discover_statement_dependencies(&mut ctx);
     determine_statement_liveness(&mut ctx);
