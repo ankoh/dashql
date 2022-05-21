@@ -19,7 +19,7 @@ pub type StatementID = usize;
 pub type NodeID = usize;
 
 #[derive(Debug, Clone)]
-pub struct ProgramAnalysis<'a> {
+pub struct ProgramInstance<'a> {
     pub settings: Rc<ProgramAnalysisSettings>,
 
     // AST buffer
@@ -47,7 +47,7 @@ pub struct ProgramAnalysis<'a> {
     pub(super) cached_default_schema: RefCell<Option<&'a str>>,
 }
 
-impl<'a> ProgramAnalysis<'a> {
+impl<'a> ProgramInstance<'a> {
     pub fn new(
         settings: Rc<ProgramAnalysisSettings>,
         arena: &'a bumpalo::Bump,
@@ -57,7 +57,7 @@ impl<'a> ProgramAnalysis<'a> {
         mut input: Vec<InputValue>,
     ) -> Self {
         let input: HashMap<u32, SQLValue> = input.drain(..).map(|i| (i.statement_id, i.value)).collect();
-        let mut ctx = ProgramAnalysis {
+        let mut ctx = ProgramInstance {
             settings,
             arena,
             script_text: text,
@@ -94,8 +94,8 @@ pub fn analyze_program<'arena>(
     program_proto: sx::Program<'arena>,
     program: Rc<Program<'arena>>,
     input: Vec<InputValue>,
-) -> Result<ProgramAnalysis<'arena>, Box<dyn Error + Send + Sync>> {
-    let mut ctx = ProgramAnalysis::new(settings, arena, text, program_proto, program, input);
+) -> Result<ProgramInstance<'arena>, Box<dyn Error + Send + Sync>> {
+    let mut ctx = ProgramInstance::new(settings, arena, text, program_proto, program, input);
     normalize_statement_names(&mut ctx);
     discover_statement_dependencies(&mut ctx);
     determine_statement_liveness(&mut ctx);

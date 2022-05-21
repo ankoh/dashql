@@ -1,4 +1,4 @@
-use super::program_analysis::CardPosition;
+use super::program_instance::CardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{ASTCell, Expression, VizComponent, VizStatement};
 use dashql_proto::syntax as sx;

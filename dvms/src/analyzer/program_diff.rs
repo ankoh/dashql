@@ -1,4 +1,4 @@
-use super::program_analysis::ProgramAnalysis;
+use super::program_instance::ProgramInstance;
 use super::program_text::*;
 use dashql_proto::syntax as sx;
 use std::collections::BinaryHeap;
@@ -49,7 +49,7 @@ pub struct DiffOp {
     pub target: Option<usize>,
 }
 
-fn compute_tree_size<'a>(ctx: &ProgramAnalysis<'a>, node_id: usize) -> usize {
+fn compute_tree_size<'a>(ctx: &ProgramInstance<'a>, node_id: usize) -> usize {
     // Init tree sizes
     let nodes = ctx.program_proto.nodes().unwrap_or_default();
     let mut cached_subtree_sizes = ctx.cached_subtree_sizes.borrow_mut();
@@ -114,8 +114,8 @@ fn compute_tree_size<'a>(ctx: &ProgramAnalysis<'a>, node_id: usize) -> usize {
 }
 
 fn estimate_similarity(
-    source: (&ProgramAnalysis<'_>, usize),
-    target: (&ProgramAnalysis<'_>, usize),
+    source: (&ProgramInstance<'_>, usize),
+    target: (&ProgramInstance<'_>, usize),
 ) -> SimilarityEstimate {
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
@@ -152,8 +152,8 @@ fn estimate_similarity(
 }
 
 fn compute_similarity(
-    source: (&ProgramAnalysis<'_>, usize),
-    target: (&ProgramAnalysis<'_>, usize),
+    source: (&ProgramInstance<'_>, usize),
+    target: (&ProgramInstance<'_>, usize),
 ) -> StatementSimilarity {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
@@ -302,7 +302,7 @@ fn compute_similarity(
     sim
 }
 
-fn check_deep_equality(source: (&ProgramAnalysis<'_>, usize), target: (&ProgramAnalysis<'_>, usize)) -> bool {
+fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramInstance<'_>, usize)) -> bool {
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
@@ -426,8 +426,8 @@ fn check_deep_equality(source: (&ProgramAnalysis<'_>, usize), target: (&ProgramA
 
 // Find unique statement pair in two lists of statement ids
 fn map_statements(
-    source: &ProgramAnalysis<'_>,
-    target: &ProgramAnalysis<'_>,
+    source: &ProgramInstance<'_>,
+    target: &ProgramInstance<'_>,
     unique_pairs: &mut StatementMappings,
     equal_pairs: &mut StatementMappings,
 ) {
@@ -570,7 +570,7 @@ impl std::cmp::Ord for SimilarityScoreEntry {
     }
 }
 
-pub fn compute_diff(source: &ProgramAnalysis<'_>, target: &ProgramAnalysis<'_>) -> Vec<DiffOp> {
+pub fn compute_diff(source: &ProgramInstance<'_>, target: &ProgramInstance<'_>) -> Vec<DiffOp> {
     // Unpack arguments
     let source_stmts = source.program_proto.statements().unwrap_or_default();
     let target_stmts = target.program_proto.statements().unwrap_or_default();
@@ -737,8 +737,8 @@ mod test {
         let ast1 = grammar::parse(&arena, script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0)?);
         let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1)?);
-        let mut ctx0 = ProgramAnalysis::new(settings.clone(), &arena, script0, ast0, prog0, Vec::new());
-        let mut ctx1 = ProgramAnalysis::new(settings, &arena, script1, ast1, prog1, Vec::new());
+        let mut ctx0 = ProgramInstance::new(settings.clone(), &arena, script0, ast0, prog0, Vec::new());
+        let mut ctx1 = ProgramInstance::new(settings, &arena, script1, ast1, prog1, Vec::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

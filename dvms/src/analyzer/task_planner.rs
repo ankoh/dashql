@@ -1,6 +1,6 @@
 use super::{
-    program_analysis::ProgramAnalysis,
     program_diff::{compute_diff, DiffOp, DiffOpCode},
+    program_instance::ProgramInstance,
 };
 use serde::Serialize;
 use std::collections::HashSet;
@@ -114,9 +114,9 @@ pub struct TaskGraph {
 #[derive(Debug)]
 pub struct TaskPlannerContext<'a> {
     /// The next progra
-    pub next_program: &'a ProgramAnalysis<'a>,
+    pub next_program: &'a ProgramInstance<'a>,
     /// The previous program
-    pub prev_program: Option<(&'a ProgramAnalysis<'a>, &'a TaskGraph)>,
+    pub prev_program: Option<(&'a ProgramInstance<'a>, &'a TaskGraph)>,
     /// The diff between the programs
     pub diff: Vec<DiffOp>,
     /// The reverse task mapping.
@@ -418,6 +418,6 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     Ok(())
 }
 
-fn migrate_task_graph<'a>(ctx: &mut ProgramAnalysis<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+fn migrate_task_graph<'a>(ctx: &mut ProgramInstance<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
     Ok(())
 }

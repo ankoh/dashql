@@ -1,9 +1,9 @@
 use crate::grammar::Statement;
 
-use super::program_analysis::ProgramAnalysis;
+use super::program_instance::ProgramInstance;
 use std::collections::HashSet;
 
-pub fn determine_statement_liveness<'a>(ctx: &mut ProgramAnalysis<'a>) {
+pub fn determine_statement_liveness<'a>(ctx: &mut ProgramInstance<'a>) {
     ctx.statement_liveness.resize(ctx.program.statements.len(), false);
 
     // Prepare DFSs starting from viz and input statements
@@ -45,7 +45,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog, Vec::new());
+        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, Vec::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         determine_statement_liveness(&mut ctx);

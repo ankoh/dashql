@@ -1,9 +1,9 @@
-use super::program_analysis::*;
+use super::program_instance::*;
 use crate::grammar::{ASTCell, ASTNode, Indirection, Statement, TableRef};
 use dashql_proto::syntax as sx;
 
 fn normalize_name<'a>(
-    ctx: &mut ProgramAnalysis<'a>,
+    ctx: &mut ProgramInstance<'a>,
     name: &'a [ASTCell<Indirection<'a>>],
 ) -> &'a [ASTCell<Indirection<'a>>] {
     let mut path: [&'a str; 3] = [""; 3];
@@ -32,7 +32,7 @@ fn normalize_name<'a>(
     }
 }
 
-fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> usize {
+fn resolve_statement_id<'a>(ctx: &mut ProgramInstance<'a>, node_id: usize) -> usize {
     let nodes = ctx.program_proto.nodes().unwrap_or_default();
     let mut cursor = node_id;
     while (nodes[cursor].parent() as usize) != cursor {
@@ -47,7 +47,7 @@ fn resolve_statement_id<'a>(ctx: &mut ProgramAnalysis<'a>, node_id: usize) -> us
     }
 }
 
-pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysis<'a>) {
+pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
     let prog = ctx.program.clone();
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
@@ -67,7 +67,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramAnalysis<'a>) {
     }
 }
 
-pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramAnalysis<'a>) {
+pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = ctx.program.nodes[node_id];
         match node_proto.node_type() {
@@ -131,7 +131,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramAnalysis::new(settings.clone(), &arena, script, ast, prog, Vec::new());
+        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, Vec::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx
