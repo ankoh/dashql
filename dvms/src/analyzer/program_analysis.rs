@@ -29,7 +29,7 @@ pub struct ProgramAnalysis<'a> {
     pub program: Rc<Program<'a>>,
 
     // The input values
-    pub input: Vec<InputValue>,
+    pub input: HashMap<u32, SQLValue>,
 
     // Analysis output
     pub node_error_messages: Vec<NodeError>,
@@ -54,8 +54,9 @@ impl<'a> ProgramAnalysis<'a> {
         text: &'a str,
         program_proto: sx::Program<'a>,
         program_translated: Rc<Program<'a>>,
-        input: Vec<InputValue>,
+        mut input: Vec<InputValue>,
     ) -> Self {
+        let input: HashMap<u32, SQLValue> = input.drain(..).map(|i| (i.statement_id, i.value)).collect();
         let mut ctx = ProgramAnalysis {
             settings,
             arena,
