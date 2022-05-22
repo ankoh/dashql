@@ -36,7 +36,7 @@ impl Default for TaskStatusCode {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum TaskBlocker {
     None,
     Dependency,
@@ -44,7 +44,7 @@ pub enum TaskBlocker {
     HttpRequest,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum SetupTaskType {
     None,
     DropBlob,
@@ -61,14 +61,14 @@ impl Default for SetupTaskType {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct SetupTask {
     pub task_type: SetupTaskType,
     pub task_status_code: TaskStatusCode,
-    pub depends_on: Vec<u32>,
-    pub required_for: Vec<u32>,
-    pub object_id: u32,
-    pub name_qualified: u32,
+    pub depends_on: Vec<usize>,
+    pub required_for: Vec<usize>,
+    pub object_id: usize,
+    pub name_qualified: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -290,18 +290,6 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
             // Get invalidation info
             assert!(task_id != usize::MAX);
             let task = &prev_tasks.program_tasks[task_id];
-            // let (drop_task, update_task, propagates) = match task.task_type {
-            //     ProgramTaskType::None => (SetupTaskType::None, ProgramTaskType::None, false),
-            //     ProgramTaskType::CreateTable => (SetupTaskType::DropTable, ProgramTaskType::None, true),
-            //     ProgramTaskType::CreateView => (SetupTaskType::DropView, ProgramTaskType::None, true),
-            //     ProgramTaskType::CreateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz, false),
-            //     ProgramTaskType::Fetch => (SetupTaskType::DropBlob, ProgramTaskType::None, false),
-            //     ProgramTaskType::Input => (SetupTaskType::DropInput, ProgramTaskType::None, false),
-            //     ProgramTaskType::Load => (SetupTaskType::DropTable, ProgramTaskType::None, false),
-            //     ProgramTaskType::ModifyTable => (SetupTaskType::DropTable, ProgramTaskType::None, true),
-            //     ProgramTaskType::Set => (SetupTaskType::Unset, ProgramTaskType::None, false),
-            //     ProgramTaskType::UpdateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz, false),
-            // };
 
             // Propagates invalidation?
             let propagates = match task.task_type {
@@ -442,6 +430,92 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     Ok(())
 }
 
-fn migrate_task_graph<'a>(ctx: &mut ProgramInstance<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let (prev_prog, prev_tasks) = match &mut ctx.prev_program {
+        Some((prog, task)) => (prog, task),
+        None => return Ok(()),
+    };
+    let next_tasks = match &mut ctx.next_task_graph {
+        Some(t) => t,
+        None => unreachable!(),
+    };
+
+    // We know for every previous task whether it is applicable.
+    // Emit setup tasks that drop previous state and update the new program tasks.
+    //
+    // If a task is applicable, there also exists a new task that does not reuse state so far.
+    // We update the target id of the new task and mark it as complete.
+    // If a task is not applicable, but the diff op is UPDATE, we try to patch the task type.
+    // Currently this only affects the VIZ task to explicitly keep the viz state instead of recreating it.
+    let mut setup = Vec::new();
+    setup.resize(prev_tasks.program_tasks.len(), None);
+    for (prev_task_id, prev_task) in prev_tasks.program_tasks.iter().enumerate() {
+        // Get the previous program task and the diff
+        let prev_stmt_id = prev_task.origin_statement;
+        let diff_op = &ctx.diff[prev_stmt_id];
+
+        // Find the task translation
+        let (drop_task, update_task) = match prev_task.task_type {
+            ProgramTaskType::None => (SetupTaskType::None, ProgramTaskType::None),
+            ProgramTaskType::CreateTable => (SetupTaskType::DropTable, ProgramTaskType::None),
+            ProgramTaskType::CreateView => (SetupTaskType::DropView, ProgramTaskType::None),
+            ProgramTaskType::CreateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz),
+            ProgramTaskType::Fetch => (SetupTaskType::DropBlob, ProgramTaskType::None),
+            ProgramTaskType::Input => (SetupTaskType::DropInput, ProgramTaskType::None),
+            ProgramTaskType::Load => (SetupTaskType::DropTable, ProgramTaskType::None),
+            ProgramTaskType::ModifyTable => (SetupTaskType::DropTable, ProgramTaskType::None),
+            ProgramTaskType::Set => (SetupTaskType::Unset, ProgramTaskType::None),
+            ProgramTaskType::UpdateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz),
+        };
+
+        // Is applicable?
+        if ctx.program_task_applicability[prev_task_id] {
+            // Map to new task.
+            // Diff must be KEEP or MOVE since the previous task is applicable.
+            let next_stmt_id = diff_op.target.unwrap_or_default();
+            let next_task_id = next_tasks.program_task_by_statement[next_stmt_id];
+            debug_assert!((diff_op.op_code == DiffOpCode::Keep) || (diff_op.op_code == DiffOpCode::Move));
+
+            // Update the target id of the new task and mark it as complete
+            let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
+            next_task.task_status_code = TaskStatusCode::Completed;
+            next_task.object_id = prev_task.object_id;
+            debug_assert!(next_task.name_qualified == prev_task.name_qualified);
+            continue;
+        }
+
+        // Is diffed as KEEP, MOVE or UPDATE and has defined UPDATE task?
+        //
+        // Only relevant for viz tasks at the moment.
+        // (In which case the diff is actually never KEEP or MOVE but that doesn't matter)
+        // A viz statement that was slightly adjusted will be diffed as UPDATE.
+        // We don't want to drop and recreate the viz state in order to reuse the existing react component.
+        if (update_task != ProgramTaskType::None)
+            && (diff_op.op_code == DiffOpCode::Update
+                || diff_op.op_code == DiffOpCode::Move
+                || diff_op.op_code == DiffOpCode::Keep)
+        {
+            debug_assert!(diff_op.target.is_some());
+            let next_stmt_id = diff_op.target.unwrap_or_default();
+            let next_task_id = next_tasks.program_task_by_statement[next_stmt_id];
+            debug_assert!(next_task_id.is_some()); // Applicability
+            let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
+            next_task.task_type = update_task;
+            next_task.object_id = prev_task.object_id;
+        }
+        // Drop if there's a drop task defined
+        else if drop_task != SetupTaskType::None {
+            setup[prev_task_id] = Some(SetupTask {
+                task_type: drop_task,
+                task_status_code: TaskStatusCode::Pending,
+                depends_on: prev_task.depends_on.clone(),
+                required_for: Vec::new(),
+                object_id: prev_task.object_id,
+                name_qualified: prev_task.name_qualified.clone(),
+            });
+        }
+
+        todo!();
+    }
     Ok(())
 }
