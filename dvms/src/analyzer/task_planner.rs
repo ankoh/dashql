@@ -431,7 +431,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
 }
 
 fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (prev_prog, prev_tasks) = match &mut ctx.prev_program {
+    let (_, prev_tasks) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
         None => return Ok(()),
     };
@@ -514,8 +514,38 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 name_qualified: prev_task.name_qualified.clone(),
             });
         }
+    }
 
-        todo!();
+    // Store setup tasks and remember mapping
+    let mut task_mapping = Vec::new();
+    task_mapping.resize(setup.len(), None);
+    for (task_id, setup) in setup.drain(..).enumerate() {
+        match setup {
+            Some(task) => {
+                if task.task_type == SetupTaskType::None {
+                    continue;
+                }
+                task_mapping[task_id] = Some(next_tasks.setup_tasks.len());
+                next_tasks.setup_tasks.push(task);
+            }
+            None => continue,
+        }
+    }
+
+    // Patch all setup dependencies
+    let patch_ids = |ids: &mut Vec<usize>| {
+        let mut writer = 0;
+        for i in 0..ids.len() {
+            if let Some(mapped) = task_mapping[ids[i]] {
+                ids[writer] = mapped;
+                writer += 1;
+            }
+        }
+        ids.truncate(writer);
+    };
+    for task in next_tasks.setup_tasks.iter_mut() {
+        patch_ids(&mut task.required_for);
+        patch_ids(&mut task.depends_on);
     }
     Ok(())
 }
