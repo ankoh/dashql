@@ -7,10 +7,7 @@ use std::collections::HashSet;
 use std::error::Error;
 
 use crate::{
-    grammar::{
-        syntax::script_writer::{print_ast_as_script_with_defaults, ScriptTextConfig},
-        Statement,
-    },
+    grammar::{syntax::script_writer::print_ast_as_script_with_defaults, Statement},
     utils::topological_sort::TopologicalSort,
 };
 
@@ -112,7 +109,7 @@ pub struct TaskGraph {
 }
 
 #[derive(Debug)]
-pub struct TaskPlannerContext<'a> {
+struct TaskPlannerContext<'a> {
     /// The next progra
     pub next_program: &'a ProgramInstance<'a>,
     /// The previous program
@@ -238,7 +235,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<TaskGrap
 
 fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
     // Compute the diff
-    let (prev_prog, prev_task) = match &mut ctx.prev_program {
+    let (prev_prog, _) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
         None => return Ok(()),
     };
@@ -548,4 +545,23 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
         patch_ids(&mut task.depends_on);
     }
     Ok(())
+}
+
+pub fn plan_tasks<'a>(
+    next_program: &'a ProgramInstance<'a>,
+    prev_program: Option<(&'a ProgramInstance<'a>, &'a TaskGraph)>,
+) -> Result<TaskGraph, Box<dyn Error + Send + Sync>> {
+    let mut ctx = TaskPlannerContext {
+        next_program,
+        prev_program,
+        diff: Vec::new(),
+        reverse_task_mapping: Vec::new(),
+        program_task_applicability: Vec::new(),
+        next_task_graph: None,
+    };
+    diff_programs(&mut ctx)?;
+    translate_statements(&mut ctx)?;
+    identify_applicable_tasks(&mut ctx)?;
+    migrate_task_graph(&mut ctx)?;
+    Ok(ctx.next_task_graph.unwrap())
 }
