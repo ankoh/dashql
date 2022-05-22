@@ -131,7 +131,7 @@ struct TaskPlannerContext<'a> {
     pub next_task_graph: Option<TaskGraph>,
 }
 
-fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<TaskGraph, Box<dyn Error + Send + Sync>> {
+fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
     let next = ctx.next_program;
     let mut next_object_id = ctx.prev_program.map(|(_, t)| t.next_object_id).unwrap_or_default();
 
@@ -225,12 +225,13 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<TaskGrap
         }
     }
 
-    Ok(TaskGraph {
+    ctx.next_task_graph = Some(TaskGraph {
         next_object_id,
         setup_tasks: Vec::new(),
         program_tasks,
         program_task_by_statement,
-    })
+    });
+    Ok(())
 }
 
 fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
