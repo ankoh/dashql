@@ -133,7 +133,7 @@ pub enum CardType {
     Viz,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
 pub struct CardPosition {
     pub row: u32,
     pub column: u32,
