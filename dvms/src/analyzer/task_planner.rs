@@ -577,7 +577,6 @@ mod test {
     use std::collections::HashMap;
     use std::rc::Rc;
 
-    #[derive(Debug)]
     struct TaskPlannerTest {
         name: &'static str,
         prev_script: Option<&'static str>,

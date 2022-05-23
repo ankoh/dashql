@@ -11,8 +11,6 @@ use std::rc::Rc;
 
 use crate::analyzer::liveness::determine_statement_liveness;
 use crate::analyzer::name_resolution::{discover_statement_dependencies, normalize_statement_names};
-use crate::grammar::syntax::dson::DsonValue;
-use crate::grammar::syntax::enums_serde::*;
 use crate::grammar::Program;
 
 pub type StatementID = usize;
@@ -40,7 +38,7 @@ pub struct ProgramInstance<'a> {
     pub statement_required_for: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
     pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
     pub statement_liveness: Vec<bool>,
-    pub cards: Vec<Card<'a>>,
+    pub cards: Vec<Card>,
 
     // Cached properties during analysis
     pub(super) cached_subtree_sizes: RefCell<Vec<usize>>,
@@ -94,26 +92,25 @@ pub fn analyze_program<'arena>(
     program: Rc<Program<'arena>>,
     input: HashMap<usize, InputValue>,
 ) -> Result<ProgramInstance<'arena>, Box<dyn Error + Send + Sync>> {
-    let mut ctx = ProgramInstance::new(settings, arena, text, program_proto, program, input);
-    normalize_statement_names(&mut ctx);
-    discover_statement_dependencies(&mut ctx);
-    determine_statement_liveness(&mut ctx);
-
-    todo!();
+    let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
+    normalize_statement_names(&mut inst);
+    discover_statement_dependencies(&mut inst);
+    determine_statement_liveness(&mut inst);
+    Ok(inst)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct NodeLinterMessage {
     pub node_id: u32,
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum NodeErrorCode {
     InvalidInput,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct NodeError {
     pub node_id: u32,
     pub error_code: NodeErrorCode,
@@ -135,12 +132,148 @@ pub struct CardPosition {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Card<'a> {
+pub struct Card {
     pub card_type: CardType,
     pub card_title: String,
     pub card_position: CardPosition,
     pub statement_id: u32,
-    #[serde(with = "serde_input_component_type")]
-    pub input_component: sx::InputComponentType,
-    pub input_extra: Option<DsonValue<'a>>,
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
+    use crate::analyzer::input_value::InputValue;
+    use crate::analyzer::program_instance::analyze_program;
+    use crate::grammar;
+    use dashql_proto::syntax as sx;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+
+    #[derive(Debug)]
+    struct ExpectedTaskInstance {
+        node_errors: Vec<NodeError>,
+        linter_messages: Vec<NodeLinterMessage>,
+        statement_names: Vec<Option<Vec<&'static str>>>,
+        statement_by_name: Vec<(Vec<&'static str>, usize)>,
+        statement_required_for: Vec<(StatementID, StatementID, sx::DependencyType)>,
+        statement_depends_on: Vec<(StatementID, StatementID, sx::DependencyType)>,
+        statement_liveness: Vec<bool>,
+    }
+
+    #[derive(Debug)]
+    struct TaskPlannerTest {
+        script: &'static str,
+        input: HashMap<usize, InputValue>,
+        expected: ExpectedTaskInstance,
+    }
+
+    fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let settings = Rc::new(ProgramAnalysisSettings::default());
+        let arena = bumpalo::Bump::new();
+        let ast = grammar::parse(&arena, test.script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast)?);
+        let inst = analyze_program(settings.clone(), &arena, test.script, ast, prog, test.input.clone())?;
+
+        assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());
+        assert_eq!(inst.node_linter_messages.len(), test.expected.linter_messages.len());
+        assert_eq!(inst.statement_names.len(), test.expected.statement_names.len());
+        assert_eq!(inst.statement_by_name.len(), test.expected.statement_by_name.len());
+        assert_eq!(inst.statement_liveness.len(), test.expected.statement_liveness.len());
+
+        for i in 0..inst.node_error_messages.len() {
+            assert_eq!(inst.node_error_messages[i], test.expected.node_errors[i]);
+        }
+        for i in 0..inst.node_linter_messages.len() {
+            assert_eq!(inst.node_linter_messages[i], test.expected.linter_messages[i]);
+        }
+        for i in 0..inst.statement_names.len() {
+            let have = &inst.statement_names[i].map(|path| {
+                let names: Vec<&str> = path
+                    .iter()
+                    .map(|c| match c.get() {
+                        Indirection::Name(s) => s,
+                        Indirection::Index(_) => panic!("unexpected index"),
+                        Indirection::Bounds(_) => panic!("unepxected bounds"),
+                    })
+                    .collect();
+                names
+            });
+            let want = &test.expected.statement_names[i];
+            assert_eq!(have, want);
+        }
+        let mut statement_by_name: Vec<(Vec<&str>, usize)> = inst
+            .statement_by_name
+            .iter()
+            .map(|(k, v)| {
+                let names: Vec<&str> = k
+                    .iter()
+                    .map(|c| match c.get() {
+                        Indirection::Name(s) => s,
+                        Indirection::Index(_) => panic!("unexpected index"),
+                        Indirection::Bounds(_) => panic!("unepxected bounds"),
+                    })
+                    .collect();
+                (names, *v)
+            })
+            .collect();
+        statement_by_name.sort_unstable();
+        assert_eq!(statement_by_name, test.expected.statement_by_name);
+
+        let mut statement_required_for: Vec<(StatementID, StatementID, sx::DependencyType)> = inst
+            .statement_required_for
+            .iter()
+            .map(|((a, b), (dep, _))| (*a, *b, *dep))
+            .collect();
+        statement_required_for.sort_unstable();
+        assert_eq!(statement_required_for, test.expected.statement_required_for);
+
+        let mut statement_depends_on: Vec<(StatementID, StatementID, sx::DependencyType)> = inst
+            .statement_depends_on
+            .iter()
+            .map(|((a, b), (dep, _))| (*a, *b, *dep))
+            .collect();
+        statement_depends_on.sort_unstable();
+        assert_eq!(statement_depends_on, test.expected.statement_depends_on);
+
+        assert_eq!(inst.statement_liveness, test.expected.statement_liveness);
+        Ok(())
+    }
+
+    #[test]
+    fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            script: r#"
+FETCH a FROM 'http://remote/data.parquet';
+LOAD b FROM a USING PARQUET;
+CREATE TABLE c AS SELECT * FROM b;
+VIZ c USING TABLE;
+"#,
+            input: HashMap::new(),
+            expected: ExpectedTaskInstance {
+                node_errors: vec![],
+                linter_messages: vec![],
+                statement_names: vec![
+                    Some(vec!["main", "a"]),
+                    Some(vec!["main", "b"]),
+                    Some(vec!["main", "c"]),
+                    None,
+                ],
+                statement_by_name: vec![(vec!["main", "a"], 0), (vec!["main", "b"], 1), (vec!["main", "c"], 2)],
+                statement_depends_on: vec![
+                    (1, 0, sx::DependencyType::TABLE_REF),
+                    (2, 1, sx::DependencyType::TABLE_REF),
+                    (3, 2, sx::DependencyType::TABLE_REF),
+                ],
+                statement_required_for: vec![
+                    (0, 1, sx::DependencyType::TABLE_REF),
+                    (1, 2, sx::DependencyType::TABLE_REF),
+                    (2, 3, sx::DependencyType::TABLE_REF),
+                ],
+                statement_liveness: vec![true, true, true, true],
+            },
+        })?;
+        Ok(())
+    }
 }

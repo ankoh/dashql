@@ -68,6 +68,22 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
 }
 
 pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
+    for stmt_id in 0..ctx.program.statements.len() {
+        let target = match ctx.program.statements[stmt_id] {
+            Statement::Load(l) => normalize_name(ctx, l.source.get()),
+            _ => continue,
+        };
+        if let Some(target_stmt_id) = ctx.statement_by_name.get(target).cloned() {
+            ctx.statement_required_for.insert(
+                (target_stmt_id, stmt_id as usize),
+                (sx::DependencyType::TABLE_REF, usize::MAX),
+            );
+            ctx.statement_depends_on.insert(
+                (stmt_id as usize, target_stmt_id),
+                (sx::DependencyType::TABLE_REF, usize::MAX),
+            );
+        }
+    }
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = ctx.program.nodes[node_id];
         match node_proto.node_type() {
