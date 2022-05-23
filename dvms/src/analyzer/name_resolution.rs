@@ -2,10 +2,10 @@ use super::program_instance::*;
 use crate::grammar::{ASTCell, ASTNode, Indirection, Statement, TableRef};
 use dashql_proto::syntax as sx;
 
-fn normalize_name<'a>(
-    ctx: &mut ProgramInstance<'a>,
-    name: &'a [ASTCell<Indirection<'a>>],
-) -> &'a [ASTCell<Indirection<'a>>] {
+fn normalize_name_with<'a, F, R>(ctx: &mut ProgramInstance<'a>, name: &'a [ASTCell<Indirection<'a>>], f: F) -> R
+where
+    F: Fn(&mut ProgramInstance<'a>, &[ASTCell<Indirection<'a>>], bool) -> R,
+{
     let mut path: [&'a str; 3] = [""; 3];
     let mut path_length = 0;
     for (i, elem) in name.iter().enumerate().take(3) {
@@ -18,18 +18,29 @@ fn normalize_name<'a>(
         }
     }
     let path = &path[0..path_length];
-    if path.len() == 1 {
-        let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema.borrow().clone() {
-            Indirection::Name(schema)
-        } else {
-            let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
-            Indirection::Name(s)
-        };
-        ctx.arena
-            .alloc_slice_clone(&[ASTCell::with_value(node), name[0].clone()])
-    } else {
-        name
+    if path.len() > 1 {
+        return f(ctx, name, false);
     }
+    let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema.borrow().clone() {
+        Indirection::Name(schema)
+    } else {
+        let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
+        Indirection::Name(s)
+    };
+    f(ctx, &[ASTCell::with_value(node), name[0].clone()], true)
+}
+
+fn normalize_name_clone<'a>(
+    ctx: &mut ProgramInstance<'a>,
+    name: &'a [ASTCell<Indirection<'a>>],
+) -> &'a [ASTCell<Indirection<'a>>] {
+    normalize_name_with(ctx, name, |ctx, normalized, tmp| -> &'a [ASTCell<Indirection<'a>>] {
+        if tmp {
+            ctx.arena.alloc_slice_clone(normalized)
+        } else {
+            name
+        }
+    })
 }
 
 fn resolve_statement_id<'a>(ctx: &mut ProgramInstance<'a>, node_id: usize) -> usize {
@@ -52,12 +63,12 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
         let name = match stmt {
-            Statement::CreateAs(create) => Some(normalize_name(ctx, create.name.get())),
-            Statement::Create(create) => Some(normalize_name(ctx, create.name.get())),
-            Statement::CreateView(view) => Some(normalize_name(ctx, view.name.get())),
-            Statement::Fetch(fetch) => Some(normalize_name(ctx, fetch.name.get())),
-            Statement::Load(load) => Some(normalize_name(ctx, load.name.get())),
-            Statement::Input(input) => Some(normalize_name(ctx, input.name.get())),
+            Statement::CreateAs(create) => Some(normalize_name_clone(ctx, create.name.get())),
+            Statement::Create(create) => Some(normalize_name_clone(ctx, create.name.get())),
+            Statement::CreateView(view) => Some(normalize_name_clone(ctx, view.name.get())),
+            Statement::Fetch(fetch) => Some(normalize_name_clone(ctx, fetch.name.get())),
+            Statement::Load(load) => Some(normalize_name_clone(ctx, load.name.get())),
+            Statement::Input(input) => Some(normalize_name_clone(ctx, input.name.get())),
             _ => None,
         };
         if let Some(name) = name {
@@ -70,10 +81,10 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
 pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
     for stmt_id in 0..ctx.program.statements.len() {
         let target = match ctx.program.statements[stmt_id] {
-            Statement::Load(l) => normalize_name(ctx, l.source.get()),
+            Statement::Load(l) => normalize_name_with(ctx, l.source.get(), |_, normalized, _| normalized.to_vec()),
             _ => continue,
         };
-        if let Some(target_stmt_id) = ctx.statement_by_name.get(target).cloned() {
+        if let Some(target_stmt_id) = ctx.statement_by_name.get(target.as_slice()).cloned() {
             ctx.statement_required_for.insert(
                 (target_stmt_id, stmt_id as usize),
                 (sx::DependencyType::TABLE_REF, usize::MAX),
@@ -89,7 +100,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
         match node_proto.node_type() {
             sx::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
-                    let target = normalize_name(ctx, name);
+                    let target = normalize_name_clone(ctx, name);
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_required_for.insert(
@@ -105,7 +116,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
             }
             sx::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
-                    let target = normalize_name(ctx, rel.name.get());
+                    let target = normalize_name_clone(ctx, rel.name.get());
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_required_for.insert(
