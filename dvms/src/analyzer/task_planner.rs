@@ -566,3 +566,61 @@ pub fn plan_tasks<'a>(
     migrate_task_graph(&mut ctx)?;
     Ok(ctx.next_task_graph.unwrap())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
+    use crate::analyzer::program_instance::{analyze_program, InputValue};
+    use crate::grammar;
+    use std::rc::Rc;
+
+    #[derive(Debug)]
+    struct TaskPlannerTest {
+        name: &'static str,
+        prev_script: Option<&'static str>,
+        prev_input: Vec<InputValue>,
+        prev_tasks: Option<TaskGraph>,
+        next_script: &'static str,
+        next_tasks: TaskGraph,
+        next_input: Vec<InputValue>,
+    }
+
+    fn test_task_planning(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let settings = Rc::new(ProgramAnalysisSettings::default());
+
+        // Instantiate previous program
+        let prev_arena = bumpalo::Bump::new();
+        let _prev_instance = if let Some(prev_script) = test.prev_script {
+            let prev_ast = grammar::parse(&prev_arena, prev_script)?;
+            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev_script, prev_ast)?);
+            Some(analyze_program(
+                settings.clone(),
+                &prev_arena,
+                prev_script,
+                prev_ast,
+                prev_prog,
+                test.prev_input.clone(),
+            )?)
+        } else {
+            None
+        };
+
+        // Instantiate next program
+        let next_arena = bumpalo::Bump::new();
+        let _next_instance = {
+            let next_ast = grammar::parse(&next_arena, test.next_script)?;
+            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next_script, next_ast)?);
+            analyze_program(
+                settings.clone(),
+                &next_arena,
+                test.next_script,
+                next_ast,
+                next_prog,
+                test.next_input.clone(),
+            )?
+        };
+
+        Ok(())
+    }
+}
