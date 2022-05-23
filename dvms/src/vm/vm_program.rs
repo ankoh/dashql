@@ -10,7 +10,7 @@ pub enum VMInstruction {
     Return32(Reg),             // *result = r1 + return
     Return64(Reg),             // *result = r1 + return
     ReturnVoid,                // return
-    Br(Instr),                 // ip = c
+    Br(Instr),                 // ip = c1
     CondBr(Reg, Instr, Instr), // ip = r1 ? c2 : c3
     RegPtr(Reg, u32),          // r1 = registers + offset
     ConstPtr(Reg, u32),        // r1 = constants + offset
