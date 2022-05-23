@@ -241,6 +241,66 @@ mod test {
     fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
+FETCH a FROM 'http://remote/data1.parquet';
+"#,
+            input: HashMap::new(),
+            expected: ExpectedTaskInstance {
+                node_errors: vec![],
+                linter_messages: vec![],
+                statement_names: vec![Some(vec!["main", "a"])],
+                statement_by_name: vec![(vec!["main", "a"], 0)],
+                statement_depends_on: vec![],
+                statement_liveness: vec![false],
+            },
+        })?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            script: r#"
+CREATE TABLE a AS SELECT 1;
+CREATE TABLE b AS SELECT 2;
+"#,
+            input: HashMap::new(),
+            expected: ExpectedTaskInstance {
+                node_errors: vec![],
+                linter_messages: vec![],
+                statement_names: vec![Some(vec!["main", "a"]), Some(vec!["main", "b"])],
+                statement_by_name: vec![(vec!["main", "a"], 0), (vec!["main", "b"], 1)],
+                statement_depends_on: vec![],
+                statement_liveness: vec![false, false],
+            },
+        })?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            script: r#"
+CREATE TABLE a AS SELECT 1;
+CREATE TABLE b AS SELECT 2;
+VIZ a USING TABLE;
+"#,
+            input: HashMap::new(),
+            expected: ExpectedTaskInstance {
+                node_errors: vec![],
+                linter_messages: vec![],
+                statement_names: vec![Some(vec!["main", "a"]), Some(vec!["main", "b"]), None],
+                statement_by_name: vec![(vec!["main", "a"], 0), (vec!["main", "b"], 1)],
+                statement_depends_on: vec![(2, 0, sx::DependencyType::TABLE_REF)],
+                statement_liveness: vec![true, false, true],
+            },
+        })?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            script: r#"
 FETCH a FROM 'http://remote/data.parquet';
 LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b;
@@ -269,7 +329,7 @@ VIZ c USING TABLE;
     }
 
     #[test]
-    fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 FETCH a FROM 'http://remote/data1.parquet';
