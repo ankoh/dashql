@@ -1,6 +1,6 @@
 use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
-use super::sql_value::SQLValue;
+use super::input_value::InputValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -29,7 +29,7 @@ pub struct ProgramInstance<'a> {
     pub program: Rc<Program<'a>>,
 
     // The input values
-    pub input: HashMap<usize, SQLValue>,
+    pub input: HashMap<usize, InputValue>,
 
     // Analysis output
     pub node_error_messages: Vec<NodeError>,
@@ -54,9 +54,8 @@ impl<'a> ProgramInstance<'a> {
         text: &'a str,
         program_proto: sx::Program<'a>,
         program_translated: Rc<Program<'a>>,
-        mut input: Vec<InputValue>,
+        input: HashMap<usize, InputValue>,
     ) -> Self {
-        let input: HashMap<usize, SQLValue> = input.drain(..).map(|i| (i.statement_id as usize, i.value)).collect();
         let mut ctx = ProgramInstance {
             settings,
             arena,
@@ -93,7 +92,7 @@ pub fn analyze_program<'arena>(
     text: &'arena str,
     program_proto: sx::Program<'arena>,
     program: Rc<Program<'arena>>,
-    input: Vec<InputValue>,
+    input: HashMap<usize, InputValue>,
 ) -> Result<ProgramInstance<'arena>, Box<dyn Error + Send + Sync>> {
     let mut ctx = ProgramInstance::new(settings, arena, text, program_proto, program, input);
     normalize_statement_names(&mut ctx);
@@ -119,12 +118,6 @@ pub struct NodeError {
     pub node_id: u32,
     pub error_code: NodeErrorCode,
     pub error_message: String,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct InputValue {
-    pub statement_id: u32,
-    pub value: SQLValue,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -729,6 +729,7 @@ mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::grammar;
+    use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
 
@@ -740,8 +741,8 @@ mod test {
         let ast1 = grammar::parse(&arena, script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0)?);
         let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1)?);
-        let mut ctx0 = ProgramInstance::new(settings.clone(), &arena, script0, ast0, prog0, Vec::new());
-        let mut ctx1 = ProgramInstance::new(settings, &arena, script1, ast1, prog1, Vec::new());
+        let mut ctx0 = ProgramInstance::new(settings.clone(), &arena, script0, ast0, prog0, HashMap::new());
+        let mut ctx1 = ProgramInstance::new(settings, &arena, script1, ast1, prog1, HashMap::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

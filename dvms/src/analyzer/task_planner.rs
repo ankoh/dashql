@@ -571,19 +571,21 @@ pub fn plan_tasks<'a>(
 mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
-    use crate::analyzer::program_instance::{analyze_program, InputValue};
+    use crate::analyzer::input_value::InputValue;
+    use crate::analyzer::program_instance::analyze_program;
     use crate::grammar;
+    use std::collections::HashMap;
     use std::rc::Rc;
 
     #[derive(Debug)]
     struct TaskPlannerTest {
         name: &'static str,
         prev_script: Option<&'static str>,
-        prev_input: Vec<InputValue>,
+        prev_input: HashMap<usize, InputValue>,
         prev_tasks: Option<TaskGraph>,
         next_script: &'static str,
         next_tasks: TaskGraph,
-        next_input: Vec<InputValue>,
+        next_input: HashMap<usize, InputValue>,
     }
 
     fn test_task_planning(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {

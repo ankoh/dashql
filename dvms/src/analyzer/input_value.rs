@@ -1,12 +1,6 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct LogicalDecimalType {
-    width: usize,
-    scale: usize,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct LogicalStructType {
     fields: Vec<(String, LogicalType)>,
 }
@@ -30,7 +24,6 @@ pub enum LogicalType {
     Int64,
     Float32,
     Float64,
-    Decimal(LogicalDecimalType),
 
     Date,
     Time,
@@ -39,7 +32,6 @@ pub enum LogicalType {
 
     Char,
     Varchar,
-    Blob,
 
     Struct(LogicalStructType),
     List(LogicalListType),
@@ -56,14 +48,14 @@ pub enum PhysicalData {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct SQLValue {
+pub struct InputValue {
     #[serde(rename = "type")]
     pub logical_type: LogicalType,
     #[serde(rename = "data")]
     pub physical_data: PhysicalData,
 }
 
-impl Default for SQLValue {
+impl Default for InputValue {
     fn default() -> Self {
         Self {
             logical_type: LogicalType::Null,
@@ -79,7 +71,7 @@ mod test {
 
     #[test]
     pub fn test_42() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let value = SQLValue {
+        let value = InputValue {
             logical_type: LogicalType::Int64,
             physical_data: PhysicalData::I64(0),
         };
@@ -90,7 +82,7 @@ mod test {
 
     #[test]
     pub fn test_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let value = SQLValue {
+        let value = InputValue {
             logical_type: LogicalType::Varchar,
             physical_data: PhysicalData::String("foo".to_string()),
         };

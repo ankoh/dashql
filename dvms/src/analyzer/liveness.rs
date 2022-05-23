@@ -37,6 +37,7 @@ mod test {
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::name_resolution::*;
     use crate::grammar;
+    use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
 
@@ -45,7 +46,7 @@ mod test {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
-        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, Vec::new());
+        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         determine_statement_liveness(&mut ctx);
