@@ -12,6 +12,7 @@ pub struct BoardPosition {
     pub column: usize,
 }
 
+#[derive(Default)]
 pub struct BoardSpace {
     /// The cell bitmask. 1 = occupied, 0 = free.
     pub cells: Vec<u8>,
