@@ -1,5 +1,4 @@
 use super::program_instance::ProgramInstance;
-use super::program_text::*;
 use dashql_proto::syntax as sx;
 use std::collections::BinaryHeap;
 
@@ -111,6 +110,10 @@ fn compute_tree_size<'a>(ctx: &ProgramInstance<'a>, node_id: usize) -> usize {
         }
     }
     total
+}
+
+fn text_at<'text>(text: &'text str, loc: sx::Location) -> &'text str {
+    &text[loc.offset() as usize..(loc.offset() + loc.length()) as usize]
 }
 
 fn estimate_similarity(

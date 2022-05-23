@@ -63,6 +63,15 @@ pub struct SQLValue {
     pub physical_data: PhysicalData,
 }
 
+impl Default for SQLValue {
+    fn default() -> Self {
+        Self {
+            logical_type: LogicalType::Null,
+            physical_data: PhysicalData::Null,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
