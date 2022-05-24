@@ -1,6 +1,7 @@
 use super::{
     program_diff::{compute_diff, DiffOp, DiffOpCode},
     program_instance::ProgramInstance,
+    task_data::{SQLTaskData, TaskData},
 };
 use serde::Serialize;
 use std::collections::HashSet;
@@ -66,6 +67,7 @@ pub struct SetupTask {
     pub required_for: Vec<usize>,
     pub object_id: usize,
     pub name_qualified: Option<String>,
+    pub data: Option<TaskData>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -97,7 +99,7 @@ pub struct ProgramTask {
     pub origin_statement: usize,
     pub object_id: usize,
     pub name_qualified: Option<String>,
-    pub script: Option<String>,
+    pub data: Option<TaskData>,
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
@@ -152,22 +154,28 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             origin_statement: stmt_id,
             object_id: next_object_id,
             name_qualified: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
-            script: None,
+            data: None,
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                script: Some(print_ast_as_script_with_defaults(*c)),
+                data: Some(TaskData::Sql(SQLTaskData {
+                    script: print_ast_as_script_with_defaults(*c),
+                })),
                 ..mixin
             },
             Statement::CreateAs(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                script: Some(print_ast_as_script_with_defaults(*c)),
+                data: Some(TaskData::Sql(SQLTaskData {
+                    script: print_ast_as_script_with_defaults(*c),
+                })),
                 ..mixin
             },
             Statement::CreateView(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateView,
-                script: Some(print_ast_as_script_with_defaults(*c)),
+                data: Some(TaskData::Sql(SQLTaskData {
+                    script: print_ast_as_script_with_defaults(*c),
+                })),
                 ..mixin
             },
             Statement::Input(_i) => ProgramTask {
@@ -188,7 +196,9 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             },
             Statement::Select(s) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                script: Some(print_ast_as_script_with_defaults(*s)),
+                data: Some(TaskData::Sql(SQLTaskData {
+                    script: print_ast_as_script_with_defaults(*s),
+                })),
                 ..mixin
             },
             Statement::Set(_) => ProgramTask {
@@ -497,6 +507,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 required_for: Vec::new(),
                 object_id: prev_task.object_id,
                 name_qualified: prev_task.name_qualified.clone(),
+                data: None,
             });
         }
     }
@@ -660,7 +671,7 @@ FETCH a FROM 'https://some/remote'
                         origin_statement: 0,
                         object_id: 0,
                         name_qualified: Some("main.a".to_string()),
-                        script: None,
+                        data: None,
                     }],
                     program_task_by_statement: vec![Some(0)],
                 },
@@ -690,7 +701,7 @@ LOAD b FROM a USING PARQUET;
                             origin_statement: 0,
                             object_id: 0,
                             name_qualified: Some("main.a".to_string()),
-                            script: None,
+                            data: None,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -700,7 +711,7 @@ LOAD b FROM a USING PARQUET;
                             origin_statement: 1,
                             object_id: 1,
                             name_qualified: Some("main.b".to_string()),
-                            script: None,
+                            data: None,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -732,7 +743,7 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 0,
                             object_id: 0,
                             name_qualified: Some("main.a".to_string()),
-                            script: None,
+                            data: None,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -742,7 +753,7 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 1,
                             object_id: 1,
                             name_qualified: Some("main.b".to_string()),
-                            script: None,
+                            data: None,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateTable,
@@ -752,7 +763,9 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 2,
                             object_id: 2,
                             name_qualified: Some("main.c".to_string()),
-                            script: Some("create table c as (select * from b)".to_string()),
+                            data: Some(TaskData::Sql(SQLTaskData {
+                                script: "create table c as (select * from b)".to_string(),
+                            })),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2)],
@@ -785,7 +798,7 @@ VIZ c USING TABLE;
                             origin_statement: 0,
                             object_id: 0,
                             name_qualified: Some("main.a".to_string()),
-                            script: None,
+                            data: None,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -795,7 +808,7 @@ VIZ c USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             name_qualified: Some("main.b".to_string()),
-                            script: None,
+                            data: None,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateTable,
@@ -805,7 +818,9 @@ VIZ c USING TABLE;
                             origin_statement: 2,
                             object_id: 2,
                             name_qualified: Some("main.c".to_string()),
-                            script: Some("create table c as (select * from b)".to_string()),
+                            data: Some(TaskData::Sql(SQLTaskData {
+                                script: "create table c as (select * from b)".to_string(),
+                            })),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -815,7 +830,7 @@ VIZ c USING TABLE;
                             origin_statement: 3,
                             object_id: 3,
                             name_qualified: None,
-                            script: None,
+                            data: None,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
