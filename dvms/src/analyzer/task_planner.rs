@@ -574,51 +574,51 @@ mod test {
     use crate::analyzer::input_value::InputValue;
     use crate::analyzer::program_instance::analyze_program;
     use crate::grammar;
-    use std::collections::HashMap;
     use std::rc::Rc;
+
+    struct ExpectedInstance {
+        script: &'static str,
+        input: Vec<(usize, InputValue)>,
+        tasks: TaskGraph,
+    }
 
     struct TaskPlannerTest {
         name: &'static str,
-        prev_script: Option<&'static str>,
-        prev_input: HashMap<usize, InputValue>,
-        prev_tasks: Option<TaskGraph>,
-        next_script: &'static str,
-        next_tasks: TaskGraph,
-        next_input: HashMap<usize, InputValue>,
+        prev: Option<ExpectedInstance>,
+        next: ExpectedInstance,
     }
 
-    fn test_task_planning(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Rc::new(ProgramAnalysisSettings::default());
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();
-        let _prev_instance = if let Some(prev_script) = test.prev_script {
-            let prev_ast = grammar::parse(&prev_arena, prev_script)?;
-            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev_script, prev_ast)?);
-            Some(analyze_program(
+        let mut _prev_instance = None;
+        if let Some(prev) = &test.prev {
+            let prev_ast = grammar::parse(&prev_arena, prev.script)?;
+            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast)?);
+            _prev_instance = Some(analyze_program(
                 settings.clone(),
                 &prev_arena,
-                prev_script,
+                prev.script,
                 prev_ast,
                 prev_prog,
-                test.prev_input.clone(),
+                prev.input.iter().cloned().collect(),
             )?)
-        } else {
-            None
         };
 
         // Instantiate next program
         let next_arena = bumpalo::Bump::new();
         let _next_instance = {
-            let next_ast = grammar::parse(&next_arena, test.next_script)?;
-            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next_script, next_ast)?);
+            let next_ast = grammar::parse(&next_arena, test.next.script)?;
+            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast)?);
             analyze_program(
                 settings.clone(),
                 &next_arena,
-                test.next_script,
+                test.next.script,
                 next_ast,
                 next_prog,
-                test.next_input.clone(),
+                test.next.input.iter().cloned().collect(),
             )?
         };
 
