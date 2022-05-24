@@ -325,7 +325,7 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 10);
+        let mut a = ScriptTextArray::with_capacity(w, 14);
         a.push(w.keyword("create"));
         match self.temp.get() {
             Some(sx::TempType::DEFAULT) => {
@@ -352,6 +352,40 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
             a.push(w.keyword("exists").pad_left());
         }
         a.push(self.name.get().as_script(w).pad_left());
+        let cols = self.columns.get();
+        if cols.len() > 0 {
+            let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
+            for (i, col) in cols.iter().enumerate() {
+                if i > 0 {
+                    c.push(w.str_const(","));
+                }
+                c.push(w.str(col.get()));
+            }
+            a.push(w.round_brackets(c.finish()).pad_left());
+        }
+        if let Some(on_commit) = self.on_commit.get() {
+            match on_commit {
+                sx::OnCommitOption::NOOP => {}
+                sx::OnCommitOption::DROP => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("drop").pad_left());
+                }
+                sx::OnCommitOption::DELETE_ROWS => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("delete").pad_left());
+                    a.push(w.keyword("rows").pad_left());
+                }
+                sx::OnCommitOption::PRESERVE_ROWS => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("preserve").pad_left());
+                    a.push(w.keyword("rows").pad_left());
+                }
+                _ => (),
+            }
+        }
         a.push(w.keyword("as").pad_left());
         let mut s = ScriptTextArray::with_capacity(w, 1);
         s.push(self.statement.get().as_script(w));
@@ -661,6 +695,11 @@ mod test {
     fn test_pipe(text: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
+        assert!(
+            ast.errors().is_none(),
+            "{}",
+            ast.errors().unwrap().get(0).message().unwrap_or_default()
+        );
         let prog = grammar::deserialize_ast(&arena, text, ast)?;
         assert_eq!(prog.statements.len(), 1);
 
@@ -748,6 +787,9 @@ mod test {
     #[test]
     fn create_table_as() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe(&r#"create table foo as (select 1)"#)?;
+        test_pipe(&r#"create table if not exists foo as (select 1)"#)?;
+        test_pipe(&r#"create table if not exists foo on commit drop as (select 1)"#)?;
+        test_pipe(&r#"create table foo (a) as (select 1)"#)?;
         Ok(())
     }
 }
