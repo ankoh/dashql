@@ -170,24 +170,20 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 script: Some(print_ast_as_script_with_defaults(*c)),
                 ..mixin
             },
-            Statement::Input(i) => ProgramTask {
+            Statement::Input(_i) => ProgramTask {
                 task_type: ProgramTaskType::Input,
-                script: Some(print_ast_as_script_with_defaults(*i)),
                 ..mixin
             },
-            Statement::Fetch(f) => ProgramTask {
+            Statement::Fetch(_f) => ProgramTask {
                 task_type: ProgramTaskType::Fetch,
-                script: Some(print_ast_as_script_with_defaults(*f)),
                 ..mixin
             },
-            Statement::Load(l) => ProgramTask {
+            Statement::Load(_l) => ProgramTask {
                 task_type: ProgramTaskType::Load,
-                script: Some(print_ast_as_script_with_defaults(*l)),
                 ..mixin
             },
-            Statement::Viz(v) => ProgramTask {
+            Statement::Viz(_v) => ProgramTask {
                 task_type: ProgramTaskType::CreateViz,
-                script: Some(print_ast_as_script_with_defaults(*v)),
                 ..mixin
             },
             Statement::Select(s) => ProgramTask {
@@ -664,9 +660,50 @@ FETCH a FROM 'https://some/remote'
                         origin_statement: 0,
                         object_id: 0,
                         name_qualified: Some("main.a".to_string()),
-                        script: Some("fetch a from 'https://some/remote'".to_string()),
+                        script: None,
                     }],
                     program_task_by_statement: vec![Some(0)],
+                },
+            },
+        })
+    }
+
+    #[test]
+    fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            prev: None,
+            next: ExpectedInstance {
+                script: r#"
+FETCH a FROM 'https://some/remote';
+LOAD b FROM a USING PARQUET;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 2,
+                    setup_tasks: vec![],
+                    program_tasks: vec![
+                        ProgramTask {
+                            task_type: ProgramTaskType::Fetch,
+                            task_status_code: TaskStatusCode::Skipped,
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: 0,
+                            object_id: 0,
+                            name_qualified: Some("main.a".to_string()),
+                            script: None,
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::Load,
+                            task_status_code: TaskStatusCode::Skipped,
+                            depends_on: vec![0],
+                            required_for: vec![],
+                            origin_statement: 1,
+                            object_id: 1,
+                            name_qualified: Some("main.b".to_string()),
+                            script: None,
+                        },
+                    ],
+                    program_task_by_statement: vec![Some(0), Some(1)],
                 },
             },
         })
