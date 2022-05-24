@@ -328,11 +328,7 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 14);
         a.push(w.keyword("create"));
         match self.temp.get() {
-            Some(sx::TempType::DEFAULT) => {
-                a.push(w.keyword("temp").pad_left());
-            }
-            Some(sx::TempType::LOCAL) => {
-                a.push(w.keyword("local").pad_left());
+            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
                 a.push(w.keyword("temp").pad_left());
             }
             Some(sx::TempType::GLOBAL) => {
@@ -399,7 +395,40 @@ impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
     where
         'ast: 'writer,
     {
-        todo!()
+        let mut a = ScriptTextArray::with_capacity(w, 8);
+        a.push(w.keyword("create"));
+        match self.temp.get() {
+            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::GLOBAL) => {
+                a.push(w.keyword("global").pad_left());
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::UNLOGGED) => {
+                a.push(w.keyword("unlogged").pad_left());
+            }
+            Some(_) => {}
+            None => todo!(),
+        }
+        a.push(w.keyword("view").pad_left());
+        a.push(self.name.get().as_script(w).pad_left());
+        let cols = self.columns.get();
+        if cols.len() > 0 {
+            let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
+            for (i, col) in cols.iter().enumerate() {
+                if i > 0 {
+                    c.push(w.str_const(",").pad_right());
+                }
+                c.push(w.str(col.get()));
+            }
+            a.push(w.round_brackets(c.finish()).pad_left());
+        }
+        a.push(w.keyword("as").pad_left());
+        let mut s = ScriptTextArray::with_capacity(w, 1);
+        s.push(self.statement.get().as_script(w));
+        a.push(w.round_brackets(s.finish()).pad_left());
+        w.float(a.finish())
     }
 }
 
@@ -419,6 +448,7 @@ impl<'ast> AsScript<'ast> for Statement<'ast> {
     {
         match &self {
             Statement::CreateAs(s) => s.as_script(w),
+            Statement::CreateView(s) => s.as_script(w),
             Statement::Select(s) => s.as_script(w),
             Statement::Set(s) => s.as_script(w),
             Statement::Fetch(s) => s.as_script(w),
@@ -787,10 +817,20 @@ mod test {
     #[test]
     fn create_table_as() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe(&r#"create table foo as (select 1)"#)?;
+        test_pipe(&r#"create temp table foo as (select 1)"#)?;
+        test_pipe(&r#"create global temp table foo as (select 1)"#)?;
         test_pipe(&r#"create table if not exists foo as (select 1)"#)?;
         test_pipe(&r#"create table if not exists foo on commit drop as (select 1)"#)?;
         test_pipe(&r#"create table foo (a) as (select 1)"#)?;
         test_pipe(&r#"create table foo (a, b) as (select 1, 2)"#)?;
+        Ok(())
+    }
+
+    #[test]
+    fn create_table_view() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create view foo as (select 1)"#)?;
+        test_pipe(&r#"create temp view foo as (select 1)"#)?;
+        test_pipe(&r#"create global temp view foo as (select 1)"#)?;
         Ok(())
     }
 }
