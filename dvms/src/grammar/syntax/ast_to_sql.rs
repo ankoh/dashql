@@ -663,14 +663,82 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             Expression::Indirection(_) => todo!(),
             Expression::Nary(nary) => match nary.operator.get() {
                 ExpressionOperatorName::Known(op) => match op {
-                    ExpressionOperator::EQUAL => {
-                        let mut a = ScriptTextArray::with_capacity(w, 3);
+                    // Binary operations
+                    ExpressionOperator::PLUS
+                    | ExpressionOperator::MINUS
+                    | ExpressionOperator::MULTIPLY
+                    | ExpressionOperator::MODULUS
+                    | ExpressionOperator::AND
+                    | ExpressionOperator::OR
+                    | ExpressionOperator::XOR
+                    | ExpressionOperator::GLOB
+                    | ExpressionOperator::NOT_GLOB
+                    | ExpressionOperator::LIKE
+                    | ExpressionOperator::ILIKE
+                    | ExpressionOperator::NOT_LIKE
+                    | ExpressionOperator::NOT_ILIKE
+                    | ExpressionOperator::SIMILAR_TO
+                    | ExpressionOperator::NOT_SIMILAR_TO
+                    | ExpressionOperator::DIVIDE
+                    | ExpressionOperator::EQUAL
+                    | ExpressionOperator::GREATER_EQUAL
+                    | ExpressionOperator::GREATER_THAN
+                    | ExpressionOperator::LESS_EQUAL
+                    | ExpressionOperator::LESS_THAN
+                    | ExpressionOperator::IN
+                    | ExpressionOperator::NOT_IN => {
+                        let mut a = ScriptTextArray::with_capacity(w, 5);
                         a.push(nary.args[0].get().as_script(w));
-                        a.push(w.keyword("=").pad_left());
+                        match op {
+                            ExpressionOperator::PLUS => a.push(w.keyword("+").pad_left()),
+                            ExpressionOperator::MINUS => a.push(w.keyword("-").pad_left()),
+                            ExpressionOperator::MULTIPLY => a.push(w.keyword("*").pad_left()),
+                            ExpressionOperator::DIVIDE => a.push(w.keyword("/").pad_left()),
+                            ExpressionOperator::MODULUS => a.push(w.keyword("%").pad_left()),
+                            ExpressionOperator::AND => a.push(w.keyword("and").pad_left()),
+                            ExpressionOperator::OR => a.push(w.keyword("or").pad_left()),
+                            ExpressionOperator::XOR => a.push(w.keyword("^").pad_left()),
+                            ExpressionOperator::GLOB => a.push(w.keyword("glob").pad_left()),
+                            ExpressionOperator::NOT_GLOB => {
+                                a.push(w.keyword("not").pad_left());
+                                a.push(w.keyword("glob").pad_left());
+                            }
+                            ExpressionOperator::LIKE => a.push(w.keyword("like").pad_left()),
+                            ExpressionOperator::ILIKE => a.push(w.keyword("ilike").pad_left()),
+                            ExpressionOperator::SIMILAR_TO => {
+                                a.push(w.keyword("similar").pad_left());
+                                a.push(w.keyword("to").pad_left());
+                            }
+                            ExpressionOperator::NOT_LIKE => {
+                                a.push(w.keyword("not").pad_left());
+                                a.push(w.keyword("like").pad_left());
+                            }
+                            ExpressionOperator::NOT_ILIKE => {
+                                a.push(w.keyword("not").pad_left());
+                                a.push(w.keyword("ilike").pad_left());
+                            }
+                            ExpressionOperator::NOT_SIMILAR_TO => {
+                                a.push(w.keyword("not").pad_left());
+                                a.push(w.keyword("similar").pad_left());
+                                a.push(w.keyword("to").pad_left());
+                            }
+                            ExpressionOperator::EQUAL => a.push(w.keyword("=").pad_left()),
+                            ExpressionOperator::NOT_EQUAL => a.push(w.keyword("!=").pad_left()),
+                            ExpressionOperator::GREATER_THAN => a.push(w.keyword(">").pad_left()),
+                            ExpressionOperator::GREATER_EQUAL => a.push(w.keyword(">=").pad_left()),
+                            ExpressionOperator::LESS_EQUAL => a.push(w.keyword("<=").pad_left()),
+                            ExpressionOperator::LESS_THAN => a.push(w.keyword("<").pad_left()),
+                            ExpressionOperator::IN => a.push(w.keyword("in").pad_left()),
+                            ExpressionOperator::NOT_IN => {
+                                a.push(w.keyword("not").pad_left());
+                                a.push(w.keyword("in").pad_left());
+                            }
+                            _ => todo!(),
+                        }
                         a.push(nary.args[1].get().as_script(w).pad_left());
                         w.float(a.finish())
                     }
-                    _ => todo!(),
+                    _ => todo!("{}", op.variant_name().unwrap_or_default()),
                 },
                 ExpressionOperatorName::Qualified(name) => todo!(),
             },
@@ -739,6 +807,23 @@ mod test {
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(text, &script_string, "{:?}", prog);
+        Ok(())
+    }
+
+    #[test]
+    fn test_expressions() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"select a + b"#)?;
+        test_pipe(&r#"select a - b"#)?;
+        test_pipe(&r#"select a * b"#)?;
+        test_pipe(&r#"select a / b"#)?;
+        test_pipe(&r#"select a % b"#)?;
+        test_pipe(&r#"select a ^ b"#)?;
+        test_pipe(&r#"select a and b"#)?;
+        test_pipe(&r#"select a or b"#)?;
+        test_pipe(&r#"select a like b"#)?;
+        test_pipe(&r#"select a ilike b"#)?;
+        test_pipe(&r#"select a not like b"#)?;
+        test_pipe(&r#"select a not ilike b"#)?;
         Ok(())
     }
 
