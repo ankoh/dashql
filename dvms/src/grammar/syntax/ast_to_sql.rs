@@ -357,7 +357,7 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
             let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
             for (i, col) in cols.iter().enumerate() {
                 if i > 0 {
-                    c.push(w.str_const(","));
+                    c.push(w.str_const(",").pad_right());
                 }
                 c.push(w.str(col.get()));
             }
@@ -790,6 +790,7 @@ mod test {
         test_pipe(&r#"create table if not exists foo as (select 1)"#)?;
         test_pipe(&r#"create table if not exists foo on commit drop as (select 1)"#)?;
         test_pipe(&r#"create table foo (a) as (select 1)"#)?;
+        test_pipe(&r#"create table foo (a, b) as (select 1, 2)"#)?;
         Ok(())
     }
 }
