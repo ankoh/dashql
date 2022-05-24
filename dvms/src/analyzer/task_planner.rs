@@ -708,4 +708,119 @@ LOAD b FROM a USING PARQUET;
             },
         })
     }
+
+    #[test]
+    fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            prev: None,
+            next: ExpectedInstance {
+                script: r#"
+FETCH a FROM 'https://some/remote';
+LOAD b FROM a USING PARQUET;
+CREATE TABLE c AS SELECT * FROM b
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 3,
+                    setup_tasks: vec![],
+                    program_tasks: vec![
+                        ProgramTask {
+                            task_type: ProgramTaskType::Fetch,
+                            task_status_code: TaskStatusCode::Skipped,
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: 0,
+                            object_id: 0,
+                            name_qualified: Some("main.a".to_string()),
+                            script: None,
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::Load,
+                            task_status_code: TaskStatusCode::Skipped,
+                            depends_on: vec![0],
+                            required_for: vec![2],
+                            origin_statement: 1,
+                            object_id: 1,
+                            name_qualified: Some("main.b".to_string()),
+                            script: None,
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateTable,
+                            task_status_code: TaskStatusCode::Skipped,
+                            depends_on: vec![1],
+                            required_for: vec![],
+                            origin_statement: 2,
+                            object_id: 2,
+                            name_qualified: Some("main.c".to_string()),
+                            script: Some("create table c as (select * from b)".to_string()),
+                        },
+                    ],
+                    program_task_by_statement: vec![Some(0), Some(1), Some(2)],
+                },
+            },
+        })
+    }
+
+    #[test]
+    fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            prev: None,
+            next: ExpectedInstance {
+                script: r#"
+FETCH a FROM 'https://some/remote';
+LOAD b FROM a USING PARQUET;
+CREATE TABLE c AS SELECT * FROM b;
+VIZ c USING TABLE;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 4,
+                    setup_tasks: vec![],
+                    program_tasks: vec![
+                        ProgramTask {
+                            task_type: ProgramTaskType::Fetch,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: 0,
+                            object_id: 0,
+                            name_qualified: Some("main.a".to_string()),
+                            script: None,
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::Load,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![0],
+                            required_for: vec![2],
+                            origin_statement: 1,
+                            object_id: 1,
+                            name_qualified: Some("main.b".to_string()),
+                            script: None,
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateTable,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![1],
+                            required_for: vec![3],
+                            origin_statement: 2,
+                            object_id: 2,
+                            name_qualified: Some("main.c".to_string()),
+                            script: Some("create table c as (select * from b)".to_string()),
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateViz,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![2],
+                            required_for: vec![],
+                            origin_statement: 3,
+                            object_id: 3,
+                            name_qualified: None,
+                            script: None,
+                        },
+                    ],
+                    program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
+                },
+            },
+        })
+    }
 }
