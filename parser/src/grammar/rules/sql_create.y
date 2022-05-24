@@ -212,7 +212,7 @@ sql_opt_temp:
   | GLOBAL TEMPORARY    { $$ = sx::TempType::GLOBAL; }
   | GLOBAL TEMP         { $$ = sx::TempType::GLOBAL; }
   | UNLOGGED            { $$ = sx::TempType::UNLOGGED; }
-  | %empty              { $$ = sx::TempType::DEFAULT; }
+  | %empty              { $$ = sx::TempType::NONE; }
     ;
 
 sql_on_commit_option: 

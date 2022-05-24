@@ -16,7 +16,7 @@
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         <node key="SQL_CREATE_AS_WITH_DATA" type="BOOL" value="true"/>
                     </node>
                 </statement>
@@ -68,7 +68,7 @@
                 if_not_exists: false,
                 with_data: true,
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -96,7 +96,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -133,7 +133,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -169,7 +169,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -222,7 +222,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -258,7 +258,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -311,7 +311,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -363,7 +363,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -416,7 +416,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -447,7 +447,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -488,7 +488,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -522,7 +522,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -575,7 +575,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -690,7 +690,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -741,7 +741,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -774,7 +774,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -823,7 +823,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -860,7 +860,7 @@
                             <node type="STRING_REF" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
             </statements>
@@ -924,7 +924,7 @@
                     },
                 ],
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,

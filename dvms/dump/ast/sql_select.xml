@@ -1220,7 +1220,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="14..15" text="b"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="a">
@@ -1263,7 +1263,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;b&quot;,
@@ -3807,7 +3807,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="14..15" text="b"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
@@ -3861,7 +3861,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;b&quot;,
@@ -3952,7 +3952,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="59..60" text="b"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="52..53" text="1">
@@ -4052,7 +4052,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;b&quot;,
@@ -4205,7 +4205,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="63..79" text="countries_joined"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="56..57" text="*">
@@ -4293,7 +4293,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;countries_joined&quot;,
@@ -4461,7 +4461,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="14..15" text="a"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="v">
@@ -4504,7 +4504,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;a&quot;,
@@ -16690,7 +16690,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="14..15" text="a"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="v">
@@ -16733,7 +16733,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;a&quot;,

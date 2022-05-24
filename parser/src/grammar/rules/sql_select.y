@@ -242,8 +242,8 @@ sql_opt_temp_table_name:
   | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
   | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
   | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, sx::TempType::UNLOGGED), std::move($3)); }
-  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($2)); }
-  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($1)); }
+  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sx::TempType::NONE), std::move($2)); }
+  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sx::TempType::NONE), std::move($1)); }
     ;
 
 sql_opt_table:

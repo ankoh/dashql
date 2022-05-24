@@ -102,7 +102,7 @@
                             <node key="SQL_TEMP_NAME" type="ARRAY">
                                 <node type="STRING_REF" loc="1015..1026" text="weather_avg"/>
                             </node>
-                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                            <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="1008..1009" text="1">
@@ -355,7 +355,7 @@
                         ],
                         into: Some(
                             Into {
-                                temp: DEFAULT,
+                                temp: NONE,
                                 name: [
                                     Name(
                                         &quot;weather_avg&quot;,
@@ -872,7 +872,7 @@
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="AND"/>
                             </node>
                         </node>
-                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         <node key="SQL_CREATE_AS_WITH_DATA" type="BOOL" value="true"/>
                     </node>
                 </statement>
@@ -950,7 +950,7 @@
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                             </node>
                         </node>
-                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_CREATE_AS_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         <node key="SQL_CREATE_AS_WITH_DATA" type="BOOL" value="true"/>
                     </node>
                 </statement>
@@ -1005,7 +1005,7 @@
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_VIEW_TEMP" type="ENUM_SQL_TEMP_TYPE" value="DEFAULT"/>
+                        <node key="SQL_VIEW_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
@@ -1460,7 +1460,7 @@
                 if_not_exists: false,
                 with_data: true,
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -1636,7 +1636,7 @@
                 if_not_exists: false,
                 with_data: true,
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
                 on_commit: Some(
                     NOOP,
@@ -1761,7 +1761,7 @@
                     offset: None,
                 },
                 temp: Some(
-                    DEFAULT,
+                    NONE,
                 ),
             },
         ),

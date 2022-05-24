@@ -325,7 +325,38 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
     where
         'ast: 'writer,
     {
-        todo!()
+        let mut a = ScriptTextArray::with_capacity(w, 10);
+        a.push(w.keyword("create"));
+        match self.temp.get() {
+            Some(sx::TempType::DEFAULT) => {
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::LOCAL) => {
+                a.push(w.keyword("local").pad_left());
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::GLOBAL) => {
+                a.push(w.keyword("global").pad_left());
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::UNLOGGED) => {
+                a.push(w.keyword("unlogged").pad_left());
+            }
+            Some(_) => {}
+            None => todo!(),
+        }
+        a.push(w.keyword("table").pad_left());
+        if self.if_not_exists.get() {
+            a.push(w.keyword("if").pad_left());
+            a.push(w.keyword("not").pad_left());
+            a.push(w.keyword("exists").pad_left());
+        }
+        a.push(self.name.get().as_script(w).pad_left());
+        a.push(w.keyword("as").pad_left());
+        let mut s = ScriptTextArray::with_capacity(w, 1);
+        s.push(self.statement.get().as_script(w));
+        a.push(w.round_brackets(s.finish()).pad_left());
+        w.float(a.finish())
     }
 }
 
@@ -353,6 +384,7 @@ impl<'ast> AsScript<'ast> for Statement<'ast> {
         'ast: 'writer,
     {
         match &self {
+            Statement::CreateAs(s) => s.as_script(w),
             Statement::Select(s) => s.as_script(w),
             Statement::Set(s) => s.as_script(w),
             Statement::Fetch(s) => s.as_script(w),
@@ -710,6 +742,12 @@ mod test {
     encoding = (x = ('foo' = 'bar'), y = ('foo' = 'bar2'))
 )"#,
         )?;
+        Ok(())
+    }
+
+    #[test]
+    fn create_table_as() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create table foo as (select 1)"#)?;
         Ok(())
     }
 }

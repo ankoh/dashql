@@ -90,6 +90,7 @@ enum AConstType: uint8 {
 }
 
 enum TempType: uint8 {
+    NONE,
     DEFAULT,
     GLOBAL,
     LOCAL,
