@@ -66,8 +66,7 @@ pub struct SetupTask {
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub object_id: usize,
-    pub name_qualified: Option<String>,
-    pub data: Option<TaskData>,
+    pub object_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -506,8 +505,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 depends_on: prev_task.depends_on.clone(),
                 required_for: Vec::new(),
                 object_id: prev_task.object_id,
-                name_qualified: prev_task.object_name.clone(),
-                data: None,
+                object_name: prev_task.object_name.clone(),
             });
         }
     }
@@ -558,8 +556,8 @@ pub fn plan_tasks<'a>(
         program_task_applicability: Vec::new(),
         next_task_graph: None,
     };
-    diff_programs(&mut ctx)?;
     translate_statements(&mut ctx)?;
+    diff_programs(&mut ctx)?;
     identify_applicable_tasks(&mut ctx)?;
     migrate_task_graph(&mut ctx)?;
     Ok(ctx.next_task_graph.unwrap())
@@ -834,6 +832,91 @@ VIZ c USING TABLE;
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
+                },
+            },
+        })
+    }
+
+    #[test]
+    fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            prev: Some(ExpectedInstance {
+                script: r#"
+CREATE TABLE a AS SELECT 2;
+VIZ a USING TABLE;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 2,
+                    setup_tasks: vec![],
+                    program_tasks: vec![
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateTable,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: 0,
+                            object_id: 0,
+                            object_name: Some("main.a".to_string()),
+                            data: Some(TaskData::Sql(SQLTaskData {
+                                script: "create table a as (select 2)".to_string(),
+                            })),
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateViz,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![0],
+                            required_for: vec![],
+                            origin_statement: 1,
+                            object_id: 1,
+                            object_name: None,
+                            data: None,
+                        },
+                    ],
+                    program_task_by_statement: vec![Some(0), Some(1)],
+                },
+            }),
+            next: ExpectedInstance {
+                script: r#"
+CREATE TABLE a AS SELECT 1;
+VIZ a USING TABLE;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 4,
+                    setup_tasks: vec![SetupTask {
+                        task_type: SetupTaskType::DropTable,
+                        task_status_code: TaskStatusCode::Pending,
+                        depends_on: vec![],
+                        required_for: vec![],
+                        object_id: 0,
+                        object_name: Some("main.a".to_string()),
+                    }],
+                    program_tasks: vec![
+                        ProgramTask {
+                            task_type: ProgramTaskType::CreateTable,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: 0,
+                            object_id: 2,
+                            object_name: Some("main.a".to_string()),
+                            data: Some(TaskData::Sql(SQLTaskData {
+                                script: "create table a as (select 1)".to_string(),
+                            })),
+                        },
+                        ProgramTask {
+                            task_type: ProgramTaskType::UpdateViz,
+                            task_status_code: TaskStatusCode::Pending,
+                            depends_on: vec![0],
+                            required_for: vec![],
+                            origin_statement: 1,
+                            object_id: 1,
+                            object_name: None,
+                            data: None,
+                        },
+                    ],
+                    program_task_by_statement: vec![Some(0), Some(1)],
                 },
             },
         })

@@ -33,8 +33,9 @@ where
 
     /// Sift an element up
     pub fn sift_up(&mut self, mut i: usize) {
-        let mut p = (i - 1) / 2;
-        while i != 0 && (self.entries[p].1 > self.entries[i].1) {
+        let mut p;
+        while i != 0 && (self.entries[(i - 1) / 2].1 > self.entries[i].1) {
+            p = (i - 1) / 2;
             self.swap_at(i, p);
             i = p;
             p = (i - 1) / 2;

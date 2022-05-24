@@ -378,6 +378,17 @@ impl<'arena> DsonValue<'arena> {
             DsonValue::Expression(_) => &[],
         }
     }
+
+    // XXX TODO
+    //    pub fn as_json(&self) -> serde_json::value::Value {
+    //        match &self {
+    //            DsonValue::Object(fields) => {
+    //
+    //            },
+    //            DsonValue::Array(_) => &[],
+    //            DsonValue::Expression(_) => &[],
+    //        }
+    //    }
 }
 
 pub trait DsonAccess<Idx>
