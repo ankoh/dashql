@@ -151,61 +151,52 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             required_for: Vec::new(),
             origin_statement: stmt_id,
             object_id: next_object_id,
-            name_qualified: None,
+            name_qualified: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
             script: None,
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*c)),
                 ..mixin
             },
             Statement::CreateAs(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*c)),
                 ..mixin
             },
             Statement::CreateView(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateView,
-                name_qualified: Some(print_ast_as_script_with_defaults(&c.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*c)),
                 ..mixin
             },
             Statement::Input(i) => ProgramTask {
                 task_type: ProgramTaskType::Input,
-                name_qualified: Some(print_ast_as_script_with_defaults(&i.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*i)),
                 ..mixin
             },
             Statement::Fetch(f) => ProgramTask {
                 task_type: ProgramTaskType::Fetch,
-                name_qualified: Some(print_ast_as_script_with_defaults(&f.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*f)),
                 ..mixin
             },
             Statement::Load(l) => ProgramTask {
                 task_type: ProgramTaskType::Load,
-                name_qualified: Some(print_ast_as_script_with_defaults(&l.name.get())),
                 script: Some(print_ast_as_script_with_defaults(*l)),
                 ..mixin
             },
             Statement::Viz(v) => ProgramTask {
                 task_type: ProgramTaskType::CreateViz,
-                name_qualified: None,
                 script: Some(print_ast_as_script_with_defaults(*v)),
                 ..mixin
             },
             Statement::Select(s) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                name_qualified: None,
                 script: Some(print_ast_as_script_with_defaults(*s)),
                 ..mixin
             },
             Statement::Set(_) => ProgramTask {
                 task_type: ProgramTaskType::Set,
-                name_qualified: None,
                 ..mixin
             },
         };
@@ -583,7 +574,6 @@ mod test {
     }
 
     struct TaskPlannerTest {
-        name: &'static str,
         prev: Option<ExpectedInstance>,
         next: ExpectedInstance,
     }
@@ -597,6 +587,11 @@ mod test {
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
             let prev_ast = grammar::parse(&prev_arena, prev.script)?;
+            assert!(
+                prev_ast.errors().is_none(),
+                "{}",
+                prev_ast.errors().unwrap().get(0).message().unwrap_or_default()
+            );
             let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast)?);
             prev_instance = Some(analyze_program(
                 settings.clone(),
@@ -619,6 +614,11 @@ mod test {
         let next_arena = bumpalo::Bump::new();
         let next_instance = {
             let next_ast = grammar::parse(&next_arena, test.next.script)?;
+            assert!(
+                next_ast.errors().is_none(),
+                "{}",
+                next_ast.errors().unwrap().get(0).message().unwrap_or_default()
+            );
             let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast)?);
             analyze_program(
                 settings.clone(),
@@ -637,10 +637,38 @@ mod test {
         };
         let have = plan_tasks(&next_instance, prev_state)?;
         let expected = &test.next.tasks;
-        assert_eq!(have.next_object_id, expected.next_object_id);
         assert_eq!(have.setup_tasks, expected.setup_tasks);
         assert_eq!(have.program_tasks, expected.program_tasks);
         assert_eq!(have.program_task_by_statement, expected.program_task_by_statement);
+        assert_eq!(have.next_object_id, expected.next_object_id);
         Ok(())
+    }
+
+    #[test]
+    fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_planner(&TaskPlannerTest {
+            prev: None,
+            next: ExpectedInstance {
+                script: r#"
+FETCH a FROM 'https://some/remote'
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_object_id: 1,
+                    setup_tasks: vec![],
+                    program_tasks: vec![ProgramTask {
+                        task_type: ProgramTaskType::Fetch,
+                        task_status_code: TaskStatusCode::Skipped,
+                        depends_on: vec![],
+                        required_for: vec![],
+                        origin_statement: 0,
+                        object_id: 0,
+                        name_qualified: Some("main.a".to_string()),
+                        script: Some("fetch a from 'https://some/remote'".to_string()),
+                    }],
+                    program_task_by_statement: vec![Some(0)],
+                },
+            },
+        })
     }
 }

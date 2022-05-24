@@ -385,7 +385,7 @@ pub fn print_ast_as_script<'ast, V: AsScript<'ast>>(v: &V, config: &ScriptTextCo
     print_script(&text, config)
 }
 
-pub fn print_ast_as_script_with_defaults<'ast, V: AsScript<'ast>>(v: &V) -> String {
+pub fn print_ast_as_script_with_defaults<'ast, V: AsScript<'ast> + ?Sized>(v: &V) -> String {
     let config = ScriptTextConfig::default();
     let writer = ScriptWriter::new();
     let text: ScriptText<'_> = v.as_script(&writer);

@@ -588,7 +588,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for &'ast [ASTCell<Indirection<'ast>>] {
+impl<'ast> AsScript<'ast> for &[ASTCell<Indirection<'ast>>] {
     fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
