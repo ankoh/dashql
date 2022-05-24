@@ -98,7 +98,7 @@ pub struct ProgramTask {
     pub required_for: Vec<usize>,
     pub origin_statement: usize,
     pub object_id: usize,
-    pub name_qualified: Option<String>,
+    pub object_name: Option<String>,
     pub data: Option<TaskData>,
 }
 
@@ -153,7 +153,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             required_for: Vec::new(),
             origin_statement: stmt_id,
             object_id: next_object_id,
-            name_qualified: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
+            object_name: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
             data: None,
         };
         let task = match &next.program.statements[stmt_id] {
@@ -475,7 +475,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
             next_task.task_status_code = TaskStatusCode::Completed;
             next_task.object_id = prev_task.object_id;
-            debug_assert!(next_task.name_qualified == prev_task.name_qualified);
+            debug_assert!(next_task.object_name == prev_task.object_name);
             continue;
         }
 
@@ -506,7 +506,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 depends_on: prev_task.depends_on.clone(),
                 required_for: Vec::new(),
                 object_id: prev_task.object_id,
-                name_qualified: prev_task.name_qualified.clone(),
+                name_qualified: prev_task.object_name.clone(),
                 data: None,
             });
         }
@@ -670,7 +670,7 @@ FETCH a FROM 'https://some/remote'
                         required_for: vec![],
                         origin_statement: 0,
                         object_id: 0,
-                        name_qualified: Some("main.a".to_string()),
+                        object_name: Some("main.a".to_string()),
                         data: None,
                     }],
                     program_task_by_statement: vec![Some(0)],
@@ -700,7 +700,7 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            name_qualified: Some("main.a".to_string()),
+                            object_name: Some("main.a".to_string()),
                             data: None,
                         },
                         ProgramTask {
@@ -710,7 +710,7 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![],
                             origin_statement: 1,
                             object_id: 1,
-                            name_qualified: Some("main.b".to_string()),
+                            object_name: Some("main.b".to_string()),
                             data: None,
                         },
                     ],
@@ -742,7 +742,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            name_qualified: Some("main.a".to_string()),
+                            object_name: Some("main.a".to_string()),
                             data: None,
                         },
                         ProgramTask {
@@ -752,7 +752,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![2],
                             origin_statement: 1,
                             object_id: 1,
-                            name_qualified: Some("main.b".to_string()),
+                            object_name: Some("main.b".to_string()),
                             data: None,
                         },
                         ProgramTask {
@@ -762,7 +762,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![],
                             origin_statement: 2,
                             object_id: 2,
-                            name_qualified: Some("main.c".to_string()),
+                            object_name: Some("main.c".to_string()),
                             data: Some(TaskData::Sql(SQLTaskData {
                                 script: "create table c as (select * from b)".to_string(),
                             })),
@@ -797,7 +797,7 @@ VIZ c USING TABLE;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            name_qualified: Some("main.a".to_string()),
+                            object_name: Some("main.a".to_string()),
                             data: None,
                         },
                         ProgramTask {
@@ -807,7 +807,7 @@ VIZ c USING TABLE;
                             required_for: vec![2],
                             origin_statement: 1,
                             object_id: 1,
-                            name_qualified: Some("main.b".to_string()),
+                            object_name: Some("main.b".to_string()),
                             data: None,
                         },
                         ProgramTask {
@@ -817,7 +817,7 @@ VIZ c USING TABLE;
                             required_for: vec![3],
                             origin_statement: 2,
                             object_id: 2,
-                            name_qualified: Some("main.c".to_string()),
+                            object_name: Some("main.c".to_string()),
                             data: Some(TaskData::Sql(SQLTaskData {
                                 script: "create table c as (select * from b)".to_string(),
                             })),
@@ -829,7 +829,7 @@ VIZ c USING TABLE;
                             required_for: vec![],
                             origin_statement: 3,
                             object_id: 3,
-                            name_qualified: None,
+                            object_name: None,
                             data: None,
                         },
                     ],
