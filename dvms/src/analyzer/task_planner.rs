@@ -88,7 +88,7 @@ impl Default for ProgramTaskType {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct ProgramTask {
     pub task_type: ProgramTaskType,
     pub task_status_code: TaskStatusCode,
@@ -100,7 +100,7 @@ pub struct ProgramTask {
     pub script: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TaskGraph {
     pub next_object_id: usize,
     pub setup_tasks: Vec<SetupTask>,
@@ -593,23 +593,31 @@ mod test {
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();
-        let mut _prev_instance = None;
+        let mut prev_instance = None;
+        let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
             let prev_ast = grammar::parse(&prev_arena, prev.script)?;
             let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast)?);
-            _prev_instance = Some(analyze_program(
+            prev_instance = Some(analyze_program(
                 settings.clone(),
                 &prev_arena,
                 prev.script,
                 prev_ast,
                 prev_prog,
                 prev.input.iter().cloned().collect(),
-            )?)
+            )?);
+            prev_tasks = Some(plan_tasks(prev_instance.as_ref().unwrap(), None)?);
+            let have = prev_tasks.as_ref().unwrap();
+            let expected = &test.prev.as_ref().unwrap().tasks;
+            assert_eq!(have.next_object_id, expected.next_object_id);
+            assert_eq!(have.setup_tasks, expected.setup_tasks);
+            assert_eq!(have.program_tasks, expected.program_tasks);
+            assert_eq!(have.program_task_by_statement, expected.program_task_by_statement);
         };
 
         // Instantiate next program
         let next_arena = bumpalo::Bump::new();
-        let _next_instance = {
+        let next_instance = {
             let next_ast = grammar::parse(&next_arena, test.next.script)?;
             let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast)?);
             analyze_program(
@@ -622,6 +630,17 @@ mod test {
             )?
         };
 
+        // Plan next tasks
+        let prev_state = match (&prev_instance, &prev_tasks) {
+            (Some(prev_instance), Some(prev_tasks)) => Some((prev_instance, prev_tasks)),
+            (_, _) => None,
+        };
+        let have = plan_tasks(&next_instance, prev_state)?;
+        let expected = &test.next.tasks;
+        assert_eq!(have.next_object_id, expected.next_object_id);
+        assert_eq!(have.setup_tasks, expected.setup_tasks);
+        assert_eq!(have.program_tasks, expected.program_tasks);
+        assert_eq!(have.program_task_by_statement, expected.program_task_by_statement);
         Ok(())
     }
 }
