@@ -1408,10 +1408,14 @@ sql_c_expr:
       });
   }
   | '(' sql_a_expr ')' sql_opt_indirection {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INDIRECTION, {
-            Attr(Key::SQL_INDIRECTION_VALUE, std::move($2)),
-            Attr(Key::SQL_INDIRECTION_PATH, ctx.Add(@4, std::move($4))),
-        });
+        if ($4.empty()) {
+            $$ = std::move($2);
+        } else {
+            $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INDIRECTION, {
+                Attr(Key::SQL_INDIRECTION_VALUE, std::move($2)),
+                Attr(Key::SQL_INDIRECTION_PATH, ctx.Add(@4, std::move($4))),
+            });
+        }
     }
   | sql_case_expr                             { $$ = $1; }
   | sql_func_expr                             { $$ = $1; }

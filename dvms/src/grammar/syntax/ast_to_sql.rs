@@ -660,7 +660,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                 w.float(t.finish())
             }
             Expression::FunctionCall(_) => todo!(),
-            Expression::Indirection(_) => todo!(),
+            Expression::Indirection(i) => todo!(),
             Expression::Nary(nary) => match nary.operator.get() {
                 ExpressionOperatorName::Known(op) => match op {
                     // Binary operations
@@ -736,7 +736,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                             _ => todo!(),
                         }
                         a.push(nary.args[1].get().as_script(w).pad_left());
-                        w.float(a.finish())
+                        w.round_brackets(a.finish())
                     }
                     _ => todo!("{}", op.variant_name().unwrap_or_default()),
                 },
@@ -812,18 +812,18 @@ mod test {
 
     #[test]
     fn test_expressions() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe(&r#"select a + b"#)?;
-        test_pipe(&r#"select a - b"#)?;
-        test_pipe(&r#"select a * b"#)?;
-        test_pipe(&r#"select a / b"#)?;
-        test_pipe(&r#"select a % b"#)?;
-        test_pipe(&r#"select a ^ b"#)?;
-        test_pipe(&r#"select a and b"#)?;
-        test_pipe(&r#"select a or b"#)?;
-        test_pipe(&r#"select a like b"#)?;
-        test_pipe(&r#"select a ilike b"#)?;
-        test_pipe(&r#"select a not like b"#)?;
-        test_pipe(&r#"select a not ilike b"#)?;
+        test_pipe(&r#"select (a + b)"#)?;
+        test_pipe(&r#"select (a - b)"#)?;
+        test_pipe(&r#"select (a * b)"#)?;
+        test_pipe(&r#"select (a / b)"#)?;
+        test_pipe(&r#"select (a % b)"#)?;
+        test_pipe(&r#"select (a ^ b)"#)?;
+        test_pipe(&r#"select (a and b)"#)?;
+        test_pipe(&r#"select (a or b)"#)?;
+        test_pipe(&r#"select (a like b)"#)?;
+        test_pipe(&r#"select (a ilike b)"#)?;
+        test_pipe(&r#"select (a not like b)"#)?;
+        test_pipe(&r#"select (a not ilike b)"#)?;
         Ok(())
     }
 
@@ -870,11 +870,11 @@ mod test {
         test_pipe("select f.g from main.foo f")?;
         test_pipe("select * from A cross join B")?;
         test_pipe("select * from A join B using (a, b)")?;
-        test_pipe("select * from A join B on a = b")?;
-        test_pipe("select * from A left join B on a = b")?;
-        test_pipe("select * from A left outer join B on a = b")?;
-        test_pipe("select * from A right join B on a = b")?;
-        test_pipe("select * from A right outer join B on a = b")?;
+        test_pipe("select * from A join B on (a = b)")?;
+        test_pipe("select * from A left join B on (a = b)")?;
+        test_pipe("select * from A left outer join B on (a = b)")?;
+        test_pipe("select * from A right join B on (a = b)")?;
+        test_pipe("select * from A right outer join B on (a = b)")?;
         test_pipe("select * from A order by a")?;
         test_pipe("select * from A order by a, b")?;
         test_pipe("select * from A order by a asc")?;
