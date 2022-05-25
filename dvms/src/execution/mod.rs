@@ -1,3 +1,4 @@
+pub mod constant_folding;
 pub mod expression_evaluator;
 pub mod function_logic;
 pub mod scalar_value;

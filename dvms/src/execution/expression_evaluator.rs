@@ -30,8 +30,6 @@ impl<'a> Evaluatable<'a> for Expression<'a> {
         &self,
         _ctx: &mut ExpressionEvaluationContext<'a>,
     ) -> Result<Option<ScalarValue>, Box<dyn Error + Send + Sync>> {
-        let not_implemented =
-            |what: &'static str| return Box::new(RawError::from(format!("not implemented: {}", what)));
         let value = match self {
             Expression::Null => None,
             Expression::Boolean(v) => Some(ScalarValue::Boolean(*v)),
@@ -50,18 +48,7 @@ impl<'a> Evaluatable<'a> for Expression<'a> {
                     _ => return Err(Box::new(RawError::from(format!("function not implemented: {}", func)))),
                 },
             },
-            Expression::Array(_) => return Err(not_implemented("array expressions")),
-            Expression::Case(_) => return Err(not_implemented("case expressions")),
-            Expression::Nary(_nary) => return Err(not_implemented("nary expressions")),
-            Expression::ColumnRef(_) => return Err(not_implemented("column ref expressions")),
-            Expression::ConstCast(_) => return Err(not_implemented("const cast expressions")),
-            Expression::Exists(_) => return Err(not_implemented("exists expressions")),
-            Expression::Indirection(_) => return Err(not_implemented("indirection expressions")),
-            Expression::ParameterRef(_) => return Err(not_implemented("parameter ref expressions")),
-            Expression::SelectStatement(_) => return Err(not_implemented("select statement expressions")),
-            Expression::Subquery(_) => return Err(not_implemented("subquery expressions")),
-            Expression::TypeCast(_) => return Err(not_implemented("type case expressions")),
-            Expression::TypeTest(_) => return Err(not_implemented("type test expressions")),
+            _ => return Err(Box::new(RawError::from(format!("cannot evaluate: {:?}", self)))),
         };
         Ok(value)
     }

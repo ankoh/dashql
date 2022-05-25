@@ -28,13 +28,12 @@ pub fn evaluate_scalar<'a>(
     let mut args_named = HashMap::new();
     for arg in raw_args.iter().skip(1) {
         let arg = arg.get();
-        let name = arg.name.get();
         let value = arg.value.get();
         let value_evaled = match value.evaluate(ctx)? {
             Some(v) => v.to_string(),
             None => "".to_string(),
         };
-        if let Some(name) = name {
+        if let Some(name) = arg.name.get() {
             args_named.insert(name.to_string(), value_evaled);
         } else {
             args_unnamed.push(value_evaled);
