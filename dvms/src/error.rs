@@ -26,9 +26,7 @@ impl Error for RawError {
 
 impl From<&str> for RawError {
     fn from(m: &str) -> Self {
-        Self {
-            what: m.to_string(),
-        }
+        Self { what: m.to_string() }
     }
 }
 

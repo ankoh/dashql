@@ -567,14 +567,14 @@ pub fn plan_tasks<'a>(
 mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
-    use crate::analyzer::input_value::InputValue;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use std::rc::Rc;
 
     struct ExpectedInstance {
         script: &'static str,
-        input: Vec<(usize, InputValue)>,
+        input: Vec<(usize, ScalarValue)>,
         tasks: TaskGraph,
     }
 

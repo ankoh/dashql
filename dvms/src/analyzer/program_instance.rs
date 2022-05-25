@@ -1,6 +1,6 @@
 use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
-use super::input_value::InputValue;
+use crate::execution::scalar_value::ScalarValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::cell::RefCell;
@@ -27,7 +27,7 @@ pub struct ProgramInstance<'a> {
     pub program: Rc<Program<'a>>,
 
     // The input values
-    pub input: HashMap<usize, InputValue>,
+    pub input: HashMap<usize, ScalarValue>,
 
     // Analysis output
     pub node_error_messages: Vec<NodeError>,
@@ -52,7 +52,7 @@ impl<'a> ProgramInstance<'a> {
         text: &'a str,
         program_proto: sx::Program<'a>,
         program_translated: Rc<Program<'a>>,
-        input: HashMap<usize, InputValue>,
+        input: HashMap<usize, ScalarValue>,
     ) -> Self {
         let mut ctx = ProgramInstance {
             settings,
@@ -90,7 +90,7 @@ pub fn analyze_program<'arena>(
     text: &'arena str,
     program_proto: sx::Program<'arena>,
     program: Rc<Program<'arena>>,
-    input: HashMap<usize, InputValue>,
+    input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, Box<dyn Error + Send + Sync>> {
     let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
     normalize_statement_names(&mut inst);
@@ -144,8 +144,8 @@ mod test {
 
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
-    use crate::analyzer::input_value::InputValue;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use dashql_proto::syntax as sx;
     use std::collections::HashMap;
@@ -164,7 +164,7 @@ mod test {
     #[derive(Debug)]
     struct TaskPlannerTest {
         script: &'static str,
-        input: HashMap<usize, InputValue>,
+        input: HashMap<usize, ScalarValue>,
         expected: ExpectedTaskInstance,
     }
 

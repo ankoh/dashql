@@ -1366,11 +1366,12 @@ fn read_exprs<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>], ni: usize) ->
     exprs
 }
 
+const NAME_TRIMMING: &'static [char] = &['"', ' ', '\''];
 fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>], ni: usize) -> NamePath<'a> {
     let path = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         path[i] = match n {
-            ASTNode::StringRef(s) => ASTCell::with_node(Indirection::Name(s), ni + i),
+            ASTNode::StringRef(s) => ASTCell::with_node(Indirection::Name(s.trim_matches(NAME_TRIMMING)), ni + i),
             ASTNode::Indirection(indirection) => ASTCell::with_node(indirection.clone(), ni + i),
             _ => {
                 log::warn!("invalid name element: {:?}", n);
