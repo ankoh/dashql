@@ -222,27 +222,17 @@ fn parse_like_python(rest: &str) -> Result<FmtPy> {
 
 impl<'a, 'b> Formatter<'a, 'b> {
     /// create Formatter from format string
-    pub fn from_str(s: &'a str, buff: &'b mut String) -> Result<Formatter<'a, 'b>> {
+    pub fn create(s: &'a str, buff: &'b mut String) -> Result<Formatter<'a, 'b>> {
         let mut found_colon = false;
-        let mut chars = s.chars();
-        let mut c = match chars.next() {
-            Some(':') | None => return Err(FmtError::Invalid("must specify identifier".to_string())),
-            Some(c) => c,
-        };
         let mut consumed = 0;
-        // find the identifier
-        loop {
+
+        // Find the identifier
+        for c in s.chars() {
             consumed += c.len_utf8();
             if c == ':' {
                 found_colon = true;
                 break;
             }
-            c = match chars.next() {
-                Some(c) => c,
-                None => {
-                    break;
-                }
-            };
         }
         let (identifier, rest) = s.split_at(consumed);
         let identifier = if found_colon {
@@ -252,8 +242,10 @@ impl<'a, 'b> Formatter<'a, 'b> {
             identifier
         };
 
+        // Parse format spec
         let format = parse_like_python(rest)?;
 
+        // Build formatter
         Ok(Formatter {
             key: identifier.trim(),
             fill: format.fill,
@@ -396,5 +388,35 @@ impl<'a, 'b> Formatter<'a, 'b> {
 impl<'a, 'b> fmt::Write for Formatter<'a, 'b> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.buff.write_str(s)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_fmt_from_str() {
+        let s = String::new();
+        {
+            let mut s = s.clone();
+            let f = Formatter::create("x:<.3", &mut s).unwrap();
+            // defaults
+            assert_eq!(f.fill(), ' ');
+            assert_eq!(f.sign(), Sign::Unspecified);
+            assert_eq!(f.alternate(), false);
+            assert_eq!(f.width(), None);
+            assert_eq!(f.thousands(), false);
+            assert_eq!(f.ty(), None);
+
+            // specified
+            assert_eq!(f.key, "x");
+            assert_eq!(f.precision().unwrap(), 3);
+            assert_eq!(f.align(), Alignment::Left);
+        }
+        assert!(Formatter::create("x:^.3", &mut s.clone()).is_ok());
+        assert!(Formatter::create("xxx: <88.3", &mut s.clone()).is_ok());
+        assert!(Formatter::create("xxx:  <88.3", &mut s.clone()).is_err());
+        assert!(Formatter::create("xxx:a34", &mut s.clone()).is_err());
     }
 }

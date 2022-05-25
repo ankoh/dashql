@@ -1,3 +1,7 @@
+use super::formatter::Formatter;
+use super::types::*;
+use std::fmt::Write;
+
 macro_rules! fmtint {
     ($($t:ident)*) => ($(
         #[allow(unused_comparisons)]
@@ -123,3 +127,7 @@ macro_rules! fmtfloat {
             }
         })*)
 }
+
+// u128 & i128 unstable (see https://github.com/rust-lang/rust/issues/35118)
+fmtint!(u8 i8 u16 i16 u32 i32 u64 i64 usize isize);
+fmtfloat!(f32 f64);
