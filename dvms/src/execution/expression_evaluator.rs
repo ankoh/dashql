@@ -1,3 +1,4 @@
+use super::function_logic;
 use super::scalar_value::ScalarValue;
 use crate::error::RawError;
 use crate::grammar::Expression;
@@ -28,7 +29,7 @@ const STRING_REF_TRIMMING: &'static [char] = &['"', ' ', '\''];
 impl<'a> Evaluatable<'a> for Expression<'a> {
     fn evaluate(
         &self,
-        _ctx: &mut ExpressionEvaluationContext<'a>,
+        ctx: &mut ExpressionEvaluationContext<'a>,
     ) -> Result<Option<ScalarValue>, Box<dyn Error + Send + Sync>> {
         let value = match self {
             Expression::Null => None,
@@ -45,6 +46,7 @@ impl<'a> Evaluatable<'a> for Expression<'a> {
                     }
                 },
                 FunctionName::Unknown(func) => match func {
+                    "format" => Some(function_logic::format::evaluate_scalar(ctx, f)?),
                     _ => return Err(Box::new(RawError::from(format!("function not implemented: {}", func)))),
                 },
             },

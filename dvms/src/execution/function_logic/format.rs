@@ -44,3 +44,9 @@ pub fn evaluate_scalar<'a>(
     let result = dynfmt(&template_str, &args_unnamed, &args_named)?;
     Ok(ScalarValue::Varchar(result))
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_1() {}
+}
