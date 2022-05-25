@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::error::Error;
+use std::fmt::{self, Write};
 
 use crate::error::RawError;
 
@@ -10,9 +11,6 @@ pub enum LogicalType {
     Boolean,
     Int64,
     Float64,
-    Date,
-    Time,
-    Timestamp,
     Varchar,
     Struct(Vec<(String, LogicalType)>),
     List(Box<LogicalType>),
@@ -25,9 +23,6 @@ pub enum ScalarValue {
     Boolean(bool),
     Int64(i64),
     Float64(f64),
-    Date(i64),
-    Time(i64),
-    Timestmap(i64),
     Varchar(String),
     Struct(Vec<(String, ScalarValue)>),
     List(Vec<ScalarValue>),
@@ -51,6 +46,39 @@ impl ScalarValue {
         match value {
             Some(v) => Ok(Some(v.cast_as(ty)?)),
             None => Ok(None),
+        }
+    }
+}
+
+impl fmt::Display for ScalarValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ScalarValue::Boolean(v) => v.fmt(f),
+            ScalarValue::Int64(v) => v.fmt(f),
+            ScalarValue::Float64(v) => v.fmt(f),
+            ScalarValue::Varchar(v) => v.fmt(f),
+            ScalarValue::Struct(fields) => {
+                f.write_char('(')?;
+                for (i, (k, v)) in fields.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    f.write_str(&k)?;
+                    f.write_str("=")?;
+                    f.write_str(&v.to_string())?;
+                }
+                f.write_char(')')
+            }
+            ScalarValue::List(list) => {
+                f.write_char('(')?;
+                for (i, v) in list.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    f.write_str(&v.to_string())?;
+                }
+                f.write_char(')')
+            }
         }
     }
 }

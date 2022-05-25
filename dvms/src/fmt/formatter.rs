@@ -49,7 +49,7 @@ fn get_integer(s: &[u8], pos: usize) -> (usize, Option<i64>) {
     let mut consumed: usize = 0;
     for b in rest {
         match *b as char {
-            '0'...'9' => {}
+            '0'..='9' => {}
             _ => break,
         };
         consumed += 1;
