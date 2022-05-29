@@ -52,30 +52,24 @@ impl<'arena> Default for ScriptText<'arena> {
 
 pub struct ScriptWriter {
     pub arena: bumpalo::Bump,
-    pub expression_depth: Cell<usize>,
+    pub operator_precedence: Cell<Option<usize>>,
 }
 
 impl ScriptWriter {
     pub fn new() -> Self {
         Self {
             arena: bumpalo::Bump::new(),
-            expression_depth: Cell::new(0),
+            operator_precedence: Cell::new(None),
         }
     }
     pub fn with_arena(arena: bumpalo::Bump) -> Self {
         Self {
             arena,
-            expression_depth: Cell::new(0),
+            operator_precedence: Cell::new(None),
         }
     }
     pub fn alloc_slice<'writer>(&'writer self, elems: &[ScriptText<'writer>]) -> &'writer [ScriptText<'writer>] {
         self.arena.alloc_slice_clone(elems)
-    }
-    pub fn increment_expression_depth(&self) {
-        self.expression_depth.set(self.expression_depth.get() + 1);
-    }
-    pub fn decrement_expression_depth(&self) {
-        self.expression_depth.set(self.expression_depth.get() - 1);
     }
 }
 

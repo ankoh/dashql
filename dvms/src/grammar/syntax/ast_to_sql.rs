@@ -607,12 +607,58 @@ impl<'ast> AsScript<'ast> for SetStatement<'ast> {
     }
 }
 
+fn get_operator_precedence(op: ExpressionOperatorName) -> usize {
+    let op = match op {
+        ExpressionOperatorName::Known(op) => op,
+        ExpressionOperatorName::Qualified(name) => return 9,
+    };
+    match op {
+        ExpressionOperator::MULTIPLY => 15,
+        ExpressionOperator::DIVIDE => 15,
+        ExpressionOperator::MODULUS => 15,
+
+        ExpressionOperator::PLUS => 14,
+        ExpressionOperator::MINUS => 14,
+
+        ExpressionOperator::IS_DISTINCT_FROM => 13,
+        ExpressionOperator::IS_FALSE => 13,
+        ExpressionOperator::IS_NOT_DISTINCT_FROM => 13,
+        ExpressionOperator::IS_NOT_OF => 13,
+        ExpressionOperator::IS_NOT_TRUE => 13,
+        ExpressionOperator::IS_NOT_UNKNOWN => 13,
+        ExpressionOperator::IS_OF => 13,
+        ExpressionOperator::IS_TRUE => 13,
+        ExpressionOperator::IS_UNKNOWN => 13,
+
+        ExpressionOperator::IS_NULL => 12,
+        ExpressionOperator::NOT_NULL => 11,
+        ExpressionOperator::NOT_IN => 8,
+        ExpressionOperator::IN => 7,
+
+        ExpressionOperator::BETWEEN_ASYMMETRIC => 6,
+        ExpressionOperator::NOT_BETWEEN_ASYMMETRIC => 6,
+        ExpressionOperator::BETWEEN_SYMMETRIC => 6,
+        ExpressionOperator::NOT_BETWEEN_SYMMETRIC => 6,
+
+        ExpressionOperator::OVERLAPS => 5,
+        ExpressionOperator::NOT_LIKE => 4,
+        ExpressionOperator::LIKE => 4,
+        ExpressionOperator::NOT_EQUAL => 3,
+        ExpressionOperator::EQUAL => 3,
+        ExpressionOperator::NOT => 2,
+        ExpressionOperator::AND => 1,
+        ExpressionOperator::OR => 0,
+
+        _ => 9,
+    }
+}
+
 impl<'ast> AsScript<'ast> for Expression<'ast> {
     fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
-        w.increment_expression_depth();
+        let op_prec = w.operator_precedence.get();
         let text = match self {
             Expression::Null => w.str_const("null"),
             Expression::Uint32(v) => w.str(w.arena.alloc_str(&v.to_string())),
@@ -663,6 +709,9 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             Expression::FunctionCall(_) => todo!(),
             Expression::Indirection(i) => todo!(),
             Expression::Conjunction(exprs) => {
+                let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::AND));
+                let prev_prec = w.operator_precedence.replace(Some(own_prec));
+
                 let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
                 let mut iter = exprs.first.get();
                 a.push(iter.value.get().as_script(w));
@@ -671,13 +720,16 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     a.push(next.value.get().as_script(w).pad_left());
                     iter = next;
                 }
-                if w.expression_depth.get() == 1 {
-                    w.float(a.finish())
-                } else {
+                if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
                     w.round_brackets(a.finish())
+                } else {
+                    w.float(a.finish())
                 }
             }
             Expression::Disjunction(exprs) => {
+                let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::OR));
+                let prev_prec = w.operator_precedence.replace(Some(own_prec));
+
                 let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
                 let mut iter = exprs.first.get();
                 a.push(iter.value.get().as_script(w));
@@ -686,10 +738,10 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     a.push(next.value.get().as_script(w).pad_left());
                     iter = next;
                 }
-                if w.expression_depth.get() == 1 {
-                    w.float(a.finish())
-                } else {
+                if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
                     w.round_brackets(a.finish())
+                } else {
+                    w.float(a.finish())
                 }
             }
             Expression::Nary(nary) => match nary.operator.get() {
@@ -716,6 +768,9 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     | ExpressionOperator::LESS_THAN
                     | ExpressionOperator::IN
                     | ExpressionOperator::NOT_IN => {
+                        let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
+                        let prev_prec = w.operator_precedence.replace(Some(own_prec));
+
                         let mut a = ScriptTextArray::with_capacity(w, 5);
                         a.push(nary.args[0].get().as_script(w));
                         match op {
@@ -763,10 +818,10 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                             _ => todo!(),
                         }
                         a.push(nary.args[1].get().as_script(w).pad_left());
-                        if w.expression_depth.get() == 1 {
-                            w.float(a.finish())
-                        } else {
+                        if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
                             w.round_brackets(a.finish())
+                        } else {
+                            w.float(a.finish())
                         }
                     }
                     _ => todo!("{}", op.variant_name().unwrap_or_default()),
@@ -780,7 +835,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             Expression::TypeCast(_) => todo!(),
             Expression::TypeTest(_) => todo!(),
         };
-        w.decrement_expression_depth();
+        w.operator_precedence.set(op_prec);
         text
     }
 }
@@ -857,6 +912,11 @@ mod test {
         test_pipe(&r#"select a ilike b"#)?;
         test_pipe(&r#"select a not like b"#)?;
         test_pipe(&r#"select a not ilike b"#)?;
+        test_pipe(&r#"select (a + b) * c"#)?;
+        test_pipe(&r#"select a * (b + c)"#)?;
+        test_pipe(&r#"select a + (b + c)"#)?;
+        test_pipe(&r#"select a + b * c"#)?;
+        test_pipe(&r#"select a + b and b + c and c + d"#)?;
         Ok(())
     }
 
