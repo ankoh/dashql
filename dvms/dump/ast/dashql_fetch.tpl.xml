@@ -1,28 +1,24 @@
 <astdumps>
     <astdump name="load_uni_zip_http">
         <input>
-            FETCH uni FROM http (
-                url = 'https://static.dashql.com/data/uni/de/all.zip'
-            );
-            LOAD assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+fetch uni from http (url = 'https://static.dashql.com/data/uni/de/all.zip');
+load assistenten from uni['assistenten.parquet'] using parquet;
         </input>
     </astdump>
     <astdump name="load_uni_zip_infer">
         <input>
-            FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
-            LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-            LOAD hoeren FROM uni['hoeren.parquet'];
-            LOAD studenten FROM uni['studenten.parquet'];
+fetch uni from 'https://static.dashql.com/data/uni/de/all.zip';
+load vorlesungen from uni['vorlesungen.parquet'] using parquet;
+load hoeren from uni['hoeren.parquet'];
+load studenten from uni['studenten.parquet'];
         </input>
     </astdump>
     <astdump name="load_rest_header">
         <input>
-            FETCH json_stats FROM HTTP (
-                url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
-                headers = (
-                    'Ocp-Apim-Subscription-Key' = 'somekey'
-                )
-            );
+fetch json_stats from http (
+    url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
+    'headers' = ('Ocp-Apim-Subscription-Key' = 'somekey')
+);
         </input>
     </astdump>
 </astdumps>

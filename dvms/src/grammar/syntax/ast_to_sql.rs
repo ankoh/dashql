@@ -10,6 +10,22 @@ use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::VizComponentTypeModifier;
 
+impl<'ast> AsScript<'ast> for Program<'ast> {
+    fn as_script<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(writer, self.statements.len());
+        for stmt in self.statements.iter() {
+            let mut inner = ScriptTextArray::with_capacity(writer, 2);
+            inner.push(stmt.as_script(writer));
+            inner.push(writer.str_const(";").pad_right());
+            a.push(writer.float(inner.finish()));
+        }
+        writer.stack(a.finish())
+    }
+}
+
 impl<'ast> AsScript<'ast> for CommonTableExpression<'ast> {
     fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
@@ -497,16 +513,18 @@ impl<'ast> AsScript<'ast> for LoadStatement<'ast> {
         a.push(self.name.get().as_script(w).pad_left());
         a.push(w.keyword("from").pad_left());
         a.push(self.source.get().as_script(w).pad_left());
-        a.push(w.keyword("using").pad_left());
-        a.push(
-            w.keyword(match self.method.get() {
-                sx::LoadMethodType::CSV => "csv",
-                sx::LoadMethodType::JSON => "json",
-                sx::LoadMethodType::PARQUET => "parquet",
-                _ => "none",
-            })
-            .pad_left(),
-        );
+        if self.method.get() != sx::LoadMethodType::NONE {
+            a.push(w.keyword("using").pad_left());
+            a.push(
+                w.keyword(match self.method.get() {
+                    sx::LoadMethodType::CSV => "csv",
+                    sx::LoadMethodType::JSON => "json",
+                    sx::LoadMethodType::PARQUET => "parquet",
+                    _ => "none",
+                })
+                .pad_left(),
+            );
+        }
         if let Some(extra) = self.extra.get() {
             a.push(extra.as_script(w).pad_left());
         }

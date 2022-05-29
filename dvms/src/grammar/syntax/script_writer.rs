@@ -15,25 +15,29 @@ pub enum ScriptTextElement<'writer> {
 #[derive(Debug, Clone)]
 pub struct ScriptText<'writer> {
     pub element: ScriptTextElement<'writer>,
-    pub breakpoint_before: bool,
-    pub space_before: bool,
-    pub space_after: bool,
+    pub breakpoint_before: Cell<bool>,
+    pub space_before: Cell<bool>,
+    pub space_after: Cell<bool>,
     pub inline_length: usize,
 }
 
 impl<'writer> ScriptText<'writer> {
     pub fn pad_left(mut self) -> Self {
-        self.inline_length += (!self.space_before) as usize;
-        self.space_before = true;
+        self.inline_length += (!self.space_before.get()) as usize;
+        self.space_before.set(true);
         self
     }
     pub fn pad_right(mut self) -> Self {
-        self.inline_length += (!self.space_after) as usize;
-        self.space_after = true;
+        self.inline_length += (!self.space_after.get()) as usize;
+        self.space_after.set(true);
         self
     }
-    pub fn breakpoint_before(mut self) -> Self {
-        self.breakpoint_before = true;
+    pub fn breakpoint_before(self) -> Self {
+        self.breakpoint_before.set(true);
+        self
+    }
+    pub fn set_breakpoint_before(&self) -> &Self {
+        self.breakpoint_before.set(true);
         self
     }
 }
@@ -42,9 +46,9 @@ impl<'arena> Default for ScriptText<'arena> {
     fn default() -> Self {
         ScriptText {
             element: ScriptTextElement::Void,
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: 1,
         }
     }
@@ -77,18 +81,18 @@ impl ScriptWriter {
     pub fn str_const<'writer>(&'writer self, s: &'static str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::StaticStr(s),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: s.len(),
         }
     }
     pub fn str<'writer>(&'writer self, s: &'writer str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::DynamicStr(s),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: s.len(),
         }
     }
@@ -96,12 +100,13 @@ impl ScriptWriter {
         let mut len = 0;
         for elem in elems.iter() {
             len += elem.inline_length;
+            elem.set_breakpoint_before();
         }
         ScriptText {
             element: ScriptTextElement::Stack(elems),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
@@ -112,9 +117,9 @@ impl ScriptWriter {
         }
         ScriptText {
             element: ScriptTextElement::Float(elems),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
@@ -125,9 +130,9 @@ impl ScriptWriter {
         }
         ScriptText {
             element: ScriptTextElement::Block(elems),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
@@ -138,9 +143,9 @@ impl ScriptWriter {
         }
         ScriptText {
             element: ScriptTextElement::Brackets("(", ")", elems),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
@@ -151,9 +156,9 @@ impl ScriptWriter {
         }
         ScriptText {
             element: ScriptTextElement::Brackets("[", "]", elems),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
@@ -165,18 +170,18 @@ impl ScriptWriter {
         array[2] = self.str_const("'");
         ScriptText {
             element: ScriptTextElement::Block(array),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: len,
         }
     }
     pub fn keyword<'writer>(&'writer self, k: &'static str) -> ScriptText<'writer> {
         ScriptText {
             element: ScriptTextElement::Keyword(k),
-            breakpoint_before: false,
-            space_before: false,
-            space_after: false,
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
             inline_length: k.len(),
         }
     }
@@ -228,12 +233,12 @@ impl Default for ScriptTextConfig {
 }
 
 pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTextConfig) -> String {
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     struct DFSNode<'arena> {
         text: &'arena ScriptText<'arena>,
         visited: bool,
         break_to: usize,
-        break_at_next: bool,
+        add_break: bool,
         did_break_self: bool,
     }
     let mut pending: Vec<DFSNode<'arena>> = Vec::new();
@@ -241,7 +246,7 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
         text: root,
         visited: false,
         break_to: 0,
-        break_at_next: false,
+        add_break: false,
         did_break_self: false,
     });
 
@@ -258,10 +263,10 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
         if !top.visited {
             pending.last_mut().unwrap().visited = true;
 
-            if top.break_at_next {
+            if top.add_break {
                 break_pending = true;
             }
-            if top.text.breakpoint_before && break_pending && !break_prohibited {
+            if break_pending && top.text.breakpoint_before.get() && !break_prohibited {
                 buffer.push_str("\n");
                 buffer.push_str(&" ".repeat(top.break_to * config.indent_by));
                 writer_offset = top.break_to * config.indent_by;
@@ -270,12 +275,12 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
             } else if pending_space {
                 buffer.push_str(" ");
                 writer_offset += 1;
-            } else if top.text.space_before {
+            } else if top.text.space_before.get() {
                 buffer.push_str(" ");
                 writer_offset += 1;
             }
             pending_space = false;
-            if top.text.space_after {
+            if top.text.space_after.get() {
                 pending_space = true;
             }
 
@@ -296,29 +301,29 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
                             text: elem,
                             visited: false,
                             break_to: top.break_to,
-                            break_at_next: false,
+                            add_break: false,
                             did_break_self: false,
                         });
                     }
                 }
                 ScriptTextElement::Stack(elems) => {
                     if (writer_offset + inline_text_length) <= config.max_width {
-                        for (i, elem) in elems.iter().enumerate().rev() {
-                            pending.push(DFSNode {
-                                text: elem,
-                                visited: false,
-                                break_to: top.break_to,
-                                break_at_next: i > 0,
-                                did_break_self: false,
-                            });
-                        }
-                    } else {
                         for elem in elems.iter().rev() {
                             pending.push(DFSNode {
                                 text: elem,
                                 visited: false,
                                 break_to: top.break_to,
-                                break_at_next: false,
+                                add_break: false,
+                                did_break_self: false,
+                            });
+                        }
+                    } else {
+                        for (i, elem) in elems.iter().enumerate().rev() {
+                            pending.push(DFSNode {
+                                text: elem,
+                                visited: false,
+                                break_to: top.break_to,
+                                add_break: i > 0,
                                 did_break_self: false,
                             });
                         }
@@ -330,7 +335,7 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
                             text: elem,
                             visited: false,
                             break_to: top.break_to,
-                            break_at_next: false,
+                            add_break: false,
                             did_break_self: false,
                         });
                     }
@@ -345,7 +350,7 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
                                 text: elem,
                                 visited: false,
                                 break_to: top.break_to + 1,
-                                break_at_next: true,
+                                add_break: true,
                                 did_break_self: false,
                             });
                         }
@@ -355,7 +360,7 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
                                 text: elem,
                                 visited: false,
                                 break_to: top.break_to + 1,
-                                break_at_next: false,
+                                add_break: false,
                                 did_break_self: false,
                             });
                         }
@@ -370,7 +375,7 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
                     break_prohibited = false;
                 }
                 ScriptTextElement::Brackets(_, brclose, _) => {
-                    if !break_prohibited && top.did_break_self {
+                    if top.did_break_self {
                         buffer.push_str("\n");
                         buffer.push_str(&" ".repeat(top.break_to * config.indent_by));
                         writer_offset = top.break_to * config.indent_by;
