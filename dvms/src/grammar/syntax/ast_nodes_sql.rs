@@ -1,7 +1,10 @@
 use super::ast_cell::*;
+use super::ast_list::ASTList;
 use super::enums_serde::*;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
+use std::fmt::Debug;
+use std::hash::Hash;
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IndirectionExpression<'a> {
@@ -129,12 +132,13 @@ pub struct TypeTestExpression<'a> {
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 pub enum Expression<'a> {
     Null,
-    Boolean(bool),
-    Uint32(u32),
     Array(&'a [ASTCell<Expression<'a>>]),
+    Boolean(bool),
     Case(&'a CaseExpression<'a>),
     ColumnRef(NamePath<'a>),
+    Conjunction(&'a ASTList<'a, Expression<'a>>),
     ConstCast(ConstCastExpression<'a>),
+    Disjunction(&'a ASTList<'a, Expression<'a>>),
     Exists(&'a ExistsExpression<'a>),
     FunctionCall(&'a FunctionExpression<'a>),
     Indirection(&'a IndirectionExpression<'a>),
@@ -145,6 +149,7 @@ pub enum Expression<'a> {
     Subquery(&'a SubqueryExpression<'a>),
     TypeCast(&'a TypeCastExpression<'a>),
     TypeTest(&'a TypeTestExpression<'a>),
+    Uint32(u32),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

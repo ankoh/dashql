@@ -400,7 +400,6 @@
                                             StringRef(
                                                 &quot;2&quot;,
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -4141,12 +4140,10 @@
                                                     StringRef(
                                                         &quot;1&quot;,
                                                     ),
-                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -4338,78 +4335,69 @@
                             ),
                         ],
                         where_clause: Some(
-                            Nary(
-                                NaryExpression {
-                                    operator: Known(
-                                        AND,
+                            Conjunction(
+                                [
+                                    Nary(
+                                        NaryExpression {
+                                            operator: Known(
+                                                EQUAL,
+                                            ),
+                                            args: [
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;c1&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;month&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;c2&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;month&quot;,
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                            postfix: false,
+                                        },
                                     ),
-                                    args: [
-                                        Nary(
-                                            NaryExpression {
-                                                operator: Known(
-                                                    EQUAL,
+                                    Nary(
+                                        NaryExpression {
+                                            operator: Known(
+                                                EQUAL,
+                                            ),
+                                            args: [
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;c2&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;month&quot;,
+                                                        ),
+                                                    ],
                                                 ),
-                                                args: [
-                                                    ColumnRef(
-                                                        [
-                                                            Name(
-                                                                &quot;c1&quot;,
-                                                            ),
-                                                            Name(
-                                                                &quot;month&quot;,
-                                                            ),
-                                                        ],
-                                                    ),
-                                                    ColumnRef(
-                                                        [
-                                                            Name(
-                                                                &quot;c2&quot;,
-                                                            ),
-                                                            Name(
-                                                                &quot;month&quot;,
-                                                            ),
-                                                        ],
-                                                    ),
-                                                    Null,
-                                                ],
-                                                postfix: false,
-                                            },
-                                        ),
-                                        Nary(
-                                            NaryExpression {
-                                                operator: Known(
-                                                    EQUAL,
+                                                ColumnRef(
+                                                    [
+                                                        Name(
+                                                            &quot;main&quot;,
+                                                        ),
+                                                        Name(
+                                                            &quot;month&quot;,
+                                                        ),
+                                                    ],
                                                 ),
-                                                args: [
-                                                    ColumnRef(
-                                                        [
-                                                            Name(
-                                                                &quot;c2&quot;,
-                                                            ),
-                                                            Name(
-                                                                &quot;month&quot;,
-                                                            ),
-                                                        ],
-                                                    ),
-                                                    ColumnRef(
-                                                        [
-                                                            Name(
-                                                                &quot;main&quot;,
-                                                            ),
-                                                            Name(
-                                                                &quot;month&quot;,
-                                                            ),
-                                                        ],
-                                                    ),
-                                                    Null,
-                                                ],
-                                                postfix: false,
-                                            },
-                                        ),
-                                        Null,
-                                    ],
-                                    postfix: false,
-                                },
+                                            ],
+                                            postfix: false,
+                                        },
+                                    ),
+                                ],
                             ),
                         ),
                         group_by: [],
@@ -6160,7 +6148,6 @@
                                             StringRef(
                                                 &quot;2&quot;,
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -6689,7 +6676,6 @@
                                             StringRef(
                                                 &quot;&apos;mst&apos;&quot;,
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -6842,7 +6828,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -7007,7 +6992,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -7096,7 +7080,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -7185,7 +7168,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -8220,7 +8202,6 @@
                                                             ),
                                                         ],
                                                     ),
-                                                    Null,
                                                 ],
                                                 postfix: false,
                                             },
@@ -8748,7 +8729,6 @@
                                                     indirection: None,
                                                 },
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -8839,7 +8819,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },
@@ -9386,11 +9365,7 @@
                                                         operator: Known(
                                                             DEFAULT,
                                                         ),
-                                                        args: [
-                                                            Null,
-                                                            Null,
-                                                            Null,
-                                                        ],
+                                                        args: [],
                                                         postfix: false,
                                                     },
                                                 ),
@@ -13573,7 +13548,6 @@
                                                 ),
                                             ],
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -13712,7 +13686,6 @@
                                                 ),
                                             ],
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -13839,7 +13812,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -13985,7 +13957,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -14341,7 +14312,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -14487,7 +14457,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -14633,7 +14602,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -14779,7 +14747,6 @@
                                                                     ),
                                                                 ],
                                                             ),
-                                                            Null,
                                                         ],
                                                         postfix: false,
                                                     },
@@ -15088,7 +15055,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -15250,7 +15216,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -15412,7 +15377,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -15574,7 +15538,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -15736,7 +15699,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -15909,7 +15871,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },
@@ -16085,7 +16046,6 @@
                                         StringRef(
                                             &quot;5&quot;,
                                         ),
-                                        Null,
                                     ],
                                     postfix: false,
                                 },

@@ -1,4 +1,5 @@
 use super::ast_cell::*;
+use super::ast_list::*;
 use super::ast_node::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
@@ -282,7 +283,11 @@ pub fn deserialize_ast<'a>(
                 ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
             }
             sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
-                let args = arena.alloc_slice_fill_default(3);
+                let mut args: [ASTCell<Expression>; 3] = [
+                    ASTCell::with_value(Expression::Null),
+                    ASTCell::with_value(Expression::Null),
+                    ASTCell::with_value(Expression::Null),
+                ];
                 let mut operator_name =
                     ASTCell::with_value(ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS));
                 let mut postfix = ASTCell::with_value(false);
@@ -293,11 +298,44 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_EXPRESSION_POSTFIX, ASTNode::Boolean(v), ci) => postfix = ASTCell::with_node(*v, ci),
                     (Key::SQL_EXPRESSION_OPERATOR, n, ci) => operator_name = ASTCell::with_node(read_expression_operator(arena, n), ci)
                 }
-                ASTNode::Expression(Expression::Nary(arena.alloc(NaryExpression {
-                    operator: operator_name,
-                    args,
-                    postfix,
-                })))
+                let expr = match operator_name.get() {
+                    ExpressionOperatorName::Known(sx::ExpressionOperator::AND) => {
+                        let list = match (args[0].get(), args[1].get()) {
+                            (Expression::Conjunction(left), Expression::Conjunction(right)) => {
+                                ASTList::merge(left, right)
+                            }
+                            (Expression::Conjunction(left), _) => left.append(args[1].clone(), arena),
+                            (_, Expression::Conjunction(right)) => right.prepend(args[0].clone(), arena),
+                            (_, _) => ASTList::new(args[0].clone(), args[1].clone(), arena),
+                        };
+                        Expression::Conjunction(arena.alloc(list))
+                    }
+                    ExpressionOperatorName::Known(sx::ExpressionOperator::OR) => {
+                        let list = match (args[0].get(), args[1].get()) {
+                            (Expression::Disjunction(left), Expression::Disjunction(right)) => {
+                                ASTList::merge(left, right)
+                            }
+                            (Expression::Disjunction(left), _) => left.append(args[1].clone(), arena),
+                            (_, Expression::Disjunction(right)) => right.prepend(args[0].clone(), arena),
+                            (_, _) => ASTList::new(args[0].clone(), args[1].clone(), arena),
+                        };
+                        Expression::Disjunction(arena.alloc(list))
+                    }
+                    _ => {
+                        let iter = args.iter().take_while(|exp| exp.get() != Expression::Null);
+                        let arg_count = iter.clone().count();
+                        let args = arena.alloc_slice_fill_default(arg_count);
+                        for (i, arg) in iter.enumerate() {
+                            args[i] = arg.clone();
+                        }
+                        Expression::Nary(arena.alloc(NaryExpression {
+                            operator: operator_name,
+                            args,
+                            postfix,
+                        }))
+                    }
+                };
+                ASTNode::Expression(expr)
             }
             sx::NodeType::OBJECT_SQL_CASE_CLAUSE => {
                 let mut when = ASTCell::with_value(Expression::Null);

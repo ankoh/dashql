@@ -1372,78 +1372,69 @@
                                 ),
                             ],
                             where_clause: Some(
-                                Nary(
-                                    NaryExpression {
-                                        operator: Known(
-                                            AND,
+                                Conjunction(
+                                    [
+                                        Nary(
+                                            NaryExpression {
+                                                operator: Known(
+                                                    EQUAL,
+                                                ),
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;studenten&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;MatrNr&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;hoeren&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;MatrNr&quot;,
+                                                            ),
+                                                        ],
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
                                         ),
-                                        args: [
-                                            Nary(
-                                                NaryExpression {
-                                                    operator: Known(
-                                                        EQUAL,
+                                        Nary(
+                                            NaryExpression {
+                                                operator: Known(
+                                                    EQUAL,
+                                                ),
+                                                args: [
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;hoeren&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;VorlNr&quot;,
+                                                            ),
+                                                        ],
                                                     ),
-                                                    args: [
-                                                        ColumnRef(
-                                                            [
-                                                                Name(
-                                                                    &quot;studenten&quot;,
-                                                                ),
-                                                                Name(
-                                                                    &quot;MatrNr&quot;,
-                                                                ),
-                                                            ],
-                                                        ),
-                                                        ColumnRef(
-                                                            [
-                                                                Name(
-                                                                    &quot;hoeren&quot;,
-                                                                ),
-                                                                Name(
-                                                                    &quot;MatrNr&quot;,
-                                                                ),
-                                                            ],
-                                                        ),
-                                                        Null,
-                                                    ],
-                                                    postfix: false,
-                                                },
-                                            ),
-                                            Nary(
-                                                NaryExpression {
-                                                    operator: Known(
-                                                        EQUAL,
+                                                    ColumnRef(
+                                                        [
+                                                            Name(
+                                                                &quot;vorlesungen&quot;,
+                                                            ),
+                                                            Name(
+                                                                &quot;VorlNr&quot;,
+                                                            ),
+                                                        ],
                                                     ),
-                                                    args: [
-                                                        ColumnRef(
-                                                            [
-                                                                Name(
-                                                                    &quot;hoeren&quot;,
-                                                                ),
-                                                                Name(
-                                                                    &quot;VorlNr&quot;,
-                                                                ),
-                                                            ],
-                                                        ),
-                                                        ColumnRef(
-                                                            [
-                                                                Name(
-                                                                    &quot;vorlesungen&quot;,
-                                                                ),
-                                                                Name(
-                                                                    &quot;VorlNr&quot;,
-                                                                ),
-                                                            ],
-                                                        ),
-                                                        Null,
-                                                    ],
-                                                    postfix: false,
-                                                },
-                                            ),
-                                            Null,
-                                        ],
-                                        postfix: false,
-                                    },
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ],
                                 ),
                             ),
                             group_by: [],
@@ -1603,7 +1594,6 @@
                                                     ),
                                                 ],
                                             ),
-                                            Null,
                                         ],
                                         postfix: false,
                                     },

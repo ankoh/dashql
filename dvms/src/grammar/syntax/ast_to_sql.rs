@@ -662,6 +662,36 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             }
             Expression::FunctionCall(_) => todo!(),
             Expression::Indirection(i) => todo!(),
+            Expression::Conjunction(exprs) => {
+                let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
+                let mut iter = exprs.first.get();
+                a.push(iter.value.get().as_script(w));
+                while let Some(next) = iter.next.get() {
+                    a.push(w.keyword("and").pad_left());
+                    a.push(next.value.get().as_script(w).pad_left());
+                    iter = next;
+                }
+                if w.expression_depth.get() == 1 {
+                    w.float(a.finish())
+                } else {
+                    w.round_brackets(a.finish())
+                }
+            }
+            Expression::Disjunction(exprs) => {
+                let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
+                let mut iter = exprs.first.get();
+                a.push(iter.value.get().as_script(w));
+                while let Some(next) = iter.next.get() {
+                    a.push(w.keyword("or").pad_left());
+                    a.push(next.value.get().as_script(w).pad_left());
+                    iter = next;
+                }
+                if w.expression_depth.get() == 1 {
+                    w.float(a.finish())
+                } else {
+                    w.round_brackets(a.finish())
+                }
+            }
             Expression::Nary(nary) => match nary.operator.get() {
                 ExpressionOperatorName::Known(op) => match op {
                     // Binary operations
@@ -669,8 +699,6 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     | ExpressionOperator::MINUS
                     | ExpressionOperator::MULTIPLY
                     | ExpressionOperator::MODULUS
-                    | ExpressionOperator::AND
-                    | ExpressionOperator::OR
                     | ExpressionOperator::XOR
                     | ExpressionOperator::GLOB
                     | ExpressionOperator::NOT_GLOB
@@ -696,8 +724,6 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                             ExpressionOperator::MULTIPLY => a.push(w.keyword("*").pad_left()),
                             ExpressionOperator::DIVIDE => a.push(w.keyword("/").pad_left()),
                             ExpressionOperator::MODULUS => a.push(w.keyword("%").pad_left()),
-                            ExpressionOperator::AND => a.push(w.keyword("and").pad_left()),
-                            ExpressionOperator::OR => a.push(w.keyword("or").pad_left()),
                             ExpressionOperator::XOR => a.push(w.keyword("^").pad_left()),
                             ExpressionOperator::GLOB => a.push(w.keyword("glob").pad_left()),
                             ExpressionOperator::NOT_GLOB => {

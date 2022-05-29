@@ -1,5 +1,6 @@
 pub mod ast_cell;
 pub mod ast_dump;
+pub mod ast_list;
 pub mod ast_node;
 pub mod ast_nodes_dashql;
 pub mod ast_nodes_sql;
