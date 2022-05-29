@@ -746,6 +746,25 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
             }
             Expression::Nary(nary) => match nary.operator.get() {
                 ExpressionOperatorName::Known(op) => match op {
+                    // Unary operations
+                    ExpressionOperator::NOT => {
+                        let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
+                        let prev_prec = w.operator_precedence.replace(Some(own_prec));
+
+                        let mut a = ScriptTextArray::with_capacity(w, 5);
+                        match op {
+                            ExpressionOperator::NOT => a.push(w.keyword("not")),
+                            _ => todo!(),
+                        }
+                        a.push(nary.args[0].get().as_script(w).pad_left());
+
+                        if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
+                            w.round_brackets(a.finish())
+                        } else {
+                            w.float(a.finish())
+                        }
+                    }
+
                     // Binary operations
                     ExpressionOperator::PLUS
                     | ExpressionOperator::MINUS
@@ -912,6 +931,9 @@ mod test {
         test_pipe(&r#"select a ilike b"#)?;
         test_pipe(&r#"select a not like b"#)?;
         test_pipe(&r#"select a not ilike b"#)?;
+        test_pipe(&r#"select not a and b"#)?;
+        test_pipe(&r#"select not a or b"#)?;
+        test_pipe(&r#"select not a + b"#)?;
         test_pipe(&r#"select (a + b) * c"#)?;
         test_pipe(&r#"select a * (b + c)"#)?;
         test_pipe(&r#"select a + (b + c)"#)?;
