@@ -1,11 +1,10 @@
+use super::expression_evaluator::ExpressionEvaluationContext;
 use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
 use smallvec::SmallVec;
 use std::rc::Rc;
-
-use super::expression_evaluator::ExpressionEvaluationContext;
 
 // Check if an expression is constant
 pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluationContext<'a>) -> bool {
@@ -54,7 +53,6 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
             return false;
         }
     }
-
     true
 }
 
