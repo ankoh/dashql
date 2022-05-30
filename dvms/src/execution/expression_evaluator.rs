@@ -4,7 +4,6 @@ use crate::error::RawError;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
 use crate::grammar::NamePath;
-use crate::utils::by_address::ByAddress;
 use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
@@ -12,7 +11,7 @@ use std::rc::Rc;
 /// Context for evaluating expressions
 pub struct ExpressionEvaluationContext<'a> {
     pub named_values: HashMap<NamePath<'a>, ScalarValue>,
-    pub evaluated_expressions: HashMap<ByAddress<&'a Expression<'a>>, Rc<Option<ScalarValue>>>,
+    pub evaluated_expressions: HashMap<Expression<'a>, Rc<Option<ScalarValue>>>,
     pub current_node_id: Option<usize>,
 }
 /// Can be evaluated
@@ -29,7 +28,7 @@ impl<'a> Evaluatable<'a> for Expression<'a> {
         &self,
         ctx: &mut ExpressionEvaluationContext<'a>,
     ) -> Result<Rc<Option<ScalarValue>>, Box<dyn Error + Send + Sync>> {
-        if let Some(value) = ctx.evaluated_expressions.get(&ByAddress(&self)) {
+        if let Some(value) = ctx.evaluated_expressions.get(&self) {
             return Ok(value.clone());
         }
         let value = match self {
@@ -54,6 +53,8 @@ impl<'a> Evaluatable<'a> for Expression<'a> {
             },
             _ => return Err(Box::new(RawError::from(format!("cannot evaluate: {:?}", self)))),
         };
-        Ok(Rc::new(value))
+        let value_ptr = Rc::new(value);
+        ctx.evaluated_expressions.insert(self.clone(), value_ptr.clone());
+        Ok(value_ptr)
     }
 }
