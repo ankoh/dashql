@@ -2,10 +2,7 @@ use super::expression_evaluator::Evaluatable;
 use super::scalar_value::ScalarValue;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
-use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
-use std::hash::Hasher;
-use std::ptr;
 
 use super::expression_evaluator::ExpressionEvaluationContext;
 
@@ -66,32 +63,4 @@ pub fn evaluate_constant_expression<'a>(
     ctx: &mut ExpressionEvaluationContext<'a>,
 ) -> Result<Option<ScalarValue>, Box<dyn Error + Send + Sync>> {
     expr.evaluate(ctx)
-}
-
-impl<'a> Expression<'a> {
-    pub fn get_id(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        match &self {
-            Expression::Null => ptr::hash(&self, &mut hasher),
-            Expression::Uint32(v) => ptr::hash(v, &mut hasher),
-            Expression::Boolean(v) => ptr::hash(v, &mut hasher),
-            Expression::Array(v) => ptr::hash(v, &mut hasher),
-            Expression::Case(v) => ptr::hash(v, &mut hasher),
-            Expression::ColumnRef(v) => ptr::hash(v, &mut hasher),
-            Expression::Conjunction(v) => ptr::hash(v, &mut hasher),
-            Expression::ConstCast(v) => ptr::hash(v, &mut hasher),
-            Expression::Disjunction(v) => ptr::hash(v, &mut hasher),
-            Expression::Exists(v) => ptr::hash(v, &mut hasher),
-            Expression::FunctionCall(v) => ptr::hash(v, &mut hasher),
-            Expression::Indirection(v) => ptr::hash(v, &mut hasher),
-            Expression::Nary(v) => ptr::hash(v, &mut hasher),
-            Expression::ParameterRef(v) => ptr::hash(v, &mut hasher),
-            Expression::SelectStatement(v) => ptr::hash(v, &mut hasher),
-            Expression::StringRef(v) => ptr::hash(v, &mut hasher),
-            Expression::Subquery(v) => ptr::hash(v, &mut hasher),
-            Expression::TypeCast(v) => ptr::hash(v, &mut hasher),
-            Expression::TypeTest(v) => ptr::hash(v, &mut hasher),
-        };
-        hasher.finish()
-    }
 }
