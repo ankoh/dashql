@@ -386,6 +386,13 @@ impl<'arena> DsonValue<'arena> {
             DsonValue::Expression(_) => &[],
         }
     }
+    pub fn as_expression(&self) -> Expression<'arena> {
+        match self {
+            DsonValue::Object(_) => Expression::Null,
+            DsonValue::Array(_) => Expression::Null,
+            DsonValue::Expression(e) => e.clone(),
+        }
+    }
 
     pub fn as_json(
         &self,

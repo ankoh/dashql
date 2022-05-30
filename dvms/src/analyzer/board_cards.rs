@@ -29,10 +29,22 @@ pub fn derive_board_cards<'a>(ctx: &ProgramInstance<'a>) -> Result<(), Box<dyn E
             column: 0,
         };
         if let Some(pos) = position {
-            let _w = pos.get(sx::AttributeKey::DSON_WIDTH);
-            let _h = pos.get(sx::AttributeKey::DSON_HEIGHT);
-            let _r = pos.get(sx::AttributeKey::DSON_ROW);
-            let _c = pos.get(sx::AttributeKey::DSON_COLUMN);
+            let _w = pos
+                .get(sx::AttributeKey::DSON_WIDTH)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _h = pos
+                .get(sx::AttributeKey::DSON_HEIGHT)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _r = pos
+                .get(sx::AttributeKey::DSON_ROW)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _c = pos
+                .get(sx::AttributeKey::DSON_COLUMN)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
 
             todo!()
         }
@@ -59,10 +71,22 @@ pub fn derive_board_cards<'a>(ctx: &ProgramInstance<'a>) -> Result<(), Box<dyn E
             column: 0,
         };
         if let Some(pos) = position {
-            let _w = pos.get(sx::AttributeKey::DSON_WIDTH);
-            let _h = pos.get(sx::AttributeKey::DSON_HEIGHT);
-            let _r = pos.get(sx::AttributeKey::DSON_ROW);
-            let _c = pos.get(sx::AttributeKey::DSON_COLUMN);
+            let _w = pos
+                .get(sx::AttributeKey::DSON_WIDTH)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _h = pos
+                .get(sx::AttributeKey::DSON_HEIGHT)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _r = pos
+                .get(sx::AttributeKey::DSON_ROW)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
+            let _c = pos
+                .get(sx::AttributeKey::DSON_COLUMN)
+                .map(|v| v.as_expression())
+                .unwrap_or_default();
         }
     }
 
