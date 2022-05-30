@@ -471,11 +471,15 @@ impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::{self, ASTCell, Statement};
+    use crate::{
+        execution::scalar_value::ScalarValue,
+        grammar::{self, ASTCell, Statement},
+    };
+    use std::collections::HashMap;
     use std::error::Error;
 
     #[test]
-    fn test_set_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
         let text = r#"
             set 'key' = 42;
         "#;
@@ -499,6 +503,19 @@ mod test {
 
     fn test_json<'a>(dson: DsonValue<'a>, json: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut ctx = ExpressionEvaluationContext::default();
+        let value = dson.as_json(&mut ctx)?;
+        let value_text = value.to_string();
+        assert_eq!(value_text, json);
+        Ok(())
+    }
+
+    fn test_json_with_values<'a>(
+        dson: DsonValue<'a>,
+        json: &'static str,
+        values: HashMap<NamePath<'a>, ScalarValue>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let mut ctx = ExpressionEvaluationContext::default();
+        ctx.named_values = values;
         let value = dson.as_json(&mut ctx)?;
         let value_text = value.to_string();
         assert_eq!(value_text, json);
@@ -539,6 +556,19 @@ mod test {
                 },
             ]),
             r#"{"fill":true,"foo":"bar"}"#,
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_column_ref() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_json_with_values(
+            DsonValue::Expression(Expression::ColumnRef(&[ASTCell::with_value(Indirection::Name("foo"))])),
+            "42",
+            HashMap::from([(
+                [ASTCell::with_value(Indirection::Name("foo"))].as_slice(),
+                ScalarValue::Int64(42),
+            )]),
         )?;
         Ok(())
     }
