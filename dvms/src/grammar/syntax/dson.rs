@@ -477,6 +477,7 @@ mod test {
     };
     use std::collections::HashMap;
     use std::error::Error;
+    use std::rc::Rc;
 
     #[test]
     fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -512,10 +513,10 @@ mod test {
     fn test_json_with_values<'a>(
         dson: DsonValue<'a>,
         json: &'static str,
-        values: HashMap<NamePath<'a>, ScalarValue>,
+        named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut ctx = ExpressionEvaluationContext::default();
-        ctx.named_values = values;
+        ctx.named_values = named_values;
         let value = dson.as_json(&mut ctx)?;
         let value_text = value.to_string();
         assert_eq!(value_text, json);
@@ -567,7 +568,7 @@ mod test {
             "42",
             HashMap::from([(
                 [ASTCell::with_value(Indirection::Name("foo"))].as_slice(),
-                ScalarValue::Int64(42),
+                Rc::new(ScalarValue::Int64(42)),
             )]),
         )?;
         Ok(())

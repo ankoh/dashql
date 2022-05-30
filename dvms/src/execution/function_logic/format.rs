@@ -1,6 +1,6 @@
 use crate::analyzer::node_error::NodeError;
 use crate::analyzer::node_error::NodeErrorCode;
-use crate::execution::expression_evaluator::{Evaluatable, ExpressionEvaluationContext};
+use crate::execution::expression_evaluator::ExpressionEvaluationContext;
 use crate::execution::scalar_value::ScalarValue;
 use crate::fmt::dynfmt;
 use crate::grammar::FunctionExpression;
