@@ -562,15 +562,15 @@ mod test {
     fn test_format_function() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_json(
             DsonValue::Expression(Expression::FunctionCall(&FunctionExpression {
-                name: ASTCell::with_value(FunctionName::Unknown("format")),
+                name: FunctionName::Unknown("format").into(),
                 args: ASTCell::with_value(&[
                     ASTCell::with_value(&FunctionArgument {
-                        name: ASTCell::with_value(None),
-                        value: ASTCell::with_value(Expression::StringRef(r#"{}"#)),
+                        name: None.into(),
+                        value: Expression::StringRef(r#"{}"#).into(),
                     }),
                     ASTCell::with_value(&FunctionArgument {
-                        name: ASTCell::with_value(None),
-                        value: ASTCell::with_value(Expression::Uint32(42)),
+                        name: None.into(),
+                        value: Expression::Uint32(42).into(),
                     }),
                 ]),
                 ..FunctionExpression::default()
@@ -581,15 +581,15 @@ mod test {
             DsonValue::Object(&[DsonField {
                 key: DsonKey::Known(sx::AttributeKey::DSON_URL),
                 value: DsonValue::Expression(Expression::FunctionCall(&FunctionExpression {
-                    name: ASTCell::with_value(FunctionName::Unknown("format")),
+                    name: FunctionName::Unknown("format").into(),
                     args: ASTCell::with_value(&[
                         ASTCell::with_value(&FunctionArgument {
-                            name: ASTCell::with_value(None),
-                            value: ASTCell::with_value(Expression::StringRef(r#"{}"#)),
+                            name: None.into(),
+                            value: Expression::StringRef(r#"{}"#).into(),
                         }),
                         ASTCell::with_value(&FunctionArgument {
-                            name: ASTCell::with_value(None),
-                            value: ASTCell::with_value(Expression::Uint32(42)),
+                            name: None.into(),
+                            value: Expression::Uint32(42).into(),
                         }),
                     ]),
                     ..FunctionExpression::default()
