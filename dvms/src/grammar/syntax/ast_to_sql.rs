@@ -319,7 +319,8 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
         if let Some(limit) = self.limit.get() {
             a.push(limit.to_sql(w).pad_left());
         }
-        if let Some(offset) = self.offset.get() {
+        let offset = self.offset.get();
+        if offset != Expression::Null {
             a.push(w.keyword("offset").pad_left());
             a.push(offset.to_sql(w).pad_left());
         }
@@ -700,8 +701,9 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
             Expression::Case(c) => {
                 let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
                 f.push(w.keyword("case"));
-                if let Some(argument) = c.argument.get() {
-                    f.push(argument.to_sql(w).pad_left());
+                let arg = c.argument.get();
+                if arg != Expression::Null {
+                    f.push(arg.to_sql(w).pad_left());
                 }
                 for case in c.cases.get().iter() {
                     f.push(w.keyword("when").pad_left());
@@ -709,7 +711,8 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
                     f.push(w.keyword("then").pad_left());
                     f.push(case.get().then.get().to_sql(w).pad_left());
                 }
-                if let Some(default) = c.default.get() {
+                let default = c.default.get();
+                if default != Expression::Null {
                     f.push(w.keyword("else").pad_left());
                     f.push(default.to_sql(w).pad_left());
                 }

@@ -111,9 +111,9 @@ pub struct CaseExpressionClause<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CaseExpression<'a> {
-    pub argument: ASTCell<Option<Expression<'a>>>,
+    pub argument: ASTCell<Expression<'a>>,
     pub cases: ASTCell<&'a [ASTCell<&'a CaseExpressionClause<'a>>]>,
-    pub default: ASTCell<Option<Expression<'a>>>,
+    pub default: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -202,7 +202,7 @@ pub struct NumericType<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct BitType<'a> {
     pub varying: ASTCell<bool>,
-    pub length: ASTCell<Option<Expression<'a>>>,
+    pub length: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -365,7 +365,7 @@ pub struct OverlayFunctionArguments<'a> {
     pub input: ASTCell<Expression<'a>>,
     pub placing: ASTCell<Expression<'a>>,
     pub substr_from: ASTCell<Expression<'a>>,
-    pub substr_for: ASTCell<Option<Expression<'a>>>,
+    pub substr_for: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
@@ -384,8 +384,8 @@ pub struct ExtractFunctionArguments<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct SubstringFunctionArguments<'a> {
     pub input: ASTCell<Expression<'a>>,
-    pub substr_from: ASTCell<Option<Expression<'a>>>,
-    pub substr_for: ASTCell<Option<Expression<'a>>>,
+    pub substr_from: ASTCell<Expression<'a>>,
+    pub substr_for: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -398,7 +398,7 @@ pub struct PositionFunctionArguments<'a> {
 pub struct TrimFunctionArguments<'a> {
     #[serde(with = "serde_trim_direction::cell")]
     pub direction: ASTCell<sx::TrimDirection>,
-    pub characters: ASTCell<Option<Expression<'a>>>,
+    pub characters: ASTCell<Expression<'a>>,
     pub input: ASTCell<&'a [ASTCell<Expression<'a>>]>,
 }
 
@@ -476,9 +476,9 @@ pub struct SelectFromStatement<'a> {
     pub targets: ASTCell<&'a [ASTCell<&'a ResultTarget<'a>>]>,
     pub into: ASTCell<Option<&'a Into<'a>>>,
     pub from: ASTCell<&'a [ASTCell<&'a TableRef<'a>>]>,
-    pub where_clause: ASTCell<Option<Expression<'a>>>,
+    pub where_clause: ASTCell<Expression<'a>>,
     pub group_by: ASTCell<&'a [ASTCell<&'a GroupByItem<'a>>]>,
-    pub having: ASTCell<Option<Expression<'a>>>,
+    pub having: ASTCell<Expression<'a>>,
     pub windows: ASTCell<&'a [ASTCell<&'a WindowDefinition<'a>>]>,
     pub sample: ASTCell<Option<&'a Sample<'a>>>,
 }
@@ -515,7 +515,7 @@ pub struct SelectStatement<'a> {
     pub order_by: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
     pub row_locking: ASTCell<&'a [ASTCell<&'a RowLocking<'a>>]>,
     pub limit: ASTCell<Option<Limit<'a>>>,
-    pub offset: ASTCell<Option<Expression<'a>>>,
+    pub offset: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -567,7 +567,7 @@ pub struct ColumnConstraint<'a> {
     pub constraint_name: ASTCell<Option<&'a str>>,
     #[serde(with = "serde_column_constraint::cell_opt")]
     pub constraint_type: ASTCell<Option<sx::ColumnConstraint>>,
-    pub value: ASTCell<Option<Expression<'a>>>,
+    pub value: ASTCell<Expression<'a>>,
     pub arguments: ASTCell<&'a [ASTCell<&'a ColumnConstraintArgument<'a>>]>,
     pub no_inherit: ASTCell<bool>,
 }
