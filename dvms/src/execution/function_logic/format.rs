@@ -15,7 +15,7 @@ pub fn evaluate_scalar<'a>(
     let raw_args = expr.args.get();
     if raw_args.len() == 0 {
         return Err(Box::new(NodeError::new(
-            ctx.node_id,
+            ctx.current_node_id,
             NodeErrorCode::InsufficientArguments,
         )));
     }
