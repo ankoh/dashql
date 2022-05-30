@@ -26,6 +26,7 @@ doctest = false
 dashql_proto = { path = "../packages/proto" }
 dashql_parser = { path = "../parser-sys" }
 arrow = { version = "14.0.0", features = ['ipc'] }
+smallvec = "1.8.0"
 bumpalo = "3.9.1"
 flatbuffers = "2.1.1"
 libc = "0.2.121"

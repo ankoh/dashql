@@ -182,6 +182,7 @@ dependencies = [
  "quick-xml",
  "serde",
  "serde_json",
+ "smallvec",
 ]
 
 [[package]]

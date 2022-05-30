@@ -2,13 +2,14 @@ use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
+use smallvec::SmallVec;
 use std::rc::Rc;
 
 use super::expression_evaluator::ExpressionEvaluationContext;
 
 // Check if an expression is constant
 pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluationContext<'a>) -> bool {
-    let mut pending: Vec<Expression<'a>> = Vec::new();
+    let mut pending: SmallVec<[Expression<'a>; 6]> = SmallVec::new();
     pending.push(root);
 
     while let Some(top) = pending.pop() {
