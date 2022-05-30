@@ -21,7 +21,7 @@ pub fn evaluate_scalar<'a>(
     }
     let template_arg = raw_args[0].get();
     let template_val = template_arg.value.get().evaluate(ctx)?;
-    let template_str = template_val.map(|v| v.to_string()).unwrap_or_default();
+    let template_str = (*template_val).as_ref().map(|v| v.to_string()).unwrap_or_default();
 
     // Evaluate all arguments
     let mut args_unnamed = Vec::new();
@@ -29,7 +29,7 @@ pub fn evaluate_scalar<'a>(
     for arg in raw_args.iter().skip(1) {
         let arg = arg.get();
         let value = arg.value.get();
-        let value_evaled = match value.evaluate(ctx)? {
+        let value_evaled = match &*value.evaluate(ctx)? {
             Some(v) => v.to_string(),
             None => "".to_string(),
         };
