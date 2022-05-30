@@ -408,7 +408,7 @@ impl<'arena> DsonValue<'arena> {
             }
             DsonValue::Expression(expr) => {
                 let value = evaluate_constant_expression(expr, ctx)?;
-                match &*value {
+                match value {
                     Some(v) => Ok(scalar_to_json(&v)),
                     None => Ok(serde_json::value::Value::Null),
                 }

@@ -2,8 +2,9 @@ use super::expression_evaluator::Evaluatable;
 use super::scalar_value::ScalarValue;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
+use crate::grammar::Program;
+use crate::grammar::Statement;
 use std::error::Error;
-use std::rc::Rc;
 
 use super::expression_evaluator::ExpressionEvaluationContext;
 
@@ -62,6 +63,27 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
 pub fn evaluate_constant_expression<'a>(
     expr: &Expression<'a>,
     ctx: &mut ExpressionEvaluationContext<'a>,
-) -> Result<Rc<Option<ScalarValue>>, Box<dyn Error + Send + Sync>> {
+) -> Result<Option<ScalarValue>, Box<dyn Error + Send + Sync>> {
     expr.evaluate(ctx)
+}
+
+pub fn evaluate_constant_expressions<'a>(
+    program: &Program<'a>,
+    ctx: &mut ExpressionEvaluationContext<'a>,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut pending: Vec<usize> = Vec::new();
+    for stmt in program.statements.iter() {
+        match &stmt {
+            Statement::Viz(v) => {}
+            Statement::Select(_) => todo!(),
+            Statement::Input(_) => todo!(),
+            Statement::Fetch(_) => todo!(),
+            Statement::Load(_) => todo!(),
+            Statement::Create(_) => todo!(),
+            Statement::CreateAs(_) => todo!(),
+            Statement::CreateView(_) => todo!(),
+            Statement::Set(_) => todo!(),
+        }
+    }
+    Ok(())
 }
