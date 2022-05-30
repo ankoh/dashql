@@ -69,7 +69,7 @@ pub fn evaluate_constant_expression<'a>(
 }
 
 impl<'a> Expression<'a> {
-    pub fn get_value_id(&self) -> u64 {
+    pub fn get_id(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         match &self {
             Expression::Null => ptr::hash(&self, &mut hasher),
