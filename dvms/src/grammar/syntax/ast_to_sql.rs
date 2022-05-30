@@ -171,7 +171,7 @@ impl<'ast> AsScript<'ast> for RelationRef<'ast> {
         }
         a.push(self.name.get().as_script(w));
         if let Some(alias) = self.alias.get() {
-            a.push(self.alias.get().unwrap().as_script(w).pad_left())
+            a.push(alias.as_script(w).pad_left())
         }
         w.float(a.finish())
     }
@@ -302,9 +302,9 @@ impl<'ast> AsScript<'ast> for SelectStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.get().len());
         match &self.data {
             SelectData::From(from) => a.push(from.as_script(w)),
-            SelectData::Combine(c) => todo!(),
-            SelectData::Table(t) => todo!(),
-            SelectData::Values(to) => todo!(),
+            SelectData::Combine(_c) => todo!(),
+            SelectData::Table(_t) => todo!(),
+            SelectData::Values(_to) => todo!(),
         }
         if !self.order_by.get().is_empty() {
             a.push(w.keyword("order").pad_left());
@@ -328,7 +328,7 @@ impl<'ast> AsScript<'ast> for SelectStatement<'ast> {
 }
 
 impl<'ast> AsScript<'ast> for CreateStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn as_script<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -449,7 +449,7 @@ impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
 }
 
 impl<'ast> AsScript<'ast> for InputStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn as_script<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -628,7 +628,7 @@ impl<'ast> AsScript<'ast> for SetStatement<'ast> {
 fn get_operator_precedence(op: ExpressionOperatorName) -> usize {
     let op = match op {
         ExpressionOperatorName::Known(op) => op,
-        ExpressionOperatorName::Qualified(name) => return 9,
+        ExpressionOperatorName::Qualified(_name) => return 9,
     };
     match op {
         ExpressionOperator::MULTIPLY => 15,
@@ -725,7 +725,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                 w.float(t.finish())
             }
             Expression::FunctionCall(_) => todo!(),
-            Expression::Indirection(i) => todo!(),
+            Expression::Indirection(_i) => todo!(),
             Expression::Conjunction(exprs) => {
                 let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::AND));
                 let prev_prec = w.operator_precedence.replace(Some(own_prec));
@@ -863,7 +863,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     }
                     _ => todo!("{}", op.variant_name().unwrap_or_default()),
                 },
-                ExpressionOperatorName::Qualified(name) => todo!(),
+                ExpressionOperatorName::Qualified(_name) => todo!(),
             },
             Expression::ParameterRef(_) => todo!(),
             Expression::SelectStatement(_) => todo!(),
