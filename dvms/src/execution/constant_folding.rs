@@ -25,18 +25,18 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
                 }
                 true
             }
-            Expression::FunctionCall(func) => match func.name.get() {
-                FunctionName::Known(_) => false,
-                FunctionName::Unknown(name) => match name {
-                    "format" => {
-                        for arg in func.args.get().iter() {
-                            pending.push(arg.get().value.get());
-                        }
-                        true
-                    }
-                    _ => false,
-                },
-            },
+            Expression::FunctionCall(func) => {
+                for arg in func.args.get().iter() {
+                    pending.push(arg.get().value.get());
+                }
+                match func.name.get() {
+                    FunctionName::Known(_) => false,
+                    FunctionName::Unknown(name) => match name {
+                        "format" => true,
+                        _ => false,
+                    },
+                }
+            }
             Expression::Case(_) => false,
             Expression::Conjunction(_) => false,
             Expression::ConstCast(_) => false,
