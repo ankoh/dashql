@@ -1,4 +1,3 @@
-pub mod analysis_error;
 pub mod analysis_settings;
 pub mod board_cards;
 pub mod board_space;

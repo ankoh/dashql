@@ -17,6 +17,7 @@ pub struct ExpressionEvaluationContext<'a> {
 }
 
 const STRING_REF_TRIMMING: &'static [char] = &['"', ' ', '\''];
+
 impl<'a> Expression<'a> {
     pub fn evaluate(&self, ctx: &mut ExpressionEvaluationContext<'a>) -> Result<Option<Rc<ScalarValue>>, SystemError> {
         if let Some(value) = ctx.evaluated_expressions.get(&self) {
