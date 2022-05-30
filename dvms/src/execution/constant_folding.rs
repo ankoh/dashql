@@ -1,6 +1,5 @@
 use super::expression_evaluator::Evaluatable;
 use super::scalar_value::ScalarValue;
-use crate::grammar::ASTCell;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
 use std::error::Error;
@@ -61,9 +60,8 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
 
 /// Evaluate an expression
 pub fn evaluate_constant_expression<'a>(
-    expr: &ASTCell<Expression<'a>>,
+    expr: &Expression<'a>,
     ctx: &mut ExpressionEvaluationContext<'a>,
 ) -> Result<Rc<Option<ScalarValue>>, Box<dyn Error + Send + Sync>> {
-    ctx.current_node_id = expr.get_node_id();
-    expr.get().evaluate(ctx)
+    expr.evaluate(ctx)
 }

@@ -83,6 +83,25 @@ impl fmt::Display for ScalarValue {
     }
 }
 
+pub fn scalar_to_json(scalar: &ScalarValue) -> serde_json::value::Value {
+    match scalar {
+        ScalarValue::Boolean(v) => serde_json::value::Value::Bool(*v),
+        ScalarValue::Float64(v) => serde_json::value::Value::Number(
+            serde_json::Number::from_f64(*v).unwrap_or(serde_json::Number::from_f64(0.0).unwrap()),
+        ),
+        ScalarValue::Int64(v) => serde_json::value::Value::Number(serde_json::Number::from(*v)),
+        ScalarValue::Varchar(v) => serde_json::value::Value::String(v.clone()),
+        ScalarValue::List(vs) => serde_json::value::Value::Array(vs.iter().map(|v| scalar_to_json(v)).collect()),
+        ScalarValue::Struct(fields) => {
+            let mut obj = serde_json::Map::with_capacity(fields.len());
+            for (key, value) in fields {
+                obj.insert(key.clone(), scalar_to_json(value));
+            }
+            serde_json::value::Value::Object(obj)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -1,6 +1,12 @@
+use crate::execution::{
+    constant_folding::evaluate_constant_expression, expression_evaluator::ExpressionEvaluationContext,
+    scalar_value::scalar_to_json,
+};
+
 use super::ast_nodes_sql::*;
 use dashql_proto::syntax as sx;
 use serde::{ser::SerializeMap, Serialize};
+use std::error::Error;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum DsonKey<'arena> {
@@ -379,16 +385,36 @@ impl<'arena> DsonValue<'arena> {
         }
     }
 
-    // XXX TODO
-    //    pub fn as_json(&self) -> serde_json::value::Value {
-    //        match &self {
-    //            DsonValue::Object(fields) => {
-    //
-    //            },
-    //            DsonValue::Array(_) => &[],
-    //            DsonValue::Expression(_) => &[],
-    //        }
-    //    }
+    pub fn as_json(
+        &self,
+        ctx: &mut ExpressionEvaluationContext<'arena>,
+    ) -> Result<serde_json::value::Value, Box<dyn Error + Send + Sync>> {
+        match &self {
+            DsonValue::Object(fields) => {
+                let mut obj = serde_json::Map::with_capacity(fields.len());
+                for field in fields.iter() {
+                    let key = field.key.as_str().to_string();
+                    let value = field.value.as_json(ctx)?;
+                    obj.insert(key, value);
+                }
+                Ok(serde_json::value::Value::Object(obj))
+            }
+            DsonValue::Array(elements) => {
+                let mut values = Vec::with_capacity(elements.len());
+                for elem in elements.iter() {
+                    values.push(elem.as_json(ctx)?)
+                }
+                Ok(serde_json::value::Value::Array(values))
+            }
+            DsonValue::Expression(expr) => {
+                let value = evaluate_constant_expression(expr, ctx)?;
+                match &*value {
+                    Some(v) => Ok(scalar_to_json(&v)),
+                    None => Ok(serde_json::value::Value::Null),
+                }
+            }
+        }
+    }
 }
 
 pub trait DsonAccess<Idx>
