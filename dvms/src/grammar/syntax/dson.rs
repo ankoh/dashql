@@ -471,7 +471,7 @@ impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::{self, Statement};
+    use crate::grammar::{self, ASTCell, Statement};
     use std::error::Error;
 
     #[test]
@@ -497,7 +497,7 @@ mod test {
         Ok(())
     }
 
-    fn test_json(dson: DsonValue<'static>, json: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_json<'a>(dson: DsonValue<'a>, json: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut ctx = ExpressionEvaluationContext::default();
         let value = dson.as_json(&mut ctx)?;
         let value_text = value.to_string();
@@ -539,6 +539,63 @@ mod test {
                 },
             ]),
             r#"{"fill":true,"foo":"bar"}"#,
+        )?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_function() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let res = test_json(
+            DsonValue::Expression(Expression::FunctionCall(&FunctionExpression {
+                name: ASTCell::with_value(FunctionName::Unknown("notexisting")),
+                ..FunctionExpression::default()
+            })),
+            r#""42""#,
+        );
+        assert!(res.is_err());
+        let err = res.err().unwrap();
+        assert_eq!(err.to_string(), "function not implemented: notexisting");
+        Ok(())
+    }
+
+    #[test]
+    fn test_format_function() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_json(
+            DsonValue::Expression(Expression::FunctionCall(&FunctionExpression {
+                name: ASTCell::with_value(FunctionName::Unknown("format")),
+                args: ASTCell::with_value(&[
+                    ASTCell::with_value(&FunctionArgument {
+                        name: ASTCell::with_value(None),
+                        value: ASTCell::with_value(Expression::StringRef(r#"{}"#)),
+                    }),
+                    ASTCell::with_value(&FunctionArgument {
+                        name: ASTCell::with_value(None),
+                        value: ASTCell::with_value(Expression::Uint32(42)),
+                    }),
+                ]),
+                ..FunctionExpression::default()
+            })),
+            r#""42""#,
+        )?;
+        test_json(
+            DsonValue::Object(&[DsonField {
+                key: DsonKey::Known(sx::AttributeKey::DSON_URL),
+                value: DsonValue::Expression(Expression::FunctionCall(&FunctionExpression {
+                    name: ASTCell::with_value(FunctionName::Unknown("format")),
+                    args: ASTCell::with_value(&[
+                        ASTCell::with_value(&FunctionArgument {
+                            name: ASTCell::with_value(None),
+                            value: ASTCell::with_value(Expression::StringRef(r#"{}"#)),
+                        }),
+                        ASTCell::with_value(&FunctionArgument {
+                            name: ASTCell::with_value(None),
+                            value: ASTCell::with_value(Expression::Uint32(42)),
+                        }),
+                    ]),
+                    ..FunctionExpression::default()
+                })),
+            }]),
+            r#"{"url":"42"}"#,
         )?;
         Ok(())
     }

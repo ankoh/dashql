@@ -15,13 +15,13 @@ impl<V> ASTCell<V>
 where
     V: Debug + Clone + Copy + PartialEq + Eq + Hash,
 {
-    pub fn with_value(value: V) -> Self {
+    pub const fn with_value(value: V) -> Self {
         Self {
             node_id: None,
             inner: Cell::new(value),
         }
     }
-    pub fn with_node(value: V, node_id: usize) -> Self {
+    pub const fn with_node(value: V, node_id: usize) -> Self {
         Self {
             node_id: Some(node_id),
             inner: Cell::new(value),

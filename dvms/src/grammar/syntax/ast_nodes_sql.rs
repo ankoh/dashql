@@ -425,7 +425,7 @@ pub enum KnownFunctionArguments<'a> {
     Treat(&'a TreatFunctionArguments<'a>),
 }
 
-#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq, Default)]
 pub struct FunctionExpression<'a> {
     pub name: ASTCell<FunctionName<'a>>,
     pub args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
