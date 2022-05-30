@@ -2,7 +2,8 @@ use serde::Serialize;
 use std::error::Error;
 use std::fmt::{self, Write};
 
-use crate::error::RawError;
+use crate::error::SystemError;
+use crate::error::SystemErrorCode;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -29,13 +30,17 @@ pub enum ScalarValue {
 }
 
 impl ScalarValue {
-    pub fn cast_as(self, ty: LogicalType) -> Result<ScalarValue, Box<dyn Error + Send + Sync>> {
+    pub fn cast_as(self, ty: LogicalType) -> Result<ScalarValue, SystemError> {
         match (self, ty) {
             (ScalarValue::Boolean(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
             (ScalarValue::Int64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
             (ScalarValue::Float64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
             (ScalarValue::Varchar(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v)),
-            (v, t) => Err(RawError::from(format!("cast not implemented: {:?} -> {:?}", v, t)).boxed()),
+            (v, t) => Err(SystemError::with_detail_string(
+                None,
+                SystemErrorCode::CastNotImplemented,
+                format!("cast not implemented: {:?} -> {:?}", v, t),
+            )),
         }
     }
 

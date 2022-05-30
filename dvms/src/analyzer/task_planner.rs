@@ -597,7 +597,7 @@ mod test {
                 "{}",
                 prev_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
-            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast)?);
+            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast).unwrap());
             prev_instance = Some(analyze_program(
                 settings.clone(),
                 &prev_arena,
@@ -624,7 +624,7 @@ mod test {
                 "{}",
                 next_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
-            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast)?);
+            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast).unwrap());
             analyze_program(
                 settings.clone(),
                 &next_arena,

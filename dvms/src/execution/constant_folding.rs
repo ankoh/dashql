@@ -1,7 +1,7 @@
 use super::scalar_value::ScalarValue;
+use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
-use std::error::Error;
 use std::rc::Rc;
 
 use super::expression_evaluator::ExpressionEvaluationContext;
@@ -59,8 +59,8 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
 
 /// Evaluate an expression
 pub fn evaluate_constant_expression<'a>(
-    expr: &Expression<'a>,
+    expr: Expression<'a>,
     ctx: &mut ExpressionEvaluationContext<'a>,
-) -> Result<Option<Rc<ScalarValue>>, Box<dyn Error + Send + Sync>> {
+) -> Result<Option<Rc<ScalarValue>>, SystemError> {
     expr.evaluate(ctx)
 }

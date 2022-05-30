@@ -95,10 +95,14 @@ mod test {
     use crate::grammar::{self, Statement};
     use std::error::Error;
 
-    fn test_viz_edits(text: &str, expected: &str, edits: &[EditOperation]) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_viz_edits(
+        text: &'static str,
+        expected: &'static str,
+        edits: &[EditOperation],
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
-        let prog = grammar::deserialize_ast(&arena, text, ast)?;
+        let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
         assert_eq!(prog.statements.len(), 1);
 
         let viz = match prog.statements[0] {

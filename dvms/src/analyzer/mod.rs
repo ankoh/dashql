@@ -1,9 +1,9 @@
+pub mod analysis_error;
 pub mod analysis_settings;
 pub mod board_cards;
 pub mod board_space;
 pub mod liveness;
 pub mod name_resolution;
-pub mod node_error;
 pub mod program_diff;
 pub mod program_editor;
 pub mod program_instance;

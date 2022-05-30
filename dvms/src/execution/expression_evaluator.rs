@@ -1,11 +1,11 @@
 use super::function_logic;
 use super::scalar_value::ScalarValue;
-use crate::error::RawError;
+use crate::error::SystemError;
+use crate::error::SystemErrorCode;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
 use crate::grammar::NamePath;
 use std::collections::HashMap;
-use std::error::Error;
 use std::rc::Rc;
 
 /// Context for evaluating expressions
@@ -18,10 +18,7 @@ pub struct ExpressionEvaluationContext<'a> {
 
 const STRING_REF_TRIMMING: &'static [char] = &['"', ' ', '\''];
 impl<'a> Expression<'a> {
-    pub fn evaluate(
-        &self,
-        ctx: &mut ExpressionEvaluationContext<'a>,
-    ) -> Result<Option<Rc<ScalarValue>>, Box<dyn Error + Send + Sync>> {
+    pub fn evaluate(&self, ctx: &mut ExpressionEvaluationContext<'a>) -> Result<Option<Rc<ScalarValue>>, SystemError> {
         if let Some(value) = ctx.evaluated_expressions.get(&self) {
             return Ok(value.clone());
         }
@@ -36,18 +33,25 @@ impl<'a> Expression<'a> {
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
                     _ => {
-                        return Err(Box::new(RawError::from(format!(
-                            "function not implemented: {}",
-                            known.variant_name().unwrap_or_default()
-                        ))))
+                        return Err(SystemError::with_detail(
+                            None,
+                            SystemErrorCode::FunctionLogicMissing,
+                            known.variant_name().unwrap_or_default(),
+                        ))
                     }
                 },
                 FunctionName::Unknown(func) => match func {
                     "format" => Some(Rc::new(function_logic::format::evaluate_scalar(ctx, f)?)),
-                    _ => return Err(Box::new(RawError::from(format!("function not implemented: {}", func)))),
+                    _ => {
+                        return Err(SystemError::with_detail_string(
+                            None,
+                            SystemErrorCode::FunctionLogicMissing,
+                            func.to_string(),
+                        ))
+                    }
                 },
             },
-            _ => return Err(Box::new(RawError::from(format!("cannot evaluate: {:?}", self)))),
+            _ => return Err(SystemError::new(None, SystemErrorCode::ExpressionLogicMissing)),
         };
         ctx.evaluated_expressions.insert(self.clone(), value.clone());
         Ok(value)

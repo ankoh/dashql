@@ -5,11 +5,11 @@ use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use super::dson::*;
 use super::program::*;
-use crate::error::RawError;
+use crate::error::SystemError;
+use crate::error::SystemErrorCode;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::GroupByItemType;
-use std::error::Error;
 use sx::AttributeKey as Key;
 
 #[inline(never)]
@@ -22,7 +22,7 @@ pub fn deserialize_ast<'a>(
     arena: &'a bumpalo::Bump,
     text: &'a str,
     buffer: sx::Program<'a>,
-) -> Result<Program<'a>, Box<dyn Error + Send + Sync>> {
+) -> Result<Program<'a>, SystemError> {
     let buffer_stmts = buffer.statements().unwrap_or_default();
     let buffer_nodes = buffer.nodes().unwrap_or_default();
 
@@ -46,24 +46,30 @@ pub fn deserialize_ast<'a>(
         // Helper to mark an unexpected attribute
         macro_rules! err_unexpected_attr {
             ($node:expr, $key:expr, $child:expr) => {
-                return Err(RawError::from(format!(
-                    "unexpected attribute: {:?}.{} => {:?}",
-                    $node,
-                    $key.variant_name().unwrap_or(&format!("{}", $key.0)),
-                    $child
+                return Err(SystemError::with_detail_string(
+                    None,
+                    SystemErrorCode::UnexpectedAttribute,
+                    format!(
+                        "unexpected attribute: {:?}.{} => {:?}",
+                        $node,
+                        $key.variant_name().unwrap_or(&format!("{}", $key.0)),
+                        $child
+                    ),
                 ))
-                .boxed())
             };
         }
         // Helper to mark an unexpected array element
         macro_rules! err_unexpected_element {
             ($key:expr, $value:expr) => {
-                return Err(RawError::from(format!(
-                    "unexpected element: {}[] => {:?}",
-                    $key.variant_name().unwrap_or_default(),
-                    $value
+                return Err(SystemError::with_detail_string(
+                    None,
+                    SystemErrorCode::UnexpectedElement,
+                    format!(
+                        "unexpected element: {}[] => {:?}",
+                        $key.variant_name().unwrap_or_default(),
+                        $value
+                    ),
                 ))
-                .boxed())
             };
         }
         // Helper to read integer as enum
@@ -413,7 +419,7 @@ pub fn deserialize_ast<'a>(
                         alias,
                     }))
                 } else {
-                    return Err(RawError::from(format!("invalid table ref")).boxed());
+                    return Err(SystemError::new(Some(node_id), SystemErrorCode::InvalidTableRef));
                 })
             }
             sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
@@ -859,7 +865,13 @@ pub fn deserialize_ast<'a>(
                     GroupByItemType::GROUPING_SETS => {
                         GroupByItem::GroupingSets(unpack_nodes!(args, args_ofs, GroupByItem))
                     }
-                    _ => return Err(RawError::from(format!("invalid group by item type: {:?}", item_type)).boxed()),
+                    _ => {
+                        return Err(SystemError::with_detail_string(
+                            Some(node_id),
+                            SystemErrorCode::InvalidGroupByItem,
+                            format!("invalid group by item type: {:?}", item_type),
+                        ))
+                    }
                 };
                 ASTNode::GroupByItem(item)
             }
@@ -1080,7 +1092,7 @@ pub fn deserialize_ast<'a>(
                             match node {
                                 ASTNode::ColumnConstraintInfo(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Constraint(c), ni + i),
                                 ASTNode::ConstraintAttribute(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Attribute(c.clone()), ni + i),
-                                _ => return Err(RawError::from(format!("invalid colum constraint: {:?}", node)).boxed()),
+                                _ => return Err(SystemError::with_detail_string(None, SystemErrorCode::InvalidColumnConstraint, format!("invalid colum constraint: {:?}", node))),
                             }
                         }
                         constraints = ASTCell::with_node(cs, ci);
@@ -1341,7 +1353,13 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::Dson(DsonValue::Object(fields))
             }
-            t => return Err(RawError::from(format!("node translation not implemented for: {:?}", t)).boxed()),
+            t => {
+                return Err(SystemError::with_detail_string(
+                    Some(node_id),
+                    SystemErrorCode::ASTTranslationMissing,
+                    format!("node translation not implemented for: {:?}", t),
+                ))
+            }
         };
 
         // Remember translated node
@@ -1362,7 +1380,13 @@ pub fn deserialize_ast<'a>(
             ASTNode::CreateAs(s) => Statement::CreateAs(s),
             ASTNode::CreateView(s) => Statement::CreateView(s),
             ASTNode::SetStatement(s) => Statement::Set(s),
-            _ => return Err(RawError::from(format!("not a valid statement node: {:?}", &node)).boxed()),
+            _ => {
+                return Err(SystemError::with_detail_string(
+                    Some(statement.root_node() as usize),
+                    SystemErrorCode::InvalidStatement,
+                    format!("not a valid statement node: {:?}", &node),
+                ))
+            }
         };
         stmts.push(stmt);
     }

@@ -172,7 +172,7 @@ mod test {
         let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, test.script)?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast)?);
+        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast).unwrap());
         let inst = analyze_program(settings.clone(), &arena, test.script, ast, prog, test.input.clone())?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());

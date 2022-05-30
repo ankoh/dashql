@@ -1,12 +1,14 @@
-use crate::execution::{
-    constant_folding::evaluate_constant_expression, expression_evaluator::ExpressionEvaluationContext,
-    scalar_value::scalar_to_json,
+use crate::{
+    error::SystemError,
+    execution::{
+        constant_folding::evaluate_constant_expression, expression_evaluator::ExpressionEvaluationContext,
+        scalar_value::scalar_to_json,
+    },
 };
 
 use super::ast_nodes_sql::*;
 use dashql_proto::syntax as sx;
 use serde::{ser::SerializeMap, Serialize};
-use std::error::Error;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum DsonKey<'arena> {
@@ -388,7 +390,7 @@ impl<'arena> DsonValue<'arena> {
     pub fn as_json(
         &self,
         ctx: &mut ExpressionEvaluationContext<'arena>,
-    ) -> Result<serde_json::value::Value, Box<dyn Error + Send + Sync>> {
+    ) -> Result<serde_json::value::Value, SystemError> {
         match &self {
             DsonValue::Object(fields) => {
                 let mut obj = serde_json::Map::with_capacity(fields.len());
@@ -407,7 +409,7 @@ impl<'arena> DsonValue<'arena> {
                 Ok(serde_json::value::Value::Array(values))
             }
             DsonValue::Expression(expr) => {
-                let value = evaluate_constant_expression(expr, ctx)?;
+                let value = evaluate_constant_expression(expr.clone(), ctx)?;
                 match value {
                     Some(v) => Ok(scalar_to_json(&v)),
                     None => Ok(serde_json::value::Value::Null),
@@ -486,7 +488,7 @@ mod test {
         "#;
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, text)?;
-        let prog = grammar::deserialize_ast(&arena, text, ast)?;
+        let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
         assert_eq!(prog.statements.len(), 1);
 
         let stmt = match &prog.statements[0] {
@@ -502,7 +504,7 @@ mod test {
         Ok(())
     }
 
-    fn test_json<'a>(dson: DsonValue<'a>, json: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_json<'a>(dson: DsonValue<'a>, json: &'static str) -> Result<(), SystemError> {
         let mut ctx = ExpressionEvaluationContext::default();
         let value = dson.as_json(&mut ctx)?;
         let value_text = value.to_string();
@@ -514,7 +516,7 @@ mod test {
         dson: DsonValue<'a>,
         json: &'static str,
         named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<(), SystemError> {
         let mut ctx = ExpressionEvaluationContext::default();
         ctx.named_values = named_values;
         let value = dson.as_json(&mut ctx)?;
@@ -585,7 +587,7 @@ mod test {
         );
         assert!(res.is_err());
         let err = res.err().unwrap();
-        assert_eq!(err.to_string(), "function not implemented: notexisting");
+        assert_eq!(err.to_string(), "function logic not implemented: notexisting");
         Ok(())
     }
 

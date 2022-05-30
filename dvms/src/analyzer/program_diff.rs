@@ -734,13 +734,17 @@ mod test {
     use std::rc::Rc;
 
     // Test a difference
-    fn test_diff(script0: &str, script1: &str, expected: &[DiffOp]) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_diff(
+        script0: &'static str,
+        script1: &'static str,
+        expected: &[DiffOp],
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
         let ast0 = grammar::parse(&arena, script0)?;
         let ast1 = grammar::parse(&arena, script1)?;
-        let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0)?);
-        let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1)?);
+        let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0).unwrap());
+        let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1).unwrap());
         let mut ctx0 = ProgramInstance::new(settings.clone(), &arena, script0, ast0, prog0, HashMap::new());
         let mut ctx1 = ProgramInstance::new(settings, &arena, script1, ast1, prog1, HashMap::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);

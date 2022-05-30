@@ -154,11 +154,14 @@ mod test {
     }
 
     // Test a difference
-    fn test_name_resolution(script: &str, expected: &[DependencyTest]) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_name_resolution(
+        script: &'static str,
+        expected: &[DependencyTest],
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
         let ast = grammar::parse(&arena, script)?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast)?);
+        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
         let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
