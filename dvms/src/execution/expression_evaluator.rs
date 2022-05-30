@@ -9,6 +9,7 @@ use std::error::Error;
 use std::rc::Rc;
 
 /// Context for evaluating expressions
+#[derive(Default)]
 pub struct ExpressionEvaluationContext<'a> {
     pub named_values: HashMap<NamePath<'a>, ScalarValue>,
     pub evaluated_expressions: HashMap<Expression<'a>, Rc<Option<ScalarValue>>>,

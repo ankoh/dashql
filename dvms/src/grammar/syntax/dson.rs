@@ -496,4 +496,50 @@ mod test {
         };
         Ok(())
     }
+
+    fn test_json(dson: DsonValue<'static>, json: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let mut ctx = ExpressionEvaluationContext::default();
+        let value = dson.as_json(&mut ctx)?;
+        let value_text = value.to_string();
+        assert_eq!(value_text, json);
+        Ok(())
+    }
+
+    #[test]
+    fn test_as_json_simple() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_json(DsonValue::Expression(Expression::Boolean(true)), "true")?;
+        test_json(DsonValue::Expression(Expression::Boolean(false)), "false")?;
+        test_json(DsonValue::Expression(Expression::StringRef("foo")), "\"foo\"")?;
+        test_json(DsonValue::Expression(Expression::StringRef("")), "\"\"")?;
+        test_json(DsonValue::Expression(Expression::Uint32(0)), "0")?;
+        test_json(DsonValue::Expression(Expression::Uint32(42)), "42")?;
+        test_json(
+            DsonValue::Array(&[
+                DsonValue::Expression(Expression::Boolean(true)),
+                DsonValue::Expression(Expression::Boolean(false)),
+            ]),
+            "[true,false]",
+        )?;
+        test_json(
+            DsonValue::Object(&[DsonField {
+                key: DsonKey::Known(sx::AttributeKey::DSON_FILL),
+                value: DsonValue::Expression(Expression::Boolean(true)),
+            }]),
+            r#"{"fill":true}"#,
+        )?;
+        test_json(
+            DsonValue::Object(&[
+                DsonField {
+                    key: DsonKey::Known(sx::AttributeKey::DSON_FILL),
+                    value: DsonValue::Expression(Expression::Boolean(true)),
+                },
+                DsonField {
+                    key: DsonKey::Unknown("foo"),
+                    value: DsonValue::Expression(Expression::StringRef("bar")),
+                },
+            ]),
+            r#"{"fill":true,"foo":"bar"}"#,
+        )?;
+        Ok(())
+    }
 }
