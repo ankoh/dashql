@@ -212,8 +212,8 @@ impl<'writer> ScriptTextArray<'writer> {
     }
 }
 
-pub trait AsScript<'ast> {
-    fn as_script<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+pub trait ToSQL<'ast> {
+    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer;
 }
@@ -391,15 +391,15 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
     buffer
 }
 
-pub fn print_ast_as_script<'ast, V: AsScript<'ast>>(v: &V, config: &ScriptTextConfig) -> String {
+pub fn print_ast_as_script<'ast, V: ToSQL<'ast>>(v: &V, config: &ScriptTextConfig) -> String {
     let writer = ScriptWriter::new();
-    let text: ScriptText<'_> = v.as_script(&writer);
+    let text: ScriptText<'_> = v.to_sql(&writer);
     print_script(&text, config)
 }
 
-pub fn print_ast_as_script_with_defaults<'ast, V: AsScript<'ast> + ?Sized>(v: &V) -> String {
+pub fn print_ast_as_script_with_defaults<'ast, V: ToSQL<'ast> + ?Sized>(v: &V) -> String {
     let config = ScriptTextConfig::default();
     let writer = ScriptWriter::new();
-    let text: ScriptText<'_> = v.as_script(&writer);
+    let text: ScriptText<'_> = v.to_sql(&writer);
     print_script(&text, &config)
 }

@@ -87,7 +87,7 @@ mod test {
     use std::io::BufReader;
     use std::path::PathBuf;
 
-    use crate::grammar::syntax::script_writer::{print_script, AsScript, ScriptTextConfig, ScriptWriter};
+    use crate::grammar::syntax::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
 
     use super::super::ast_translation::deserialize_ast;
 
@@ -264,7 +264,7 @@ mod test {
 
                         // Print AST buffer
                         let mut printer = ScriptWriter::new();
-                        let program_text = program.as_script(&mut printer);
+                        let program_text = program.to_sql(&mut printer);
                         let program_text_string = print_script(&program_text, &ScriptTextConfig::default());
                         assert_eq!(have_input, program_text_string);
                     } else if awaiting_parsed {

@@ -10,15 +10,15 @@ use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::VizComponentTypeModifier;
 
-impl<'ast> AsScript<'ast> for Program<'ast> {
-    fn as_script<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for Program<'ast> {
+    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(writer, self.statements.len());
         for stmt in self.statements.iter() {
             let mut inner = ScriptTextArray::with_capacity(writer, 2);
-            inner.push(stmt.as_script(writer));
+            inner.push(stmt.to_sql(writer));
             inner.push(writer.str_const(";").pad_right());
             a.push(writer.float(inner.finish()));
         }
@@ -26,8 +26,8 @@ impl<'ast> AsScript<'ast> for Program<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for CommonTableExpression<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -47,7 +47,7 @@ impl<'ast> AsScript<'ast> for CommonTableExpression<'ast> {
         a.push(
             w.round_brackets(
                 ScriptTextArray::with_capacity(w, 1)
-                    .with_pushed(self.statement.get().as_script(w))
+                    .with_pushed(self.statement.get().to_sql(w))
                     .finish(),
             ),
         );
@@ -55,13 +55,13 @@ impl<'ast> AsScript<'ast> for CommonTableExpression<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for OrderSpecification<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3);
-        a.push(self.value.get().as_script(w));
+        a.push(self.value.get().to_sql(w));
         if let Some(dir) = self.direction.get() {
             a.push(
                 match dir {
@@ -84,8 +84,8 @@ impl<'ast> AsScript<'ast> for OrderSpecification<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for Limit<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for Limit<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -93,14 +93,14 @@ impl<'ast> AsScript<'ast> for Limit<'ast> {
             w.keyword("limit").pad_right(),
             match self {
                 Limit::ALL => w.keyword("all"),
-                Limit::Expression(e) => e.as_script(w),
+                Limit::Expression(e) => e.to_sql(w),
             },
         ]))
     }
 }
 
-impl<'ast> AsScript<'ast> for DsonKey<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for DsonKey<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -111,8 +111,8 @@ impl<'ast> AsScript<'ast> for DsonKey<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for DsonValue<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -124,9 +124,9 @@ impl<'ast> AsScript<'ast> for DsonValue<'ast> {
                     if i > 0 {
                         kv.push(w.str_const(",").pad_right());
                     }
-                    kv.push(field.key.as_script(w).breakpoint_before());
+                    kv.push(field.key.to_sql(w).breakpoint_before());
                     kv.push(w.str_const("=").pad_left());
-                    kv.push(field.value.as_script(w).pad_left());
+                    kv.push(field.value.to_sql(w).pad_left());
                     entries.push(w.float(kv.finish()))
                 }
                 w.round_brackets(entries.finish())
@@ -138,18 +138,18 @@ impl<'ast> AsScript<'ast> for DsonValue<'ast> {
                     if i > 0 {
                         elem.push(w.str_const(",").pad_right());
                     }
-                    elem.push(v.as_script(w).breakpoint_before());
+                    elem.push(v.to_sql(w).breakpoint_before());
                     a.push(w.float(elem.finish()))
                 }
                 w.square_brackets(a.finish())
             }
-            DsonValue::Expression(e) => e.as_script(w),
+            DsonValue::Expression(e) => e.to_sql(w),
         }
     }
 }
 
-impl<'ast> AsScript<'ast> for Alias<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for Alias<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -160,8 +160,8 @@ impl<'ast> AsScript<'ast> for Alias<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for RelationRef<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for RelationRef<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -169,21 +169,21 @@ impl<'ast> AsScript<'ast> for RelationRef<'ast> {
         if !self.inherit.get() {
             a.push(w.keyword("only").pad_right());
         }
-        a.push(self.name.get().as_script(w));
+        a.push(self.name.get().to_sql(w));
         if let Some(alias) = self.alias.get() {
-            a.push(alias.as_script(w).pad_left())
+            a.push(alias.to_sql(w).pad_left())
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for JoinedTable<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 8);
-        a.push(self.input.get()[0].get().as_script(w));
+        a.push(self.input.get()[0].get().to_sql(w));
         if (self.join.get().0 & sx::JoinType::NATURAL_.0) != 0_u8 {
             a.push(w.keyword("natural").pad_left());
         }
@@ -199,11 +199,11 @@ impl<'ast> AsScript<'ast> for JoinedTable<'ast> {
             a.push(w.keyword("outer").pad_left());
         }
         a.push(w.keyword("join").pad_left());
-        a.push(self.input.get()[1].get().as_script(w).pad_left());
+        a.push(self.input.get()[1].get().to_sql(w).pad_left());
         match &self.qualifier.get() {
             Some(JoinQualifier::On(expr)) => {
                 a.push(w.keyword("on").pad_left());
-                a.push(expr.as_script(w).pad_left());
+                a.push(expr.to_sql(w).pad_left());
             }
             Some(JoinQualifier::Using(cols)) => {
                 a.push(w.keyword("using").pad_left());
@@ -222,35 +222,35 @@ impl<'ast> AsScript<'ast> for JoinedTable<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for JoinedTableRef<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for JoinedTableRef<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 2);
-        a.push(self.table.get().as_script(w));
+        a.push(self.table.get().to_sql(w));
         if let Some(alias) = self.alias.get() {
-            a.push(alias.as_script(w).pad_left());
+            a.push(alias.to_sql(w).pad_left());
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for TableRef<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for TableRef<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match self {
-            TableRef::Relation(rel) => rel.as_script(w),
-            TableRef::Join(joined) => joined.as_script(w),
+            TableRef::Relation(rel) => rel.to_sql(w),
+            TableRef::Join(joined) => joined.to_sql(w),
             _ => todo!(),
         }
     }
 }
 
-impl<'ast> AsScript<'ast> for ResultTarget<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -258,7 +258,7 @@ impl<'ast> AsScript<'ast> for ResultTarget<'ast> {
             ResultTarget::Star => w.str_const("*"),
             ResultTarget::Value { value, alias } => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
-                a.push(value.get().as_script(w));
+                a.push(value.get().to_sql(w));
                 if let Some(alias) = alias.get() {
                     a.push(w.str(alias).pad_left());
                 }
@@ -268,8 +268,8 @@ impl<'ast> AsScript<'ast> for ResultTarget<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for SelectFromStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -279,7 +279,7 @@ impl<'ast> AsScript<'ast> for SelectFromStatement<'ast> {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(target.get().as_script(w).pad_left());
+            a.push(target.get().to_sql(w).pad_left());
         }
         if !self.from.get().is_empty() {
             a.push(w.keyword("from").pad_left());
@@ -287,21 +287,21 @@ impl<'ast> AsScript<'ast> for SelectFromStatement<'ast> {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(table.get().as_script(w).pad_left());
+                a.push(table.get().to_sql(w).pad_left());
             }
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for SelectStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.get().len());
         match &self.data {
-            SelectData::From(from) => a.push(from.as_script(w)),
+            SelectData::From(from) => a.push(from.to_sql(w)),
             SelectData::Combine(_c) => todo!(),
             SelectData::Table(_t) => todo!(),
             SelectData::Values(_to) => todo!(),
@@ -313,22 +313,22 @@ impl<'ast> AsScript<'ast> for SelectStatement<'ast> {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(constraint.get().as_script(w).pad_left());
+                a.push(constraint.get().to_sql(w).pad_left());
             }
         }
         if let Some(limit) = self.limit.get() {
-            a.push(limit.as_script(w).pad_left());
+            a.push(limit.to_sql(w).pad_left());
         }
         if let Some(offset) = self.offset.get() {
             a.push(w.keyword("offset").pad_left());
-            a.push(offset.as_script(w).pad_left());
+            a.push(offset.to_sql(w).pad_left());
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for CreateStatement<'ast> {
-    fn as_script<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
+    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -336,8 +336,8 @@ impl<'ast> AsScript<'ast> for CreateStatement<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -363,7 +363,7 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
             a.push(w.keyword("not").pad_left());
             a.push(w.keyword("exists").pad_left());
         }
-        a.push(self.name.get().as_script(w).pad_left());
+        a.push(self.name.get().to_sql(w).pad_left());
         let cols = self.columns.get();
         if cols.len() > 0 {
             let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
@@ -400,14 +400,14 @@ impl<'ast> AsScript<'ast> for CreateAsStatement<'ast> {
         }
         a.push(w.keyword("as").pad_left());
         let mut s = ScriptTextArray::with_capacity(w, 1);
-        s.push(self.statement.get().as_script(w));
+        s.push(self.statement.get().to_sql(w));
         a.push(w.round_brackets(s.finish()).pad_left());
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -428,7 +428,7 @@ impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
             None => todo!(),
         }
         a.push(w.keyword("view").pad_left());
-        a.push(self.name.get().as_script(w).pad_left());
+        a.push(self.name.get().to_sql(w).pad_left());
         let cols = self.columns.get();
         if cols.len() > 0 {
             let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
@@ -442,14 +442,14 @@ impl<'ast> AsScript<'ast> for CreateViewStatement<'ast> {
         }
         a.push(w.keyword("as").pad_left());
         let mut s = ScriptTextArray::with_capacity(w, 1);
-        s.push(self.statement.get().as_script(w));
+        s.push(self.statement.get().to_sql(w));
         a.push(w.round_brackets(s.finish()).pad_left());
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for InputStatement<'ast> {
-    fn as_script<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for InputStatement<'ast> {
+    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -457,35 +457,35 @@ impl<'ast> AsScript<'ast> for InputStatement<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for Statement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for Statement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match &self {
-            Statement::CreateAs(s) => s.as_script(w),
-            Statement::CreateView(s) => s.as_script(w),
-            Statement::Select(s) => s.as_script(w),
-            Statement::Set(s) => s.as_script(w),
-            Statement::Fetch(s) => s.as_script(w),
-            Statement::Load(s) => s.as_script(w),
-            Statement::Viz(s) => s.as_script(w),
+            Statement::CreateAs(s) => s.to_sql(w),
+            Statement::CreateView(s) => s.to_sql(w),
+            Statement::Select(s) => s.to_sql(w),
+            Statement::Set(s) => s.to_sql(w),
+            Statement::Fetch(s) => s.to_sql(w),
+            Statement::Load(s) => s.to_sql(w),
+            Statement::Viz(s) => s.to_sql(w),
             _ => todo!(),
         }
     }
 }
 
-impl<'ast> AsScript<'ast> for FetchStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for FetchStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("fetch"));
-        a.push(self.name.get().as_script(w).pad_left());
+        a.push(self.name.get().to_sql(w).pad_left());
         a.push(w.keyword("from").pad_left());
         if let Some(uri) = self.from_uri.get() {
-            a.push(uri.as_script(w).pad_left());
+            a.push(uri.to_sql(w).pad_left());
         } else {
             a.push(
                 w.keyword(match self.method.get() {
@@ -497,22 +497,22 @@ impl<'ast> AsScript<'ast> for FetchStatement<'ast> {
             );
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.as_script(w).pad_left());
+            a.push(extra.to_sql(w).pad_left());
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for LoadStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
-        a.push(self.name.get().as_script(w).pad_left());
+        a.push(self.name.get().to_sql(w).pad_left());
         a.push(w.keyword("from").pad_left());
-        a.push(self.source.get().as_script(w).pad_left());
+        a.push(self.source.get().to_sql(w).pad_left());
         if self.method.get() != sx::LoadMethodType::NONE {
             a.push(w.keyword("using").pad_left());
             a.push(
@@ -526,14 +526,14 @@ impl<'ast> AsScript<'ast> for LoadStatement<'ast> {
             );
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.as_script(w).pad_left());
+            a.push(extra.to_sql(w).pad_left());
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for VizComponent<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for VizComponent<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -583,33 +583,33 @@ impl<'ast> AsScript<'ast> for VizComponent<'ast> {
             }
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.as_script(w).pad_left());
+            a.push(extra.to_sql(w).pad_left());
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for VizStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.get().len());
         a.push(w.keyword("viz"));
-        a.push(self.target.get().as_script(w).pad_left());
+        a.push(self.target.get().to_sql(w).pad_left());
         a.push(w.keyword("using").pad_left());
         for (i, component) in self.components.get().iter().enumerate() {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(component.get().as_script(w));
+            a.push(component.get().to_sql(w));
         }
         w.float(a.finish())
     }
 }
 
-impl<'ast> AsScript<'ast> for SetStatement<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for SetStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -618,9 +618,9 @@ impl<'ast> AsScript<'ast> for SetStatement<'ast> {
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
         let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.keyword("set"));
-        a.push(fields[0].key.as_script(w).pad_left());
+        a.push(fields[0].key.to_sql(w).pad_left());
         a.push(w.str_const("=").pad_left());
-        a.push(fields[0].value.as_script(w).pad_left());
+        a.push(fields[0].value.to_sql(w).pad_left());
         w.float(a.finish())
     }
 }
@@ -671,8 +671,8 @@ fn get_operator_precedence(op: ExpressionOperatorName) -> usize {
     }
 }
 
-impl<'ast> AsScript<'ast> for Expression<'ast> {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for Expression<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -693,7 +693,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                     if i > 0 {
                         a.push(w.str_const(",").pad_right());
                     }
-                    a.push(e.get().as_script(w));
+                    a.push(e.get().to_sql(w));
                 }
                 w.round_brackets(a.finish())
             }
@@ -701,27 +701,27 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                 let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
                 f.push(w.keyword("case"));
                 if let Some(argument) = c.argument.get() {
-                    f.push(argument.as_script(w).pad_left());
+                    f.push(argument.to_sql(w).pad_left());
                 }
                 for case in c.cases.get().iter() {
                     f.push(w.keyword("when").pad_left());
-                    f.push(case.get().when.get().as_script(w).pad_left());
+                    f.push(case.get().when.get().to_sql(w).pad_left());
                     f.push(w.keyword("then").pad_left());
-                    f.push(case.get().then.get().as_script(w).pad_left());
+                    f.push(case.get().then.get().to_sql(w).pad_left());
                 }
                 if let Some(default) = c.default.get() {
                     f.push(w.keyword("else").pad_left());
-                    f.push(default.as_script(w).pad_left());
+                    f.push(default.to_sql(w).pad_left());
                 }
                 f.push(w.keyword("end").pad_left());
                 w.float(f.finish())
             }
-            Expression::ColumnRef(name) => name.as_script(w),
+            Expression::ColumnRef(name) => name.to_sql(w),
             Expression::ConstCast(_) => todo!(),
             Expression::Exists(e) => {
                 let mut t = ScriptTextArray::with_capacity(w, 3);
                 t.push(w.keyword("EXISTS"));
-                t.push(e.statement.get().as_script(w).pad_left());
+                t.push(e.statement.get().to_sql(w).pad_left());
                 w.float(t.finish())
             }
             Expression::FunctionCall(_) => todo!(),
@@ -732,10 +732,10 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
 
                 let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
                 let mut iter = exprs.first.get();
-                a.push(iter.value.get().as_script(w));
+                a.push(iter.value.get().to_sql(w));
                 while let Some(next) = iter.next.get() {
                     a.push(w.keyword("and").pad_left());
-                    a.push(next.value.get().as_script(w).pad_left());
+                    a.push(next.value.get().to_sql(w).pad_left());
                     iter = next;
                 }
                 if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
@@ -750,10 +750,10 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
 
                 let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
                 let mut iter = exprs.first.get();
-                a.push(iter.value.get().as_script(w));
+                a.push(iter.value.get().to_sql(w));
                 while let Some(next) = iter.next.get() {
                     a.push(w.keyword("or").pad_left());
-                    a.push(next.value.get().as_script(w).pad_left());
+                    a.push(next.value.get().to_sql(w).pad_left());
                     iter = next;
                 }
                 if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
@@ -774,7 +774,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                             ExpressionOperator::NOT => a.push(w.keyword("not")),
                             _ => todo!(),
                         }
-                        a.push(nary.args[0].get().as_script(w).pad_left());
+                        a.push(nary.args[0].get().to_sql(w).pad_left());
 
                         if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
                             w.round_brackets(a.finish())
@@ -809,7 +809,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                         let prev_prec = w.operator_precedence.replace(Some(own_prec));
 
                         let mut a = ScriptTextArray::with_capacity(w, 5);
-                        a.push(nary.args[0].get().as_script(w));
+                        a.push(nary.args[0].get().to_sql(w));
                         match op {
                             ExpressionOperator::PLUS => a.push(w.keyword("+").pad_left()),
                             ExpressionOperator::MINUS => a.push(w.keyword("-").pad_left()),
@@ -854,7 +854,7 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
                             }
                             _ => todo!(),
                         }
-                        a.push(nary.args[1].get().as_script(w).pad_left());
+                        a.push(nary.args[1].get().to_sql(w).pad_left());
                         if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
                             w.round_brackets(a.finish())
                         } else {
@@ -877,8 +877,8 @@ impl<'ast> AsScript<'ast> for Expression<'ast> {
     }
 }
 
-impl<'ast> AsScript<'ast> for &[ASTCell<Indirection<'ast>>] {
-    fn as_script<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -893,14 +893,14 @@ impl<'ast> AsScript<'ast> for &[ASTCell<Indirection<'ast>>] {
                 }
                 Indirection::Index(idx) => {
                     t.push(w.str_const("["));
-                    t.push(idx.value.get().as_script(w));
+                    t.push(idx.value.get().to_sql(w));
                     t.push(w.str_const("]"));
                 }
                 Indirection::Bounds(bounds) => {
                     t.push(w.str_const("["));
-                    t.push(bounds.lower_bound.get().as_script(w));
+                    t.push(bounds.lower_bound.get().to_sql(w));
                     t.push(w.str_const(", "));
-                    t.push(bounds.upper_bound.get().as_script(w));
+                    t.push(bounds.upper_bound.get().to_sql(w));
                     t.push(w.str_const("]"));
                 }
             }
@@ -928,7 +928,7 @@ mod test {
 
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);
-        let script_text = prog.statements[0].as_script(&writer);
+        let script_text = prog.statements[0].to_sql(&writer);
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(text, &script_string, "{:?}", prog);

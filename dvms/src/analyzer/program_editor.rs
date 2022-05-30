@@ -91,7 +91,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::syntax::script_writer::{print_script, AsScript, ScriptTextConfig, ScriptWriter};
+    use crate::grammar::syntax::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
     use crate::grammar::{self, Statement};
     use std::error::Error;
 
@@ -114,7 +114,7 @@ mod test {
         let edited = edit_viz_statement(&arena, viz.unwrap(), edits);
 
         let writer = ScriptWriter::new();
-        let script_text = edited.as_script(&writer);
+        let script_text = edited.to_sql(&writer);
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
         assert_eq!(&script_string, expected, "{:?}", prog);
         Ok(())
