@@ -18,6 +18,8 @@ pub struct InputTaskData {
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "lowercase")]
+#[serde(tag = "t", content = "v")]
 pub enum TaskData {
     Input(InputTaskData),
     Sql(SQLTaskData),
