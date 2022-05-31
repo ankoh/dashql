@@ -2,25 +2,25 @@ use crate::execution::expression_evaluator::ExpressionEvaluationContext;
 use crate::execution::scalar_value::LogicalType;
 use crate::grammar::Statement;
 
-use super::board_space::BoardSpace;
-use super::program_instance::{CardPosition, ProgramInstance};
+use super::board_space::{BoardPosition, BoardSpace};
+use super::program_instance::ProgramInstance;
 use crate::grammar::syntax::dson::{DsonAccess, DsonValue};
 use dashql_proto::syntax as sx;
 use std::error::Error;
 
-const DEFAULT_INPUT_CARD_WIDTH: u32 = 3;
-const DEFAULT_INPUT_CARD_HEIGHT: u32 = 1;
-const DEFAULT_VIZ_CARD_WIDTH: u32 = 12;
-const DEFAULT_VIZ_CARD_HEIGHT: u32 = 4;
+const DEFAULT_INPUT_CARD_WIDTH: usize = 3;
+const DEFAULT_INPUT_CARD_HEIGHT: usize = 1;
+const DEFAULT_VIZ_CARD_WIDTH: usize = 12;
+const DEFAULT_VIZ_CARD_HEIGHT: usize = 4;
 
 pub fn derive_board_cards<'a>(
     ctx: &ProgramInstance<'a>,
     eval_ctx: &mut ExpressionEvaluationContext<'a>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let mut _space = BoardSpace::default();
+    let mut space = BoardSpace::default();
 
     let eval =
-        |out: &mut u32, pos: &DsonValue<'a>, attr: sx::AttributeKey, eval: &mut ExpressionEvaluationContext<'a>| {
+        |out: &mut usize, pos: &DsonValue<'a>, attr: sx::AttributeKey, eval: &mut ExpressionEvaluationContext<'a>| {
             match pos
                 .get(attr)
                 .cloned()
@@ -30,7 +30,7 @@ pub fn derive_board_cards<'a>(
             {
                 Ok(None) => (),
                 Ok(Some(v)) => match v.cast_as(LogicalType::Float64) {
-                    Ok(v) => *out = v.get_f64_or_default() as u32,
+                    Ok(v) => *out = v.get_f64_or_default() as usize,
                     Err(e) => {
                         // TODO warn, value cannot be casted as double
                     }
@@ -49,7 +49,7 @@ pub fn derive_board_cards<'a>(
         };
         let settings = stmt.extra.get().unwrap_or_default();
         let position = settings.get(sx::AttributeKey::DSON_POSITION);
-        let mut requested = CardPosition {
+        let mut requested = BoardPosition {
             width: DEFAULT_INPUT_CARD_WIDTH,
             height: DEFAULT_INPUT_CARD_HEIGHT,
             row: 0,
@@ -61,6 +61,7 @@ pub fn derive_board_cards<'a>(
             eval(&mut requested.row, pos, sx::AttributeKey::DSON_ROW, eval_ctx);
             eval(&mut requested.column, pos, sx::AttributeKey::DSON_COLUMN, eval_ctx);
         }
+        let allocated = space.allocate(requested);
     }
 
     // Allocate positions of viz cards
@@ -70,7 +71,7 @@ pub fn derive_board_cards<'a>(
             _ => continue,
         };
         let mut position = None;
-        let mut requested = CardPosition {
+        let mut requested = BoardPosition {
             width: DEFAULT_VIZ_CARD_WIDTH,
             height: DEFAULT_VIZ_CARD_HEIGHT,
             row: 0,
@@ -80,13 +81,14 @@ pub fn derive_board_cards<'a>(
             let settings = component.get().extra.get().unwrap_or_default();
             position = settings.get(sx::AttributeKey::DSON_POSITION);
             if let Some(pos) = position {
-                requested = CardPosition::default();
+                requested = BoardPosition::default();
                 eval(&mut requested.width, pos, sx::AttributeKey::DSON_WIDTH, eval_ctx);
                 eval(&mut requested.height, pos, sx::AttributeKey::DSON_HEIGHT, eval_ctx);
                 eval(&mut requested.row, pos, sx::AttributeKey::DSON_ROW, eval_ctx);
                 eval(&mut requested.column, pos, sx::AttributeKey::DSON_COLUMN, eval_ctx);
             }
         }
+        let allocated = space.allocate(requested);
     }
 
     Ok(())
