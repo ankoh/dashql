@@ -1,9 +1,10 @@
 use crate::error::SystemError;
 use crate::execution::scalar_value::LogicalType;
+use crate::grammar::syntax::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 
 use super::board_space::{BoardPosition, BoardSpace};
-use super::program_instance::{NodeError, NodeErrorCode, ProgramInstance};
+use super::program_instance::{Card, CardType, NodeError, NodeErrorCode, ProgramInstance};
 use crate::grammar::syntax::dson::{DsonAccess, DsonValue};
 use dashql_proto::syntax as sx;
 use std::collections::HashMap;
@@ -96,5 +97,32 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
         positions.insert(stmt_id, allocated);
     }
     inst.card_positions = positions;
+    Ok(())
+}
+
+pub fn derive_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
+    for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
+        let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
+        let mut card = Card::default();
+        card.statement_id = stmt_id as u32;
+        match stmt {
+            Statement::Input(_input) => {
+                card.card_type = CardType::Input;
+                card.card_position = position;
+                if let Some(name) = inst.statement_names[stmt_id] {
+                    card.card_title = print_ast_as_script_with_defaults(&name);
+                }
+            }
+            Statement::Viz(_viz) => {
+                card.card_type = CardType::Viz;
+                card.card_position = position;
+                if let Some(name) = inst.statement_names[stmt_id] {
+                    card.card_title = print_ast_as_script_with_defaults(&name);
+                }
+            }
+            _ => {}
+        }
+        inst.cards.push(card);
+    }
     Ok(())
 }

@@ -141,6 +141,17 @@ pub struct Card {
     pub card_position: BoardPosition,
 }
 
+impl Default for Card {
+    fn default() -> Self {
+        Self {
+            statement_id: Default::default(),
+            card_type: CardType::Viz,
+            card_title: Default::default(),
+            card_position: Default::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
