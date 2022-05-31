@@ -1,6 +1,7 @@
 use serde::Serialize;
-use std::error::Error;
 use std::fmt::{self, Write};
+use std::num::{ParseFloatError, ParseIntError};
+use std::rc::Rc;
 
 use crate::error::SystemError;
 use crate::error::SystemErrorCode;
@@ -30,12 +31,43 @@ pub enum ScalarValue {
 }
 
 impl ScalarValue {
-    pub fn cast_as(self, ty: LogicalType) -> Result<ScalarValue, SystemError> {
-        match (self, ty) {
+    pub fn cast_as(&self, ty: LogicalType) -> Result<ScalarValue, SystemError> {
+        match (&self, ty) {
+            // * -> Varchar
             (ScalarValue::Boolean(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
             (ScalarValue::Int64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
             (ScalarValue::Float64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
-            (ScalarValue::Varchar(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v)),
+            (ScalarValue::Varchar(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.clone())),
+
+            // * -> Float64
+            (ScalarValue::Boolean(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as i64 as f64)),
+            (ScalarValue::Int64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
+            (ScalarValue::Float64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
+            (ScalarValue::Varchar(v), LogicalType::Float64) => {
+                Ok(ScalarValue::Float64(v.parse().map_err(|e: ParseFloatError| {
+                    SystemError::with_detail_string(
+                        None,
+                        SystemErrorCode::CastFailed,
+                        format!("{:?} -> {:?}: {}", v, LogicalType::Float64, e.to_string()),
+                    )
+                })?))
+            }
+
+            // * -> Int64
+            (ScalarValue::Boolean(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
+            (ScalarValue::Int64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
+            (ScalarValue::Float64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
+            (ScalarValue::Varchar(v), LogicalType::Int64) => {
+                Ok(ScalarValue::Int64(v.parse().map_err(|e: ParseIntError| {
+                    SystemError::with_detail_string(
+                        None,
+                        SystemErrorCode::CastFailed,
+                        format!("{:?} -> {:?}: {}", v, LogicalType::Int64, e.to_string()),
+                    )
+                })?))
+            }
+
+            // Error
             (v, t) => Err(SystemError::with_detail_string(
                 None,
                 SystemErrorCode::CastNotImplemented,
@@ -44,13 +76,10 @@ impl ScalarValue {
         }
     }
 
-    pub fn opt_cast_as(
-        value: Option<ScalarValue>,
-        ty: LogicalType,
-    ) -> Result<Option<ScalarValue>, Box<dyn Error + Send + Sync>> {
-        match value {
-            Some(v) => Ok(Some(v.cast_as(ty)?)),
-            None => Ok(None),
+    pub fn get_f64_or_default(&self) -> f64 {
+        match &self {
+            ScalarValue::Float64(v) => *v,
+            _ => 0.0,
         }
     }
 }

@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum SystemErrorCode {
     ASTTranslationMissing,
+    CastFailed,
     CastNotImplemented,
     ExpressionLogicMissing,
     FunctionEvaluationFailed,
@@ -58,6 +59,7 @@ impl SystemError {
         match self.code {
             SystemErrorCode::ASTTranslationMissing => "ast translation not implemented",
             SystemErrorCode::CastNotImplemented => "cast not implemented",
+            SystemErrorCode::CastFailed => "cast failed",
             SystemErrorCode::ExpressionLogicMissing => "expression logic not implemented",
             SystemErrorCode::FunctionEvaluationFailed => "function evaluation failed",
             SystemErrorCode::FunctionLogicMissing => "function logic not implemented",

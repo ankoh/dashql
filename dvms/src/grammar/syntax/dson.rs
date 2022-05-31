@@ -319,6 +319,12 @@ pub enum DsonValue<'arena> {
     Expression(Expression<'arena>),
 }
 
+impl<'arena> Default for DsonValue<'arena> {
+    fn default() -> Self {
+        DsonValue::Expression(Expression::Null)
+    }
+}
+
 impl<'arena> Serialize for DsonValue<'arena> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -335,12 +341,6 @@ impl<'arena> Serialize for DsonValue<'arena> {
             DsonValue::Array(a) => a.serialize(serializer),
             DsonValue::Expression(e) => e.serialize(serializer),
         }
-    }
-}
-
-impl<'arena> Default for DsonValue<'arena> {
-    fn default() -> Self {
-        DsonValue::Expression(Expression::Null)
     }
 }
 
