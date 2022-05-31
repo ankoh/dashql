@@ -1,4 +1,4 @@
-use crate::error::{SystemError, SystemErrorCode};
+use crate::error::SystemError;
 use crate::execution::expression_evaluator::ExpressionEvaluationContext;
 use crate::execution::scalar_value::ScalarValue;
 use crate::fmt::dynfmt;
@@ -12,10 +12,7 @@ pub fn evaluate_scalar<'a>(
     // Get template string
     let raw_args = expr.args.get();
     if raw_args.len() == 0 {
-        return Err(SystemError::new(
-            ctx.current_node_id,
-            SystemErrorCode::InsufficientArguments,
-        ));
+        return Err(SystemError::InsufficientArguments(ctx.current_node_id));
     }
     let template_arg = raw_args[0].get();
     let template_val = template_arg.value.get().evaluate(ctx)?;
@@ -40,7 +37,7 @@ pub fn evaluate_scalar<'a>(
 
     // Format string
     let result = dynfmt(&template_str, &args_unnamed, &args_named)
-        .map_err(|e| SystemError::with_detail_string(None, SystemErrorCode::FunctionEvaluationFailed, e.to_string()))?;
+        .map_err(|e| SystemError::FunctionEvaluationFailed(ctx.current_node_id, e.into()))?;
     Ok(ScalarValue::Varchar(result))
 }
 

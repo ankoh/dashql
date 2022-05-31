@@ -1,7 +1,6 @@
 use super::function_logic;
 use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
-use crate::error::SystemErrorCode;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
 use crate::grammar::NamePath;
@@ -33,26 +32,19 @@ impl<'a> Expression<'a> {
             Expression::ColumnRef(name) => ctx.named_values.get(name).cloned(),
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
-                    _ => {
-                        return Err(SystemError::with_detail(
-                            None,
-                            SystemErrorCode::FunctionLogicMissing,
-                            known.variant_name().unwrap_or_default(),
-                        ))
-                    }
+                    _ => return Err(SystemError::FunctionNotImplementedButKnown(ctx.current_node_id, known)),
                 },
                 FunctionName::Unknown(func) => match func {
                     "format" => Some(Rc::new(function_logic::format::evaluate_scalar(ctx, f)?)),
                     _ => {
-                        return Err(SystemError::with_detail_string(
-                            None,
-                            SystemErrorCode::FunctionLogicMissing,
+                        return Err(SystemError::FunctionNotImplemented(
+                            ctx.current_node_id,
                             func.to_string(),
                         ))
                     }
                 },
             },
-            _ => return Err(SystemError::new(None, SystemErrorCode::ExpressionLogicMissing)),
+            _ => return Err(SystemError::ExpressionTypeNotImplemented(None)),
         };
         ctx.evaluated_expressions.insert(self.clone(), value.clone());
         Ok(value)

@@ -1,10 +1,8 @@
 use serde::Serialize;
 use std::fmt::{self, Write};
 use std::num::{ParseFloatError, ParseIntError};
-use std::rc::Rc;
 
 use crate::error::SystemError;
-use crate::error::SystemErrorCode;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -45,11 +43,7 @@ impl ScalarValue {
             (ScalarValue::Float64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
             (ScalarValue::Varchar(v), LogicalType::Float64) => {
                 Ok(ScalarValue::Float64(v.parse().map_err(|e: ParseFloatError| {
-                    SystemError::with_detail_string(
-                        None,
-                        SystemErrorCode::CastFailed,
-                        format!("{:?} -> {:?}: {}", v, LogicalType::Float64, e.to_string()),
-                    )
+                    SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Float64)
                 })?))
             }
 
@@ -59,20 +53,36 @@ impl ScalarValue {
             (ScalarValue::Float64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
             (ScalarValue::Varchar(v), LogicalType::Int64) => {
                 Ok(ScalarValue::Int64(v.parse().map_err(|e: ParseIntError| {
-                    SystemError::with_detail_string(
-                        None,
-                        SystemErrorCode::CastFailed,
-                        format!("{:?} -> {:?}: {}", v, LogicalType::Int64, e.to_string()),
-                    )
+                    SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Int64)
                 })?))
             }
 
             // Error
-            (v, t) => Err(SystemError::with_detail_string(
+            (v, t) => Err(SystemError::CastNotImplemented(
                 None,
-                SystemErrorCode::CastNotImplemented,
-                format!("cast not implemented: {:?} -> {:?}", v, t),
+                v.get_logical_type(),
+                LogicalType::Int64,
             )),
+        }
+    }
+
+    pub fn get_logical_type(&self) -> LogicalType {
+        match &self {
+            ScalarValue::Boolean(_) => LogicalType::Boolean,
+            ScalarValue::Int64(_) => LogicalType::Int64,
+            ScalarValue::Float64(_) => LogicalType::Float64,
+            ScalarValue::Varchar(_) => LogicalType::Varchar,
+            ScalarValue::Struct(fields) => LogicalType::Struct(
+                fields
+                    .iter()
+                    .map(|(name, value)| (name.clone(), value.get_logical_type()))
+                    .collect(),
+            ),
+            ScalarValue::List(vs) => LogicalType::List(if vs.is_empty() {
+                Box::new(LogicalType::Boolean)
+            } else {
+                Box::new(vs[0].get_logical_type())
+            }),
         }
     }
 

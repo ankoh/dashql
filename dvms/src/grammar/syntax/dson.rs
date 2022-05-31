@@ -594,7 +594,7 @@ mod test {
         );
         assert!(res.is_err());
         let err = res.err().unwrap();
-        assert_eq!(err.to_string(), "function logic not implemented: notexisting");
+        assert_eq!(err.to_string(), "[None] function not implemented: notexisting");
         Ok(())
     }
 
