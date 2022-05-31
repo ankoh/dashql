@@ -2,6 +2,7 @@ use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
 use super::board_cards::allocate_card_positions;
 use super::board_cards::collect_cards;
+use super::board_cards::Card;
 use super::board_space::BoardPosition;
 use crate::error::SystemError;
 use crate::execution::expression_evaluator::ExpressionEvaluationContext;
@@ -127,31 +128,6 @@ pub struct NodeError {
     pub node_id: Option<u32>,
     pub error_code: NodeErrorCode,
     pub error_message: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum CardType {
-    Input,
-    Viz,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Card {
-    pub statement_id: u32,
-    pub card_type: CardType,
-    pub card_title: String,
-    pub card_position: BoardPosition,
-}
-
-impl Default for Card {
-    fn default() -> Self {
-        Self {
-            statement_id: Default::default(),
-            card_type: CardType::Viz,
-            card_title: Default::default(),
-            card_position: Default::default(),
-        }
-    }
 }
 
 #[cfg(test)]

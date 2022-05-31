@@ -1,18 +1,44 @@
 use crate::error::SystemError;
 use crate::execution::scalar_value::LogicalType;
 use crate::grammar::syntax::script_writer::print_ast_as_script_with_defaults;
-use crate::grammar::Statement;
+use crate::grammar::{Statement, TableRef};
 
 use super::board_space::{BoardPosition, BoardSpace};
-use super::program_instance::{Card, CardType, NodeError, NodeErrorCode, ProgramInstance};
+use super::program_instance::{NodeError, NodeErrorCode, ProgramInstance};
 use crate::grammar::syntax::dson::{DsonAccess, DsonValue};
 use dashql_proto::syntax as sx;
+use serde::Serialize;
 use std::collections::HashMap;
 
 const DEFAULT_INPUT_CARD_WIDTH: usize = 3;
 const DEFAULT_INPUT_CARD_HEIGHT: usize = 1;
 const DEFAULT_VIZ_CARD_WIDTH: usize = 12;
 const DEFAULT_VIZ_CARD_HEIGHT: usize = 4;
+
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
+pub enum CardType {
+    Input,
+    Viz,
+}
+
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
+pub struct Card {
+    pub statement_id: u32,
+    pub card_type: CardType,
+    pub card_title: String,
+    pub card_position: BoardPosition,
+}
+
+impl Default for Card {
+    fn default() -> Self {
+        Self {
+            statement_id: Default::default(),
+            card_type: CardType::Viz,
+            card_title: Default::default(),
+            card_position: Default::default(),
+        }
+    }
+}
 
 pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
     // Helper to evaluate a position value
@@ -113,12 +139,13 @@ pub fn collect_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemErr
                     card.card_title = print_ast_as_script_with_defaults(&name);
                 }
             }
-            Statement::Viz(_viz) => {
+            Statement::Viz(viz) => {
                 card.card_type = CardType::Viz;
                 card.card_position = position;
-                if let Some(name) = inst.statement_names[stmt_id] {
-                    card.card_title = print_ast_as_script_with_defaults(&name);
-                }
+                card.card_title = match viz.target.get() {
+                    TableRef::Relation(rel) => print_ast_as_script_with_defaults(&rel.name.get()),
+                    _ => "".to_string(),
+                };
             }
             _ => {}
         }

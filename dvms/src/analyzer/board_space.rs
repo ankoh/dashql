@@ -7,7 +7,7 @@ const MAX_HEIGHT: usize = 40;
 const DEFAULT_WIDTH: usize = 12;
 const DEFAULT_HEIGHT: usize = 4;
 
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Default, Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct BoardPosition {
     pub row: usize,
     pub column: usize,

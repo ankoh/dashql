@@ -1,7 +1,7 @@
 use super::{
     program_diff::{compute_diff, DiffOp, DiffOpCode},
     program_instance::ProgramInstance,
-    task_data::{SQLTaskData, TaskData},
+    task_data::{InputTaskData, SQLTaskData, TaskData, VizTaskData},
 };
 use serde::Serialize;
 use std::collections::HashSet;
@@ -179,6 +179,9 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             },
             Statement::Input(_i) => ProgramTask {
                 task_type: ProgramTaskType::Input,
+                data: Some(TaskData::Input(InputTaskData {
+                    card: next.cards.get(&stmt_id).cloned().unwrap_or_default(),
+                })),
                 ..mixin
             },
             Statement::Fetch(_f) => ProgramTask {
@@ -191,6 +194,9 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             },
             Statement::Viz(_v) => ProgramTask {
                 task_type: ProgramTaskType::CreateViz,
+                data: Some(TaskData::Viz(VizTaskData {
+                    card: next.cards.get(&stmt_id).cloned().unwrap_or_default(),
+                })),
                 ..mixin
             },
             Statement::Select(s) => ProgramTask {
@@ -567,6 +573,8 @@ pub fn plan_tasks<'a>(
 mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
+    use crate::analyzer::board_cards::{Card, CardType};
+    use crate::analyzer::board_space::BoardPosition;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
@@ -828,7 +836,19 @@ VIZ c USING TABLE;
                             origin_statement: 3,
                             object_id: 3,
                             object_name: None,
-                            data: None,
+                            data: Some(TaskData::Viz(VizTaskData {
+                                card: Card {
+                                    statement_id: 3,
+                                    card_type: CardType::Viz,
+                                    card_title: "c".to_string(),
+                                    card_position: BoardPosition {
+                                        row: 0,
+                                        column: 0,
+                                        width: 12,
+                                        height: 4,
+                                    },
+                                },
+                            })),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
@@ -870,7 +890,19 @@ VIZ a USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: None,
-                            data: None,
+                            data: Some(TaskData::Viz(VizTaskData {
+                                card: Card {
+                                    statement_id: 1,
+                                    card_type: CardType::Viz,
+                                    card_title: "a".to_string(),
+                                    card_position: BoardPosition {
+                                        row: 0,
+                                        column: 0,
+                                        width: 12,
+                                        height: 4,
+                                    },
+                                },
+                            })),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -913,7 +945,19 @@ VIZ a USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: None,
-                            data: None,
+                            data: Some(TaskData::Viz(VizTaskData {
+                                card: Card {
+                                    statement_id: 1,
+                                    card_type: CardType::Viz,
+                                    card_title: "a".to_string(),
+                                    card_position: BoardPosition {
+                                        row: 0,
+                                        column: 0,
+                                        width: 12,
+                                        height: 4,
+                                    },
+                                },
+                            })),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
