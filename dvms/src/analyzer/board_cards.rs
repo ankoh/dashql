@@ -29,7 +29,7 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
                 inst.node_error_messages.push(NodeError {
                     node_id: None,
                     error_code: NodeErrorCode::InvalidValueType,
-                    error_message: "expression cannot be casted to double".to_string(),
+                    error_message: "position value cannot be casted to double".to_string(),
                 });
             }
         },
