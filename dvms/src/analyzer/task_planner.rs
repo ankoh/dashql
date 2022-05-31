@@ -573,7 +573,7 @@ pub fn plan_tasks<'a>(
 mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
-    use crate::analyzer::board_cards::{Card, CardType};
+    use crate::analyzer::board_cards::Card;
     use crate::analyzer::board_space::BoardPosition;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::scalar_value::ScalarValue;
@@ -838,10 +838,8 @@ VIZ c USING TABLE;
                             object_name: None,
                             data: Some(TaskData::Viz(VizTaskData {
                                 card: Card {
-                                    statement_id: 3,
-                                    card_type: CardType::Viz,
-                                    card_title: "c".to_string(),
-                                    card_position: BoardPosition {
+                                    title: "c".to_string(),
+                                    position: BoardPosition {
                                         row: 0,
                                         column: 0,
                                         width: 12,
@@ -892,10 +890,8 @@ VIZ a USING TABLE;
                             object_name: None,
                             data: Some(TaskData::Viz(VizTaskData {
                                 card: Card {
-                                    statement_id: 1,
-                                    card_type: CardType::Viz,
-                                    card_title: "a".to_string(),
-                                    card_position: BoardPosition {
+                                    title: "a".to_string(),
+                                    position: BoardPosition {
                                         row: 0,
                                         column: 0,
                                         width: 12,
@@ -947,10 +943,8 @@ VIZ a USING TABLE;
                             object_name: None,
                             data: Some(TaskData::Viz(VizTaskData {
                                 card: Card {
-                                    statement_id: 1,
-                                    card_type: CardType::Viz,
-                                    card_title: "a".to_string(),
-                                    card_position: BoardPosition {
+                                    title: "a".to_string(),
+                                    position: BoardPosition {
                                         row: 0,
                                         column: 0,
                                         width: 12,

@@ -23,19 +23,15 @@ pub enum CardType {
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct Card {
-    pub statement_id: u32,
-    pub card_type: CardType,
-    pub card_title: String,
-    pub card_position: BoardPosition,
+    pub title: String,
+    pub position: BoardPosition,
 }
 
 impl Default for Card {
     fn default() -> Self {
         Self {
-            statement_id: Default::default(),
-            card_type: CardType::Viz,
-            card_title: Default::default(),
-            card_position: Default::default(),
+            title: Default::default(),
+            position: Default::default(),
         }
     }
 }
@@ -130,19 +126,16 @@ pub fn collect_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemErr
     for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();
-        card.statement_id = stmt_id as u32;
         match stmt {
             Statement::Input(_input) => {
-                card.card_type = CardType::Input;
-                card.card_position = position;
+                card.position = position;
                 if let Some(name) = inst.statement_names[stmt_id] {
-                    card.card_title = print_ast_as_script_with_defaults(&name);
+                    card.title = print_ast_as_script_with_defaults(&name);
                 }
             }
             Statement::Viz(viz) => {
-                card.card_type = CardType::Viz;
-                card.card_position = position;
-                card.card_title = match viz.target.get() {
+                card.position = position;
+                card.title = match viz.target.get() {
                     TableRef::Relation(rel) => print_ast_as_script_with_defaults(&rel.name.get()),
                     _ => "".to_string(),
                 };
