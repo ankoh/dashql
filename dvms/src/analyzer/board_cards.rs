@@ -100,7 +100,7 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
     Ok(())
 }
 
-pub fn derive_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
+pub fn collect_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
     for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();
@@ -122,7 +122,7 @@ pub fn derive_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemErro
             }
             _ => {}
         }
-        inst.cards.push(card);
+        inst.cards.insert(stmt_id, card);
     }
     Ok(())
 }

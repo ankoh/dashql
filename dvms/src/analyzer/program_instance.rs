@@ -1,6 +1,7 @@
 use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
 use super::board_cards::allocate_card_positions;
+use super::board_cards::collect_cards;
 use super::board_space::BoardPosition;
 use crate::error::SystemError;
 use crate::execution::expression_evaluator::ExpressionEvaluationContext;
@@ -43,7 +44,7 @@ pub struct ProgramInstance<'a> {
     pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
     pub statement_liveness: Vec<bool>,
     pub card_positions: HashMap<usize, BoardPosition>,
-    pub cards: Vec<Card>,
+    pub cards: HashMap<usize, Card>,
 
     // Cached properties during analysis
     pub(super) cached_subtree_sizes: RefCell<Vec<usize>>,
@@ -76,7 +77,7 @@ impl<'a> ProgramInstance<'a> {
             statement_depends_on: BTreeMap::new(),
             statement_liveness: Vec::new(),
             card_positions: HashMap::new(),
-            cards: Vec::new(),
+            cards: HashMap::new(),
             cached_subtree_sizes: RefCell::new(Vec::new()),
             cached_default_schema: RefCell::new(None),
         };
@@ -104,6 +105,7 @@ pub fn analyze_program<'arena>(
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
     allocate_card_positions(&mut inst)?;
+    collect_cards(&mut inst)?;
     Ok(inst)
 }
 
