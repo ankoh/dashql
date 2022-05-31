@@ -1,12 +1,15 @@
 use super::super::grammar::*;
 use super::analysis_settings::ProgramAnalysisSettings;
+use super::board_cards::allocate_card_positions;
+use super::board_space::BoardPosition;
+use crate::error::SystemError;
+use crate::execution::expression_evaluator::ExpressionEvaluationContext;
 use crate::execution::scalar_value::ScalarValue;
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::error::Error;
 use std::rc::Rc;
 
 use crate::analyzer::liveness::determine_statement_liveness;
@@ -29,7 +32,8 @@ pub struct ProgramInstance<'a> {
     // The input values
     pub input: HashMap<usize, ScalarValue>,
 
-    // Analysis output
+    // Analysis state
+    pub expression_evaluation: ExpressionEvaluationContext<'a>,
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<NodeLinterMessage>,
     pub statement_names: Vec<Option<NamePath<'a>>>,
@@ -38,6 +42,7 @@ pub struct ProgramInstance<'a> {
     pub statement_required_for: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
     pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
     pub statement_liveness: Vec<bool>,
+    pub card_positions: HashMap<usize, BoardPosition>,
     pub cards: Vec<Card>,
 
     // Cached properties during analysis
@@ -61,6 +66,7 @@ impl<'a> ProgramInstance<'a> {
             program_proto: program_proto,
             program: program_translated,
             input,
+            expression_evaluation: ExpressionEvaluationContext::default(),
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -69,6 +75,7 @@ impl<'a> ProgramInstance<'a> {
             statement_required_for: BTreeMap::new(),
             statement_depends_on: BTreeMap::new(),
             statement_liveness: Vec::new(),
+            card_positions: HashMap::new(),
             cards: Vec::new(),
             cached_subtree_sizes: RefCell::new(Vec::new()),
             cached_default_schema: RefCell::new(None),
@@ -91,11 +98,12 @@ pub fn analyze_program<'arena>(
     program_proto: sx::Program<'arena>,
     program: Rc<Program<'arena>>,
     input: HashMap<usize, ScalarValue>,
-) -> Result<ProgramInstance<'arena>, Box<dyn Error + Send + Sync>> {
+) -> Result<ProgramInstance<'arena>, SystemError> {
     let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
+    allocate_card_positions(&mut inst)?;
     Ok(inst)
 }
 
@@ -107,12 +115,14 @@ pub struct NodeLinterMessage {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum NodeErrorCode {
+    ExpressionEvaluationFailed,
     InvalidInput,
+    InvalidValueType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct NodeError {
-    pub node_id: u32,
+    pub node_id: Option<u32>,
     pub error_code: NodeErrorCode,
     pub error_message: String,
 }
@@ -123,20 +133,12 @@ pub enum CardType {
     Viz,
 }
 
-#[derive(Debug, Default, Clone, Serialize)]
-pub struct CardPosition {
-    pub row: u32,
-    pub column: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct Card {
+    pub statement_id: u32,
     pub card_type: CardType,
     pub card_title: String,
-    pub card_position: CardPosition,
-    pub statement_id: u32,
+    pub card_position: BoardPosition,
 }
 
 #[cfg(test)]
@@ -149,6 +151,7 @@ mod test {
     use crate::grammar;
     use dashql_proto::syntax as sx;
     use std::collections::HashMap;
+    use std::error::Error;
     use std::rc::Rc;
 
     #[derive(Debug)]

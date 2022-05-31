@@ -42,7 +42,7 @@ impl ScalarValue {
             (ScalarValue::Int64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
             (ScalarValue::Float64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
             (ScalarValue::Varchar(v), LogicalType::Float64) => {
-                Ok(ScalarValue::Float64(v.parse().map_err(|e: ParseFloatError| {
+                Ok(ScalarValue::Float64(v.parse().map_err(|_: ParseFloatError| {
                     SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Float64)
                 })?))
             }
@@ -52,17 +52,13 @@ impl ScalarValue {
             (ScalarValue::Int64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
             (ScalarValue::Float64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
             (ScalarValue::Varchar(v), LogicalType::Int64) => {
-                Ok(ScalarValue::Int64(v.parse().map_err(|e: ParseIntError| {
+                Ok(ScalarValue::Int64(v.parse().map_err(|_: ParseIntError| {
                     SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Int64)
                 })?))
             }
 
             // Error
-            (v, t) => Err(SystemError::CastNotImplemented(
-                None,
-                v.get_logical_type(),
-                LogicalType::Int64,
-            )),
+            (v, t) => Err(SystemError::CastNotImplemented(None, v.get_logical_type(), t)),
         }
     }
 

@@ -1,4 +1,4 @@
-use super::program_instance::CardPosition;
+use super::board_space::BoardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{ASTCell, Expression, VizComponent, VizStatement};
 use dashql_proto::syntax as sx;
@@ -12,7 +12,7 @@ pub struct StatementEditOperation {
 
 #[derive(Debug, Clone, Serialize)]
 pub enum EditOperation {
-    SetCardPosition(CardPosition),
+    SetBoardPosition(BoardPosition),
 }
 
 pub fn edit_viz_statement<'arena, 'edit>(
@@ -34,7 +34,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
     // Apply all edit operations
     for op in edits.iter() {
         match &op {
-            EditOperation::SetCardPosition(pos) => {
+            EditOperation::SetBoardPosition(pos) => {
                 for extra in extras.iter_mut() {
                     extra.retain(|field| match field.key {
                         DsonKey::Known(sx::AttributeKey::DSON_POSITION) => false,
@@ -44,19 +44,19 @@ pub fn edit_viz_statement<'arena, 'edit>(
                 let fields = DsonValue::Object(arena.alloc_slice_clone(&[
                     DsonField {
                         key: DsonKey::Known(sx::AttributeKey::DSON_ROW),
-                        value: DsonValue::Expression(Expression::Uint32(pos.row)),
+                        value: DsonValue::Expression(Expression::Uint32(pos.row as u32)),
                     },
                     DsonField {
                         key: DsonKey::Known(sx::AttributeKey::DSON_COLUMN),
-                        value: DsonValue::Expression(Expression::Uint32(pos.column)),
+                        value: DsonValue::Expression(Expression::Uint32(pos.column as u32)),
                     },
                     DsonField {
                         key: DsonKey::Known(sx::AttributeKey::DSON_WIDTH),
-                        value: DsonValue::Expression(Expression::Uint32(pos.width)),
+                        value: DsonValue::Expression(Expression::Uint32(pos.width as u32)),
                     },
                     DsonField {
                         key: DsonKey::Known(sx::AttributeKey::DSON_HEIGHT),
-                        value: DsonValue::Expression(Expression::Uint32(pos.height)),
+                        value: DsonValue::Expression(Expression::Uint32(pos.height as u32)),
                     },
                 ]));
                 extras[0].push(DsonField {
@@ -125,7 +125,7 @@ mod test {
         test_viz_edits(
             "viz foo using table",
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
-            &[EditOperation::SetCardPosition(CardPosition {
+            &[EditOperation::SetBoardPosition(BoardPosition {
                 row: 1,
                 column: 0,
                 width: 10,
@@ -135,7 +135,7 @@ mod test {
         test_viz_edits(
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
             "viz foo using table (position = (row = 2, column = 0, width = 12, height = 4))",
-            &[EditOperation::SetCardPosition(CardPosition {
+            &[EditOperation::SetBoardPosition(BoardPosition {
                 row: 2,
                 column: 0,
                 width: 12,

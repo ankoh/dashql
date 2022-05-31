@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 /// Context for evaluating expressions
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ExpressionEvaluationContext<'a> {
     pub named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
     pub evaluated_expressions: HashMap<Expression<'a>, Option<Rc<ScalarValue>>>,
