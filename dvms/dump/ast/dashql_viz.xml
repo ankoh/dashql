@@ -4,55 +4,31 @@
                 position = (row = 0, column = 0, width = 4, height = 15),
                 x = a,
                 y = b,
-            ), LINE, SCATTER, X AXIS(scale = &apos;linear&apos;), Y AXIS(scale = &apos;log&apos;);</input>
+            );</input>
         <parsed>
             <statements>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="0..239" text="VISUALIZE ..e = &apos;log&apos;)">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="28..175" text="STACKED BA..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="40..175" text="(\n        ..         )">
-                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="69..114" text="(row = 0, ..ight = 15)">
-                                        <node key="DSON_ROW" type="STRING_REF" loc="76..77" text="0"/>
-                                        <node key="DSON_COLUMN" type="STRING_REF" loc="88..89" text="0"/>
-                                        <node key="DSON_WIDTH" type="STRING_REF" loc="99..100" text="4"/>
-                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="111..113" text="15"/>
-                                    </node>
-                                    <node key="DSON_X" type="OBJECT_SQL_COLUMN_REF" loc="136..137" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="136..137" text="a"/>
-                                        </node>
-                                    </node>
-                                    <node key="DSON_Y" type="OBJECT_SQL_COLUMN_REF" loc="159..160" text="b">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="159..160" text="b"/>
-                                        </node>
-                                    </node>
+                    <node type="OBJECT_DASHQL_VIZ" loc="0..175" text="VISUALIZE ..         )">
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="40..175" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="69..114" text="(row = 0, ..ight = 15)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="76..77" text="0"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="88..89" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="99..100" text="4"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="111..113" text="15"/>
+                            </node>
+                            <node key="DSON_X" type="OBJECT_SQL_COLUMN_REF" loc="136..137" text="a">
+                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                    <node type="STRING_REF" loc="136..137" text="a"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
                             </node>
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="177..181" text="LINE">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                            </node>
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="183..190" text="SCATTER">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SCATTER"/>
-                            </node>
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="192..216" text="X AXIS(sca.. &apos;linear&apos;)">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="198..216" text="(scale = &apos;linear&apos;)">
-                                    <node key="DSON_SCALE" type="STRING_REF" loc="207..215" text="&apos;linear&apos;"/>
+                            <node key="DSON_Y" type="OBJECT_SQL_COLUMN_REF" loc="159..160" text="b">
+                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                    <node type="STRING_REF" loc="159..160" text="b"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AXIS"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="64"/>
-                            </node>
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="218..239" text="Y AXIS(sca..e = &apos;log&apos;)">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="224..239" text="(scale = &apos;log&apos;)">
-                                    <node key="DSON_SCALE" type="STRING_REF" loc="233..238" text="&apos;log&apos;"/>
-                                </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AXIS"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="128"/>
                             </node>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="10..21" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -87,155 +63,93 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            BAR,
-                        ),
-                        type_modifiers: 1,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_POSITION,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_ROW,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_COLUMN,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_WIDTH,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;4&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_HEIGHT,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;15&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_X,
-                                        ),
-                                        value: Expression(
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;a&quot;,
-                                                    ),
-                                                ],
+                component_type: Some(
+                    BAR,
+                ),
+                type_modifiers: 1,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_POSITION,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_ROW,
                                             ),
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_Y,
-                                        ),
-                                        value: Expression(
-                                            ColumnRef(
-                                                [
-                                                    Name(
-                                                        &quot;b&quot;,
-                                                    ),
-                                                ],
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                    VizComponent {
-                        component_type: Some(
-                            LINE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                    VizComponent {
-                        component_type: Some(
-                            SCATTER,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                    VizComponent {
-                        component_type: Some(
-                            AXIS,
-                        ),
-                        type_modifiers: 64,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_SCALE,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;linear&apos;&quot;,
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_COLUMN,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                    VizComponent {
-                        component_type: Some(
-                            AXIS,
-                        ),
-                        type_modifiers: 128,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_SCALE,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;log&apos;&quot;,
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_WIDTH,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;4&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_HEIGHT,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;15&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_X,
+                                ),
+                                value: Expression(
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;a&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_Y,
+                                ),
+                                value: Expression(
+                                    ColumnRef(
+                                        [
+                                            Name(
+                                                &quot;b&quot;,
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -250,21 +164,17 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..160" text="VIZ foo US..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="14..160" text="STACKED AR..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..160" text="(\n        ..         )">
-                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="102..146" text="(row = 8, ..eight = 5)">
-                                        <node key="DSON_ROW" type="STRING_REF" loc="109..110" text="8"/>
-                                        <node key="DSON_COLUMN" type="STRING_REF" loc="121..122" text="0"/>
-                                        <node key="DSON_WIDTH" type="STRING_REF" loc="132..133" text="6"/>
-                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="144..145" text="5"/>
-                                    </node>
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="53..73" text="&apos;Stacked A..rea Chart&apos;"/>
-                                </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..160" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="102..146" text="(row = 8, ..eight = 5)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="109..110" text="8"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="121..122" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="132..133" text="6"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="144..145" text="5"/>
                             </node>
+                            <node key="DSON_TITLE" type="STRING_REF" loc="53..73" text="&apos;Stacked A..rea Chart&apos;"/>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -298,79 +208,75 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            AREA,
-                        ),
-                        type_modifiers: 1,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_POSITION,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_ROW,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;8&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_COLUMN,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_WIDTH,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;6&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_HEIGHT,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;5&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_TITLE,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;Stacked Area Chart&apos;&quot;,
+                component_type: Some(
+                    AREA,
+                ),
+                type_modifiers: 1,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_POSITION,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_ROW,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;8&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_COLUMN,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_WIDTH,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;6&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_HEIGHT,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;5&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_TITLE,
+                                ),
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;Stacked Area Chart&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -431,32 +337,28 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..363" text="VIZ foo US..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..363" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..363" text="(\n        ..         )">
-                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..349" text="(\n        ..         )">
-                                        <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                    <node type="STRING_REF" loc="133..134" text="a"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
-                                        </node>
-                                        <node key="DSON_Y" type="OBJECT_DSON" loc="225..330" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="259..260" text="b">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                    <node type="STRING_REF" loc="259..260" text="b"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="293..307" text="&apos;quantitative&apos;"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..363" text="(\n        ..         )">
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..349" text="(\n        ..         )">
+                                <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="133..134" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_Y" type="OBJECT_DSON" loc="225..330" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="259..260" text="b">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="259..260" text="b"/>
+                                        </node>
+                                    </node>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="293..307" text="&apos;quantitative&apos;"/>
+                                </node>
                             </node>
+                            <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -499,105 +401,101 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            SPEC,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_ENCODING,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_X,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    ColumnRef(
-                                                                        [
-                                                                            Name(
-                                                                                &quot;a&quot;,
-                                                                            ),
-                                                                        ],
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;nominal&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_Y,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    ColumnRef(
-                                                                        [
-                                                                            Name(
-                                                                                &quot;b&quot;,
-                                                                            ),
-                                                                        ],
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;quantitative&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_MARK,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;bar&apos;&quot;,
+                component_type: Some(
+                    SPEC,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_ENCODING,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_X,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            ColumnRef(
+                                                                [
+                                                                    Name(
+                                                                        &quot;a&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;nominal&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_Y,
+                                            ),
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            ColumnRef(
+                                                                [
+                                                                    Name(
+                                                                        &quot;b&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;quantitative&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_MARK,
+                                ),
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;bar&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -621,28 +519,24 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..376" text="VIZ foo US..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..376" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..376" text="(\n        ..         )">
-                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..362" text="(\n        ..         )">
-                                        <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                    <node type="STRING_REF" loc="133..134" text="a"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
-                                        </node>
-                                        <node key="DSON_Y" type="OBJECT_DSON" loc="225..343" text="(\n        ..         )">
-                                            <node key="DSON_TITLE" type="STRING_REF" loc="304..320" text="&apos;Number of cars&apos;"/>
-                                            <node key="DSON_AGGREGATE" type="STRING_REF" loc="263..270" text="&apos;count&apos;"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..376" text="(\n        ..         )">
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..362" text="(\n        ..         )">
+                                <node key="DSON_X" type="OBJECT_DSON" loc="99..199" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..134" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="133..134" text="a"/>
                                         </node>
                                     </node>
-                                    <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="167..176" text="&apos;nominal&apos;"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_Y" type="OBJECT_DSON" loc="225..343" text="(\n        ..         )">
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="304..320" text="&apos;Number of cars&apos;"/>
+                                    <node key="DSON_AGGREGATE" type="STRING_REF" loc="263..270" text="&apos;count&apos;"/>
+                                </node>
                             </node>
+                            <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -685,101 +579,97 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            SPEC,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_ENCODING,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_X,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    ColumnRef(
-                                                                        [
-                                                                            Name(
-                                                                                &quot;a&quot;,
-                                                                            ),
-                                                                        ],
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;nominal&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_Y,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TITLE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;Number of cars&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_AGGREGATE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;count&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_MARK,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;bar&apos;&quot;,
+                component_type: Some(
+                    SPEC,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_ENCODING,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_X,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            ColumnRef(
+                                                                [
+                                                                    Name(
+                                                                        &quot;a&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;nominal&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_Y,
+                                            ),
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TITLE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;Number of cars&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_AGGREGATE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;count&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_MARK,
+                                ),
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;bar&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -803,28 +693,24 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..371" text="VIZ foo US..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="13..371" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..371" text="(\n        ..         )">
-                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..357" text="(\n        ..         )">
-                                        <node key="DSON_X" type="OBJECT_DSON" loc="99..159" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..136" text="age">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                    <node type="STRING_REF" loc="133..136" text="age"/>
-                                                </node>
-                                            </node>
-                                        </node>
-                                        <node key="DSON_Y" type="OBJECT_DSON" loc="185..338" text="(\n        ..         )">
-                                            <node key="DSON_TITLE" type="STRING_REF" loc="304..316" text="&apos;population&apos;"/>
-                                            <node key="DSON_AGGREGATE" type="STRING_REF" loc="223..228" text="&apos;sum&apos;"/>
-                                            <node key="DSON_FIELD" type="STRING_REF" loc="262..270" text="&apos;people&apos;"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..371" text="(\n        ..         )">
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="73..357" text="(\n        ..         )">
+                                <node key="DSON_X" type="OBJECT_DSON" loc="99..159" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="133..136" text="age">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="STRING_REF" loc="133..136" text="age"/>
                                         </node>
                                     </node>
-                                    <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_Y" type="OBJECT_DSON" loc="185..338" text="(\n        ..         )">
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="304..316" text="&apos;population&apos;"/>
+                                    <node key="DSON_AGGREGATE" type="STRING_REF" loc="223..228" text="&apos;sum&apos;"/>
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="262..270" text="&apos;people&apos;"/>
+                                </node>
                             </node>
+                            <node key="DSON_MARK" type="STRING_REF" loc="39..44" text="&apos;bar&apos;"/>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -867,101 +753,97 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            SPEC,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_ENCODING,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_X,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    ColumnRef(
-                                                                        [
-                                                                            Name(
-                                                                                &quot;age&quot;,
-                                                                            ),
-                                                                        ],
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_Y,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TITLE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;population&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_AGGREGATE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;sum&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;people&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_MARK,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;bar&apos;&quot;,
+                component_type: Some(
+                    SPEC,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_ENCODING,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_X,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            ColumnRef(
+                                                                [
+                                                                    Name(
+                                                                        &quot;age&quot;,
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_Y,
+                                            ),
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TITLE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;population&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_AGGREGATE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;sum&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;people&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_MARK,
+                                ),
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;bar&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -1008,12 +890,8 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..40" text="VISUALIZE ..AREA CHART">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..40" text="STACKED AREA CHART">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="AREA"/>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="10..15" text="daily">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1024,11 +902,7 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="54..81" text="VISUALIZE ..SING TABLE">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="76..81" text="TABLE">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="64..69" text="daily">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1039,12 +913,8 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="95..133" text="VISUALIZE ..LINE CHART">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="117..133" text="MULTI LINE CHART">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="2"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="2"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="105..110" text="daily">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1055,11 +925,7 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="147..176" text="VISUALIZE ..SING TABLE">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="171..176" text="TABLE">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="157..164" text="grouped">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1070,12 +936,8 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="190..231" text="VISUALIZE .. BAR CHART">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="214..231" text="STACKED BAR CHART">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="BAR"/>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" type="UI32_BITMAP" value="1"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="200..207" text="grouped">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1086,47 +948,43 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="245..1342" text="VIZ activi..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="263..1342" text=" (\n       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="264..1342" text="(\n        ..         )">
-                                    <node key="DSON_ENCODING" type="OBJECT_DSON" loc="324..1328" text="(\n        ..         )">
-                                        <node key="DSON_COLOR" type="OBJECT_DSON" loc="900..1310" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="STRING_REF" loc="934..940" text="&apos;site&apos;"/>
-                                            <node key="DSON_SCALE" type="OBJECT_DSON" loc="1016..1288" text="(\n        ..         )">
-                                                <node key="DSON_DOMAIN" type="ARRAY">
-                                                    <node type="STRING_REF" loc="1089..1116" text="&apos;https://g..om/dashql&apos;"/>
-                                                    <node type="STRING_REF" loc="1150..1174" text="&apos;https://a..ashql.com&apos;"/>
-                                                    <node type="STRING_REF" loc="1208..1232" text="&apos;https://w..ashql.com&apos;"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="973..982" text="&apos;nominal&apos;"/>
-                                        </node>
-                                        <node key="DSON_X" type="OBJECT_DSON" loc="350..678" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="STRING_REF" loc="384..390" text="&apos;time&apos;"/>
-                                            <node key="DSON_SCALE" type="OBJECT_DSON" loc="467..656" text="(\n        ..         )">
-                                                <node key="DSON_DOMAIN" type="ARRAY">
-                                                    <node type="STRING_REF" loc="540..553" text="&apos;15.10 12:00&apos;"/>
-                                                    <node type="STRING_REF" loc="587..600" text="&apos;22.10 12:00&apos;"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="423..433" text="&apos;temporal&apos;"/>
-                                        </node>
-                                        <node key="DSON_Y" type="OBJECT_DSON" loc="704..870" text="(\n        ..         )">
-                                            <node key="DSON_FIELD" type="STRING_REF" loc="738..744" text="&apos;hits&apos;"/>
-                                            <node key="DSON_SCALE" type="OBJECT_DSON" loc="825..848" text="(domain = ..34, 2345])">
-                                                <node key="DSON_DOMAIN" type="ARRAY">
-                                                    <node type="STRING_REF" loc="836..840" text="1234"/>
-                                                    <node type="STRING_REF" loc="842..846" text="2345"/>
-                                                </node>
-                                            </node>
-                                            <node key="DSON_TYPE" type="STRING_REF" loc="777..791" text="&apos;quantitative&apos;"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="264..1342" text="(\n        ..         )">
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="324..1328" text="(\n        ..         )">
+                                <node key="DSON_COLOR" type="OBJECT_DSON" loc="900..1310" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="934..940" text="&apos;site&apos;"/>
+                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="1016..1288" text="(\n        ..         )">
+                                        <node key="DSON_DOMAIN" type="ARRAY">
+                                            <node type="STRING_REF" loc="1089..1116" text="&apos;https://g..om/dashql&apos;"/>
+                                            <node type="STRING_REF" loc="1150..1174" text="&apos;https://a..ashql.com&apos;"/>
+                                            <node type="STRING_REF" loc="1208..1232" text="&apos;https://w..ashql.com&apos;"/>
                                         </node>
                                     </node>
-                                    <node key="DSON_MARK" type="STRING_REF" loc="289..295" text="&apos;line&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="973..982" text="&apos;nominal&apos;"/>
                                 </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
+                                <node key="DSON_X" type="OBJECT_DSON" loc="350..678" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="384..390" text="&apos;time&apos;"/>
+                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="467..656" text="(\n        ..         )">
+                                        <node key="DSON_DOMAIN" type="ARRAY">
+                                            <node type="STRING_REF" loc="540..553" text="&apos;15.10 12:00&apos;"/>
+                                            <node type="STRING_REF" loc="587..600" text="&apos;22.10 12:00&apos;"/>
+                                        </node>
+                                    </node>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="423..433" text="&apos;temporal&apos;"/>
+                                </node>
+                                <node key="DSON_Y" type="OBJECT_DSON" loc="704..870" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="738..744" text="&apos;hits&apos;"/>
+                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="825..848" text="(domain = ..34, 2345])">
+                                        <node key="DSON_DOMAIN" type="ARRAY">
+                                            <node type="STRING_REF" loc="836..840" text="1234"/>
+                                            <node type="STRING_REF" loc="842..846" text="2345"/>
+                                        </node>
+                                    </node>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="777..791" text="&apos;quantitative&apos;"/>
+                                </node>
                             </node>
+                            <node key="DSON_MARK" type="STRING_REF" loc="289..295" text="&apos;line&apos;"/>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="249..257" text="activity">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -1192,15 +1050,11 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            AREA,
-                        ),
-                        type_modifiers: 1,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    AREA,
+                ),
+                type_modifiers: 1,
+                extra: None,
             },
         ),
         Viz(
@@ -1216,15 +1070,11 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            TABLE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    TABLE,
+                ),
+                type_modifiers: 0,
+                extra: None,
             },
         ),
         Viz(
@@ -1240,15 +1090,11 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            LINE,
-                        ),
-                        type_modifiers: 2,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    LINE,
+                ),
+                type_modifiers: 2,
+                extra: None,
             },
         ),
         Viz(
@@ -1264,15 +1110,11 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            TABLE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    TABLE,
+                ),
+                type_modifiers: 0,
+                extra: None,
             },
         ),
         Viz(
@@ -1288,15 +1130,11 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            BAR,
-                        ),
-                        type_modifiers: 1,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    BAR,
+                ),
+                type_modifiers: 1,
+                extra: None,
             },
         ),
         Viz(
@@ -1312,215 +1150,211 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            SPEC,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_ENCODING,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_COLOR,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;site&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_SCALE,
-                                                                ),
-                                                                value: Object(
-                                                                    [
-                                                                        DsonField {
-                                                                            key: Known(
-                                                                                DSON_DOMAIN,
-                                                                            ),
-                                                                            value: Array(
-                                                                                [
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;&apos;https://github.com/dashql&apos;&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;&apos;https://app.dashql.com&apos;&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;&apos;https://www.dashql.com&apos;&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                ],
-                                                                            ),
-                                                                        },
-                                                                    ],
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;nominal&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_X,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;time&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_SCALE,
-                                                                ),
-                                                                value: Object(
-                                                                    [
-                                                                        DsonField {
-                                                                            key: Known(
-                                                                                DSON_DOMAIN,
-                                                                            ),
-                                                                            value: Array(
-                                                                                [
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;&apos;15.10 12:00&apos;&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;&apos;22.10 12:00&apos;&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                ],
-                                                                            ),
-                                                                        },
-                                                                    ],
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;temporal&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_Y,
-                                                    ),
-                                                    value: Object(
-                                                        [
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_FIELD,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;hits&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_SCALE,
-                                                                ),
-                                                                value: Object(
-                                                                    [
-                                                                        DsonField {
-                                                                            key: Known(
-                                                                                DSON_DOMAIN,
-                                                                            ),
-                                                                            value: Array(
-                                                                                [
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;1234&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                    Expression(
-                                                                                        StringRef(
-                                                                                            &quot;2345&quot;,
-                                                                                        ),
-                                                                                    ),
-                                                                                ],
-                                                                            ),
-                                                                        },
-                                                                    ],
-                                                                ),
-                                                            },
-                                                            DsonField {
-                                                                key: Known(
-                                                                    DSON_TYPE,
-                                                                ),
-                                                                value: Expression(
-                                                                    StringRef(
-                                                                        &quot;&apos;quantitative&apos;&quot;,
-                                                                    ),
-                                                                ),
-                                                            },
-                                                        ],
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                    DsonField {
-                                        key: Known(
-                                            DSON_MARK,
-                                        ),
-                                        value: Expression(
-                                            StringRef(
-                                                &quot;&apos;line&apos;&quot;,
+                component_type: Some(
+                    SPEC,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_ENCODING,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_COLOR,
                                             ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;site&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_SCALE,
+                                                        ),
+                                                        value: Object(
+                                                            [
+                                                                DsonField {
+                                                                    key: Known(
+                                                                        DSON_DOMAIN,
+                                                                    ),
+                                                                    value: Array(
+                                                                        [
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;https://github.com/dashql&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;https://app.dashql.com&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;https://www.dashql.com&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;nominal&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_X,
+                                            ),
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;time&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_SCALE,
+                                                        ),
+                                                        value: Object(
+                                                            [
+                                                                DsonField {
+                                                                    key: Known(
+                                                                        DSON_DOMAIN,
+                                                                    ),
+                                                                    value: Array(
+                                                                        [
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;15.10 12:00&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;&apos;22.10 12:00&apos;&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;temporal&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_Y,
+                                            ),
+                                            value: Object(
+                                                [
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_FIELD,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;hits&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_SCALE,
+                                                        ),
+                                                        value: Object(
+                                                            [
+                                                                DsonField {
+                                                                    key: Known(
+                                                                        DSON_DOMAIN,
+                                                                    ),
+                                                                    value: Array(
+                                                                        [
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;1234&quot;,
+                                                                                ),
+                                                                            ),
+                                                                            Expression(
+                                                                                StringRef(
+                                                                                    &quot;2345&quot;,
+                                                                                ),
+                                                                            ),
+                                                                        ],
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        ),
+                                                    },
+                                                    DsonField {
+                                                        key: Known(
+                                                            DSON_TYPE,
+                                                        ),
+                                                        value: Expression(
+                                                            StringRef(
+                                                                &quot;&apos;quantitative&apos;&quot;,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                            DsonField {
+                                key: Known(
+                                    DSON_MARK,
+                                ),
+                                value: Expression(
+                                    StringRef(
+                                        &quot;&apos;line&apos;&quot;,
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],

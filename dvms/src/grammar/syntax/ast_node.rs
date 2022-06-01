@@ -107,7 +107,6 @@ pub enum ASTNode<'a> {
     FetchStatement(&'a FetchStatement<'a>),
     InputStatement(&'a InputStatement<'a>),
     LoadStatement(&'a LoadStatement<'a>),
-    VizComponent(&'a VizComponent<'a>),
     VizStatement(&'a VizStatement<'a>),
 
     Dson(DsonValue<'a>),

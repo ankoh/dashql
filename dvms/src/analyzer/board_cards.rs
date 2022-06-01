@@ -98,22 +98,20 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
             Statement::Viz(v) => v,
             _ => continue,
         };
+        let settings = stmt.extra.get().unwrap_or_default();
+        let position = settings.get(sx::AttributeKey::DSON_POSITION);
         let mut requested = BoardPosition {
             width: DEFAULT_VIZ_CARD_WIDTH,
             height: DEFAULT_VIZ_CARD_HEIGHT,
             row: 0,
             column: 0,
         };
-        for component in stmt.components.get().iter() {
-            let settings = component.get().extra.get().unwrap_or_default();
-            let position = settings.get(sx::AttributeKey::DSON_POSITION);
-            if let Some(pos) = position {
-                requested = BoardPosition::default();
-                eval(&mut requested.width, pos, sx::AttributeKey::DSON_WIDTH, inst);
-                eval(&mut requested.height, pos, sx::AttributeKey::DSON_HEIGHT, inst);
-                eval(&mut requested.row, pos, sx::AttributeKey::DSON_ROW, inst);
-                eval(&mut requested.column, pos, sx::AttributeKey::DSON_COLUMN, inst);
-            }
+        if let Some(pos) = position {
+            requested = BoardPosition::default();
+            eval(&mut requested.width, pos, sx::AttributeKey::DSON_WIDTH, inst);
+            eval(&mut requested.height, pos, sx::AttributeKey::DSON_HEIGHT, inst);
+            eval(&mut requested.row, pos, sx::AttributeKey::DSON_ROW, inst);
+            eval(&mut requested.column, pos, sx::AttributeKey::DSON_COLUMN, inst);
         }
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);

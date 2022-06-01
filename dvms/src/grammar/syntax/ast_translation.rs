@@ -866,31 +866,22 @@ pub fn deserialize_ast<'a>(
                     array_bounds,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT => {
+            sx::NodeType::OBJECT_DASHQL_VIZ => {
+                let mut target = ASTCell::default();
                 let mut component_type = ASTCell::default();
                 let mut type_modifiers = ASTCell::with_value(0_u32);
                 let mut extra = ASTCell::default();
                 read_attributes! {
+                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t), ci) => target = ASTCell::with_node(Some(t.clone()), ci),
                     (Key::DASHQL_VIZ_COMPONENT_TYPE, ASTNode::VizComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
                     (Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ASTNode::UInt32Bitmap(mods), ci) => type_modifiers = ASTCell::with_node(*mods, ci),
                     (Key::DASHQL_VIZ_COMPONENT_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
-                ASTNode::VizComponent(arena.alloc(VizComponent {
+                ASTNode::VizStatement(arena.alloc(VizStatement {
+                    target: target.unwrap(),
                     component_type,
                     type_modifiers,
                     extra,
-                }))
-            }
-            sx::NodeType::OBJECT_DASHQL_VIZ => {
-                let mut target = ASTCell::default();
-                let mut components: ASTCell<&[_]> = ASTCell::with_value(&[]);
-                read_attributes! {
-                    (Key::DASHQL_VIZ_TARGET, ASTNode::TableRef(t), ci) => target = ASTCell::with_node(Some(t.clone()), ci),
-                    (Key::DASHQL_VIZ_COMPONENTS, ASTNode::Array(nodes, ni), ci) => components = ASTCell::with_node(unpack_nodes!(nodes, ni, VizComponent), ci)
-                }
-                ASTNode::VizStatement(arena.alloc(VizStatement {
-                    target: target.unwrap(),
-                    components,
                 }))
             }
             sx::NodeType::OBJECT_DASHQL_INPUT => {

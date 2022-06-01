@@ -33,6 +33,12 @@ where
     pub fn get(&self) -> V {
         self.inner.get()
     }
+    pub fn set(&self, value: V) {
+        self.inner.set(value)
+    }
+    pub fn replace(&self, value: V) -> V {
+        self.inner.replace(value)
+    }
 }
 
 impl<V> From<V> for ASTCell<V>

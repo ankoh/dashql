@@ -35,11 +35,6 @@ pub struct LoadStatement<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct VizStatement<'a> {
     pub target: ASTCell<TableRef<'a>>,
-    pub components: ASTCell<&'a [ASTCell<&'a VizComponent<'a>>]>,
-}
-
-#[derive(Debug, Clone, Serialize, Default, Hash, PartialEq, Eq)]
-pub struct VizComponent<'a> {
     #[serde(with = "serde_viz_component_type::cell_opt")]
     pub component_type: ASTCell<Option<sx::VizComponentType>>,
     pub type_modifiers: ASTCell<u32>,

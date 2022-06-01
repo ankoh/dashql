@@ -192,19 +192,15 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..213" text="VIZ weathe..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..213" text="LINE (\n   ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
-                                    <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
-                                        <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
-                                        <node key="DSON_COLUMN" type="STRING_REF" loc="116..117" text="0"/>
-                                        <node key="DSON_WIDTH" type="STRING_REF" loc="147..148" text="4"/>
-                                        <node key="DSON_HEIGHT" type="STRING_REF" loc="179..181" text="15"/>
-                                    </node>
-                                </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
+                                <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="116..117" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="147..148" text="4"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="179..181" text="15"/>
                             </node>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -242,69 +238,65 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            LINE,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_POSITION,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_ROW,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_COLUMN,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_WIDTH,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;4&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Known(
-                                                        DSON_HEIGHT,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;15&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                component_type: Some(
+                    LINE,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Known(
+                                    DSON_POSITION,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Known(
+                                                DSON_ROW,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_COLUMN,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_WIDTH,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;4&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Known(
+                                                DSON_HEIGHT,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;15&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -318,19 +310,15 @@
             <statements>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="0..94" text="VIZ weathe..         )">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="22..94" text="LINE (\n   ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
-                                    <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
-                                        <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
-                                        <node key="DSON_KEYS[1]" type="STRING_REF" loc="63..64" text="0"/>
-                                        <node key="DSON_KEYS[2]" type="STRING_REF" loc="70..71" text="4"/>
-                                        <node key="DSON_KEYS[3]" type="STRING_REF" loc="77..79" text="15"/>
-                                    </node>
-                                </node>
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
+                            <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
+                                <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
+                                <node key="DSON_KEYS[1]" type="STRING_REF" loc="63..64" text="0"/>
+                                <node key="DSON_KEYS[2]" type="STRING_REF" loc="70..71" text="4"/>
+                                <node key="DSON_KEYS[3]" type="STRING_REF" loc="77..79" text="15"/>
                             </node>
                         </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
@@ -369,69 +357,65 @@
                         alias: None,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            LINE,
-                        ),
-                        type_modifiers: 0,
-                        extra: Some(
-                            Object(
-                                [
-                                    DsonField {
-                                        key: Unknown(
-                                            &quot;pos&quot;,
-                                        ),
-                                        value: Object(
-                                            [
-                                                DsonField {
-                                                    key: Unknown(
-                                                        &quot;r&quot;,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Unknown(
-                                                        &quot;c&quot;,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;0&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Unknown(
-                                                        &quot;w&quot;,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;4&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                                DsonField {
-                                                    key: Unknown(
-                                                        &quot;h&quot;,
-                                                    ),
-                                                    value: Expression(
-                                                        StringRef(
-                                                            &quot;15&quot;,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        ),
-                                    },
-                                ],
-                            ),
-                        ),
-                    },
-                ],
+                component_type: Some(
+                    LINE,
+                ),
+                type_modifiers: 0,
+                extra: Some(
+                    Object(
+                        [
+                            DsonField {
+                                key: Unknown(
+                                    &quot;pos&quot;,
+                                ),
+                                value: Object(
+                                    [
+                                        DsonField {
+                                            key: Unknown(
+                                                &quot;r&quot;,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Unknown(
+                                                &quot;c&quot;,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;0&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Unknown(
+                                                &quot;w&quot;,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;4&quot;,
+                                                ),
+                                            ),
+                                        },
+                                        DsonField {
+                                            key: Unknown(
+                                                &quot;h&quot;,
+                                            ),
+                                            value: Expression(
+                                                StringRef(
+                                                    &quot;15&quot;,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                ),
+                            },
+                        ],
+                    ),
+                ),
             },
         ),
     ],
@@ -457,11 +441,7 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="48..76" text="VIZ (SELEC..SING TABLE">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="71..76" text="TABLE">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="52..64" text="(SELECT foo)">
                             <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="52..64" text="(SELECT foo)">
                                 <node key="SQL_SELECT_TARGETS" type="ARRAY">
@@ -552,15 +532,11 @@
                         lateral: false,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            TABLE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    TABLE,
+                ),
+                type_modifiers: 0,
+                extra: None,
             },
         ),
     ],
@@ -589,11 +565,7 @@
                 </statement>
                 <statement type="VIZUALIZE">
                     <node type="OBJECT_DASHQL_VIZ" loc="51..90" text="VIZ (SELEC..SING TABLE">
-                        <node key="DASHQL_VIZ_COMPONENTS" type="ARRAY">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="85..90" text="TABLE">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                            </node>
-                        </node>
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="55..78" text="(SELECT fo..], foo[1])">
                             <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_SELECT" loc="55..78" text="(SELECT fo..], foo[1])">
                                 <node key="SQL_SELECT_TARGETS" type="ARRAY">
@@ -725,15 +697,11 @@
                         lateral: false,
                     },
                 ),
-                components: [
-                    VizComponent {
-                        component_type: Some(
-                            TABLE,
-                        ),
-                        type_modifiers: 0,
-                        extra: None,
-                    },
-                ],
+                component_type: Some(
+                    TABLE,
+                ),
+                type_modifiers: 0,
+                extra: None,
             },
         ),
     ],

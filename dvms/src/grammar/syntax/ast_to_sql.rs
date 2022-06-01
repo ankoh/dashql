@@ -533,12 +533,15 @@ impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
     }
 }
 
-impl<'ast> ToSQL<'ast> for VizComponent<'ast> {
+impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.type_modifiers.get().count_ones() as usize);
+        let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.type_modifiers.get().count_ones() as usize);
+        a.push(w.keyword("viz"));
+        a.push(self.target.get().to_sql(w).pad_left());
+        a.push(w.keyword("using").pad_left());
         if let Some(ct) = self.component_type.get() {
             if ct != sx::VizComponentType::SPEC {
                 let mut mods = self.type_modifiers.get();
@@ -585,25 +588,6 @@ impl<'ast> ToSQL<'ast> for VizComponent<'ast> {
         }
         if let Some(extra) = self.extra.get() {
             a.push(extra.to_sql(w).pad_left());
-        }
-        w.float(a.finish())
-    }
-}
-
-impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
-    where
-        'ast: 'writer,
-    {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + 2 * self.components.get().len());
-        a.push(w.keyword("viz"));
-        a.push(self.target.get().to_sql(w).pad_left());
-        a.push(w.keyword("using").pad_left());
-        for (i, component) in self.components.get().iter().enumerate() {
-            if i > 0 {
-                a.push(w.str_const(","));
-            }
-            a.push(component.get().to_sql(w));
         }
         w.float(a.finish())
     }
@@ -989,7 +973,7 @@ mod test {
     fn test_viz() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe("viz a using table")?;
         test_pipe("viz a using stacked bar chart")?;
-        test_pipe("viz a using stacked bar chart, x axis ('some' = 'config')")?;
+        test_pipe("viz a using stacked bar chart ('some' = 'config')")?;
         test_pipe("viz a using clustered bar chart")?;
         test_pipe("viz a using (mark = 'bar')")?;
         test_pipe("viz a using (encoding = ('x' = ('some' = 'thing')), mark = 'bar')")?;

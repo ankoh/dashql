@@ -1,30 +1,23 @@
-dashql_viz_component_list:
-    dashql_viz_component_list ',' dashql_viz_component  { $1.push_back(std::move($3)); $$ = move($1); }
-  | dashql_viz_component                                { $$ = { std::move($1) }; }
-    ;
-
 dashql_viz_component:
     dashql_viz_type opt_dson {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, {
+        $$ = {
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE, std::move($1)),
             Attr(Key::DASHQL_VIZ_COMPONENT_EXTRA, std::move($2)),
-        });
+        };
     }
  |  dashql_viz_type_modifiers dashql_viz_type opt_dson {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, {
+        $$ = {
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, UI32Bitmap(@1, $1)),
             Attr(Key::DASHQL_VIZ_COMPONENT_TYPE, std::move($2)),
             Attr(Key::DASHQL_VIZ_COMPONENT_EXTRA, std::move($3)),
-        });
+        };
     }
     ;
 
 dashql_viz_statement:
-    dashql_viz_statement_prefix sql_table_ref USING dashql_viz_component_list {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, {
-            Attr(Key::DASHQL_VIZ_TARGET, $2),
-            Attr(Key::DASHQL_VIZ_COMPONENTS, ctx.Add(@4, std::move($4))),
-        });
+    dashql_viz_statement_prefix sql_table_ref USING dashql_viz_component {
+        $4.push_back(Attr(Key::DASHQL_VIZ_TARGET, $2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, std::move($4));
     }
     ;
 

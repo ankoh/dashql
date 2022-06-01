@@ -5,7 +5,7 @@
                 position = (row = 0, column = 0, width = 4, height = 15),
                 x = a,
                 y = b,
-            ), LINE, SCATTER, X AXIS(scale = 'linear'), Y AXIS(scale = 'log');
+            );
         </input>
     </astdump>
     <astdump name="dashql_viz_stacked">

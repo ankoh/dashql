@@ -1,6 +1,6 @@
 use super::board_space::BoardPosition;
 use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
-use crate::grammar::{ASTCell, Expression, VizComponent, VizStatement};
+use crate::grammar::{Expression, VizStatement};
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 
@@ -19,28 +19,21 @@ pub fn edit_viz_statement<'arena, 'edit>(
     arena: &'arena bumpalo::Bump,
     stmt: &'arena VizStatement<'arena>,
     edits: &[EditOperation],
-) -> &'arena VizStatement<'arena> {
+) {
     // Clone all components
-    let mut components: Vec<VizComponent<'arena>> =
-        stmt.components.get().iter().map(|c| c.get().clone().clone()).collect();
-    let mut extras: Vec<Vec<DsonField<'arena>>> = Vec::new();
-    extras.reserve(components.len());
-    for c in components.iter() {
-        match c.extra.get() {
-            Some(extra) => extras.push(extra.as_object().iter().map(|field| field.clone()).collect()),
-            None => extras.push(Vec::new()),
-        }
+    let mut extras: Vec<DsonField<'arena>> = Vec::new();
+    if let Some(extra) = stmt.extra.get() {
+        extras = extra.as_object().iter().map(|field| field.clone()).collect();
     }
+
     // Apply all edit operations
     for op in edits.iter() {
         match &op {
             EditOperation::SetBoardPosition(pos) => {
-                for extra in extras.iter_mut() {
-                    extra.retain(|field| match field.key {
-                        DsonKey::Known(sx::AttributeKey::DSON_POSITION) => false,
-                        _ => true,
-                    });
-                }
+                extras.retain(|field| match field.key {
+                    DsonKey::Known(sx::AttributeKey::DSON_POSITION) => false,
+                    _ => true,
+                });
                 let fields = DsonValue::Object(arena.alloc_slice_clone(&[
                     DsonField {
                         key: DsonKey::Known(sx::AttributeKey::DSON_ROW),
@@ -59,7 +52,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
                         value: DsonValue::Expression(Expression::Uint32(pos.height as u32)),
                     },
                 ]));
-                extras[0].push(DsonField {
+                extras.push(DsonField {
                     key: DsonKey::Known(sx::AttributeKey::DSON_POSITION),
                     value: fields,
                 });
@@ -67,25 +60,10 @@ pub fn edit_viz_statement<'arena, 'edit>(
         }
     }
     // Allocate all extras and store them in the clones
-    for (i, extra) in extras.iter().enumerate() {
-        if extra.is_empty() {
-            continue;
-        }
-        components[i].extra = ASTCell::with_value(Some(DsonValue::Object(arena.alloc_slice_clone(&extra))));
+    if !extras.is_empty() {
+        stmt.extra
+            .set(Some(DsonValue::Object(arena.alloc_slice_clone(&extras))));
     }
-
-    // Allocate new components
-    let new_components: Vec<ASTCell<&'arena VizComponent<'arena>>> = components
-        .iter()
-        .map(|c| {
-            let c: &'arena VizComponent<'arena> = arena.alloc(c.clone());
-            ASTCell::with_value(c)
-        })
-        .collect();
-    arena.alloc(VizStatement {
-        target: stmt.target.clone(),
-        components: ASTCell::with_value(arena.alloc_slice_clone(&new_components)),
-    })
 }
 
 #[cfg(test)]
@@ -111,10 +89,11 @@ mod test {
         };
         assert!(viz.is_some());
 
-        let edited = edit_viz_statement(&arena, viz.unwrap(), edits);
+        let viz = viz.unwrap();
+        edit_viz_statement(&arena, viz, edits);
 
         let writer = ScriptWriter::new();
-        let script_text = edited.to_sql(&writer);
+        let script_text = viz.to_sql(&writer);
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
         assert_eq!(&script_string, expected, "{:?}", prog);
         Ok(())

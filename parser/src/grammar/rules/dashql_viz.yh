@@ -1,5 +1,4 @@
-%type <NodeVector> dashql_viz_component_list;
-%type <sx::Node> dashql_viz_component;
+%type <NodeVector> dashql_viz_component;
 %type <sx::Node> dashql_viz_statement;
 %type <sx::Node> dashql_viz_type;
 %type <uint32_t> dashql_viz_type_modifier;
