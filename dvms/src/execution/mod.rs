@@ -1,4 +1,5 @@
 pub mod constant_folding;
+pub mod database_proxy;
 pub mod expression_evaluator;
 pub mod function_logic;
 pub mod scalar_value;
