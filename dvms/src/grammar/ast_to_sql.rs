@@ -294,6 +294,30 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
     }
 }
 
+impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 4);
+        let input = self.input.get();
+        a.push(input[0].get().to_sql(w));
+        match self.operation.get() {
+            sx::CombineOperation::UNION => a.push(w.keyword("union").pad_left()),
+            sx::CombineOperation::EXCEPT => a.push(w.keyword("except").pad_left()),
+            sx::CombineOperation::INTERSECT => a.push(w.keyword("intersect").pad_left()),
+            _ => (),
+        }
+        match self.modifier.get() {
+            sx::CombineModifier::ALL => a.push(w.keyword("all").pad_left()),
+            sx::CombineModifier::DISTINCT => a.push(w.keyword("distinct").pad_left()),
+            _ => (),
+        }
+        a.push(input[1].get().to_sql(w).pad_left());
+        w.float(a.finish())
+    }
+}
+
 impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
@@ -302,8 +326,8 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.get().len());
         match &self.data {
             SelectData::From(from) => a.push(from.to_sql(w)),
-            SelectData::Combine(_c) => todo!(),
-            SelectData::Table(_t) => todo!(),
+            SelectData::Combine(c) => a.push(c.to_sql(w)),
+            SelectData::Table(t) => a.push(t.get().to_sql(w)),
             SelectData::Values(tuples) => {
                 let tuples = tuples.get();
                 let mut va = ScriptTextArray::with_capacity(w, 2 * tuples.len());
@@ -1024,11 +1048,16 @@ mod test {
         test_pipe("select * from A order by a limit 10")?;
         test_pipe("select * from A order by a limit 10 offset 10")?;
         test_pipe("select * from A order by a limit all")?;
+        test_pipe("select 1 union select 2")?;
+        test_pipe("select 1 union all select 2")?;
+        test_pipe("select 1 union distinct select 2")?;
+        test_pipe("select 1 except select 2")?;
+        test_pipe("select 1 intersect select 2")?;
         Ok(())
     }
 
     #[test]
-    fn test_select_values() -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn test_values() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe("values (1)")?;
         test_pipe("values (1, 'foo')")?;
         test_pipe("values (1), (2)")?;
