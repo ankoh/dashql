@@ -1029,7 +1029,10 @@ mod test {
 
     #[test]
     fn test_select_values() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("values (1)")?;
+        test_pipe("values (1, 'foo')")?;
         test_pipe("values (1), (2)")?;
+        test_pipe("values (1, 'foo'), (2, 'bar')")?;
         Ok(())
     }
 
