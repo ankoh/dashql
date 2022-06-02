@@ -1,5 +1,5 @@
 pub mod constant_folding;
-pub mod database_proxy;
+pub mod database_adapters;
 pub mod expression_evaluator;
 pub mod function_logic;
 pub mod scalar_value;
