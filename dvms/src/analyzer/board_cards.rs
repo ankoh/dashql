@@ -1,11 +1,11 @@
 use crate::error::SystemError;
 use crate::execution::scalar_value::LogicalType;
-use crate::grammar::syntax::script_writer::print_ast_as_script_with_defaults;
+use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{Statement, TableRef};
 
 use super::board_space::{BoardPosition, BoardSpace};
 use super::program_instance::{NodeError, NodeErrorCode, ProgramInstance};
-use crate::grammar::syntax::dson::{DsonAccess, DsonValue};
+use crate::grammar::dson::{DsonAccess, DsonValue};
 use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::collections::HashMap;

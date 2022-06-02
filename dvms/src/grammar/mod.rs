@@ -1,10 +1,25 @@
 pub use dashql_parser::parse;
-pub mod syntax;
 
-pub use syntax::ast_cell::*;
-pub use syntax::ast_node::*;
-pub use syntax::ast_nodes_dashql::*;
-pub use syntax::ast_nodes_sql::*;
-pub use syntax::ast_to_xml::serialize_ast_as_xml;
-pub use syntax::ast_translation::deserialize_ast;
-pub use syntax::program::*;
+pub mod ast_cell;
+pub mod ast_dump;
+pub mod ast_list;
+pub mod ast_node;
+pub mod ast_nodes_dashql;
+pub mod ast_nodes_sql;
+pub mod ast_nodes_sql_traits;
+pub mod ast_to_sql;
+pub mod ast_to_xml;
+pub mod ast_translation;
+pub mod dson;
+pub mod enums;
+pub mod enums_serde;
+pub mod program;
+pub mod script_writer;
+
+pub use ast_cell::*;
+pub use ast_node::*;
+pub use ast_nodes_dashql::*;
+pub use ast_nodes_sql::*;
+pub use ast_to_xml::serialize_ast_as_xml;
+pub use ast_translation::deserialize_ast;
+pub use program::*;

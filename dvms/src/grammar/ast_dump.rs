@@ -87,7 +87,7 @@ mod test {
     use std::io::BufReader;
     use std::path::PathBuf;
 
-    use crate::grammar::syntax::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
+    use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
 
     use super::super::ast_translation::deserialize_ast;
 

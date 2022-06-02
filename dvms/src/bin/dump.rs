@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use clap::{App, Arg, SubCommand};
-use dashql::grammar::syntax::ast_dump::ASTDump;
-use dashql::grammar::syntax::ast_dump::ASTDumpTemplateFile;
+use dashql::grammar::ast_dump::ASTDump;
+use dashql::grammar::ast_dump::ASTDumpTemplateFile;
 use log::info;
 use log::warn;
 use quick_xml::Writer;
@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use crate::utils::shared_writer::SharedWriter;
 use dashql::*;
 
-use grammar::syntax::ast_dump::ASTDumpFile;
+use grammar::ast_dump::ASTDumpFile;
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let arena = bumpalo::Bump::new();

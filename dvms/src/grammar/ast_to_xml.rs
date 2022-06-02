@@ -1,4 +1,4 @@
-use crate::grammar::syntax::enums::get_enum_text;
+use crate::grammar::enums::get_enum_text;
 use dashql_proto::syntax as sx;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;

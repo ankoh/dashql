@@ -1,5 +1,5 @@
 use super::board_space::BoardPosition;
-use crate::grammar::syntax::dson::{DsonField, DsonKey, DsonValue};
+use crate::grammar::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{Expression, VizStatement};
 use dashql_proto::syntax as sx;
 use serde::Serialize;
@@ -69,7 +69,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::grammar::syntax::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
+    use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
     use crate::grammar::{self, Statement};
     use std::error::Error;
 

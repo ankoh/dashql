@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::error::Error;
 
 use crate::{
-    grammar::{syntax::script_writer::print_ast_as_script_with_defaults, Statement},
+    grammar::{script_writer::print_ast_as_script_with_defaults, Statement},
     utils::topological_sort::TopologicalSort,
 };
 
