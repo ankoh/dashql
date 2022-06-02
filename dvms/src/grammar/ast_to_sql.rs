@@ -304,7 +304,26 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
             SelectData::From(from) => a.push(from.to_sql(w)),
             SelectData::Combine(_c) => todo!(),
             SelectData::Table(_t) => todo!(),
-            SelectData::Values(_to) => todo!(),
+            SelectData::Values(tuples) => {
+                let tuples = tuples.get();
+                let mut va = ScriptTextArray::with_capacity(w, 2 * tuples.len());
+                va.push(w.keyword("values"));
+                for (i, tuple) in tuples.iter().enumerate() {
+                    let tuple = tuple.get();
+                    let mut ta = ScriptTextArray::with_capacity(w, 2 * tuple.len());
+                    for (i, value) in tuple.iter().enumerate() {
+                        if i > 0 {
+                            ta.push(w.keyword(",").pad_right());
+                        }
+                        ta.push(value.get().to_sql(w));
+                    }
+                    if i > 0 {
+                        va.push(w.keyword(","));
+                    }
+                    va.push(w.round_brackets(ta.finish()).pad_left());
+                }
+                a.push(w.float(va.finish()));
+            }
         }
         if !self.order_by.get().is_empty() {
             a.push(w.keyword("order").pad_left());
@@ -1005,6 +1024,12 @@ mod test {
         test_pipe("select * from A order by a limit 10")?;
         test_pipe("select * from A order by a limit 10 offset 10")?;
         test_pipe("select * from A order by a limit all")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_select_values() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("values (1), (2)")?;
         Ok(())
     }
 
