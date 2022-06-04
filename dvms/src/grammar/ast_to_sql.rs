@@ -574,8 +574,8 @@ impl<'ast> ToSQL<'ast> for ColumnConstraint<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 8);
         if let Some(name) = self.constraint_name.get() {
-            a.push(w.keyword("constraint").pad_left());
-            a.push(w.str(name).pad_left());
+            a.push(w.keyword("constraint"));
+            a.push(w.str(name).pad_left().pad_right());
         }
         let write_constraints =
             |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast ColumnConstraintArgument>]| {
@@ -594,40 +594,40 @@ impl<'ast> ToSQL<'ast> for ColumnConstraint<'ast> {
             };
         match self.constraint_type.get() {
             Some(sx::ColumnConstraint::NOT_NULL) => {
-                a.push(w.keyword("not").pad_left());
+                a.push(w.keyword("not"));
                 a.push(w.keyword("null").pad_left());
             }
             Some(sx::ColumnConstraint::NULL_) => {
-                a.push(w.keyword("null").pad_left());
+                a.push(w.keyword("null"));
             }
             Some(sx::ColumnConstraint::CHECK) => {
-                a.push(w.keyword("check").pad_left());
-                a.push(w.round_brackets_one(self.value.get().to_sql(w)));
+                a.push(w.keyword("check"));
+                a.push(w.round_brackets_one(self.value.get().to_sql(w)).pad_left());
                 if self.no_inherit.get() {
                     a.push(w.keyword("no").pad_left());
                     a.push(w.keyword("inherit").pad_left());
                 }
             }
             Some(sx::ColumnConstraint::COLLATE) => {
-                a.push(w.keyword("collate").pad_left());
+                a.push(w.keyword("collate"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
             Some(sx::ColumnConstraint::PRIMARY_KEY) => {
-                a.push(w.keyword("primary").pad_left());
+                a.push(w.keyword("primary"));
                 a.push(w.keyword("key").pad_left());
                 write_constraints(&mut a, self.arguments.get());
             }
             Some(sx::ColumnConstraint::UNIQUE) => {
-                a.push(w.keyword("unique").pad_left());
+                a.push(w.keyword("unique"));
                 write_constraints(&mut a, self.arguments.get());
             }
             Some(sx::ColumnConstraint::DEFAULT) => {
-                a.push(w.keyword("default").pad_left());
+                a.push(w.keyword("default"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
             _ => (),
         }
-        todo!()
+        w.float(a.finish())
     }
 }
 
@@ -651,12 +651,20 @@ impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.str(self.name.get()));
         a.push(self.sql_type.get().to_sql(w).pad_left());
+        let constraints = self.constraints.get();
+        for constraint in constraints.iter() {
+            a.push(constraint.get().to_sql(w).pad_left());
+        }
         let options = self.options.get();
-        for (i, option) in options.iter().enumerate() {
-            if i > 0 {
-                a.push(w.keyword(",").pad_left());
+        if !options.is_empty() {
+            let mut oa = ScriptTextArray::with_capacity(w, 2 * options.len());
+            for (i, option) in options.iter().enumerate() {
+                if i > 0 {
+                    oa.push(w.keyword(","));
+                }
+                oa.push(option.get().to_sql(w).pad_left());
             }
-            a.push(option.get().to_sql(w).pad_left());
+            a.push(w.round_brackets(oa.finish()));
         }
         w.float(a.finish())
     }
@@ -686,12 +694,13 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
         a.push(w.keyword("table").pad_left());
         a.push(self.name.get().to_sql(w).pad_left());
         let elems = self.elements.get();
-        let mut cols = ScriptTextArray::with_capacity(w, elems.len());
+        let mut cols = ScriptTextArray::with_capacity(w, 2 * elems.len());
         for (i, elem) in elems.iter().enumerate() {
+            let col = elem.get();
             if i > 0 {
                 cols.push(w.keyword(",").pad_right());
             }
-            cols.push(elem.get().to_sql(w));
+            cols.push(col.to_sql(w));
         }
         a.push(w.round_brackets(cols.finish()).pad_left());
         if let Some(on_commit) = self.on_commit.get() {
@@ -845,6 +854,7 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
         match &self {
             Statement::CreateAs(s) => s.to_sql(w),
             Statement::CreateView(s) => s.to_sql(w),
+            Statement::Create(s) => s.to_sql(w),
             Statement::Select(s) => s.to_sql(w),
             Statement::Set(s) => s.to_sql(w),
             Statement::Fetch(s) => s.to_sql(w),
@@ -1425,10 +1435,30 @@ mod test {
     }
 
     #[test]
-    fn create_table_view() -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn creat_view() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe(&r#"create view foo as (select 1)"#)?;
         test_pipe(&r#"create temp view foo as (select 1)"#)?;
         test_pipe(&r#"create global temp view foo as (select 1)"#)?;
+        Ok(())
+    }
+
+    #[test]
+    fn create_table() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create table foo (a integer)"#)?;
+        test_pipe(&r#"create table foo (a integer, b varchar)"#)?;
+        test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;
+        test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;
+        test_pipe(&r#"create table foo (a varchar collate noaccent)"#)?;
+        test_pipe(&r#"create table foo (a varchar initially deferred)"#)?;
+        test_pipe(&r#"create table foo (a varchar deferrable)"#)?;
+        test_pipe(&r#"create table foo (a varchar not deferrable)"#)?;
+        test_pipe(&r#"create table foo (a varchar not null)"#)?;
+        test_pipe(&r#"create table foo (a varchar null)"#)?;
+        test_pipe(&r#"create table foo (a varchar check (a = 42))"#)?;
+        test_pipe(&r#"create table foo (a integer default 1)"#)?;
+        test_pipe(&r#"create table foo (a integer not null unique)"#)?;
+        // XXX table attributes !
+        // test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
         Ok(())
     }
 }
