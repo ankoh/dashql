@@ -202,14 +202,14 @@ pub struct NumericType<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct BitType<'a> {
     pub varying: ASTCell<bool>,
-    pub length: ASTCell<Expression<'a>>,
+    pub length: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CharacterType<'a> {
     #[serde(with = "serde_character_type::cell")]
     pub base: ASTCell<sx::CharacterType>,
-    pub length: ASTCell<Option<&'a str>>,
+    pub length: ASTCell<Option<Expression<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

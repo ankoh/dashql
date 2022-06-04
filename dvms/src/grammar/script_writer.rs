@@ -136,6 +136,24 @@ impl ScriptWriter {
             inline_length: len,
         }
     }
+    pub fn brackets_one<'writer>(
+        &'writer self,
+        elem: ScriptText<'writer>,
+        chars: [&'static str; 2],
+    ) -> ScriptText<'writer> {
+        let len = elem.inline_length;
+        let elems = self.arena.alloc_slice_clone(&[elem]);
+        ScriptText {
+            element: ScriptTextElement::Brackets(chars[0], chars[1], elems),
+            breakpoint_before: Cell::new(false),
+            space_before: Cell::new(false),
+            space_after: Cell::new(false),
+            inline_length: len,
+        }
+    }
+    pub fn round_brackets_one<'writer>(&'writer self, elem: ScriptText<'writer>) -> ScriptText<'writer> {
+        self.brackets_one(elem, ["(", ")"])
+    }
     pub fn round_brackets<'writer>(&'writer self, elems: &'writer [ScriptText<'writer>]) -> ScriptText<'writer> {
         let mut len = 2;
         for elem in elems.iter() {

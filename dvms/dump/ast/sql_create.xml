@@ -88,7 +88,7 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -120,7 +120,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -153,7 +153,7 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b tinyint">
@@ -193,7 +193,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -242,7 +242,7 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
@@ -282,7 +282,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -347,7 +347,7 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
@@ -387,7 +387,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -439,7 +439,7 @@
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -471,7 +471,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -514,7 +514,7 @@
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -546,7 +546,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -593,7 +593,7 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="28..37" text="a integer">
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="28..29" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="30..37" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -625,7 +625,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -680,7 +680,7 @@
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -712,7 +712,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -764,7 +764,7 @@
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -796,7 +796,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),
@@ -850,7 +850,7 @@
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                    <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                 </node>
                             </node>
                         </node>
@@ -882,7 +882,7 @@
                         sql_type: SQLType {
                             base_type: Numeric(
                                 NumericType {
-                                    base: INT4,
+                                    base: INT2,
                                     modifiers: [],
                                 },
                             ),

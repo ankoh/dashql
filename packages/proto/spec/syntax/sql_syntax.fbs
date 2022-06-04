@@ -131,6 +131,7 @@ enum OrderNullRule: uint8 {
 }
 
 enum NumericType: uint8 {
+    INT1,
     INT2,
     INT4,
     INT8,

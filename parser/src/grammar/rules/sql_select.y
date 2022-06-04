@@ -1002,7 +1002,7 @@ sql_numeric:
   | BIGINT      { $$ = Enum(@1, sx::NumericType::INT8); }
   | REAL        { $$ = Enum(@1, sx::NumericType::FLOAT4); }
   | FLOAT_P sql_opt_float   { $$ = Enum(@$, $2); }
-  | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericType::FLOAT4); }
+  | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericType::FLOAT8); }
   | DECIMAL_P sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
             Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),

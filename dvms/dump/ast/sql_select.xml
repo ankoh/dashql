@@ -3938,7 +3938,7 @@
                     <node type="OBJECT_DASHQL_INPUT" loc="0..31" text="input a ty..using text">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
                         <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="13..20" text="integer">
-                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="6..7" text="a"/>
@@ -4020,7 +4020,7 @@
                 value_type: SQLType {
                     base_type: Numeric(
                         NumericType {
-                            base: INT4,
+                            base: INT2,
                             modifiers: [],
                         },
                     ),
@@ -4171,7 +4171,7 @@
                     <node type="OBJECT_DASHQL_INPUT" loc="0..35" text="input mont..using text">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
                         <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
-                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
                             <node type="STRING_REF" loc="6..11" text="month"/>
@@ -4262,7 +4262,7 @@
                 value_type: SQLType {
                     base_type: Numeric(
                         NumericType {
-                            base: INT4,
+                            base: INT2,
                             modifiers: [],
                         },
                     ),
@@ -4837,7 +4837,7 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..18" text="integer &apos;1&apos;">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_CONST_TYPE_CAST" loc="7..18" text="integer &apos;1&apos;">
                                     <node key="SQL_CONST_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="7..18" text="integer &apos;1&apos;">
-                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                     </node>
                                     <node key="SQL_CONST_CAST_VALUE" type="STRING_REF" loc="15..18" text="&apos;1&apos;"/>
                                 </node>
@@ -4870,7 +4870,7 @@
                                             sql_type: SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
-                                                        base: INT4,
+                                                        base: INT2,
                                                         modifiers: [],
                                                     },
                                                 ),
@@ -5850,7 +5850,7 @@
                                                         base_type: Bit(
                                                             BitType {
                                                                 varying: false,
-                                                                length: Null,
+                                                                length: None,
                                                             },
                                                         ),
                                                         array_bounds: [],
@@ -5947,8 +5947,10 @@
                                                         base_type: Bit(
                                                             BitType {
                                                                 varying: false,
-                                                                length: StringRef(
-                                                                    &quot;2&quot;,
+                                                                length: Some(
+                                                                    StringRef(
+                                                                        &quot;2&quot;,
+                                                                    ),
                                                                 ),
                                                             },
                                                         ),
@@ -6046,8 +6048,10 @@
                                                         base_type: Bit(
                                                             BitType {
                                                                 varying: true,
-                                                                length: StringRef(
-                                                                    &quot;2&quot;,
+                                                                length: Some(
+                                                                    StringRef(
+                                                                        &quot;2&quot;,
+                                                                    ),
                                                                 ),
                                                             },
                                                         ),
@@ -6703,7 +6707,7 @@
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="7..17" text="1::integer">
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="7..17" text="1::integer">
                                     <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="10..17" text="integer">
-                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                     </node>
                                     <node key="SQL_TYPECAST_VALUE" type="STRING_REF" loc="7..8" text="1"/>
                                 </node>
@@ -6737,7 +6741,7 @@
                                         sql_type: SQLType {
                                             base_type: Numeric(
                                                 NumericType {
-                                                    base: INT4,
+                                                    base: INT2,
                                                     modifiers: [],
                                                 },
                                             ),
@@ -7196,7 +7200,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPETEST_EXPRESSION" loc="7..24" text="a is of (integer)">
                                     <node key="SQL_TYPETEST_TYPES" type="ARRAY">
                                         <node type="OBJECT_SQL_TYPENAME" loc="16..23" text="integer">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                         </node>
                                     </node>
                                     <node key="SQL_TYPETEST_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
@@ -7241,7 +7245,7 @@
                                             SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
-                                                        base: INT4,
+                                                        base: INT2,
                                                         modifiers: [],
                                                     },
                                                 ),
@@ -7284,7 +7288,7 @@
                                     <node key="SQL_TYPETEST_NEGATE" type="BOOL" value="true"/>
                                     <node key="SQL_TYPETEST_TYPES" type="ARRAY">
                                         <node type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                         </node>
                                     </node>
                                     <node key="SQL_TYPETEST_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="7..8" text="a">
@@ -7329,7 +7333,7 @@
                                             SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
-                                                        base: INT4,
+                                                        base: INT2,
                                                         modifiers: [],
                                                     },
                                                 ),
@@ -10489,7 +10493,7 @@
                                 <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="7..25" text="cast(1 as integer)">
                                     <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="11..25" text="(1 as integer)">
                                         <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="17..24" text="integer">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                         </node>
                                         <node key="SQL_FUNCTION_CAST_VALUE" type="STRING_REF" loc="12..13" text="1"/>
                                     </node>
@@ -10532,7 +10536,7 @@
                                                     as_type: SQLType {
                                                         base_type: Numeric(
                                                             NumericType {
-                                                                base: INT4,
+                                                                base: INT2,
                                                                 modifiers: [],
                                                             },
                                                         ),
@@ -10584,7 +10588,7 @@
                                     <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="TREAT"/>
                                     <node key="SQL_FUNCTION_TREAT_ARGS" type="OBJECT_SQL_FUNCTION_TREAT_ARGS" loc="12..26" text="(1 as integer)">
                                         <node key="SQL_FUNCTION_TREAT_TYPE" type="OBJECT_SQL_TYPENAME" loc="18..25" text="integer">
-                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                         </node>
                                         <node key="SQL_FUNCTION_TREAT_VALUE" type="STRING_REF" loc="13..14" text="1"/>
                                     </node>
@@ -10626,7 +10630,7 @@
                                                     as_type: SQLType {
                                                         base_type: Numeric(
                                                             NumericType {
-                                                                base: INT4,
+                                                                base: INT2,
                                                                 modifiers: [],
                                                             },
                                                         ),
@@ -12575,7 +12579,7 @@
                                                 <node type="OBJECT_SQL_COLUMN_DEF" loc="48..57" text="a integer">
                                                     <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="48..49" text="a"/>
                                                     <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="50..57" text="integer">
-                                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                                     </node>
                                                 </node>
                                             </node>
@@ -12593,7 +12597,7 @@
                                                 <node type="OBJECT_SQL_COLUMN_DEF" loc="83..92" text="a integer">
                                                     <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="83..84" text="a"/>
                                                     <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="85..92" text="integer">
-                                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                                        <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                                     </node>
                                                 </node>
                                             </node>
@@ -12672,7 +12676,7 @@
                                                         sql_type: SQLType {
                                                             base_type: Numeric(
                                                                 NumericType {
-                                                                    base: INT4,
+                                                                    base: INT2,
                                                                     modifiers: [],
                                                                 },
                                                             ),
@@ -12713,7 +12717,7 @@
                                                         sql_type: SQLType {
                                                             base_type: Numeric(
                                                                 NumericType {
-                                                                    base: INT4,
+                                                                    base: INT2,
                                                                     modifiers: [],
                                                                 },
                                                             ),
@@ -16584,7 +16588,7 @@
                                         <node type="OBJECT_SQL_COLUMN_DEF" loc="37..46" text="a integer">
                                             <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="37..38" text="a"/>
                                             <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="39..46" text="integer">
-                                                <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                                                <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT2"/>
                                             </node>
                                         </node>
                                     </node>
@@ -16686,7 +16690,7 @@
                                                     sql_type: SQLType {
                                                         base_type: Numeric(
                                                             NumericType {
-                                                                base: INT4,
+                                                                base: INT2,
                                                                 modifiers: [],
                                                             },
                                                         ),

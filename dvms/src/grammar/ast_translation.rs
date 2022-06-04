@@ -187,7 +187,7 @@ pub fn deserialize_ast<'a>(
                 let mut varying = ASTCell::with_value(false);
                 let mut length = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_BIT_TYPE_LENGTH, e, ci) => length = ASTCell::with_node(read_expr!(e), ci),
+                    (Key::SQL_BIT_TYPE_LENGTH, e, ci) => length = ASTCell::with_node(Some(read_expr!(e)), ci),
                     (Key::SQL_BIT_TYPE_VARYING, ASTNode::Boolean(b), ci) => varying = ASTCell::with_node(*b, ci)
                 }
                 ASTNode::BitTypeSpec(arena.alloc(BitType { varying, length }))
@@ -914,7 +914,7 @@ pub fn deserialize_ast<'a>(
                 let mut length = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c), ci) => base = ASTCell::with_node(c.clone(), ci),
-                    (Key::SQL_CHARACTER_TYPE_LENGTH, ASTNode::StringRef(l), ci) => length = ASTCell::with_node(Some(l.clone()), ci)
+                    (Key::SQL_CHARACTER_TYPE_LENGTH, l, ci) => length = ASTCell::with_node(Some(read_expr!(l)), ci)
                 }
                 ASTNode::CharacterTypeSpec(arena.alloc(CharacterType { base, length }))
             }

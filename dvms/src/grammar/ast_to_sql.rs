@@ -44,13 +44,7 @@ impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
             a.push(w.round_brackets(cols.finish()).pad_left());
         }
         a.push(w.keyword("as").pad_left().pad_right());
-        a.push(
-            w.round_brackets(
-                ScriptTextArray::with_capacity(w, 1)
-                    .with_pushed(self.statement.get().to_sql(w))
-                    .finish(),
-            ),
-        );
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
         w.float(a.finish())
     }
 }
@@ -371,12 +365,358 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
     }
 }
 
-impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
-    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
+        let mut kv = ScriptTextArray::with_capacity(w, 3);
+        kv.push(w.str(self.key.get()));
+        kv.push(w.keyword("=").pad_left());
+        kv.push(w.str(self.value.get()).pad_left());
+        w.float(kv.finish())
+    }
+}
+
+impl<'ast> ToSQL<'ast> for SQLType<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let write_modifiers = |out: &mut ScriptTextArray<'writer>, modifiers: &'ast [ASTCell<Expression<'ast>>]| {
+            if modifiers.is_empty() {
+                return;
+            }
+            let mut m = ScriptTextArray::with_capacity(w, modifiers.len());
+            for (i, modifier) in modifiers.iter().enumerate() {
+                if i > 0 {
+                    m.push(w.keyword(",").pad_right());
+                }
+                m.push(modifier.get().to_sql(w));
+            }
+            out.push(w.round_brackets(m.finish()));
+        };
+        let mut a = ScriptTextArray::with_capacity(w, 6);
+        match self.base_type.get() {
+            SQLBaseType::Invalid => a.push(w.keyword("invalid")),
+            SQLBaseType::Bit(t) => {
+                a.push(w.keyword("bit"));
+                if t.varying.get() {
+                    a.push(w.keyword("varying").pad_left());
+                }
+                if let Some(length) = t.length.get() {
+                    let mut l = ScriptTextArray::with_capacity(w, 1);
+                    l.push(length.to_sql(w));
+                    a.push(w.round_brackets(l.finish()));
+                }
+            }
+            SQLBaseType::Generic(t) => {
+                a.push(w.str(t.name.get()));
+                write_modifiers(&mut a, t.modifiers.get());
+            }
+            SQLBaseType::Numeric(t) => {
+                match t.base.get() {
+                    sx::NumericType::BOOL => a.push(w.keyword("bool")),
+                    sx::NumericType::INT1 => a.push(w.keyword("tinyint")),
+                    sx::NumericType::INT2 => a.push(w.keyword("smallint")),
+                    sx::NumericType::INT4 => a.push(w.keyword("integer")),
+                    sx::NumericType::INT8 => a.push(w.keyword("bigint")),
+                    sx::NumericType::FLOAT4 => a.push(w.keyword("float")),
+                    sx::NumericType::FLOAT8 => a.push(w.keyword("double")),
+                    sx::NumericType::NUMERIC => a.push(w.keyword("numeric")),
+                    _ => (),
+                }
+                write_modifiers(&mut a, t.modifiers.get());
+            }
+            SQLBaseType::Character(t) => {
+                let base = t.base.get();
+                match base {
+                    sx::CharacterType::VARCHAR => a.push(w.keyword("varchar")),
+                    sx::CharacterType::BLANK_PADDED_CHAR => a.push(w.keyword("char")),
+                    _ => (),
+                }
+                if let Some(length) = t.length.get() {
+                    // XXX lengths are stored as stringref, use const uint in ast
+                    a.push(w.round_brackets_one(length.to_sql(w)));
+                }
+            }
+            SQLBaseType::Time(t) => {
+                a.push(w.keyword("time"));
+                if let Some(precision) = t.precision.get() {
+                    // XXX lengths are stored as stringref, use const uint in ast
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+                if t.with_timezone.get() {
+                    a.push(w.keyword("with").pad_left());
+                    a.push(w.keyword("timezome").pad_left());
+                }
+            }
+            SQLBaseType::Timestamp(t) => {
+                a.push(w.keyword("timezone"));
+                if let Some(precision) = t.precision.get() {
+                    // XXX lengths are stored as stringref, use const uint in ast
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+                if t.with_timezone.get() {
+                    a.push(w.keyword("with").pad_left());
+                    a.push(w.keyword("timezome").pad_left());
+                }
+            }
+            SQLBaseType::Interval(t) => {
+                if let Some(it) = t.interval_type.get() {
+                    match it {
+                        sx::IntervalType::DAY => a.push(w.keyword("day")),
+                        sx::IntervalType::YEAR => a.push(w.keyword("year")),
+                        sx::IntervalType::MONTH => a.push(w.keyword("month")),
+                        sx::IntervalType::HOUR => a.push(w.keyword("hour")),
+                        sx::IntervalType::MINUTE => a.push(w.keyword("minute")),
+                        sx::IntervalType::SECOND => {
+                            a.push(w.keyword("second"));
+                            if let Some(precision) = t.precision.get() {
+                                a.push(w.round_brackets_one(w.str(precision)));
+                            }
+                        }
+                        sx::IntervalType::YEAR_TO_MONTH => {
+                            a.push(w.keyword("year"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("month").pad_left());
+                        }
+                        sx::IntervalType::DAY_TO_HOUR => {
+                            a.push(w.keyword("day"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("hour").pad_left());
+                        }
+                        sx::IntervalType::DAY_TO_SECOND => {
+                            a.push(w.keyword("day"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("second").pad_left());
+                            if let Some(precision) = t.precision.get() {
+                                a.push(w.round_brackets_one(w.str(precision)));
+                            }
+                        }
+                        sx::IntervalType::HOUR_TO_MINUTE => {
+                            a.push(w.keyword("hour"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("minute").pad_left());
+                        }
+                        sx::IntervalType::HOUR_TO_SECOND => {
+                            a.push(w.keyword("hour"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("second").pad_left());
+                            if let Some(precision) = t.precision.get() {
+                                a.push(w.round_brackets_one(w.str(precision)));
+                            }
+                        }
+                        sx::IntervalType::MINUTE_TO_SECOND => {
+                            a.push(w.keyword("minute"));
+                            a.push(w.keyword("to").pad_left());
+                            a.push(w.keyword("second").pad_left());
+                            if let Some(precision) = t.precision.get() {
+                                a.push(w.round_brackets_one(w.str(precision)));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'ast> ToSQL<'ast> for sx::ConstraintAttribute {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        match *self {
+            sx::ConstraintAttribute::DEFERRABLE => w.keyword("deferrable"),
+            sx::ConstraintAttribute::NOT_DEFERRABLE => {
+                let mut a = ScriptTextArray::with_capacity(w, 2);
+                a.push(w.keyword("not"));
+                a.push(w.keyword("deferrable").pad_left());
+                w.float(a.finish())
+            }
+            sx::ConstraintAttribute::INITIALLY_DEFERRED => {
+                let mut a = ScriptTextArray::with_capacity(w, 2);
+                a.push(w.keyword("initially"));
+                a.push(w.keyword("deferred").pad_left());
+                w.float(a.finish())
+            }
+            sx::ConstraintAttribute::INITIALLY_IMMEDIATE => {
+                let mut a = ScriptTextArray::with_capacity(w, 2);
+                a.push(w.keyword("initially"));
+                a.push(w.keyword("immediate").pad_left());
+                w.float(a.finish())
+            }
+            _ => w.float(&[]),
+        }
+    }
+}
+
+impl<'ast> ToSQL<'ast> for ColumnConstraintArgument<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 3);
+        a.push(w.str(self.name.get()));
+        a.push(w.keyword("=").pad_left());
+        a.push(self.value.get().to_sql(w));
+        w.float(a.finish())
+    }
+}
+
+impl<'ast> ToSQL<'ast> for ColumnConstraint<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 8);
+        if let Some(name) = self.constraint_name.get() {
+            a.push(w.keyword("constraint").pad_left());
+            a.push(w.str(name).pad_left());
+        }
+        let write_constraints =
+            |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast ColumnConstraintArgument>]| {
+                if args.is_empty() {
+                    return;
+                }
+                let mut defs = ScriptTextArray::with_capacity(w, 2 * args.len());
+                for (i, arg) in args.iter().enumerate() {
+                    let arg = arg.get();
+                    if i > 0 {
+                        defs.push(w.keyword(",").pad_right());
+                    }
+                    defs.push(arg.to_sql(w));
+                }
+                out.push(w.float(defs.finish()).pad_left());
+            };
+        match self.constraint_type.get() {
+            Some(sx::ColumnConstraint::NOT_NULL) => {
+                a.push(w.keyword("not").pad_left());
+                a.push(w.keyword("null").pad_left());
+            }
+            Some(sx::ColumnConstraint::NULL_) => {
+                a.push(w.keyword("null").pad_left());
+            }
+            Some(sx::ColumnConstraint::CHECK) => {
+                a.push(w.keyword("check").pad_left());
+                a.push(w.round_brackets_one(self.value.get().to_sql(w)));
+                if self.no_inherit.get() {
+                    a.push(w.keyword("no").pad_left());
+                    a.push(w.keyword("inherit").pad_left());
+                }
+            }
+            Some(sx::ColumnConstraint::COLLATE) => {
+                a.push(w.keyword("collate").pad_left());
+                a.push(self.value.get().to_sql(w).pad_left());
+            }
+            Some(sx::ColumnConstraint::PRIMARY_KEY) => {
+                a.push(w.keyword("primary").pad_left());
+                a.push(w.keyword("key").pad_left());
+                write_constraints(&mut a, self.arguments.get());
+            }
+            Some(sx::ColumnConstraint::UNIQUE) => {
+                a.push(w.keyword("unique").pad_left());
+                write_constraints(&mut a, self.arguments.get());
+            }
+            Some(sx::ColumnConstraint::DEFAULT) => {
+                a.push(w.keyword("default").pad_left());
+                a.push(self.value.get().to_sql(w).pad_left());
+            }
+            _ => (),
+        }
         todo!()
+    }
+}
+
+impl<'ast> ToSQL<'ast> for ColumnConstraintVariant<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        match &self {
+            ColumnConstraintVariant::Attribute(a) => a.to_sql(w),
+            ColumnConstraintVariant::Constraint(c) => c.to_sql(w),
+        }
+    }
+}
+
+impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 5);
+        a.push(w.str(self.name.get()));
+        a.push(self.sql_type.get().to_sql(w).pad_left());
+        let options = self.options.get();
+        for (i, option) in options.iter().enumerate() {
+            if i > 0 {
+                a.push(w.keyword(",").pad_left());
+            }
+            a.push(option.get().to_sql(w).pad_left());
+        }
+        w.float(a.finish())
+    }
+}
+
+impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 10 + self.elements.get().len());
+        a.push(w.keyword("create"));
+        match self.temp.get() {
+            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::GLOBAL) => {
+                a.push(w.keyword("global").pad_left());
+                a.push(w.keyword("temp").pad_left());
+            }
+            Some(sx::TempType::UNLOGGED) => {
+                a.push(w.keyword("unlogged").pad_left());
+            }
+            Some(_) => {}
+            None => todo!(),
+        }
+        a.push(w.keyword("table").pad_left());
+        a.push(self.name.get().to_sql(w).pad_left());
+        let elems = self.elements.get();
+        let mut cols = ScriptTextArray::with_capacity(w, elems.len());
+        for (i, elem) in elems.iter().enumerate() {
+            if i > 0 {
+                cols.push(w.keyword(",").pad_right());
+            }
+            cols.push(elem.get().to_sql(w));
+        }
+        a.push(w.round_brackets(cols.finish()).pad_left());
+        if let Some(on_commit) = self.on_commit.get() {
+            match on_commit {
+                sx::OnCommitOption::DROP => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("drop").pad_left());
+                }
+                sx::OnCommitOption::DELETE_ROWS => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("delete").pad_left());
+                    a.push(w.keyword("rows").pad_left());
+                }
+                sx::OnCommitOption::PRESERVE_ROWS => {
+                    a.push(w.keyword("on").pad_left());
+                    a.push(w.keyword("commit").pad_left());
+                    a.push(w.keyword("preserve").pad_left());
+                    a.push(w.keyword("rows").pad_left());
+                }
+                _ => (),
+            }
+        }
+        w.float(a.finish())
     }
 }
 
@@ -443,9 +783,7 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
             }
         }
         a.push(w.keyword("as").pad_left());
-        let mut s = ScriptTextArray::with_capacity(w, 1);
-        s.push(self.statement.get().to_sql(w));
-        a.push(w.round_brackets(s.finish()).pad_left());
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
         w.float(a.finish())
     }
 }
@@ -485,9 +823,7 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
             a.push(w.round_brackets(c.finish()).pad_left());
         }
         a.push(w.keyword("as").pad_left());
-        let mut s = ScriptTextArray::with_capacity(w, 1);
-        s.push(self.statement.get().to_sql(w));
-        a.push(w.round_brackets(s.finish()).pad_left());
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
         w.float(a.finish())
     }
 }
