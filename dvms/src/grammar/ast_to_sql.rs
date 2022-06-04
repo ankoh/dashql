@@ -1444,6 +1444,7 @@ mod test {
 
     #[test]
     fn create_table() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create table foo ()"#)?;
         test_pipe(&r#"create table foo (a integer)"#)?;
         test_pipe(&r#"create table foo (a integer, b varchar)"#)?;
         test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;

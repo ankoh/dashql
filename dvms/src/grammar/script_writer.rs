@@ -212,7 +212,6 @@ pub struct ScriptTextArray<'writer> {
 
 impl<'writer> ScriptTextArray<'writer> {
     pub fn with_capacity(writer: &'writer ScriptWriter, cap: usize) -> Self {
-        debug_assert!(cap > 0, "array capacity must be > 0");
         let array: &mut [ScriptText<'writer>] = writer.arena.alloc_slice_fill_default(cap);
         Self { array, writer: 0 }
     }
