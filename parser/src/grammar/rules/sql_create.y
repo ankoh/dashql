@@ -226,3 +226,29 @@ sql_on_commit_option:
 sql_opt_with:
     %empty          { $$ = Null(); }
     ;
+
+sql_table_constraint:
+    CONSTRAINT sql_name sql_table_constraint_elem
+  | sql_table_constraint_elem
+    ;
+
+sql_existing_index:
+    USING INDEX sql_col_id
+    ;
+
+sql_table_constraint_elem:
+    CHECK_P '(' sql_a_expr ')' sql_opt_no_inherit { $$ = {
+          Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::CHECK)),
+          Attr(Key::SQL_TABLE_CONSTRAINT_VALUE, std::move($3)),
+          Attr(Key::SQL_TABLE_CONSTRAINT_NO_INHERIT, std::move($5)),
+    }; }
+  | UNIQUE '(' sql_opt_column_list ')' sql_opt_definition { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::UNIQUE)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@2, std::move($2))),
+    }; }
+  | PRIMARY KEY '(' sql_opt_column_list ')' sql_opt_definition { $$ = {
+    }; }
+  | FOREIGN KEY '(' sql_opt_column_list ')' REFERENCES sql_qualified_name { $$ = {
+    }; }
+  | FOREIGN KEY '(' sql_opt_column_list ')' REFERENCES sql_qualified_name { $$ = {
+    }; }

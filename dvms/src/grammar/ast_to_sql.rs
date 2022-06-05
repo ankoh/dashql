@@ -387,7 +387,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
             if modifiers.is_empty() {
                 return;
             }
-            let mut m = ScriptTextArray::with_capacity(w, modifiers.len());
+            let mut m = ScriptTextArray::with_capacity(w, 2 * modifiers.len());
             for (i, modifier) in modifiers.iter().enumerate() {
                 if i > 0 {
                     m.push(w.keyword(",").pad_right());
@@ -448,18 +448,20 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                 }
                 if t.with_timezone.get() {
                     a.push(w.keyword("with").pad_left());
-                    a.push(w.keyword("timezome").pad_left());
+                    a.push(w.keyword("time").pad_left());
+                    a.push(w.keyword("zone").pad_left());
                 }
             }
             SQLBaseType::Timestamp(t) => {
-                a.push(w.keyword("timezone"));
+                a.push(w.keyword("timestamp"));
                 if let Some(precision) = t.precision.get() {
                     // XXX lengths are stored as stringref, use const uint in ast
                     a.push(w.round_brackets_one(w.str(precision)));
                 }
                 if t.with_timezone.get() {
                     a.push(w.keyword("with").pad_left());
-                    a.push(w.keyword("timezome").pad_left());
+                    a.push(w.keyword("time").pad_left());
+                    a.push(w.keyword("zone").pad_left());
                 }
             }
             SQLBaseType::Interval(t) => {
@@ -1448,7 +1450,6 @@ mod test {
         test_pipe(&r#"create table foo (a integer)"#)?;
         test_pipe(&r#"create table foo (a integer, b varchar)"#)?;
         test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;
-        test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;
         test_pipe(&r#"create table foo (a varchar collate noaccent)"#)?;
         test_pipe(&r#"create table foo (a varchar initially deferred)"#)?;
         test_pipe(&r#"create table foo (a varchar deferrable)"#)?;
@@ -1458,6 +1459,14 @@ mod test {
         test_pipe(&r#"create table foo (a varchar check (a = 42))"#)?;
         test_pipe(&r#"create table foo (a integer default 1)"#)?;
         test_pipe(&r#"create table foo (a integer not null unique)"#)?;
+        test_pipe(&r#"create table foo (a bit(1))"#)?;
+        test_pipe(&r#"create table foo (a bool)"#)?;
+        test_pipe(&r#"create table foo (a float)"#)?;
+        test_pipe(&r#"create table foo (a double)"#)?;
+        test_pipe(&r#"create table foo (a time(2))"#)?;
+        test_pipe(&r#"create table foo (a char(20))"#)?;
+        test_pipe(&r#"create table foo (a numeric(12, 2))"#)?;
+        test_pipe(&r#"create table foo (a time with time zone)"#)?;
         // XXX table attributes !
         // test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
         Ok(())
