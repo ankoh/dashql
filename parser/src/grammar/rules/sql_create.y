@@ -298,25 +298,25 @@ sql_key_actions:
     ;
 
 sql_key_update:
-    ON UPDATE sql_key_action { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
+    ON UPDATE sql_key_action_command { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
         Attr(Key::SQL_KEY_ACTION_TRIGGER, Enum(Loc({@1, @2}), sx::KeyActionTrigger::UPDATE)),
         Attr(Key::SQL_KEY_ACTION_COMMAND, $3),
     }); }
     ;
 
 sql_key_delete:
-    ON DELETE_P sql_key_action { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
+    ON DELETE_P sql_key_action_command { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
         Attr(Key::SQL_KEY_ACTION_TRIGGER, Enum(Loc({@1, @2}), sx::KeyActionTrigger::DELETE)),
         Attr(Key::SQL_KEY_ACTION_COMMAND, $3),
     }); }
     ;
 
-sql_key_action:
-    NO ACTION     { $$ = Enum(@$, sx::KeyAction::NO_ACTION); }
-  | RESTRICT      { $$ = Enum(@$, sx::KeyAction::RESTRICT); }
-  | CASCADE       { $$ = Enum(@$, sx::KeyAction::CASCADE); }
-  | SET NULL_P    { $$ = Enum(@$, sx::KeyAction::SET_NULL); }
-  | SET DEFAULT   { $$ = Enum(@$, sx::KeyAction::SET_DEFAULT); }
+sql_key_action_command:
+    NO ACTION     { $$ = Enum(@$, sx::KeyActionCommand::NO_ACTION); }
+  | RESTRICT      { $$ = Enum(@$, sx::KeyActionCommand::RESTRICT); }
+  | CASCADE       { $$ = Enum(@$, sx::KeyActionCommand::CASCADE); }
+  | SET NULL_P    { $$ = Enum(@$, sx::KeyActionCommand::SET_NULL); }
+  | SET DEFAULT   { $$ = Enum(@$, sx::KeyActionCommand::SET_DEFAULT); }
     ;
 
 sql_table_constraint_attr_list:

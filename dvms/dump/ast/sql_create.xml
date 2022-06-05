@@ -556,7 +556,7 @@
                         collate: [],
                         constraints: [
                             Constraint(
-                                ColumnConstraint {
+                                ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: Some(
                                         COLLATE,
@@ -722,7 +722,7 @@
                         collate: [],
                         constraints: [
                             Constraint(
-                                ColumnConstraint {
+                                ColumnConstraintSpec {
                                     constraint_name: Some(
                                         &quot;a&quot;,
                                     ),
@@ -806,7 +806,7 @@
                         collate: [],
                         constraints: [
                             Constraint(
-                                ColumnConstraint {
+                                ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: Some(
                                         PRIMARY_KEY,
@@ -892,7 +892,7 @@
                         collate: [],
                         constraints: [
                             Constraint(
-                                ColumnConstraint {
+                                ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: Some(
                                         NOT_NULL,
@@ -903,7 +903,7 @@
                                 },
                             ),
                             Constraint(
-                                ColumnConstraint {
+                                ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: Some(
                                         DEFAULT,

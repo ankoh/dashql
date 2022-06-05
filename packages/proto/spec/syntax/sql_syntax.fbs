@@ -185,7 +185,7 @@ enum KeyMatch: uint8 {
     SIMPLE
 }
 
-enum KeyAction: uint8 {
+enum KeyActionCommand: uint8 {
     NO_ACTION,
     RESTRICT,
     CASCADE,

@@ -557,18 +557,18 @@ pub struct GenericOption<'a> {
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
-pub struct ColumnConstraintArgument<'a> {
-    pub name: ASTCell<&'a str>,
+pub struct GenericDefinition<'a> {
+    pub key: ASTCell<&'a str>,
     pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
-pub struct ColumnConstraint<'a> {
+pub struct ColumnConstraintSpec<'a> {
     pub constraint_name: ASTCell<Option<&'a str>>,
     #[serde(with = "serde_column_constraint::cell_opt")]
     pub constraint_type: ASTCell<Option<sx::ColumnConstraint>>,
     pub value: ASTCell<Expression<'a>>,
-    pub arguments: ASTCell<&'a [ASTCell<&'a ColumnConstraintArgument<'a>>]>,
+    pub arguments: ASTCell<&'a [ASTCell<&'a GenericDefinition<'a>>]>,
     pub no_inherit: ASTCell<bool>,
 }
 
@@ -576,7 +576,7 @@ pub struct ColumnConstraint<'a> {
 pub enum ColumnConstraintVariant<'a> {
     #[serde(with = "serde_constraint_attribute")]
     Attribute(sx::ConstraintAttribute),
-    Constraint(&'a ColumnConstraint<'a>),
+    Constraint(&'a ColumnConstraintSpec<'a>),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -602,4 +602,22 @@ pub struct WindowFrame<'a> {
 pub struct WindowDefinition<'a> {
     pub name: ASTCell<&'a str>,
     pub frame: ASTCell<&'a WindowFrame<'a>>,
+}
+
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+pub struct KeyAction {
+    #[serde(with = "serde_key_action_trigger::cell")]
+    pub trigger: ASTCell<sx::KeyActionTrigger>,
+    #[serde(with = "serde_key_action_command::cell")]
+    pub command: ASTCell<sx::KeyActionCommand>,
+}
+
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+pub struct TableConstraintSpec<'a> {
+    pub constraint_name: ASTCell<Option<&'a str>>,
+    #[serde(with = "serde_table_constraint::cell")]
+    pub constraint_type: ASTCell<sx::TableConstraint>,
+    pub argument: ASTCell<Option<Expression<'a>>>,
+    pub index: ASTCell<Option<&'a str>>,
+    // XXX TODO
 }

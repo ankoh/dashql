@@ -372,7 +372,6 @@ impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
     {
         let mut kv = ScriptTextArray::with_capacity(w, 3);
         kv.push(w.str(self.key.get()));
-        kv.push(w.keyword("=").pad_left());
         kv.push(w.str(self.value.get()).pad_left());
         w.float(kv.finish())
     }
@@ -556,20 +555,20 @@ impl<'ast> ToSQL<'ast> for sx::ConstraintAttribute {
     }
 }
 
-impl<'ast> ToSQL<'ast> for ColumnConstraintArgument<'ast> {
+impl<'ast> ToSQL<'ast> for GenericDefinition<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3);
-        a.push(w.str(self.name.get()));
+        a.push(w.str(self.key.get()));
         a.push(w.keyword("=").pad_left());
         a.push(self.value.get().to_sql(w));
         w.float(a.finish())
     }
 }
 
-impl<'ast> ToSQL<'ast> for ColumnConstraint<'ast> {
+impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
@@ -579,21 +578,20 @@ impl<'ast> ToSQL<'ast> for ColumnConstraint<'ast> {
             a.push(w.keyword("constraint"));
             a.push(w.str(name).pad_left().pad_right());
         }
-        let write_constraints =
-            |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast ColumnConstraintArgument>]| {
-                if args.is_empty() {
-                    return;
+        let write_constraints = |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast GenericDefinition>]| {
+            if args.is_empty() {
+                return;
+            }
+            let mut defs = ScriptTextArray::with_capacity(w, 2 * args.len());
+            for (i, arg) in args.iter().enumerate() {
+                let arg = arg.get();
+                if i > 0 {
+                    defs.push(w.keyword(",").pad_right());
                 }
-                let mut defs = ScriptTextArray::with_capacity(w, 2 * args.len());
-                for (i, arg) in args.iter().enumerate() {
-                    let arg = arg.get();
-                    if i > 0 {
-                        defs.push(w.keyword(",").pad_right());
-                    }
-                    defs.push(arg.to_sql(w));
-                }
-                out.push(w.float(defs.finish()).pad_left());
-            };
+                defs.push(arg.to_sql(w));
+            }
+            out.push(w.float(defs.finish()).pad_left());
+        };
         match self.constraint_type.get() {
             Some(sx::ColumnConstraint::NOT_NULL) => {
                 a.push(w.keyword("not"));

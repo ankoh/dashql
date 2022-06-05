@@ -116,10 +116,10 @@ pub fn deserialize_ast<'a>(
             ),
             sx::NodeType::ARRAY => ASTNode::Array(arena.alloc_slice_copy(children), children_begin),
 
-            sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => as_enum!(VizComponentType),
-            sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => as_enum!(InputComponentType),
             sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE => as_enum!(FetchMethodType),
+            sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => as_enum!(InputComponentType),
             sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE => as_enum!(LoadMethodType),
+            sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => as_enum!(VizComponentType),
             sx::NodeType::ENUM_SQL_CHARACTER_TYPE => as_enum!(CharacterType),
             sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT => as_enum!(ColumnConstraint),
             sx::NodeType::ENUM_SQL_COMBINE_MODIFIER => as_enum!(CombineModifier),
@@ -136,6 +136,7 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::ENUM_SQL_ORDER_DIRECTION => as_enum!(OrderDirection),
             sx::NodeType::ENUM_SQL_ORDER_NULL_RULE => as_enum!(OrderNullRule),
             sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => as_enum!(SubqueryQuantifier),
+            sx::NodeType::ENUM_SQL_TABLE_CONSTRAINT => as_enum!(TableConstraint),
             sx::NodeType::ENUM_SQL_TEMP_TYPE => as_enum!(TempType),
             sx::NodeType::ENUM_SQL_TRIM_TARGET => as_enum!(TrimDirection),
             sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => as_enum!(WindowBoundDirection),
@@ -931,13 +932,13 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             sx::NodeType::OBJECT_SQL_DEF_ARG => {
-                let mut name = ASTCell::with_value("");
+                let mut key = ASTCell::with_value("");
                 let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
-                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(n, ci),
+                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n), ci) => key = ASTCell::with_node(n, ci),
                     (Key::SQL_DEFINITION_ARG_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci)
                 }
-                ASTNode::ColumnConstraintArgument(arena.alloc(ColumnConstraintArgument { name, value }))
+                ASTNode::GenericDefinition(arena.alloc(GenericDefinition { key, value }))
             }
             sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = ASTCell::default();
@@ -949,10 +950,10 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = ASTCell::with_node(Some(c.clone()), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
-                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => arguments = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnConstraintArgument), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => arguments = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), ci) => no_inherit = ASTCell::with_node(*b, ci)
                 }
-                ASTNode::ColumnConstraintInfo(arena.alloc(ColumnConstraint {
+                ASTNode::ColumnConstraintSpec(arena.alloc(ColumnConstraintSpec {
                     constraint_name,
                     constraint_type,
                     value,
@@ -960,6 +961,16 @@ pub fn deserialize_ast<'a>(
                     no_inherit,
                 }))
             }
+            sx::NodeType::OBJECT_SQL_KEY_ACTION => {
+                let mut trigger = ASTCell::with_value(sx::KeyActionTrigger::UPDATE);
+                let mut command = ASTCell::with_value(sx::KeyActionCommand::NO_ACTION);
+                read_attributes! {
+                    (Key::SQL_KEY_ACTION_TRIGGER, ASTNode::KeyActionTrigger(t), ci) => trigger = ASTCell::with_node(*t, ci),
+                    (Key::SQL_KEY_ACTION_COMMAND, ASTNode::KeyActionCommand(c), ci) => command = ASTCell::with_node(*c, ci)
+                }
+                ASTNode::KeyAction(arena.alloc(KeyAction { trigger, command }))
+            }
+            // sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT => {} TODO
             sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
                 let mut strength = ASTCell::with_value(sx::RowLockingStrength::READ_ONLY);
                 let mut of: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1045,7 +1056,7 @@ pub fn deserialize_ast<'a>(
                         let cs = arena.alloc_slice_fill_default(nodes.len());
                         for (i, node) in nodes.iter().enumerate() {
                             match node {
-                                ASTNode::ColumnConstraintInfo(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Constraint(c), ni + i),
+                                ASTNode::ColumnConstraintSpec(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Constraint(c), ni + i),
                                 ASTNode::ConstraintAttribute(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Attribute(c.clone()), ni + i),
                                 _ => return Err(SystemError::InvalidColumnConstraint(Some(ni + i))),
                             }
