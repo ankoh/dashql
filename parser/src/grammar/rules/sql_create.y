@@ -48,7 +48,8 @@ sql_table_element_list:
     ;
 
 sql_table_element:
-    sql_column_def  { $$ = { std::move($1) }; }
+    sql_column_def        { $$ = { std::move($1) }; }
+  | sql_table_constraint  { $$ = { std::move($1) }; }
     ;
 
 sql_column_def:
@@ -73,7 +74,7 @@ sql_col_constraint:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($3));
     }
   | sql_col_constraint_elem { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($1)); }
-  | sql_constraint_attr     { $$ = std::move($1); }
+  | sql_col_constraint_attr { $$ = std::move($1); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::COLLATE)),
         Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, String(@2)),
@@ -81,7 +82,7 @@ sql_col_constraint:
   }
     ;
 
-sql_constraint_attr:
+sql_col_constraint_attr:
     DEFERRABLE              { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
   | NOT DEFERRABLE          { $$ = Enum(@$, sx::ConstraintAttribute::NOT_DEFERRABLE); }
   | INITIALLY DEFERRED      { $$ = Enum(@$, sx::ConstraintAttribute::INITIALLY_DEFERRED); }
@@ -228,27 +229,109 @@ sql_opt_with:
     ;
 
 sql_table_constraint:
-    CONSTRAINT sql_name sql_table_constraint_elem
-  | sql_table_constraint_elem
+    CONSTRAINT sql_name sql_table_constraint_elem {
+        $3.push_back(Attr(Key::SQL_TABLE_CONSTRAINT_NAME, String(@2)));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT, std::move($3));
+    }
+  | sql_table_constraint_elem {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT, std::move($1));
+    }
     ;
 
 sql_existing_index:
-    USING INDEX sql_col_id
+    USING INDEX sql_col_id  { $$ = String(@3); }
     ;
 
 sql_table_constraint_elem:
-    CHECK_P '(' sql_a_expr ')' sql_opt_no_inherit { $$ = {
-          Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::CHECK)),
-          Attr(Key::SQL_TABLE_CONSTRAINT_VALUE, std::move($3)),
-          Attr(Key::SQL_TABLE_CONSTRAINT_NO_INHERIT, std::move($5)),
+    CHECK_P '(' sql_a_expr ')' sql_table_constraint_attr_list { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::TableConstraint::CHECK)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ARGUMENT, std::move($3)),
     }; }
-  | UNIQUE '(' sql_opt_column_list ')' sql_opt_definition { $$ = {
-        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::ColumnConstraint::UNIQUE)),
-        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@2, std::move($2))),
+  | UNIQUE sql_existing_index sql_opt_definition sql_table_constraint_attr_list { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::TableConstraint::UNIQUE)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, String(@2)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@3, std::move($3))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@4, std::move($4))),
     }; }
-  | PRIMARY KEY '(' sql_opt_column_list ')' sql_opt_definition { $$ = {
+  | UNIQUE sql_opt_column_list sql_opt_definition sql_table_constraint_attr_list { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@1, sx::TableConstraint::UNIQUE)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.Add(@2, move($2))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@3, std::move($3))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@4, std::move($4))),
     }; }
-  | FOREIGN KEY '(' sql_opt_column_list ')' REFERENCES sql_qualified_name { $$ = {
+  | PRIMARY KEY sql_existing_index sql_opt_definition sql_table_constraint_attr_list { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::TableConstraint::UNIQUE)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, String(@3)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@4, std::move($4))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@5, std::move($5))),
     }; }
-  | FOREIGN KEY '(' sql_opt_column_list ')' REFERENCES sql_qualified_name { $$ = {
+  | PRIMARY KEY sql_opt_column_list sql_opt_definition sql_table_constraint_attr_list { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, sx::TableConstraint::PRIMARY_KEY)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.Add(@3, move($3))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@4, std::move($4))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@5, std::move($5))),
     }; }
+  | FOREIGN KEY sql_opt_column_list REFERENCES sql_qualified_name sql_opt_column_list sql_table_constraint_attr_list sql_key_match sql_key_actions { $$ = {
+        Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(Loc({@1, @2}), sx::TableConstraint::FOREIGN_KEY)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.Add(@3, move($3))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME, std::move($5)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS, ctx.Add(@6, std::move($6))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@7, std::move($7))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_KEY_ACTIONS, ctx.Add(@9, std::move($9))),
+        Attr(Key::SQL_TABLE_CONSTRAINT_KEY_MATCH, $8),
+    }; }
+    ;
+
+sql_key_match:
+    MATCH FULL      { $$ = Enum(@$, sx::KeyMatch::FULL); }
+  | MATCH PARTIAL   { $$ = Enum(@$, sx::KeyMatch::PARTIAL); }
+  | MATCH SIMPLE    { $$ = Enum(@$, sx::KeyMatch::SIMPLE); }
+  | %empty
+    ;
+
+sql_key_actions:
+    sql_key_update  { $$ = { $1 }; }
+  | sql_key_delete  { $$ = { $1 }; }
+  | sql_key_update sql_key_delete { $$ = { $1, $2 }; }
+  | sql_key_delete sql_key_update { $$ = { $1, $2 }; }
+  | %empty          { $$ = {}; }
+    ;
+
+sql_key_update:
+    ON UPDATE sql_key_action { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
+        Attr(Key::SQL_KEY_ACTION_TRIGGER, Enum(Loc({@1, @2}), sx::KeyActionTrigger::UPDATE)),
+        Attr(Key::SQL_KEY_ACTION_COMMAND, $3),
+    }); }
+    ;
+
+sql_key_delete:
+    ON DELETE_P sql_key_action { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_KEY_ACTION, {
+        Attr(Key::SQL_KEY_ACTION_TRIGGER, Enum(Loc({@1, @2}), sx::KeyActionTrigger::DELETE)),
+        Attr(Key::SQL_KEY_ACTION_COMMAND, $3),
+    }); }
+    ;
+
+sql_key_action:
+    NO ACTION     { $$ = Enum(@$, sx::KeyAction::NO_ACTION); }
+  | RESTRICT      { $$ = Enum(@$, sx::KeyAction::RESTRICT); }
+  | CASCADE       { $$ = Enum(@$, sx::KeyAction::CASCADE); }
+  | SET NULL_P    { $$ = Enum(@$, sx::KeyAction::SET_NULL); }
+  | SET DEFAULT   { $$ = Enum(@$, sx::KeyAction::SET_DEFAULT); }
+    ;
+
+sql_table_constraint_attr_list:
+    sql_table_constraint_attr_list sql_table_constraint_attr_elem {
+      $1.push_back($2);
+      $$ = std::move($1);
+    }
+  | %empty { $$ = {}; }
+    ;
+
+sql_table_constraint_attr_elem:
+    NOT DEFERRABLE        { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+  | DEFERRABLE            { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+  | INITIALLY IMMEDIATE   { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+  | INITIALLY DEFERRED    { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+  | NOT VALID             { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+  | NO INHERIT            { $$ = Enum(@$, sx::ConstraintAttribute::DEFERRABLE); }
+    ;

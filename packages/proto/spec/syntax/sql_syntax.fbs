@@ -154,6 +154,8 @@ enum CharacterType: uint8 {
 }
 
 enum ConstraintAttribute: uint8 {
+    NOT_VALID,
+    NO_INHERIT,
     DEFERRABLE,
     NOT_DEFERRABLE,
     INITIALLY_DEFERRED,
@@ -168,6 +170,32 @@ enum ColumnConstraint: uint8 {
     CHECK,
     DEFAULT,
     COLLATE,
+}
+
+enum TableConstraint: uint8 {
+    CHECK,
+    UNIQUE,
+    PRIMARY_KEY,
+    FOREIGN_KEY,
+}
+
+enum KeyMatch: uint8 {
+    FULL,
+    PARTIAL,
+    SIMPLE
+}
+
+enum KeyAction: uint8 {
+    NO_ACTION,
+    RESTRICT,
+    CASCADE,
+    SET_NULL,
+    SET_DEFAULT,
+}
+
+enum KeyActionTrigger: uint8 {
+    UPDATE,
+    DELETE
 }
 
 enum IntervalType: uint8 {

@@ -1468,7 +1468,7 @@ mod test {
         test_pipe(&r#"create table foo (a numeric(12, 2))"#)?;
         test_pipe(&r#"create table foo (a time with time zone)"#)?;
         // XXX table attributes !
-        // test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
         Ok(())
     }
 }

@@ -13701,20 +13701,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..37" text="a INNER JO..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..37" text="a INNER JO..b ON c = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="c">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="32..33" text="c"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="36..37" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="36..37" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -13729,6 +13715,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="32..33" text="c"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="36..37" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="36..37" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
                                 </node>
                             </node>
                         </node>
@@ -13846,20 +13846,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..31" text="a JOIN b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..31" text="a JOIN b ON c = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="26..31" text="c = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="26..27" text="c">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="26..27" text="c"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="30..31" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="30..31" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -13874,6 +13860,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="26..31" text="c = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="26..27" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="26..27" text="c"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="30..31" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="30..31" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
                                 </node>
                             </node>
                         </node>
@@ -13991,7 +13991,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..28" text="a CROSS JOIN b">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..28" text="a CROSS JOIN b">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NONE"/>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14006,6 +14005,7 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NONE"/>
                                 </node>
                             </node>
                         </node>
@@ -14096,7 +14096,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..30" text="a NATURAL JOIN b">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..30" text="a NATURAL JOIN b">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NATURAL_INNER"/>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14111,6 +14110,7 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="NATURAL_INNER"/>
                                 </node>
                             </node>
                         </node>
@@ -14201,20 +14201,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..42" text="a LEFT OUT..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..42" text="a LEFT OUT..b ON c = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_LEFT"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="c">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="37..38" text="c"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="41..42" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14229,6 +14215,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="37..38" text="c"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="41..42" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_LEFT"/>
                                 </node>
                             </node>
                         </node>
@@ -14346,20 +14346,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..38" text="a LEFT JOI..ON foo = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..38" text="a LEFT JOI..ON foo = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="LEFT"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="31..38" text="foo = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="31..34" text="foo">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="31..34" text="foo"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="37..38" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14374,6 +14360,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="31..38" text="foo = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="31..34" text="foo">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="31..34" text="foo"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="37..38" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="LEFT"/>
                                 </node>
                             </node>
                         </node>
@@ -14491,20 +14491,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..37" text="a RIGHT JO..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..37" text="a RIGHT JO..b ON c = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="RIGHT"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="c">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="32..33" text="c"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="36..37" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="36..37" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14519,6 +14505,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="32..37" text="c = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="32..33" text="c"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="36..37" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="36..37" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="RIGHT"/>
                                 </node>
                             </node>
                         </node>
@@ -14636,20 +14636,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..42" text="a FULL OUT..b ON c = d">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..42" text="a FULL OUT..b ON c = d">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_FULL"/>
-                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
-                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="c">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="37..38" text="c"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="d">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="41..42" text="d"/>
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14664,6 +14650,20 @@
                                             </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_JOIN_ON" type="OBJECT_SQL_NARY_EXPRESSION" loc="37..42" text="c = d">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="37..38" text="c"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                                <node type="STRING_REF" loc="41..42" text="d"/>
+                                            </node>
+                                        </node>
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="OUTER_FULL"/>
                                 </node>
                             </node>
                         </node>
@@ -14781,11 +14781,6 @@
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="14..41" text="a INNER JO..ING (c, d)">
                                 <node key="SQL_TABLEREF_TABLE" type="OBJECT_SQL_JOINED_TABLE" loc="14..41" text="a INNER JO..ING (c, d)">
-                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
-                                    <node key="SQL_JOIN_USING" type="ARRAY">
-                                        <node type="STRING_REF" loc="36..37" text="c"/>
-                                        <node type="STRING_REF" loc="39..40" text="d"/>
-                                    </node>
                                     <node key="SQL_JOIN_INPUT" type="ARRAY">
                                         <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="a">
                                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -14799,6 +14794,11 @@
                                                 <node type="STRING_REF" loc="27..28" text="b"/>
                                             </node>
                                         </node>
+                                    </node>
+                                    <node key="SQL_JOIN_TYPE" type="ENUM_SQL_JOIN_TYPE" value="INNER"/>
+                                    <node key="SQL_JOIN_USING" type="ARRAY">
+                                        <node type="STRING_REF" loc="36..37" text="c"/>
+                                        <node type="STRING_REF" loc="39..40" text="d"/>
                                     </node>
                                 </node>
                             </node>
