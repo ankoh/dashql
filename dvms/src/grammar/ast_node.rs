@@ -26,6 +26,7 @@ pub enum ASTNode<'a> {
     InputComponentType(sx::InputComponentType),
     IntervalType(sx::IntervalType),
     JoinType(sx::JoinType),
+    KeyMatch(sx::KeyMatch),
     KeyActionCommand(sx::KeyActionCommand),
     KeyActionTrigger(sx::KeyActionTrigger),
     KnownFunction(sx::KnownFunction),

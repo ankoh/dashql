@@ -6,6 +6,7 @@ use super::ast_nodes_sql::*;
 use super::dson::*;
 use super::program::*;
 use crate::error::SystemError;
+use crate::grammar::ast_nodes_sql::ConstraintAttribute;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
 use dashql_proto::syntax::GroupByItemType;
@@ -130,11 +131,18 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::ENUM_SQL_EXTRACT_TARGET => as_enum!(ExtractTarget),
             sx::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE => as_enum!(GroupByItemType),
             sx::NodeType::ENUM_SQL_INTERVAL_TYPE => as_enum!(IntervalType),
+            sx::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
+            sx::NodeType::ENUM_SQL_KEY_ACTION_COMMAND => as_enum!(KeyActionCommand),
+            sx::NodeType::ENUM_SQL_KEY_ACTION_TRIGGER => as_enum!(KeyActionTrigger),
+            sx::NodeType::ENUM_SQL_KEY_MATCH => as_enum!(KeyMatch),
             sx::NodeType::ENUM_SQL_KNOWN_FUNCTION => as_enum!(KnownFunction),
             sx::NodeType::ENUM_SQL_NUMERIC_TYPE => as_enum!(NumericType),
             sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION => as_enum!(OnCommitOption),
             sx::NodeType::ENUM_SQL_ORDER_DIRECTION => as_enum!(OrderDirection),
             sx::NodeType::ENUM_SQL_ORDER_NULL_RULE => as_enum!(OrderNullRule),
+            sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => as_enum!(RowLockingBlockBehavior),
+            sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => as_enum!(RowLockingStrength),
+            sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => as_enum!(SampleCountUnit),
             sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => as_enum!(SubqueryQuantifier),
             sx::NodeType::ENUM_SQL_TABLE_CONSTRAINT => as_enum!(TableConstraint),
             sx::NodeType::ENUM_SQL_TEMP_TYPE => as_enum!(TempType),
@@ -143,10 +151,6 @@ pub fn deserialize_ast<'a>(
             sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE => as_enum!(WindowBoundMode),
             sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => as_enum!(WindowExclusionMode),
             sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE => as_enum!(WindowRangeMode),
-            sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => as_enum!(RowLockingBlockBehavior),
-            sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => as_enum!(RowLockingStrength),
-            sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => as_enum!(SampleCountUnit),
-            sx::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
 
             sx::NodeType::OBJECT_SQL_INDIRECTION => {
                 let mut value = ASTCell::with_value(Expression::Null);
@@ -942,22 +946,22 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = ASTCell::default();
-                let mut constraint_type = ASTCell::default();
-                let mut arguments: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut constraint_type = ASTCell::with_value(sx::ColumnConstraint::NULL_);
+                let mut definition: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = ASTCell::default();
                 let mut no_inherit = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = ASTCell::with_node(Some(c.clone()), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = ASTCell::with_node(c.clone(), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
-                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => arguments = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => definition = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), ci) => no_inherit = ASTCell::with_node(*b, ci)
                 }
                 ASTNode::ColumnConstraintSpec(arena.alloc(ColumnConstraintSpec {
                     constraint_name,
                     constraint_type,
                     value,
-                    arguments,
+                    definition,
                     no_inherit,
                 }))
             }
@@ -970,7 +974,54 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::KeyAction(arena.alloc(KeyAction { trigger, command }))
             }
-            // sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT => {} TODO
+            sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT => {
+                let mut constraint_name = ASTCell::default();
+                let mut constraint_type = ASTCell::default();
+                let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut definition: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut attributes: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut argument = ASTCell::with_value(None);
+                let mut ref_name = ASTCell::with_value(NamePath::default());
+                let mut ref_columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut key_match = ASTCell::default();
+                let mut key_actions: ASTCell<&[_]> = ASTCell::with_value(&[]);
+                let mut using_index = ASTCell::default();
+                read_attributes! {
+                    (Key::SQL_TABLE_CONSTRAINT_ARGUMENT, arg, ci) => argument = ASTCell::with_node(Some(read_expr!(arg)), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ASTNode::Array(nodes, ni), ci) => {
+                        let constraints = arena.alloc_slice_fill_default(nodes.len());
+                        for (i, node) in nodes.iter().enumerate() {
+                            match node {
+                                ASTNode::ConstraintAttribute(ca) => constraints[i] = ASTCell::with_node(ConstraintAttribute(*ca), ni + i),
+                                _ => return Err(SystemError::UnexpectedElement(Some(ni + i), Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, buffer_nodes[ni+i].node_type())),
+                            }
+                        }
+                        attributes = ASTCell::with_node(constraints, ci);
+                    },
+                    (Key::SQL_TABLE_CONSTRAINT_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => definition = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_INDEX, ASTNode::StringRef(s), ci) => using_index = ASTCell::with_node(Some(*s), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_KEY_ACTIONS, ASTNode::Array(nodes, ni), ci) => key_actions = ASTCell::with_node(unpack_nodes!(nodes, ni, KeyAction), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_KEY_MATCH, ASTNode::KeyMatch(m), ci) => key_match = ASTCell::with_node(Some(*m), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS, ASTNode::Array(nodes, ni), ci) => ref_columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME, ASTNode::Array(name, ni), ci) => ref_name = ASTCell::with_node(read_name(arena, name, *ni), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_TYPE, ASTNode::TableConstraint(c), ci) => constraint_type = ASTCell::with_node(c.clone(), ci)
+                }
+                ASTNode::TableConstraintSpec(arena.alloc(TableConstraintSpec {
+                    constraint_name,
+                    constraint_type,
+                    columns,
+                    using_index,
+                    definition,
+                    argument,
+                    attributes,
+                    references_name: ref_name,
+                    references_columns: ref_columns,
+                    key_match,
+                    key_actions,
+                }))
+            }
             sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
                 let mut strength = ASTCell::with_value(sx::RowLockingStrength::READ_ONLY);
                 let mut of: ASTCell<&[_]> = ASTCell::with_value(&[]);

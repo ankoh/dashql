@@ -558,13 +558,11 @@
                             Constraint(
                                 ColumnConstraintSpec {
                                     constraint_name: None,
-                                    constraint_type: Some(
-                                        COLLATE,
-                                    ),
+                                    constraint_type: COLLATE,
                                     value: StringRef(
                                         &quot;\&quot;de_DE\&quot;&quot;,
                                     ),
-                                    arguments: [],
+                                    definition: [],
                                     no_inherit: false,
                                 },
                             ),
@@ -726,11 +724,9 @@
                                     constraint_name: Some(
                                         &quot;a&quot;,
                                     ),
-                                    constraint_type: Some(
-                                        NOT_NULL,
-                                    ),
+                                    constraint_type: NOT_NULL,
                                     value: Null,
-                                    arguments: [],
+                                    definition: [],
                                     no_inherit: false,
                                 },
                             ),
@@ -808,11 +804,9 @@
                             Constraint(
                                 ColumnConstraintSpec {
                                     constraint_name: None,
-                                    constraint_type: Some(
-                                        PRIMARY_KEY,
-                                    ),
+                                    constraint_type: PRIMARY_KEY,
                                     value: Null,
-                                    arguments: [],
+                                    definition: [],
                                     no_inherit: false,
                                 },
                             ),
@@ -894,24 +888,20 @@
                             Constraint(
                                 ColumnConstraintSpec {
                                     constraint_name: None,
-                                    constraint_type: Some(
-                                        NOT_NULL,
-                                    ),
+                                    constraint_type: NOT_NULL,
                                     value: Null,
-                                    arguments: [],
+                                    definition: [],
                                     no_inherit: false,
                                 },
                             ),
                             Constraint(
                                 ColumnConstraintSpec {
                                     constraint_name: None,
-                                    constraint_type: Some(
-                                        DEFAULT,
-                                    ),
+                                    constraint_type: DEFAULT,
                                     value: StringRef(
                                         &quot;42&quot;,
                                     ),
-                                    arguments: [],
+                                    definition: [],
                                     no_inherit: false,
                                 },
                             ),

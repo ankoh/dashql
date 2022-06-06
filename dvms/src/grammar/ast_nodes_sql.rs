@@ -565,10 +565,10 @@ pub struct GenericDefinition<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ColumnConstraintSpec<'a> {
     pub constraint_name: ASTCell<Option<&'a str>>,
-    #[serde(with = "serde_column_constraint::cell_opt")]
-    pub constraint_type: ASTCell<Option<sx::ColumnConstraint>>,
+    #[serde(with = "serde_column_constraint::cell")]
+    pub constraint_type: ASTCell<sx::ColumnConstraint>,
     pub value: ASTCell<Expression<'a>>,
-    pub arguments: ASTCell<&'a [ASTCell<&'a GenericDefinition<'a>>]>,
+    pub definition: ASTCell<&'a [ASTCell<&'a GenericDefinition<'a>>]>,
     pub no_inherit: ASTCell<bool>,
 }
 
@@ -612,12 +612,37 @@ pub struct KeyAction {
     pub command: ASTCell<sx::KeyActionCommand>,
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct ConstraintAttribute(pub sx::ConstraintAttribute);
+
+impl Default for ConstraintAttribute {
+    fn default() -> Self {
+        Self(sx::ConstraintAttribute::NO_INHERIT)
+    }
+}
+
+impl Serialize for ConstraintAttribute {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serde_constraint_attribute::serialize(&self.0, serializer)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct TableConstraintSpec<'a> {
     pub constraint_name: ASTCell<Option<&'a str>>,
     #[serde(with = "serde_table_constraint::cell")]
     pub constraint_type: ASTCell<sx::TableConstraint>,
+    pub columns: ASTCell<&'a [ASTCell<&'a str>]>,
     pub argument: ASTCell<Option<Expression<'a>>>,
-    pub index: ASTCell<Option<&'a str>>,
-    // XXX TODO
+    pub using_index: ASTCell<Option<&'a str>>,
+    pub definition: ASTCell<&'a [ASTCell<&'a GenericDefinition<'a>>]>,
+    pub attributes: ASTCell<&'a [ASTCell<ConstraintAttribute>]>,
+    pub references_name: ASTCell<NamePath<'a>>,
+    pub references_columns: ASTCell<&'a [ASTCell<&'a str>]>,
+    #[serde(with = "serde_key_match::cell_opt")]
+    pub key_match: ASTCell<Option<sx::KeyMatch>>,
+    pub key_actions: ASTCell<&'a [ASTCell<&'a KeyAction>]>,
 }

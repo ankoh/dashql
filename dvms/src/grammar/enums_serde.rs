@@ -111,6 +111,7 @@ derive_enum_serde!(serde_interval_type, IntervalType);
 derive_enum_serde!(serde_join_type, JoinType);
 derive_enum_serde!(serde_key_action_command, KeyActionCommand);
 derive_enum_serde!(serde_key_action_trigger, KeyActionTrigger);
+derive_enum_serde!(serde_key_match, KeyMatch);
 derive_enum_serde!(serde_known_function, KnownFunction);
 derive_enum_serde!(serde_load_method_type, LoadMethodType);
 derive_enum_serde!(serde_numeric_type, NumericType);

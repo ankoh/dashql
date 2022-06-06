@@ -578,7 +578,7 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             a.push(w.keyword("constraint"));
             a.push(w.str(name).pad_left().pad_right());
         }
-        let write_constraints = |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast GenericDefinition>]| {
+        let write_definition = |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast GenericDefinition>]| {
             if args.is_empty() {
                 return;
             }
@@ -593,14 +593,14 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             out.push(w.float(defs.finish()).pad_left());
         };
         match self.constraint_type.get() {
-            Some(sx::ColumnConstraint::NOT_NULL) => {
+            sx::ColumnConstraint::NOT_NULL => {
                 a.push(w.keyword("not"));
                 a.push(w.keyword("null").pad_left());
             }
-            Some(sx::ColumnConstraint::NULL_) => {
+            sx::ColumnConstraint::NULL_ => {
                 a.push(w.keyword("null"));
             }
-            Some(sx::ColumnConstraint::CHECK) => {
+            sx::ColumnConstraint::CHECK => {
                 a.push(w.keyword("check"));
                 a.push(w.round_brackets_one(self.value.get().to_sql(w)).pad_left());
                 if self.no_inherit.get() {
@@ -608,20 +608,20 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
                     a.push(w.keyword("inherit").pad_left());
                 }
             }
-            Some(sx::ColumnConstraint::COLLATE) => {
+            sx::ColumnConstraint::COLLATE => {
                 a.push(w.keyword("collate"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
-            Some(sx::ColumnConstraint::PRIMARY_KEY) => {
+            sx::ColumnConstraint::PRIMARY_KEY => {
                 a.push(w.keyword("primary"));
                 a.push(w.keyword("key").pad_left());
-                write_constraints(&mut a, self.arguments.get());
+                write_definition(&mut a, self.definition.get());
             }
-            Some(sx::ColumnConstraint::UNIQUE) => {
+            sx::ColumnConstraint::UNIQUE => {
                 a.push(w.keyword("unique"));
-                write_constraints(&mut a, self.arguments.get());
+                write_definition(&mut a, self.definition.get());
             }
-            Some(sx::ColumnConstraint::DEFAULT) => {
+            sx::ColumnConstraint::DEFAULT => {
                 a.push(w.keyword("default"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
