@@ -227,6 +227,9 @@ impl<'writer> ScriptTextArray<'writer> {
     pub fn finish(self) -> &'writer [ScriptText<'writer>] {
         &self.array[0..self.writer]
     }
+    pub fn len(&self) -> usize {
+        self.writer
+    }
 }
 
 pub trait ToSQL<'ast> {

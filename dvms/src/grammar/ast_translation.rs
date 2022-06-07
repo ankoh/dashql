@@ -1076,18 +1076,28 @@ pub fn deserialize_ast<'a>(
             }
             sx::NodeType::OBJECT_SQL_CREATE => {
                 let mut name = ASTCell::with_value(NamePath::default());
-                let mut elements: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut temp = ASTCell::default();
                 let mut on_commit = ASTCell::default();
+                let mut columns = Vec::new();
+                let mut constraints = Vec::new();
                 read_attributes! {
                     (Key::SQL_CREATE_TABLE_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
                     (Key::SQL_CREATE_TABLE_TEMP, ASTNode::TempType(t), ci) => temp = ASTCell::with_node(Some(t.clone()), ci),
                     (Key::SQL_CREATE_TABLE_ON_COMMIT, ASTNode::OnCommitOption(o), ci) => on_commit = ASTCell::with_node(Some(o.clone()), ci),
-                    (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes, ni), ci) => elements = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnDefinition), ci)
+                    (Key::SQL_CREATE_TABLE_ELEMENTS, ASTNode::Array(nodes, ni), _ci) => {
+                        for (i, node) in nodes.iter().enumerate() {
+                            match node {
+                                ASTNode::ColumnDefinition(col) => { columns.push(ASTCell::with_node(*col, ni + i)) },
+                                ASTNode::TableConstraintSpec(tbl) => { constraints.push(ASTCell::with_node(*tbl, ni + i)) },
+                                _ => return Err(SystemError::UnexpectedElement(Some(ni + i), Key::SQL_CREATE_TABLE_ELEMENTS, buffer_nodes[ni+i].node_type())),
+                            }
+                        }
+                    }
                 }
                 ASTNode::Create(arena.alloc(CreateStatement {
                     name,
-                    elements,
+                    columns: ASTCell::with_value(arena.alloc_slice_clone(&columns)),
+                    constraints: ASTCell::with_value(arena.alloc_slice_clone(&constraints)),
                     on_commit,
                     temp,
                 }))
@@ -1109,7 +1119,7 @@ pub fn deserialize_ast<'a>(
                             match node {
                                 ASTNode::ColumnConstraintSpec(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Constraint(c), ni + i),
                                 ASTNode::ConstraintAttribute(c) => cs[i] = ASTCell::with_node(ColumnConstraintVariant::Attribute(c.clone()), ni + i),
-                                _ => return Err(SystemError::InvalidColumnConstraint(Some(ni + i))),
+                                _ => return Err(SystemError::UnexpectedElement(Some(ni + i), Key::SQL_COLUMN_DEF_CONSTRAINTS, buffer_nodes[ni+i].node_type())),
                             }
                         }
                         constraints = ASTCell::with_node(cs, ci);

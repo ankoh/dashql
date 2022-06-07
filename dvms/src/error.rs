@@ -13,7 +13,6 @@ pub enum SystemError {
     FunctionNotImplemented(Option<usize>, String),
     FunctionNotImplementedButKnown(Option<usize>, sx::KnownFunction),
     InsufficientArguments(Option<usize>),
-    InvalidColumnConstraint(Option<usize>),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
     InvalidTableRef(Option<usize>),
@@ -32,7 +31,6 @@ impl SystemError {
             SystemError::FunctionNotImplemented(_, _) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_, _) => "function not implemented",
             SystemError::InsufficientArguments(_) => "insufficient arguments",
-            SystemError::InvalidColumnConstraint(_) => "invalid column constraint",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
             SystemError::InvalidTableRef(_) => "invalid table reference",
@@ -61,7 +59,6 @@ impl<'a> fmt::Display for SystemError {
                 write!(f, "[{:?}] function node implemented: {:?}", node, func)
             }
             SystemError::InsufficientArguments(node) => write!(f, "[{:?}] insufficient arguments", node),
-            SystemError::InvalidColumnConstraint(node) => write!(f, "[{:?}] invalid column constraint", node),
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
             SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),

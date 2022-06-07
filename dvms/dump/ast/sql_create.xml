@@ -114,7 +114,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -132,6 +132,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -187,7 +188,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -221,6 +222,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -276,7 +278,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -310,6 +312,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -381,7 +384,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -415,6 +418,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -465,7 +469,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -487,6 +491,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -540,7 +545,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -570,6 +575,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -617,7 +623,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -635,6 +641,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     LOCAL,
                 ),
@@ -704,7 +711,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -734,6 +741,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -786,7 +794,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -814,6 +822,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),
@@ -870,7 +879,7 @@
                         &quot;foo&quot;,
                     ),
                 ],
-                elements: [
+                columns: [
                     ColumnDefinition {
                         name: &quot;a&quot;,
                         sql_type: SQLType {
@@ -909,6 +918,7 @@
                         options: [],
                     },
                 ],
+                constraints: [],
                 temp: Some(
                     NONE,
                 ),

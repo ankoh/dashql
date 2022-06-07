@@ -8,6 +8,9 @@ use super::program::*;
 use super::script_writer::*;
 use dashql_proto::syntax as sx;
 use dashql_proto::syntax::ExpressionOperator;
+use dashql_proto::syntax::KeyActionCommand;
+use dashql_proto::syntax::KeyActionTrigger;
+use dashql_proto::syntax::KeyMatch;
 use dashql_proto::syntax::VizComponentTypeModifier;
 
 impl<'ast> ToSQL<'ast> for Program<'ast> {
@@ -670,12 +673,168 @@ impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
     }
 }
 
+impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 12);
+        match self.constraint_type.get() {
+            sx::TableConstraint::CHECK => {
+                a.push(w.keyword("check"));
+            }
+            sx::TableConstraint::FOREIGN_KEY => {
+                a.push(w.keyword("foreign"));
+                a.push(w.keyword("key").pad_left());
+            }
+            sx::TableConstraint::PRIMARY_KEY => {
+                a.push(w.keyword("primary"));
+                a.push(w.keyword("key").pad_left());
+            }
+            sx::TableConstraint::UNIQUE => {
+                a.push(w.keyword("unique"));
+            }
+            _ => {}
+        }
+        if let Some(expr) = self.argument.get() {
+            a.push(w.round_brackets_one(expr.to_sql(w)).pad_left());
+        }
+        if let Some(idx) = self.using_index.get() {
+            a.push(w.keyword("using").pad_left());
+            a.push(w.keyword("index").pad_left());
+            a.push(w.str(idx).pad_left());
+        }
+        let columns = self.columns.get();
+        if !columns.is_empty() {
+            let mut column_txt = ScriptTextArray::with_capacity(w, 2 * columns.len());
+            for (i, col) in columns.iter().enumerate() {
+                if i > 0 {
+                    column_txt.push(w.keyword(",").pad_right());
+                }
+                column_txt.push(w.str(col.get()));
+            }
+            a.push(w.round_brackets(column_txt.finish()).pad_left());
+        }
+        let ref_name = self.references_name.get();
+        if !ref_name.is_empty() {
+            a.push(w.keyword("references").pad_left());
+            a.push(ref_name.to_sql(w).pad_left());
+            let ref_cols = self.references_columns.get();
+            let mut txt = ScriptTextArray::with_capacity(w, 2 * ref_cols.len());
+            for (i, col) in ref_cols.iter().enumerate() {
+                if i > 0 {
+                    txt.push(w.keyword(",").pad_left());
+                }
+                txt.push(w.str(col.get()).pad_left());
+            }
+            a.push(w.round_brackets(txt.finish()).pad_left());
+        }
+        let definition = self.definition.get();
+        if !definition.is_empty() {
+            a.push(w.keyword("with").pad_left());
+            let mut def_text = ScriptTextArray::with_capacity(w, definition.len());
+            for (i, def) in definition.iter().enumerate() {
+                let def = def.get();
+                if i > 0 {
+                    def_text.push(w.keyword(",").pad_right());
+                }
+                def_text.push(def.to_sql(w));
+            }
+            a.push(w.round_brackets(def_text.finish()).pad_left())
+        }
+        let attributes = self.attributes.get();
+        if !attributes.is_empty() {
+            for attr in attributes.iter() {
+                let attr = attr.get();
+                match attr.0 {
+                    sx::ConstraintAttribute::DEFERRABLE => a.push(w.keyword("deferrable").pad_left()),
+                    sx::ConstraintAttribute::NOT_DEFERRABLE => {
+                        a.push(w.keyword("not").pad_left());
+                        a.push(w.keyword("deferrable").pad_left());
+                    }
+                    sx::ConstraintAttribute::INITIALLY_DEFERRED => {
+                        a.push(w.keyword("initially").pad_left());
+                        a.push(w.keyword("deferred").pad_left());
+                    }
+                    sx::ConstraintAttribute::INITIALLY_IMMEDIATE => {
+                        a.push(w.keyword("initially").pad_left());
+                        a.push(w.keyword("immediate").pad_left());
+                    }
+                    sx::ConstraintAttribute::NOT_VALID => {
+                        a.push(w.keyword("not").pad_left());
+                        a.push(w.keyword("valid").pad_left());
+                    }
+                    sx::ConstraintAttribute::NO_INHERIT => {
+                        a.push(w.keyword("no").pad_left());
+                        a.push(w.keyword("inherit").pad_left());
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if let Some(key_match) = self.key_match.get() {
+            match key_match {
+                KeyMatch::FULL => {
+                    a.push(w.keyword("match").pad_left());
+                    a.push(w.keyword("full").pad_left());
+                }
+                KeyMatch::PARTIAL => {
+                    a.push(w.keyword("match").pad_left());
+                    a.push(w.keyword("partial").pad_left());
+                }
+                KeyMatch::SIMPLE => {
+                    a.push(w.keyword("match").pad_left());
+                    a.push(w.keyword("simple").pad_left());
+                }
+                _ => {}
+            }
+        }
+        let key_actions = self.key_actions.get();
+        if !key_actions.is_empty() {
+            let mut txt = ScriptTextArray::with_capacity(w, 4 * key_actions.len());
+            for action in self.key_actions.get().iter() {
+                let action = action.get();
+                match action.trigger.get() {
+                    KeyActionTrigger::DELETE => {
+                        txt.push(w.keyword("on").pad_left());
+                        txt.push(w.keyword("delete").pad_left());
+                    }
+                    KeyActionTrigger::UPDATE => {
+                        txt.push(w.keyword("on").pad_left());
+                        txt.push(w.keyword("update").pad_left());
+                    }
+                    _ => {}
+                }
+                match action.command.get() {
+                    KeyActionCommand::CASCADE => txt.push(w.keyword("cascade").pad_left()),
+                    KeyActionCommand::RESTRICT => txt.push(w.keyword("restrict").pad_left()),
+                    KeyActionCommand::NO_ACTION => {
+                        txt.push(w.keyword("no").pad_left());
+                        txt.push(w.keyword("action").pad_left());
+                    }
+                    KeyActionCommand::SET_DEFAULT => {
+                        txt.push(w.keyword("set").pad_left());
+                        txt.push(w.keyword("default").pad_left());
+                    }
+                    KeyActionCommand::SET_NULL => {
+                        txt.push(w.keyword("set").pad_left());
+                        txt.push(w.keyword("null").pad_left());
+                    }
+                    _ => {}
+                }
+            }
+            a.push(w.float(txt.finish()));
+        }
+        w.float(a.finish())
+    }
+}
+
 impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 10 + self.elements.get().len());
+        let mut a = ScriptTextArray::with_capacity(w, 12);
         a.push(w.keyword("create"));
         match self.temp.get() {
             Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
@@ -693,16 +852,24 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
         }
         a.push(w.keyword("table").pad_left());
         a.push(self.name.get().to_sql(w).pad_left());
-        let elems = self.elements.get();
-        let mut cols = ScriptTextArray::with_capacity(w, 2 * elems.len());
-        for (i, elem) in elems.iter().enumerate() {
-            let col = elem.get();
-            if i > 0 {
-                cols.push(w.keyword(",").pad_right());
+        let columns = self.columns.get();
+        let constraints = self.constraints.get();
+        let mut elements = ScriptTextArray::with_capacity(w, 2 * columns.len() + 2 * constraints.len());
+        for column in columns.iter() {
+            let column = column.get();
+            if elements.len() > 0 {
+                elements.push(w.keyword(",").pad_right());
             }
-            cols.push(col.to_sql(w));
+            elements.push(column.to_sql(w));
         }
-        a.push(w.round_brackets(cols.finish()).pad_left());
+        for constraint in constraints.iter() {
+            let constraint = constraint.get();
+            if elements.len() > 0 {
+                elements.push(w.keyword(",").pad_right());
+            }
+            elements.push(constraint.to_sql(w));
+        }
+        a.push(w.round_brackets(elements.finish()).pad_left());
         if let Some(on_commit) = self.on_commit.get() {
             match on_commit {
                 sx::OnCommitOption::DROP => {
@@ -1465,8 +1632,15 @@ mod test {
         test_pipe(&r#"create table foo (a char(20))"#)?;
         test_pipe(&r#"create table foo (a numeric(12, 2))"#)?;
         test_pipe(&r#"create table foo (a time with time zone)"#)?;
-        // XXX table attributes !
         test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a, b))"#)?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a), unique (b))"#)?;
+        test_pipe(
+            &r#"create table foo (a integer, b varchar, primary key (a), unique (b), foreign key (b) references c)"#,
+        )?;
+        test_pipe(
+            &r#"create table foo (a integer, b varchar, primary key (a), unique (b), foreign key (b) references c on delete cascade)"#,
+        )?;
         Ok(())
     }
 }

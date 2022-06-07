@@ -1,7 +1,7 @@
 use super::ast_cell::*;
 use super::ast_list::ASTList;
 use super::enums_serde::*;
-use dashql_proto::syntax as sx;
+use dashql_proto::syntax::{self as sx};
 use serde::Serialize;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -521,7 +521,8 @@ pub struct SelectStatement<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct CreateStatement<'a> {
     pub name: ASTCell<NamePath<'a>>,
-    pub elements: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
+    pub columns: ASTCell<&'a [ASTCell<&'a ColumnDefinition<'a>>]>,
+    pub constraints: ASTCell<&'a [ASTCell<&'a TableConstraintSpec<'a>>]>,
     #[serde(with = "serde_temp_type::cell_opt")]
     pub temp: ASTCell<Option<sx::TempType>>,
     #[serde(with = "serde_on_commit_option::cell_opt")]
