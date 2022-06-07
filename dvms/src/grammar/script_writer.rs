@@ -247,7 +247,7 @@ impl Default for ScriptTextConfig {
     fn default() -> Self {
         ScriptTextConfig {
             indent_by: 4,
-            max_width: 120,
+            max_width: 80,
         }
     }
 }

@@ -271,7 +271,7 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.get().len() * 3 + self.from.get().len() * 3);
-        a.push(w.keyword("select"));
+        a.push(w.keyword("select").breakpoint_before());
         for (i, target) in self.targets.get().iter().enumerate() {
             if i > 0 {
                 a.push(w.str_const(","));
@@ -279,12 +279,12 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
             a.push(target.get().to_sql(w).pad_left());
         }
         if !self.from.get().is_empty() {
-            a.push(w.keyword("from").pad_left());
+            a.push(w.keyword("from").pad_left().breakpoint_before());
             for (i, table) in self.from.get().iter().enumerate() {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(table.get().to_sql(w).pad_left());
+                a.push(table.get().to_sql(w).pad_left().breakpoint_before());
             }
         }
         w.float(a.finish())
@@ -720,14 +720,16 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
             a.push(w.keyword("references").pad_left());
             a.push(ref_name.to_sql(w).pad_left());
             let ref_cols = self.references_columns.get();
-            let mut txt = ScriptTextArray::with_capacity(w, 2 * ref_cols.len());
-            for (i, col) in ref_cols.iter().enumerate() {
-                if i > 0 {
-                    txt.push(w.keyword(",").pad_left());
+            if !ref_cols.is_empty() {
+                let mut txt = ScriptTextArray::with_capacity(w, 2 * ref_cols.len());
+                for (i, col) in ref_cols.iter().enumerate() {
+                    if i > 0 {
+                        txt.push(w.keyword(",").pad_left());
+                    }
+                    txt.push(w.str(col.get()).pad_left());
                 }
-                txt.push(w.str(col.get()).pad_left());
+                a.push(w.round_brackets(txt.finish()).pad_left());
             }
-            a.push(w.round_brackets(txt.finish()).pad_left());
         }
         let definition = self.definition.get();
         if !definition.is_empty() {
@@ -860,14 +862,14 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
             if elements.len() > 0 {
                 elements.push(w.keyword(",").pad_right());
             }
-            elements.push(column.to_sql(w));
+            elements.push(column.to_sql(w).breakpoint_before());
         }
         for constraint in constraints.iter() {
             let constraint = constraint.get();
             if elements.len() > 0 {
                 elements.push(w.keyword(",").pad_right());
             }
-            elements.push(constraint.to_sql(w));
+            elements.push(constraint.to_sql(w).breakpoint_before());
         }
         a.push(w.round_brackets(elements.finish()).pad_left());
         if let Some(on_commit) = self.on_commit.get() {
@@ -1097,7 +1099,7 @@ impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.type_modifiers.get().count_ones() as usize);
         a.push(w.keyword("viz"));
         a.push(self.target.get().to_sql(w).pad_left());
-        a.push(w.keyword("using").pad_left());
+        a.push(w.keyword("using").pad_left().breakpoint_before());
         if let Some(ct) = self.component_type.get() {
             if ct != sx::VizComponentType::SPEC {
                 let mut mods = self.type_modifiers.get();
@@ -1636,10 +1638,22 @@ mod test {
         test_pipe(&r#"create table foo (a integer, b varchar, primary key (a, b))"#)?;
         test_pipe(&r#"create table foo (a integer, b varchar, primary key (a), unique (b))"#)?;
         test_pipe(
-            &r#"create table foo (a integer, b varchar, primary key (a), unique (b), foreign key (b) references c)"#,
+            &r#"create table foo (
+    a integer,
+    b varchar,
+    primary key (a),
+    unique (b),
+    foreign key (b) references c
+)"#,
         )?;
         test_pipe(
-            &r#"create table foo (a integer, b varchar, primary key (a), unique (b), foreign key (b) references c on delete cascade)"#,
+            &r#"create table foo (
+    a integer,
+    b varchar,
+    primary key (a),
+    unique (b),
+    foreign key (b) references c on delete cascade
+)"#,
         )?;
         Ok(())
     }
