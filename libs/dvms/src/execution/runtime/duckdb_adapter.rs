@@ -29,5 +29,4 @@ extern "C" {
     pub fn duckdb_value_int16(result: DuckDBResult, col: size_t, row: size_t) -> i16;
     pub fn duckdb_value_int32(result: DuckDBResult, col: size_t, row: size_t) -> i32;
     pub fn duckdb_value_int64(result: DuckDBResult, col: size_t, row: size_t) -> i64;
-
 }

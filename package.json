@@ -2,7 +2,8 @@
     "private": true,
     "type": "module",
     "workspaces": [
-        "packages/*"
+        "packages/*",
+        "proto"
     ],
     "scripts": {
         "format": "prettier --write packages"

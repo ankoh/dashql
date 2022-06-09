@@ -23,7 +23,7 @@ test = false
 doctest = false
 
 [dependencies]
-dashql_proto = { path = "../packages/proto" }
+dashql_proto = { path = "../proto" }
 dashql_parser = { path = "../parser-sys" }
 arrow = { version = "14.0.0", features = ['ipc'] }
 getrandom = { version = "0.2.6", features = ['js'] }

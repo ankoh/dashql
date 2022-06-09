@@ -1,0 +1,49 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.syntax;
+
+enum InputComponentType: uint8 {
+    NONE = 0,
+    TEXT = 1,
+    CALENDAR = 2,
+}
+
+enum FetchMethodType: uint8 {
+    NONE = 0,
+    HTTP = 1,
+    FILE = 2
+}
+
+enum LoadMethodType: uint8 {
+    NONE = 0,
+    CSV = 1,
+    JSON = 2,
+    PARQUET = 3
+}
+
+enum VizComponentTypeModifier: uint8 {
+    STACKED         = 0,
+    CLUSTERED       = 1,
+    MULTI           = 2,
+    DEPENDENT       = 3,
+    INDEPENDENT     = 4,
+    POLAR           = 5,
+    X               = 6,
+    Y               = 7 
+}
+
+enum VizComponentType: uint8 {
+    AREA,
+    AXIS,
+    BAR,
+    BOX,
+    CANDLESTICK,
+    ERROR_BAR,
+    HEX,
+    JSON,
+    LINE,
+    PIE,
+    SCATTER,
+    SPEC,
+    TABLE,
+}

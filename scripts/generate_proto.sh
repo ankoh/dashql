@@ -10,12 +10,12 @@ ${FLATC} --version \
     && { echo "[ OK  ] Command: flatc"; } \
     || { echo "[ ERR ] Command: flatc"; exit 1; }
 
-SPEC_DIR="${PROJECT_ROOT}/packages/proto/spec/"
+SPEC_DIR="${PROJECT_ROOT}/proto/spec/"
 SPEC_INDEX="${SPEC_DIR}/proto.fbs"
 
-OUT_DIR_CPP="${PROJECT_ROOT}/packages/proto/gen/cc/include/dashql"
-OUT_DIR_TS="${PROJECT_ROOT}/packages/proto/gen/ts"
-OUT_DIR_RS="${PROJECT_ROOT}/packages/proto/gen/rs"
+OUT_DIR_CPP="${PROJECT_ROOT}/proto/gen/cc/include/dashql"
+OUT_DIR_TS="${PROJECT_ROOT}/proto/gen/ts"
+OUT_DIR_RS="${PROJECT_ROOT}/proto/gen/rs"
 
 mkdir -p ${OUT_DIR_CPP} ${OUT_DIR_TS}
 
@@ -43,7 +43,7 @@ ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_TS} ${SPEC_INDEX} --ts \
     || { echo "[ ERR ] Generate Typescript Library"; exit 1; }
 
 
-TS_OUT_PROTO_BASE="${PROJECT_ROOT}/packages/proto/gen/ts/dashql/proto"
+TS_OUT_PROTO_BASE="${PROJECT_ROOT}/proto/gen/ts/dashql/proto"
 TS_OUT_PROTO_DIRS=`ls ${TS_OUT_PROTO_BASE}`
 for PROTO_DIR in ${TS_OUT_PROTO_DIRS}; do
     PROTO_INDEX="${TS_OUT_PROTO_BASE}/${PROTO_DIR}/index.ts"

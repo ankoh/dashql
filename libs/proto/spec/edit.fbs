@@ -1,0 +1,22 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "analyzer.fbs";
+
+namespace dashql.proto.edit;
+
+table CardPositionUpdate {
+    position: analyzer.CardPosition;
+}
+
+union EditOperationVariant {
+    CardPositionUpdate
+}
+
+table EditOperation {
+    statement_id: uint32;
+    variant: EditOperationVariant;
+}
+
+table ProgramEdit {
+    edits: [EditOperation];
+}

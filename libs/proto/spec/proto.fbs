@@ -1,0 +1,11 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "task.fbs";
+include "analyzer.fbs";
+include "edit.fbs";
+include "sql_type.fbs";
+include "sql_value.fbs";
+
+include "syntax/sql_syntax.fbs";
+include "syntax/dashql_syntax.fbs";
+include "syntax/program.fbs";

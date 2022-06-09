@@ -24,6 +24,7 @@
 %type <sx::Node> sql_func_type;
 %type <sx::Node> sql_generic_option_elem;
 %type <sx::Node> sql_key_action;
+%type <sx::Node> sql_key_action_command;
 %type <sx::Node> sql_key_delete;
 %type <sx::Node> sql_key_match;
 %type <sx::Node> sql_key_update;

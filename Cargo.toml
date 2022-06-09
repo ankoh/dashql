@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "dvms",
-    "parser-sys",
-    "packages/proto",
+    "libs/dvms",
+    "libs/parser-sys",
+    "libs/proto",
 ]

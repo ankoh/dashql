@@ -1,0 +1,83 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.task;
+
+// ---------------------------------------------------------------------------
+// Task status
+
+enum TaskClass: uint8 {
+    SETUP_TASK = 0,
+    PROGRAM_TASK = 1,
+}
+
+enum TaskStatusCode: uint8 {
+    PENDING = 0,
+    SKIPPED,
+    RUNNING,
+    BLOCKED,
+    FAILED,
+    COMPLETED,
+}
+
+enum TaskBlocker: uint8 {
+    NONE = 0,
+    DEPENDENCY,
+    USER_INTERACTION,
+    HTTP_REQUEST,
+}
+
+// ---------------------------------------------------------------------------
+// Task graph
+
+table TaskGraph {
+    next_object_id: uint32;
+    setup_tasks: [SetupTask];
+    program_tasks: [ProgramTask];
+}
+
+enum SetupTaskType: uint8 {
+    NONE = 0,
+
+    DROP_MIN,
+
+    DROP_BLOB,
+    DROP_INPUT,
+    DROP_SET,
+    DROP_TABLE,
+    DROP_VIEW,
+    DROP_VIZ,
+}
+
+table SetupTask {
+    task_type: SetupTaskType;
+    task_status_code: TaskStatusCode;
+    depends_on: [uint32];
+    required_for: [uint32];
+    object_id: uint32;
+    name_qualified: string;
+}
+
+enum ProgramTaskType: uint8 {
+    NONE = 0,
+    CREATE_TABLE,
+    CREATE_VIEW,
+    CREATE_VIZ,
+    FETCH,
+    INPUT,
+    LOAD,
+    MODIFY_TABLE,
+    SET,
+    TRANSFORM,
+    UPDATE_VIZ,
+}
+
+table ProgramTask {
+    task_type: ProgramTaskType;
+    task_status_code: TaskStatusCode;
+    depends_on: [uint32];
+    required_for: [uint32];
+    origin_statement: uint32;
+    object_id: uint32;
+    name_qualified: string;
+    script: string;
+}

@@ -1,0 +1,30 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "sql_type.fbs";
+
+namespace dashql.proto.sql;
+
+enum PhysicalType: uint8 {
+    NONE,
+    I64,
+    F64,
+    STRING,
+    LIST,
+    STRUCT
+}
+
+struct DayTimeInterval {
+    days: int32;
+    milliseconds: int32;
+}
+
+table SQLValue {
+    logical_type: SQLType;
+    physical_type: PhysicalType;
+    is_null: bool;
+    data_i64: int64;
+    data_f64: double;
+    data_str: string;
+    data_interval: DayTimeInterval;
+    children: [SQLValue];
+}
