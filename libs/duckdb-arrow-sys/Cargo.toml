@@ -1,0 +1,15 @@
+[package]
+name = "dashql_parser"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "duckdb"
+test = true
+doctest = false
+
+[dependencies]
+libc = "0.2.121"
+
+[build-dependencies]
+cmake = "0.1.48"

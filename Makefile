@@ -1,6 +1,6 @@
 # Copyright (c) 2020 The DashQL Authors
 
-.DEFAULT_GOAL := lib_tests
+.DEFAULT_GOAL := duckdb_tests
 
 # ---------------------------------------------------------------------------
 # Config
@@ -13,13 +13,10 @@ GID=${shell id -g}
 APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
-PARSER_SOURCE_DIR="${ROOT_DIR}/parser"
-PARSER_DEBUG_DIR="${ROOT_DIR}/parser/build/native/debug"
-
-LIB_SOURCE_DIR="${ROOT_DIR}/lib"
-LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
-LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
-LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
+DUCKDB_SOURCE_DIR="${ROOT_DIR}/libs/duckdb-arrow"
+DUCKDB_DEBUG_DIR="${DUCKDB_SOURCE_DIR}/build/Debug"
+DUCKDB_RELEASE_DIR="${DUCKDB_SOURCE_DIR}/build/Release"
+DUCKDB_RELWITHDEBINFO_DIR="${DUCKDB_SOURCE_DIR}/build/RelWithDebInfo"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
@@ -47,99 +44,78 @@ check_format:
 # ---------------------------------------------------------------------------
 # Building
 
-# Compile the core in debug mode
-.PHONY: lib
-lib:
-	mkdir -p ${LIB_DEBUG_DIR}
-	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
+.PHONY: duckdb
+duckdb:
+	mkdir -p ${DUCKDB_DEBUG_DIR}
+	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_DEBUG_DIR} \
 		-GNinja \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	ninja -C ${LIB_DEBUG_DIR}
+	ninja -C ${DUCKDB_DEBUG_DIR}
 
 # Compile the core in release mode
-.PHONY: lib_relwithdebinfo
-lib_relwithdebinfo:
-	mkdir -p ${LIB_RELWITHDEBINFO_DIR}
-	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_RELWITHDEBINFO_DIR} \
+.PHONY: duckdb_relwithdebinfo
+duckdb_relwithdebinfo:
+	mkdir -p ${DUCKDB_RELWITHDEBINFO_DIR}
+	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_RELWITHDEBINFO_DIR} \
 		-GNinja \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo
-	ninja -C ${LIB_RELWITHDEBINFO_DIR}
+	ninja -C ${DUCKDB_RELWITHDEBINFO_DIR}
 
 # Compile the core in release mode
-.PHONY: lib_release
-lib_release:
-	mkdir -p ${LIB_RELEASE_DIR}
-	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_RELEASE_DIR} \
+.PHONY: duckdb_release
+duckdb_release:
+	mkdir -p ${DUCKDB_RELEASE_DIR}
+	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_RELEASE_DIR} \
 		-GNinja \
 		-DCMAKE_BUILD_TYPE=Release
-	ninja -C ${LIB_RELEASE_DIR}
+	ninja -C ${DUCKDB_RELEASE_DIR}
 
 # Perf the library
-.PHONY: lib_perf
-lib_perf: lib_relwithdebinfo
-	perf record --call-graph dwarf ${LIB_RELWITHDEBINFO_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*CSV*ParseTest
+.PHONY: duckdb_perf
+duckdb_perf: duckdb_relwithdebinfo
+	perf record --call-graph dwarf ${DUCKDB_RELWITHDEBINFO_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*CSV*ParseTest
 	hotspot ./perf.data
 
 # Test the core library
-.PHONY: lib_tests
-lib_tests: lib
-	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*
+.PHONY: duckdb_tests
+duckdb_tests: arrow
+	${DUCKDB_DEBUG_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
 
 # Debug the core library
-.PHONY: lib_tests
-lib_tests_lldb: lib
-	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*
+.PHONY: duckdb_tests
+duckdb_tests_lldb: arrow
+	lldb ${DUCKDB_DEBUG_DIR}/tester -- --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
 
 # Debug the core library
-.PHONY: lib_tests
-lib_tests_gdb: lib
-	gdb --args ${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*
+.PHONY: duckdb_tests
+duckdb_tests_gdb: arrow
+	gdb --args ${DUCKDB_DEBUG_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
 
 # Test the core library
-.PHONY: lib_tests_relwithdebinfo
-lib_tests_relwithdebinfo: lib_relwithdebinfo
-	${LIB_RELWITHDEBINFO_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
+.PHONY: duckdb_tests_relwithdebinfo
+duckdb_tests_relwithdebinfo: duckdb_relwithdebinfo
+	${DUCKDB_RELWITHDEBINFO_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR}
 
 # Test the core library
-.PHONY: lib_tests_relwithdebinfo_lldb
-lib_tests_relwithdebinfo_lldb: lib_relwithdebinfo
-	lldb ${LIB_RELWITHDEBINFO_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
+.PHONY: duckdb_tests_relwithdebinfo_lldb
+duckdb_tests_relwithdebinfo_lldb: duckdb_relwithdebinfo
+	lldb ${DUCKDB_RELWITHDEBINFO_DIR}/tester -- --source_dir ${DUCKDB_SOURCE_DIR}
 
 # Generate declarative tests
-.PHONY: lib_testgen
-lib_testgen: lib
-	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
+.PHONY: duckdb_testgen
+duckdb_testgen: arrow
+	${DUCKDB_DEBUG_DIR}/testgen ${DUCKDB_SOURCE_DIR}
 
 # Generate declarative tests
-.PHONY: lib_testgen_gdb
-lib_testgen_lldb: lib
-	lldb ${LIB_DEBUG_DIR}/testgen -- ${LIB_SOURCE_DIR}
+.PHONY: duckdb_testgen_gdb
+duckdb_testgen_lldb: arrow
+	lldb ${DUCKDB_DEBUG_DIR}/testgen -- ${DUCKDB_SOURCE_DIR}
 
 # Debug the library
-.PHONY: lib_debug
-lib_debug: lib
-	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
-
-
-
-.PHONY: js_tests
-js_tests:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
-
-# Test the dashql_core javascript library
-.PHONY: js_tests_cov
-js_tests_cov:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --collect-coverage
-
-
-.PHONY: js_tests_debug
-js_tests_debug:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up --inspect-brk=0.0.0.0:9229 ./node_modules/.bin/jest packages/core/__tests__/tasks/scenario_genseries.test.ts
-
-.PHONY: js_update_snaps
-js_update_snaps:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --updateSnapshot
+.PHONY: duckdb_debug
+duckdb_debug: arrow
+	lldb --args ${DUCKDB_DEBUG_DIR}/tester ${DUCKDB_SOURCE_DIR}
 
 # Compile the flatbuffer schema
 .PHONY: proto
@@ -211,12 +187,12 @@ yarn_install:
 # Generate the compile commands for the language server
 .PHONY: compile_commands
 compile_commands: 
-	mkdir -p ${LIB_DEBUG_DIR}
-	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
+	mkdir -p ${DUCKDB_DEBUG_DIR}
+	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_DEBUG_DIR} \
 		-GNinja \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	ln -sf ${LIB_DEBUG_DIR}/compile_commands.json ${LIB_SOURCE_DIR}/compile_commands.json
+	ln -sf ${DUCKDB_DEBUG_DIR}/compile_commands.json ${DUCKDB_SOURCE_DIR}/compile_commands.json
 
 # Clean the repository
 .PHONY: clean
@@ -244,25 +220,3 @@ bootstrap:
 	make proto
 	make wasm
 	make core
-
-
-# ---------------------------------------------------------------------------
-# Parser
-
-.PHONY: parser_cc
-parser_cc:
-	mkdir -p ${PARSER_DEBUG_DIR}
-	cmake -S ${PARSER_SOURCE_DIR} -B ${PARSER_DEBUG_DIR} \
-		-DCMAKE_BUILD_TYPE=Debug \
-		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
-
-.PHONY: parser_wasm
-parser_wasm: 
-	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh fast
-
-.PHONY: parser_wasm_release
-parser_wasm_release:
-	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh release
