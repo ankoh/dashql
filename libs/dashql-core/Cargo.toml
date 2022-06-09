@@ -1,30 +1,30 @@
 [package]
-name = "dashql"
+name = "dashql_core"
 version = "0.1.0"
 edition = "2018"
 
 [lib]
-name = "dashql"
+name = "dashql_core"
 path = "src/lib.rs"
 crate-type = ["lib"]
 test = true
 doctest = false
 
 [[bin]]
-name = "dump"
+name = "dashql_dump"
 path = "src/bin/dump.rs"
 test = false
 doctest = false
 
 [[bin]]
-name = "dvms"
+name = "dashql_dvms"
 path = "src/bin/dvms.rs"
 test = false
 doctest = false
 
 [dependencies]
-dashql_proto = { path = "../proto" }
-dashql_parser = { path = "../parser-sys" }
+dashql_proto = { path = "../dashql-proto" }
+dashql_parser = { path = "../dashql-parser-sys" }
 arrow = { version = "14.0.0", features = ['ipc'] }
 getrandom = { version = "0.2.6", features = ['js'] }
 smallvec = "1.8.0"

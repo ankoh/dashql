@@ -1,4 +1,4 @@
-use dashql::*;
+use dashql_core::*;
 
 fn main() {
     let alloc = bumpalo::Bump::new();

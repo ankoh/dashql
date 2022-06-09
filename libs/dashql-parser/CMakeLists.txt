@@ -47,7 +47,8 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/../proto" "${CMAKE_BINARY_DIR}/proto/")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../dashql-proto"
+                 "${CMAKE_BINARY_DIR}/proto/")
 
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include")
 

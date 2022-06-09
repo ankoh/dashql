@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "libs/dvms",
-    "libs/parser-sys",
-    "libs/proto",
+    "libs/dashql-core",
+    "libs/dashql-parser-sys",
+    "libs/dashql-proto",
 ]

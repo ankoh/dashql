@@ -3,7 +3,7 @@ extern crate cmake;
 use std::env;
 
 fn main() {
-    let dst = cmake::Config::new("../parser")
+    let dst = cmake::Config::new("../dashql-parser")
         .build_target("dashql_parser")
         .always_configure(true)
         .build();

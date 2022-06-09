@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use clap::{App, Arg, SubCommand};
-use dashql::grammar::ast_dump::ASTDump;
-use dashql::grammar::ast_dump::ASTDumpTemplateFile;
+use dashql_core::grammar::ast_dump::ASTDump;
+use dashql_core::grammar::ast_dump::ASTDumpTemplateFile;
 use log::info;
 use log::warn;
 use quick_xml::Writer;
