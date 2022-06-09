@@ -14,7 +14,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::utils::shared_writer::SharedWriter;
-use dashql::*;
+use dashql_core::*;
 
 use grammar::ast_dump::ASTDumpFile;
 
