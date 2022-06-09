@@ -2,37 +2,6 @@
 	path = submodules/flatbuffers
 	url = https://github.com/google/flatbuffers
 	shallow = true
-[submodule "submodules/googletest"]
-	path = submodules/googletest
-	url = https://github.com/google/googletest
-	shallow = true
-[submodule "submodules/rapidjson"]
-	path = submodules/rapidjson
-	url = https://github.com/Tencent/rapidjson
-	shallow = true
 [submodule "submodules/duckdb"]
 	path = submodules/duckdb
 	url = https://github.com/duckdb/duckdb
-[submodule "submodules/spdlog"]
-	path = submodules/spdlog
-	url = https://github.com/gabime/spdlog.git
-	shallow = true
-[submodule "submodules/pugixml"]
-	path = submodules/pugixml
-	url = https://github.com/zeux/pugixml
-	shallow = true
-[submodule "submodules/gflags"]
-	path = submodules/gflags
-	url = https://github.com/gflags/gflags.git
-	shallow = true
-[submodule "submodules/jmespath"]
-	path = submodules/jmespath
-	url = https://github.com/robertmrk/jmespath.cpp
-	shallow = true
-[submodule "submodules/nljson"]
-	path = submodules/nlohmann_json
-	url = https://github.com/nlohmann/json
-	shallow = true
-[submodule "submodules/fmt"]
-	path = submodules/fmt
-	url = https://github.com/fmtlib/fmt

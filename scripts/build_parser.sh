@@ -10,8 +10,8 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 MODE=${1:-Fast}
 echo "MODE=${MODE}"
 
-CPP_BUILD_DIR="${PROJECT_ROOT}/parser/build/wasm/${MODE}"
-CPP_SOURCE_DIR="${PROJECT_ROOT}/parser"
+CPP_BUILD_DIR="${PROJECT_ROOT}/libs/dashql-parser/build/wasm/${MODE}"
+CPP_SOURCE_DIR="${PROJECT_ROOT}/libs/dashql-parser"
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
