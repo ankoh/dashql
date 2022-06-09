@@ -1,1 +1,0 @@
-%type <sx::Node> dashql_query_statement;

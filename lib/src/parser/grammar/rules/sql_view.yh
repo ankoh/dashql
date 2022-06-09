@@ -1,1 +1,0 @@
-%type <NodeVector> sql_view_stmt;

@@ -1,3 +1,0 @@
-%type <sx::Node> dashql_load_method_type;
-%type <sx::Node> dashql_load_statement;
-%type <sx::Node> opt_dashql_load_method;
