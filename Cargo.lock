@@ -220,6 +220,7 @@ checksum = "0e25ea47919b1560c4e3b7fe0aaab9becf5b84a10325ddf7db0f0ba5e1026499"
 name = "duckdb_arrow"
 version = "0.1.0"
 dependencies = [
+ "arrow",
  "cmake",
  "cty",
 ]

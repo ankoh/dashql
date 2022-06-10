@@ -10,6 +10,7 @@ doctest = false
 
 [dependencies]
 cty = "0.2.2"
+arrow = { version = "14.0.0", features = ['ipc'] }
 
 [build-dependencies]
 cmake = "0.1.48"
