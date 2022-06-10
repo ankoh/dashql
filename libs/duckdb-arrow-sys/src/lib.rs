@@ -13,7 +13,6 @@ struct FFIResult {
 }
 
 extern "C" {
-
     fn duckdb_arrow_open(result: *mut FFIResult, path: *const cty::c_char);
     fn duckdb_arrow_connect(result: *mut FFIResult, db_ptr: db_ptr);
     fn duckdb_arrow_connection_run_query(result: *mut FFIResult, conn: conn_ptr, query: *const cty::c_char);
@@ -21,7 +20,7 @@ extern "C" {
     fn duckdb_arrow_connection_fetch_query_results(result: *mut FFIResult, conn: conn_ptr);
 }
 
-extern "C" fn noop_deleter(_data: *mut cty::c_void) {}
+extern "C" fn duckdb_arrow_noop_deleter(_data: *mut cty::c_void) {}
 
 pub struct Database {
     inner: db_ptr,
@@ -51,7 +50,7 @@ impl Database {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: noop_deleter,
+            data_deleter: duckdb_arrow_noop_deleter,
         };
         let c_path = std::ffi::CString::new(path).unwrap_or_default();
         unsafe {
@@ -75,7 +74,7 @@ impl Database {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: noop_deleter,
+            data_deleter: duckdb_arrow_noop_deleter,
         };
         unsafe {
             duckdb_arrow_connect(&mut result, self.inner);
