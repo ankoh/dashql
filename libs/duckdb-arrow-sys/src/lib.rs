@@ -2,6 +2,8 @@ use arrow::ipc::reader::FileReader;
 use cty;
 use std::io::Cursor;
 
+pub mod stream_reader;
+
 type DeleterPtr = extern "C" fn(*mut cty::c_void);
 type DbPtr = *mut cty::c_void;
 type ConnPtr = *mut cty::c_void;
@@ -18,8 +20,8 @@ extern "C" {
     fn duckdb_arrow_open(result: *mut FFIResult, path: *const cty::c_char);
     fn duckdb_arrow_connect(result: *mut FFIResult, DbPtr: DbPtr);
     fn duckdb_arrow_connection_run_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    fn duckdb_arrow_connection_send_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    fn duckdb_arrow_connection_fetch_query_results(result: *mut FFIResult, conn: ConnPtr);
+    // fn duckdb_arrow_connection_send_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
+    // fn duckdb_arrow_connection_fetch_query_results(result: *mut FFIResult, conn: ConnPtr);
 }
 
 extern "C" fn duckdb_arrow_noop_deleter(_data: *mut cty::c_void) {}
