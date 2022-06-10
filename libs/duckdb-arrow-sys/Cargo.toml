@@ -9,7 +9,7 @@ test = true
 doctest = false
 
 [dependencies]
-libc = "0.2.121"
+cty = "0.2.2"
 
 [build-dependencies]
 cmake = "0.1.48"

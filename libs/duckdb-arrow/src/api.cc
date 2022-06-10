@@ -7,33 +7,27 @@
 
 using namespace duckdb::arrowapi;
 
-struct StringView {
-    const char* data;
-    size_t length;
-};
-
 struct Result {
-    size_t status_code;
+    uint32_t status_code;
+    uint32_t data_length;
     void* data;
     void (*data_deleter)(void*);
-    size_t data_length;
 };
 
 using db_ptr = void*;
 using conn_ptr = void*;
 
 extern "C" {
-void duckdb_arrow_open(Result* result, StringView* path);
+void duckdb_arrow_open(Result* result, const char* path);
 void duckdb_arrow_connect(Result* result, db_ptr db);
-void duckdb_arrow_connection_run_query(Result* result, conn_ptr conn, StringView* text);
-void duckdb_arrow_connection_send_query(Result* result, conn_ptr conn, StringView* text);
+void duckdb_arrow_connection_run_query(Result* result, conn_ptr conn, const char* text);
+void duckdb_arrow_connection_send_query(Result* result, conn_ptr conn, const char* text);
 void duckdb_arrow_connection_fetch_query_results(Result* result, conn_ptr conn);
 
-void duckdb_arrow_open(Result* result, StringView* path) {
+void duckdb_arrow_open(Result* result, const char* raw_path) {
     std::unique_ptr<duckdb::DuckDB> db;
-    if (path != nullptr && path->length != 0) {
-        std::string path_copy{path->data, path->length};
-        db = std::make_unique<duckdb::DuckDB>(path_copy);
+    if (raw_path != nullptr) {
+        db = std::make_unique<duckdb::DuckDB>(std::string{raw_path});
     } else {
         db = std::make_unique<duckdb::DuckDB>();
     }
@@ -84,17 +78,17 @@ void return_arrow_buffer_result(Result* out, arrow::Result<std::shared_ptr<arrow
 }
 }  // namespace
 
-void duckdb_arrow_connection_run_query(Result* out, conn_ptr connp, StringView* text) {
+void duckdb_arrow_connection_run_query(Result* out, conn_ptr connp, const char* raw_text) {
+    auto text = std::string_view{raw_text};
     auto conn = reinterpret_cast<Database::Connection*>(connp);
-    auto input = std::string_view{text->data, text->length};
-    auto result = conn->RunQuery(input);
+    auto result = conn->RunQuery(text);
     return_arrow_buffer_result(out, result);
 }
 
-void duckdb_arrow_connection_send_query(Result* out, conn_ptr connp, StringView* text) {
+void duckdb_arrow_connection_send_query(Result* out, conn_ptr connp, const char* raw_text) {
+    auto text = std::string_view{raw_text};
     auto conn = reinterpret_cast<Database::Connection*>(connp);
-    auto input = std::string_view{text->data, text->length};
-    auto result = conn->SendQuery(input);
+    auto result = conn->SendQuery(text);
     return_arrow_buffer_result(out, result);
 }
 
