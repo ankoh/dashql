@@ -3,8 +3,8 @@ extern crate cmake;
 use std::env;
 
 fn main() {
-    let dst = cmake::Config::new("../../submodules/duckdb")
-        .build_target("duckdb")
+    let dst = cmake::Config::new("../duckdb-arrow")
+        .build_target("duckdb_arrow")
         .always_configure(true)
         .build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
