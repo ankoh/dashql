@@ -10,3 +10,4 @@
 	path = submodules/arrow
 	url = https://github.com/apache/arrow
 	shallow = true
+	ignore = dirty
