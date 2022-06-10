@@ -53,5 +53,6 @@ include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include"
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(duckdb_arrow ${CMAKE_SOURCE_DIR}/src/database.cc)
+add_library(duckdb_arrow ${CMAKE_SOURCE_DIR}/src/api.cc
+                         ${CMAKE_SOURCE_DIR}/src/database.cc)
 target_link_libraries(duckdb_arrow duckdb arrow ${THREAD_LIBS})

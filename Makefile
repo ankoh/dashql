@@ -1,6 +1,6 @@
 # Copyright (c) 2020 The DashQL Authors
 
-.DEFAULT_GOAL := duckdb_tests
+.DEFAULT_GOAL := duckdb
 
 # ---------------------------------------------------------------------------
 # Config
@@ -31,7 +31,6 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 # ---------------------------------------------------------------------------
 # Formatting
-
 # Format all source files
 .PHONY: format
 format:
@@ -52,70 +51,6 @@ duckdb:
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 	ninja -C ${DUCKDB_DEBUG_DIR}
-
-# Compile the core in release mode
-.PHONY: duckdb_relwithdebinfo
-duckdb_relwithdebinfo:
-	mkdir -p ${DUCKDB_RELWITHDEBINFO_DIR}
-	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_RELWITHDEBINFO_DIR} \
-		-GNinja \
-		-DCMAKE_BUILD_TYPE=RelWithDebInfo
-	ninja -C ${DUCKDB_RELWITHDEBINFO_DIR}
-
-# Compile the core in release mode
-.PHONY: duckdb_release
-duckdb_release:
-	mkdir -p ${DUCKDB_RELEASE_DIR}
-	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_RELEASE_DIR} \
-		-GNinja \
-		-DCMAKE_BUILD_TYPE=Release
-	ninja -C ${DUCKDB_RELEASE_DIR}
-
-# Perf the library
-.PHONY: duckdb_perf
-duckdb_perf: duckdb_relwithdebinfo
-	perf record --call-graph dwarf ${DUCKDB_RELWITHDEBINFO_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*CSV*ParseTest
-	hotspot ./perf.data
-
-# Test the core library
-.PHONY: duckdb_tests
-duckdb_tests: arrow
-	${DUCKDB_DEBUG_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
-
-# Debug the core library
-.PHONY: duckdb_tests
-duckdb_tests_lldb: arrow
-	lldb ${DUCKDB_DEBUG_DIR}/tester -- --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
-
-# Debug the core library
-.PHONY: duckdb_tests
-duckdb_tests_gdb: arrow
-	gdb --args ${DUCKDB_DEBUG_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR} --gtest_filter=*
-
-# Test the core library
-.PHONY: duckdb_tests_relwithdebinfo
-duckdb_tests_relwithdebinfo: duckdb_relwithdebinfo
-	${DUCKDB_RELWITHDEBINFO_DIR}/tester --source_dir ${DUCKDB_SOURCE_DIR}
-
-# Test the core library
-.PHONY: duckdb_tests_relwithdebinfo_lldb
-duckdb_tests_relwithdebinfo_lldb: duckdb_relwithdebinfo
-	lldb ${DUCKDB_RELWITHDEBINFO_DIR}/tester -- --source_dir ${DUCKDB_SOURCE_DIR}
-
-# Generate declarative tests
-.PHONY: duckdb_testgen
-duckdb_testgen: arrow
-	${DUCKDB_DEBUG_DIR}/testgen ${DUCKDB_SOURCE_DIR}
-
-# Generate declarative tests
-.PHONY: duckdb_testgen_gdb
-duckdb_testgen_lldb: arrow
-	lldb ${DUCKDB_DEBUG_DIR}/testgen -- ${DUCKDB_SOURCE_DIR}
-
-# Debug the library
-.PHONY: duckdb_debug
-duckdb_debug: arrow
-	lldb --args ${DUCKDB_DEBUG_DIR}/tester ${DUCKDB_SOURCE_DIR}
 
 # Compile the flatbuffer schema
 .PHONY: proto
