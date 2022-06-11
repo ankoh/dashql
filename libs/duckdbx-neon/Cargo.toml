@@ -1,0 +1,16 @@
+[package]
+name = "duckdbx-neon"
+version = "0.1.0"
+edition = "2018"
+exclude = ["index.node"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+duckdbx = { path = "../duckdbx-sys" }
+
+[dependencies.neon]
+version = "0.10"
+default-features = false
+features = ["napi-6"]

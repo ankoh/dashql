@@ -1,39 +1,22 @@
 use arrow::ipc::reader::FileReader;
-use cty;
+use ffi::{
+    duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_open, ConnectionPtr, DatabasePtr,
+    DeleterPtr, FFIResult,
+};
 use std::io::Cursor;
 
-pub mod stream_reader;
-
-type DeleterPtr = extern "C" fn(*mut cty::c_void);
-type DbPtr = *mut cty::c_void;
-type ConnPtr = *mut cty::c_void;
-
-#[repr(C)]
-struct FFIResult {
-    status_code: u32,
-    data_length: u32,
-    data: *mut cty::c_void,
-    data_deleter: DeleterPtr,
-}
-
-extern "C" {
-    fn duckdbx_access_buffer(buffer: *mut cty::c_void, data: *mut *const cty::c_char, length: *mut cty::c_int);
-    fn duckdbx_open(result: *mut FFIResult, path: *const cty::c_char);
-    fn duckdbx_connect(result: *mut FFIResult, DbPtr: DbPtr);
-    fn duckdbx_connection_run_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    // fn duckdbx_connection_send_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    // fn duckdbx_connection_fetch_query_results(result: *mut FFIResult, conn: ConnPtr);
-}
+pub mod ffi;
+pub mod stream;
 
 extern "C" fn duckdbx_noop_deleter(_data: *mut cty::c_void) {}
 
 pub struct Database {
-    inner: DbPtr,
+    inner: DatabasePtr,
     deleter: DeleterPtr,
 }
 
 pub struct Connection {
-    inner: ConnPtr,
+    inner: ConnectionPtr,
     deleter: DeleterPtr,
 }
 
@@ -65,7 +48,7 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, DbPtr>(result.data);
+            let data = std::mem::transmute::<*mut cty::c_void, DatabasePtr>(result.data);
             return Ok(Database {
                 inner: data,
                 deleter: result.data_deleter,
@@ -88,7 +71,7 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, DbPtr>(result.data);
+            let data = std::mem::transmute::<*mut cty::c_void, DatabasePtr>(result.data);
             return Ok(Database {
                 inner: data,
                 deleter: result.data_deleter,
@@ -111,7 +94,7 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, ConnPtr>(result.data);
+            let data = std::mem::transmute::<*mut cty::c_void, ConnectionPtr>(result.data);
             return Ok(Connection {
                 inner: data,
                 deleter: result.data_deleter,
