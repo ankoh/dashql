@@ -17,6 +17,7 @@ struct FFIResult {
 }
 
 extern "C" {
+    fn duckdb_arrow_access_buffer(buffer: *mut cty::c_void, data: *mut *const cty::c_char, length: *mut cty::c_int);
     fn duckdb_arrow_open(result: *mut FFIResult, path: *const cty::c_char);
     fn duckdb_arrow_connect(result: *mut FFIResult, DbPtr: DbPtr);
     fn duckdb_arrow_connection_run_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
@@ -137,8 +138,11 @@ impl Connection {
                 return Err(msg);
             }
             let read_batches = || {
-                let data = std::mem::transmute::<*mut cty::c_void, *mut u8>(result.data);
-                let data_slice = std::slice::from_raw_parts(data, result.data_length as usize);
+                let mut data: *const cty::c_char = std::ptr::null();
+                let mut data_length: cty::c_int = 0;
+                duckdb_arrow_access_buffer(result.data, &mut data, &mut data_length);
+                let data_u8 = std::mem::transmute::<*const cty::c_char, *const u8>(data);
+                let data_slice = std::slice::from_raw_parts(data_u8, data_length as usize);
                 let cursor = Cursor::new(data_slice);
                 let reader = FileReader::try_new(cursor, None).unwrap();
                 let mut batches = Vec::new();

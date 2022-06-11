@@ -78,6 +78,11 @@ void return_arrow_buffer_result(Result* out, arrow::Result<std::shared_ptr<arrow
 }
 }  // namespace
 
+void duckdb_arrow_access_buffer(RawArrowBuffer* buffer, const char** out_data, int* out_length) {
+    *out_data = reinterpret_cast<const char*>(buffer->buffer->data());
+    *out_length = buffer->buffer->size();
+}
+
 void duckdb_arrow_connection_run_query(Result* out, conn_ptr connp, const char* raw_text) {
     auto text = std::string_view{raw_text};
     auto conn = reinterpret_cast<Database::Connection*>(connp);

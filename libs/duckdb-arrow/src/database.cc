@@ -123,7 +123,7 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::FetchQueryRe
     }
 }
 
-Database::Database(std::unique_ptr<duckdb::DuckDB> db) : database_(std::move(db)) {}
+Database::Database(std::unique_ptr<duckdb::DuckDB> db) : database_(std::move(db)), connections_() {}
 Database::~Database() {}
 
 std::string_view Database::GetVersion() { return database_->LibraryVersion(); }
@@ -132,6 +132,7 @@ Database::Connection* Database::Connect() {
     auto conn = std::make_unique<Connection>(*this);
     auto conn_ptr = conn.get();
     connections_.insert({conn_ptr, std::move(conn)});
+    return conn_ptr;
 }
 
 void Database::Disconnect(Connection* connection) {
