@@ -1,6 +1,4 @@
-#include "duckdb/arrowapi/database.h"
-
-#include <duckdb/main/connection.hpp>
+#include "duckdbx/database.h"
 
 #include "arrow/buffer.h"
 #include "arrow/io/memory.h"
@@ -11,10 +9,10 @@
 #include "arrow/result.h"
 #include "arrow/status.h"
 #include "arrow/type_fwd.h"
-#include "duckdb/arrowapi/bridge.h"
+#include "duckdb/main/connection.hpp"
+#include "duckdbx/bridge.h"
 
-namespace duckdb {
-namespace arrowapi {
+namespace duckdbx {
 
 Database::Connection::Connection(Database& db) : database_(db), connection_(*db.database_) {}
 
@@ -25,7 +23,7 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::MaterializeQ
 
     // Configure the output writer
     ArrowSchema raw_schema;
-    auto timezone = QueryResult::GetConfigTimezone(*result);
+    auto timezone = duckdb::QueryResult::GetConfigTimezone(*result);
     result->ToArrowSchema(&raw_schema, result->types, result->names, timezone);
     ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
 
@@ -54,7 +52,7 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::StreamQueryR
 
     // Import the schema
     ArrowSchema raw_schema;
-    auto timezone = QueryResult::GetConfigTimezone(*current_query_result_);
+    auto timezone = duckdb::QueryResult::GetConfigTimezone(*current_query_result_);
     current_query_result_->ToArrowSchema(&raw_schema, current_query_result_->types, current_query_result_->names,
                                          timezone);
     ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
@@ -142,5 +140,4 @@ void Database::Disconnect(Connection* connection) {
     }
 }
 
-}  // namespace arrowapi
-}  // namespace duckdb
+}  // namespace duckdbx

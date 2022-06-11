@@ -4,5 +4,5 @@ members = [
     "libs/dashql-core",
     "libs/dashql-parser-sys",
     "libs/dashql-proto",
-    "libs/duckdb-arrow-sys",
+    "libs/duckdbx-sys",
 ]

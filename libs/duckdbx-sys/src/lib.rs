@@ -17,15 +17,15 @@ struct FFIResult {
 }
 
 extern "C" {
-    fn duckdb_arrow_access_buffer(buffer: *mut cty::c_void, data: *mut *const cty::c_char, length: *mut cty::c_int);
-    fn duckdb_arrow_open(result: *mut FFIResult, path: *const cty::c_char);
-    fn duckdb_arrow_connect(result: *mut FFIResult, DbPtr: DbPtr);
-    fn duckdb_arrow_connection_run_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    // fn duckdb_arrow_connection_send_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
-    // fn duckdb_arrow_connection_fetch_query_results(result: *mut FFIResult, conn: ConnPtr);
+    fn duckdbx_access_buffer(buffer: *mut cty::c_void, data: *mut *const cty::c_char, length: *mut cty::c_int);
+    fn duckdbx_open(result: *mut FFIResult, path: *const cty::c_char);
+    fn duckdbx_connect(result: *mut FFIResult, DbPtr: DbPtr);
+    fn duckdbx_connection_run_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
+    // fn duckdbx_connection_send_query(result: *mut FFIResult, conn: ConnPtr, query: *const cty::c_char);
+    // fn duckdbx_connection_fetch_query_results(result: *mut FFIResult, conn: ConnPtr);
 }
 
-extern "C" fn duckdb_arrow_noop_deleter(_data: *mut cty::c_void) {}
+extern "C" fn duckdbx_noop_deleter(_data: *mut cty::c_void) {}
 
 pub struct Database {
     inner: DbPtr,
@@ -55,10 +55,10 @@ impl Database {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: duckdb_arrow_noop_deleter,
+            data_deleter: duckdbx_noop_deleter,
         };
         unsafe {
-            duckdb_arrow_open(&mut result, std::ptr::null());
+            duckdbx_open(&mut result, std::ptr::null());
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
@@ -77,11 +77,11 @@ impl Database {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: duckdb_arrow_noop_deleter,
+            data_deleter: duckdbx_noop_deleter,
         };
         let c_path = std::ffi::CString::new(path).unwrap_or_default();
         unsafe {
-            duckdb_arrow_open(&mut result, c_path.as_ptr());
+            duckdbx_open(&mut result, c_path.as_ptr());
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
@@ -101,10 +101,10 @@ impl Database {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: duckdb_arrow_noop_deleter,
+            data_deleter: duckdbx_noop_deleter,
         };
         unsafe {
-            duckdb_arrow_connect(&mut result, self.inner);
+            duckdbx_connect(&mut result, self.inner);
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
@@ -126,11 +126,11 @@ impl Connection {
             status_code: 0,
             data_length: 0,
             data: std::ptr::null_mut(),
-            data_deleter: duckdb_arrow_noop_deleter,
+            data_deleter: duckdbx_noop_deleter,
         };
         let c_query = std::ffi::CString::new(query).unwrap_or_default();
         unsafe {
-            duckdb_arrow_connection_run_query(&mut result, self.inner, c_query.as_ptr());
+            duckdbx_connection_run_query(&mut result, self.inner, c_query.as_ptr());
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
@@ -140,7 +140,7 @@ impl Connection {
             let read_batches = || {
                 let mut data: *const cty::c_char = std::ptr::null();
                 let mut data_length: cty::c_int = 0;
-                duckdb_arrow_access_buffer(result.data, &mut data, &mut data_length);
+                duckdbx_access_buffer(result.data, &mut data, &mut data_length);
                 let data_u8 = std::mem::transmute::<*const cty::c_char, *const u8>(data);
                 let data_slice = std::slice::from_raw_parts(data_u8, data_length as usize);
                 let cursor = Cursor::new(data_slice);

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_DUCKDB_ARROWAPI_DATABASE_H_
-#define INCLUDE_DUCKDB_ARROWAPI_DATABASE_H_
+#ifndef INCLUDE_DUCKDBX_DATABASE_H_
+#define INCLUDE_DUCKDBX_DATABASE_H_
 
 #include <cstring>
 #include <initializer_list>
@@ -15,8 +15,7 @@
 #include "duckdb/main/query_result.hpp"
 #include "duckdb/parser/parser.hpp"
 
-namespace duckdb {
-namespace arrowapi {
+namespace duckdbx {
 
 class Database {
    public:
@@ -78,7 +77,6 @@ class Database {
     void Disconnect(Connection* connection);
 };
 
-}  // namespace arrowapi
-}  // namespace duckdb
+}  // namespace duckdbx
 
-#endif  // INCLUDE_DUCKDB_ARROWAPI_DATABASE_H_
+#endif  // INCLUDE_DUCKDBX_DATABASE_H_

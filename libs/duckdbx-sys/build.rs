@@ -3,8 +3,8 @@ extern crate cmake;
 use std::env;
 
 fn main() {
-    let dst = cmake::Config::new("../duckdb-arrow")
-        .build_target("duckdb_arrow")
+    let dst = cmake::Config::new("../duckdbx")
+        .build_target("duckdbx")
         .always_configure(true)
         .build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
@@ -16,7 +16,7 @@ fn main() {
         "cargo:rustc-link-search=native={}/build/third_party/duckdb/install/lib",
         dst.display()
     );
-    println!("cargo:rustc-link-lib=static=duckdb_arrow");
+    println!("cargo:rustc-link-lib=static=duckdbx");
     println!("cargo:rustc-link-lib=static=arrow");
     println!("cargo:rustc-link-lib=static=duckdb_static");
 

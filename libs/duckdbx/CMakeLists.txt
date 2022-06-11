@@ -3,7 +3,7 @@ if(POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif(POLICY CMP0048)
 
-project(duckdb_arrow VERSION 0.1)
+project(duckdbx VERSION 0.1)
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -50,6 +50,6 @@ include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include"
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(duckdb_arrow ${CMAKE_SOURCE_DIR}/src/api.cc
-                         ${CMAKE_SOURCE_DIR}/src/database.cc)
-target_link_libraries(duckdb_arrow duckdb arrow ${THREAD_LIBS})
+add_library(duckdbx ${CMAKE_SOURCE_DIR}/src/api.cc
+                    ${CMAKE_SOURCE_DIR}/src/database.cc)
+target_link_libraries(duckdbx duckdb arrow ${THREAD_LIBS})

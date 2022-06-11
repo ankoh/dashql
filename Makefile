@@ -13,7 +13,7 @@ GID=${shell id -g}
 APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
-DUCKDB_SOURCE_DIR="${ROOT_DIR}/libs/duckdb-arrow"
+DUCKDB_SOURCE_DIR="${ROOT_DIR}/libs/duckdbx"
 DUCKDB_DEBUG_DIR="${DUCKDB_SOURCE_DIR}/build/Debug"
 DUCKDB_RELEASE_DIR="${DUCKDB_SOURCE_DIR}/build/Release"
 DUCKDB_RELWITHDEBINFO_DIR="${DUCKDB_SOURCE_DIR}/build/RelWithDebInfo"
