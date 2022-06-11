@@ -148,18 +148,17 @@ impl Connection {
             })
         }
     }
+}
 
-    pub fn run_query_and_unpack(&self, query: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
-        let buffer = self.run_query(query)?;
-        let cursor = Cursor::new(buffer.get());
-        let reader = FileReader::try_new(cursor, None).unwrap();
-        let mut batches = Vec::new();
-        for maybe_batch in reader {
-            match maybe_batch {
-                Ok(batch) => batches.push(batch),
-                Err(err) => return Err(err.to_string()),
-            }
+pub fn read_arrow_ipc_buffer(buffer: &Buffer) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+    let cursor = Cursor::new(buffer.get());
+    let reader = FileReader::try_new(cursor, None).unwrap();
+    let mut batches = Vec::new();
+    for maybe_batch in reader {
+        match maybe_batch {
+            Ok(batch) => batches.push(batch),
+            Err(err) => return Err(err.to_string()),
         }
-        return Ok(batches);
     }
+    return Ok(batches);
 }
