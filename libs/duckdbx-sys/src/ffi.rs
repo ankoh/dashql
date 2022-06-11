@@ -12,6 +12,8 @@ pub struct FFIResult {
     pub data_deleter: DeleterPtr,
 }
 
+pub extern "C" fn duckdbx_noop_deleter(_data: *mut cty::c_void) {}
+
 extern "C" {
     pub fn duckdbx_open(result: *mut FFIResult, path: *const cty::c_char);
     pub fn duckdbx_connect(result: *mut FFIResult, db_ptr: DatabasePtr);

@@ -1,14 +1,12 @@
 use arrow::ipc::reader::FileReader;
 use ffi::{
-    duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_open, ConnectionPtr, DatabasePtr,
-    DeleterPtr, FFIResult,
+    duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_noop_deleter, duckdbx_open,
+    ConnectionPtr, DatabasePtr, DeleterPtr, FFIResult,
 };
 use std::io::Cursor;
 
 pub mod ffi;
 pub mod stream;
-
-extern "C" fn duckdbx_noop_deleter(_data: *mut cty::c_void) {}
 
 pub struct Database {
     inner: DatabasePtr,
