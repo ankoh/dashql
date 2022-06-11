@@ -1,0 +1,25 @@
+[package]
+name = "duckdbx-api"
+version = "0.1.0"
+authors = ["Andre Kohn <kohn.a@outlook.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+async-trait = "0.1.56"
+log = "0.4.14"
+console_error_panic_hook = "0.1.6"
+wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"] }
+wasm-bindgen-futures = "0.4.24"
+arrow = { version = "13.0.0", features = ["csv", "ipc"] }
+js-sys = "0.3.51"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.12"
+
+[profile.release]
+lto = true
+opt-level = "s"
