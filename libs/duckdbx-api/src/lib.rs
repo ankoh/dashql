@@ -1,10 +1,11 @@
-use wasm_bindgen::prelude::*;
+pub mod api;
+#[cfg(not(target_arch = "wasm32"))]
+mod api_ffi;
+#[cfg(target_arch = "wasm32")]
+mod api_wasm;
+mod arrow_ipc;
 
-mod backend;
-mod backend_ffi;
-mod backend_wasm;
-
-#[wasm_bindgen(start)]
-pub fn main() {
-    console_error_panic_hook::set_once();
-}
+#[cfg(not(target_arch = "wasm32"))]
+pub use api_ffi::configure;
+#[cfg(target_arch = "wasm32")]
+pub use api_wasm::configure;
