@@ -1,12 +1,9 @@
-use arrow::ipc::reader::FileReader;
 use ffi::{
     duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_noop_deleter, duckdbx_open,
     ConnectionPtr, DatabasePtr, DeleterPtr, FFIResult,
 };
-use std::io::Cursor;
 
 pub mod ffi;
-pub mod stream;
 
 pub struct Database {
     inner: DatabasePtr,
@@ -148,17 +145,4 @@ impl Connection {
             })
         }
     }
-}
-
-pub fn read_arrow_ipc_buffer(buffer: &Buffer) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
-    let cursor = Cursor::new(buffer.get());
-    let reader = FileReader::try_new(cursor, None).unwrap();
-    let mut batches = Vec::new();
-    for maybe_batch in reader {
-        match maybe_batch {
-            Ok(batch) => batches.push(batch),
-            Err(err) => return Err(err.to_string()),
-        }
-    }
-    return Ok(batches);
 }
