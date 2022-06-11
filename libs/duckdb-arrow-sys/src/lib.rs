@@ -49,6 +49,28 @@ impl Drop for Connection {
 }
 
 impl Database {
+    pub fn open_transient() -> Result<Self, String> {
+        let mut result = FFIResult {
+            status_code: 0,
+            data_length: 0,
+            data: std::ptr::null_mut(),
+            data_deleter: duckdb_arrow_noop_deleter,
+        };
+        unsafe {
+            duckdb_arrow_open(&mut result, std::ptr::null());
+            if result.status_code != 0 {
+                let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
+                let c_msg = std::ffi::CStr::from_ptr(data);
+                let msg = c_msg.to_str().unwrap_or_default().to_owned();
+                return Err(msg);
+            }
+            let data = std::mem::transmute::<*mut cty::c_void, DbPtr>(result.data);
+            return Ok(Database {
+                inner: data,
+                deleter: result.data_deleter,
+            });
+        }
+    }
     pub fn open(path: &str) -> Result<Self, String> {
         let mut result = FFIResult {
             status_code: 0,

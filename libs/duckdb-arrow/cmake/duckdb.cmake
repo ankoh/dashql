@@ -27,6 +27,9 @@ ExternalProject_Add(
              -DBUILD_PARQUET_EXTENSION=TRUE
              -DBUILD_SHELL=FALSE
              -DBUILD_UNITTESTS=FALSE
+             -DENABLE_SANITIZER=FALSE
+             -DENABLE_THREAD_SANITIZER=FALSE
+             -DENABLE_UBSAN=FALSE
              -DDISABLE_BUILTIN_EXTENSIONS=TRUE
   BUILD_BYPRODUCTS
     <INSTALL_DIR>/lib/libduckdb_re2.a

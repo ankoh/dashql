@@ -42,15 +42,11 @@ class Database {
        public:
         /// Constructor
         Connection(Database& db);
-        /// Destructor
-        ~Connection();
 
         /// Get the database
         auto& database() { return database_; }
         /// Get a connection
         auto& connection() { return connection_; }
-        /// Get the filesystem
-        duckdb::FileSystem& filesystem();
 
         /// Run a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> RunQuery(std::string_view text);

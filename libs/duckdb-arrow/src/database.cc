@@ -1,5 +1,7 @@
 #include "duckdb/arrowapi/database.h"
 
+#include <duckdb/main/connection.hpp>
+
 #include "arrow/buffer.h"
 #include "arrow/io/memory.h"
 #include "arrow/ipc/reader.h"
@@ -13,6 +15,8 @@
 
 namespace duckdb {
 namespace arrowapi {
+
+Database::Connection::Connection(Database& db) : database_(db), connection_(*db.database_) {}
 
 arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::MaterializeQueryResult(
     std::unique_ptr<duckdb::QueryResult> result) {
@@ -116,6 +120,24 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::FetchQueryRe
         return arrow::ipc::SerializeRecordBatch(*batch, options);
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
+    }
+}
+
+Database::Database(std::unique_ptr<duckdb::DuckDB> db) : database_(std::move(db)) {}
+Database::~Database() {}
+
+std::string_view Database::GetVersion() { return database_->LibraryVersion(); }
+
+Database::Connection* Database::Connect() {
+    auto conn = std::make_unique<Connection>(*this);
+    auto conn_ptr = conn.get();
+    connections_.insert({conn_ptr, std::move(conn)});
+}
+
+void Database::Disconnect(Connection* connection) {
+    auto iter = connections_.find(connection);
+    if (iter != connections_.end()) {
+        connections_.erase(iter);
     }
 }
 
