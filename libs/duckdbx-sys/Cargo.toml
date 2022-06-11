@@ -1,10 +1,10 @@
 [package]
-name = "duckdb"
+name = "duckdbx"
 version = "0.1.0"
 edition = "2018"
 
 [lib]
-name = "duckdb"
+name = "duckdbx"
 test = true
 doctest = false
 

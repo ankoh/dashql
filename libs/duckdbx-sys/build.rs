@@ -18,6 +18,7 @@ fn main() {
     );
     println!("cargo:rustc-link-lib=static=duckdbx");
     println!("cargo:rustc-link-lib=static=arrow");
+
     println!("cargo:rustc-link-lib=static=duckdb_static");
 
     println!("cargo:rustc-link-lib=static=duckdb_fastpforlib");
