@@ -101,8 +101,31 @@ impl Database {
     }
 }
 
+pub struct Buffer {
+    buffer: *mut cty::c_void,
+    deleter: DeleterPtr,
+}
+
+impl Buffer {
+    pub fn get<'a>(&'a self) -> &'a [u8] {
+        let mut data: *const cty::c_char = std::ptr::null();
+        let mut data_length: cty::c_int = 0;
+        unsafe {
+            duckdbx_access_buffer(self.buffer, &mut data, &mut data_length);
+            let data = std::mem::transmute::<*const cty::c_char, *const u8>(data);
+            std::slice::from_raw_parts(data, data_length as usize)
+        }
+    }
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        (self.deleter)(self.buffer)
+    }
+}
+
 impl Connection {
-    pub fn run_query(&self, query: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+    pub fn run_query(&self, query: &str) -> Result<Buffer, String> {
         let mut result = FFIResult {
             status_code: 0,
             data_length: 0,
@@ -116,28 +139,27 @@ impl Connection {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
+                (result.data_deleter)(result.data);
                 return Err(msg);
             }
-            let read_batches = || {
-                let mut data: *const cty::c_char = std::ptr::null();
-                let mut data_length: cty::c_int = 0;
-                duckdbx_access_buffer(result.data, &mut data, &mut data_length);
-                let data_u8 = std::mem::transmute::<*const cty::c_char, *const u8>(data);
-                let data_slice = std::slice::from_raw_parts(data_u8, data_length as usize);
-                let cursor = Cursor::new(data_slice);
-                let reader = FileReader::try_new(cursor, None).unwrap();
-                let mut batches = Vec::new();
-                for maybe_batch in reader {
-                    match maybe_batch {
-                        Ok(batch) => batches.push(batch),
-                        Err(err) => return Err(err.to_string()),
-                    }
-                }
-                return Ok(batches);
-            };
-            let batches = read_batches();
-            (result.data_deleter)(result.data);
-            batches
+            Ok(Buffer {
+                buffer: result.data,
+                deleter: result.data_deleter,
+            })
         }
+    }
+
+    pub fn run_query_and_unpack(&self, query: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+        let buffer = self.run_query(query)?;
+        let cursor = Cursor::new(buffer.get());
+        let reader = FileReader::try_new(cursor, None).unwrap();
+        let mut batches = Vec::new();
+        for maybe_batch in reader {
+            match maybe_batch {
+                Ok(batch) => batches.push(batch),
+                Err(err) => return Err(err.to_string()),
+            }
+        }
+        return Ok(batches);
     }
 }

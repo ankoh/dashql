@@ -1,11 +1,8 @@
 use crate::backend::{DatabaseBackend, DatabaseClient, DatabaseConnection};
 use async_trait::async_trait;
+use duckdbx;
 
 pub struct FFIDatabaseBackend {}
-
-pub struct FFIDatabaseClient {}
-
-pub struct FFIDatabaseConnection {}
 
 #[async_trait(?Send)]
 impl DatabaseBackend for FFIDatabaseBackend {
@@ -14,11 +11,19 @@ impl DatabaseBackend for FFIDatabaseBackend {
     }
 }
 
+pub struct FFIDatabaseClient {
+    inner: duckdbx::Database,
+}
+
 #[async_trait(?Send)]
 impl DatabaseClient for FFIDatabaseClient {
     async fn connect(&self) -> Result<Box<dyn DatabaseConnection>, String> {
         todo!()
     }
+}
+
+pub struct FFIDatabaseConnection {
+    inner: duckdbx::Connection,
 }
 
 #[async_trait(?Send)]

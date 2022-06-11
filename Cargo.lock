@@ -277,6 +277,7 @@ dependencies = [
  "arrow 13.0.0",
  "async-trait",
  "console_error_panic_hook",
+ "duckdbx",
  "js-sys",
  "log",
  "wasm-bindgen",
