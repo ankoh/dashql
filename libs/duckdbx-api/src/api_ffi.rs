@@ -3,8 +3,8 @@ use crate::arrow_ipc::read_arrow_ipc_buffer;
 use async_trait::async_trait;
 use duckdbx;
 
-pub fn configure() -> Box<dyn DatabaseClient> {
-    Box::new(FFIDatabaseClient {})
+pub async fn configure() -> Result<Box<dyn DatabaseClient>, String> {
+    Ok(Box::new(FFIDatabaseClient {}))
 }
 
 pub struct FFIDatabaseClient {}
