@@ -1,4 +1,4 @@
-use super::function_logic;
+use super::function;
 use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
 use crate::grammar::Expression;
@@ -35,7 +35,7 @@ impl<'a> Expression<'a> {
                     _ => return Err(SystemError::FunctionNotImplementedButKnown(ctx.current_node_id, known)),
                 },
                 FunctionName::Unknown(func) => match func {
-                    "format" => Some(Rc::new(function_logic::format::evaluate_scalar(ctx, f)?)),
+                    "format" => Some(Rc::new(function::format::evaluate_scalar(ctx, f)?)),
                     _ => {
                         return Err(SystemError::FunctionNotImplemented(
                             ctx.current_node_id,
