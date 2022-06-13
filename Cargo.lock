@@ -229,6 +229,7 @@ dependencies = [
  "clap",
  "dashql_parser",
  "dashql_proto",
+ "duckdbx_api",
  "env_logger",
  "flatbuffers",
  "getrandom",
@@ -275,7 +276,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "duckdbx-api"
+name = "duckdbx-neon"
+version = "0.1.0"
+dependencies = [
+ "duckdbx",
+ "neon",
+]
+
+[[package]]
+name = "duckdbx_api"
 version = "0.1.0"
 dependencies = [
  "arrow",
@@ -288,14 +297,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "duckdbx-neon"
-version = "0.1.0"
-dependencies = [
- "duckdbx",
- "neon",
 ]
 
 [[package]]

@@ -16,6 +16,7 @@ pub enum SystemError {
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
     InvalidTableRef(Option<usize>),
+    InvalidTaskData(usize),
     TranslationNotImplemented(Option<usize>, sx::NodeType),
     UnexpectedAttribute(Option<usize>, sx::NodeType, sx::AttributeKey),
     UnexpectedElement(Option<usize>, sx::AttributeKey, sx::NodeType),
@@ -34,6 +35,7 @@ impl SystemError {
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
             SystemError::InvalidTableRef(_) => "invalid table reference",
+            SystemError::InvalidTaskData(_) => "invalid task data",
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
             SystemError::UnexpectedAttribute(_, _, _) => "unexpected attribute",
             SystemError::UnexpectedElement(_, _, _) => "unexpected element",
@@ -62,6 +64,7 @@ impl<'a> fmt::Display for SystemError {
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
             SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),
+            SystemError::InvalidTaskData(stmt_id) => write!(f, "[{:?}] invalid task data", stmt_id),
             SystemError::TranslationNotImplemented(node, node_type) => {
                 write!(f, "[{:?}] translation not implemented for type: {:?}", node, node_type)
             }

@@ -1,8 +1,9 @@
 use super::{
     program_diff::{compute_diff, DiffOp, DiffOpCode},
     program_instance::ProgramInstance,
-    task_data::{InputTaskData, SQLTaskData, TaskData, VizTaskData},
+    task_data::{FetchTaskData, InputTaskData, LoadTaskData, SQLTaskData, SetTaskData, TaskData, VizTaskData},
 };
+use dashql_proto::syntax as sx;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::error::Error;
@@ -98,7 +99,7 @@ pub struct ProgramTask {
     pub origin_statement: usize,
     pub object_id: usize,
     pub object_name: Option<String>,
-    pub data: Option<TaskData>,
+    pub data: TaskData,
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
@@ -153,61 +154,64 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             origin_statement: stmt_id,
             object_id: next_object_id,
             object_name: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
-            data: None,
+            data: TaskData::None,
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                data: Some(TaskData::Sql(SQLTaskData {
+                data: TaskData::Sql(SQLTaskData {
                     script: print_ast_as_script_with_defaults(*c),
-                })),
+                }),
                 ..mixin
             },
             Statement::CreateAs(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                data: Some(TaskData::Sql(SQLTaskData {
+                data: TaskData::Sql(SQLTaskData {
                     script: print_ast_as_script_with_defaults(*c),
-                })),
+                }),
                 ..mixin
             },
             Statement::CreateView(c) => ProgramTask {
                 task_type: ProgramTaskType::CreateView,
-                data: Some(TaskData::Sql(SQLTaskData {
+                data: TaskData::Sql(SQLTaskData {
                     script: print_ast_as_script_with_defaults(*c),
-                })),
+                }),
                 ..mixin
             },
             Statement::Input(_i) => ProgramTask {
                 task_type: ProgramTaskType::Input,
-                data: Some(TaskData::Input(InputTaskData {
+                data: TaskData::Input(InputTaskData {
                     card: next.cards.get(&stmt_id).cloned().unwrap_or_default(),
-                })),
+                }),
                 ..mixin
             },
-            Statement::Fetch(_f) => ProgramTask {
+            Statement::Fetch(f) => ProgramTask {
                 task_type: ProgramTaskType::Fetch,
+                data: TaskData::Fetch(FetchTaskData { method: f.method.get() }),
                 ..mixin
             },
-            Statement::Load(_l) => ProgramTask {
+            Statement::Load(l) => ProgramTask {
                 task_type: ProgramTaskType::Load,
+                data: TaskData::Load(LoadTaskData { method: l.method.get() }),
                 ..mixin
             },
             Statement::Viz(_v) => ProgramTask {
                 task_type: ProgramTaskType::CreateViz,
-                data: Some(TaskData::Viz(VizTaskData {
+                data: TaskData::Viz(VizTaskData {
                     card: next.cards.get(&stmt_id).cloned().unwrap_or_default(),
-                })),
+                }),
                 ..mixin
             },
             Statement::Select(s) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
-                data: Some(TaskData::Sql(SQLTaskData {
+                data: TaskData::Sql(SQLTaskData {
                     script: print_ast_as_script_with_defaults(*s),
-                })),
+                }),
                 ..mixin
             },
             Statement::Set(_) => ProgramTask {
                 task_type: ProgramTaskType::Set,
+                data: TaskData::Set(SetTaskData {}),
                 ..mixin
             },
         };
@@ -576,6 +580,7 @@ mod test {
     use crate::analyzer::board_cards::Card;
     use crate::analyzer::board_space::BoardPosition;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::analyzer::task_data::{FetchTaskData, LoadTaskData};
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use std::rc::Rc;
@@ -677,7 +682,9 @@ FETCH a FROM 'https://some/remote'
                         origin_statement: 0,
                         object_id: 0,
                         object_name: Some("main.a".to_string()),
-                        data: None,
+                        data: TaskData::Fetch(FetchTaskData {
+                            method: sx::FetchMethodType::NONE,
+                        }),
                     }],
                     program_task_by_statement: vec![Some(0)],
                 },
@@ -707,7 +714,9 @@ LOAD b FROM a USING PARQUET;
                             origin_statement: 0,
                             object_id: 0,
                             object_name: Some("main.a".to_string()),
-                            data: None,
+                            data: TaskData::Fetch(FetchTaskData {
+                                method: sx::FetchMethodType::NONE,
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -717,7 +726,9 @@ LOAD b FROM a USING PARQUET;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: Some("main.b".to_string()),
-                            data: None,
+                            data: TaskData::Load(LoadTaskData {
+                                method: sx::LoadMethodType::PARQUET,
+                            }),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -749,7 +760,9 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 0,
                             object_id: 0,
                             object_name: Some("main.a".to_string()),
-                            data: None,
+                            data: TaskData::Fetch(FetchTaskData {
+                                method: sx::FetchMethodType::NONE,
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -759,7 +772,9 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 1,
                             object_id: 1,
                             object_name: Some("main.b".to_string()),
-                            data: None,
+                            data: TaskData::Load(LoadTaskData {
+                                method: sx::LoadMethodType::PARQUET,
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateTable,
@@ -769,9 +784,9 @@ CREATE TABLE c AS SELECT * FROM b
                             origin_statement: 2,
                             object_id: 2,
                             object_name: Some("main.c".to_string()),
-                            data: Some(TaskData::Sql(SQLTaskData {
+                            data: TaskData::Sql(SQLTaskData {
                                 script: "create table c as (select * from b)".to_string(),
-                            })),
+                            }),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2)],
@@ -804,7 +819,9 @@ VIZ c USING TABLE;
                             origin_statement: 0,
                             object_id: 0,
                             object_name: Some("main.a".to_string()),
-                            data: None,
+                            data: TaskData::Fetch(FetchTaskData {
+                                method: sx::FetchMethodType::NONE,
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -814,7 +831,9 @@ VIZ c USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: Some("main.b".to_string()),
-                            data: None,
+                            data: TaskData::Load(LoadTaskData {
+                                method: sx::LoadMethodType::PARQUET,
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateTable,
@@ -824,9 +843,9 @@ VIZ c USING TABLE;
                             origin_statement: 2,
                             object_id: 2,
                             object_name: Some("main.c".to_string()),
-                            data: Some(TaskData::Sql(SQLTaskData {
+                            data: TaskData::Sql(SQLTaskData {
                                 script: "create table c as (select * from b)".to_string(),
-                            })),
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -836,7 +855,7 @@ VIZ c USING TABLE;
                             origin_statement: 3,
                             object_id: 3,
                             object_name: None,
-                            data: Some(TaskData::Viz(VizTaskData {
+                            data: TaskData::Viz(VizTaskData {
                                 card: Card {
                                     title: "c".to_string(),
                                     position: BoardPosition {
@@ -846,7 +865,7 @@ VIZ c USING TABLE;
                                         height: 4,
                                     },
                                 },
-                            })),
+                            }),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
@@ -876,9 +895,9 @@ VIZ a USING TABLE;
                             origin_statement: 0,
                             object_id: 0,
                             object_name: Some("main.a".to_string()),
-                            data: Some(TaskData::Sql(SQLTaskData {
+                            data: TaskData::Sql(SQLTaskData {
                                 script: "create table a as (select 2)".to_string(),
-                            })),
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -888,7 +907,7 @@ VIZ a USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: None,
-                            data: Some(TaskData::Viz(VizTaskData {
+                            data: TaskData::Viz(VizTaskData {
                                 card: Card {
                                     title: "a".to_string(),
                                     position: BoardPosition {
@@ -898,7 +917,7 @@ VIZ a USING TABLE;
                                         height: 4,
                                     },
                                 },
-                            })),
+                            }),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -929,9 +948,9 @@ VIZ a USING TABLE;
                             origin_statement: 0,
                             object_id: 2,
                             object_name: Some("main.a".to_string()),
-                            data: Some(TaskData::Sql(SQLTaskData {
+                            data: TaskData::Sql(SQLTaskData {
                                 script: "create table a as (select 1)".to_string(),
-                            })),
+                            }),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::UpdateViz,
@@ -941,7 +960,7 @@ VIZ a USING TABLE;
                             origin_statement: 1,
                             object_id: 1,
                             object_name: None,
-                            data: Some(TaskData::Viz(VizTaskData {
+                            data: TaskData::Viz(VizTaskData {
                                 card: Card {
                                     title: "a".to_string(),
                                     position: BoardPosition {
@@ -951,7 +970,7 @@ VIZ a USING TABLE;
                                         height: 4,
                                     },
                                 },
-                            })),
+                            }),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
