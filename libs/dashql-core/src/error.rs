@@ -12,11 +12,12 @@ pub enum SystemError {
     FunctionEvaluationFailed(Option<usize>, Box<dyn Error + Send + Sync>),
     FunctionNotImplemented(Option<usize>, String),
     FunctionNotImplementedButKnown(Option<usize>, sx::KnownFunction),
+    Generic(String),
     InsufficientArguments(Option<usize>),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
-    InvalidTableRef(Option<usize>),
     InvalidStatementType(&'static str),
+    InvalidTableRef(Option<usize>),
     TranslationNotImplemented(Option<usize>, sx::NodeType),
     UnexpectedAttribute(Option<usize>, sx::NodeType, sx::AttributeKey),
     UnexpectedElement(Option<usize>, sx::AttributeKey, sx::NodeType),
@@ -25,6 +26,7 @@ pub enum SystemError {
 impl SystemError {
     pub fn const_description(&self) -> &'static str {
         match &self {
+            SystemError::Generic(_) => "generic",
             SystemError::CastFailed(_, _, _) => "cast failed",
             SystemError::CastNotImplemented(_, _, _) => "cast not implemented",
             SystemError::ExpressionTypeNotImplemented(_) => "expression type not implemented",
@@ -43,9 +45,16 @@ impl SystemError {
     }
 }
 
+impl From<std::string::String> for SystemError {
+    fn from(s: std::string::String) -> Self {
+        SystemError::Generic(s)
+    }
+}
+
 impl<'a> fmt::Display for SystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
+            SystemError::Generic(error) => write!(f, "error: {:?}", error),
             SystemError::CastFailed(node, from, to) => write!(f, "[{:?}] cast failed: {:?} -> {:?}", node, from, to),
             SystemError::CastNotImplemented(node, from, to) => {
                 write!(f, "[{:?}] cast not implemented: {:?} -> {:?}", node, from, to)

@@ -34,11 +34,11 @@ impl FetchTask {
 
 #[async_trait(?Send)]
 impl Task for FetchTask {
-    async fn prepare(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn prepare(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
         todo!()
     }
 
-    async fn execute(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn execute(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
         todo!()
     }
 }

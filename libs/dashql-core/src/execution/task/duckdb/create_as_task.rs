@@ -23,11 +23,14 @@ impl CreateAsTask {
 
 #[async_trait(?Send)]
 impl Task for CreateAsTask {
-    async fn prepare(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
-        todo!()
+    async fn prepare(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
+        Ok(())
     }
-
-    async fn execute(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
-        todo!()
+    async fn execute(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
+        let stmt = self.get_statement(ctx)?;
+        let stmt_select = stmt.statement.get();
+        let script = print_ast_as_script_with_defaults(stmt_select);
+        self.connection.run_query(&script).await?;
+        Ok(())
     }
 }
