@@ -6,5 +6,4 @@ pub mod name_resolution;
 pub mod program_diff;
 pub mod program_editor;
 pub mod program_instance;
-pub mod task_data;
 pub mod task_planner;

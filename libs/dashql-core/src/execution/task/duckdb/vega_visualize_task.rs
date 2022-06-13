@@ -1,4 +1,3 @@
-use crate::analyzer::task_data::{TaskData, VizTaskData};
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::task::task_context::TaskContext;
@@ -9,15 +8,6 @@ use std::rc::Rc;
 pub struct VegaVisualizeTask {
     task: Rc<ProgramTask>,
     conn: Box<dyn DatabaseConnection>,
-}
-
-impl VegaVisualizeTask {
-    fn get_data<'a>(&'a self) -> Result<&'a VizTaskData, SystemError> {
-        match &self.task.data {
-            TaskData::Viz(data) => Ok(data),
-            _ => Err(SystemError::InvalidTaskData(self.task.origin_statement)),
-        }
-    }
 }
 
 impl Task for VegaVisualizeTask {

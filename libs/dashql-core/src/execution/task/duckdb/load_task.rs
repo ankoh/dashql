@@ -1,4 +1,3 @@
-use crate::analyzer::task_data::{LoadTaskData, TaskData};
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::task::task_context::TaskContext;
@@ -10,15 +9,6 @@ use std::rc::Rc;
 pub struct LoadTask {
     task: Rc<ProgramTask>,
     conn: Box<dyn DatabaseConnection>,
-}
-
-impl LoadTask {
-    fn get_data<'a>(&'a self) -> Result<&'a LoadTaskData, SystemError> {
-        match &self.task.data {
-            TaskData::Load(data) => Ok(data),
-            _ => Err(SystemError::InvalidTaskData(self.task.origin_statement)),
-        }
-    }
 }
 
 fn infer_load_method(url: &str) -> sx::LoadMethodType {
