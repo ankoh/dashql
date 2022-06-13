@@ -10,8 +10,7 @@ use std::rc::Rc;
 
 pub struct FetchTask {
     task: Rc<ProgramTask>,
-    conn: Box<dyn DatabaseConnection>,
-    resolved_url: Option<String>,
+    connection: Box<dyn DatabaseConnection>,
 }
 
 fn infer_fetch_method(url: &str) -> sx::FetchMethodType {
@@ -34,11 +33,31 @@ impl FetchTask {
 
 #[async_trait(?Send)]
 impl Task for FetchTask {
-    async fn prepare(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
-        todo!()
+    async fn prepare(&mut self, _ctx: &mut TaskContext) -> Result<(), SystemError> {
+        Ok(())
     }
+    async fn execute(&mut self, ctx: &mut TaskContext) -> Result<(), SystemError> {
+        let stmt = self.get_statement(ctx)?;
+        let mut method = stmt.method.get();
+        let mut url = None;
 
-    async fn execute(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
+        // User specified uri?
+        if let Some(from_uri_expr) = stmt.from_uri.get() {
+            let from_uri = match from_uri_expr.evaluate(&mut ctx.expressions)?.map(|v| format!("{}", v)) {
+                Some(uri) => uri,
+                None => return Err(SystemError::InvalidFetchURI(format!("{:?}", &from_uri_expr))),
+            };
+            method = infer_fetch_method(&from_uri);
+            url = Some(from_uri);
+        }
+
+        // XXX If none, resolve from extras
+        match method {
+            sx::FetchMethodType::FILE => (),
+            sx::FetchMethodType::HTTP => (),
+            _ => (),
+        }
+
         todo!()
     }
 }

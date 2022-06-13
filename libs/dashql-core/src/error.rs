@@ -14,6 +14,7 @@ pub enum SystemError {
     FunctionNotImplementedButKnown(Option<usize>, sx::KnownFunction),
     Generic(String),
     InsufficientArguments(Option<usize>),
+    InvalidFetchURI(String),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
     InvalidStatementType(&'static str),
@@ -34,10 +35,11 @@ impl SystemError {
             SystemError::FunctionNotImplemented(_, _) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_, _) => "function not implemented",
             SystemError::InsufficientArguments(_) => "insufficient arguments",
+            SystemError::InvalidFetchURI(_) => "invalid fetch uri",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
-            SystemError::InvalidTableRef(_) => "invalid table reference",
             SystemError::InvalidStatementType(_) => "invalid statement type",
+            SystemError::InvalidTableRef(_) => "invalid table reference",
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
             SystemError::UnexpectedAttribute(_, _, _) => "unexpected attribute",
             SystemError::UnexpectedElement(_, _, _) => "unexpected element",
@@ -70,6 +72,7 @@ impl<'a> fmt::Display for SystemError {
                 write!(f, "[{:?}] function node implemented: {:?}", node, func)
             }
             SystemError::InsufficientArguments(node) => write!(f, "[{:?}] insufficient arguments", node),
+            SystemError::InvalidFetchURI(uri) => write!(f, "invalid fetch uri: {}", uri),
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
             SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),

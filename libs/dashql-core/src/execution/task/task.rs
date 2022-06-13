@@ -4,6 +4,6 @@ use async_trait::async_trait;
 
 #[async_trait(?Send)]
 pub trait Task {
-    async fn prepare(&mut self, ctx: &TaskContext) -> Result<(), SystemError>;
-    async fn execute(&mut self, ctx: &TaskContext) -> Result<(), SystemError>;
+    async fn prepare(&mut self, ctx: &mut TaskContext) -> Result<(), SystemError>;
+    async fn execute(&mut self, ctx: &mut TaskContext) -> Result<(), SystemError>;
 }

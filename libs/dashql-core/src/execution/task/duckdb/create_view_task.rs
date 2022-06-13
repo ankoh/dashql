@@ -24,10 +24,10 @@ impl CreateViewTask {
 
 #[async_trait(?Send)]
 impl Task for CreateViewTask {
-    async fn prepare(&mut self, _ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn prepare(&mut self, _ctx: &mut TaskContext) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute(&mut self, ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn execute(&mut self, ctx: &mut TaskContext) -> Result<(), SystemError> {
         let stmt = self.get_statement(ctx)?;
         let stmt_select = stmt.statement.get();
         let script = print_ast_as_script_with_defaults(stmt_select);
