@@ -13,6 +13,7 @@ pub enum SystemError {
     FunctionNotImplemented(Option<usize>, String),
     FunctionNotImplementedButKnown(Option<usize>, sx::KnownFunction),
     Generic(String),
+    HTTPRequestFailed(reqwest::Error),
     InsufficientArguments(Option<usize>),
     InvalidFetchURI(String),
     InvalidGroupByItem(Option<usize>),
@@ -27,13 +28,14 @@ pub enum SystemError {
 impl SystemError {
     pub fn const_description(&self) -> &'static str {
         match &self {
-            SystemError::Generic(_) => "generic",
             SystemError::CastFailed(_, _, _) => "cast failed",
             SystemError::CastNotImplemented(_, _, _) => "cast not implemented",
             SystemError::ExpressionTypeNotImplemented(_) => "expression type not implemented",
             SystemError::FunctionEvaluationFailed(_, _) => "function evaluation failed",
             SystemError::FunctionNotImplemented(_, _) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_, _) => "function not implemented",
+            SystemError::Generic(_) => "generic",
+            SystemError::HTTPRequestFailed(_) => "http request failed",
             SystemError::InsufficientArguments(_) => "insufficient arguments",
             SystemError::InvalidFetchURI(_) => "invalid fetch uri",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
@@ -53,10 +55,15 @@ impl From<std::string::String> for SystemError {
     }
 }
 
+impl From<reqwest::Error> for SystemError {
+    fn from(e: reqwest::Error) -> Self {
+        SystemError::HTTPRequestFailed(e)
+    }
+}
+
 impl<'a> fmt::Display for SystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
-            SystemError::Generic(error) => write!(f, "error: {:?}", error),
             SystemError::CastFailed(node, from, to) => write!(f, "[{:?}] cast failed: {:?} -> {:?}", node, from, to),
             SystemError::CastNotImplemented(node, from, to) => {
                 write!(f, "[{:?}] cast not implemented: {:?} -> {:?}", node, from, to)
@@ -71,6 +78,8 @@ impl<'a> fmt::Display for SystemError {
             SystemError::FunctionNotImplementedButKnown(node, func) => {
                 write!(f, "[{:?}] function node implemented: {:?}", node, func)
             }
+            SystemError::Generic(error) => write!(f, "error: {:?}", error),
+            SystemError::HTTPRequestFailed(error) => write!(f, "http request failed: {:?}", error),
             SystemError::InsufficientArguments(node) => write!(f, "[{:?}] insufficient arguments", node),
             SystemError::InvalidFetchURI(uri) => write!(f, "invalid fetch uri: {}", uri),
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),

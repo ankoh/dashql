@@ -54,7 +54,11 @@ impl Task for FetchTask {
         // XXX If none, resolve from extras
         match method {
             sx::FetchMethodType::FILE => (),
-            sx::FetchMethodType::HTTP => (),
+            sx::FetchMethodType::HTTP => {
+                let mut builder = reqwest::Client::builder();
+
+                let client = builder.build()?;
+            }
             _ => (),
         }
 
