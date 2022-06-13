@@ -2,6 +2,8 @@ use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::task::task_context::TaskContext;
 use crate::execution::task::Task;
+use crate::grammar::{LoadStatement, Statement};
+use async_trait::async_trait;
 use dashql_proto::syntax as sx;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
@@ -22,16 +24,22 @@ fn infer_load_method(url: &str) -> sx::LoadMethodType {
     return sx::LoadMethodType::NONE;
 }
 
+impl LoadTask {
+    fn get_statement<'a>(&self, ctx: &TaskContext<'a>) -> Result<&'a LoadStatement<'a>, SystemError> {
+        match &ctx.program.statements[self.task.origin_statement] {
+            Statement::Load(load) => Ok(load),
+            _ => Err(SystemError::InvalidStatementType("load")),
+        }
+    }
+}
+
+#[async_trait(?Send)]
 impl Task for LoadTask {
-    fn prepare(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn prepare(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
         todo!()
     }
 
-    fn will_execute(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
-        todo!()
-    }
-
-    fn execute(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
+    async fn execute(&self, _ctx: &TaskContext) -> Result<(), SystemError> {
         todo!()
     }
 }

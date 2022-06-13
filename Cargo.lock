@@ -225,6 +225,7 @@ name = "dashql_core"
 version = "0.1.0"
 dependencies = [
  "arrow",
+ "async-trait",
  "bumpalo",
  "clap",
  "dashql_parser",

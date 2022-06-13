@@ -71,6 +71,7 @@ pub struct SetupTask {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum ProgramTaskType {
     None,
+    CreateAs,
     CreateTable,
     CreateView,
     CreateViz,
@@ -153,15 +154,15 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             object_name: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
         };
         let task = match &next.program.statements[stmt_id] {
-            Statement::Create(c) => ProgramTask {
+            Statement::Create(_c) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
                 ..mixin
             },
-            Statement::CreateAs(c) => ProgramTask {
-                task_type: ProgramTaskType::CreateTable,
+            Statement::CreateAs(_c) => ProgramTask {
+                task_type: ProgramTaskType::CreateAs,
                 ..mixin
             },
-            Statement::CreateView(c) => ProgramTask {
+            Statement::CreateView(_c) => ProgramTask {
                 task_type: ProgramTaskType::CreateView,
                 ..mixin
             },
@@ -169,11 +170,11 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 task_type: ProgramTaskType::Input,
                 ..mixin
             },
-            Statement::Fetch(f) => ProgramTask {
+            Statement::Fetch(_f) => ProgramTask {
                 task_type: ProgramTaskType::Fetch,
                 ..mixin
             },
-            Statement::Load(l) => ProgramTask {
+            Statement::Load(_l) => ProgramTask {
                 task_type: ProgramTaskType::Load,
                 ..mixin
             },
@@ -181,7 +182,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 task_type: ProgramTaskType::CreateViz,
                 ..mixin
             },
-            Statement::Select(s) => ProgramTask {
+            Statement::Select(_s) => ProgramTask {
                 task_type: ProgramTaskType::CreateTable,
                 ..mixin
             },
@@ -273,6 +274,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
             // Propagates invalidation?
             let propagates = match task.task_type {
                 ProgramTaskType::None => false,
+                ProgramTaskType::CreateAs => true,
                 ProgramTaskType::CreateTable => true,
                 ProgramTaskType::CreateView => true,
                 ProgramTaskType::CreateViz => false,
@@ -436,6 +438,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
         // Find the task translation
         let (drop_task, update_task) = match prev_task.task_type {
             ProgramTaskType::None => (SetupTaskType::None, ProgramTaskType::None),
+            ProgramTaskType::CreateAs => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::CreateTable => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::CreateView => (SetupTaskType::DropView, ProgramTaskType::None),
             ProgramTaskType::CreateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz),
@@ -734,7 +737,7 @@ CREATE TABLE c AS SELECT * FROM b
                             object_name: Some("main.b".to_string()),
                         },
                         ProgramTask {
-                            task_type: ProgramTaskType::CreateTable,
+                            task_type: ProgramTaskType::CreateAs,
                             task_status_code: TaskStatusCode::Skipped,
                             depends_on: vec![1],
                             required_for: vec![],
@@ -784,7 +787,7 @@ VIZ c USING TABLE;
                             object_name: Some("main.b".to_string()),
                         },
                         ProgramTask {
-                            task_type: ProgramTaskType::CreateTable,
+                            task_type: ProgramTaskType::CreateAs,
                             task_status_code: TaskStatusCode::Pending,
                             depends_on: vec![1],
                             required_for: vec![3],
@@ -822,7 +825,7 @@ VIZ a USING TABLE;
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
-                            task_type: ProgramTaskType::CreateTable,
+                            task_type: ProgramTaskType::CreateAs,
                             task_status_code: TaskStatusCode::Pending,
                             depends_on: vec![],
                             required_for: vec![1],
@@ -861,7 +864,7 @@ VIZ a USING TABLE;
                     }],
                     program_tasks: vec![
                         ProgramTask {
-                            task_type: ProgramTaskType::CreateTable,
+                            task_type: ProgramTaskType::CreateAs,
                             task_status_code: TaskStatusCode::Pending,
                             depends_on: vec![],
                             required_for: vec![1],

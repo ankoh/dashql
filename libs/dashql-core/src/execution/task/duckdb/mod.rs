@@ -1,3 +1,4 @@
+pub mod create_as_task;
 pub mod create_table_task;
 pub mod create_view_task;
 pub mod fetch_task;

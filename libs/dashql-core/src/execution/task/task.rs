@@ -1,9 +1,9 @@
 use crate::error::SystemError;
+use crate::execution::task::task_context::TaskContext;
+use async_trait::async_trait;
 
-use super::task_context::TaskContext;
-
+#[async_trait(?Send)]
 pub trait Task {
-    fn prepare(&self, ctx: &TaskContext) -> Result<(), SystemError>;
-    fn will_execute(&self, ctx: &TaskContext) -> Result<(), SystemError>;
-    fn execute(&self, ctx: &TaskContext) -> Result<(), SystemError>;
+    async fn prepare(&self, ctx: &TaskContext) -> Result<(), SystemError>;
+    async fn execute(&self, ctx: &TaskContext) -> Result<(), SystemError>;
 }
