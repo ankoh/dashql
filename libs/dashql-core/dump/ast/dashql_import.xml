@@ -1,46 +1,46 @@
 <astdumps>
     <astdump name="load_uni_zip_http">
-        <input>fetch uni from http (url = &apos;https://static.dashql.com/data/uni/de/all.zip&apos;);
+        <input>import uni from http (url = &apos;https://static.dashql.com/data/uni/de/all.zip&apos;);
 load assistenten from uni[&apos;assistenten.parquet&apos;] using parquet;</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="0..75" text="fetch uni ../all.zip&apos;)">
-                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="20..75" text="(url = &apos;ht../all.zip&apos;)">
-                            <node key="DSON_URL" type="STRING_REF" loc="27..74" text="&apos;https://s..e/all.zip&apos;"/>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..76" text="import uni../all.zip&apos;)">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="21..76" text="(url = &apos;ht../all.zip&apos;)">
+                            <node key="DSON_URL" type="STRING_REF" loc="28..75" text="&apos;https://s..e/all.zip&apos;"/>
                         </node>
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="uni"/>
+                            <node type="STRING_REF" loc="7..10" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="77..139" text="load assis..ng parquet">
+                    <node type="OBJECT_DASHQL_LOAD" loc="78..140" text="load assis..ng parquet">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="99..102" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="102..125" text="[&apos;assisten...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="103..124" text="&apos;assistent..n.parquet&apos;"/>
+                            <node type="STRING_REF" loc="100..103" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="103..126" text="[&apos;assisten...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="104..125" text="&apos;assistent..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="82..93" text="assistenten"/>
+                            <node type="STRING_REF" loc="83..94" text="assistenten"/>
                         </node>
                     </node>
                 </statement>
             </statements>
             <errors/>
             <line_breaks>
-                <line_break loc="76..77" text="\n"/>
+                <line_break loc="77..78" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;uni&quot;,
@@ -93,74 +93,74 @@ load assistenten from uni[&apos;assistenten.parquet&apos;] using parquet;</input
 }</translated>
     </astdump>
     <astdump name="load_uni_zip_infer">
-        <input>fetch uni from &apos;https://static.dashql.com/data/uni/de/all.zip&apos;;
+        <input>import uni from &apos;https://static.dashql.com/data/uni/de/all.zip&apos;;
 load vorlesungen from uni[&apos;vorlesungen.parquet&apos;] using parquet;
 load hoeren from uni[&apos;hoeren.parquet&apos;];
 load studenten from uni[&apos;studenten.parquet&apos;];</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="0..62" text="fetch uni ..e/all.zip&apos;">
-                        <node key="DASHQL_FETCH_FROM_URI" type="STRING_REF" loc="15..62" text="&apos;https://s..e/all.zip&apos;"/>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..63" text="import uni..e/all.zip&apos;">
+                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="16..63" text="&apos;https://s..e/all.zip&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="uni"/>
+                            <node type="STRING_REF" loc="7..10" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="64..126" text="load vorle..ng parquet">
+                    <node type="OBJECT_DASHQL_LOAD" loc="65..127" text="load vorle..ng parquet">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="86..89" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="89..112" text="[&apos;vorlesun...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="90..111" text="&apos;vorlesung..n.parquet&apos;"/>
+                            <node type="STRING_REF" loc="87..90" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="90..113" text="[&apos;vorlesun...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="91..112" text="&apos;vorlesung..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="69..80" text="vorlesungen"/>
+                            <node type="STRING_REF" loc="70..81" text="vorlesungen"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="128..166" text="load hoere...parquet&apos;]">
+                    <node type="OBJECT_DASHQL_LOAD" loc="129..167" text="load hoere...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="145..148" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="148..166" text="[&apos;hoeren.parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="149..165" text="&apos;hoeren.parquet&apos;"/>
+                            <node type="STRING_REF" loc="146..149" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="149..167" text="[&apos;hoeren.parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="150..166" text="&apos;hoeren.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="133..139" text="hoeren"/>
+                            <node type="STRING_REF" loc="134..140" text="hoeren"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="168..212" text="load stude...parquet&apos;]">
+                    <node type="OBJECT_DASHQL_LOAD" loc="169..213" text="load stude...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="188..191" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="191..212" text="[&apos;studente...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="192..211" text="&apos;studenten.parquet&apos;"/>
+                            <node type="STRING_REF" loc="189..192" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="192..213" text="[&apos;studente...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="193..212" text="&apos;studenten.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="173..182" text="studenten"/>
+                            <node type="STRING_REF" loc="174..183" text="studenten"/>
                         </node>
                     </node>
                 </statement>
             </statements>
             <errors/>
             <line_breaks>
-                <line_break loc="63..64" text="\n"/>
-                <line_break loc="127..128" text="\n"/>
-                <line_break loc="167..168" text="\n"/>
+                <line_break loc="64..65" text="\n"/>
+                <line_break loc="128..129" text="\n"/>
+                <line_break loc="168..169" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;uni&quot;,
@@ -248,43 +248,43 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
 }</translated>
     </astdump>
     <astdump name="load_rest_header">
-        <input>fetch json_stats from http (
+        <input>import json_stats from http (
     url = &apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;,
     &apos;headers&apos; = (&apos;Ocp-Apim-Subscription-Key&apos; = &apos;somekey&apos;)
 );</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="0..162" text="fetch json..omekey&apos;)\n)">
-                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="27..162" text="(\n    url ..omekey&apos;)\n)">
-                            <node key="DSON_URL" type="STRING_REF" loc="39..101" text="&apos;https://w..tag/stats&apos;"/>
-                            <node key="DSON_KEYS[1]" type="OBJECT_DSON" loc="119..160" text="(&apos;Ocp-Apim..&apos;somekey&apos;)">
-                                <node key="DSON_KEYS[0]" type="STRING_REF" loc="150..159" text="&apos;somekey&apos;"/>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..163" text="import jso..omekey&apos;)\n)">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="28..163" text="(\n    url ..omekey&apos;)\n)">
+                            <node key="DSON_URL" type="STRING_REF" loc="40..102" text="&apos;https://w..tag/stats&apos;"/>
+                            <node key="DSON_KEYS[1]" type="OBJECT_DSON" loc="120..161" text="(&apos;Ocp-Apim..&apos;somekey&apos;)">
+                                <node key="DSON_KEYS[0]" type="STRING_REF" loc="151..160" text="&apos;somekey&apos;"/>
                             </node>
                         </node>
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..16" text="json_stats"/>
+                            <node type="STRING_REF" loc="7..17" text="json_stats"/>
                         </node>
                     </node>
                 </statement>
             </statements>
             <errors/>
             <line_breaks>
-                <line_break loc="28..29" text="\n"/>
-                <line_break loc="102..103" text="\n"/>
-                <line_break loc="160..161" text="\n"/>
+                <line_break loc="29..30" text="\n"/>
+                <line_break loc="103..104" text="\n"/>
+                <line_break loc="161..162" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys>
-                <key loc="121..146" text="Ocp-Apim-S..iption-Key"/>
-                <key loc="108..115" text="headers"/>
+                <key loc="122..147" text="Ocp-Apim-S..iption-Key"/>
+                <key loc="109..116" text="headers"/>
             </dson_keys>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;json_stats&quot;,

@@ -1,0 +1,2 @@
+%type <proto::Node> dashql_import_method;
+%type <proto::Node> dashql_import_statement;

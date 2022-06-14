@@ -1,0 +1,14 @@
+<astdumps>
+    <astdump name="declare_varchar">
+        <input>
+            DECLARE foo AS VARCHAR;
+            DECLARE foo AS VARCHAR USING TEXT;
+            DECLARE foo AS VARCHAR USING TEXT (label = 'Foo');
+        </input>
+    </astdump>
+    <astdump name="declare_calendar">
+        <input>
+            DECLARE foo AS DATE[2] USING CALENDAR;
+        </input>
+    </astdump>
+</astdumps>

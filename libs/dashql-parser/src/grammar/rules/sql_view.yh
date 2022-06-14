@@ -1,1 +1,1 @@
-%type <sx::Node> sql_view_stmt;
+%type <proto::Node> sql_view_stmt;

@@ -7,7 +7,7 @@ use super::board_space::BoardPosition;
 use crate::error::SystemError;
 use crate::execution::expression_evaluator::ExpressionEvaluationContext;
 use crate::execution::scalar_value::ScalarValue;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -28,7 +28,7 @@ pub struct ProgramInstance<'a> {
     // AST buffer
     pub arena: &'a bumpalo::Bump,
     pub script_text: &'a str,
-    pub program_proto: sx::Program<'a>,
+    pub program_proto: proto::Program<'a>,
     pub program: Rc<Program<'a>>,
 
     // The input values
@@ -41,8 +41,8 @@ pub struct ProgramInstance<'a> {
     pub statement_names: Vec<Option<NamePath<'a>>>,
     pub statement_by_name: HashMap<NamePath<'a>, usize>,
     pub statement_by_root: HashMap<usize, usize>,
-    pub statement_required_for: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
-    pub statement_depends_on: BTreeMap<(StatementID, StatementID), (sx::DependencyType, NodeID)>,
+    pub statement_required_for: BTreeMap<(StatementID, StatementID), (proto::DependencyType, NodeID)>,
+    pub statement_depends_on: BTreeMap<(StatementID, StatementID), (proto::DependencyType, NodeID)>,
     pub statement_liveness: Vec<bool>,
     pub card_positions: HashMap<usize, BoardPosition>,
     pub cards: HashMap<usize, Card>,
@@ -57,7 +57,7 @@ impl<'a> ProgramInstance<'a> {
         settings: Rc<ProgramAnalysisSettings>,
         arena: &'a bumpalo::Bump,
         text: &'a str,
-        program_proto: sx::Program<'a>,
+        program_proto: proto::Program<'a>,
         program_translated: Rc<Program<'a>>,
         input: HashMap<usize, ScalarValue>,
     ) -> Self {
@@ -97,7 +97,7 @@ pub fn analyze_program<'arena>(
     settings: Rc<ProgramAnalysisSettings>,
     arena: &'arena bumpalo::Bump,
     text: &'arena str,
-    program_proto: sx::Program<'arena>,
+    program_proto: proto::Program<'arena>,
     program: Rc<Program<'arena>>,
     input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
@@ -138,7 +138,7 @@ mod test {
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
-    use dashql_proto::syntax as sx;
+    use dashql_proto as proto;
     use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
@@ -149,7 +149,7 @@ mod test {
         linter_messages: Vec<NodeLinterMessage>,
         statement_names: Vec<Option<Vec<&'static str>>>,
         statement_by_name: Vec<(Vec<&'static str>, usize)>,
-        statement_depends_on: Vec<(StatementID, StatementID, sx::DependencyType)>,
+        statement_depends_on: Vec<(StatementID, StatementID, proto::DependencyType)>,
         statement_liveness: Vec<bool>,
     }
 
@@ -209,7 +209,7 @@ mod test {
         statement_by_name.sort_unstable();
         assert_eq!(statement_by_name, test.expected.statement_by_name);
 
-        let mut statement_depends_on: Vec<(StatementID, StatementID, sx::DependencyType)> = inst
+        let mut statement_depends_on: Vec<(StatementID, StatementID, proto::DependencyType)> = inst
             .statement_depends_on
             .iter()
             .map(|((a, b), (dep, _))| (*a, *b, *dep))
@@ -217,7 +217,7 @@ mod test {
         statement_depends_on.sort_unstable();
         assert_eq!(statement_depends_on, test.expected.statement_depends_on);
 
-        let mut statement_required_for_flipped: Vec<(StatementID, StatementID, sx::DependencyType)> = inst
+        let mut statement_required_for_flipped: Vec<(StatementID, StatementID, proto::DependencyType)> = inst
             .statement_required_for
             .iter()
             .map(|((a, b), (dep, _))| (*b, *a, *dep))
@@ -233,7 +233,7 @@ mod test {
     fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
-FETCH a FROM 'http://remote/data1.parquet';
+IMPORT a FROM 'http://remote/data1.parquet';
 "#,
             input: HashMap::new(),
             expected: ExpectedTaskInstance {
@@ -282,7 +282,7 @@ VIZ a USING TABLE;
                 linter_messages: vec![],
                 statement_names: vec![Some(vec!["main", "a"]), Some(vec!["main", "b"]), None],
                 statement_by_name: vec![(vec!["main", "a"], 0), (vec!["main", "b"], 1)],
-                statement_depends_on: vec![(2, 0, sx::DependencyType::TABLE_REF)],
+                statement_depends_on: vec![(2, 0, proto::DependencyType::TABLE_REF)],
                 statement_liveness: vec![true, false, true],
             },
         })?;
@@ -293,7 +293,7 @@ VIZ a USING TABLE;
     fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
-FETCH a FROM 'http://remote/data.parquet';
+IMPORT a FROM 'http://remote/data.parquet';
 LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b;
 VIZ c USING TABLE;
@@ -310,9 +310,9 @@ VIZ c USING TABLE;
                 ],
                 statement_by_name: vec![(vec!["main", "a"], 0), (vec!["main", "b"], 1), (vec!["main", "c"], 2)],
                 statement_depends_on: vec![
-                    (1, 0, sx::DependencyType::TABLE_REF),
-                    (2, 1, sx::DependencyType::TABLE_REF),
-                    (3, 2, sx::DependencyType::TABLE_REF),
+                    (1, 0, proto::DependencyType::TABLE_REF),
+                    (2, 1, proto::DependencyType::TABLE_REF),
+                    (3, 2, proto::DependencyType::TABLE_REF),
                 ],
                 statement_liveness: vec![true, true, true, true],
             },
@@ -324,8 +324,8 @@ VIZ c USING TABLE;
     fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
-FETCH a FROM 'http://remote/data1.parquet';
-FETCH b FROM 'http://remote/data2.parquet';
+IMPORT a FROM 'http://remote/data1.parquet';
+IMPORT b FROM 'http://remote/data2.parquet';
 LOAD c FROM a USING PARQUET;
 LOAD d FROM b USING PARQUET;
 CREATE TABLE e AS SELECT * FROM c;
@@ -358,13 +358,13 @@ VIZ f USING TABLE;
                     (vec!["main", "f"], 5),
                 ],
                 statement_depends_on: vec![
-                    (2, 0, sx::DependencyType::TABLE_REF),
-                    (3, 1, sx::DependencyType::TABLE_REF),
-                    (4, 2, sx::DependencyType::TABLE_REF),
-                    (5, 3, sx::DependencyType::TABLE_REF),
-                    (6, 2, sx::DependencyType::TABLE_REF),
-                    (7, 4, sx::DependencyType::TABLE_REF),
-                    (8, 5, sx::DependencyType::TABLE_REF),
+                    (2, 0, proto::DependencyType::TABLE_REF),
+                    (3, 1, proto::DependencyType::TABLE_REF),
+                    (4, 2, proto::DependencyType::TABLE_REF),
+                    (5, 3, proto::DependencyType::TABLE_REF),
+                    (6, 2, proto::DependencyType::TABLE_REF),
+                    (7, 4, proto::DependencyType::TABLE_REF),
+                    (8, 5, proto::DependencyType::TABLE_REF),
                 ],
                 statement_liveness: vec![true, true, true, true, true, true, true, true, true],
             },

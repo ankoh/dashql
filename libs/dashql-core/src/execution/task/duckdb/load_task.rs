@@ -4,7 +4,7 @@ use crate::execution::task::task_context::TaskContext;
 use crate::execution::task::Task;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
@@ -13,15 +13,15 @@ pub struct LoadTask {
     conn: Box<dyn DatabaseConnection>,
 }
 
-fn infer_load_method(url: &str) -> sx::LoadMethodType {
+fn infer_load_method(url: &str) -> proto::LoadMethodType {
     if url.ends_with(".parquet") {
-        return sx::LoadMethodType::PARQUET;
+        return proto::LoadMethodType::PARQUET;
     } else if url.ends_with(".json") {
-        return sx::LoadMethodType::JSON;
+        return proto::LoadMethodType::JSON;
     } else if url.ends_with(".csv") {
-        return sx::LoadMethodType::CSV;
+        return proto::LoadMethodType::CSV;
     }
-    return sx::LoadMethodType::NONE;
+    return proto::LoadMethodType::NONE;
 }
 
 impl LoadTask {

@@ -17,10 +17,7 @@ extern "C" {
 }
 
 /// Parse a text and return a program buffer
-pub fn parse<'a>(
-    alloc: &'a bumpalo::Bump,
-    text: &str,
-) -> Result<proto::syntax::Program<'a>, Box<dyn Error + Send + Sync>> {
+pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
     let mut response = FFIResponse {
         status: 0,
         data_or_value: 0,
@@ -34,7 +31,7 @@ pub fn parse<'a>(
                     response.data_or_value as *mut u8,
                     response.data_size,
                 ));
-                Ok(flatbuffers::root::<proto::syntax::Program>(buffer)?)
+                Ok(flatbuffers::root::<proto::Program>(buffer)?)
             }
             _ => {
                 let msg = String::from_raw_parts(
@@ -59,7 +56,7 @@ mod test {
         let program = super::parse(&alloc, "select 1;")?;
         let stmts = program.statements().expect("must have statements");
         assert_eq!(stmts.len(), 1);
-        assert_eq!(stmts.get(0).statement_type(), proto::syntax::StatementType::SELECT);
+        assert_eq!(stmts.get(0).statement_type(), proto::StatementType::SELECT);
         Ok(())
     }
 }

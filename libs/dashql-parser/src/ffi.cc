@@ -4,7 +4,7 @@
 #include "dashql/proto_generated.h"
 
 using namespace dashql::parser;
-namespace sx = dashql::proto::syntax;
+namespace proto = dashql::proto;
 
 extern "C" void dashql_parse(FFIResponse* response, const uint8_t* text, size_t length) {
     static_assert(sizeof(uint8_t) == sizeof(char));
@@ -14,7 +14,7 @@ extern "C" void dashql_parse(FFIResponse* response, const uint8_t* text, size_t 
 
     // Pack the flatbuffer program
     flatbuffers::FlatBufferBuilder fb;
-    auto program_ofs = sx::Program::Pack(fb, program.get());
+    auto program_ofs = proto::Program::Pack(fb, program.get());
     fb.Finish(program_ofs);
     auto program_buffer = fb.Release();
 

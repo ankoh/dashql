@@ -1,5 +1,5 @@
 use super::program_instance::ProgramInstance;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use std::collections::BinaryHeap;
 
 // The fraction of nodes that must be equal between statements to emit an UPDATE.
@@ -96,7 +96,7 @@ fn compute_tree_size<'a>(ctx: &ProgramInstance<'a>, node_id: usize) -> usize {
         // Discover children
         let node = nodes[top.target];
         let node_type = node.node_type();
-        if node_type.0 > sx::NodeType::OBJECT_KEYS_.0 || node_type == sx::NodeType::ARRAY {
+        if node_type.0 > proto::NodeType::OBJECT_KEYS_.0 || node_type == proto::NodeType::ARRAY {
             let children_begin = node.children_begin_or_value();
             let children_count = node.children_count();
             let children_end = children_begin + children_count;
@@ -112,7 +112,7 @@ fn compute_tree_size<'a>(ctx: &ProgramInstance<'a>, node_id: usize) -> usize {
     total
 }
 
-fn text_at<'text>(text: &'text str, loc: sx::Location) -> &'text str {
+fn text_at<'text>(text: &'text str, loc: proto::Location) -> &'text str {
     &text[loc.offset() as usize..(loc.offset() + loc.length()) as usize]
 }
 
@@ -230,15 +230,15 @@ fn compute_similarity(
 
         // Enum of literal
         let is_match = match source.node_type() {
-            sx::NodeType::NONE => true,
-            sx::NodeType::BOOL | sx::NodeType::UI32 | sx::NodeType::UI32_BITMAP => {
+            proto::NodeType::NONE => true,
+            proto::NodeType::BOOL | proto::NodeType::UI32 | proto::NodeType::UI32_BITMAP => {
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
-            sx::NodeType::STRING_REF => {
+            proto::NodeType::STRING_REF => {
                 text_at(source_ctx.script_text, *source.location())
                     == text_at(target_ctx.script_text, *target.location())
             }
-            sx::NodeType::ARRAY => {
+            proto::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
                 let tb = target.children_begin_or_value();
                 let sc = source.children_count();
@@ -256,8 +256,8 @@ fn compute_similarity(
                 sc == tc
             }
             node_type => {
-                debug_assert!(node_type.0 > sx::NodeType::ENUM_KEYS_.0);
-                if node_type.0 > sx::NodeType::OBJECT_KEYS_.0 {
+                debug_assert!(node_type.0 > proto::NodeType::ENUM_KEYS_.0);
+                if node_type.0 > proto::NodeType::OBJECT_KEYS_.0 {
                     // Is object?
                     // Attribute lists are sorted, so a simple merge is enough
                     let sc = source.children_count();
@@ -289,7 +289,7 @@ fn compute_similarity(
                         }
                     }
                     is_match
-                } else if node_type.0 > sx::NodeType::ENUM_KEYS_.0 {
+                } else if node_type.0 > proto::NodeType::ENUM_KEYS_.0 {
                     source.children_begin_or_value() == target.children_begin_or_value()
                 } else {
                     false
@@ -357,15 +357,15 @@ fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramI
 
         // Enum or literal
         let is_equal = match source.node_type() {
-            sx::NodeType::NONE => true,
-            sx::NodeType::BOOL | sx::NodeType::UI32 | sx::NodeType::UI32_BITMAP => {
+            proto::NodeType::NONE => true,
+            proto::NodeType::BOOL | proto::NodeType::UI32 | proto::NodeType::UI32_BITMAP => {
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
-            sx::NodeType::STRING_REF => {
+            proto::NodeType::STRING_REF => {
                 text_at(source_ctx.script_text, *source.location())
                     == text_at(target_ctx.script_text, *target.location())
             }
-            sx::NodeType::ARRAY => {
+            proto::NodeType::ARRAY => {
                 let sb = source.children_begin_or_value();
                 let tb = target.children_begin_or_value();
                 let sc = source.children_count();
@@ -382,8 +382,8 @@ fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramI
                 true
             }
             node_type => {
-                debug_assert!(node_type.0 > sx::NodeType::ENUM_KEYS_.0);
-                if node_type.0 > sx::NodeType::OBJECT_KEYS_.0 {
+                debug_assert!(node_type.0 > proto::NodeType::ENUM_KEYS_.0);
+                if node_type.0 > proto::NodeType::OBJECT_KEYS_.0 {
                     // Is object?
                     // Attribute lists are sorted, so a simple merge is enough
                     let sc = source.children_count();
@@ -409,7 +409,7 @@ fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramI
                         }
                     }
                     true
-                } else if node_type.0 > sx::NodeType::ENUM_KEYS_.0 {
+                } else if node_type.0 > proto::NodeType::ENUM_KEYS_.0 {
                     // Is enum?
                     // Match the value.
                     source.children_begin_or_value() == target.children_begin_or_value()

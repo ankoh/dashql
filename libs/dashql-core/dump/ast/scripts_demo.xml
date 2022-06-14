@@ -5,14 +5,14 @@
 
             -- Declare a dynamic input field on top of your dashboard.
             -- Ref: https://docs.dashql.com/grammar/param
-            INPUT country TYPE VARCHAR USING TEXT (
+            DECLARE country AS VARCHAR USING TEXT (
                 title = &apos;Country&apos;,
                 position = (row = 0, column = 0, width = 3, height = 1)
             );
 
             -- Fetch data from external sources like HTTP REST APIs.
             -- Ref: https://docs.dashql.com/grammar/fetch
-            FETCH weather_csv FROM http (
+            IMPORT weather_csv FROM http (
                 url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, main.country)
             );
 
@@ -29,10 +29,10 @@
             VIZ weather_avg USING LINE;</input>
         <parsed>
             <statements>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="285..445" text="INPUT coun..         )">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_EXTRA" type="OBJECT_DSON" loc="323..445" text="(\n        ..         )">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="285..445" text="DECLARE co..         )">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="TEXT"/>
+                        <node key="DASHQL_DECLARE_EXTRA" type="OBJECT_DSON" loc="323..445" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="387..431" text="(row = 0, ..eight = 1)">
                                 <node key="DSON_ROW" type="STRING_REF" loc="394..395" text="0"/>
                                 <node key="DSON_COLUMN" type="STRING_REF" loc="406..407" text="0"/>
@@ -41,83 +41,83 @@
                             </node>
                             <node key="DSON_TITLE" type="STRING_REF" loc="349..358" text="&apos;Country&apos;"/>
                         </node>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="304..311" text="VARCHAR">
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="304..311" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="304..311" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="291..298" text="country"/>
+                            <node type="STRING_REF" loc="293..300" text="country"/>
                         </node>
                     </node>
                 </statement>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="587..715" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="615..715" text="(\n        ..         )">
-                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="639..701" text="format(&apos;ht..n.country)">
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="587..716" text="IMPORT wea..         )">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="616..716" text="(\n        ..         )">
+                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="640..702" text="format(&apos;ht..n.country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="646..686" text="&apos;https://c..eather/%s&apos;">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="646..686" text="&apos;https://c..eather/%s&apos;"/>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="647..687" text="&apos;https://c..eather/%s&apos;">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="647..687" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="688..700" text="main.country">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="688..700" text="main.country">
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="689..701" text="main.country">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="689..701" text="main.country">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="688..692" text="main"/>
-                                                <node type="STRING_REF" loc="693..700" text="country"/>
+                                                <node type="STRING_REF" loc="689..693" text="main"/>
+                                                <node type="STRING_REF" loc="694..701" text="country"/>
                                             </node>
                                         </node>
                                     </node>
                                 </node>
-                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="639..645" text="format"/>
+                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="640..646" text="format"/>
                             </node>
                         </node>
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="593..604" text="weather_csv"/>
+                            <node type="STRING_REF" loc="594..605" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="835..874" text="LOAD weath.. USING CSV">
+                    <node type="OBJECT_DASHQL_LOAD" loc="836..875" text="LOAD weath.. USING CSV">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="853..864" text="weather_csv"/>
+                            <node type="STRING_REF" loc="854..865" text="weather_csv"/>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="CSV"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="840..847" text="weather"/>
+                            <node type="STRING_REF" loc="841..848" text="weather"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="SELECT_INTO">
-                    <node type="OBJECT_SQL_SELECT" loc="1001..1039" text="SELECT 1 I..OM weather">
+                    <node type="OBJECT_SQL_SELECT" loc="1002..1040" text="SELECT 1 I..OM weather">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="1032..1039" text="weather">
+                            <node type="OBJECT_SQL_TABLEREF" loc="1033..1040" text="weather">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="STRING_REF" loc="1032..1039" text="weather"/>
+                                    <node type="STRING_REF" loc="1033..1040" text="weather"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="1015..1026" text="weather_avg">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="1016..1027" text="weather_avg">
                             <node key="SQL_TEMP_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1015..1026" text="weather_avg"/>
+                                <node type="STRING_REF" loc="1016..1027" text="weather_avg"/>
                             </node>
                             <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="1008..1009" text="1">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="1008..1009" text="1"/>
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="1009..1010" text="1">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="1009..1010" text="1"/>
                             </node>
                         </node>
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="1153..1179" text="VIZ weathe..USING LINE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="1154..1180" text="VIZ weathe..USING LINE">
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1157..1168" text="weather_avg">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1158..1169" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1157..1168" text="weather_avg"/>
+                                <node type="STRING_REF" loc="1158..1169" text="weather_avg"/>
                             </node>
                         </node>
                     </node>
@@ -137,20 +137,20 @@
                 <line_break loc="447..448" text="\n"/>
                 <line_break loc="516..517" text="\n"/>
                 <line_break loc="574..575" text="\n"/>
-                <line_break loc="616..617" text="\n"/>
-                <line_break loc="701..702" text="\n"/>
-                <line_break loc="716..717" text="\n"/>
+                <line_break loc="617..618" text="\n"/>
+                <line_break loc="702..703" text="\n"/>
                 <line_break loc="717..718" text="\n"/>
-                <line_break loc="765..766" text="\n"/>
-                <line_break loc="822..823" text="\n"/>
-                <line_break loc="875..876" text="\n"/>
+                <line_break loc="718..719" text="\n"/>
+                <line_break loc="766..767" text="\n"/>
+                <line_break loc="823..824" text="\n"/>
                 <line_break loc="876..877" text="\n"/>
-                <line_break loc="930..931" text="\n"/>
-                <line_break loc="988..989" text="\n"/>
-                <line_break loc="1040..1041" text="\n"/>
+                <line_break loc="877..878" text="\n"/>
+                <line_break loc="931..932" text="\n"/>
+                <line_break loc="989..990" text="\n"/>
                 <line_break loc="1041..1042" text="\n"/>
-                <line_break loc="1084..1085" text="\n"/>
-                <line_break loc="1140..1141" text="\n"/>
+                <line_break loc="1042..1043" text="\n"/>
+                <line_break loc="1085..1086" text="\n"/>
+                <line_break loc="1141..1142" text="\n"/>
             </line_breaks>
             <comments>
                 <comment loc="0..67" text="-- This sc..on DashQL."/>
@@ -159,19 +159,19 @@
                 <comment loc="227..272" text="-- Ref: ht..mmar/param"/>
                 <comment loc="460..516" text="-- Fetch d..REST APIs."/>
                 <comment loc="529..574" text="-- Ref: ht..mmar/fetch"/>
-                <comment loc="730..765" text="-- Interpr..SQL table."/>
-                <comment loc="778..822" text="-- Ref: ht..ammar/load"/>
-                <comment loc="889..930" text="-- Run arb..r browser."/>
-                <comment loc="943..988" text="-- Ref: ht..mmar/query"/>
-                <comment loc="1054..1084" text="-- Visuali..and views."/>
-                <comment loc="1097..1140" text="-- Ref: ht..rammar/viz"/>
+                <comment loc="731..766" text="-- Interpr..SQL table."/>
+                <comment loc="779..823" text="-- Ref: ht..ammar/load"/>
+                <comment loc="890..931" text="-- Run arb..r browser."/>
+                <comment loc="944..989" text="-- Ref: ht..mmar/query"/>
+                <comment loc="1055..1085" text="-- Visuali..and views."/>
+                <comment loc="1098..1141" text="-- Ref: ht..rammar/viz"/>
             </comments>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;country&quot;,
@@ -257,8 +257,8 @@
                 ),
             },
         ),
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;weather_csv&quot;,
@@ -656,7 +656,7 @@
     </astdump>
     <astdump name="demo_3">
         <input>-- Fetch the bundled university schema
-            FETCH uni FROM &apos;https://dashql.blob.core.windows.net/static/data/uni/de/all.zip&apos;;
+            IMPORT uni FROM &apos;https://dashql.blob.core.windows.net/static/data/uni/de/all.zip&apos;;
 
             -- Load the parquet files in the zip archive
             LOAD vorlesungen FROM uni[&apos;vorlesungen.parquet&apos;];
@@ -730,125 +730,125 @@
             );</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="51..131" text="FETCH uni ..e/all.zip&apos;">
-                        <node key="DASHQL_FETCH_FROM_URI" type="STRING_REF" loc="66..131" text="&apos;https://d..e/all.zip&apos;"/>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="51..132" text="IMPORT uni..e/all.zip&apos;">
+                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="67..132" text="&apos;https://d..e/all.zip&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="57..60" text="uni"/>
+                            <node type="STRING_REF" loc="58..61" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="203..251" text="LOAD vorle...parquet&apos;]">
+                    <node type="OBJECT_DASHQL_LOAD" loc="204..252" text="LOAD vorle...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="225..228" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="228..251" text="[&apos;vorlesun...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="229..250" text="&apos;vorlesung..n.parquet&apos;"/>
+                            <node type="STRING_REF" loc="226..229" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="229..252" text="[&apos;vorlesun...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="230..251" text="&apos;vorlesung..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="208..219" text="vorlesungen"/>
+                            <node type="STRING_REF" loc="209..220" text="vorlesungen"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="265..303" text="LOAD hoere...parquet&apos;]">
+                    <node type="OBJECT_DASHQL_LOAD" loc="266..304" text="LOAD hoere...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="282..285" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="285..303" text="[&apos;hoeren.parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="286..302" text="&apos;hoeren.parquet&apos;"/>
+                            <node type="STRING_REF" loc="283..286" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="286..304" text="[&apos;hoeren.parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="287..303" text="&apos;hoeren.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="270..276" text="hoeren"/>
+                            <node type="STRING_REF" loc="271..277" text="hoeren"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="317..361" text="LOAD stude...parquet&apos;]">
+                    <node type="OBJECT_DASHQL_LOAD" loc="318..362" text="LOAD stude...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="337..340" text="uni"/>
-                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="340..361" text="[&apos;studente...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="341..360" text="&apos;studenten.parquet&apos;"/>
+                            <node type="STRING_REF" loc="338..341" text="uni"/>
+                            <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="341..362" text="[&apos;studente...parquet&apos;]">
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="342..361" text="&apos;studenten.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="322..331" text="studenten"/>
+                            <node type="STRING_REF" loc="323..332" text="studenten"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="CREATE_TABLE_AS">
-                    <node type="OBJECT_SQL_CREATE_AS" loc="409..656" text="CREATE TAB..gen.VorlNr">
+                    <node type="OBJECT_SQL_CREATE_AS" loc="410..657" text="CREATE TAB..gen.VorlNr">
                         <node key="SQL_CREATE_AS_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="422..432" text="Enrolments"/>
+                            <node type="STRING_REF" loc="423..433" text="Enrolments"/>
                         </node>
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="452..656" text="SELECT stu..gen.VorlNr">
+                        <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="453..657" text="SELECT stu..gen.VorlNr">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="516..525" text="studenten">
+                                <node type="OBJECT_SQL_TABLEREF" loc="517..526" text="studenten">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="516..525" text="studenten"/>
+                                        <node type="STRING_REF" loc="517..526" text="studenten"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="527..533" text="hoeren">
+                                <node type="OBJECT_SQL_TABLEREF" loc="528..534" text="hoeren">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="527..533" text="hoeren"/>
+                                        <node type="STRING_REF" loc="528..534" text="hoeren"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="535..546" text="vorlesungen">
+                                <node type="OBJECT_SQL_TABLEREF" loc="536..547" text="vorlesungen">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="535..546" text="vorlesungen"/>
+                                        <node type="STRING_REF" loc="536..547" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="459..475" text="studenten.MatrNr">
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="459..475" text="studenten.MatrNr">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="460..476" text="studenten.MatrNr">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="460..476" text="studenten.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="459..468" text="studenten"/>
-                                            <node type="STRING_REF" loc="469..475" text="MatrNr"/>
+                                            <node type="STRING_REF" loc="460..469" text="studenten"/>
+                                            <node type="STRING_REF" loc="470..476" text="MatrNr"/>
                                         </node>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="477..494" text="vorlesungen.Titel">
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="477..494" text="vorlesungen.Titel">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="478..495" text="vorlesungen.Titel">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="478..495" text="vorlesungen.Titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="477..488" text="vorlesungen"/>
-                                            <node type="STRING_REF" loc="489..494" text="Titel"/>
+                                            <node type="STRING_REF" loc="478..489" text="vorlesungen"/>
+                                            <node type="STRING_REF" loc="490..495" text="Titel"/>
                                         </node>
                                     </node>
                                 </node>
                             </node>
-                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="569..656" text="studenten...gen.VorlNr">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="569..601" text="studenten...ren.MatrNr">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="569..585" text="studenten.MatrNr">
+                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="570..657" text="studenten...gen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="570..602" text="studenten...ren.MatrNr">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="570..586" text="studenten.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="569..578" text="studenten"/>
-                                            <node type="STRING_REF" loc="579..585" text="MatrNr"/>
+                                            <node type="STRING_REF" loc="570..579" text="studenten"/>
+                                            <node type="STRING_REF" loc="580..586" text="MatrNr"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="588..601" text="hoeren.MatrNr">
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="589..602" text="hoeren.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="588..594" text="hoeren"/>
-                                            <node type="STRING_REF" loc="595..601" text="MatrNr"/>
+                                            <node type="STRING_REF" loc="589..595" text="hoeren"/>
+                                            <node type="STRING_REF" loc="596..602" text="MatrNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="622..656" text="hoeren.Vor..gen.VorlNr">
-                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="622..635" text="hoeren.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="623..657" text="hoeren.Vor..gen.VorlNr">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="623..636" text="hoeren.VorlNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="622..628" text="hoeren"/>
-                                            <node type="STRING_REF" loc="629..635" text="VorlNr"/>
+                                            <node type="STRING_REF" loc="623..629" text="hoeren"/>
+                                            <node type="STRING_REF" loc="630..636" text="VorlNr"/>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="638..656" text="vorlesungen.VorlNr">
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="639..657" text="vorlesungen.VorlNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="638..649" text="vorlesungen"/>
-                                            <node type="STRING_REF" loc="650..656" text="VorlNr"/>
+                                            <node type="STRING_REF" loc="639..650" text="vorlesungen"/>
+                                            <node type="STRING_REF" loc="651..657" text="VorlNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -861,74 +861,74 @@
                     </node>
                 </statement>
                 <statement type="CREATE_TABLE_AS">
-                    <node type="OBJECT_SQL_CREATE_AS" loc="706..919" text="CREATE TAB..BY v.titel">
+                    <node type="OBJECT_SQL_CREATE_AS" loc="707..920" text="CREATE TAB..BY v.titel">
                         <node key="SQL_CREATE_AS_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="719..733" text="StudentsCounts"/>
+                            <node type="STRING_REF" loc="720..734" text="StudentsCounts"/>
                         </node>
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
-                        <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="753..919" text="SELECT v.t..BY v.titel">
+                        <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="754..920" text="SELECT v.t..BY v.titel">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="821..829" text="hoeren h">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="828..829" text="h"/>
+                                <node type="OBJECT_SQL_TABLEREF" loc="822..830" text="hoeren h">
+                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="829..830" text="h"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="821..827" text="hoeren"/>
+                                        <node type="STRING_REF" loc="822..828" text="hoeren"/>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_TABLEREF" loc="831..844" text="vorlesungen v">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="843..844" text="v"/>
+                                <node type="OBJECT_SQL_TABLEREF" loc="832..845" text="vorlesungen v">
+                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="844..845" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="831..842" text="vorlesungen"/>
+                                        <node type="STRING_REF" loc="832..843" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_GROUPS" type="ARRAY">
-                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="912..919" text="v.titel">
-                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="912..919" text="v.titel">
+                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="913..920" text="v.titel">
+                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="913..920" text="v.titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="912..913" text="v"/>
-                                            <node type="STRING_REF" loc="914..919" text="titel"/>
+                                            <node type="STRING_REF" loc="913..914" text="v"/>
+                                            <node type="STRING_REF" loc="915..920" text="titel"/>
                                         </node>
                                     </node>
                                     <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="760..767" text="v.titel">
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="760..767" text="v.titel">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="761..768" text="v.titel">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="761..768" text="v.titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="760..761" text="v"/>
-                                            <node type="STRING_REF" loc="762..767" text="titel"/>
+                                            <node type="STRING_REF" loc="761..762" text="v"/>
+                                            <node type="STRING_REF" loc="763..768" text="titel"/>
                                         </node>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="769..799" text="count(*)::.. studenten">
-                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="790..799" text="studenten"/>
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="769..786" text="count(*)::INTEGER">
-                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="779..786" text="INTEGER">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="770..800" text="count(*)::.. studenten">
+                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="791..800" text="studenten"/>
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="770..787" text="count(*)::INTEGER">
+                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="780..787" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
-                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="769..777" text="count(*)">
+                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="770..778" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                <node type="STRING_REF" loc="775..776" text="*"/>
+                                                <node type="STRING_REF" loc="776..777" text="*"/>
                                             </node>
-                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="769..774" text="count"/>
+                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="770..775" text="count"/>
                                         </node>
                                     </node>
                                 </node>
                             </node>
-                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="867..886" text="h.vorlnr = v.vorlnr">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="867..875" text="h.vorlnr">
+                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="868..887" text="h.vorlnr = v.vorlnr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="868..876" text="h.vorlnr">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="867..868" text="h"/>
-                                        <node type="STRING_REF" loc="869..875" text="vorlnr"/>
+                                        <node type="STRING_REF" loc="868..869" text="h"/>
+                                        <node type="STRING_REF" loc="870..876" text="vorlnr"/>
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="878..886" text="v.vorlnr">
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="879..887" text="v.vorlnr">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="878..879" text="v"/>
-                                        <node type="STRING_REF" loc="880..886" text="vorlnr"/>
+                                        <node type="STRING_REF" loc="879..880" text="v"/>
+                                        <node type="STRING_REF" loc="881..887" text="vorlnr"/>
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -939,51 +939,51 @@
                     </node>
                 </statement>
                 <statement type="CREATE_VIEW">
-                    <node type="OBJECT_SQL_VIEW" loc="976..1121" text="CREATE VIE..P BY v.sws">
+                    <node type="OBJECT_SQL_VIEW" loc="977..1122" text="CREATE VIE..P BY v.sws">
                         <node key="SQL_VIEW_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="988..997" text="SWSCounts"/>
+                            <node type="STRING_REF" loc="989..998" text="SWSCounts"/>
                         </node>
-                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="1017..1121" text="SELECT v.s..P BY v.sws">
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="1018..1122" text="SELECT v.s..P BY v.sws">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
-                                <node type="OBJECT_SQL_TABLEREF" loc="1077..1090" text="vorlesungen v">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="1089..1090" text="v"/>
+                                <node type="OBJECT_SQL_TABLEREF" loc="1078..1091" text="vorlesungen v">
+                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="1090..1091" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="1077..1088" text="vorlesungen"/>
+                                        <node type="STRING_REF" loc="1078..1089" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_GROUPS" type="ARRAY">
-                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="1116..1121" text="v.sws">
-                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="1116..1121" text="v.sws">
+                                <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="1117..1122" text="v.sws">
+                                    <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="1117..1122" text="v.sws">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="1116..1117" text="v"/>
-                                            <node type="STRING_REF" loc="1118..1121" text="sws"/>
+                                            <node type="STRING_REF" loc="1117..1118" text="v"/>
+                                            <node type="STRING_REF" loc="1119..1122" text="sws"/>
                                         </node>
                                     </node>
                                     <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
                                 </node>
                             </node>
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="1024..1029" text="v.sws">
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="1024..1029" text="v.sws">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="1025..1030" text="v.sws">
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="1025..1030" text="v.sws">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="1024..1025" text="v"/>
-                                            <node type="STRING_REF" loc="1026..1029" text="sws"/>
+                                            <node type="STRING_REF" loc="1025..1026" text="v"/>
+                                            <node type="STRING_REF" loc="1027..1030" text="sws"/>
                                         </node>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_RESULT_TARGET" loc="1031..1055" text="count(*)::..GER as cnt">
-                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="1052..1055" text="cnt"/>
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="1031..1048" text="count(*)::INTEGER">
-                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="1041..1048" text="INTEGER">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="1032..1056" text="count(*)::..GER as cnt">
+                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="1053..1056" text="cnt"/>
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="1032..1049" text="count(*)::INTEGER">
+                                        <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="1042..1049" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
-                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1031..1039" text="count(*)">
+                                        <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1032..1040" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                <node type="STRING_REF" loc="1037..1038" text="*"/>
+                                                <node type="STRING_REF" loc="1038..1039" text="*"/>
                                             </node>
-                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="1031..1036" text="count"/>
+                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="1032..1037" text="count"/>
                                         </node>
                                     </node>
                                 </node>
@@ -993,98 +993,98 @@
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="1192..1351" text="VIZ Enrolm..         )">
-                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1219..1351" text="(\n        ..         )">
-                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="1291..1336" text="(row = 3, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="1298..1299" text="3"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="1310..1311" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="1321..1323" text="12"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1334..1335" text="4"/>
+                    <node type="OBJECT_DASHQL_VIZ" loc="1193..1352" text="VIZ Enrolm..         )">
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1220..1352" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="1292..1337" text="(row = 3, ..eight = 4)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="1299..1300" text="3"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="1311..1312" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="1322..1324" text="12"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1335..1336" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="1245..1262" text="&apos;Einschreibungen&apos;"/>
+                            <node key="DSON_TITLE" type="STRING_REF" loc="1246..1263" text="&apos;Einschreibungen&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1196..1206" text="Enrolments">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1197..1207" text="Enrolments">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1196..1206" text="Enrolments"/>
+                                <node type="STRING_REF" loc="1197..1207" text="Enrolments"/>
                             </node>
                         </node>
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="1400..2082" text="VIZ Studen..         )">
-                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1424..2082" text="(\n        ..         )">
-                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="1491..1535" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="1498..1499" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="1510..1511" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="1521..1522" text="6"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1533..1534" text="4"/>
+                    <node type="OBJECT_DASHQL_VIZ" loc="1401..2083" text="VIZ Studen..         )">
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1425..2083" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="1492..1536" text="(row = 0, ..eight = 4)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="1499..1500" text="0"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="1511..1512" text="0"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="1522..1523" text="6"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1534..1535" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="1450..1462" text="&apos;Auslastung&apos;"/>
-                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1594..2068" text="(\n        ..         )">
-                                <node key="DSON_X" type="OBJECT_DSON" loc="1799..2049" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="1833..1844" text="&apos;Studenten&apos;"/>
-                                    <node key="DSON_AXIS" type="OBJECT_DSON" loc="2004..2026" text="axis.tick_..n_step = 1">
-                                        <node key="DSON_TICK_MIN_STEP" type="STRING_REF" loc="2025..2026" text="1"/>
+                            <node key="DSON_TITLE" type="STRING_REF" loc="1451..1463" text="&apos;Auslastung&apos;"/>
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1595..2069" text="(\n        ..         )">
+                                <node key="DSON_X" type="OBJECT_DSON" loc="1800..2050" text="(\n        ..         )">
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="1834..1845" text="&apos;Studenten&apos;"/>
+                                    <node key="DSON_AXIS" type="OBJECT_DSON" loc="2005..2027" text="axis.tick_..n_step = 1">
+                                        <node key="DSON_TICK_MIN_STEP" type="STRING_REF" loc="2026..2027" text="1"/>
                                     </node>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="1878..1889" text="&apos;studenten&apos;"/>
-                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="1961..1978" text="scale.zero = true">
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="1879..1890" text="&apos;studenten&apos;"/>
+                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="1962..1979" text="scale.zero = true">
                                         <node key="DSON_ZERO" type="BOOL" value="true"/>
                                     </node>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1921..1935" text="&apos;quantitative&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="1922..1936" text="&apos;quantitative&apos;"/>
                                 </node>
-                                <node key="DSON_Y" type="OBJECT_DSON" loc="1620..1773" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="1654..1667" text="&apos;Vorlesungen&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="1701..1708" text="&apos;Titel&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1741..1750" text="&apos;nominal&apos;"/>
+                                <node key="DSON_Y" type="OBJECT_DSON" loc="1621..1774" text="(\n        ..         )">
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="1655..1668" text="&apos;Vorlesungen&apos;"/>
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="1702..1709" text="&apos;Titel&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="1742..1751" text="&apos;nominal&apos;"/>
                                 </node>
                             </node>
-                            <node key="DSON_MARK" type="STRING_REF" loc="1560..1565" text="&apos;bar&apos;"/>
+                            <node key="DSON_MARK" type="STRING_REF" loc="1561..1566" text="&apos;bar&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1404..1417" text="StudentCounts">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1405..1418" text="StudentCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1404..1417" text="StudentCounts"/>
+                                <node type="STRING_REF" loc="1405..1418" text="StudentCounts"/>
                             </node>
                         </node>
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="2133..2747" text="VIZ SWSCou..         )">
-                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="2153..2747" text="(\n        ..         )">
-                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="2223..2267" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="2230..2231" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="2242..2243" text="6"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="2253..2254" text="6"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="2265..2266" text="4"/>
+                    <node type="OBJECT_DASHQL_VIZ" loc="2134..2748" text="VIZ SWSCou..         )">
+                        <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="2154..2748" text="(\n        ..         )">
+                            <node key="DSON_POSITION" type="OBJECT_DSON" loc="2224..2268" text="(row = 0, ..eight = 4)">
+                                <node key="DSON_ROW" type="STRING_REF" loc="2231..2232" text="0"/>
+                                <node key="DSON_COLUMN" type="STRING_REF" loc="2243..2244" text="6"/>
+                                <node key="DSON_WIDTH" type="STRING_REF" loc="2254..2255" text="6"/>
+                                <node key="DSON_HEIGHT" type="STRING_REF" loc="2266..2267" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="2179..2194" text="&apos;Wochenstunden&apos;"/>
-                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2351..2733" text="(\n        ..         )">
-                                <node key="DSON_COLOR" type="OBJECT_DSON" loc="2381..2485" text="(\n        ..         )">
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="2415..2420" text="&apos;SWS&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="2453..2462" text="&apos;ordinal&apos;"/>
+                            <node key="DSON_TITLE" type="STRING_REF" loc="2180..2195" text="&apos;Wochenstunden&apos;"/>
+                            <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2352..2734" text="(\n        ..         )">
+                                <node key="DSON_COLOR" type="OBJECT_DSON" loc="2382..2486" text="(\n        ..         )">
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="2416..2421" text="&apos;SWS&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="2454..2463" text="&apos;ordinal&apos;"/>
                                 </node>
-                                <node key="DSON_THETA" type="OBJECT_DSON" loc="2515..2714" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="2549..2562" text="&apos;Vorlesungen&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="2596..2601" text="&apos;cnt&apos;"/>
-                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="2674..2691" text="scale.zero = true">
+                                <node key="DSON_THETA" type="OBJECT_DSON" loc="2516..2715" text="(\n        ..         )">
+                                    <node key="DSON_TITLE" type="STRING_REF" loc="2550..2563" text="&apos;Vorlesungen&apos;"/>
+                                    <node key="DSON_FIELD" type="STRING_REF" loc="2597..2602" text="&apos;cnt&apos;"/>
+                                    <node key="DSON_SCALE" type="OBJECT_DSON" loc="2675..2692" text="scale.zero = true">
                                         <node key="DSON_ZERO" type="BOOL" value="true"/>
                                     </node>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="2634..2648" text="&apos;quantitative&apos;"/>
+                                    <node key="DSON_TYPE" type="STRING_REF" loc="2635..2649" text="&apos;quantitative&apos;"/>
                                 </node>
                             </node>
-                            <node key="DSON_MARK" type="OBJECT_DSON" loc="2292..2322" text="(type= &apos;ar..radius=50)">
-                                <node key="DSON_INNER_RADIUS" type="STRING_REF" loc="2319..2321" text="50"/>
-                                <node key="DSON_TYPE" type="STRING_REF" loc="2299..2304" text="&apos;arc&apos;"/>
+                            <node key="DSON_MARK" type="OBJECT_DSON" loc="2293..2323" text="(type= &apos;ar..radius=50)">
+                                <node key="DSON_INNER_RADIUS" type="STRING_REF" loc="2320..2322" text="50"/>
+                                <node key="DSON_TYPE" type="STRING_REF" loc="2300..2305" text="&apos;arc&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="2137..2146" text="SWSCounts">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="2138..2147" text="SWSCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="2137..2146" text="SWSCounts"/>
+                                <node type="STRING_REF" loc="2138..2147" text="SWSCounts"/>
                             </node>
                         </node>
                     </node>
@@ -1093,94 +1093,94 @@
             <errors/>
             <line_breaks>
                 <line_break loc="38..39" text="\n"/>
-                <line_break loc="132..133" text="\n"/>
                 <line_break loc="133..134" text="\n"/>
-                <line_break loc="190..191" text="\n"/>
-                <line_break loc="252..253" text="\n"/>
-                <line_break loc="304..305" text="\n"/>
-                <line_break loc="362..363" text="\n"/>
+                <line_break loc="134..135" text="\n"/>
+                <line_break loc="191..192" text="\n"/>
+                <line_break loc="253..254" text="\n"/>
+                <line_break loc="305..306" text="\n"/>
                 <line_break loc="363..364" text="\n"/>
-                <line_break loc="396..397" text="\n"/>
-                <line_break loc="435..436" text="\n"/>
-                <line_break loc="494..495" text="\n"/>
-                <line_break loc="546..547" text="\n"/>
-                <line_break loc="601..602" text="\n"/>
-                <line_break loc="657..658" text="\n"/>
+                <line_break loc="364..365" text="\n"/>
+                <line_break loc="397..398" text="\n"/>
+                <line_break loc="436..437" text="\n"/>
+                <line_break loc="495..496" text="\n"/>
+                <line_break loc="547..548" text="\n"/>
+                <line_break loc="602..603" text="\n"/>
                 <line_break loc="658..659" text="\n"/>
-                <line_break loc="693..694" text="\n"/>
-                <line_break loc="736..737" text="\n"/>
-                <line_break loc="799..800" text="\n"/>
-                <line_break loc="844..845" text="\n"/>
-                <line_break loc="886..887" text="\n"/>
-                <line_break loc="920..921" text="\n"/>
+                <line_break loc="659..660" text="\n"/>
+                <line_break loc="694..695" text="\n"/>
+                <line_break loc="737..738" text="\n"/>
+                <line_break loc="800..801" text="\n"/>
+                <line_break loc="845..846" text="\n"/>
+                <line_break loc="887..888" text="\n"/>
                 <line_break loc="921..922" text="\n"/>
-                <line_break loc="963..964" text="\n"/>
-                <line_break loc="1000..1001" text="\n"/>
-                <line_break loc="1055..1056" text="\n"/>
-                <line_break loc="1090..1091" text="\n"/>
-                <line_break loc="1122..1123" text="\n"/>
+                <line_break loc="922..923" text="\n"/>
+                <line_break loc="964..965" text="\n"/>
+                <line_break loc="1001..1002" text="\n"/>
+                <line_break loc="1056..1057" text="\n"/>
+                <line_break loc="1091..1092" text="\n"/>
                 <line_break loc="1123..1124" text="\n"/>
-                <line_break loc="1179..1180" text="\n"/>
-                <line_break loc="1220..1221" text="\n"/>
-                <line_break loc="1263..1264" text="\n"/>
-                <line_break loc="1337..1338" text="\n"/>
-                <line_break loc="1352..1353" text="\n"/>
+                <line_break loc="1124..1125" text="\n"/>
+                <line_break loc="1180..1181" text="\n"/>
+                <line_break loc="1221..1222" text="\n"/>
+                <line_break loc="1264..1265" text="\n"/>
+                <line_break loc="1338..1339" text="\n"/>
                 <line_break loc="1353..1354" text="\n"/>
-                <line_break loc="1387..1388" text="\n"/>
-                <line_break loc="1425..1426" text="\n"/>
-                <line_break loc="1463..1464" text="\n"/>
-                <line_break loc="1536..1537" text="\n"/>
-                <line_break loc="1566..1567" text="\n"/>
-                <line_break loc="1595..1596" text="\n"/>
-                <line_break loc="1621..1622" text="\n"/>
-                <line_break loc="1668..1669" text="\n"/>
-                <line_break loc="1709..1710" text="\n"/>
-                <line_break loc="1751..1752" text="\n"/>
-                <line_break loc="1774..1775" text="\n"/>
-                <line_break loc="1800..1801" text="\n"/>
-                <line_break loc="1845..1846" text="\n"/>
-                <line_break loc="1890..1891" text="\n"/>
-                <line_break loc="1936..1937" text="\n"/>
-                <line_break loc="1979..1980" text="\n"/>
-                <line_break loc="2027..2028" text="\n"/>
-                <line_break loc="2050..2051" text="\n"/>
-                <line_break loc="2068..2069" text="\n"/>
-                <line_break loc="2083..2084" text="\n"/>
+                <line_break loc="1354..1355" text="\n"/>
+                <line_break loc="1388..1389" text="\n"/>
+                <line_break loc="1426..1427" text="\n"/>
+                <line_break loc="1464..1465" text="\n"/>
+                <line_break loc="1537..1538" text="\n"/>
+                <line_break loc="1567..1568" text="\n"/>
+                <line_break loc="1596..1597" text="\n"/>
+                <line_break loc="1622..1623" text="\n"/>
+                <line_break loc="1669..1670" text="\n"/>
+                <line_break loc="1710..1711" text="\n"/>
+                <line_break loc="1752..1753" text="\n"/>
+                <line_break loc="1775..1776" text="\n"/>
+                <line_break loc="1801..1802" text="\n"/>
+                <line_break loc="1846..1847" text="\n"/>
+                <line_break loc="1891..1892" text="\n"/>
+                <line_break loc="1937..1938" text="\n"/>
+                <line_break loc="1980..1981" text="\n"/>
+                <line_break loc="2028..2029" text="\n"/>
+                <line_break loc="2051..2052" text="\n"/>
+                <line_break loc="2069..2070" text="\n"/>
                 <line_break loc="2084..2085" text="\n"/>
-                <line_break loc="2120..2121" text="\n"/>
-                <line_break loc="2154..2155" text="\n"/>
-                <line_break loc="2195..2196" text="\n"/>
-                <line_break loc="2268..2269" text="\n"/>
-                <line_break loc="2323..2324" text="\n"/>
-                <line_break loc="2352..2353" text="\n"/>
-                <line_break loc="2382..2383" text="\n"/>
-                <line_break loc="2421..2422" text="\n"/>
-                <line_break loc="2463..2464" text="\n"/>
-                <line_break loc="2486..2487" text="\n"/>
-                <line_break loc="2516..2517" text="\n"/>
-                <line_break loc="2563..2564" text="\n"/>
-                <line_break loc="2602..2603" text="\n"/>
-                <line_break loc="2649..2650" text="\n"/>
-                <line_break loc="2692..2693" text="\n"/>
-                <line_break loc="2715..2716" text="\n"/>
-                <line_break loc="2733..2734" text="\n"/>
+                <line_break loc="2085..2086" text="\n"/>
+                <line_break loc="2121..2122" text="\n"/>
+                <line_break loc="2155..2156" text="\n"/>
+                <line_break loc="2196..2197" text="\n"/>
+                <line_break loc="2269..2270" text="\n"/>
+                <line_break loc="2324..2325" text="\n"/>
+                <line_break loc="2353..2354" text="\n"/>
+                <line_break loc="2383..2384" text="\n"/>
+                <line_break loc="2422..2423" text="\n"/>
+                <line_break loc="2464..2465" text="\n"/>
+                <line_break loc="2487..2488" text="\n"/>
+                <line_break loc="2517..2518" text="\n"/>
+                <line_break loc="2564..2565" text="\n"/>
+                <line_break loc="2603..2604" text="\n"/>
+                <line_break loc="2650..2651" text="\n"/>
+                <line_break loc="2693..2694" text="\n"/>
+                <line_break loc="2716..2717" text="\n"/>
+                <line_break loc="2734..2735" text="\n"/>
             </line_breaks>
             <comments>
                 <comment loc="0..38" text="-- Fetch t..ity schema"/>
-                <comment loc="146..190" text="-- Load th..ip archive"/>
-                <comment loc="376..396" text="-- Run arb..itrary SQL"/>
-                <comment loc="671..693" text="-- ... wit..aggregates"/>
-                <comment loc="934..963" text="-- ... sto..le or view"/>
-                <comment loc="1136..1179" text="-- Visuali..mple table"/>
-                <comment loc="1366..1387" text="-- ... or .. bar chart"/>
-                <comment loc="2097..2120" text="-- ... or ..onut chart"/>
+                <comment loc="147..191" text="-- Load th..ip archive"/>
+                <comment loc="377..397" text="-- Run arb..itrary SQL"/>
+                <comment loc="672..694" text="-- ... wit..aggregates"/>
+                <comment loc="935..964" text="-- ... sto..le or view"/>
+                <comment loc="1137..1180" text="-- Visuali..mple table"/>
+                <comment loc="1367..1388" text="-- ... or .. bar chart"/>
+                <comment loc="2098..2121" text="-- ... or ..onut chart"/>
             </comments>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;uni&quot;,

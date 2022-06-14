@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.syntax;
+namespace dashql.proto;
 
 enum ExpressionOperator: uint8 {
     DEFAULT,

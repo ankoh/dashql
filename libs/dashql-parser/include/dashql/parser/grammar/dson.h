@@ -15,13 +15,13 @@ class DSONDictionary {
     /// The text
     const std::string_view program_text_;
     /// The text
-    const sx::ProgramT& program_;
+    const proto::ProgramT& program_;
     /// The key mapping
     const std::unordered_map<std::string_view, uint16_t> key_mapping_;
 
    public:
     /// Constructor
-    DSONDictionary(std::string_view program_text, const sx::ProgramT& program);
+    DSONDictionary(std::string_view program_text, const proto::ProgramT& program);
 
     /// Get an attribute key from a string
     uint16_t keyFromString(std::string_view text) const;

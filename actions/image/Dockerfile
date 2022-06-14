@@ -19,7 +19,7 @@ RUN apt-get update -qq \
 
 SHELL ["/bin/bash", "-c"]
 
-ARG FLATBUFFER_COMMIT="615616cb5549a34bdf288c04bc1b94bd7a65c396"
+ARG FLATBUFFER_COMMIT="a9a295fecf3fbd5a4f571f53b01f63202a3e2113"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && git clone https://github.com/google/flatbuffers /tmp/flatbuffers/repo \
     && cd /tmp/flatbuffers/repo \

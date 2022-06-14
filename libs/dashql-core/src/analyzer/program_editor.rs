@@ -1,7 +1,7 @@
 use super::board_space::BoardPosition;
 use crate::grammar::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{Expression, VizStatement};
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -31,29 +31,29 @@ pub fn edit_viz_statement<'arena, 'edit>(
         match &op {
             EditOperation::SetBoardPosition(pos) => {
                 extras.retain(|field| match field.key {
-                    DsonKey::Known(sx::AttributeKey::DSON_POSITION) => false,
+                    DsonKey::Known(proto::AttributeKey::DSON_POSITION) => false,
                     _ => true,
                 });
                 let fields = DsonValue::Object(arena.alloc_slice_clone(&[
                     DsonField {
-                        key: DsonKey::Known(sx::AttributeKey::DSON_ROW),
+                        key: DsonKey::Known(proto::AttributeKey::DSON_ROW),
                         value: DsonValue::Expression(Expression::Uint32(pos.row as u32)),
                     },
                     DsonField {
-                        key: DsonKey::Known(sx::AttributeKey::DSON_COLUMN),
+                        key: DsonKey::Known(proto::AttributeKey::DSON_COLUMN),
                         value: DsonValue::Expression(Expression::Uint32(pos.column as u32)),
                     },
                     DsonField {
-                        key: DsonKey::Known(sx::AttributeKey::DSON_WIDTH),
+                        key: DsonKey::Known(proto::AttributeKey::DSON_WIDTH),
                         value: DsonValue::Expression(Expression::Uint32(pos.width as u32)),
                     },
                     DsonField {
-                        key: DsonKey::Known(sx::AttributeKey::DSON_HEIGHT),
+                        key: DsonKey::Known(proto::AttributeKey::DSON_HEIGHT),
                         value: DsonValue::Expression(Expression::Uint32(pos.height as u32)),
                     },
                 ]));
                 extras.push(DsonField {
-                    key: DsonKey::Known(sx::AttributeKey::DSON_POSITION),
+                    key: DsonKey::Known(proto::AttributeKey::DSON_POSITION),
                     value: fields,
                 });
             }

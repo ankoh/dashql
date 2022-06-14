@@ -8,8 +8,8 @@ use std::error::Error;
 #[derive(Debug, Clone)]
 pub enum Statement<'arena> {
     Select(&'arena SelectStatement<'arena>),
-    Input(&'arena InputStatement<'arena>),
-    Fetch(&'arena FetchStatement<'arena>),
+    Input(&'arena DeclareStatement<'arena>),
+    Import(&'arena ImportStatement<'arena>),
     Load(&'arena LoadStatement<'arena>),
     Viz(&'arena VizStatement<'arena>),
     Create(&'arena CreateStatement<'arena>),

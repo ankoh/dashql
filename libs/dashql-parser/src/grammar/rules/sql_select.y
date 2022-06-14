@@ -156,31 +156,31 @@ sql_simple_select:
         $$ = { Attr(Key::SQL_SELECT_VALUES, ctx.Add(@1, move($1))) };
     }
   | TABLE sql_relation_expr {
-        $$ = { Attr(Key::SQL_SELECT_TABLE, ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, move($2))) };
+        $$ = { Attr(Key::SQL_SELECT_TABLE, ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, move($2))) };
     }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, proto::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, sx::CombineOperation::UNION)),
+            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, proto::CombineOperation::UNION)),
             Attr(Key::SQL_COMBINE_MODIFIER, $3),
             Attr(Key::SQL_COMBINE_INPUT, ctx.Add(@$, NodeVector{l, r})),
         };
     }
   | sql_select_clause INTERSECT sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, proto::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, sx::CombineOperation::INTERSECT)),
+            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, proto::CombineOperation::INTERSECT)),
             Attr(Key::SQL_COMBINE_MODIFIER, $3),
             Attr(Key::SQL_COMBINE_INPUT, ctx.Add(@$, NodeVector{l, r})),
         };
     }
   | sql_select_clause EXCEPT sql_all_or_distinct sql_select_clause {
-        auto l = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        auto r = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, move($4));
+        auto l = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        auto r = ctx.Add(@4, proto::NodeType::OBJECT_SQL_SELECT, move($4));
         $$ = {
-            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, sx::CombineOperation::EXCEPT)),
+            Attr(Key::SQL_COMBINE_OPERATION, Enum(@2, proto::CombineOperation::EXCEPT)),
             Attr(Key::SQL_COMBINE_MODIFIER, $3),
             Attr(Key::SQL_COMBINE_INPUT, ctx.Add(@$, NodeVector{l, r})),
         };
@@ -214,7 +214,7 @@ sql_cte_list:
 
 sql_common_table_expr:
     sql_name sql_opt_name_list AS '(' sql_preparable_stmt ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CTE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, String(@1)),
             Attr(Key::SQL_CTE_COLUMNS, ctx.Add(@2, move($2))),
             Attr(Key::SQL_CTE_STATEMENT, $5),
@@ -229,21 +229,21 @@ sql_into_clause:
 
 // XXX PreparableStmt: select | insert | update | delete
 sql_preparable_stmt:
-    sql_select_stmt                 { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
+    sql_select_stmt                 { $$ = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1)); }
     ;
 
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($3)); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($3)); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), std::move($4)); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), std::move($4)); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, sx::TempType::UNLOGGED), std::move($3)); }
-  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sx::TempType::NONE), std::move($2)); }
-  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sx::TempType::NONE), std::move($1)); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = Into(ctx, @$, Enum(@1, proto::TempType::DEFAULT), std::move($3)); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = Into(ctx, @$, Enum(@1, proto::TempType::DEFAULT), std::move($3)); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = Into(ctx, @$, Enum(@1, proto::TempType::LOCAL), std::move($4)); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = Into(ctx, @$, Enum(@1, proto::TempType::LOCAL), std::move($4)); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, proto::TempType::GLOBAL), std::move($4)); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, proto::TempType::GLOBAL), std::move($4)); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, proto::TempType::UNLOGGED), std::move($3)); }
+  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, proto::TempType::NONE), std::move($2)); }
+  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, proto::TempType::NONE), std::move($1)); }
     ;
 
 sql_opt_table:
@@ -252,8 +252,8 @@ sql_opt_table:
     ;
 
 sql_all_or_distinct:
-    ALL         { $$ = Enum(@1, sx::CombineModifier::ALL); }
-  | DISTINCT    { $$ = Enum(@1, sx::CombineModifier::DISTINCT); }
+    ALL         { $$ = Enum(@1, proto::CombineModifier::ALL); }
+  | DISTINCT    { $$ = Enum(@1, proto::CombineModifier::DISTINCT); }
   | %empty      { $$ = Null(); }
     ;
 
@@ -286,13 +286,13 @@ sql_sortby_list:
 
 sql_sortby:
     sql_a_expr USING sql_qual_all_op sql_opt_nulls_order {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ORDER, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ORDER, {
             Attr(Key::SQL_ORDER_VALUE, $1),
             Attr(Key::SQL_ORDER_NULLRULE, $4),
         });
     }
   | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ORDER, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ORDER, {
             Attr(Key::SQL_ORDER_VALUE, $1),
             Attr(Key::SQL_ORDER_DIRECTION, $2),
             Attr(Key::SQL_ORDER_NULLRULE, $3),
@@ -301,14 +301,14 @@ sql_sortby:
     ;
 
 sql_opt_asc_desc:
-    ASC_P   { $$ = Enum(@$, sx::OrderDirection::ASCENDING); }
-  | DESC_P  { $$ = Enum(@$, sx::OrderDirection::DESCENDING); }
+    ASC_P   { $$ = Enum(@$, proto::OrderDirection::ASCENDING); }
+  | DESC_P  { $$ = Enum(@$, proto::OrderDirection::DESCENDING); }
   | %empty  { $$ = Null(); }
     ;
 
 sql_opt_nulls_order:
-    NULLS_LA FIRST_P    { $$ = Enum(@$, sx::OrderNullRule::NULLS_FIRST); }
-  | NULLS_LA LAST_P     { $$ = Enum(@$, sx::OrderNullRule::NULLS_LAST); }
+    NULLS_LA FIRST_P    { $$ = Enum(@$, proto::OrderNullRule::NULLS_FIRST); }
+  | NULLS_LA LAST_P     { $$ = Enum(@$, proto::OrderNullRule::NULLS_LAST); }
   | %empty              { $$ = Null(); }
     ;
 
@@ -442,31 +442,31 @@ sql_group_by_list:
 
 sql_group_by_item:
     sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
-            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@$, sx::GroupByItemType::EXPRESSION)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@$, proto::GroupByItemType::EXPRESSION)),
             Attr(Key::SQL_GROUP_BY_ITEM_ARG, std::move($1)),
         });
     }
   | sql_empty_grouping_set {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
-            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::EMPTY)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, proto::GroupByItemType::EMPTY)),
         }); 
     }
   | CUBE '(' sql_expr_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
-            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::CUBE)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, proto::GroupByItemType::CUBE)),
             Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@3, std::move($3))),
         }); 
     }
   | ROLLUP '(' sql_expr_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
-            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, sx::GroupByItemType::ROLLUP)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(@1, proto::GroupByItemType::ROLLUP)),
             Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@3, std::move($3))),
         }); 
     }
   | GROUPING SETS '(' sql_expr_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
-            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(Loc({@1, @2}), sx::GroupByItemType::GROUPING_SETS)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM, {
+            Attr(Key::SQL_GROUP_BY_ITEM_TYPE, Enum(Loc({@1, @2}), proto::GroupByItemType::GROUPING_SETS)),
             Attr(Key::SQL_GROUP_BY_ITEM_ARG, ctx.Add(@4, std::move($4))),
         }); 
     }
@@ -489,8 +489,8 @@ sql_for_locking_clause:
     sql_for_locking_items   { $$ = std::move($1); }
   | FOR READ_P ONLY         {
         $$ = {
-            ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROW_LOCKING, {
-                Attr(Key::SQL_ROW_LOCKING_STRENGTH, Enum(@1, sx::RowLockingStrength::READ_ONLY)),
+            ctx.Add(@$, proto::NodeType::OBJECT_SQL_ROW_LOCKING, {
+                Attr(Key::SQL_ROW_LOCKING_STRENGTH, Enum(@1, proto::RowLockingStrength::READ_ONLY)),
             })
         };
     }
@@ -508,7 +508,7 @@ sql_for_locking_items:
 
 sql_for_locking_item:
     sql_for_locking_strength sql_locked_rels_list sql_opt_nowait_or_skip {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROW_LOCKING, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ROW_LOCKING, {
             Attr(Key::SQL_ROW_LOCKING_STRENGTH, $1),
             Attr(Key::SQL_ROW_LOCKING_OF, ctx.Add(@2, std::move($2))),
             Attr(Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR, $3),
@@ -517,10 +517,10 @@ sql_for_locking_item:
     ;
 
 sql_for_locking_strength:
-    FOR UPDATE          { $$ = Enum(@$, sx::RowLockingStrength::UPDATE); }
-  | FOR NO KEY UPDATE   { $$ = Enum(@$, sx::RowLockingStrength::NO_KEY_UPDATE); }
-  | FOR SHARE           { $$ = Enum(@$, sx::RowLockingStrength::SHARE); }
-  | FOR KEY SHARE       { $$ = Enum(@$, sx::RowLockingStrength::KEY_SHARE); }
+    FOR UPDATE          { $$ = Enum(@$, proto::RowLockingStrength::UPDATE); }
+  | FOR NO KEY UPDATE   { $$ = Enum(@$, proto::RowLockingStrength::NO_KEY_UPDATE); }
+  | FOR SHARE           { $$ = Enum(@$, proto::RowLockingStrength::SHARE); }
+  | FOR KEY SHARE       { $$ = Enum(@$, proto::RowLockingStrength::KEY_SHARE); }
     ;
 
 sql_locked_rels_list:
@@ -530,8 +530,8 @@ sql_locked_rels_list:
 
 
 sql_opt_nowait_or_skip:
-    NOWAIT        { $$ = Enum(@$, sx::RowLockingBlockBehavior::NOWAIT); }
-  | SKIP LOCKED   { $$ = Enum(@$, sx::RowLockingBlockBehavior::SKIP_LOCKED); }
+    NOWAIT        { $$ = Enum(@$, proto::RowLockingBlockBehavior::NOWAIT); }
+  | SKIP LOCKED   { $$ = Enum(@$, proto::RowLockingBlockBehavior::SKIP_LOCKED); }
   | %empty        { $$ = Null(); }
     ;
 
@@ -563,50 +563,50 @@ sql_from_list:
 // XXX Andre
 sql_table_ref:
     sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, Concat(move($1), {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, Concat(move($1), {
             Attr(Key::SQL_TABLEREF_ALIAS, $2),
             Attr(Key::SQL_TABLEREF_SAMPLE, $3),
         }));
     }
   | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_ALIAS, std::move($2)),
             Attr(Key::SQL_TABLEREF_SAMPLE, std::move($3)),
             Attr(Key::SQL_TABLEREF_TABLE, std::move($1)),
         });
     }
   | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        auto t = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_ALIAS, $2),
             Attr(Key::SQL_TABLEREF_SAMPLE, $3),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | LATERAL_P sql_func_table sql_func_alias_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_LATERAL, Bool(@1, true)),
             Attr(Key::SQL_TABLEREF_ALIAS, $3),
             Attr(Key::SQL_TABLEREF_TABLE, std::move($2)),
         });
     }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($2));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        auto t = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($2));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_LATERAL, Bool(@1, true)),
             Attr(Key::SQL_TABLEREF_ALIAS, $3),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | sql_joined_table {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        auto t = ctx.Add(@1, proto::NodeType::OBJECT_SQL_JOINED_TABLE, move($1));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
     }
   | '(' sql_joined_table ')' sql_alias_clause {
-        auto t = ctx.Add(@1, sx::NodeType::OBJECT_SQL_JOINED_TABLE, move($2));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF, {
+        auto t = ctx.Add(@1, proto::NodeType::OBJECT_SQL_JOINED_TABLE, move($2));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_ALIAS, $4),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
         });
@@ -633,7 +633,7 @@ sql_joined_table:
     '(' sql_joined_table ')' { $$ = std::move($2); }
   | sql_table_ref CROSS JOIN sql_table_ref {
         $$ = {
-            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), sx::JoinType::NONE)),
+            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), proto::JoinType::NONE)),
             Attr(Key::SQL_JOIN_INPUT, ctx.Add(@$, { std::move($1), std::move($4) })),
         };
     }
@@ -645,19 +645,19 @@ sql_joined_table:
     }
   | sql_table_ref JOIN sql_table_ref sql_join_qual {
         $$ = Concat(std::move($4), {
-            Attr(Key::SQL_JOIN_TYPE, Enum(@2, sx::JoinType::INNER)),
+            Attr(Key::SQL_JOIN_TYPE, Enum(@2, proto::JoinType::INNER)),
             Attr(Key::SQL_JOIN_INPUT, ctx.Add(@$, { std::move($1), std::move($3) })),
         });
    }
   | sql_table_ref NATURAL sql_join_type JOIN sql_table_ref {
         $$ = {
-            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), Merge(sx::JoinType::NATURAL_, $3))),
+            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), Merge(proto::JoinType::NATURAL_, $3))),
             Attr(Key::SQL_JOIN_INPUT, ctx.Add(@$, { std::move($1), std::move($5) })),
         };
     }
   | sql_table_ref NATURAL JOIN sql_table_ref {
         $$ = {
-            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), sx::JoinType::NATURAL_INNER)),
+            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), proto::JoinType::NATURAL_INNER)),
             Attr(Key::SQL_JOIN_INPUT, ctx.Add(@$, { std::move($1), std::move($4) })),
         };
     }
@@ -665,14 +665,14 @@ sql_joined_table:
 
 sql_alias_clause:
     AS sql_col_id '(' sql_name_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@2)),
             Attr(Key::SQL_ALIAS_COLUMN_NAMES, ctx.Add(@4, move($4))),
         });
     }
   | AS sql_col_id_or_string { $$ = String(@2); }
   | sql_col_id '(' sql_name_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@1)),
             Attr(Key::SQL_ALIAS_COLUMN_NAMES, ctx.Add(@3, move($3))),
         });
@@ -690,18 +690,18 @@ sql_opt_alias_clause:
 sql_func_alias_clause:
     sql_alias_clause { $$ = $1; }
   | AS '(' sql_table_func_element_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@3, move($3))),
         });
     }
   | AS sql_col_id '(' sql_table_func_element_list ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@2)),
             Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@4, move($4))),
         });
     }
   | sql_col_id '(' sql_table_func_element_list ')' ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ALIAS, {
             Attr(Key::SQL_ALIAS_NAME, String(@1)),
             Attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.Add(@3, move($3))),
         });
@@ -710,16 +710,16 @@ sql_func_alias_clause:
     ;
 
 sql_join_type:
-    FULL sql_join_outer     { $$ = Merge(sx::JoinType::FULL, $2); }
-  | LEFT sql_join_outer     { $$ = Merge(sx::JoinType::LEFT, $2); }
-  | RIGHT sql_join_outer    { $$ = Merge(sx::JoinType::RIGHT, $2); }
-  | INNER_P                 { $$ = sx::JoinType::INNER; }
+    FULL sql_join_outer     { $$ = Merge(proto::JoinType::FULL, $2); }
+  | LEFT sql_join_outer     { $$ = Merge(proto::JoinType::LEFT, $2); }
+  | RIGHT sql_join_outer    { $$ = Merge(proto::JoinType::RIGHT, $2); }
+  | INNER_P                 { $$ = proto::JoinType::INNER; }
     ;
 
 /* OUTER is just noise... */
 sql_join_outer:
-    OUTER_P                 { $$ = sx::JoinType::OUTER_; }
-  | %empty                  { $$ = sx::JoinType::NONE; }
+    OUTER_P                 { $$ = proto::JoinType::OUTER_; }
+  | %empty                  { $$ = proto::JoinType::NONE; }
     ;
 
 // JOIN qualification clauses
@@ -752,16 +752,16 @@ sql_relation_expr:
 
 
 sql_sample_count:
-	  FCONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
-	| ICONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
-	| FCONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
-	| ICONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::PERCENT)) }; }
-	| ICONST            { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@1, sx::SampleCountUnit::ROWS)) }; }
-	| ICONST ROWS       { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, sx::SampleCountUnit::ROWS)) }; }
+	  FCONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, proto::SampleCountUnit::PERCENT)) }; }
+	| ICONST '%'        { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, proto::SampleCountUnit::PERCENT)) }; }
+	| FCONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, proto::SampleCountUnit::PERCENT)) }; }
+	| ICONST PERCENT    { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, proto::SampleCountUnit::PERCENT)) }; }
+	| ICONST            { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@1, proto::SampleCountUnit::ROWS)) }; }
+	| ICONST ROWS       { $$ = { Attr(Key::SQL_SAMPLE_COUNT_VALUE, String(@1)), Attr(Key::SQL_SAMPLE_COUNT_UNIT, Enum(@2, proto::SampleCountUnit::ROWS)) }; }
 	  ;
 
 sql_sample_clause:
-    USING SAMPLE sql_tablesample_entry  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_SAMPLE, std::move($3)); }
+    USING SAMPLE sql_tablesample_entry  { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SELECT_SAMPLE, std::move($3)); }
   | %empty                              { $$ = Null(); }
 
 sql_opt_sample_func:
@@ -789,7 +789,7 @@ sql_tablesample_entry:
 
 sql_tablesample_clause:
     TABLESAMPLE sql_tablesample_entry {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE, std::move($2));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLEREF_SAMPLE, std::move($2));
     }
 		;
 
@@ -816,13 +816,13 @@ sql_opt_repeatable_clause:
 
 sql_func_table:
     sql_func_expr_windowless sql_opt_ordinality {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
             Attr(Key::SQL_FUNCTION_TABLE_FUNCTION, std::move($1)),
             Attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, std::move($2)),
         });
     }
   | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality  {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_TABLE, {
             Attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, std::move($6)),
             Attr(Key::SQL_FUNCTION_TABLE_ROWS_FROM, ctx.Add(@4, std::move($4))),
         });
@@ -831,7 +831,7 @@ sql_func_table:
 
 sql_rowsfrom_item:
     sql_func_expr_windowless sql_opt_col_def_list {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_ROWSFROM_ITEM, {
             Attr(Key::SQL_ROWSFROM_ITEM_FUNCTION, std::move($1)),
             Attr(Key::SQL_ROWSFROM_ITEM_COLUMNS, std::move($2)),
         });
@@ -867,7 +867,7 @@ sql_table_func_element_list:
 
 sql_table_func_element:
     sql_col_id sql_typename sql_opt_collate_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_DEF, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_DEF, {
             Attr(Key::SQL_COLUMN_DEF_NAME, String(@1)),
             Attr(Key::SQL_COLUMN_DEF_TYPE, std::move($2)),
             Attr(Key::SQL_COLUMN_DEF_COLLATE, std::move($3)),
@@ -889,13 +889,13 @@ sql_opt_collate_clause:
 
 sql_typename:
     sql_simple_typename sql_opt_array_bounds {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $1),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(@2, move($2))),
         });
     }
   | SETOF sql_simple_typename sql_opt_array_bounds {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $2),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(@3, move($3))),
             Attr(Key::SQL_TYPENAME_SETOF, Bool(@1, true)),
@@ -903,26 +903,26 @@ sql_typename:
     }
     // SQL standard syntax, currently only one-dimensional
   | sql_simple_typename ARRAY '[' ICONST ']' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $1),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(Loc({@2, @3, @4, @5}), {String(@4)})),
         });
     }
   | SETOF sql_simple_typename ARRAY '[' ICONST ']' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $2),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(Loc({@3, @4, @5, @6}), {String(@5)})),
             Attr(Key::SQL_TYPENAME_SETOF, Bool(@1, true)),
         });
     }
   | sql_simple_typename ARRAY {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $1),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(@2, {}, false)),
         });
     }
   | SETOF sql_simple_typename ARRAY {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, $2),
             Attr(Key::SQL_TYPENAME_ARRAY, ctx.Add(@3, {}, false)),
             Attr(Key::SQL_TYPENAME_SETOF, Bool(@1, true)),
@@ -944,12 +944,12 @@ sql_simple_typename:
   | sql_const_datetime                  { $$ = $1; }
   | sql_const_interval sql_opt_interval {
         if ($2 == Null()) {
-            $2 = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {});
+            $2 = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {});
         }
         $$ = $2;
     }
   | sql_const_interval '(' ICONST ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
             Attr(Key::SQL_INTERVAL_PRECISION, String(@3)),
         });
     }
@@ -981,7 +981,7 @@ sql_const_typename:
 
 sql_generic_type:
     sql_type_function_name sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GENERIC_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GENERIC_TYPE, {
             Attr(Key::SQL_GENERIC_TYPE_NAME, String(@1)),
             Attr(Key::SQL_GENERIC_TYPE_MODIFIERS, ctx.Add(@2, std::move($2))),
         });
@@ -996,37 +996,37 @@ sql_opt_type_modifiers:
 // SQL numeric data types
 
 sql_numeric:
-    INT_P       { $$ = Enum(@1, sx::NumericType::INT4); }
-  | INTEGER     { $$ = Enum(@1, sx::NumericType::INT4); }
-  | SMALLINT    { $$ = Enum(@1, sx::NumericType::INT2); }
-  | BIGINT      { $$ = Enum(@1, sx::NumericType::INT8); }
-  | REAL        { $$ = Enum(@1, sx::NumericType::FLOAT4); }
+    INT_P       { $$ = Enum(@1, proto::NumericType::INT4); }
+  | INTEGER     { $$ = Enum(@1, proto::NumericType::INT4); }
+  | SMALLINT    { $$ = Enum(@1, proto::NumericType::INT2); }
+  | BIGINT      { $$ = Enum(@1, proto::NumericType::INT8); }
+  | REAL        { $$ = Enum(@1, proto::NumericType::FLOAT4); }
   | FLOAT_P sql_opt_float   { $$ = Enum(@$, $2); }
-  | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericType::FLOAT8); }
+  | DOUBLE_P PRECISION      { $$ = Enum(@$, proto::NumericType::FLOAT8); }
   | DECIMAL_P sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, proto::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }
   | DEC sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, proto::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }
   | NUMERIC sql_opt_type_modifiers {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, sx::NumericType::NUMERIC)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
+            Attr(Key::SQL_NUMERIC_TYPE_BASE, Enum(@1, proto::NumericType::NUMERIC)),
             Attr(Key::SQL_NUMERIC_TYPE_MODIFIERS, ctx.Add(@2, move($2))),
         });
     }
-  | BOOLEAN_P   { $$ = Enum(@1, sx::NumericType::BOOL); }
+  | BOOLEAN_P   { $$ = Enum(@1, proto::NumericType::BOOL); }
     ;
 
 sql_opt_float:
     '(' ICONST ')'  { $$ = ReadFloatType(ctx, @2); }
-  | %empty          { $$ = sx::NumericType::FLOAT4; }
+  | %empty          { $$ = proto::NumericType::FLOAT4; }
     ;
 
 // SQL bit-field data types
@@ -1048,7 +1048,7 @@ sql_const_bit:
 
 sql_bit_with_length:
     BIT sql_opt_varying '(' sql_a_expr ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_BIT_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_BIT_TYPE, {
             Attr(Key::SQL_BIT_TYPE_VARYING, Bool(@2, $2)),
             Attr(Key::SQL_BIT_TYPE_LENGTH, std::move($4)),
         });
@@ -1057,7 +1057,7 @@ sql_bit_with_length:
 
 sql_bit_without_length:
     BIT sql_opt_varying {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_BIT_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_BIT_TYPE, {
             Attr(Key::SQL_BIT_TYPE_VARYING, Bool(@2, $2)),
         });
     }
@@ -1068,13 +1068,13 @@ sql_bit_without_length:
 // The following implements CHAR() and VARCHAR().
 
 sql_character:
-    sql_character_with_length     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
-  | sql_character_without_length  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+    sql_character_with_length     { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+  | sql_character_without_length  { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
     ;
 
 sql_const_character:
-    sql_character_with_length     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
-  | sql_character_without_length  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+    sql_character_with_length     { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+  | sql_character_without_length  { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
     ;
 
 sql_character_with_length:
@@ -1082,12 +1082,12 @@ sql_character_with_length:
     ;
 
 sql_character_without_length:
-    CHARACTER sql_opt_varying           { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR)) }; }
-  | CHAR_P sql_opt_varying              { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR)) }; }
-  | VARCHAR                             { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, sx::CharacterType::VARCHAR)) }; }
-  | NATIONAL CHARACTER sql_opt_varying  { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $3 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR)) }; }
-  | NATIONAL CHAR_P sql_opt_varying     { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $3 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR)) }; }
-  | NCHAR sql_opt_varying               { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR)) }; }
+    CHARACTER sql_opt_varying           { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? proto::CharacterType::VARCHAR : proto::CharacterType::BLANK_PADDED_CHAR)) }; }
+  | CHAR_P sql_opt_varying              { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? proto::CharacterType::VARCHAR : proto::CharacterType::BLANK_PADDED_CHAR)) }; }
+  | VARCHAR                             { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, proto::CharacterType::VARCHAR)) }; }
+  | NATIONAL CHARACTER sql_opt_varying  { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $3 ? proto::CharacterType::VARCHAR : proto::CharacterType::BLANK_PADDED_CHAR)) }; }
+  | NATIONAL CHAR_P sql_opt_varying     { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $3 ? proto::CharacterType::VARCHAR : proto::CharacterType::BLANK_PADDED_CHAR)) }; }
+  | NCHAR sql_opt_varying               { $$ = NodeVector{ Attr(Key::SQL_CHARACTER_TYPE, Enum(@$, $2 ? proto::CharacterType::VARCHAR : proto::CharacterType::BLANK_PADDED_CHAR)) }; }
     ;
 
 sql_opt_varying:
@@ -1099,24 +1099,24 @@ sql_opt_varying:
 
 sql_const_datetime:
     TIMESTAMP '(' ICONST ')' sql_opt_timezone {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
             Attr(Key::SQL_TIME_TYPE_PRECISION, String(@3)),
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($5)),
         });
     }
   | TIMESTAMP sql_opt_timezone {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($2)),
         });
     }
   | TIME '(' ICONST ')' sql_opt_timezone {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIME_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIME_TYPE, {
             Attr(Key::SQL_TIME_TYPE_PRECISION, String(@3)),
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($5)),
         });
    }
   | TIME sql_opt_timezone {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIME_TYPE, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIME_TYPE, {
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($2)),
         });
    }
@@ -1134,71 +1134,71 @@ sql_opt_timezone:
 
 sql_opt_interval:
     YEAR_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::YEAR))
         });
     }
   | MONTH_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MONTH))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::MONTH))
         });
     }
   | DAY_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::DAY))
         });
     }
   | HOUR_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::HOUR))
         });
     }
   | MINUTE_P  {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MINUTE))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::MINUTE))
         });
     }
   | sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::SECOND)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($1)),
         });
   }
   | YEAR_P TO MONTH_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::YEAR_TO_MONTH))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::YEAR_TO_MONTH))
         });
     }
   | DAY_P TO HOUR_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_HOUR))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::DAY_TO_HOUR))
         });
     }
   | DAY_P TO MINUTE_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_MINUTE))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::DAY_TO_MINUTE))
         });
     }
   | DAY_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::DAY_TO_SECOND)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::DAY_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
         });
   }
   | HOUR_P TO MINUTE_P {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR_TO_MINUTE))
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::HOUR_TO_MINUTE))
         });
     }
   | HOUR_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::HOUR_TO_SECOND)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::HOUR_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
         });
   }
   | MINUTE_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
-            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, sx::IntervalType::MINUTE_TO_SECOND)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+            Attr(Key::SQL_INTERVAL_TYPE, Enum(@$, proto::IntervalType::MINUTE_TO_SECOND)),
             Attr(Key::SQL_INTERVAL_PRECISION, std::move($3)),
         });
   }
@@ -1238,7 +1238,7 @@ sql_interval_second:
 sql_a_expr:
     sql_c_expr { $$ = $1; }
   | sql_a_expr TYPECAST sql_typename {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
             Attr(Key::SQL_TYPECAST_VALUE, $1),
             Attr(Key::SQL_TYPECAST_TYPE, $3),
         });
@@ -1305,13 +1305,13 @@ sql_a_expr:
   | sql_a_expr IS DISTINCT FROM sql_a_expr          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_DISTINCT_FROM), $1, $5); }
   | sql_a_expr IS NOT DISTINCT FROM sql_a_expr      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4, @5}), ExprFunc::IS_NOT_DISTINCT_FROM), $1, $6); }
   | sql_a_expr IS OF '(' sql_type_list ')'          %prec IS {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
             Attr(Key::SQL_TYPETEST_VALUE, $1),
             Attr(Key::SQL_TYPETEST_TYPES, ctx.Add(@5, std::move($5))),
         });
     }
   | sql_a_expr IS NOT OF '(' sql_type_list ')'      %prec IS {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION, {
             Attr(Key::SQL_TYPETEST_NEGATE, Bool(@3, true)),
             Attr(Key::SQL_TYPETEST_VALUE, $1),
             Attr(Key::SQL_TYPETEST_TYPES, ctx.Add(@6, std::move($6))),
@@ -1324,11 +1324,11 @@ sql_a_expr:
   | sql_a_expr IN_P sql_in_expr                                                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IN), $1, $3); }
   | sql_a_expr NOT_LA IN_P sql_in_expr                                      %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_IN), $1, $4); }
   | sql_a_expr sql_subquery_op sql_subquery_quantifier sql_select_with_parens    %prec Op {
-        auto s = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT, std::move($4));
-        auto e = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+        auto s = ctx.Add(@4, proto::NodeType::OBJECT_SQL_SELECT, std::move($4));
+        auto e = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
             Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
         });
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
             Attr(Key::SQL_SUBQUERY_ARG0, std::move($1)),
             Attr(Key::SQL_SUBQUERY_ARG1, std::move(e)),
             Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
@@ -1336,7 +1336,7 @@ sql_a_expr:
         });
     }
   | sql_a_expr sql_subquery_op sql_subquery_quantifier '(' sql_a_expr ')'        %prec Op {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION, {
             Attr(Key::SQL_SUBQUERY_ARG0, std::move($1)),
             Attr(Key::SQL_SUBQUERY_ARG1, std::move($5)),
             Attr(Key::SQL_SUBQUERY_OPERATOR, std::move($2)),
@@ -1357,7 +1357,7 @@ sql_a_expr:
 sql_b_expr:
     sql_c_expr { $$ = std::move($1); }
   | sql_b_expr TYPECAST sql_typename {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
             Attr(Key::SQL_TYPECAST_VALUE, $1),
             Attr(Key::SQL_TYPECAST_TYPE, $3),
         });
@@ -1396,13 +1396,13 @@ sql_c_expr:
     sql_columnref     { $$ = $1; }
   | sql_a_expr_const  { $$ = $1; }
   | '?' sql_opt_indirection {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
           Attr(Key::SQL_PARAMETER_PREFIX, String(@1)),
           Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
       });
   }
   | PARAM sql_opt_indirection {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
           Attr(Key::SQL_PARAMETER_PREFIX, String(@1)),
           Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
       });
@@ -1411,7 +1411,7 @@ sql_c_expr:
         if ($4.empty()) {
             $$ = std::move($2);
         } else {
-            $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INDIRECTION, {
+            $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_INDIRECTION, {
                 Attr(Key::SQL_INDIRECTION_VALUE, std::move($2)),
                 Attr(Key::SQL_INDIRECTION_PATH, ctx.Add(@4, std::move($4))),
             });
@@ -1420,21 +1420,21 @@ sql_c_expr:
   | sql_case_expr                             { $$ = $1; }
   | sql_func_expr                             { $$ = $1; }
   | sql_select_with_parens      %prec UMINUS  {
-        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+        auto s = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
             Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
         });
     }
   | sql_select_with_parens sql_indirection {
-        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+        auto s = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, move($1));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
             Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s),
             Attr(Key::SQL_SELECT_EXPRESSION_INDIRECTION, ctx.Add(@2, std::move($2))),
         });
     }
   | EXISTS sql_select_with_parens {
-        auto s = ctx.Add(@2, sx::NodeType::OBJECT_SQL_SELECT, move($2));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION, {
+        auto s = ctx.Add(@2, proto::NodeType::OBJECT_SQL_SELECT, move($2));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_EXISTS_EXPRESSION, {
             Attr(Key::SQL_EXISTS_EXPRESSION_STATEMENT, s),
         });
     }
@@ -1499,13 +1499,13 @@ sql_func_application:
 
 sql_func_expr:
     sql_func_application sql_within_group_clause sql_filter_clause sql_over_clause {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, Concat(std::move($1), {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, Concat(std::move($1), {
               Attr(Key::SQL_FUNCTION_WITHIN_GROUP, std::move($2)),
               Attr(Key::SQL_FUNCTION_FILTER, std::move($3)),
               Attr(Key::SQL_FUNCTION_OVER, std::move($4)),
         }));
     }
-  | sql_func_expr_common_subexpr { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
+  | sql_func_expr_common_subexpr { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
         ;
 
 // As func_expr but does not accept WINDOW functions directly
@@ -1514,8 +1514,8 @@ sql_func_expr:
 // disambiguate the grammar (e.g. in CREATE INDEX).
 
 sql_func_expr_windowless:
-    sql_func_application            { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
-  | sql_func_expr_common_subexpr    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
+    sql_func_application            { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
+  | sql_func_expr_common_subexpr    { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
     ;
 
 // Special expressions that are considered to be functions.
@@ -1523,131 +1523,131 @@ sql_func_expr_windowless:
 sql_func_expr_common_subexpr:
     COLLATION FOR '(' sql_a_expr ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), sx::KnownFunction::COLLATION_FOR)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), proto::KnownFunction::COLLATION_FOR)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@1, @2, @3}), { std::move(std::move($4)) })),
         };
     }
-  | CURRENT_DATE        { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_DATE)) }; }
-  | CURRENT_TIME        { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_TIME)) }; }
-  | CURRENT_TIMESTAMP   { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_TIMESTAMP)) }; }
-  | LOCALTIME           { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::LOCALTIME)) }; }
-  | LOCALTIMESTAMP      { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::LOCALTIMESTAMP)) }; }
+  | CURRENT_DATE        { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_DATE)) }; }
+  | CURRENT_TIME        { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_TIME)) }; }
+  | CURRENT_TIMESTAMP   { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_TIMESTAMP)) }; }
+  | LOCALTIME           { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::LOCALTIME)) }; }
+  | LOCALTIMESTAMP      { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::LOCALTIMESTAMP)) }; }
   | CURRENT_TIME '(' ICONST ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), sx::KnownFunction::CURRENT_DATE)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), proto::KnownFunction::CURRENT_DATE)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4}), { String(@3) })),
         };
     }
   | CURRENT_TIMESTAMP '(' ICONST ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), sx::KnownFunction::CURRENT_TIMESTAMP)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), proto::KnownFunction::CURRENT_TIMESTAMP)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4}), { String(@3) })),
         };
     }
   | LOCALTIME '(' ICONST ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), sx::KnownFunction::LOCALTIME)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), proto::KnownFunction::LOCALTIME)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4}), { String(@3) })),
         };
     }
   | LOCALTIMESTAMP '(' ICONST ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), sx::KnownFunction::LOCALTIMESTAMP)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(Loc({@1, @2}), proto::KnownFunction::LOCALTIMESTAMP)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4}), { String(@3) })),
         };
     }
-  | CURRENT_ROLE    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_ROLE)) }; }
-  | CURRENT_USER    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_USER)) }; }
-  | SESSION_USER    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::SESSION_USER)) }; }
-  | USER            { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::USER)) }; }
-  | CURRENT_CATALOG { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_CATALOG)) }; }
-  | CURRENT_SCHEMA  { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CURRENT_SCHEMA)) }; }
+  | CURRENT_ROLE    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_ROLE)) }; }
+  | CURRENT_USER    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_USER)) }; }
+  | SESSION_USER    { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::SESSION_USER)) }; }
+  | USER            { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::USER)) }; }
+  | CURRENT_CATALOG { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_CATALOG)) }; }
+  | CURRENT_SCHEMA  { $$ = { Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CURRENT_SCHEMA)) }; }
   | CAST '(' sql_a_expr AS sql_typename ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS, {
+        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), proto::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS, {
             Attr(Key::SQL_FUNCTION_CAST_VALUE, std::move($3)),
             Attr(Key::SQL_FUNCTION_CAST_TYPE, std::move($5))
         });
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::CAST)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::CAST)),
             Attr(Key::SQL_FUNCTION_CAST_ARGS, std::move(args)),
         };
     }
   | EXTRACT '(' sql_extract_list ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS, std::move($3));
+        auto args = ctx.Add(Loc({@2, @3, @4}), proto::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS, std::move($3));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::EXTRACT)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::EXTRACT)),
             Attr(Key::SQL_FUNCTION_EXTRACT_ARGS, std::move(args)),
         };
     }
   | OVERLAY '(' sql_overlay_list ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS, std::move($3));
+        auto args = ctx.Add(Loc({@2, @3, @4}), proto::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS, std::move($3));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::OVERLAY)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::OVERLAY)),
             Attr(Key::SQL_FUNCTION_OVERLAY_ARGS, std::move(args)),
         };
     }
   | POSITION '(' sql_position_list ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS, std::move($3));
+        auto args = ctx.Add(Loc({@2, @3, @4}), proto::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS, std::move($3));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::POSITION)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::POSITION)),
             Attr(Key::SQL_FUNCTION_POSITION_ARGS, std::move(args)),
         };
     }
   | SUBSTRING '(' sql_substr_list ')' {
         $$ = Concat(std::move($3), {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::SUBSTRING)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::SUBSTRING)),
         });
     }
   | TRIM '(' BOTH sql_trim_list ')' {
-        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::BOTH)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, proto::TrimDirection::BOTH)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), proto::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
         };
     }
   | TRIM '(' LEADING sql_trim_list ')' {
-        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::LEADING)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, proto::TrimDirection::LEADING)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), proto::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
         };
     }
   | TRIM '(' TRAILING sql_trim_list ')' {
-        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, sx::TrimDirection::TRAILING)));
-        auto args = ctx.Add(Loc({@2, @3, @4, @5}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
+        $4.push_back(Attr(Key::SQL_FUNCTION_TRIM_DIRECTION, Enum(@3, proto::TrimDirection::TRAILING)));
+        auto args = ctx.Add(Loc({@2, @3, @4, @5}), proto::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($4));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
         };
     }
   | TRIM '(' sql_trim_list ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4}), sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($3));
+        auto args = ctx.Add(Loc({@2, @3, @4}), proto::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS, std::move($3));
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TRIM)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::TRIM)),
             Attr(Key::SQL_FUNCTION_TRIM_ARGS, args),
         };
     }
   | TREAT '(' sql_a_expr AS sql_typename ')' {
-        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS, {
+        auto args = ctx.Add(Loc({@2, @3, @4, @5, @6}), proto::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS, {
             Attr(Key::SQL_FUNCTION_TREAT_VALUE, std::move($3)),
             Attr(Key::SQL_FUNCTION_TREAT_TYPE, std::move($5))
         });
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::TREAT)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::TREAT)),
             Attr(Key::SQL_FUNCTION_TREAT_ARGS, args),
         };
     }
   | NULLIF '(' sql_a_expr ',' sql_a_expr ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::NULLIF)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::NULLIF)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })),
         };
     }
   | COALESCE '(' sql_expr_list ')' {
         $$ = {
-            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, sx::KnownFunction::NULLIF)),
+            Attr(Key::SQL_FUNCTION_NAME, Enum(@1, proto::KnownFunction::NULLIF)),
             Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Add(Loc({@2, @3, @4}), std::move($3))),
         };
     }
@@ -1682,7 +1682,7 @@ sql_window_definition_list:
 
 sql_window_definition:
     sql_col_id AS sql_window_specification {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_DEF, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_DEF, {
             Attr(Key::SQL_WINDOW_DEF_NAME, String(@1)),
             Attr(Key::SQL_WINDOW_DEF_FRAME, $3),
         });
@@ -1697,7 +1697,7 @@ sql_over_clause:
 
 sql_window_specification:
     '(' sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause ')' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_FRAME, Concat(move($2), move($3), move($5), {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_FRAME, Concat(move($2), move($3), move($5), {
             Attr(Key::SQL_WINDOW_FRAME_ORDER, $4)
         }), false);
     }
@@ -1730,11 +1730,11 @@ sql_opt_partition_clause:
 
 sql_opt_frame_clause:
     RANGE sql_frame_extent { $$ = {
-        Attr(Key::SQL_WINDOW_FRAME_MODE, Enum(@1, sx::WindowRangeMode::RANGE)),
+        Attr(Key::SQL_WINDOW_FRAME_MODE, Enum(@1, proto::WindowRangeMode::RANGE)),
         Attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.Add(@2, move($2))),
     }; }
   | ROWS sql_frame_extent { $$ = {
-        Attr(Key::SQL_WINDOW_FRAME_MODE, Enum(@1, sx::WindowRangeMode::ROWS)),
+        Attr(Key::SQL_WINDOW_FRAME_MODE, Enum(@1, proto::WindowRangeMode::ROWS)),
         Attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.Add(@2, move($2))),
     }; }
   | %empty { $$ = {}; }
@@ -1747,29 +1747,29 @@ sql_frame_extent:
 
 sql_frame_bound:
     UNBOUNDED PRECEDING {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, sx::WindowBoundMode::UNBOUNDED)),
-            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, sx::WindowBoundDirection::PRECEDING)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_BOUND, {
+            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, proto::WindowBoundMode::UNBOUNDED)),
+            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, proto::WindowBoundDirection::PRECEDING)),
         });}
   | UNBOUNDED FOLLOWING {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, sx::WindowBoundMode::UNBOUNDED)),
-            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, sx::WindowBoundDirection::FOLLOWING)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_BOUND, {
+            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, proto::WindowBoundMode::UNBOUNDED)),
+            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, proto::WindowBoundDirection::FOLLOWING)),
         });}
   | CURRENT_P ROW {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, sx::WindowBoundMode::CURRENT_ROW)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_BOUND, {
+            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, proto::WindowBoundMode::CURRENT_ROW)),
         });}
   | sql_a_expr PRECEDING {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, sx::WindowBoundMode::VALUE)),
-            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, sx::WindowBoundDirection::PRECEDING)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_BOUND, {
+            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, proto::WindowBoundMode::VALUE)),
+            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, proto::WindowBoundDirection::PRECEDING)),
             Attr(Key::SQL_WINDOW_BOUND_VALUE, $1),
         });}
   | sql_a_expr FOLLOWING {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_WINDOW_BOUND, {
-            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, sx::WindowBoundMode::VALUE)),
-            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, sx::WindowBoundDirection::FOLLOWING)),
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_WINDOW_BOUND, {
+            Attr(Key::SQL_WINDOW_BOUND_MODE, Enum(@1, proto::WindowBoundMode::VALUE)),
+            Attr(Key::SQL_WINDOW_BOUND_DIRECTION, Enum(@1, proto::WindowBoundDirection::FOLLOWING)),
             Attr(Key::SQL_WINDOW_BOUND_VALUE, $1),
         });}
     ;
@@ -1790,9 +1790,9 @@ sql_row:
     ;
 
 sql_subquery_quantifier:
-    ANY             { $$ = Enum(@1, sx::SubqueryQuantifier::ANY); }
-  | SOME            { $$ = Enum(@1, sx::SubqueryQuantifier::SOME); }
-  | ALL             { $$ = Enum(@1, sx::SubqueryQuantifier::ALL); }
+    ANY             { $$ = Enum(@1, proto::SubqueryQuantifier::ANY); }
+  | SOME            { $$ = Enum(@1, proto::SubqueryQuantifier::SOME); }
+  | ALL             { $$ = Enum(@1, proto::SubqueryQuantifier::ALL); }
     ;
 
 sql_all_op:
@@ -1801,18 +1801,18 @@ sql_all_op:
     ;
 
 sql_math_op:
-    '+'             { $$ = Enum(@1, sx::ExpressionOperator::PLUS); }
-  | '-'             { $$ = Enum(@1, sx::ExpressionOperator::MINUS); }
-  | '*'             { $$ = Enum(@1, sx::ExpressionOperator::MULTIPLY); }
-  | '/'             { $$ = Enum(@1, sx::ExpressionOperator::DIVIDE); }
-  | '%'             { $$ = Enum(@1, sx::ExpressionOperator::MODULUS); }
-  | '^'             { $$ = Enum(@1, sx::ExpressionOperator::XOR); }
-  | '<'             { $$ = Enum(@1, sx::ExpressionOperator::LESS_THAN); }
-  | '>'             { $$ = Enum(@1, sx::ExpressionOperator::GREATER_THAN); }
-  | '='             { $$ = Enum(@1, sx::ExpressionOperator::EQUAL); }
-  | LESS_EQUALS     { $$ = Enum(@1, sx::ExpressionOperator::LESS_EQUAL); }
-  | GREATER_EQUALS  { $$ = Enum(@1, sx::ExpressionOperator::GREATER_EQUAL); }
-  | NOT_EQUALS      { $$ = Enum(@1, sx::ExpressionOperator::NOT_EQUAL); }
+    '+'             { $$ = Enum(@1, proto::ExpressionOperator::PLUS); }
+  | '-'             { $$ = Enum(@1, proto::ExpressionOperator::MINUS); }
+  | '*'             { $$ = Enum(@1, proto::ExpressionOperator::MULTIPLY); }
+  | '/'             { $$ = Enum(@1, proto::ExpressionOperator::DIVIDE); }
+  | '%'             { $$ = Enum(@1, proto::ExpressionOperator::MODULUS); }
+  | '^'             { $$ = Enum(@1, proto::ExpressionOperator::XOR); }
+  | '<'             { $$ = Enum(@1, proto::ExpressionOperator::LESS_THAN); }
+  | '>'             { $$ = Enum(@1, proto::ExpressionOperator::GREATER_THAN); }
+  | '='             { $$ = Enum(@1, proto::ExpressionOperator::EQUAL); }
+  | LESS_EQUALS     { $$ = Enum(@1, proto::ExpressionOperator::LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = Enum(@1, proto::ExpressionOperator::GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = Enum(@1, proto::ExpressionOperator::NOT_EQUAL); }
     ; 
 
 sql_qual_op:
@@ -1835,12 +1835,12 @@ sql_qual_all_op:
 
 sql_subquery_op:
     sql_all_op      { $$ = std::move($1); }
-  | LIKE            { $$ = Enum(@1, sx::ExpressionOperator::LIKE); }
-  | NOT_LA LIKE     { $$ = Enum(@1, sx::ExpressionOperator::NOT_LIKE); }
-  | GLOB            { $$ = Enum(@1, sx::ExpressionOperator::GLOB); }
-  | NOT_LA GLOB     { $$ = Enum(@1, sx::ExpressionOperator::NOT_GLOB); }
-  | ILIKE           { $$ = Enum(@1, sx::ExpressionOperator::ILIKE); }
-  | NOT_LA ILIKE    { $$ = Enum(@1, sx::ExpressionOperator::NOT_ILIKE); }
+  | LIKE            { $$ = Enum(@1, proto::ExpressionOperator::LIKE); }
+  | NOT_LA LIKE     { $$ = Enum(@1, proto::ExpressionOperator::NOT_LIKE); }
+  | GLOB            { $$ = Enum(@1, proto::ExpressionOperator::GLOB); }
+  | NOT_LA GLOB     { $$ = Enum(@1, proto::ExpressionOperator::NOT_GLOB); }
+  | ILIKE           { $$ = Enum(@1, proto::ExpressionOperator::ILIKE); }
+  | NOT_LA ILIKE    { $$ = Enum(@1, proto::ExpressionOperator::NOT_ILIKE); }
   | OPERATOR '(' sql_any_operator ')'   { $$ = ctx.Add(@$, std::move($3)); }
     ;
 
@@ -1864,18 +1864,18 @@ sql_func_arg_list:
 
 sql_func_arg_expr:
     sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_VALUE, $1),
         });
     }
   | sql_param_name COLON_EQUALS sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_NAME, String(@1)),
             Attr(Key::SQL_FUNCTION_ARG_VALUE, $3),
         });
     }
   | sql_param_name EQUALS_GREATER sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_ARG, {
             Attr(Key::SQL_FUNCTION_ARG_NAME, String(@1)),
             Attr(Key::SQL_FUNCTION_ARG_VALUE, $3),
         });
@@ -1901,12 +1901,12 @@ sql_extract_list:
 // - thomas 2001-04-12
 sql_extract_arg:
     IDENT       { $$ = String(@1); }
-  | YEAR_P      { $$ = Enum(@1, sx::ExtractTarget::YEAR); }
-  | MONTH_P     { $$ = Enum(@1, sx::ExtractTarget::MONTH); }
-  | DAY_P       { $$ = Enum(@1, sx::ExtractTarget::DAY); }
-  | HOUR_P      { $$ = Enum(@1, sx::ExtractTarget::HOUR); }
-  | MINUTE_P    { $$ = Enum(@1, sx::ExtractTarget::MINUTE); }
-  | SECOND_P    { $$ = Enum(@1, sx::ExtractTarget::SECOND); }
+  | YEAR_P      { $$ = Enum(@1, proto::ExtractTarget::YEAR); }
+  | MONTH_P     { $$ = Enum(@1, proto::ExtractTarget::MONTH); }
+  | DAY_P       { $$ = Enum(@1, proto::ExtractTarget::DAY); }
+  | HOUR_P      { $$ = Enum(@1, proto::ExtractTarget::HOUR); }
+  | MINUTE_P    { $$ = Enum(@1, proto::ExtractTarget::MINUTE); }
+  | SECOND_P    { $$ = Enum(@1, proto::ExtractTarget::SECOND); }
   | SCONST      { $$ = String(@1); }
     ;
 
@@ -1964,7 +1964,7 @@ sql_position_list:
 
 sql_substr_list:
     sql_a_expr sql_substr_from sql_substr_for {
-        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
+        auto args = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($2)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($3)),
@@ -1972,7 +1972,7 @@ sql_substr_list:
         $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
     }
   | sql_a_expr sql_substr_for sql_substr_from {
-        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
+        auto args = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($2)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($3)),
@@ -1980,14 +1980,14 @@ sql_substr_list:
         $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
     }
   | sql_a_expr sql_substr_from {
-        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
+        auto args = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FROM, std::move($2)),
         });
         $$ = { Attr(Key::SQL_FUNCTION_SUBSTRING_ARGS, args) };
    }
   | sql_a_expr sql_substr_for {
-        auto args = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
+        auto args = ctx.Add(@$, proto::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS, {
             Attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, std::move($1)),
             Attr(Key::SQL_FUNCTION_SUBSTRING_FOR, std::move($2)),
         });
@@ -2018,8 +2018,8 @@ sql_trim_list:
 
 sql_in_expr:
     sql_select_with_parens  {
-        auto s = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, std::move($1));
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
+        auto s = ctx.Add(@1, proto::NodeType::OBJECT_SQL_SELECT, std::move($1));
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_SELECT_EXPRESSION, {
             Attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)
         });
     }
@@ -2034,7 +2034,7 @@ sql_in_expr:
 
 sql_case_expr:
     CASE sql_case_arg sql_when_clause_list sql_case_default END_P {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CASE, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CASE, {
         Attr(Key::SQL_CASE_ARGUMENT, std::move($2)),
         Attr(Key::SQL_CASE_CLAUSES, ctx.Add(@3, std::move($3))),
         Attr(Key::SQL_CASE_DEFAULT, std::move($4)),
@@ -2050,7 +2050,7 @@ sql_when_clause_list:
 
 sql_when_clause:
     WHEN sql_a_expr THEN sql_a_expr {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CASE_CLAUSE, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CASE_CLAUSE, {
         Attr(Key::SQL_CASE_CLAUSE_WHEN, std::move($2)),
         Attr(Key::SQL_CASE_CLAUSE_THEN, std::move($4)),
       });
@@ -2115,7 +2115,7 @@ sql_target_list:
 
 sql_target_el:
     sql_a_expr AS sql_col_label_or_string {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Attr(Key::SQL_RESULT_TARGET_VALUE, $1),
             Attr(Key::SQL_RESULT_TARGET_NAME, String(@3)),
         });
@@ -2129,18 +2129,18 @@ sql_target_el:
     // IDENT a precedence higher than POSTFIXOP.
 
   | sql_a_expr IDENT {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Attr(Key::SQL_RESULT_TARGET_VALUE, $1),
             Attr(Key::SQL_RESULT_TARGET_NAME, String(@2)),
         });
     }
   | sql_a_expr  {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Attr(Key::SQL_RESULT_TARGET_VALUE, $1),
         });
     }
   | '*' {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_RESULT_TARGET, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Attr(Key::SQL_RESULT_TARGET_STAR, Bool(@1, true)),
         });
     }
@@ -2188,28 +2188,28 @@ sql_func_name:
 
 // Constants
 sql_a_expr_const:
-    ICONST  { $$ = Const(ctx, @1, sx::AConstType::INTEGER); }
-  | FCONST  { $$ = Const(ctx, @1, sx::AConstType::FLOAT); }
-  | SCONST  { $$ = Const(ctx, @1, sx::AConstType::STRING); }
-  | BCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
-  | XCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
+    ICONST  { $$ = Const(ctx, @1, proto::AConstType::INTEGER); }
+  | FCONST  { $$ = Const(ctx, @1, proto::AConstType::FLOAT); }
+  | SCONST  { $$ = Const(ctx, @1, proto::AConstType::STRING); }
+  | BCONST  { $$ = Const(ctx, @1, proto::AConstType::BITSTRING); }
+  | XCONST  { $$ = Const(ctx, @1, proto::AConstType::BITSTRING); }
   | sql_const_typename SCONST {
-        auto t = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TYPENAME, {
+        auto t = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, std::move($1))
         });
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_TYPE_CAST, {
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_TYPE_CAST, {
             Attr(Key::SQL_CONST_CAST_TYPE, t),
             Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
         });
     }
   | sql_func_name SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
       });
   }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ctx.Add(@3, std::move($3))),
         Attr(Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, std::move($4)),
@@ -2217,19 +2217,19 @@ sql_a_expr_const:
       });
   }
   | sql_const_interval '(' sql_a_expr ')' SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@5)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }
   | sql_const_interval SCONST sql_opt_interval {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }
   | sql_const_interval ICONST sql_opt_interval {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, String(@2)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });

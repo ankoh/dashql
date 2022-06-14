@@ -13,7 +13,7 @@
 %define parse.error verbose
 
 %locations
-%define api.location.type {sx::Location}
+%define api.location.type {proto::Location}
 
 %parse-param    { dashql::parser::ParserDriver& ctx }
 
@@ -30,11 +30,11 @@
     if (N) { \
         uint32_t o = YYRHSLOC(Rhs, 1).offset(); \
         uint32_t l = YYRHSLOC(Rhs, N).offset() + YYRHSLOC(Rhs, N).length() - YYRHSLOC(Rhs, 1).offset(); \
-        (Cur) = sx::Location(o, l); \
+        (Cur) = proto::Location(o, l); \
     } else { \
         uint32_t o = YYRHSLOC(Rhs, 0).offset() + YYRHSLOC(Rhs, 0).length(); \
         uint32_t l = 0; \
-        (Cur) = sx::Location(o, l); \
+        (Cur) = proto::Location(o, l); \
     } \
 }
 }

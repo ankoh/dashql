@@ -23,7 +23,7 @@
 
 using namespace dashql;
 using namespace dashql::parser;
-namespace sx = proto::syntax;
+namespace sx = proto;
 
 // Declare the yylex function
 #define YY_DECL Parser::symbol_type yylex(void* yyscanner)

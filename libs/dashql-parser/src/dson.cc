@@ -11,13 +11,13 @@ namespace dashql {
 namespace parser {
 
 /// Get the text at a location
-static std::string_view textAt(std::string_view text, sx::Location loc) {
+static std::string_view textAt(std::string_view text, proto::Location loc) {
     return text.substr(loc.offset(), loc.length());
 }
 
 /// The keyword map
-static const std::unordered_map<std::string_view, sx::AttributeKey> DSON_KEYS = {
-#define X(NAME, TOKEN) {NAME, sx::AttributeKey::TOKEN},
+static const std::unordered_map<std::string_view, proto::AttributeKey> DSON_KEYS = {
+#define X(NAME, TOKEN) {NAME, proto::AttributeKey::TOKEN},
 #include "./grammar/lists/dson_keys.list"
 #undef X
 };
@@ -32,9 +32,9 @@ constexpr size_t MAX_OPTION_KEY_LENGTH = std::max<size_t>({
 
 /// Get dson key as string
 static std::string_view knownKeyToString(uint16_t key) {
-    switch (static_cast<sx::AttributeKey>(key)) {
-#define X(NAME, TOKEN)            \
-    case sx::AttributeKey::TOKEN: \
+    switch (static_cast<proto::AttributeKey>(key)) {
+#define X(NAME, TOKEN)               \
+    case proto::AttributeKey::TOKEN: \
         return NAME;
 #include "./grammar/lists/dson_keys.list"
 #undef X
@@ -45,7 +45,7 @@ static std::string_view knownKeyToString(uint16_t key) {
 
 /// Map the DSON keys
 static std::unordered_map<std::string_view, uint16_t> mapDSONKeys(std::string_view text,
-                                                                  const std::vector<sx::Location>& keys) {
+                                                                  const std::vector<proto::Location>& keys) {
     std::unordered_map<std::string_view, uint16_t> dict;
     dict.reserve(keys.size());
     for (auto i = 0; i < keys.size(); ++i) {
@@ -56,17 +56,17 @@ static std::unordered_map<std::string_view, uint16_t> mapDSONKeys(std::string_vi
 }
 
 /// Constructor
-DSONDictionary::DSONDictionary(std::string_view program_text, const sx::ProgramT& program)
+DSONDictionary::DSONDictionary(std::string_view program_text, const proto::ProgramT& program)
     : program_text_(std::move(program_text)),
       program_(program),
       key_mapping_(mapDSONKeys(program_text_, program_.dson_keys)) {}
 
 /// Convert an dson key to string
 std::string_view DSONDictionary::keyToString(uint16_t key) const {
-    if (key < static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_)) {
-        return sx::AttributeKeyTypeTable()->names[key];
+    if (key < static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_)) {
+        return proto::AttributeKeyTypeTable()->names[key];
     } else {
-        key -= static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_);
+        key -= static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_);
         assert(key < program_.dson_keys.size());
         auto text = textAt(program_text_, program_.dson_keys[key]);
         return text;
@@ -75,11 +75,11 @@ std::string_view DSONDictionary::keyToString(uint16_t key) const {
 
 /// Convert an dson key to camelcase (primarily for JSON)
 std::string_view DSONDictionary::keyToStringForJSON(uint16_t key, std::string& tmp) const {
-    if (key < static_cast<uint16_t>(sx::AttributeKey::DSON_KEYS_)) {
-        return sx::AttributeKeyTypeTable()->names[key];
+    if (key < static_cast<uint16_t>(proto::AttributeKey::DSON_KEYS_)) {
+        return proto::AttributeKeyTypeTable()->names[key];
     }
-    if (key >= static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_)) {
-        key -= static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_);
+    if (key >= static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_)) {
+        key -= static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_);
         assert(key < program_.dson_keys.size());
         return textAt(program_text_, program_.dson_keys[key]);
     }
@@ -130,7 +130,8 @@ uint16_t DSONDictionary::keyFromString(std::string_view text) const {
 }
 
 /// Add a dson file in the parser.
-sx::Node ParserDriver::AddDSONField(sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value) {
+proto::Node ParserDriver::AddDSONField(proto::Location loc, std::vector<proto::Location>&& key_path,
+                                       proto::Node value) {
     constexpr size_t MAX_NESTING_LEVEL = 4;
 
     // Check max nesting level
@@ -160,7 +161,7 @@ sx::Node ParserDriver::AddDSONField(sx::Location loc, std::vector<sx::Location>&
             key_loc = scanner().LocationOf(key_text);
             auto iter = dson_key_map_.find(key_text);
             if (iter == dson_key_map_.end()) {
-                key = static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_) + dson_keys_.size();
+                key = static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_) + dson_keys_.size();
                 dson_key_map_.insert({key_text, key});
                 dson_keys_.push_back(key_loc);
             } else {
@@ -179,7 +180,7 @@ sx::Node ParserDriver::AddDSONField(sx::Location loc, std::vector<sx::Location>&
     auto iter = keys.rbegin() + (keys.size() - key_path.size());
     auto prev = Attr(*iter, value);
     for (++iter; iter != keys.rend(); ++iter) {
-        prev = Attr(*iter, AddObject(loc, sx::NodeType::OBJECT_DSON, {&prev, 1}, true, false));
+        prev = Attr(*iter, AddObject(loc, proto::NodeType::OBJECT_DSON, {&prev, 1}, true, false));
     }
     return prev;
 }

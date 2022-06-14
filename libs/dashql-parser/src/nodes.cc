@@ -9,14 +9,14 @@ namespace dashql {
 namespace parser {
 
 /// Create a qualified name
-sx::Node QualifiedName(ParserDriver& driver, sx::Location loc, std::vector<sx::Node>&& nodes) {
+proto::Node QualifiedName(ParserDriver& driver, proto::Location loc, std::vector<proto::Node>&& nodes) {
     ssize_t name_length = 0;
     ssize_t first_indirection = -1;
     for (ssize_t i = 0; i < nodes.size(); ++i) {
-        if (nodes[i].node_type() == sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX) {
+        if (nodes[i].node_type() == proto::NodeType::OBJECT_SQL_INDIRECTION_INDEX) {
             first_indirection = i;
             break;
-        } else if (nodes[i].node_type() == sx::NodeType::STRING_REF) {
+        } else if (nodes[i].node_type() == proto::NodeType::STRING_REF) {
             ++name_length;
             continue;
         }
@@ -28,16 +28,16 @@ sx::Node QualifiedName(ParserDriver& driver, sx::Location loc, std::vector<sx::N
         : (Attr(Key::SQL_QUALIFIED_NAME_INDEX, std::move(nodes[first_indirection])));
     switch (name_length) {
         case 0: return Null();
-        case 1: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
+        case 1: return driver.Add(loc, proto::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
             Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[0])),
         });
-        case 2: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
+        case 2: return driver.Add(loc, proto::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
             Attr(Key::SQL_QUALIFIED_NAME_SCHEMA, std::move(nodes[0])),
             Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[1])),
         });
-        default: return driver.Add(loc, sx::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
+        default: return driver.Add(loc, proto::NodeType::OBJECT_SQL_QUALIFIED_NAME, {
             maybe_indirection,
             Attr(Key::SQL_QUALIFIED_NAME_CATALOG, std::move(nodes[0])),
             Attr(Key::SQL_QUALIFIED_NAME_RELATION, std::move(nodes[3])),

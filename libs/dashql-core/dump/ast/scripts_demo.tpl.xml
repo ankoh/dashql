@@ -6,14 +6,14 @@
 
             -- Declare a dynamic input field on top of your dashboard.
             -- Ref: https://docs.dashql.com/grammar/param
-            INPUT country TYPE VARCHAR USING TEXT (
+            DECLARE country AS VARCHAR USING TEXT (
                 title = 'Country',
                 position = (row = 0, column = 0, width = 3, height = 1)
             );
 
             -- Fetch data from external sources like HTTP REST APIs.
             -- Ref: https://docs.dashql.com/grammar/fetch
-            FETCH weather_csv FROM http (
+            IMPORT weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
             );
 
@@ -46,7 +46,7 @@
     <astdump name="demo_3">
         <input>
             -- Fetch the bundled university schema
-            FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+            IMPORT uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
             -- Load the parquet files in the zip archive
             LOAD vorlesungen FROM uni['vorlesungen.parquet'];

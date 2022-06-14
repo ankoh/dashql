@@ -1,0 +1,4 @@
+%type <proto::Node> dashql_declare;
+%type <proto::Node> dashql_declare_component_type;
+%type <NodeVector> opt_dashql_declare_using;
+%type <NodeVector> dashql_declare_component;

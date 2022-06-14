@@ -1,1 +1,1 @@
-%type <sx::Node> dashql_set_statement;
+%type <proto::Node> dashql_set_statement;

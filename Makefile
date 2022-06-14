@@ -13,6 +13,11 @@ GID=${shell id -g}
 APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
+PARSER_SOURCE_DIR="${ROOT_DIR}/libs/dashql-parser"
+PARSER_DEBUG_DIR="${PARSER_SOURCE_DIR}/build/Debug"
+PARSER_RELEASE_DIR="${PARSER_SOURCE_DIR}/build/Release"
+PARSER_RELWITHDEBINFO_DIR="${PARSER_SOURCE_DIR}/build/RelWithDebInfo"
+
 DUCKDB_SOURCE_DIR="${ROOT_DIR}/libs/duckdbx"
 DUCKDB_DEBUG_DIR="${DUCKDB_SOURCE_DIR}/build/Debug"
 DUCKDB_RELEASE_DIR="${DUCKDB_SOURCE_DIR}/build/Release"
@@ -119,15 +124,31 @@ yarn_install:
 # ---------------------------------------------------------------------------
 # Environment
 
+.PHONY: parser
+parser:
+	mkdir -p ${PARSER_DEBUG_DIR}
+	cmake -S ${PARSER_SOURCE_DIR} -B ${PARSER_DEBUG_DIR} \
+		-GNinja \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
+	cmake --build ${PARSER_DEBUG_DIR}
+
 # Generate the compile commands for the language server
 .PHONY: compile_commands
 compile_commands: 
+	mkdir -p ${PARSER_DEBUG_DIR}
 	mkdir -p ${DUCKDB_DEBUG_DIR}
 	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_DEBUG_DIR} \
 		-GNinja \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	cmake -S ${PARSER_SOURCE_DIR} -B ${PARSER_DEBUG_DIR} \
+		-GNinja \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 	ln -sf ${DUCKDB_DEBUG_DIR}/compile_commands.json ${DUCKDB_SOURCE_DIR}/compile_commands.json
+	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
 
 # Clean the repository
 .PHONY: clean

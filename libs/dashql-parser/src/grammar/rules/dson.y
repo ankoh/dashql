@@ -7,7 +7,7 @@ opt_dson:
     ;
 
 dson:
-    '(' dson_fields ')'  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DSON, std::move($2)); }
+    '(' dson_fields ')'  { $$ = ctx.Add(@$, proto::NodeType::OBJECT_DSON, std::move($2)); }
     ;
 
 dson_fields:

@@ -14,16 +14,16 @@ namespace dashql {
 namespace parser {
 
 /// Get the text at location
-std::string_view Scanner::TextAt(sx::Location loc) { return input_text().substr(loc.offset(), loc.length()); }
+std::string_view Scanner::TextAt(proto::Location loc) { return input_text().substr(loc.offset(), loc.length()); }
 /// Get the text at location
-sx::Location Scanner::LocationOf(std::string_view text) {
-    return sx::Location(text.begin() - input_text().begin(), text.length());
+proto::Location Scanner::LocationOf(std::string_view text) {
+    return proto::Location(text.begin() - input_text().begin(), text.length());
 }
 /// Begin a literal
-void Scanner::BeginLiteral(sx::Location loc) { literal_begin_ = loc; }
+void Scanner::BeginLiteral(proto::Location loc) { literal_begin_ = loc; }
 
 /// End a literal
-sx::Location Scanner::EndLiteral(sx::Location loc, bool trim_right) {
+proto::Location Scanner::EndLiteral(proto::Location loc, bool trim_right) {
     auto begin = literal_begin_.offset();
     auto end = loc.offset() + loc.length();
     if (trim_right) {
@@ -36,42 +36,44 @@ sx::Location Scanner::EndLiteral(sx::Location loc, bool trim_right) {
             break;
         }
     }
-    return sx::Location(begin, end - begin);
+    return proto::Location(begin, end - begin);
 }
 
 /// Begin a comment
-void Scanner::BeginComment(sx::Location loc) {
+void Scanner::BeginComment(proto::Location loc) {
     if (comment_depth_++ == 0) {
         comment_begin_ = loc;
     }
 }
 /// End a comment
-std::optional<sx::Location> Scanner::EndComment(sx::Location loc) {
+std::optional<proto::Location> Scanner::EndComment(proto::Location loc) {
     if (--comment_depth_ == 0) {
-        return sx::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
+        return proto::Location(literal_begin_.offset(), loc.offset() + loc.length() - literal_begin_.offset());
     }
     return std::nullopt;
 }
 
 /// Add an error
-void Scanner::AddError(sx::Location location, const char* message) { errors_.push_back({location, message}); }
+void Scanner::AddError(proto::Location location, const char* message) { errors_.push_back({location, message}); }
 
 /// Add an error
-void Scanner::AddError(sx::Location location, std::string&& message) { errors_.push_back({location, move(message)}); }
+void Scanner::AddError(proto::Location location, std::string&& message) {
+    errors_.push_back({location, move(message)});
+}
 
 /// Add a line break
-void Scanner::AddLineBreak(sx::Location location) {
+void Scanner::AddLineBreak(proto::Location location) {
     line_breaks_.push_back(location);
     symbol_line_breaks_.push_back(symbols_.size());
 }
 
 /// Add a comment
-void Scanner::AddComment(sx::Location location) { comments_.push_back(location); }
+void Scanner::AddComment(proto::Location location) { comments_.push_back(location); }
 /// Mark a location as start of an option key
-void Scanner::MarkAsDSONKey(sx::Location location) { dson_key_offsets_.insert(location.offset()); }
+void Scanner::MarkAsDSONKey(proto::Location location) { dson_key_offsets_.insert(location.offset()); }
 
 /// Read a parameter
-Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
+Parser::symbol_type Scanner::ReadParameter(proto::Location loc) {
     auto text = TextAt(loc);
     int64_t value;
     auto result = std::from_chars(text.data(), text.data() + text.size(), value);
@@ -82,7 +84,7 @@ Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
 }
 
 /// Read an integer
-Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
+Parser::symbol_type Scanner::ReadInteger(proto::Location loc) {
     auto text = TextAt(loc);
     int64_t value;
     auto result = std::from_chars(text.data(), text.data() + text.size(), value);

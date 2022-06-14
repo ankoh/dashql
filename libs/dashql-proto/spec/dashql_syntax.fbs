@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.syntax;
+namespace dashql.proto;
 
 enum InputComponentType: uint8 {
     NONE = 0,
@@ -8,7 +8,7 @@ enum InputComponentType: uint8 {
     CALENDAR = 2,
 }
 
-enum FetchMethodType: uint8 {
+enum ImportMethodType: uint8 {
     NONE = 0,
     HTTP = 1,
     FILE = 2

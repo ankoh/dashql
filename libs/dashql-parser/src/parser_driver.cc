@@ -23,8 +23,8 @@ Statement::Statement() : root() {}
 void Statement::reset() { root = std::numeric_limits<uint32_t>::max(); }
 
 /// Finish a statement
-std::unique_ptr<sx::StatementT> Statement::Finish() {
-    auto stmt = std::make_unique<sx::StatementT>();
+std::unique_ptr<proto::StatementT> Statement::Finish() {
+    auto stmt = std::make_unique<proto::StatementT>();
     stmt->statement_type = type;
     stmt->root_node = root;
     return stmt;
@@ -38,7 +38,7 @@ ParserDriver::ParserDriver(Scanner& scanner)
 ParserDriver::~ParserDriver() {}
 
 /// Find an attribute
-std::optional<size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attribute) const {
+std::optional<size_t> ParserDriver::FindAttribute(const proto::Node& node, Key attribute) const {
     auto attr_begin = node.children_begin_or_value();
     auto attr_count = node.children_count();
     for (auto i = 0; i < attr_count; ++i) {
@@ -51,32 +51,32 @@ std::optional<size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attr
 }
 
 /// Process a new node
-NodeID ParserDriver::AddNode(sx::Node node) {
+NodeID ParserDriver::AddNode(proto::Node node) {
     auto node_id = nodes_.size();
-    nodes_.push_back(sx::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
-                              node.children_begin_or_value(), node.children_count()));
+    nodes_.push_back(proto::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
+                                 node.children_begin_or_value(), node.children_count()));
 
     // Set parent reference
-    if (node.node_type() == sx::NodeType::ARRAY ||
-        static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(sx::NodeType::OBJECT_KEYS_)) {
+    if (node.node_type() == proto::NodeType::ARRAY ||
+        static_cast<uint16_t>(node.node_type()) > static_cast<uint16_t>(proto::NodeType::OBJECT_KEYS_)) {
         auto begin = node.children_begin_or_value();
         auto end = begin + node.children_count();
         for (auto i = begin; i < end; ++i) {
             auto& n = nodes_[i];
-            n = sx::Node(n.location(), n.node_type(), n.attribute_key(), node_id, n.children_begin_or_value(),
-                         n.children_count());
+            n = proto::Node(n.location(), n.node_type(), n.attribute_key(), node_id, n.children_begin_or_value(),
+                            n.children_count());
         }
     }
     return node_id;
 }
 
 /// Add an array
-sx::Node ParserDriver::AddArray(sx::Location loc, nonstd::span<sx::Node> values, bool null_if_empty,
-                                bool shrink_location) {
+proto::Node ParserDriver::AddArray(proto::Location loc, nonstd::span<proto::Node> values, bool null_if_empty,
+                                   bool shrink_location) {
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + values.size());
     for (auto& v : values) {
-        if (v.node_type() == sx::NodeType::NONE) continue;
+        if (v.node_type() == proto::NodeType::NONE) continue;
         AddNode(v);
     }
     auto n = nodes_.size() - begin;
@@ -86,14 +86,14 @@ sx::Node ParserDriver::AddArray(sx::Location loc, nonstd::span<sx::Node> values,
     if (n > 0 && shrink_location) {
         auto fstBegin = nodes_[begin].location().offset();
         auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
-        loc = sx::Location(fstBegin, lstEnd - fstBegin);
+        loc = proto::Location(fstBegin, lstEnd - fstBegin);
     }
-    return sx::Node(loc, sx::NodeType::ARRAY, 0, NO_PARENT, begin, n);
+    return proto::Node(loc, proto::NodeType::ARRAY, 0, NO_PARENT, begin, n);
 }
 
 /// Add an object
-sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty,
-                                 bool shrink_location) {
+proto::Node ParserDriver::AddObject(proto::Location loc, proto::NodeType type, nonstd::span<proto::Node> attrs,
+                                    bool null_if_empty, bool shrink_location) {
     // Sort all the attributes
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + attrs.size());
@@ -102,7 +102,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     });
     // Find duplicate ranges.
     // We optimize the fast path here and try to add as little overhead as possible for duplicate-free attributes.
-    std::vector<nonstd::span<sx::Node>> duplicates;
+    std::vector<nonstd::span<proto::Node>> duplicates;
     for (size_t i = 0, j = 1; j < attrs.size(); i = j++) {
         for (; j < attrs.size() && attrs[j].attribute_key() == attrs[i].attribute_key(); ++j)
             ;
@@ -110,12 +110,12 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
         duplicates.emplace_back(attrs.data() + i, j - i);
     }
     // Merge attributes if there are any
-    std::vector<sx::Node> merged_attrs;
+    std::vector<proto::Node> merged_attrs;
     if (duplicates.size() > 0) {
         merged_attrs.reserve(attrs.size());
 
         auto* reader = attrs.data();
-        std::vector<sx::Node> tmp;
+        std::vector<proto::Node> tmp;
         for (auto dups : duplicates) {
             // Copy attributes until first duplicate
             for (; reader != dups.data(); ++reader) merged_attrs.push_back(*reader);
@@ -123,7 +123,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
 
             // Only keep first if its not an object
             auto& fst = dups[0];
-            if (fst.node_type() < sx::NodeType::OBJECT_KEYS_) {
+            if (fst.node_type() < proto::NodeType::OBJECT_KEYS_) {
                 merged_attrs.push_back(fst);
                 continue;
             }
@@ -149,7 +149,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     }
     // Add the nodes
     for (auto& v : attrs) {
-        if (v.node_type() == sx::NodeType::NONE) continue;
+        if (v.node_type() == proto::NodeType::NONE) continue;
         AddNode(v);
     }
     auto n = nodes_.size() - begin;
@@ -159,58 +159,58 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     if (n > 0 && shrink_location) {
         auto fstBegin = nodes_[begin].location().offset();
         auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
-        loc = sx::Location(fstBegin, lstEnd - fstBegin);
+        loc = proto::Location(fstBegin, lstEnd - fstBegin);
     }
-    return sx::Node(loc, type, 0, NO_PARENT, begin, n);
+    return proto::Node(loc, type, 0, NO_PARENT, begin, n);
 }
 
-static std::regex FETCH_URI_HTTP{"^https?://.*"};
+static std::regex IMPORT_URI_HTTP{"^https?://.*"};
 
 /// Add a statement
-void ParserDriver::AddStatement(sx::Node node) {
-    if (node.node_type() == sx::NodeType::NONE) {
+void ParserDriver::AddStatement(proto::Node node) {
+    if (node.node_type() == proto::NodeType::NONE) {
         return;
     }
     current_statement_.root = AddNode(node);
-    auto stmt_type = sx::StatementType::NONE;
+    auto stmt_type = proto::StatementType::NONE;
     switch (node.node_type()) {
-        case sx::NodeType::OBJECT_DASHQL_SET:
-            stmt_type = sx::StatementType::SET;
+        case proto::NodeType::OBJECT_DASHQL_SET:
+            stmt_type = proto::StatementType::SET;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_VIZ:
-            stmt_type = sx::StatementType::VIZUALIZE;
+        case proto::NodeType::OBJECT_DASHQL_VIZ:
+            stmt_type = proto::StatementType::VIZUALIZE;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_FETCH:
-            stmt_type = sx::StatementType::FETCH;
+        case proto::NodeType::OBJECT_DASHQL_IMPORT:
+            stmt_type = proto::StatementType::IMPORT;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_LOAD:
-            stmt_type = sx::StatementType::LOAD;
+        case proto::NodeType::OBJECT_DASHQL_LOAD:
+            stmt_type = proto::StatementType::LOAD;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_INPUT:
-            stmt_type = sx::StatementType::INPUT;
+        case proto::NodeType::OBJECT_DASHQL_DECLARE:
+            stmt_type = proto::StatementType::DECLARE;
             break;
 
-        case sx::NodeType::OBJECT_SQL_CREATE_AS:
-            stmt_type = sx::StatementType::CREATE_TABLE_AS;
+        case proto::NodeType::OBJECT_SQL_CREATE_AS:
+            stmt_type = proto::StatementType::CREATE_TABLE_AS;
             break;
 
-        case sx::NodeType::OBJECT_SQL_CREATE:
-            stmt_type = sx::StatementType::CREATE_TABLE;
+        case proto::NodeType::OBJECT_SQL_CREATE:
+            stmt_type = proto::StatementType::CREATE_TABLE;
             break;
 
-        case sx::NodeType::OBJECT_SQL_VIEW:
-            stmt_type = sx::StatementType::CREATE_VIEW;
+        case proto::NodeType::OBJECT_SQL_VIEW:
+            stmt_type = proto::StatementType::CREATE_VIEW;
             break;
 
-        case sx::NodeType::OBJECT_SQL_SELECT:
+        case proto::NodeType::OBJECT_SQL_SELECT:
             if (auto into = FindAttribute(node, Key::SQL_SELECT_INTO); into) {
-                stmt_type = sx::StatementType::SELECT_INTO;
+                stmt_type = proto::StatementType::SELECT_INTO;
             } else {
-                stmt_type = sx::StatementType::SELECT;
+                stmt_type = proto::StatementType::SELECT;
             }
             break;
 
@@ -223,11 +223,11 @@ void ParserDriver::AddStatement(sx::Node node) {
 }
 
 /// Add an error
-void ParserDriver::AddError(sx::Location loc, const std::string& message) { errors_.push_back({loc, message}); }
+void ParserDriver::AddError(proto::Location loc, const std::string& message) { errors_.push_back({loc, message}); }
 
 /// Get as flatbuffer object
-std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
-    auto program = std::make_unique<sx::ProgramT>();
+std::shared_ptr<proto::ProgramT> ParserDriver::Finish() {
+    auto program = std::make_unique<proto::ProgramT>();
     program->nodes = move(nodes_);
     program->statements.reserve(statements_.size());
     for (auto& stmt : statements_) {
@@ -235,8 +235,8 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
     }
     program->errors.reserve(errors_.size());
     for (auto& [loc, msg] : errors_) {
-        auto err = std::make_unique<sx::ErrorT>();
-        err->location = std::make_unique<sx::Location>(loc);
+        auto err = std::make_unique<proto::ErrorT>();
+        err->location = std::make_unique<proto::Location>(loc);
         err->message = move(msg);
         program->errors.push_back(move(err));
     }
@@ -247,7 +247,7 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
     return program;
 }
 
-std::shared_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trace_scanning, bool trace_parsing) {
+std::shared_ptr<proto::ProgramT> ParserDriver::Parse(std::string_view in, bool trace_scanning, bool trace_parsing) {
     // XXX shortcut until tests are migrated
     std::vector<char> padded_buffer{in.begin(), in.end()};
     padded_buffer.push_back(0);

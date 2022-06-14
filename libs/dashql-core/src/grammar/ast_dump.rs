@@ -1,6 +1,6 @@
 use super::ast_to_xml::serialize_ast_as_xml;
 use super::program::Program;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
@@ -47,7 +47,7 @@ impl<'a> ASTDumpFile<'a> {
 pub struct ASTDump<'a> {
     pub name: String,
     pub input: &'a str,
-    pub parsed: Option<sx::Program<'a>>,
+    pub parsed: Option<proto::Program<'a>>,
     pub translated: Option<Program<'a>>,
 }
 
@@ -295,12 +295,12 @@ mod test {
     type ASTTestResult = Result<(), Box<dyn Error + Send + Sync>>;
 
     #[test]
-    fn test_dashql_fetch() -> ASTTestResult {
-        test_ast_dump("dashql_fetch.xml")
+    fn test_dashql_import() -> ASTTestResult {
+        test_ast_dump("dashql_import.xml")
     }
     #[test]
-    fn test_dashql_input() -> ASTTestResult {
-        test_ast_dump("dashql_input.xml")
+    fn test_dashql_declare() -> ASTTestResult {
+        test_ast_dump("dashql_declare.xml")
     }
     #[test]
     fn test_dashql_set() -> ASTTestResult {
@@ -332,7 +332,7 @@ mod test {
     }
 
     #[test]
-    fn test_dashql_fetch_2() -> ASTTestResult {
-        test_ast_dump_2("dashql_fetch.xml")
+    fn test_dashql_import_2() -> ASTTestResult {
+        test_ast_dump_2("dashql_import.xml")
     }
 }

@@ -1,6 +1,6 @@
 use super::program_instance::*;
 use crate::grammar::{ASTCell, ASTNode, Indirection, Statement, TableRef};
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 
 fn normalize_name_with<'a, F, R>(ctx: &mut ProgramInstance<'a>, name: &'a [ASTCell<Indirection<'a>>], f: F) -> R
 where
@@ -66,7 +66,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
             Statement::CreateAs(create) => Some(normalize_name_clone(ctx, create.name.get())),
             Statement::Create(create) => Some(normalize_name_clone(ctx, create.name.get())),
             Statement::CreateView(view) => Some(normalize_name_clone(ctx, view.name.get())),
-            Statement::Fetch(fetch) => Some(normalize_name_clone(ctx, fetch.name.get())),
+            Statement::Import(import) => Some(normalize_name_clone(ctx, import.name.get())),
             Statement::Load(load) => Some(normalize_name_clone(ctx, load.name.get())),
             Statement::Input(input) => Some(normalize_name_clone(ctx, input.name.get())),
             _ => None,
@@ -87,45 +87,45 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
         if let Some(target_stmt_id) = ctx.statement_by_name.get(target.as_slice()).cloned() {
             ctx.statement_required_for.insert(
                 (target_stmt_id, stmt_id as usize),
-                (sx::DependencyType::TABLE_REF, usize::MAX),
+                (proto::DependencyType::TABLE_REF, usize::MAX),
             );
             ctx.statement_depends_on.insert(
                 (stmt_id as usize, target_stmt_id),
-                (sx::DependencyType::TABLE_REF, usize::MAX),
+                (proto::DependencyType::TABLE_REF, usize::MAX),
             );
         }
     }
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = ctx.program.nodes[node_id];
         match node_proto.node_type() {
-            sx::NodeType::OBJECT_SQL_COLUMN_REF => {
+            proto::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
                     let target = normalize_name_clone(ctx, name);
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_required_for.insert(
                             (stmt, target_stmt_id as usize),
-                            (sx::DependencyType::COLUMN_REF, node_id),
+                            (proto::DependencyType::COLUMN_REF, node_id),
                         );
                         ctx.statement_depends_on.insert(
                             (target_stmt_id as usize, stmt),
-                            (sx::DependencyType::COLUMN_REF, node_id),
+                            (proto::DependencyType::COLUMN_REF, node_id),
                         );
                     }
                 }
             }
-            sx::NodeType::OBJECT_SQL_TABLEREF => {
+            proto::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
                     let target = normalize_name_clone(ctx, rel.name.get());
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
                         let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
                         ctx.statement_required_for.insert(
                             (stmt, target_stmt_id as usize),
-                            (sx::DependencyType::TABLE_REF, node_id),
+                            (proto::DependencyType::TABLE_REF, node_id),
                         );
                         ctx.statement_depends_on.insert(
                             (target_stmt_id as usize, stmt),
-                            (sx::DependencyType::TABLE_REF, node_id),
+                            (proto::DependencyType::TABLE_REF, node_id),
                         );
                     }
                 }
@@ -137,7 +137,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
 
 #[cfg(test)]
 mod test {
-    use dashql_proto::syntax::DependencyType;
+    use dashql_proto::DependencyType;
 
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;

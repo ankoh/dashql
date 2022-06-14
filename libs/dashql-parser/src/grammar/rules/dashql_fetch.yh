@@ -1,2 +1,0 @@
-%type <sx::Node> dashql_fetch_method;
-%type <sx::Node> dashql_fetch_statement;

@@ -15,36 +15,36 @@
     statements: [],
 }</translated>
     </astdump>
-    <astdump name="load_url_plain">
-        <input>FETCH weather_csv FROM http (
+    <astdump name="import_url_plain">
+        <input>IMPORT weather_csv FROM http (
                 url = &apos;https://localhost/astdump&apos;
             );</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="0..93" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="28..93" text="(\n        ..         )">
-                            <node key="DSON_URL" type="STRING_REF" loc="52..79" text="&apos;https://l..t/astdump&apos;"/>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..94" text="IMPORT wea..         )">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="29..94" text="(\n        ..         )">
+                            <node key="DSON_URL" type="STRING_REF" loc="53..80" text="&apos;https://l..t/astdump&apos;"/>
                         </node>
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..17" text="weather_csv"/>
+                            <node type="STRING_REF" loc="7..18" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
             </statements>
             <errors/>
             <line_breaks>
-                <line_break loc="29..30" text="\n"/>
-                <line_break loc="79..80" text="\n"/>
+                <line_break loc="30..31" text="\n"/>
+                <line_break loc="80..81" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;weather_csv&quot;,
@@ -73,51 +73,51 @@
     ],
 }</translated>
     </astdump>
-    <astdump name="load_url_parameter">
-        <input>FETCH weather_csv FROM http (
+    <astdump name="import_url_parameter">
+        <input>IMPORT weather_csv FROM http (
                 url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, main.country)
             );</input>
         <parsed>
             <statements>
-                <statement type="FETCH">
-                    <node type="OBJECT_DASHQL_FETCH" loc="0..128" text="FETCH weat..         )">
-                        <node key="DASHQL_FETCH_EXTRA" type="OBJECT_DSON" loc="28..128" text="(\n        ..         )">
-                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="52..114" text="format(&apos;ht..n.country)">
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..129" text="IMPORT wea..         )">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="29..129" text="(\n        ..         )">
+                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="53..115" text="format(&apos;ht..n.country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="59..99" text="&apos;https://c..eather/%s&apos;">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="59..99" text="&apos;https://c..eather/%s&apos;"/>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="60..100" text="&apos;https://c..eather/%s&apos;">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="60..100" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="101..113" text="main.country">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="101..113" text="main.country">
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="102..114" text="main.country">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="102..114" text="main.country">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="101..105" text="main"/>
-                                                <node type="STRING_REF" loc="106..113" text="country"/>
+                                                <node type="STRING_REF" loc="102..106" text="main"/>
+                                                <node type="STRING_REF" loc="107..114" text="country"/>
                                             </node>
                                         </node>
                                     </node>
                                 </node>
-                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="52..58" text="format"/>
+                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="53..59" text="format"/>
                             </node>
                         </node>
-                        <node key="DASHQL_FETCH_METHOD" type="ENUM_DASHQL_FETCH_METHOD_TYPE" value="HTTP"/>
+                        <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..17" text="weather_csv"/>
+                            <node type="STRING_REF" loc="7..18" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
             </statements>
             <errors/>
             <line_breaks>
-                <line_break loc="29..30" text="\n"/>
-                <line_break loc="114..115" text="\n"/>
+                <line_break loc="30..31" text="\n"/>
+                <line_break loc="115..116" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys/>
         </parsed>
         <translated>Program {
     statements: [
-        Fetch(
-            FetchStatement {
+        Import(
+            ImportStatement {
                 name: [
                     Name(
                         &quot;weather_csv&quot;,
@@ -421,21 +421,21 @@
     ],
 }</translated>
     </astdump>
-    <astdump name="dashql_input_calendar_date">
-        <input>INPUT foo TYPE DATE USING CALENDAR;
+    <astdump name="dashql_declare_calendar_date">
+        <input>DECLARE foo AS DATE USING CALENDAR;
             VIZ (SELECT foo) USING TABLE;</input>
         <parsed>
             <statements>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="0..34" text="INPUT foo ..G CALENDAR">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..19" text="DATE">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="0..34" text="DECLARE fo..G CALENDAR">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..19" text="DATE">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
                                 <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                            <node type="STRING_REF" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -468,7 +468,7 @@
         <translated>Program {
     statements: [
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,
@@ -542,15 +542,15 @@
     ],
 }</translated>
     </astdump>
-    <astdump name="dashql_input_calendar_date_range">
-        <input>INPUT foo TYPE DATE[2] USING CALENDAR;
+    <astdump name="dashql_declare_calendar_date_range">
+        <input>DECLARE foo AS DATE[2] USING CALENDAR;
             VIZ (SELECT foo[0], foo[1]) USING TABLE;</input>
         <parsed>
             <statements>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="0..37" text="INPUT foo ..G CALENDAR">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="0..37" text="DECLARE fo..G CALENDAR">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
                             <node key="SQL_TYPENAME_ARRAY" type="ARRAY">
                                 <node type="STRING_REF" loc="20..21" text="2"/>
                             </node>
@@ -559,7 +559,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                            <node type="STRING_REF" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -605,7 +605,7 @@
         <translated>Program {
     statements: [
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,

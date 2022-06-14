@@ -20,15 +20,13 @@
 namespace dashql {
 namespace parser {
 
-namespace sx = proto::syntax;
-
 class Scanner;
 
-using Key = sx::AttributeKey;
-using Location = sx::Location;
-using NodeVector = std::vector<sx::Node>;
+using Key = proto::AttributeKey;
+using Location = proto::Location;
+using NodeVector = std::vector<proto::Node>;
 
-inline std::ostream& operator<<(std::ostream& out, const sx::Location& loc) {
+inline std::ostream& operator<<(std::ostream& out, const proto::Location& loc) {
     out << "[" << loc.offset() << "," << (loc.offset() + loc.length()) << "[";
     return out;
 }
@@ -37,7 +35,7 @@ using NodeID = uint32_t;
 
 struct Statement {
     /// The statement type
-    sx::StatementType type;
+    proto::StatementType type;
     /// The root node
     NodeID root;
 
@@ -47,7 +45,7 @@ struct Statement {
     /// Reset
     void reset();
     /// Get as flatbuffer object
-    std::unique_ptr<sx::StatementT> Finish();
+    std::unique_ptr<proto::StatementT> Finish();
 };
 
 class ParserDriver {
@@ -55,27 +53,27 @@ class ParserDriver {
     /// The scanner
     Scanner& scanner_;
     /// The nodes
-    std::vector<sx::Node> nodes_;
+    std::vector<proto::Node> nodes_;
     /// The current statement
     Statement current_statement_;
     /// The statements
     std::vector<Statement> statements_;
     /// The errors
-    std::vector<std::pair<sx::Location, std::string>> errors_;
+    std::vector<std::pair<proto::Location, std::string>> errors_;
     /// The dependencies
-    std::vector<sx::Dependency> dependencies_;
+    std::vector<proto::Dependency> dependencies_;
     /// The dson keys
-    std::vector<sx::Location> dson_keys_;
+    std::vector<proto::Location> dson_keys_;
     /// The dson key mapping
     std::unordered_map<std::string_view, uint16_t> dson_key_map_;
 
     /// Find an attribute
-    std::optional<size_t> FindAttribute(const sx::Node& node, Key attribute) const;
+    std::optional<size_t> FindAttribute(const proto::Node& node, Key attribute) const;
 
     /// Add a node
-    NodeID AddNode(sx::Node node);
+    NodeID AddNode(proto::Node node);
     /// Get as flatbuffer object
-    std::shared_ptr<sx::ProgramT> Finish();
+    std::shared_ptr<proto::ProgramT> Finish();
 
    public:
     /// Constructor
@@ -87,32 +85,32 @@ class ParserDriver {
     auto& scanner() { return scanner_; }
 
     /// Add a an array
-    sx::Node AddArray(sx::Location loc, nonstd::span<sx::Node> values, bool null_if_empty = true,
-                      bool shrink_location = false);
+    proto::Node AddArray(proto::Location loc, nonstd::span<proto::Node> values, bool null_if_empty = true,
+                         bool shrink_location = false);
     /// Add an object
-    sx::Node AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty = true,
-                       bool shrink_location = false);
+    proto::Node AddObject(proto::Location loc, proto::NodeType type, nonstd::span<proto::Node> attrs,
+                          bool null_if_empty = true, bool shrink_location = false);
     /// Add a dson field
-    sx::Node AddDSONField(sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value);
+    proto::Node AddDSONField(proto::Location loc, std::vector<proto::Location>&& key_path, proto::Node value);
     /// Add a statement
-    void AddStatement(sx::Node node);
+    void AddStatement(proto::Node node);
     /// Add an error
-    void AddError(sx::Location loc, const std::string& message);
+    void AddError(proto::Location loc, const std::string& message);
 
     /// Add a an array
-    inline sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true,
-                        bool shrink_location = false) {
-        return AddArray(loc, nonstd::span<sx::Node>{values}, null_if_empty, shrink_location);
+    inline proto::Node Add(proto::Location loc, NodeVector&& values, bool null_if_empty = true,
+                           bool shrink_location = false) {
+        return AddArray(loc, nonstd::span<proto::Node>{values}, null_if_empty, shrink_location);
     }
     /// Add a an object
-    inline sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& values, bool null_if_empty = true,
-                        bool shrink_location = false) {
-        return AddObject(loc, type, nonstd::span<sx::Node>{values}, null_if_empty, shrink_location);
+    inline proto::Node Add(proto::Location loc, proto::NodeType type, NodeVector&& values, bool null_if_empty = true,
+                           bool shrink_location = false) {
+        return AddObject(loc, type, nonstd::span<proto::Node>{values}, null_if_empty, shrink_location);
     }
 
     /// Parse a module
-    static std::shared_ptr<sx::ProgramT> Parse(std::string_view in, bool trace_scanning = false,
-                                               bool trace_parsing = false);
+    static std::shared_ptr<proto::ProgramT> Parse(std::string_view in, bool trace_scanning = false,
+                                                  bool trace_parsing = false);
 };
 
 }  // namespace parser

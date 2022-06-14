@@ -7,19 +7,19 @@
 namespace dashql {
 namespace parser {
 
-namespace sx = proto::syntax;
+namespace sx = proto;
 
-const char* getEnumText(const sx::Node& target) {
+const char* getEnumText(const proto::Node& target) {
     auto nt = target.node_type();
     auto v = static_cast<uint32_t>(target.children_begin_or_value());
     switch (nt) {
-#define X(ENUM_TYPE, TYPE_TABLE)  \
-    case sx::NodeType::ENUM_TYPE: \
-        return sx::TYPE_TABLE()->names[v];
+#define X(ENUM_TYPE, TYPE_TABLE)     \
+    case proto::NodeType::ENUM_TYPE: \
+        return proto::TYPE_TABLE()->names[v];
 
         X(ENUM_DASHQL_VIZ_COMPONENT_TYPE, VizComponentTypeTypeTable)
-        X(ENUM_DASHQL_INPUT_COMPONENT_TYPE, InputComponentTypeTypeTable)
-        X(ENUM_DASHQL_FETCH_METHOD_TYPE, FetchMethodTypeTypeTable)
+        X(ENUM_DASHQL_DECLARE_COMPONENT_TYPE, InputComponentTypeTypeTable)
+        X(ENUM_DASHQL_IMPORT_METHOD_TYPE, ImportMethodTypeTypeTable)
         X(ENUM_DASHQL_LOAD_METHOD_TYPE, LoadMethodTypeTypeTable)
 
         X(ENUM_SQL_CHARACTER_TYPE, CharacterTypeTypeTable)
@@ -49,15 +49,15 @@ const char* getEnumText(const sx::Node& target) {
 
 #undef X
 
-        case sx::NodeType::ENUM_SQL_JOIN_TYPE: {
-            auto tt = sx::JoinTypeTypeTable();
+        case proto::NodeType::ENUM_SQL_JOIN_TYPE: {
+            auto tt = proto::JoinTypeTypeTable();
             auto iter =
                 std::lower_bound(tt->values, tt->values + tt->num_elems, v, [](auto l, auto r) { return l < r; });
             if (iter >= (tt->values + tt->num_elems) || *iter != v) {
                 return "?";
             }
             auto idx = iter - tt->values;
-            return sx::JoinTypeTypeTable()->names[idx];
+            return proto::JoinTypeTypeTable()->names[idx];
         }
 
         default:

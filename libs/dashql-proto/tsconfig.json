@@ -11,7 +11,7 @@
         "declarationDir": "./dist",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "lib": ["es6"],
+        "lib": ["es2020"],
         "types": [],
         "paths": {
             "flatbuffers": ["../../node_modules/flatbuffers/js/flatbuffers.mjs"]

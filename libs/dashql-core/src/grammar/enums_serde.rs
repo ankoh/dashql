@@ -2,7 +2,7 @@ macro_rules! derive_enum_serde {
     ($name:ident, $remote:ident) => {
         #[allow(dead_code)]
         pub mod $name {
-            use dashql_proto::syntax::$remote;
+            use dashql_proto::$remote;
             use serde::{Deserializer, Serializer};
 
             pub fn serialize<S>(value: &$remote, ser: S) -> Result<S::Ok, S::Error>
@@ -105,7 +105,7 @@ derive_enum_serde!(serde_const_type, AConstType);
 derive_enum_serde!(serde_constraint_attribute, ConstraintAttribute);
 derive_enum_serde!(serde_expression_operator, ExpressionOperator);
 derive_enum_serde!(serde_extract_target, ExtractTarget);
-derive_enum_serde!(serde_fetch_method_type, FetchMethodType);
+derive_enum_serde!(serde_import_method_type, ImportMethodType);
 derive_enum_serde!(serde_input_component_type, InputComponentType);
 derive_enum_serde!(serde_interval_type, IntervalType);
 derive_enum_serde!(serde_join_type, JoinType);

@@ -2,16 +2,16 @@
     <astdump name="dashql_syntax_error">
         <input>?</input>
     </astdump>
-    <astdump name="load_url_plain">
+    <astdump name="import_url_plain">
         <input>
-            FETCH weather_csv FROM http (
+            IMPORT weather_csv FROM http (
                 url = 'https://localhost/astdump'
             );
         </input>
     </astdump>
-    <astdump name="load_url_parameter">
+    <astdump name="import_url_parameter">
         <input>
-            FETCH weather_csv FROM http (
+            IMPORT weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
             );
         </input>
@@ -35,15 +35,15 @@
             )
         </input>
     </astdump>
-    <astdump name="dashql_input_calendar_date">
+    <astdump name="dashql_declare_calendar_date">
         <input>
-            INPUT foo TYPE DATE USING CALENDAR;
+            DECLARE foo AS DATE USING CALENDAR;
             VIZ (SELECT foo) USING TABLE;
         </input>
     </astdump>
-    <astdump name="dashql_input_calendar_date_range">
+    <astdump name="dashql_declare_calendar_date_range">
         <input>
-            INPUT foo TYPE DATE[2] USING CALENDAR;
+            DECLARE foo AS DATE[2] USING CALENDAR;
             VIZ (SELECT foo[0], foo[1]) USING TABLE;
         </input>
     </astdump>

@@ -1,5 +1,5 @@
 use super::ast_nodes_sql::*;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 
 impl<'a> Default for Indirection<'a> {
     fn default() -> Self {
@@ -15,7 +15,7 @@ impl<'text> Default for ArrayBound<'text> {
 
 impl<'a> Default for ExpressionOperatorName<'a> {
     fn default() -> Self {
-        ExpressionOperatorName::Known(sx::ExpressionOperator::EQUAL)
+        ExpressionOperatorName::Known(proto::ExpressionOperator::EQUAL)
     }
 }
 
@@ -33,6 +33,6 @@ impl<'a> Default for FunctionName<'a> {
 
 impl<'a> Default for ColumnConstraintVariant<'a> {
     fn default() -> Self {
-        ColumnConstraintVariant::Attribute(sx::ConstraintAttribute::DEFERRABLE)
+        ColumnConstraintVariant::Attribute(proto::ConstraintAttribute::DEFERRABLE)
     }
 }

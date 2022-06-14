@@ -6,12 +6,12 @@ use super::ast_nodes_sql::*;
 use super::dson::*;
 use super::program::*;
 use super::script_writer::*;
-use dashql_proto::syntax as sx;
-use dashql_proto::syntax::ExpressionOperator;
-use dashql_proto::syntax::KeyActionCommand;
-use dashql_proto::syntax::KeyActionTrigger;
-use dashql_proto::syntax::KeyMatch;
-use dashql_proto::syntax::VizComponentTypeModifier;
+use dashql_proto as proto;
+use dashql_proto::ExpressionOperator;
+use dashql_proto::KeyActionCommand;
+use dashql_proto::KeyActionTrigger;
+use dashql_proto::KeyMatch;
+use dashql_proto::VizComponentTypeModifier;
 
 impl<'ast> ToSQL<'ast> for Program<'ast> {
     fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
@@ -62,7 +62,7 @@ impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
         if let Some(dir) = self.direction.get() {
             a.push(
                 match dir {
-                    sx::OrderDirection::ASCENDING => w.keyword("asc"),
+                    proto::OrderDirection::ASCENDING => w.keyword("asc"),
                     _ => w.keyword("desc"),
                 }
                 .pad_left(),
@@ -71,7 +71,7 @@ impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
         if let Some(nulls) = self.null_rule.get() {
             a.push(
                 match nulls {
-                    sx::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
+                    proto::OrderNullRule::NULLS_FIRST => w.keyword("nulls first"),
                     _ => w.keyword("nulls last"),
                 }
                 .pad_left(),
@@ -181,18 +181,18 @@ impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 8);
         a.push(self.input.get()[0].get().to_sql(w));
-        if (self.join.get().0 & sx::JoinType::NATURAL_.0) != 0_u8 {
+        if (self.join.get().0 & proto::JoinType::NATURAL_.0) != 0_u8 {
             a.push(w.keyword("natural").pad_left());
         }
-        match sx::JoinType(self.join.get().0 & (sx::JoinType::OUTER_.0 - 1)) {
-            sx::JoinType::NONE => a.push(w.keyword("cross").pad_left()),
-            sx::JoinType::INNER => {}
-            sx::JoinType::FULL => a.push(w.keyword("full").pad_left()),
-            sx::JoinType::LEFT => a.push(w.keyword("left").pad_left()),
-            sx::JoinType::RIGHT => a.push(w.keyword("right").pad_left()),
+        match proto::JoinType(self.join.get().0 & (proto::JoinType::OUTER_.0 - 1)) {
+            proto::JoinType::NONE => a.push(w.keyword("cross").pad_left()),
+            proto::JoinType::INNER => {}
+            proto::JoinType::FULL => a.push(w.keyword("full").pad_left()),
+            proto::JoinType::LEFT => a.push(w.keyword("left").pad_left()),
+            proto::JoinType::RIGHT => a.push(w.keyword("right").pad_left()),
             _ => {}
         }
-        if (self.join.get().0 & sx::JoinType::OUTER_.0) != 0_u8 {
+        if (self.join.get().0 & proto::JoinType::OUTER_.0) != 0_u8 {
             a.push(w.keyword("outer").pad_left());
         }
         a.push(w.keyword("join").pad_left());
@@ -300,14 +300,14 @@ impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
         let input = self.input.get();
         a.push(input[0].get().to_sql(w));
         match self.operation.get() {
-            sx::CombineOperation::UNION => a.push(w.keyword("union").pad_left()),
-            sx::CombineOperation::EXCEPT => a.push(w.keyword("except").pad_left()),
-            sx::CombineOperation::INTERSECT => a.push(w.keyword("intersect").pad_left()),
+            proto::CombineOperation::UNION => a.push(w.keyword("union").pad_left()),
+            proto::CombineOperation::EXCEPT => a.push(w.keyword("except").pad_left()),
+            proto::CombineOperation::INTERSECT => a.push(w.keyword("intersect").pad_left()),
             _ => (),
         }
         match self.modifier.get() {
-            sx::CombineModifier::ALL => a.push(w.keyword("all").pad_left()),
-            sx::CombineModifier::DISTINCT => a.push(w.keyword("distinct").pad_left()),
+            proto::CombineModifier::ALL => a.push(w.keyword("all").pad_left()),
+            proto::CombineModifier::DISTINCT => a.push(w.keyword("distinct").pad_left()),
             _ => (),
         }
         a.push(input[1].get().to_sql(w).pad_left());
@@ -418,14 +418,14 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
             }
             SQLBaseType::Numeric(t) => {
                 match t.base.get() {
-                    sx::NumericType::BOOL => a.push(w.keyword("bool")),
-                    sx::NumericType::INT1 => a.push(w.keyword("tinyint")),
-                    sx::NumericType::INT2 => a.push(w.keyword("smallint")),
-                    sx::NumericType::INT4 => a.push(w.keyword("integer")),
-                    sx::NumericType::INT8 => a.push(w.keyword("bigint")),
-                    sx::NumericType::FLOAT4 => a.push(w.keyword("float")),
-                    sx::NumericType::FLOAT8 => a.push(w.keyword("double")),
-                    sx::NumericType::NUMERIC => a.push(w.keyword("numeric")),
+                    proto::NumericType::BOOL => a.push(w.keyword("bool")),
+                    proto::NumericType::INT1 => a.push(w.keyword("tinyint")),
+                    proto::NumericType::INT2 => a.push(w.keyword("smallint")),
+                    proto::NumericType::INT4 => a.push(w.keyword("integer")),
+                    proto::NumericType::INT8 => a.push(w.keyword("bigint")),
+                    proto::NumericType::FLOAT4 => a.push(w.keyword("float")),
+                    proto::NumericType::FLOAT8 => a.push(w.keyword("double")),
+                    proto::NumericType::NUMERIC => a.push(w.keyword("numeric")),
                     _ => (),
                 }
                 write_modifiers(&mut a, t.modifiers.get());
@@ -433,8 +433,8 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
             SQLBaseType::Character(t) => {
                 let base = t.base.get();
                 match base {
-                    sx::CharacterType::VARCHAR => a.push(w.keyword("varchar")),
-                    sx::CharacterType::BLANK_PADDED_CHAR => a.push(w.keyword("char")),
+                    proto::CharacterType::VARCHAR => a.push(w.keyword("varchar")),
+                    proto::CharacterType::BLANK_PADDED_CHAR => a.push(w.keyword("char")),
                     _ => (),
                 }
                 if let Some(length) = t.length.get() {
@@ -469,28 +469,28 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
             SQLBaseType::Interval(t) => {
                 if let Some(it) = t.interval_type.get() {
                     match it {
-                        sx::IntervalType::DAY => a.push(w.keyword("day")),
-                        sx::IntervalType::YEAR => a.push(w.keyword("year")),
-                        sx::IntervalType::MONTH => a.push(w.keyword("month")),
-                        sx::IntervalType::HOUR => a.push(w.keyword("hour")),
-                        sx::IntervalType::MINUTE => a.push(w.keyword("minute")),
-                        sx::IntervalType::SECOND => {
+                        proto::IntervalType::DAY => a.push(w.keyword("day")),
+                        proto::IntervalType::YEAR => a.push(w.keyword("year")),
+                        proto::IntervalType::MONTH => a.push(w.keyword("month")),
+                        proto::IntervalType::HOUR => a.push(w.keyword("hour")),
+                        proto::IntervalType::MINUTE => a.push(w.keyword("minute")),
+                        proto::IntervalType::SECOND => {
                             a.push(w.keyword("second"));
                             if let Some(precision) = t.precision.get() {
                                 a.push(w.round_brackets_one(w.str(precision)));
                             }
                         }
-                        sx::IntervalType::YEAR_TO_MONTH => {
+                        proto::IntervalType::YEAR_TO_MONTH => {
                             a.push(w.keyword("year"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("month").pad_left());
                         }
-                        sx::IntervalType::DAY_TO_HOUR => {
+                        proto::IntervalType::DAY_TO_HOUR => {
                             a.push(w.keyword("day"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("hour").pad_left());
                         }
-                        sx::IntervalType::DAY_TO_SECOND => {
+                        proto::IntervalType::DAY_TO_SECOND => {
                             a.push(w.keyword("day"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("second").pad_left());
@@ -498,12 +498,12 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                                 a.push(w.round_brackets_one(w.str(precision)));
                             }
                         }
-                        sx::IntervalType::HOUR_TO_MINUTE => {
+                        proto::IntervalType::HOUR_TO_MINUTE => {
                             a.push(w.keyword("hour"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("minute").pad_left());
                         }
-                        sx::IntervalType::HOUR_TO_SECOND => {
+                        proto::IntervalType::HOUR_TO_SECOND => {
                             a.push(w.keyword("hour"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("second").pad_left());
@@ -511,7 +511,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                                 a.push(w.round_brackets_one(w.str(precision)));
                             }
                         }
-                        sx::IntervalType::MINUTE_TO_SECOND => {
+                        proto::IntervalType::MINUTE_TO_SECOND => {
                             a.push(w.keyword("minute"));
                             a.push(w.keyword("to").pad_left());
                             a.push(w.keyword("second").pad_left());
@@ -528,26 +528,26 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
     }
 }
 
-impl<'ast> ToSQL<'ast> for sx::ConstraintAttribute {
+impl<'ast> ToSQL<'ast> for proto::ConstraintAttribute {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match *self {
-            sx::ConstraintAttribute::DEFERRABLE => w.keyword("deferrable"),
-            sx::ConstraintAttribute::NOT_DEFERRABLE => {
+            proto::ConstraintAttribute::DEFERRABLE => w.keyword("deferrable"),
+            proto::ConstraintAttribute::NOT_DEFERRABLE => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
                 a.push(w.keyword("not"));
                 a.push(w.keyword("deferrable").pad_left());
                 w.float(a.finish())
             }
-            sx::ConstraintAttribute::INITIALLY_DEFERRED => {
+            proto::ConstraintAttribute::INITIALLY_DEFERRED => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
                 a.push(w.keyword("initially"));
                 a.push(w.keyword("deferred").pad_left());
                 w.float(a.finish())
             }
-            sx::ConstraintAttribute::INITIALLY_IMMEDIATE => {
+            proto::ConstraintAttribute::INITIALLY_IMMEDIATE => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
                 a.push(w.keyword("initially"));
                 a.push(w.keyword("immediate").pad_left());
@@ -596,14 +596,14 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             out.push(w.float(defs.finish()).pad_left());
         };
         match self.constraint_type.get() {
-            sx::ColumnConstraint::NOT_NULL => {
+            proto::ColumnConstraint::NOT_NULL => {
                 a.push(w.keyword("not"));
                 a.push(w.keyword("null").pad_left());
             }
-            sx::ColumnConstraint::NULL_ => {
+            proto::ColumnConstraint::NULL_ => {
                 a.push(w.keyword("null"));
             }
-            sx::ColumnConstraint::CHECK => {
+            proto::ColumnConstraint::CHECK => {
                 a.push(w.keyword("check"));
                 a.push(w.round_brackets_one(self.value.get().to_sql(w)).pad_left());
                 if self.no_inherit.get() {
@@ -611,20 +611,20 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
                     a.push(w.keyword("inherit").pad_left());
                 }
             }
-            sx::ColumnConstraint::COLLATE => {
+            proto::ColumnConstraint::COLLATE => {
                 a.push(w.keyword("collate"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
-            sx::ColumnConstraint::PRIMARY_KEY => {
+            proto::ColumnConstraint::PRIMARY_KEY => {
                 a.push(w.keyword("primary"));
                 a.push(w.keyword("key").pad_left());
                 write_definition(&mut a, self.definition.get());
             }
-            sx::ColumnConstraint::UNIQUE => {
+            proto::ColumnConstraint::UNIQUE => {
                 a.push(w.keyword("unique"));
                 write_definition(&mut a, self.definition.get());
             }
-            sx::ColumnConstraint::DEFAULT => {
+            proto::ColumnConstraint::DEFAULT => {
                 a.push(w.keyword("default"));
                 a.push(self.value.get().to_sql(w).pad_left());
             }
@@ -680,18 +680,18 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
     {
         let mut a = ScriptTextArray::with_capacity(w, 12);
         match self.constraint_type.get() {
-            sx::TableConstraint::CHECK => {
+            proto::TableConstraint::CHECK => {
                 a.push(w.keyword("check"));
             }
-            sx::TableConstraint::FOREIGN_KEY => {
+            proto::TableConstraint::FOREIGN_KEY => {
                 a.push(w.keyword("foreign"));
                 a.push(w.keyword("key").pad_left());
             }
-            sx::TableConstraint::PRIMARY_KEY => {
+            proto::TableConstraint::PRIMARY_KEY => {
                 a.push(w.keyword("primary"));
                 a.push(w.keyword("key").pad_left());
             }
-            sx::TableConstraint::UNIQUE => {
+            proto::TableConstraint::UNIQUE => {
                 a.push(w.keyword("unique"));
             }
             _ => {}
@@ -749,24 +749,24 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
             for attr in attributes.iter() {
                 let attr = attr.get();
                 match attr.0 {
-                    sx::ConstraintAttribute::DEFERRABLE => a.push(w.keyword("deferrable").pad_left()),
-                    sx::ConstraintAttribute::NOT_DEFERRABLE => {
+                    proto::ConstraintAttribute::DEFERRABLE => a.push(w.keyword("deferrable").pad_left()),
+                    proto::ConstraintAttribute::NOT_DEFERRABLE => {
                         a.push(w.keyword("not").pad_left());
                         a.push(w.keyword("deferrable").pad_left());
                     }
-                    sx::ConstraintAttribute::INITIALLY_DEFERRED => {
+                    proto::ConstraintAttribute::INITIALLY_DEFERRED => {
                         a.push(w.keyword("initially").pad_left());
                         a.push(w.keyword("deferred").pad_left());
                     }
-                    sx::ConstraintAttribute::INITIALLY_IMMEDIATE => {
+                    proto::ConstraintAttribute::INITIALLY_IMMEDIATE => {
                         a.push(w.keyword("initially").pad_left());
                         a.push(w.keyword("immediate").pad_left());
                     }
-                    sx::ConstraintAttribute::NOT_VALID => {
+                    proto::ConstraintAttribute::NOT_VALID => {
                         a.push(w.keyword("not").pad_left());
                         a.push(w.keyword("valid").pad_left());
                     }
-                    sx::ConstraintAttribute::NO_INHERIT => {
+                    proto::ConstraintAttribute::NO_INHERIT => {
                         a.push(w.keyword("no").pad_left());
                         a.push(w.keyword("inherit").pad_left());
                     }
@@ -839,14 +839,14 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 12);
         a.push(w.keyword("create"));
         match self.temp.get() {
-            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
+            Some(proto::TempType::DEFAULT) | Some(proto::TempType::LOCAL) => {
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::GLOBAL) => {
+            Some(proto::TempType::GLOBAL) => {
                 a.push(w.keyword("global").pad_left());
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::UNLOGGED) => {
+            Some(proto::TempType::UNLOGGED) => {
                 a.push(w.keyword("unlogged").pad_left());
             }
             Some(_) => {}
@@ -874,18 +874,18 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
         a.push(w.round_brackets(elements.finish()).pad_left());
         if let Some(on_commit) = self.on_commit.get() {
             match on_commit {
-                sx::OnCommitOption::DROP => {
+                proto::OnCommitOption::DROP => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("drop").pad_left());
                 }
-                sx::OnCommitOption::DELETE_ROWS => {
+                proto::OnCommitOption::DELETE_ROWS => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("delete").pad_left());
                     a.push(w.keyword("rows").pad_left());
                 }
-                sx::OnCommitOption::PRESERVE_ROWS => {
+                proto::OnCommitOption::PRESERVE_ROWS => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("preserve").pad_left());
@@ -906,14 +906,14 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 14);
         a.push(w.keyword("create"));
         match self.temp.get() {
-            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
+            Some(proto::TempType::DEFAULT) | Some(proto::TempType::LOCAL) => {
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::GLOBAL) => {
+            Some(proto::TempType::GLOBAL) => {
                 a.push(w.keyword("global").pad_left());
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::UNLOGGED) => {
+            Some(proto::TempType::UNLOGGED) => {
                 a.push(w.keyword("unlogged").pad_left());
             }
             Some(_) => {}
@@ -939,19 +939,19 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
         }
         if let Some(on_commit) = self.on_commit.get() {
             match on_commit {
-                sx::OnCommitOption::NOOP => {}
-                sx::OnCommitOption::DROP => {
+                proto::OnCommitOption::NOOP => {}
+                proto::OnCommitOption::DROP => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("drop").pad_left());
                 }
-                sx::OnCommitOption::DELETE_ROWS => {
+                proto::OnCommitOption::DELETE_ROWS => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("delete").pad_left());
                     a.push(w.keyword("rows").pad_left());
                 }
-                sx::OnCommitOption::PRESERVE_ROWS => {
+                proto::OnCommitOption::PRESERVE_ROWS => {
                     a.push(w.keyword("on").pad_left());
                     a.push(w.keyword("commit").pad_left());
                     a.push(w.keyword("preserve").pad_left());
@@ -974,14 +974,14 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
         let mut a = ScriptTextArray::with_capacity(w, 8);
         a.push(w.keyword("create"));
         match self.temp.get() {
-            Some(sx::TempType::DEFAULT) | Some(sx::TempType::LOCAL) => {
+            Some(proto::TempType::DEFAULT) | Some(proto::TempType::LOCAL) => {
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::GLOBAL) => {
+            Some(proto::TempType::GLOBAL) => {
                 a.push(w.keyword("global").pad_left());
                 a.push(w.keyword("temp").pad_left());
             }
-            Some(sx::TempType::UNLOGGED) => {
+            Some(proto::TempType::UNLOGGED) => {
                 a.push(w.keyword("unlogged").pad_left());
             }
             Some(_) => {}
@@ -1006,7 +1006,7 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
     }
 }
 
-impl<'ast> ToSQL<'ast> for InputStatement<'ast> {
+impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
     fn to_sql<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
@@ -1026,7 +1026,7 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
             Statement::Create(s) => s.to_sql(w),
             Statement::Select(s) => s.to_sql(w),
             Statement::Set(s) => s.to_sql(w),
-            Statement::Fetch(s) => s.to_sql(w),
+            Statement::Import(s) => s.to_sql(w),
             Statement::Load(s) => s.to_sql(w),
             Statement::Viz(s) => s.to_sql(w),
             _ => todo!(),
@@ -1034,13 +1034,13 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
     }
 }
 
-impl<'ast> ToSQL<'ast> for FetchStatement<'ast> {
+impl<'ast> ToSQL<'ast> for ImportStatement<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 5);
-        a.push(w.keyword("fetch"));
+        a.push(w.keyword("import"));
         a.push(self.name.get().to_sql(w).pad_left());
         a.push(w.keyword("from").pad_left());
         if let Some(uri) = self.from_uri.get() {
@@ -1048,8 +1048,8 @@ impl<'ast> ToSQL<'ast> for FetchStatement<'ast> {
         } else {
             a.push(
                 w.keyword(match self.method.get() {
-                    sx::FetchMethodType::FILE => "file",
-                    sx::FetchMethodType::HTTP => "http",
+                    proto::ImportMethodType::FILE => "file",
+                    proto::ImportMethodType::HTTP => "http",
                     _ => "none",
                 })
                 .pad_left(),
@@ -1072,13 +1072,13 @@ impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
         a.push(self.name.get().to_sql(w).pad_left());
         a.push(w.keyword("from").pad_left());
         a.push(self.source.get().to_sql(w).pad_left());
-        if self.method.get() != sx::LoadMethodType::NONE {
+        if self.method.get() != proto::LoadMethodType::NONE {
             a.push(w.keyword("using").pad_left());
             a.push(
                 w.keyword(match self.method.get() {
-                    sx::LoadMethodType::CSV => "csv",
-                    sx::LoadMethodType::JSON => "json",
-                    sx::LoadMethodType::PARQUET => "parquet",
+                    proto::LoadMethodType::CSV => "csv",
+                    proto::LoadMethodType::JSON => "json",
+                    proto::LoadMethodType::PARQUET => "parquet",
                     _ => "none",
                 })
                 .pad_left(),
@@ -1101,10 +1101,10 @@ impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
         a.push(self.target.get().to_sql(w).pad_left());
         a.push(w.keyword("using").pad_left().breakpoint_before());
         if let Some(ct) = self.component_type.get() {
-            if ct != sx::VizComponentType::SPEC {
+            if ct != proto::VizComponentType::SPEC {
                 let mut mods = self.type_modifiers.get();
                 let mut ti = 0;
-                while mods != 0 && ti <= sx::VizComponentTypeModifier::ENUM_MAX {
+                while mods != 0 && ti <= proto::VizComponentTypeModifier::ENUM_MAX {
                     if (mods & 0b1) != 0 {
                         a.push(
                             w.keyword(match VizComponentTypeModifier(ti) {
@@ -1126,18 +1126,18 @@ impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
                 }
                 a.push(
                     w.keyword(match ct.clone() {
-                        sx::VizComponentType::AREA => "area chart",
-                        sx::VizComponentType::AXIS => "axis",
-                        sx::VizComponentType::BAR => "bar chart",
-                        sx::VizComponentType::BOX => "box",
-                        sx::VizComponentType::CANDLESTICK => "candlestick chart",
-                        sx::VizComponentType::ERROR_BAR => "errorbar chart",
-                        sx::VizComponentType::HEX => "hex",
-                        sx::VizComponentType::JSON => "json",
-                        sx::VizComponentType::LINE => "line chart",
-                        sx::VizComponentType::PIE => "pie chart",
-                        sx::VizComponentType::SCATTER => "scatter plot",
-                        sx::VizComponentType::TABLE => "table",
+                        proto::VizComponentType::AREA => "area chart",
+                        proto::VizComponentType::AXIS => "axis",
+                        proto::VizComponentType::BAR => "bar chart",
+                        proto::VizComponentType::BOX => "box",
+                        proto::VizComponentType::CANDLESTICK => "candlestick chart",
+                        proto::VizComponentType::ERROR_BAR => "errorbar chart",
+                        proto::VizComponentType::HEX => "hex",
+                        proto::VizComponentType::JSON => "json",
+                        proto::VizComponentType::LINE => "line chart",
+                        proto::VizComponentType::PIE => "pie chart",
+                        proto::VizComponentType::SCATTER => "scatter plot",
+                        proto::VizComponentType::TABLE => "table",
                         _ => "none",
                     })
                     .pad_left(),
@@ -1513,8 +1513,8 @@ mod test {
 
     #[test]
     fn test_from() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("fetch foo from 'http://someremote'")?;
-        test_pipe("fetch foo from http (url = 'http://someremote')")?;
+        test_pipe("import foo from 'http://someremote'")?;
+        test_pipe("import foo from http (url = 'http://someremote')")?;
         Ok(())
     }
 

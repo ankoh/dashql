@@ -10,9 +10,9 @@
 namespace dashql {
 namespace parser {
 
-namespace sx = proto::syntax;
+namespace sx = proto;
 
-inline sx::Location Loc(std::initializer_list<sx::Location> locs) {
+inline proto::Location Loc(std::initializer_list<proto::Location> locs) {
     assert(locs.size() > 1);
     uint32_t begin = std::numeric_limits<uint32_t>::max();
     uint32_t end = 0;
@@ -20,10 +20,10 @@ inline sx::Location Loc(std::initializer_list<sx::Location> locs) {
         begin = std::min(begin, loc.offset());
         end = std::max(end, loc.offset() + loc.length());
     }
-    return sx::Location(begin, end - begin);
+    return proto::Location(begin, end - begin);
 }
 
-inline sx::Location LocAfter(sx::Location loc) { return sx::Location(loc.offset() + loc.length(), 0); }
+inline proto::Location LocAfter(proto::Location loc) { return proto::Location(loc.offset() + loc.length(), 0); }
 
 }  // namespace parser
 }  // namespace dashql

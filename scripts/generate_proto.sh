@@ -45,14 +45,13 @@ ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_TS} ${SPEC_INDEX} --ts \
 
 TS_OUT_PROTO_BASE="${PROJECT_ROOT}/libs/dashql-proto/gen/ts/dashql/proto"
 TS_OUT_PROTO_DIRS=`ls ${TS_OUT_PROTO_BASE}`
-for PROTO_DIR in ${TS_OUT_PROTO_DIRS}; do
-    PROTO_INDEX="${TS_OUT_PROTO_BASE}/${PROTO_DIR}/index.ts"
-    echo "Generating $PROTO_INDEX"
-    echo > ${PROTO_INDEX}
-    PROTO_FILES=`ls ${TS_OUT_PROTO_BASE}/${PROTO_DIR}/*.ts`
-    for PROTO_FILE in ${PROTO_FILES}; do
-        IMPORT="$(basename $PROTO_FILE)"
-        if [ "${IMPORT}" = "index.ts" ]; then continue; fi
-        echo "export * from \"./${IMPORT%.*}\";" >> ${PROTO_INDEX}
-    done
+
+PROTO_INDEX="${TS_OUT_PROTO_BASE}/index.ts"
+echo "Generating $PROTO_INDEX"
+echo > ${PROTO_INDEX}
+PROTO_FILES=`ls ${TS_OUT_PROTO_BASE}/*.ts`
+for PROTO_FILE in ${PROTO_FILES}; do
+    IMPORT="$(basename $PROTO_FILE)"
+    if [ "${IMPORT}" = "index.ts" ]; then continue; fi
+    echo "export * from \"./${IMPORT%.*}\";" >> ${PROTO_INDEX}
 done

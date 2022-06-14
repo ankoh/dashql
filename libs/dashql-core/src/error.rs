@@ -1,4 +1,4 @@
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
 use std::error::Error;
 use std::fmt;
 
@@ -11,18 +11,18 @@ pub enum SystemError {
     ExpressionTypeNotImplemented(Option<usize>),
     FunctionEvaluationFailed(Option<usize>, Box<dyn Error + Send + Sync>),
     FunctionNotImplemented(Option<usize>, String),
-    FunctionNotImplementedButKnown(Option<usize>, sx::KnownFunction),
+    FunctionNotImplementedButKnown(Option<usize>, proto::KnownFunction),
     Generic(String),
     HTTPRequestFailed(reqwest::Error),
     InsufficientArguments(Option<usize>),
-    InvalidFetchURI(String),
+    InvalidImportURI(String),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
     InvalidStatementType(&'static str),
     InvalidTableRef(Option<usize>),
-    TranslationNotImplemented(Option<usize>, sx::NodeType),
-    UnexpectedAttribute(Option<usize>, sx::NodeType, sx::AttributeKey),
-    UnexpectedElement(Option<usize>, sx::AttributeKey, sx::NodeType),
+    TranslationNotImplemented(Option<usize>, proto::NodeType),
+    UnexpectedAttribute(Option<usize>, proto::NodeType, proto::AttributeKey),
+    UnexpectedElement(Option<usize>, proto::AttributeKey, proto::NodeType),
 }
 
 impl SystemError {
@@ -37,7 +37,7 @@ impl SystemError {
             SystemError::Generic(_) => "generic",
             SystemError::HTTPRequestFailed(_) => "http request failed",
             SystemError::InsufficientArguments(_) => "insufficient arguments",
-            SystemError::InvalidFetchURI(_) => "invalid fetch uri",
+            SystemError::InvalidImportURI(_) => "invalid fetch uri",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
@@ -81,7 +81,7 @@ impl<'a> fmt::Display for SystemError {
             SystemError::Generic(error) => write!(f, "error: {:?}", error),
             SystemError::HTTPRequestFailed(error) => write!(f, "http request failed: {:?}", error),
             SystemError::InsufficientArguments(node) => write!(f, "[{:?}] insufficient arguments", node),
-            SystemError::InvalidFetchURI(uri) => write!(f, "invalid fetch uri: {}", uri),
+            SystemError::InvalidImportURI(uri) => write!(f, "invalid import uri: {}", uri),
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
             SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),

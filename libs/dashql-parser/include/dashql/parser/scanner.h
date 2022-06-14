@@ -40,18 +40,18 @@ class Scanner {
     void* scanner_state_ptr_ = nullptr;
 
     /// The begin of the comment
-    sx::Location comment_begin_ = sx::Location();
+    proto::Location comment_begin_ = proto::Location();
     /// The comment depth
     int comment_depth_ = 0;
     /// The begin of the literal
-    sx::Location literal_begin_ = sx::Location();
+    proto::Location literal_begin_ = proto::Location();
 
     /// The scanner errors
-    std::vector<std::pair<sx::Location, std::string>> errors_ = {};
+    std::vector<std::pair<proto::Location, std::string>> errors_ = {};
     /// The line breaks
-    std::vector<sx::Location> line_breaks_ = {};
+    std::vector<proto::Location> line_breaks_ = {};
     /// The comments
-    std::vector<sx::Location> comments_ = {};
+    std::vector<proto::Location> comments_ = {};
     /// The dson keys
     std::unordered_set<size_t> dson_key_offsets_ = {};
 
@@ -94,38 +94,38 @@ class Scanner {
     /// Release the comments
     auto&& ReleaseComments() { return move(comments_); }
     /// Pack syntax highlighting
-    std::unique_ptr<proto::syntax::HighlightingT> BuildHighlighting();
+    std::unique_ptr<proto::HighlightingT> BuildHighlighting();
 
     /// Get the text at location
-    std::string_view TextAt(sx::Location loc);
+    std::string_view TextAt(proto::Location loc);
     /// The the location of a text
-    sx::Location LocationOf(std::string_view text);
+    proto::Location LocationOf(std::string_view text);
 
     /// Begin a literal
-    void BeginLiteral(sx::Location loc);
+    void BeginLiteral(proto::Location loc);
     /// End a literal
-    sx::Location EndLiteral(sx::Location loc, bool trim_right = false);
+    proto::Location EndLiteral(proto::Location loc, bool trim_right = false);
 
     /// Begin a comment
-    void BeginComment(sx::Location loc);
+    void BeginComment(proto::Location loc);
     /// End a comment
-    std::optional<sx::Location> EndComment(sx::Location loc);
+    std::optional<proto::Location> EndComment(proto::Location loc);
 
     /// Add an error
-    void AddError(sx::Location location, const char* message);
+    void AddError(proto::Location location, const char* message);
     /// Add an error
-    void AddError(sx::Location location, std::string&& message);
+    void AddError(proto::Location location, std::string&& message);
     /// Add a line break
-    void AddLineBreak(sx::Location location);
+    void AddLineBreak(proto::Location location);
     /// Add a comment
-    void AddComment(sx::Location location);
+    void AddComment(proto::Location location);
     /// Mark as option key
-    void MarkAsDSONKey(sx::Location location);
+    void MarkAsDSONKey(proto::Location location);
 
     /// Read a parameter
-    Parser::symbol_type ReadParameter(sx::Location loc);
+    Parser::symbol_type ReadParameter(proto::Location loc);
     /// Read an integer
-    Parser::symbol_type ReadInteger(sx::Location loc);
+    Parser::symbol_type ReadInteger(proto::Location loc);
 
     /// Get the next symbol
     Parser::symbol_type Next();

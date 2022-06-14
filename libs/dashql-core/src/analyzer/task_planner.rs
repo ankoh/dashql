@@ -75,7 +75,7 @@ pub enum ProgramTaskType {
     CreateTable,
     CreateView,
     CreateViz,
-    Fetch,
+    Import,
     Input,
     Load,
     ModifyTable,
@@ -170,8 +170,8 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 task_type: ProgramTaskType::Input,
                 ..mixin
             },
-            Statement::Fetch(_f) => ProgramTask {
-                task_type: ProgramTaskType::Fetch,
+            Statement::Import(_f) => ProgramTask {
+                task_type: ProgramTaskType::Import,
                 ..mixin
             },
             Statement::Load(_l) => ProgramTask {
@@ -278,7 +278,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 ProgramTaskType::CreateTable => true,
                 ProgramTaskType::CreateView => true,
                 ProgramTaskType::CreateViz => false,
-                ProgramTaskType::Fetch => false,
+                ProgramTaskType::Import => false,
                 ProgramTaskType::Input => false,
                 ProgramTaskType::Load => false,
                 ProgramTaskType::ModifyTable => true,
@@ -442,7 +442,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             ProgramTaskType::CreateTable => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::CreateView => (SetupTaskType::DropView, ProgramTaskType::None),
             ProgramTaskType::CreateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz),
-            ProgramTaskType::Fetch => (SetupTaskType::DropBlob, ProgramTaskType::None),
+            ProgramTaskType::Import => (SetupTaskType::DropBlob, ProgramTaskType::None),
             ProgramTaskType::Input => (SetupTaskType::DropInput, ProgramTaskType::None),
             ProgramTaskType::Load => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::ModifyTable => (SetupTaskType::DropTable, ProgramTaskType::None),
@@ -643,14 +643,14 @@ mod test {
             prev: None,
             next: ExpectedInstance {
                 script: r#"
-FETCH a FROM 'https://some/remote'
+IMPORT a FROM 'https://some/remote'
             "#,
                 input: vec![],
                 tasks: TaskGraph {
                     next_object_id: 1,
                     setup_tasks: vec![],
                     program_tasks: vec![ProgramTask {
-                        task_type: ProgramTaskType::Fetch,
+                        task_type: ProgramTaskType::Import,
                         task_status_code: TaskStatusCode::Skipped,
                         depends_on: vec![],
                         required_for: vec![],
@@ -670,7 +670,7 @@ FETCH a FROM 'https://some/remote'
             prev: None,
             next: ExpectedInstance {
                 script: r#"
-FETCH a FROM 'https://some/remote';
+IMPORT a FROM 'https://some/remote';
 LOAD b FROM a USING PARQUET;
             "#,
                 input: vec![],
@@ -679,7 +679,7 @@ LOAD b FROM a USING PARQUET;
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
-                            task_type: ProgramTaskType::Fetch,
+                            task_type: ProgramTaskType::Import,
                             task_status_code: TaskStatusCode::Skipped,
                             depends_on: vec![],
                             required_for: vec![1],
@@ -709,7 +709,7 @@ LOAD b FROM a USING PARQUET;
             prev: None,
             next: ExpectedInstance {
                 script: r#"
-FETCH a FROM 'https://some/remote';
+IMPORT a FROM 'https://some/remote';
 LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b
             "#,
@@ -719,7 +719,7 @@ CREATE TABLE c AS SELECT * FROM b
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
-                            task_type: ProgramTaskType::Fetch,
+                            task_type: ProgramTaskType::Import,
                             task_status_code: TaskStatusCode::Skipped,
                             depends_on: vec![],
                             required_for: vec![1],
@@ -758,7 +758,7 @@ CREATE TABLE c AS SELECT * FROM b
             prev: None,
             next: ExpectedInstance {
                 script: r#"
-FETCH a FROM 'https://some/remote';
+IMPORT a FROM 'https://some/remote';
 LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b;
 VIZ c USING TABLE;
@@ -769,7 +769,7 @@ VIZ c USING TABLE;
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
-                            task_type: ProgramTaskType::Fetch,
+                            task_type: ProgramTaskType::Import,
                             task_status_code: TaskStatusCode::Pending,
                             depends_on: vec![],
                             required_for: vec![1],

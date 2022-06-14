@@ -92,8 +92,8 @@ set(GRAMMAR_KEYWORDS
     ${CMAKE_SOURCE_DIR}/src/grammar/lists/sql_unreserved_keywords.list)
 
 set(GRAMMAR_RULES
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_fetch.y
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_input.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_import.y
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_declare.y
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_set.y
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.y
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.y
@@ -105,8 +105,8 @@ set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/sql_view.y)
 
 set(GRAMMAR_TYPES
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_fetch.yh
-    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_input.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_import.yh
+    ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_declare.yh
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_set.yh
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_load.yh
     ${CMAKE_SOURCE_DIR}/src/grammar/rules/dashql_query.yh

@@ -7,10 +7,10 @@ use super::dson::*;
 use super::program::*;
 use crate::error::SystemError;
 use crate::grammar::ast_nodes_sql::ConstraintAttribute;
-use dashql_proto::syntax as sx;
-use dashql_proto::syntax::ExpressionOperator;
-use dashql_proto::syntax::GroupByItemType;
-use sx::AttributeKey as Key;
+use dashql_proto as proto;
+use dashql_proto::ExpressionOperator;
+use dashql_proto::GroupByItemType;
+use proto::AttributeKey as Key;
 
 #[inline(never)]
 #[cold]
@@ -21,7 +21,7 @@ fn oom() -> ! {
 pub fn deserialize_ast<'a>(
     arena: &'a bumpalo::Bump,
     text: &'a str,
-    buffer: sx::Program<'a>,
+    buffer: proto::Program<'a>,
 ) -> Result<Program<'a>, SystemError> {
     let buffer_stmts = buffer.statements().unwrap_or_default();
     let buffer_nodes = buffer.nodes().unwrap_or_default();
@@ -46,14 +46,14 @@ pub fn deserialize_ast<'a>(
         // Helper to read integer as enum
         macro_rules! as_enum {
             ($name:ident) => {
-                ASTNode::$name(sx::$name(value as u8))
+                ASTNode::$name(proto::$name(value as u8))
             };
         }
         // Helper to read attributes
         macro_rules! read_attributes {
             ($($matcher:pat => $result:expr),*) => {
                 for i in 0..children.len() {
-                    let k = sx::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
+                    let k = proto::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
                     match (k, &children[i], children_begin + i) {
                         $($matcher => $result),*,
                         (k, _c, ci) => return Err(SystemError::UnexpectedAttribute(Some(ci), node_type, k)),
@@ -107,52 +107,52 @@ pub fn deserialize_ast<'a>(
 
         // Translate the node
         let translated = match node_type {
-            sx::NodeType::NONE => ASTNode::Null,
-            sx::NodeType::BOOL => ASTNode::Boolean((node.children_begin_or_value() != 0).into()),
-            sx::NodeType::UI32 => ASTNode::UInt32(node.children_begin_or_value()),
-            sx::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(node.children_begin_or_value()),
-            sx::NodeType::STRING_REF => ASTNode::StringRef(
+            proto::NodeType::NONE => ASTNode::Null,
+            proto::NodeType::BOOL => ASTNode::Boolean((node.children_begin_or_value() != 0).into()),
+            proto::NodeType::UI32 => ASTNode::UInt32(node.children_begin_or_value()),
+            proto::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(node.children_begin_or_value()),
+            proto::NodeType::STRING_REF => ASTNode::StringRef(
                 &text[(node.location().offset() as usize)
                     ..((node.location().offset() + node.location().length()) as usize)],
             ),
-            sx::NodeType::ARRAY => ASTNode::Array(arena.alloc_slice_copy(children), children_begin),
+            proto::NodeType::ARRAY => ASTNode::Array(arena.alloc_slice_copy(children), children_begin),
 
-            sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE => as_enum!(FetchMethodType),
-            sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE => as_enum!(InputComponentType),
-            sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE => as_enum!(LoadMethodType),
-            sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => as_enum!(VizComponentType),
-            sx::NodeType::ENUM_SQL_CHARACTER_TYPE => as_enum!(CharacterType),
-            sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT => as_enum!(ColumnConstraint),
-            sx::NodeType::ENUM_SQL_COMBINE_MODIFIER => as_enum!(CombineModifier),
-            sx::NodeType::ENUM_SQL_COMBINE_OPERATION => as_enum!(CombineOperation),
-            sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE => as_enum!(ConstraintAttribute),
-            sx::NodeType::ENUM_SQL_CONST_TYPE => ASTNode::ConstType(sx::AConstType(value as u8)),
-            sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR => as_enum!(ExpressionOperator),
-            sx::NodeType::ENUM_SQL_EXTRACT_TARGET => as_enum!(ExtractTarget),
-            sx::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE => as_enum!(GroupByItemType),
-            sx::NodeType::ENUM_SQL_INTERVAL_TYPE => as_enum!(IntervalType),
-            sx::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
-            sx::NodeType::ENUM_SQL_KEY_ACTION_COMMAND => as_enum!(KeyActionCommand),
-            sx::NodeType::ENUM_SQL_KEY_ACTION_TRIGGER => as_enum!(KeyActionTrigger),
-            sx::NodeType::ENUM_SQL_KEY_MATCH => as_enum!(KeyMatch),
-            sx::NodeType::ENUM_SQL_KNOWN_FUNCTION => as_enum!(KnownFunction),
-            sx::NodeType::ENUM_SQL_NUMERIC_TYPE => as_enum!(NumericType),
-            sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION => as_enum!(OnCommitOption),
-            sx::NodeType::ENUM_SQL_ORDER_DIRECTION => as_enum!(OrderDirection),
-            sx::NodeType::ENUM_SQL_ORDER_NULL_RULE => as_enum!(OrderNullRule),
-            sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => as_enum!(RowLockingBlockBehavior),
-            sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => as_enum!(RowLockingStrength),
-            sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => as_enum!(SampleCountUnit),
-            sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => as_enum!(SubqueryQuantifier),
-            sx::NodeType::ENUM_SQL_TABLE_CONSTRAINT => as_enum!(TableConstraint),
-            sx::NodeType::ENUM_SQL_TEMP_TYPE => as_enum!(TempType),
-            sx::NodeType::ENUM_SQL_TRIM_TARGET => as_enum!(TrimDirection),
-            sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => as_enum!(WindowBoundDirection),
-            sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE => as_enum!(WindowBoundMode),
-            sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => as_enum!(WindowExclusionMode),
-            sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE => as_enum!(WindowRangeMode),
+            proto::NodeType::ENUM_DASHQL_IMPORT_METHOD_TYPE => as_enum!(ImportMethodType),
+            proto::NodeType::ENUM_DASHQL_DECLARE_COMPONENT_TYPE => as_enum!(InputComponentType),
+            proto::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE => as_enum!(LoadMethodType),
+            proto::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE => as_enum!(VizComponentType),
+            proto::NodeType::ENUM_SQL_CHARACTER_TYPE => as_enum!(CharacterType),
+            proto::NodeType::ENUM_SQL_COLUMN_CONSTRAINT => as_enum!(ColumnConstraint),
+            proto::NodeType::ENUM_SQL_COMBINE_MODIFIER => as_enum!(CombineModifier),
+            proto::NodeType::ENUM_SQL_COMBINE_OPERATION => as_enum!(CombineOperation),
+            proto::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE => as_enum!(ConstraintAttribute),
+            proto::NodeType::ENUM_SQL_CONST_TYPE => ASTNode::ConstType(proto::AConstType(value as u8)),
+            proto::NodeType::ENUM_SQL_EXPRESSION_OPERATOR => as_enum!(ExpressionOperator),
+            proto::NodeType::ENUM_SQL_EXTRACT_TARGET => as_enum!(ExtractTarget),
+            proto::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE => as_enum!(GroupByItemType),
+            proto::NodeType::ENUM_SQL_INTERVAL_TYPE => as_enum!(IntervalType),
+            proto::NodeType::ENUM_SQL_JOIN_TYPE => as_enum!(JoinType),
+            proto::NodeType::ENUM_SQL_KEY_ACTION_COMMAND => as_enum!(KeyActionCommand),
+            proto::NodeType::ENUM_SQL_KEY_ACTION_TRIGGER => as_enum!(KeyActionTrigger),
+            proto::NodeType::ENUM_SQL_KEY_MATCH => as_enum!(KeyMatch),
+            proto::NodeType::ENUM_SQL_KNOWN_FUNCTION => as_enum!(KnownFunction),
+            proto::NodeType::ENUM_SQL_NUMERIC_TYPE => as_enum!(NumericType),
+            proto::NodeType::ENUM_SQL_ON_COMMIT_OPTION => as_enum!(OnCommitOption),
+            proto::NodeType::ENUM_SQL_ORDER_DIRECTION => as_enum!(OrderDirection),
+            proto::NodeType::ENUM_SQL_ORDER_NULL_RULE => as_enum!(OrderNullRule),
+            proto::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR => as_enum!(RowLockingBlockBehavior),
+            proto::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH => as_enum!(RowLockingStrength),
+            proto::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE => as_enum!(SampleCountUnit),
+            proto::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => as_enum!(SubqueryQuantifier),
+            proto::NodeType::ENUM_SQL_TABLE_CONSTRAINT => as_enum!(TableConstraint),
+            proto::NodeType::ENUM_SQL_TEMP_TYPE => as_enum!(TempType),
+            proto::NodeType::ENUM_SQL_TRIM_TARGET => as_enum!(TrimDirection),
+            proto::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => as_enum!(WindowBoundDirection),
+            proto::NodeType::ENUM_SQL_WINDOW_BOUND_MODE => as_enum!(WindowBoundMode),
+            proto::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => as_enum!(WindowExclusionMode),
+            proto::NodeType::ENUM_SQL_WINDOW_RANGE_MODE => as_enum!(WindowRangeMode),
 
-            sx::NodeType::OBJECT_SQL_INDIRECTION => {
+            proto::NodeType::OBJECT_SQL_INDIRECTION => {
                 let mut value = ASTCell::with_value(Expression::Null);
                 let mut path = ASTCell::with_value(NamePath::default());
                 read_attributes! {
@@ -161,7 +161,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::IndirectionExpression(arena.alloc(IndirectionExpression { value, path }))
             }
-            sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX => {
+            proto::NodeType::OBJECT_SQL_INDIRECTION_INDEX => {
                 let mut val = ASTCell::default();
                 let mut lb = ASTCell::default();
                 let mut ub = ASTCell::default();
@@ -179,8 +179,8 @@ pub fn deserialize_ast<'a>(
                     }))
                 })
             }
-            sx::NodeType::OBJECT_SQL_NUMERIC_TYPE => {
-                let mut base = ASTCell::with_value(sx::NumericType::NUMERIC);
+            proto::NodeType::OBJECT_SQL_NUMERIC_TYPE => {
+                let mut base = ASTCell::with_value(proto::NumericType::NUMERIC);
                 let mut modifiers: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
                     (Key::SQL_NUMERIC_TYPE_BASE, ASTNode::NumericType(t), ci) => base = ASTCell::with_node(*t, ci),
@@ -188,7 +188,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::NumericTypeSpec(arena.alloc(NumericType { base, modifiers }))
             }
-            sx::NodeType::OBJECT_SQL_BIT_TYPE => {
+            proto::NodeType::OBJECT_SQL_BIT_TYPE => {
                 let mut varying = ASTCell::with_value(false);
                 let mut length = ASTCell::default();
                 read_attributes! {
@@ -197,7 +197,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::BitTypeSpec(arena.alloc(BitType { varying, length }))
             }
-            sx::NodeType::OBJECT_SQL_GENERIC_TYPE => {
+            proto::NodeType::OBJECT_SQL_GENERIC_TYPE => {
                 let mut name = ASTCell::default();
                 let mut modifiers: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
@@ -209,7 +209,7 @@ pub fn deserialize_ast<'a>(
                     modifiers,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_ORDER => {
+            proto::NodeType::OBJECT_SQL_ORDER => {
                 let mut value = ASTCell::default();
                 let mut direction = ASTCell::default();
                 let mut null_rule = ASTCell::default();
@@ -224,7 +224,7 @@ pub fn deserialize_ast<'a>(
                     null_rule,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_INTERVAL_TYPE => {
+            proto::NodeType::OBJECT_SQL_INTERVAL_TYPE => {
                 let mut ty = ASTCell::default();
                 let mut precision = ASTCell::default();
                 read_attributes! {
@@ -236,7 +236,7 @@ pub fn deserialize_ast<'a>(
                     precision: precision,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_RESULT_TARGET => {
+            proto::NodeType::OBJECT_SQL_RESULT_TARGET => {
                 let mut value = ASTCell::default();
                 let mut alias = ASTCell::default();
                 let mut star = false;
@@ -254,7 +254,7 @@ pub fn deserialize_ast<'a>(
                     }
                 }))
             }
-            sx::NodeType::OBJECT_SQL_PARAMETER_REF => {
+            proto::NodeType::OBJECT_SQL_PARAMETER_REF => {
                 let mut prefix = ASTCell::with_value("");
                 let mut name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
@@ -263,14 +263,14 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
             }
-            sx::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let mut args: [ASTCell<Expression>; 3] = [
                     ASTCell::with_value(Expression::Null),
                     ASTCell::with_value(Expression::Null),
                     ASTCell::with_value(Expression::Null),
                 ];
                 let mut operator_name =
-                    ASTCell::with_value(ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS));
+                    ASTCell::with_value(ExpressionOperatorName::Known(proto::ExpressionOperator::PLUS));
                 let mut postfix = ASTCell::with_value(false);
                 read_attributes! {
                     (Key::SQL_EXPRESSION_ARG0, n, ci) => args[0] = ASTCell::with_node(read_expr!(n), ci),
@@ -280,7 +280,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_EXPRESSION_OPERATOR, n, ci) => operator_name = ASTCell::with_node(read_expression_operator(arena, n), ci)
                 }
                 let expr = match operator_name.get() {
-                    ExpressionOperatorName::Known(sx::ExpressionOperator::AND) => {
+                    ExpressionOperatorName::Known(proto::ExpressionOperator::AND) => {
                         let list = match (args[0].get(), args[1].get()) {
                             (Expression::Conjunction(left), Expression::Conjunction(right)) => {
                                 ASTList::merge(left, right)
@@ -291,7 +291,7 @@ pub fn deserialize_ast<'a>(
                         };
                         Expression::Conjunction(arena.alloc(list))
                     }
-                    ExpressionOperatorName::Known(sx::ExpressionOperator::OR) => {
+                    ExpressionOperatorName::Known(proto::ExpressionOperator::OR) => {
                         let list = match (args[0].get(), args[1].get()) {
                             (Expression::Disjunction(left), Expression::Disjunction(right)) => {
                                 ASTList::merge(left, right)
@@ -318,7 +318,7 @@ pub fn deserialize_ast<'a>(
                 };
                 ASTNode::Expression(expr)
             }
-            sx::NodeType::OBJECT_SQL_CASE_CLAUSE => {
+            proto::NodeType::OBJECT_SQL_CASE_CLAUSE => {
                 let mut when = ASTCell::with_value(Expression::Null);
                 let mut then = ASTCell::with_value(Expression::Null);
                 read_attributes! {
@@ -327,7 +327,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::CaseExpressionClause(arena.alloc(CaseExpressionClause { when, then }))
             }
-            sx::NodeType::OBJECT_SQL_CASE => {
+            proto::NodeType::OBJECT_SQL_CASE => {
                 let mut argument = ASTCell::default();
                 let mut cases: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut default = ASTCell::default();
@@ -342,7 +342,7 @@ pub fn deserialize_ast<'a>(
                     default,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_TABLEREF => {
+            proto::NodeType::OBJECT_SQL_TABLEREF => {
                 let mut name = ASTCell::default();
                 let mut inherit = ASTCell::with_value(false);
                 let mut select = ASTCell::default();
@@ -397,7 +397,7 @@ pub fn deserialize_ast<'a>(
                     return Err(SystemError::InvalidTableRef(Some(node_id)));
                 })
             }
-            sx::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
+            proto::NodeType::OBJECT_SQL_TABLEREF_SAMPLE => {
                 let mut function = ASTCell::default();
                 let mut count = ASTCell::default();
                 let mut count_unit = ASTCell::default();
@@ -413,12 +413,12 @@ pub fn deserialize_ast<'a>(
                 ASTNode::TableSample(arena.alloc(TableSample {
                     function: function,
                     count: count.unwrap_or_default(),
-                    unit: count_unit.unwrap_or(sx::SampleCountUnit::ROWS),
+                    unit: count_unit.unwrap_or(proto::SampleCountUnit::ROWS),
                     repeat,
                     seed,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_CONST_TYPE_CAST => {
+            proto::NodeType::OBJECT_SQL_CONST_TYPE_CAST => {
                 let mut sql_type = ASTCell::default();
                 let mut value = ASTCell::default();
                 read_attributes! {
@@ -431,7 +431,7 @@ pub fn deserialize_ast<'a>(
                 });
                 ASTNode::ConstCastExpression(ConstCastExpression::Type(cast))
             }
-            sx::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
+            proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
                 let mut interval = ASTCell::default();
                 let mut value = ASTCell::default();
                 read_attributes! {
@@ -444,7 +444,7 @@ pub fn deserialize_ast<'a>(
                 });
                 ASTNode::ConstCastExpression(ConstCastExpression::Interval(cast))
             }
-            sx::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
+            proto::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
                 let mut func_name = ASTCell::default();
                 let mut func_args: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut func_arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -463,7 +463,7 @@ pub fn deserialize_ast<'a>(
                 });
                 ASTNode::ConstCastExpression(ConstCastExpression::Function(cast))
             }
-            sx::NodeType::OBJECT_SQL_ALIAS => {
+            proto::NodeType::OBJECT_SQL_ALIAS => {
                 let mut name = ASTCell::with_value("");
                 let mut column_names: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut column_definitions: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -478,28 +478,28 @@ pub fn deserialize_ast<'a>(
                     column_definitions,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_FETCH => {
+            proto::NodeType::OBJECT_DASHQL_IMPORT => {
                 let mut name = ASTCell::with_value(NamePath::default());
-                let mut method = ASTCell::with_value(sx::FetchMethodType::NONE);
+                let mut method = ASTCell::with_value(proto::ImportMethodType::NONE);
                 let mut from_uri = ASTCell::default();
                 let mut extra = ASTCell::default();
                 read_attributes! {
                     (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), ci) => name = ASTCell::with_node(read_name(arena, a, *ni), ci),
-                    (Key::DASHQL_FETCH_METHOD, ASTNode::FetchMethodType(m), ci) => method = ASTCell::with_node(m.clone(), ci),
-                    (Key::DASHQL_FETCH_FROM_URI, n, ci) => from_uri = ASTCell::with_node(Some(read_expr!(n)), ci),
-                    (Key::DASHQL_FETCH_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
+                    (Key::DASHQL_IMPORT_METHOD, ASTNode::ImportMethodType(m), ci) => method = ASTCell::with_node(m.clone(), ci),
+                    (Key::DASHQL_IMPORT_FROM_URI, n, ci) => from_uri = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::DASHQL_IMPORT_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
-                ASTNode::FetchStatement(arena.alloc(FetchStatement {
+                ASTNode::ImportStatement(arena.alloc(ImportStatement {
                     name,
                     method,
                     from_uri,
                     extra,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_LOAD => {
+            proto::NodeType::OBJECT_DASHQL_LOAD => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut source = ASTCell::with_value(NamePath::default());
-                let mut method = ASTCell::with_value(sx::LoadMethodType::NONE);
+                let mut method = ASTCell::with_value(proto::LoadMethodType::NONE);
                 let mut extra = ASTCell::default();
                 read_attributes! {
                     (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(a, ni), ci) => name = ASTCell::with_node(read_name(arena, a, *ni), ci),
@@ -514,8 +514,8 @@ pub fn deserialize_ast<'a>(
                     extra,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_JOINED_TABLE => {
-                let mut join = ASTCell::with_value(sx::JoinType::NONE);
+            proto::NodeType::OBJECT_SQL_JOINED_TABLE => {
+                let mut join = ASTCell::with_value(proto::JoinType::NONE);
                 let mut qualifier = ASTCell::default();
                 let mut input: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
@@ -529,7 +529,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::JoinedTable(arena.alloc(JoinedTable { join, qualifier, input }))
             }
-            sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
+            proto::NodeType::OBJECT_SQL_ROWSFROM_ITEM => {
                 let mut function = ASTCell::default();
                 let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
@@ -541,7 +541,7 @@ pub fn deserialize_ast<'a>(
                     columns,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_TABLE => {
                 let mut function = ASTCell::default();
                 let mut ordinality = ASTCell::default();
                 let mut rows_from: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -556,14 +556,14 @@ pub fn deserialize_ast<'a>(
                     with_ordinality: ordinality,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_COLUMN_REF => {
+            proto::NodeType::OBJECT_SQL_COLUMN_REF => {
                 let mut name: Option<NamePath> = None;
                 read_attributes! {
                     (Key::SQL_COLUMN_REF_PATH, ASTNode::Array(a, ni), _ci) => name = Some(read_name(arena, a, *ni))
                 }
                 ASTNode::ColumnRef(name.unwrap_or_default())
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_ARG => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_ARG => {
                 let mut name = ASTCell::default();
                 let mut value = ASTCell::default();
                 read_attributes! {
@@ -575,8 +575,8 @@ pub fn deserialize_ast<'a>(
                     value: value.unwrap_or(Expression::Null),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => {
-                let mut direction = ASTCell::with_value(sx::TrimDirection::LEADING);
+            proto::NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => {
+                let mut direction = ASTCell::with_value(proto::TrimDirection::LEADING);
                 let mut characters = ASTCell::default();
                 let mut input: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
@@ -590,7 +590,7 @@ pub fn deserialize_ast<'a>(
                     input,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => {
                 let mut input = ASTCell::default();
                 let mut substr_from = ASTCell::default();
                 let mut substr_for = ASTCell::default();
@@ -605,7 +605,7 @@ pub fn deserialize_ast<'a>(
                     substr_from,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_GENERIC_OPTION => {
+            proto::NodeType::OBJECT_SQL_GENERIC_OPTION => {
                 let mut key = ASTCell::with_value("");
                 let mut value = ASTCell::with_value("");
                 read_attributes! {
@@ -614,7 +614,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::GenericOption(arena.alloc(GenericOption { key, value }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => {
                 let mut input = ASTCell::default();
                 let mut placing = ASTCell::default();
                 let mut substr_from = ASTCell::default();
@@ -632,7 +632,7 @@ pub fn deserialize_ast<'a>(
                     substr_for,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => {
                 let mut input = ASTCell::default();
                 let mut search = ASTCell::default();
                 read_attributes! {
@@ -644,8 +644,8 @@ pub fn deserialize_ast<'a>(
                     search: search.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => {
-                let mut target = ASTCell::with_value(ExtractFunctionTarget::Known(sx::ExtractTarget::SECOND));
+            proto::NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => {
+                let mut target = ASTCell::with_value(ExtractFunctionTarget::Known(proto::ExtractTarget::SECOND));
                 let mut input = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::StringRef(s), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Unknown(s), ci),
@@ -657,7 +657,7 @@ pub fn deserialize_ast<'a>(
                     input: input.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
                 let mut value = ASTCell::default();
                 let mut as_type = ASTCell::default();
                 read_attributes! {
@@ -669,7 +669,7 @@ pub fn deserialize_ast<'a>(
                     as_type: as_type.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
                 let mut value = ASTCell::default();
                 let mut as_type = ASTCell::default();
                 read_attributes! {
@@ -681,7 +681,7 @@ pub fn deserialize_ast<'a>(
                     as_type: as_type.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                 let mut func_name = ASTCell::with_value(FunctionName::default());
                 let mut func_args: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -744,7 +744,7 @@ pub fn deserialize_ast<'a>(
                     over,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION => {
                 let mut value = ASTCell::default();
                 let mut typename = ASTCell::default();
                 read_attributes! {
@@ -756,12 +756,12 @@ pub fn deserialize_ast<'a>(
                     value: value.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_SUBQUERY_EXPRESSION => {
                 let mut arg0 = ASTCell::with_value(Expression::Null);
                 let mut arg1 = ASTCell::with_value(Expression::Null);
                 let mut operator_name =
-                    ASTCell::with_value(ExpressionOperatorName::Known(sx::ExpressionOperator::PLUS));
-                let mut quantifier = ASTCell::with_value(sx::SubqueryQuantifier::ALL);
+                    ASTCell::with_value(ExpressionOperatorName::Known(proto::ExpressionOperator::PLUS));
+                let mut quantifier = ASTCell::with_value(proto::SubqueryQuantifier::ALL);
                 read_attributes! {
                     (Key::SQL_SUBQUERY_ARG0, v, ci) => arg0 = ASTCell::with_node(read_expr!(v), ci),
                     (Key::SQL_SUBQUERY_ARG1, v, ci) => arg1 = ASTCell::with_node(read_expr!(v), ci),
@@ -774,7 +774,7 @@ pub fn deserialize_ast<'a>(
                     args: [arg0, arg1],
                 }))
             }
-            sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_SELECT_EXPRESSION => {
                 let mut stmt = ASTCell::default();
                 let mut indirection = ASTCell::default();
                 read_attributes! {
@@ -786,7 +786,7 @@ pub fn deserialize_ast<'a>(
                     indirection,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_EXISTS_EXPRESSION => {
                 let mut stmt = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_EXISTS_EXPRESSION_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = ASTCell::with_node(Some(*s), ci)
@@ -795,7 +795,7 @@ pub fn deserialize_ast<'a>(
                     statement: stmt.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
+            proto::NodeType::OBJECT_SQL_TIMESTAMP_TYPE => {
                 let mut precision = ASTCell::default();
                 let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
@@ -807,7 +807,7 @@ pub fn deserialize_ast<'a>(
                     with_timezone,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_TIME_TYPE => {
+            proto::NodeType::OBJECT_SQL_TIME_TYPE => {
                 let mut precision = ASTCell::default();
                 let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
@@ -819,7 +819,7 @@ pub fn deserialize_ast<'a>(
                     with_timezone,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_GROUP_BY_ITEM => {
+            proto::NodeType::OBJECT_SQL_GROUP_BY_ITEM => {
                 let mut item_type = GroupByItemType::EMPTY;
                 let mut expr = None;
                 let mut args: &[_] = &[];
@@ -844,7 +844,7 @@ pub fn deserialize_ast<'a>(
                 };
                 ASTNode::GroupByItem(item)
             }
-            sx::NodeType::OBJECT_SQL_TYPENAME => {
+            proto::NodeType::OBJECT_SQL_TYPENAME => {
                 let mut base = ASTCell::default();
                 let mut set_of = ASTCell::with_value(false);
                 let mut array_bounds: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -871,7 +871,7 @@ pub fn deserialize_ast<'a>(
                     array_bounds,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_VIZ => {
+            proto::NodeType::OBJECT_DASHQL_VIZ => {
                 let mut target = ASTCell::default();
                 let mut component_type = ASTCell::default();
                 let mut type_modifiers = ASTCell::with_value(0_u32);
@@ -889,33 +889,33 @@ pub fn deserialize_ast<'a>(
                     extra,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_INPUT => {
+            proto::NodeType::OBJECT_DASHQL_DECLARE => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut value_type = ASTCell::default();
-                let mut component_type = ASTCell::with_value(Some(sx::InputComponentType::NONE));
+                let mut component_type = ASTCell::with_value(Some(proto::InputComponentType::NONE));
                 let mut extra = ASTCell::default();
                 read_attributes! {
                     (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
-                    (Key::DASHQL_INPUT_VALUE_TYPE, ASTNode::SQLType(t), ci) => value_type = ASTCell::with_node(Some(*t), ci),
-                    (Key::DASHQL_INPUT_COMPONENT_TYPE, ASTNode::InputComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
-                    (Key::DASHQL_INPUT_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
+                    (Key::DASHQL_DECLARE_VALUE_TYPE, ASTNode::SQLType(t), ci) => value_type = ASTCell::with_node(Some(*t), ci),
+                    (Key::DASHQL_DECLARE_COMPONENT_TYPE, ASTNode::InputComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::DASHQL_DECLARE_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
-                ASTNode::InputStatement(arena.alloc(InputStatement {
+                ASTNode::DeclareStatement(arena.alloc(DeclareStatement {
                     name,
                     value_type: value_type.unwrap(),
                     component_type,
                     extra,
                 }))
             }
-            sx::NodeType::OBJECT_DASHQL_SET => {
+            proto::NodeType::OBJECT_DASHQL_SET => {
                 let mut value = ASTCell::default();
                 read_attributes! {
                     (Key::DASHQL_SET_FIELDS, n, ci) => value = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::SetStatement(arena.alloc(SetStatement { fields: value.unwrap() }))
             }
-            sx::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
-                let mut base = ASTCell::with_value(sx::CharacterType::VARCHAR);
+            proto::NodeType::OBJECT_SQL_CHARACTER_TYPE => {
+                let mut base = ASTCell::with_value(proto::CharacterType::VARCHAR);
                 let mut length = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CHARACTER_TYPE, ASTNode::CharacterType(c), ci) => base = ASTCell::with_node(c.clone(), ci),
@@ -923,8 +923,8 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::CharacterTypeSpec(arena.alloc(CharacterType { base, length }))
             }
-            sx::NodeType::OBJECT_SQL_INTO => {
-                let mut temp_type = ASTCell::with_value(sx::TempType::DEFAULT);
+            proto::NodeType::OBJECT_SQL_INTO => {
+                let mut temp_type = ASTCell::with_value(proto::TempType::DEFAULT);
                 let mut temp_name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
                     (Key::SQL_TEMP_NAME, ASTNode::Array(nodes, ni), ci) => temp_name = ASTCell::with_node(read_name(arena, nodes, *ni), ci),
@@ -935,7 +935,7 @@ pub fn deserialize_ast<'a>(
                     name: temp_name,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_DEF_ARG => {
+            proto::NodeType::OBJECT_SQL_DEF_ARG => {
                 let mut key = ASTCell::with_value("");
                 let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
@@ -944,9 +944,9 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::GenericDefinition(arena.alloc(GenericDefinition { key, value }))
             }
-            sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
+            proto::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT => {
                 let mut constraint_name = ASTCell::default();
-                let mut constraint_type = ASTCell::with_value(sx::ColumnConstraint::NULL_);
+                let mut constraint_type = ASTCell::with_value(proto::ColumnConstraint::NULL_);
                 let mut definition: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = ASTCell::default();
                 let mut no_inherit = ASTCell::with_value(false);
@@ -965,16 +965,16 @@ pub fn deserialize_ast<'a>(
                     no_inherit,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_KEY_ACTION => {
-                let mut trigger = ASTCell::with_value(sx::KeyActionTrigger::UPDATE);
-                let mut command = ASTCell::with_value(sx::KeyActionCommand::NO_ACTION);
+            proto::NodeType::OBJECT_SQL_KEY_ACTION => {
+                let mut trigger = ASTCell::with_value(proto::KeyActionTrigger::UPDATE);
+                let mut command = ASTCell::with_value(proto::KeyActionCommand::NO_ACTION);
                 read_attributes! {
                     (Key::SQL_KEY_ACTION_TRIGGER, ASTNode::KeyActionTrigger(t), ci) => trigger = ASTCell::with_node(*t, ci),
                     (Key::SQL_KEY_ACTION_COMMAND, ASTNode::KeyActionCommand(c), ci) => command = ASTCell::with_node(*c, ci)
                 }
                 ASTNode::KeyAction(arena.alloc(KeyAction { trigger, command }))
             }
-            sx::NodeType::OBJECT_SQL_TABLE_CONSTRAINT => {
+            proto::NodeType::OBJECT_SQL_TABLE_CONSTRAINT => {
                 let mut constraint_name = ASTCell::default();
                 let mut constraint_type = ASTCell::default();
                 let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1022,8 +1022,8 @@ pub fn deserialize_ast<'a>(
                     key_actions,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_ROW_LOCKING => {
-                let mut strength = ASTCell::with_value(sx::RowLockingStrength::READ_ONLY);
+            proto::NodeType::OBJECT_SQL_ROW_LOCKING => {
+                let mut strength = ASTCell::with_value(proto::RowLockingStrength::READ_ONLY);
                 let mut of: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut block_behavior = ASTCell::default();
                 read_attributes! {
@@ -1048,12 +1048,12 @@ pub fn deserialize_ast<'a>(
                     block_behavior,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
+            proto::NodeType::OBJECT_SQL_SELECT_SAMPLE => {
                 let mut function = ASTCell::with_value("");
                 let mut repeat = ASTCell::default();
                 let mut seed = ASTCell::default();
                 let mut count_value = None;
-                let mut count_unit = ASTCell::with_value(sx::SampleCountUnit::ROWS);
+                let mut count_unit = ASTCell::with_value(proto::SampleCountUnit::ROWS);
                 read_attributes! {
                     (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f), ci) => function = ASTCell::with_node(f, ci),
                     (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v), ci) => repeat = ASTCell::with_node(Some(v.clone()), ci),
@@ -1074,7 +1074,7 @@ pub fn deserialize_ast<'a>(
                     })),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_CREATE => {
+            proto::NodeType::OBJECT_SQL_CREATE => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut temp = ASTCell::default();
                 let mut on_commit = ASTCell::default();
@@ -1102,7 +1102,7 @@ pub fn deserialize_ast<'a>(
                     temp,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_COLUMN_DEF => {
+            proto::NodeType::OBJECT_SQL_COLUMN_DEF => {
                 let mut name = ASTCell::with_value("");
                 let mut sql_type = ASTCell::default();
                 let mut collate: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1133,7 +1133,7 @@ pub fn deserialize_ast<'a>(
                     constraints,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_CREATE_AS => {
+            proto::NodeType::OBJECT_SQL_CREATE_AS => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut select = ASTCell::default();
                 let mut with_data = ASTCell::with_value(false);
@@ -1160,7 +1160,7 @@ pub fn deserialize_ast<'a>(
                     with_data,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_VIEW => {
+            proto::NodeType::OBJECT_SQL_VIEW => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut select = ASTCell::default();
                 let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1178,7 +1178,7 @@ pub fn deserialize_ast<'a>(
                     temp,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_CTE => {
+            proto::NodeType::OBJECT_SQL_CTE => {
                 let mut name = ASTCell::with_value("");
                 let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut stmt = ASTCell::default();
@@ -1193,8 +1193,8 @@ pub fn deserialize_ast<'a>(
                     statement: stmt.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_WINDOW_BOUND => {
-                let mut mode = ASTCell::with_value(sx::WindowBoundMode::UNBOUNDED);
+            proto::NodeType::OBJECT_SQL_WINDOW_BOUND => {
+                let mut mode = ASTCell::with_value(proto::WindowBoundMode::UNBOUNDED);
                 let mut direction = ASTCell::default();
                 let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
@@ -1204,7 +1204,7 @@ pub fn deserialize_ast<'a>(
                 }
                 ASTNode::WindowFrameBound(arena.alloc(WindowFrameBound { mode, direction, value }))
             }
-            sx::NodeType::OBJECT_SQL_WINDOW_FRAME => {
+            proto::NodeType::OBJECT_SQL_WINDOW_FRAME => {
                 let mut name = ASTCell::default();
                 let mut partition_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut order_by: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1225,7 +1225,7 @@ pub fn deserialize_ast<'a>(
                     frame_bounds,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_WINDOW_DEF => {
+            proto::NodeType::OBJECT_SQL_WINDOW_DEF => {
                 let mut name = ASTCell::default();
                 let mut frame = ASTCell::default();
                 read_attributes! {
@@ -1237,7 +1237,7 @@ pub fn deserialize_ast<'a>(
                     frame: frame.unwrap(),
                 }))
             }
-            sx::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION => {
+            proto::NodeType::OBJECT_SQL_TYPETEST_EXPRESSION => {
                 let mut negate = ASTCell::with_value(false);
                 let mut value = ASTCell::default();
                 let mut of_types: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1252,14 +1252,14 @@ pub fn deserialize_ast<'a>(
                     of_types,
                 }))
             }
-            sx::NodeType::OBJECT_SQL_SELECT => {
+            proto::NodeType::OBJECT_SQL_SELECT => {
                 let mut with_ctes: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut with_recursive = ASTCell::with_value(false);
 
                 let mut values: ASTCell<Option<&'a [ASTCell<&'a [ASTCell<Expression<'a>>]>]>> = ASTCell::default();
                 let mut table = ASTCell::default();
                 let mut combine_operation = ASTCell::default();
-                let mut combine_modifier = ASTCell::with_value(sx::CombineModifier::NONE);
+                let mut combine_modifier = ASTCell::with_value(proto::CombineModifier::NONE);
                 let mut combine_input: ASTCell<&[_]> = ASTCell::with_value(&[]);
 
                 let mut targets: ASTCell<&[_]> = ASTCell::with_value(&[]);
@@ -1360,13 +1360,13 @@ pub fn deserialize_ast<'a>(
                     row_locking,
                 }))
             }
-            sx::NodeType::OBJECT_DSON => {
+            proto::NodeType::OBJECT_DSON => {
                 let fields = arena.alloc_slice_fill_default(children.len());
                 for i in 0..children.len() {
                     let c = &children[i];
-                    let k = sx::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
-                    let ks = if k.0 >= sx::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
-                        let ki = k.0 - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0;
+                    let k = proto::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
+                    let ks = if k.0 >= proto::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
+                        let ki = k.0 - proto::AttributeKey::DSON_DYNAMIC_KEYS_.0;
                         let dson_keys = buffer.dson_keys().unwrap_or_default();
                         let dson_key = dson_keys[ki as usize];
                         DsonKey::Unknown(
@@ -1393,8 +1393,8 @@ pub fn deserialize_ast<'a>(
         let node = &nodes[statement.root_node() as usize];
         let stmt = match node {
             ASTNode::SelectStatement(s) => Statement::Select(s),
-            ASTNode::InputStatement(s) => Statement::Input(s),
-            ASTNode::FetchStatement(s) => Statement::Fetch(s),
+            ASTNode::DeclareStatement(s) => Statement::Input(s),
+            ASTNode::ImportStatement(s) => Statement::Import(s),
             ASTNode::VizStatement(s) => Statement::Viz(s),
             ASTNode::LoadStatement(s) => Statement::Load(s),
             ASTNode::Create(s) => Statement::Create(s),

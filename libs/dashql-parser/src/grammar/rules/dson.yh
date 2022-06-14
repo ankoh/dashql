@@ -1,8 +1,8 @@
 %type <NodeVector> dson_array;
 %type <NodeVector> dson_array_brackets;
 %type <NodeVector> dson_fields;
-%type <std::vector<sx::Location>> dson_key_path;
-%type <sx::Node> dson;
-%type <sx::Node> dson_value;
-%type <sx::Node> opt_dson;
-%type <sx::Node> opt_dson_field;
+%type <std::vector<proto::Location>> dson_key_path;
+%type <proto::Node> dson;
+%type <proto::Node> dson_value;
+%type <proto::Node> opt_dson;
+%type <proto::Node> opt_dson_field;

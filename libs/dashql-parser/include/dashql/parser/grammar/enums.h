@@ -13,49 +13,49 @@ namespace parser {
 
 constexpr uint32_t NO_PARENT = std::numeric_limits<uint32_t>::max();
 
-using ExprFunc = sx::ExpressionOperator;
+using ExprFunc = proto::ExpressionOperator;
 
-#define X(ENUM_TYPE, NODE_TYPE)                                                     \
-    inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) {                           \
-        return sx::Node(loc, NODE_TYPE, 0, NO_PARENT, static_cast<uint32_t>(e), 0); \
+#define X(ENUM_TYPE, NODE_TYPE)                                                        \
+    inline proto::Node Enum(proto::Location loc, ENUM_TYPE e) {                        \
+        return proto::Node(loc, NODE_TYPE, 0, NO_PARENT, static_cast<uint32_t>(e), 0); \
     }
-X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
-X(sx::CharacterType, sx::NodeType::ENUM_SQL_CHARACTER_TYPE)
-X(sx::ColumnConstraint, sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
-X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
-X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
-X(sx::ConstraintAttribute, sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE)
-X(sx::ExpressionOperator, sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR)
-X(sx::ExtractTarget, sx::NodeType::ENUM_SQL_EXTRACT_TARGET)
-X(sx::FetchMethodType, sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE)
-X(sx::GroupByItemType, sx::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE)
-X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)
-X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
-X(sx::JoinType, sx::NodeType::ENUM_SQL_JOIN_TYPE)
-X(sx::KeyActionCommand, sx::NodeType::ENUM_SQL_KEY_ACTION_COMMAND)
-X(sx::KeyActionTrigger, sx::NodeType::ENUM_SQL_KEY_ACTION_TRIGGER)
-X(sx::KeyMatch, sx::NodeType::ENUM_SQL_KEY_MATCH)
-X(sx::KnownFunction, sx::NodeType::ENUM_SQL_KNOWN_FUNCTION)
-X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
-X(sx::NumericType, sx::NodeType::ENUM_SQL_NUMERIC_TYPE)
-X(sx::OnCommitOption, sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION)
-X(sx::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
-X(sx::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)
-X(sx::RowLockingBlockBehavior, sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR)
-X(sx::RowLockingStrength, sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH)
-X(sx::SampleCountUnit, sx::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE)
-X(sx::SubqueryQuantifier, sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER)
-X(sx::TableConstraint, sx::NodeType::ENUM_SQL_TABLE_CONSTRAINT)
-X(sx::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
-X(sx::TrimDirection, sx::NodeType::ENUM_SQL_TRIM_TARGET)
-X(sx::VizComponentType, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
-X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
-X(sx::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
-X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
-X(sx::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
+X(proto::AConstType, proto::NodeType::ENUM_SQL_CONST_TYPE)
+X(proto::CharacterType, proto::NodeType::ENUM_SQL_CHARACTER_TYPE)
+X(proto::ColumnConstraint, proto::NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
+X(proto::CombineModifier, proto::NodeType::ENUM_SQL_COMBINE_MODIFIER)
+X(proto::CombineOperation, proto::NodeType::ENUM_SQL_COMBINE_OPERATION)
+X(proto::ConstraintAttribute, proto::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE)
+X(proto::ExpressionOperator, proto::NodeType::ENUM_SQL_EXPRESSION_OPERATOR)
+X(proto::ExtractTarget, proto::NodeType::ENUM_SQL_EXTRACT_TARGET)
+X(proto::ImportMethodType, proto::NodeType::ENUM_DASHQL_IMPORT_METHOD_TYPE)
+X(proto::GroupByItemType, proto::NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE)
+X(proto::InputComponentType, proto::NodeType::ENUM_DASHQL_DECLARE_COMPONENT_TYPE)
+X(proto::IntervalType, proto::NodeType::ENUM_SQL_INTERVAL_TYPE)
+X(proto::JoinType, proto::NodeType::ENUM_SQL_JOIN_TYPE)
+X(proto::KeyActionCommand, proto::NodeType::ENUM_SQL_KEY_ACTION_COMMAND)
+X(proto::KeyActionTrigger, proto::NodeType::ENUM_SQL_KEY_ACTION_TRIGGER)
+X(proto::KeyMatch, proto::NodeType::ENUM_SQL_KEY_MATCH)
+X(proto::KnownFunction, proto::NodeType::ENUM_SQL_KNOWN_FUNCTION)
+X(proto::LoadMethodType, proto::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
+X(proto::NumericType, proto::NodeType::ENUM_SQL_NUMERIC_TYPE)
+X(proto::OnCommitOption, proto::NodeType::ENUM_SQL_ON_COMMIT_OPTION)
+X(proto::OrderDirection, proto::NodeType::ENUM_SQL_ORDER_DIRECTION)
+X(proto::OrderNullRule, proto::NodeType::ENUM_SQL_ORDER_NULL_RULE)
+X(proto::RowLockingBlockBehavior, proto::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR)
+X(proto::RowLockingStrength, proto::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH)
+X(proto::SampleCountUnit, proto::NodeType::ENUM_SQL_SAMPLE_UNIT_TYPE)
+X(proto::SubqueryQuantifier, proto::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER)
+X(proto::TableConstraint, proto::NodeType::ENUM_SQL_TABLE_CONSTRAINT)
+X(proto::TempType, proto::NodeType::ENUM_SQL_TEMP_TYPE)
+X(proto::TrimDirection, proto::NodeType::ENUM_SQL_TRIM_TARGET)
+X(proto::VizComponentType, proto::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
+X(proto::WindowBoundDirection, proto::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
+X(proto::WindowBoundMode, proto::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
+X(proto::WindowExclusionMode, proto::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
+X(proto::WindowRangeMode, proto::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
 #undef X
 
-const char* getEnumText(const sx::Node& target);
+const char* getEnumText(const proto::Node& target);
 
 }  // namespace parser
 }  // namespace dashql

@@ -1,1 +1,1 @@
-%type <sx::Node> dashql_query_statement;
+%type <proto::Node> dashql_query_statement;

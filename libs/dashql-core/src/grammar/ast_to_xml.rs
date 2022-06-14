@@ -1,18 +1,18 @@
 use crate::grammar::enums::get_enum_text;
-use dashql_proto::syntax as sx;
+use dashql_proto as proto;
+use proto::AttributeKey as Key;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
 use quick_xml::events::Event;
 use quick_xml::Writer;
 use std::error::Error;
-use sx::AttributeKey as Key;
 
 const INLINE_LOCATION_CAP: usize = 20;
 const LOCATION_HINT_LENGTH: usize = 10;
 
 pub fn serialize_ast_as_xml<'a, W>(
     writer: &mut Writer<W>,
-    ast: sx::Program<'a>,
+    ast: proto::Program<'a>,
     text: &'a str,
 ) -> Result<(), Box<dyn Error + Send + Sync>>
 where
@@ -39,37 +39,37 @@ where
                 pending.last_mut().unwrap().0 = true;
                 let mut node = BytesStart::borrowed_name(b"node");
                 if n.attribute_key() != 0 {
-                    let key = if n.attribute_key() < sx::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
+                    let key = if n.attribute_key() < proto::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
                         Key(n.attribute_key()).variant_name().unwrap_or_default().to_string()
                     } else {
                         format!(
                             "DSON_KEYS[{}]",
-                            (n.attribute_key() - sx::AttributeKey::DSON_DYNAMIC_KEYS_.0)
+                            (n.attribute_key() - proto::AttributeKey::DSON_DYNAMIC_KEYS_.0)
                         )
                     };
                     node.push_attribute(("key", key.as_str()));
                 }
                 node.push_attribute(("type", n.node_type().variant_name().unwrap_or_default()));
                 match n.node_type() {
-                    sx::NodeType::NONE => {
+                    proto::NodeType::NONE => {
                         pending.pop();
                     }
-                    sx::NodeType::BOOL => {
+                    proto::NodeType::BOOL => {
                         node.push_attribute(("value", format!("{}", n.children_begin_or_value() != 0).as_str()));
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
-                    sx::NodeType::UI32_BITMAP | sx::NodeType::UI32 => {
+                    proto::NodeType::UI32_BITMAP | proto::NodeType::UI32 => {
                         node.push_attribute(("value", format!("{}", n.children_begin_or_value()).as_str()));
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
-                    sx::NodeType::STRING_REF => {
+                    proto::NodeType::STRING_REF => {
                         encode_location(&mut node, *n.location(), text);
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
-                    sx::NodeType::ARRAY => {
+                    proto::NodeType::ARRAY => {
                         let begin = n.children_begin_or_value();
                         let end = begin + n.children_count();
                         for i in 0..n.children_count() {
@@ -79,7 +79,7 @@ where
                     }
                     _ => {
                         let node_type_id = n.node_type();
-                        if node_type_id.0 > sx::NodeType::OBJECT_KEYS_.0 {
+                        if node_type_id.0 > proto::NodeType::OBJECT_KEYS_.0 {
                             encode_location(&mut node, *n.location(), text);
                             let begin = n.children_begin_or_value();
                             let end = begin + n.children_count();
@@ -87,7 +87,7 @@ where
                                 pending.push((false, end - i - 1));
                             }
                             writer.write_event(Event::Start(node))?;
-                        } else if node_type_id.0 > sx::NodeType::ENUM_KEYS_.0 {
+                        } else if node_type_id.0 > proto::NodeType::ENUM_KEYS_.0 {
                             node.push_attribute(("value", get_enum_text(&n)));
                             writer.write_event(Event::Empty(node))?;
                             pending.pop();
@@ -162,7 +162,7 @@ where
     Ok(())
 }
 
-fn encode_location<'writer, 'a>(writer: &mut BytesStart<'writer>, loc: sx::Location, text: &'a str) {
+fn encode_location<'writer, 'a>(writer: &mut BytesStart<'writer>, loc: proto::Location, text: &'a str) {
     let begin = loc.offset() as usize;
     let end = (loc.offset() + loc.length()) as usize;
     if begin >= text.len() || end > text.len() {
@@ -182,7 +182,7 @@ fn encode_location<'writer, 'a>(writer: &mut BytesStart<'writer>, loc: sx::Locat
     writer.extend_attributes([loc_attr, ("text", &out)]);
 }
 
-fn encode_error<'writer, 'a>(writer: &mut BytesStart<'writer>, error: sx::Error<'a>, text: &'a str) {
+fn encode_error<'writer, 'a>(writer: &mut BytesStart<'writer>, error: proto::Error<'a>, text: &'a str) {
     writer.extend_attributes([("message", error.message().unwrap_or_default())]);
     encode_location(writer, error.location().copied().unwrap_or_default(), text);
 }

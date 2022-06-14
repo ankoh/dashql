@@ -1,49 +1,49 @@
 <astdumps>
-    <astdump name="input_varchar">
-        <input>INPUT foo TYPE VARCHAR;
-            INPUT foo TYPE VARCHAR USING TEXT;
-            INPUT foo TYPE VARCHAR USING TEXT (label = &apos;Foo&apos;);</input>
+    <astdump name="declare_varchar">
+        <input>DECLARE foo AS VARCHAR;
+            DECLARE foo AS VARCHAR USING TEXT;
+            DECLARE foo AS VARCHAR USING TEXT (label = &apos;Foo&apos;);</input>
         <parsed>
             <statements>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="0..22" text="INPUT foo ..PE VARCHAR">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="NONE"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="VARCHAR">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="0..22" text="DECLARE fo..AS VARCHAR">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="NONE"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="15..22" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                            <node type="STRING_REF" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="36..69" text="INPUT foo ..USING TEXT">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="51..58" text="VARCHAR">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="36..69" text="DECLARE fo..USING TEXT">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="TEXT"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="51..58" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="51..58" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="42..45" text="foo"/>
+                            <node type="STRING_REF" loc="44..47" text="foo"/>
                         </node>
                     </node>
                 </statement>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="83..132" text="INPUT foo ..l = &apos;Foo&apos;)">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="TEXT"/>
-                        <node key="DASHQL_INPUT_EXTRA" type="OBJECT_DSON" loc="117..132" text="(label = &apos;Foo&apos;)">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="83..132" text="DECLARE fo..l = &apos;Foo&apos;)">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="TEXT"/>
+                        <node key="DASHQL_DECLARE_EXTRA" type="OBJECT_DSON" loc="117..132" text="(label = &apos;Foo&apos;)">
                             <node key="DSON_LABEL" type="STRING_REF" loc="126..131" text="&apos;Foo&apos;"/>
                         </node>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="98..105" text="VARCHAR">
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="98..105" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="98..105" text="VARCHAR">
                                 <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="89..92" text="foo"/>
+                            <node type="STRING_REF" loc="91..94" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -59,7 +59,7 @@
         <translated>Program {
     statements: [
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,
@@ -82,7 +82,7 @@
             },
         ),
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,
@@ -105,7 +105,7 @@
             },
         ),
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,
@@ -145,14 +145,14 @@
     ],
 }</translated>
     </astdump>
-    <astdump name="input_calendar">
-        <input>INPUT foo TYPE DATE[2] USING CALENDAR;</input>
+    <astdump name="declare_calendar">
+        <input>DECLARE foo AS DATE[2] USING CALENDAR;</input>
         <parsed>
             <statements>
-                <statement type="INPUT">
-                    <node type="OBJECT_DASHQL_INPUT" loc="0..37" text="INPUT foo ..G CALENDAR">
-                        <node key="DASHQL_INPUT_COMPONENT_TYPE" type="ENUM_DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR"/>
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="0..37" text="DECLARE fo..G CALENDAR">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
                             <node key="SQL_TYPENAME_ARRAY" type="ARRAY">
                                 <node type="STRING_REF" loc="20..21" text="2"/>
                             </node>
@@ -161,7 +161,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="6..9" text="foo"/>
+                            <node type="STRING_REF" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -174,7 +174,7 @@
         <translated>Program {
     statements: [
         Input(
-            InputStatement {
+            DeclareStatement {
                 name: [
                     Name(
                         &quot;foo&quot;,
