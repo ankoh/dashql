@@ -1,5 +1,6 @@
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
+use crate::execution::import::{FileImport, HttpImport, Import};
 use crate::execution::task::task_context::TaskContext;
 use crate::execution::task::Task;
 use crate::grammar::{ImportStatement, Statement};
@@ -43,25 +44,27 @@ impl Task for ImportTask {
 
         // User specified uri?
         if let Some(from_uri_expr) = stmt.from_uri.get() {
-            let from_uri = match from_uri_expr.evaluate(&mut ctx.expressions)?.map(|v| format!("{}", v)) {
+            let from_uri = match from_uri_expr
+                .evaluate(&mut ctx.evaluation_context)?
+                .map(|v| format!("{}", v))
+            {
                 Some(uri) => uri,
-                None => return Err(SystemError::InvalidImportURI(format!("{:?}", &from_uri_expr))),
+                None => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
             };
             method = infer_import_method(&from_uri);
             url = Some(from_uri);
         }
 
         // XXX If none, resolve from extras
-        match method {
-            proto::ImportMethodType::FILE => (),
-            proto::ImportMethodType::HTTP => {
-                let mut builder = reqwest::Client::builder();
+        let url = url.unwrap();
 
-                let client = builder.build()?;
-            }
-            _ => (),
-        }
-
-        todo!()
+        // Register import
+        let import = match method {
+            proto::ImportMethodType::FILE => Import::File(FileImport { url: url }),
+            proto::ImportMethodType::HTTP => Import::Http(HttpImport { url: url }),
+            _ => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
+        };
+        ctx.imports_by_id.insert(self.task.object_id, import);
+        Ok(())
     }
 }
