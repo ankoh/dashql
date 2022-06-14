@@ -2,15 +2,16 @@ use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::task::task_context::TaskContext;
 use crate::execution::task::Task;
-use crate::grammar::{LoadStatement, Statement};
+use crate::grammar::{LoadStatement, Program, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
-pub struct LoadTask {
+pub struct LoadTask<'a> {
+    program: &'a Program<'a>,
     task: Rc<ProgramTask>,
-    conn: Box<dyn DatabaseConnection>,
+    connection: Box<dyn DatabaseConnection>,
 }
 
 fn infer_load_method(url: &str) -> proto::LoadMethodType {
@@ -24,9 +25,9 @@ fn infer_load_method(url: &str) -> proto::LoadMethodType {
     return proto::LoadMethodType::NONE;
 }
 
-impl LoadTask {
-    fn get_statement<'a>(&self, ctx: &TaskContext<'a>) -> Result<&'a LoadStatement<'a>, SystemError> {
-        match &ctx.program.statements[self.task.origin_statement] {
+impl<'a> LoadTask<'a> {
+    fn get_statement(&self, ctx: &TaskContext<'a>) -> Result<&'a LoadStatement<'a>, SystemError> {
+        match &self.program.statements[self.task.origin_statement] {
             Statement::Load(load) => Ok(load),
             _ => Err(SystemError::InvalidStatementType("load")),
         }
@@ -34,12 +35,12 @@ impl LoadTask {
 }
 
 #[async_trait(?Send)]
-impl Task for LoadTask {
-    async fn prepare(&mut self, _ctx: &mut TaskContext) -> Result<(), SystemError> {
+impl<'a> Task<'a> for LoadTask<'a> {
+    async fn prepare(&mut self, _ctx: &TaskContext<'a>) -> Result<(), SystemError> {
         todo!()
     }
 
-    async fn execute(&mut self, _ctx: &mut TaskContext) -> Result<(), SystemError> {
+    async fn execute(&mut self, ctx: &TaskContext<'a>) -> Result<(), SystemError> {
         todo!()
     }
 }

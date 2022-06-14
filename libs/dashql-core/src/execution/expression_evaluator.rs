@@ -11,7 +11,7 @@ use std::rc::Rc;
 #[derive(Clone, Debug, Default)]
 pub struct ExpressionEvaluationContext<'a> {
     pub named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
-    pub evaluated_expressions: HashMap<Expression<'a>, Option<Rc<ScalarValue>>>,
+    pub cached_values: HashMap<Expression<'a>, Option<Rc<ScalarValue>>>,
     pub current_node_id: Option<usize>,
 }
 
@@ -19,7 +19,7 @@ const STRING_REF_TRIMMING: &'static [char] = &['"', ' ', '\''];
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&self, ctx: &mut ExpressionEvaluationContext<'a>) -> Result<Option<Rc<ScalarValue>>, SystemError> {
-        if let Some(value) = ctx.evaluated_expressions.get(&self) {
+        if let Some(value) = ctx.cached_values.get(&self) {
             return Ok(value.clone());
         }
         let value = match self {
@@ -46,7 +46,7 @@ impl<'a> Expression<'a> {
             },
             _ => return Err(SystemError::ExpressionTypeNotImplemented(None)),
         };
-        ctx.evaluated_expressions.insert(self.clone(), value.clone());
+        ctx.cached_values.insert(self.clone(), value.clone());
         Ok(value)
     }
 }
