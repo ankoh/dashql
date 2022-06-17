@@ -1,4 +1,5 @@
 use crate::error::SystemError;
+use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::scalar_value::LogicalType;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{Statement, TableRef};
@@ -36,35 +37,41 @@ impl Default for Card {
     }
 }
 
-pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
+pub fn allocate_card_positions<'ast, 'snap>(
+    inst: &mut ProgramInstance<'ast>,
+    exec: &mut ExecutionContextSnapshot<'ast, 'snap>,
+) -> Result<(), SystemError> {
     // Helper to evaluate a position value
-    let eval =
-        |out: &mut usize, pos: &DsonValue<'a>, attr: proto::AttributeKey, inst: &mut ProgramInstance<'a>| match pos
-            .get(attr)
-            .cloned()
-            .unwrap_or_default()
-            .as_expression()
-            .evaluate(&mut inst.expression_evaluation)
-        {
-            Ok(None) => (),
-            Ok(Some(v)) => match v.cast_as(LogicalType::Float64) {
-                Ok(v) => *out = v.get_f64_or_default() as usize,
-                Err(_) => {
-                    inst.node_error_messages.push(NodeError {
-                        node_id: None,
-                        error_code: NodeErrorCode::InvalidValueType,
-                        error_message: "position value cannot be casted to double".to_string(),
-                    });
-                }
-            },
+    let eval = |out: &mut usize,
+                pos: &DsonValue<'ast>,
+                attr: proto::AttributeKey,
+                inst: &mut ProgramInstance<'ast>,
+                exec: &mut ExecutionContextSnapshot<'ast, 'snap>| match pos
+        .get(attr)
+        .cloned()
+        .unwrap_or_default()
+        .as_expression()
+        .evaluate(exec)
+    {
+        Ok(None) => (),
+        Ok(Some(v)) => match v.cast_as(LogicalType::Float64) {
+            Ok(v) => *out = v.get_f64_or_default() as usize,
             Err(_) => {
                 inst.node_error_messages.push(NodeError {
                     node_id: None,
-                    error_code: NodeErrorCode::ExpressionEvaluationFailed,
-                    error_message: "failed to evaluate position value".to_string(),
+                    error_code: NodeErrorCode::InvalidValueType,
+                    error_message: "position value cannot be casted to double".to_string(),
                 });
             }
-        };
+        },
+        Err(_) => {
+            inst.node_error_messages.push(NodeError {
+                node_id: None,
+                error_code: NodeErrorCode::ExpressionEvaluationFailed,
+                error_message: "failed to evaluate position value".to_string(),
+            });
+        }
+    };
 
     // Allocate positions of input cards
     let mut space = BoardSpace::default();
@@ -84,10 +91,10 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
             column: 0,
         };
         if let Some(pos) = position {
-            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst);
-            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst);
-            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst);
-            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst);
+            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst, exec);
+            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst, exec);
+            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst, exec);
+            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst, exec);
         }
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);
@@ -109,10 +116,10 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
         };
         if let Some(pos) = position {
             requested = BoardPosition::default();
-            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst);
-            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst);
-            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst);
-            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst);
+            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst, exec);
+            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst, exec);
+            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst, exec);
+            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst, exec);
         }
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);
@@ -121,7 +128,10 @@ pub fn allocate_card_positions<'a>(inst: &mut ProgramInstance<'a>) -> Result<(),
     Ok(())
 }
 
-pub fn collect_cards<'a>(inst: &mut ProgramInstance<'a>) -> Result<(), SystemError> {
+pub fn collect_cards<'ast, 'snap>(
+    inst: &mut ProgramInstance<'ast>,
+    exec: &mut ExecutionContextSnapshot<'ast, 'snap>,
+) -> Result<(), SystemError> {
     for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();

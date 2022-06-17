@@ -1,4 +1,4 @@
-use super::expression_evaluator::ExpressionEvaluationContext;
+use super::execution_context::ExecutionContextSnapshot;
 use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
 use crate::grammar::Expression;
@@ -7,8 +7,11 @@ use smallvec::SmallVec;
 use std::rc::Rc;
 
 // Check if an expression is constant
-pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluationContext<'a>) -> bool {
-    let mut pending: SmallVec<[Expression<'a>; 6]> = SmallVec::new();
+pub fn is_constant_expression<'ast, 'snap>(
+    root: Expression<'ast>,
+    ctx: &ExecutionContextSnapshot<'ast, 'snap>,
+) -> bool {
+    let mut pending: SmallVec<[Expression<'ast>; 6]> = SmallVec::new();
     pending.push(root);
 
     while let Some(top) = pending.pop() {
@@ -17,7 +20,9 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
             Expression::Boolean(_) => true,
             Expression::Uint32(_) => true,
             Expression::StringRef(_) => true,
-            Expression::ColumnRef(name) => ctx.named_values.contains_key(&name),
+            Expression::ColumnRef(name) => {
+                ctx.local.named_values.contains_key(&name) || ctx.global.named_values.contains_key(&name)
+            }
             Expression::Array(elems) => {
                 for elem in elems.iter() {
                     pending.push(elem.get());
@@ -57,9 +62,9 @@ pub fn is_constant_expression<'a>(root: Expression<'a>, ctx: &ExpressionEvaluati
 }
 
 /// Evaluate an expression
-pub fn evaluate_constant_expression<'a>(
-    expr: Expression<'a>,
-    ctx: &mut ExpressionEvaluationContext<'a>,
+pub fn evaluate_constant_expression<'ast, 'snap>(
+    expr: Expression<'ast>,
+    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
 ) -> Result<Option<Rc<ScalarValue>>, SystemError> {
     expr.evaluate(ctx)
 }

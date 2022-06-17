@@ -1,25 +1,24 @@
+use super::execution_context::ExecutionContextSnapshot;
 use super::function;
 use super::scalar_value::ScalarValue;
 use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::FunctionName;
-use crate::grammar::NamePath;
-use std::collections::HashMap;
 use std::rc::Rc;
-
-/// Context for evaluating expressions
-#[derive(Clone, Debug, Default)]
-pub struct ExpressionEvaluationContext<'a> {
-    pub named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
-    pub cached_values: HashMap<Expression<'a>, Option<Rc<ScalarValue>>>,
-    pub current_node_id: Option<usize>,
-}
 
 const STRING_REF_TRIMMING: &'static [char] = &['"', ' ', '\''];
 
 impl<'a> Expression<'a> {
-    pub fn evaluate(&self, ctx: &mut ExpressionEvaluationContext<'a>) -> Result<Option<Rc<ScalarValue>>, SystemError> {
-        if let Some(value) = ctx.cached_values.get(&self) {
+    pub fn evaluate<'snap>(
+        &self,
+        ctx: &mut ExecutionContextSnapshot<'a, 'snap>,
+    ) -> Result<Option<Rc<ScalarValue>>, SystemError> {
+        if let Some(value) = ctx
+            .local
+            .cached_values
+            .get(&self)
+            .or(ctx.global.cached_values.get(&self))
+        {
             return Ok(value.clone());
         }
         let value = match self {
@@ -29,24 +28,24 @@ impl<'a> Expression<'a> {
             Expression::StringRef(s) => Some(Rc::new(ScalarValue::Varchar(
                 s.trim_matches(STRING_REF_TRIMMING).to_string(),
             ))),
-            Expression::ColumnRef(name) => ctx.named_values.get(name).cloned(),
+            Expression::ColumnRef(name) => ctx
+                .local
+                .named_values
+                .get(name)
+                .or(ctx.global.named_values.get(name))
+                .cloned(),
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
-                    _ => return Err(SystemError::FunctionNotImplementedButKnown(ctx.current_node_id, known)),
+                    _ => return Err(SystemError::FunctionNotImplementedButKnown(known)),
                 },
                 FunctionName::Unknown(func) => match func {
                     "format" => Some(Rc::new(function::format::evaluate_scalar(ctx, f)?)),
-                    _ => {
-                        return Err(SystemError::FunctionNotImplemented(
-                            ctx.current_node_id,
-                            func.to_string(),
-                        ))
-                    }
+                    _ => return Err(SystemError::FunctionNotImplemented(func.to_string())),
                 },
             },
             _ => return Err(SystemError::ExpressionTypeNotImplemented(None)),
         };
-        ctx.cached_values.insert(self.clone(), value.clone());
+        ctx.local.cached_values.insert(self.clone(), value.clone());
         Ok(value)
     }
 }

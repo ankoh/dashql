@@ -1,18 +1,18 @@
 use crate::error::SystemError;
-use crate::execution::expression_evaluator::ExpressionEvaluationContext;
+use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::scalar_value::ScalarValue;
 use crate::fmt::dynfmt;
 use crate::grammar::FunctionExpression;
 use std::collections::HashMap;
 
-pub fn evaluate_scalar<'a>(
-    ctx: &mut ExpressionEvaluationContext<'a>,
-    expr: &'a FunctionExpression<'a>,
+pub fn evaluate_scalar<'ast, 'snap>(
+    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    expr: &'ast FunctionExpression<'ast>,
 ) -> Result<ScalarValue, SystemError> {
     // Get template string
     let raw_args = expr.args.get();
     if raw_args.len() == 0 {
-        return Err(SystemError::InsufficientArguments(ctx.current_node_id));
+        return Err(SystemError::InsufficientArguments);
     }
     let template_arg = raw_args[0].get();
     let template_val = template_arg.value.get().evaluate(ctx)?;
@@ -37,7 +37,7 @@ pub fn evaluate_scalar<'a>(
 
     // Format string
     let result = dynfmt(&template_str, &args_unnamed, &args_named)
-        .map_err(|e| SystemError::FunctionEvaluationFailed(ctx.current_node_id, e.into()))?;
+        .map_err(|e| SystemError::FunctionEvaluationFailed(e.into()))?;
     Ok(ScalarValue::Varchar(result))
 }
 

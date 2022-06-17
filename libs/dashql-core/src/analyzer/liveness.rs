@@ -3,13 +3,13 @@ use crate::grammar::Statement;
 use super::program_instance::ProgramInstance;
 use std::collections::HashSet;
 
-pub fn determine_statement_liveness<'a>(ctx: &mut ProgramInstance<'a>) {
-    ctx.statement_liveness.resize(ctx.program.statements.len(), false);
+pub fn determine_statement_liveness<'a>(inst: &mut ProgramInstance<'a>) {
+    inst.statement_liveness.resize(inst.program.statements.len(), false);
 
     // Prepare DFSs starting from viz and input statements
     let mut pending = Vec::new();
     let mut visited = HashSet::new();
-    for (stmt_id, stmt) in ctx.program.statements.iter().enumerate() {
+    for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         match stmt {
             Statement::Viz(_) | Statement::Input(_) => pending.push(stmt_id),
             _ => {}
@@ -20,12 +20,12 @@ pub fn determine_statement_liveness<'a>(ctx: &mut ProgramInstance<'a>) {
     while !pending.is_empty() {
         let next = *pending.last().unwrap();
         pending.pop();
-        ctx.statement_liveness[next] = true;
+        inst.statement_liveness[next] = true;
         if visited.contains(&next) {
             continue;
         }
         visited.insert(next);
-        for ((_, dep), _) in ctx.statement_depends_on.range((next, 0)..(next + 1, 0)) {
+        for ((_, dep), _) in inst.statement_depends_on.range((next, 0)..(next + 1, 0)) {
             pending.push(*dep);
         }
     }

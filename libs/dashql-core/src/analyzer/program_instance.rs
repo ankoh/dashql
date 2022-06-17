@@ -5,7 +5,7 @@ use super::board_cards::collect_cards;
 use super::board_cards::Card;
 use super::board_space::BoardPosition;
 use crate::error::SystemError;
-use crate::execution::expression_evaluator::ExpressionEvaluationContext;
+use crate::execution::execution_context::ExecutionContext;
 use crate::execution::scalar_value::ScalarValue;
 use dashql_proto as proto;
 use serde::Serialize;
@@ -35,7 +35,6 @@ pub struct ProgramInstance<'a> {
     pub input: HashMap<usize, ScalarValue>,
 
     // Analysis state
-    pub expression_evaluation: ExpressionEvaluationContext<'a>,
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<NodeLinterMessage>,
     pub statement_names: Vec<Option<NamePath<'a>>>,
@@ -68,7 +67,6 @@ impl<'a> ProgramInstance<'a> {
             program_proto: program_proto,
             program: program_translated,
             input,
-            expression_evaluation: ExpressionEvaluationContext::default(),
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -102,11 +100,13 @@ pub fn analyze_program<'arena>(
     input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
     let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
+    let exec = ExecutionContext::with_arena(arena);
+    let mut exec_snap = exec.snapshot();
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
-    allocate_card_positions(&mut inst)?;
-    collect_cards(&mut inst)?;
+    allocate_card_positions(&mut inst, &mut exec_snap)?;
+    collect_cards(&mut inst, &mut exec_snap)?;
     Ok(inst)
 }
 

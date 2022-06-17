@@ -1,9 +1,8 @@
-use crate::error::SystemError;
-use crate::execution::task::task_context::TaskContext;
+use crate::{error::SystemError, execution::execution_context::ExecutionContextSnapshot};
 use async_trait::async_trait;
 
 #[async_trait(?Send)]
-pub trait Task<'a> {
-    async fn prepare(&mut self, ctx: &TaskContext<'a>) -> Result<(), SystemError>;
-    async fn execute(&mut self, ctx: &TaskContext<'a>) -> Result<(), SystemError>;
+pub trait Task<'ast> {
+    async fn prepare<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError>;
+    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError>;
 }

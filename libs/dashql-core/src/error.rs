@@ -9,12 +9,12 @@ pub enum SystemError {
     CastFailed(Option<usize>, LogicalType, LogicalType),
     CastNotImplemented(Option<usize>, LogicalType, LogicalType),
     ExpressionTypeNotImplemented(Option<usize>),
-    FunctionEvaluationFailed(Option<usize>, Box<dyn Error + Send + Sync>),
-    FunctionNotImplemented(Option<usize>, String),
-    FunctionNotImplementedButKnown(Option<usize>, proto::KnownFunction),
+    FunctionEvaluationFailed(Box<dyn Error + Send + Sync>),
+    FunctionNotImplemented(String),
+    FunctionNotImplementedButKnown(proto::KnownFunction),
     Generic(String),
     HTTPRequestFailed(reqwest::Error),
-    InsufficientArguments(Option<usize>),
+    InsufficientArguments,
     InvalidImport(String),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(Option<usize>),
@@ -31,12 +31,12 @@ impl SystemError {
             SystemError::CastFailed(_, _, _) => "cast failed",
             SystemError::CastNotImplemented(_, _, _) => "cast not implemented",
             SystemError::ExpressionTypeNotImplemented(_) => "expression type not implemented",
-            SystemError::FunctionEvaluationFailed(_, _) => "function evaluation failed",
-            SystemError::FunctionNotImplemented(_, _) => "function not implemented",
-            SystemError::FunctionNotImplementedButKnown(_, _) => "function not implemented",
+            SystemError::FunctionEvaluationFailed(_) => "function evaluation failed",
+            SystemError::FunctionNotImplemented(_) => "function not implemented",
+            SystemError::FunctionNotImplementedButKnown(_) => "function not implemented",
             SystemError::Generic(_) => "generic",
             SystemError::HTTPRequestFailed(_) => "http request failed",
-            SystemError::InsufficientArguments(_) => "insufficient arguments",
+            SystemError::InsufficientArguments => "insufficient arguments",
             SystemError::InvalidImport(_) => "invalid import",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
@@ -71,16 +71,16 @@ impl<'a> fmt::Display for SystemError {
             SystemError::ExpressionTypeNotImplemented(node) => {
                 write!(f, "[{:?}] expression type not implemented", node)
             }
-            SystemError::FunctionEvaluationFailed(node, error) => write!(f, "[{:?}] {}", node, error.to_string()),
-            SystemError::FunctionNotImplemented(node, func) => {
-                write!(f, "[{:?}] function not implemented: {}", node, func)
+            SystemError::FunctionEvaluationFailed(error) => write!(f, "{}", error.to_string()),
+            SystemError::FunctionNotImplemented(func) => {
+                write!(f, "function not implemented: {}", func)
             }
-            SystemError::FunctionNotImplementedButKnown(node, func) => {
-                write!(f, "[{:?}] function node implemented: {:?}", node, func)
+            SystemError::FunctionNotImplementedButKnown(func) => {
+                write!(f, "function node implemented: {:?}", func)
             }
             SystemError::Generic(error) => write!(f, "error: {:?}", error),
             SystemError::HTTPRequestFailed(error) => write!(f, "http request failed: {:?}", error),
-            SystemError::InsufficientArguments(node) => write!(f, "[{:?}] insufficient arguments", node),
+            SystemError::InsufficientArguments => write!(f, "insufficient arguments"),
             SystemError::InvalidImport(repr) => write!(f, "invalid import: {}", repr),
             SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),

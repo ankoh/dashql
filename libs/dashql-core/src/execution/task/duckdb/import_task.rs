@@ -1,7 +1,7 @@
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
+use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import::{FileImport, HttpImport, Import};
-use crate::execution::task::task_context::TaskContext;
 use crate::execution::task::Task;
 use crate::grammar::{ImportStatement, Program, Statement};
 use async_trait::async_trait;
@@ -9,8 +9,8 @@ use dashql_proto as proto;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
-pub struct ImportTask<'a> {
-    program: &'a Program<'a>,
+pub struct ImportTask<'ast> {
+    program: &'ast Program<'ast>,
     task: Rc<ProgramTask>,
     connection: Box<dyn DatabaseConnection>,
 }
@@ -24,8 +24,11 @@ fn infer_import_method(url: &str) -> proto::ImportMethodType {
     return proto::ImportMethodType::NONE;
 }
 
-impl<'a> ImportTask<'a> {
-    fn get_statement(&self, ctx: &TaskContext<'a>) -> Result<&'a ImportStatement<'a>, SystemError> {
+impl<'ast> ImportTask<'ast> {
+    fn get_statement<'snap>(
+        &self,
+        ctx: &ExecutionContextSnapshot<'ast, 'snap>,
+    ) -> Result<&'ast ImportStatement<'ast>, SystemError> {
         match &self.program.statements[self.task.origin_statement] {
             Statement::Import(fetch) => Ok(fetch),
             _ => Err(SystemError::InvalidStatementType("import")),
@@ -34,11 +37,11 @@ impl<'a> ImportTask<'a> {
 }
 
 #[async_trait(?Send)]
-impl<'a> Task<'a> for ImportTask<'a> {
-    async fn prepare(&mut self, _ctx: &TaskContext<'a>) -> Result<(), SystemError> {
+impl<'ast> Task<'ast> for ImportTask<'ast> {
+    async fn prepare<'snap>(&mut self, _ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute(&mut self, ctx: &TaskContext<'a>) -> Result<(), SystemError> {
+    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let stmt = self.get_statement(ctx)?;
         let mut method = stmt.method.get();
         let mut url = None;
