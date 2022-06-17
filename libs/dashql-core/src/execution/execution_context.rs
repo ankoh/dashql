@@ -62,7 +62,7 @@ pub struct ExecutionContextSnapshot<'ast, 'snap> {
 }
 
 impl<'ast, 'snap> ExecutionContextSnapshot<'ast, 'snap> {
-    pub fn release(self) -> ExecutionContextData<'ast> {
+    pub fn finish(self) -> ExecutionContextData<'ast> {
         self.local
     }
 }

@@ -37,16 +37,17 @@ impl Default for Card {
     }
 }
 
-pub fn allocate_card_positions<'ast, 'snap>(
-    inst: &mut ProgramInstance<'ast>,
-    exec: &mut ExecutionContextSnapshot<'ast, 'snap>,
-) -> Result<(), SystemError> {
+pub fn allocate_card_positions<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), SystemError> {
+    let mut snap = inst.execution_context.snapshot();
+    let mut errors = Vec::new();
+    type Key = proto::AttributeKey;
+
     // Helper to evaluate a position value
     let eval = |out: &mut usize,
                 pos: &DsonValue<'ast>,
                 attr: proto::AttributeKey,
-                inst: &mut ProgramInstance<'ast>,
-                exec: &mut ExecutionContextSnapshot<'ast, 'snap>| match pos
+                exec: &mut ExecutionContextSnapshot<'ast, '_>,
+                errors: &mut Vec<NodeError>| match pos
         .get(attr)
         .cloned()
         .unwrap_or_default()
@@ -57,7 +58,7 @@ pub fn allocate_card_positions<'ast, 'snap>(
         Ok(Some(v)) => match v.cast_as(LogicalType::Float64) {
             Ok(v) => *out = v.get_f64_or_default() as usize,
             Err(_) => {
-                inst.node_error_messages.push(NodeError {
+                errors.push(NodeError {
                     node_id: None,
                     error_code: NodeErrorCode::InvalidValueType,
                     error_message: "position value cannot be casted to double".to_string(),
@@ -65,7 +66,7 @@ pub fn allocate_card_positions<'ast, 'snap>(
             }
         },
         Err(_) => {
-            inst.node_error_messages.push(NodeError {
+            errors.push(NodeError {
                 node_id: None,
                 error_code: NodeErrorCode::ExpressionEvaluationFailed,
                 error_message: "failed to evaluate position value".to_string(),
@@ -91,10 +92,10 @@ pub fn allocate_card_positions<'ast, 'snap>(
             column: 0,
         };
         if let Some(pos) = position {
-            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst, exec);
-            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst, exec);
-            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst, exec);
-            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst, exec);
+            eval(&mut requested.width, pos, Key::DSON_WIDTH, &mut snap, &mut errors);
+            eval(&mut requested.height, pos, Key::DSON_HEIGHT, &mut snap, &mut errors);
+            eval(&mut requested.row, pos, Key::DSON_ROW, &mut snap, &mut errors);
+            eval(&mut requested.column, pos, Key::DSON_COLUMN, &mut snap, &mut errors);
         }
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);
@@ -116,22 +117,25 @@ pub fn allocate_card_positions<'ast, 'snap>(
         };
         if let Some(pos) = position {
             requested = BoardPosition::default();
-            eval(&mut requested.width, pos, proto::AttributeKey::DSON_WIDTH, inst, exec);
-            eval(&mut requested.height, pos, proto::AttributeKey::DSON_HEIGHT, inst, exec);
-            eval(&mut requested.row, pos, proto::AttributeKey::DSON_ROW, inst, exec);
-            eval(&mut requested.column, pos, proto::AttributeKey::DSON_COLUMN, inst, exec);
+            eval(&mut requested.width, pos, Key::DSON_WIDTH, &mut snap, &mut errors);
+            eval(&mut requested.height, pos, Key::DSON_HEIGHT, &mut snap, &mut errors);
+            eval(&mut requested.row, pos, Key::DSON_ROW, &mut snap, &mut errors);
+            eval(&mut requested.column, pos, Key::DSON_COLUMN, &mut snap, &mut errors);
         }
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);
     }
     inst.card_positions = positions;
+    for err in errors.drain(..) {
+        inst.node_error_messages.push(err);
+    }
+    let exec_update = snap.finish();
+    let exec_data = &mut inst.execution_context.data.write().unwrap();
+    exec_update.merge_into(exec_data);
     Ok(())
 }
 
-pub fn collect_cards<'ast, 'snap>(
-    inst: &mut ProgramInstance<'ast>,
-    exec: &mut ExecutionContextSnapshot<'ast, 'snap>,
-) -> Result<(), SystemError> {
+pub fn collect_cards<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), SystemError> {
     for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();

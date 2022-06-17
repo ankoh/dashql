@@ -35,6 +35,7 @@ pub struct ProgramInstance<'a> {
     pub input: HashMap<usize, ScalarValue>,
 
     // Analysis state
+    pub execution_context: ExecutionContext<'a>,
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<NodeLinterMessage>,
     pub statement_names: Vec<Option<NamePath<'a>>>,
@@ -67,6 +68,7 @@ impl<'a> ProgramInstance<'a> {
             program_proto: program_proto,
             program: program_translated,
             input,
+            execution_context: ExecutionContext::with_arena(arena),
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -105,8 +107,8 @@ pub fn analyze_program<'arena>(
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
-    allocate_card_positions(&mut inst, &mut exec_snap)?;
-    collect_cards(&mut inst, &mut exec_snap)?;
+    allocate_card_positions(&mut inst)?;
+    collect_cards(&mut inst)?;
     Ok(inst)
 }
 
