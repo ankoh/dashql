@@ -125,6 +125,8 @@ pub fn allocate_card_positions<'ast>(inst: &mut ProgramInstance<'ast>) -> Result
         let allocated = space.allocate(requested);
         positions.insert(stmt_id, allocated);
     }
+
+    // Update instance
     inst.card_positions = positions;
     for err in errors.drain(..) {
         inst.node_error_messages.push(err);
