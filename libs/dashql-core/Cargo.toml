@@ -29,7 +29,9 @@ duckdbx_api = { path = "../duckdbx-api" }
 async-trait = "0.1.56"
 arrow = { version = "14.0.0", features = ['ipc'] }
 getrandom = { version = "0.2.6", features = ['js'] }
+futures = "0.3.21"
 smallvec = "1.8.0"
+bitvec = "1.0.0"
 bumpalo = "3.9.1"
 flatbuffers = "2.1.1"
 libc = "0.2.121"

@@ -6,6 +6,7 @@ use crate::execution::scalar_value::LogicalType;
 
 #[derive(Debug)]
 pub enum SystemError {
+    InternalError(&'static str),
     CastFailed(Option<usize>, LogicalType, LogicalType),
     CastNotImplemented(Option<usize>, LogicalType, LogicalType),
     ExpressionTypeNotImplemented(Option<usize>),
@@ -20,6 +21,8 @@ pub enum SystemError {
     InvalidStatementRoot(Option<usize>),
     InvalidStatementType(&'static str),
     InvalidTableRef(Option<usize>),
+    TaskPreparationFailed(Box<SystemError>),
+    TaskExecutionFailed(Box<SystemError>),
     TranslationNotImplemented(Option<usize>, proto::NodeType),
     UnexpectedAttribute(Option<usize>, proto::NodeType, proto::AttributeKey),
     UnexpectedElement(Option<usize>, proto::AttributeKey, proto::NodeType),
@@ -31,6 +34,7 @@ impl SystemError {
             SystemError::CastFailed(_, _, _) => "cast failed",
             SystemError::CastNotImplemented(_, _, _) => "cast not implemented",
             SystemError::ExpressionTypeNotImplemented(_) => "expression type not implemented",
+            SystemError::InternalError(err) => err,
             SystemError::FunctionEvaluationFailed(_) => "function evaluation failed",
             SystemError::FunctionNotImplemented(_) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_) => "function not implemented",
@@ -42,6 +46,8 @@ impl SystemError {
             SystemError::InvalidStatementRoot(_) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
             SystemError::InvalidTableRef(_) => "invalid table reference",
+            SystemError::TaskPreparationFailed(_) => "task preparation failed",
+            SystemError::TaskExecutionFailed(_) => "task execution failed",
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
             SystemError::UnexpectedAttribute(_, _, _) => "unexpected attribute",
             SystemError::UnexpectedElement(_, _, _) => "unexpected element",
@@ -71,6 +77,7 @@ impl<'a> fmt::Display for SystemError {
             SystemError::ExpressionTypeNotImplemented(node) => {
                 write!(f, "[{:?}] expression type not implemented", node)
             }
+            SystemError::InternalError(e) => write!(f, "internal error: {}", e),
             SystemError::FunctionEvaluationFailed(error) => write!(f, "{}", error.to_string()),
             SystemError::FunctionNotImplemented(func) => {
                 write!(f, "function not implemented: {}", func)
@@ -86,6 +93,8 @@ impl<'a> fmt::Display for SystemError {
             SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
             SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),
             SystemError::InvalidStatementType(stmt) => write!(f, "invalid statement type: {}", stmt),
+            SystemError::TaskPreparationFailed(err) => write!(f, "task preparation failed: {}", err),
+            SystemError::TaskExecutionFailed(err) => write!(f, "task execution failed: {}", err),
             SystemError::TranslationNotImplemented(node, node_type) => {
                 write!(f, "[{:?}] translation not implemented for type: {:?}", node, node_type)
             }

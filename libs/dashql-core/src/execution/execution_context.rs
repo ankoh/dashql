@@ -1,5 +1,6 @@
 use super::import::Import;
 use super::scalar_value::ScalarValue;
+use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
 use std::collections::HashMap;
@@ -7,6 +8,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
+use std::sync::RwLockWriteGuard;
 
 #[derive(Clone, Debug, Default)]
 pub struct ExecutionContextData<'ast> {
@@ -51,6 +53,12 @@ impl<'ast> ExecutionContext<'ast> {
             global: self.data.read().unwrap(),
             local: Default::default(),
         }
+    }
+
+    pub fn try_write_global(&self) -> Result<RwLockWriteGuard<'_, ExecutionContextData<'ast>>, SystemError> {
+        self.data
+            .try_write()
+            .map_err(|_| SystemError::InternalError("failed to lock global execution context"))
     }
 }
 

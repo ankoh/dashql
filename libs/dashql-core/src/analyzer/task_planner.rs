@@ -110,7 +110,7 @@ pub struct TaskGraph {
 
 #[derive(Debug)]
 struct TaskPlannerContext<'a> {
-    /// The next progra
+    /// The next program
     pub next_program: &'a ProgramInstance<'a>,
     /// The previous program
     pub prev_program: Option<(&'a ProgramInstance<'a>, &'a TaskGraph)>,
