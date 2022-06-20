@@ -227,8 +227,10 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Update topology
         for task_id in task_ids.iter() {
-            for req_for in self.task_required_for[*task_id] {
-                self.task_topology.decrement_key(req_for);
+            if self.task_alive[*task_id] {
+                for req_for in self.task_required_for[*task_id] {
+                    self.task_topology.decrement_key(req_for);
+                }
             }
         }
 
