@@ -15,11 +15,11 @@ pub struct SetTask<'ast> {
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for SetTask<'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         todo!()
     }
 
-    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         todo!()
     }
 }

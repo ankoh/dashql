@@ -25,10 +25,7 @@ fn infer_import_method(url: &str) -> proto::ImportMethodType {
 }
 
 impl<'ast> ImportTask<'ast> {
-    fn get_statement<'snap>(
-        &self,
-        ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-    ) -> Result<&'ast ImportStatement<'ast>, SystemError> {
+    fn get_statement<'snap>(&self) -> Result<&'ast ImportStatement<'ast>, SystemError> {
         match &self.program.statements[self.task.origin_statement] {
             Statement::Import(fetch) => Ok(fetch),
             _ => Err(SystemError::InvalidStatementType("import")),
@@ -38,26 +35,23 @@ impl<'ast> ImportTask<'ast> {
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for ImportTask<'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let stmt = self.get_statement(ctx)?;
+    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+        let stmt = self.get_statement()?;
         let mut method = stmt.method.get();
         let mut url = None;
 
         // User specified uri?
-        // if let Some(from_uri_expr) = stmt.from_uri.get() {
-        //     let from_uri = match from_uri_expr
-        //         .evaluate(&mut state.expression_context)?
-        //         .map(|v| format!("{}", v))
-        //     {
-        //         Some(uri) => uri,
-        //         None => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
-        //     };
-        //     method = infer_import_method(&from_uri);
-        //     url = Some(from_uri);
-        // }
+        if let Some(from_uri_expr) = stmt.from_uri.get() {
+            let from_uri = match from_uri_expr.evaluate(ctx)?.map(|v| format!("{}", v)) {
+                Some(uri) => uri,
+                None => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
+            };
+            method = infer_import_method(&from_uri);
+            url = Some(from_uri);
+        }
 
         // XXX If none, resolve from extras
         let url = url.unwrap();
@@ -68,7 +62,7 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
             proto::ImportMethodType::HTTP => Import::Http(HttpImport { url: url }),
             _ => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
         };
-        //state.imports_by_id.insert(self.task.object_id, import);
+        ctx.local.imports_by_id.insert(self.task.object_id, import);
         Ok(())
     }
 }

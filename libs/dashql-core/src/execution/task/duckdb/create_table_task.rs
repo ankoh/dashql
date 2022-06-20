@@ -15,10 +15,7 @@ pub struct CreateTableTask<'ast> {
 }
 
 impl<'ast> CreateTableTask<'ast> {
-    fn get_statement<'snap>(
-        &self,
-        ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-    ) -> Result<&'ast CreateStatement<'ast>, SystemError> {
+    fn get_statement<'snap>(&self) -> Result<&'ast CreateStatement<'ast>, SystemError> {
         match &self.program.statements[self.task.origin_statement] {
             Statement::Create(tbl) => Ok(tbl),
             _ => Err(SystemError::InvalidStatementType("create table")),
@@ -28,11 +25,11 @@ impl<'ast> CreateTableTask<'ast> {
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for CreateTableTask<'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let stmt = self.get_statement(&ctx)?;
+    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+        let stmt = self.get_statement()?;
         let script = print_ast_as_script_with_defaults(stmt);
         self.connection.run_query(&script).await?;
         Ok(())

@@ -14,10 +14,7 @@ pub struct VegaVisualizeTask<'ast> {
 }
 
 impl<'ast> VegaVisualizeTask<'ast> {
-    fn get_statement<'snap>(
-        &self,
-        ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-    ) -> Result<&'ast VizStatement<'ast>, SystemError> {
+    fn get_statement<'snap>(&self) -> Result<&'ast VizStatement<'ast>, SystemError> {
         match &self.program.statements[self.task.origin_statement] {
             Statement::Viz(viz) => Ok(viz),
             _ => Err(SystemError::InvalidStatementType("viz")),
@@ -27,11 +24,11 @@ impl<'ast> VegaVisualizeTask<'ast> {
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for VegaVisualizeTask<'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         todo!()
     }
 
-    async fn execute<'snap>(&mut self, ctx: &ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         todo!()
     }
 }
