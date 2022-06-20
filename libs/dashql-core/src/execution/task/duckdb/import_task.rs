@@ -2,6 +2,7 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::{FileImportInfo, HttpImportInfo, ImportInfo, TestImportInfo};
 use crate::execution::task::Task;
+use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::ImportStatement;
 use async_trait::async_trait;
 use dashql_proto as proto;
@@ -29,7 +30,8 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
         Ok(())
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let stmt_name = self.statement.name.get();
+        let name = self.statement.name.get();
+        let name_string = print_ast_as_script_with_defaults(&name);
         let mut method = self.statement.method.get();
         let mut url = None;
 
@@ -52,13 +54,14 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
         let url = url.unwrap();
 
         // Register import
+        type ImportMethod = proto::ImportMethodType;
         let import = match method {
-            proto::ImportMethodType::FILE => ImportInfo::File(FileImportInfo { url: url }),
-            proto::ImportMethodType::HTTP => ImportInfo::Http(HttpImportInfo { url: url }),
-            proto::ImportMethodType::TEST => ImportInfo::Test(TestImportInfo { url: url }),
+            ImportMethod::FILE => ImportInfo::File(FileImportInfo { name: name_string, url }),
+            ImportMethod::HTTP => ImportInfo::Http(HttpImportInfo { name: name_string, url }),
+            ImportMethod::TEST => ImportInfo::Test(TestImportInfo { name: name_string, url }),
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        ctx.local_state.imports_by_name.insert(stmt_name, import);
+        ctx.local_state.imports_by_name.insert(name, import);
         Ok(())
     }
 }

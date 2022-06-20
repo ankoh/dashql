@@ -1,13 +1,19 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CsvLoadInfo {}
+pub struct CsvLoadInfo {
+    pub name: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ParquetLoadInfo {}
+pub struct ParquetLoadInfo {
+    pub name: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
-pub struct JsonLoadInfo {}
+pub struct JsonLoadInfo {
+    pub name: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "t", content = "v")]
