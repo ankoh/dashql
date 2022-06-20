@@ -1,39 +1,31 @@
-use bitvec::prelude::BitVec;
-
+use super::{
+    execution_context::{ExecutionContext, ExecutionContextData, ExecutionContextSnapshot},
+    task::Task,
+    task_scheduler_log::TaskSchedulerLog,
+};
 use crate::{
     analyzer::{
         program_instance::ProgramInstance,
-        task_planner::{ProgramTask, ProgramTaskType, SetupTask, SetupTaskType, TaskGraph},
+        task_planner::{ProgramTask, ProgramTaskType, SetupTask, SetupTaskType, TaskClass, TaskGraph, TaskStatusCode},
     },
     error::SystemError,
     utils::topological_sort::TopologicalSort,
 };
-
-use super::{
-    execution_context::{ExecutionContext, ExecutionContextData, ExecutionContextSnapshot},
-    task::Task,
-};
+use futures::StreamExt;
 
 pub struct TaskScheduler<'ast> {
     /// The program
     program: &'ast ProgramInstance<'ast>,
-    /// The task graph
-    task_graph: &'ast TaskGraph,
-
+    /// The task class
+    task_class: TaskClass,
     /// The derived task logic
     task_logic: Vec<Option<Box<dyn Task<'ast>>>>,
+    /// The task alive
+    task_alive: Vec<bool>,
     /// The task topology
     task_topology: TopologicalSort<usize>,
-
-    /// Scheduled tasks
-    scheduled_tasks: BitVec,
-    /// Completed tasks
-    completed_tasks: BitVec,
-    /// Failed tasks
-    failed_tasks: BitVec,
-
-    /// The errors (if any)
-    task_errors: Vec<(usize, SystemError)>,
+    /// The dependencies
+    task_required_for: Vec<&'ast [usize]>,
 }
 
 fn translate_setup_task<'ast>(task: &SetupTask) -> Option<Box<dyn Task<'ast>>> {
@@ -65,75 +57,77 @@ fn translate_program_task<'ast>(task: &ProgramTask) -> Option<Box<dyn Task<'ast>
 }
 
 impl<'ast> TaskScheduler<'ast> {
-    /// Schedule setup tasks
-    pub fn schedule_setup_tasks(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
+    /// Create setup scheduler
+    pub fn schedule_setup(program: &'ast ProgramInstance<'ast>, task_graph: &'ast mut TaskGraph) -> Self {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
+        let mut alive = Vec::with_capacity(n);
+        let mut required_for = Vec::with_capacity(n);
         for (setup_id, setup_task) in task_graph.setup_tasks.iter().enumerate() {
             topo.push((setup_id, setup_task.depends_on.len()));
+            alive.push(setup_task.task_status.get() == TaskStatusCode::Pending);
             logic.push(translate_setup_task(setup_task));
+            required_for.push(setup_task.required_for.as_slice());
         }
-        let mut sched = Self {
+        Self {
             program,
-            task_graph,
+            task_class: TaskClass::SetupTask,
             task_logic: logic,
             task_topology: TopologicalSort::new(topo),
-            scheduled_tasks: Default::default(),
-            completed_tasks: Default::default(),
-            failed_tasks: Default::default(),
-            task_errors: Vec::new(),
-        };
-        sched.scheduled_tasks.resize(n, false);
-        sched.completed_tasks.resize(n, false);
-        sched.failed_tasks.resize(n, false);
-        sched
+            task_alive: alive,
+            task_required_for: required_for,
+        }
     }
 
-    /// Schedule program tasks
-    pub fn schedule_program_tasks(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
+    /// Create program scheduler
+    pub fn schedule_program(program: &'ast ProgramInstance<'ast>, task_graph: &'ast mut TaskGraph) -> Self {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
+        let mut alive = Vec::with_capacity(n);
+        let mut required_for = Vec::with_capacity(n);
         for (program_id, program_task) in task_graph.program_tasks.iter().enumerate() {
             topo.push((program_id, program_task.depends_on.len()));
             logic.push(translate_program_task(program_task));
+            alive.push(program_task.task_status.get() == TaskStatusCode::Pending);
+            required_for.push(program_task.required_for.as_slice());
         }
-        let mut sched = Self {
+        Self {
             program,
-            task_graph,
+            task_class: TaskClass::ProgramTask,
             task_logic: logic,
+            task_alive: alive,
             task_topology: TopologicalSort::new(topo),
-            scheduled_tasks: Default::default(),
-            completed_tasks: Default::default(),
-            failed_tasks: Default::default(),
-            task_errors: Vec::new(),
-        };
-        sched.scheduled_tasks.resize(n, false);
-        sched.completed_tasks.resize(n, false);
-        sched.failed_tasks.resize(n, false);
-        sched
+            task_required_for: required_for,
+        }
     }
 
     /// Prepare a task
-    async fn prepare_task<'snap>(
-        task: &mut Box<dyn Task<'ast>>,
+    async fn prepare_task<'snap, 'task>(
+        task_id: usize,
+        task: &'task mut Box<dyn Task<'ast>>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
-    ) -> Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError> {
-        task.prepare(&mut snapshot).await?;
-        Ok(snapshot)
+    ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
+        match task.prepare(&mut snapshot).await {
+            Ok(()) => (task_id, Ok(snapshot)),
+            Err(e) => (task_id, Err(e)),
+        }
     }
 
     /// Execute a task
-    async fn execute_task<'snap>(
-        task: &mut Box<dyn Task<'ast>>,
+    async fn execute_task<'snap, 'task>(
+        task_id: usize,
+        task: &'task mut Box<dyn Task<'ast>>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
-    ) -> Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError> {
-        task.execute(&mut snapshot).await?;
-        Ok(snapshot)
+    ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
+        match task.execute(&mut snapshot).await {
+            Ok(()) => (task_id, Ok(snapshot)),
+            Err(e) => (task_id, Err(e)),
+        }
     }
 
-    pub async fn next(&mut self) -> Result<bool, SystemError> {
+    pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut tasks = Vec::with_capacity(self.task_logic.len());
@@ -142,15 +136,14 @@ impl<'ast> TaskScheduler<'ast> {
             if *waiting_for > 0 {
                 break;
             }
-            task_ids.push(*task_id);
-            tasks.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
+            if self.task_alive[*task_id] {
+                task_ids.push(*task_id);
+                tasks.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
+            }
             self.task_topology.pop();
         }
         if task_ids.is_empty() {
             return Ok(false);
-        }
-        for task_id in task_ids.iter() {
-            self.scheduled_tasks.set(*task_id, true);
         }
 
         // Merge execution context data
@@ -164,62 +157,93 @@ impl<'ast> TaskScheduler<'ast> {
             };
 
         // Prepare all tasks
-        let task_futures = tasks
+        for task_id in task_ids.iter() {
+            log.change_task_status(self.task_class, *task_id, TaskStatusCode::Preparing);
+        }
+        log.flush().await;
+        let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
             .iter_mut()
-            .map(|task| (task, self.program.execution_context.snapshot()))
-            .map(|(task, snap)| TaskScheduler::prepare_task(task, snap));
-        let mut task_results = futures::future::join_all(task_futures).await;
-        let mut task_data = Vec::with_capacity(task_results.len());
-        for (task_idx, task_result) in task_results.drain(..).enumerate() {
-            let task_id = task_ids[task_idx];
-            match task_result {
+            .enumerate()
+            .filter(|(task_id, _task)| self.task_alive[*task_id])
+            .map(|(task_id, task)| (task_id, task, self.program.execution_context.snapshot()))
+            .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
+            .collect();
+        let mut snapshots = Vec::with_capacity(task_futures.len());
+        loop {
+            let (task_id, res) = match task_futures.next().await {
+                Some(res) => res,
+                None => break,
+            };
+            match res {
                 Ok(snap) => {
-                    task_data.push(snap.finish());
-                    self.completed_tasks.set(task_id, true);
+                    snapshots.push(snap.finish());
+                    log.change_task_status(self.task_class, task_id, TaskStatusCode::Prepared);
                 }
                 Err(e) => {
-                    self.task_errors.push((task_id, e));
-                    self.failed_tasks.set(task_id, true);
+                    self.task_alive[task_id] = false;
+                    log.fail_task(self.task_class, task_id, e);
                 }
-            }
+            };
+            log.flush().await;
         }
-        merge_into(task_data, &self.program.execution_context)?;
+        drop(task_futures);
+        merge_into(snapshots, &self.program.execution_context)?;
+
+        // XXX Opportunity to run shared computations after preparing every task
 
         // Execute all tasks
-        let task_futures = tasks
-            .iter_mut()
-            .map(|task| (task, self.program.execution_context.snapshot()))
-            .map(|(task, snap)| TaskScheduler::execute_task(task, snap));
-        let mut task_results = futures::future::join_all(task_futures).await;
-        let mut task_data = Vec::with_capacity(task_results.len());
-        for (task_idx, task_result) in task_results.drain(..).enumerate() {
-            let task_id = task_ids[task_idx];
-            match task_result {
-                Ok(snap) => {
-                    task_data.push(snap.finish());
-                    self.completed_tasks.set(task_id, true);
-                }
-                Err(e) => {
-                    self.task_errors.push((task_id, e));
-                    self.failed_tasks.set(task_id, true);
-                }
+        for task_id in task_ids.iter() {
+            if self.task_alive[*task_id] {
+                log.change_task_status(self.task_class, *task_id, TaskStatusCode::Executing);
             }
         }
-        merge_into(task_data, &self.program.execution_context)?;
+        log.flush().await;
+        let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
+            .iter_mut()
+            .enumerate()
+            .filter(|(task_id, _task)| self.task_alive[*task_id])
+            .map(|(task_id, task)| (task_id, task, self.program.execution_context.snapshot()))
+            .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
+            .collect();
+        let mut snapshots = Vec::with_capacity(task_futures.len());
+        loop {
+            let (task_id, res) = match task_futures.next().await {
+                Some(res) => res,
+                None => break,
+            };
+            match res {
+                Ok(snap) => {
+                    snapshots.push(snap.finish());
+                    log.change_task_status(self.task_class, task_id, TaskStatusCode::Completed);
+                }
+                Err(e) => {
+                    self.task_alive[task_id] = false;
+                    log.fail_task(self.task_class, task_id, e);
+                }
+            };
+            log.flush().await;
+        }
+        merge_into(snapshots, &self.program.execution_context)?;
+
+        // Update topology
+        for task_id in task_ids.iter() {
+            for req_for in self.task_required_for[*task_id] {
+                self.task_topology.decrement_key(req_for);
+            }
+        }
 
         let call_again = !self.task_topology.is_empty();
         Ok(call_again)
     }
 }
 
-pub struct TaskSchedulerStateMachine<'ast> {
-    /// The program
-    program: &'ast ProgramInstance<'ast>,
-    /// The task graph
-    task_graph: &'ast TaskGraph,
-
-    /// The setup tasks
-    setup_scheduler: TaskScheduler<'ast>,
-    /// The program tasks
-    program_scheduler: TaskScheduler<'ast>,
-}
+// pub struct TaskSchedulerStateMachine<'ast> {
+//     /// The program
+//     program: &'ast ProgramInstance<'ast>,
+//     /// The task graph
+//     task_graph: &'ast TaskGraph,
+//     /// The setup tasks
+//     setup_tasks: TaskScheduler<'ast>,
+//     /// The program tasks
+//     program_tasks: TaskScheduler<'ast>,
+// }

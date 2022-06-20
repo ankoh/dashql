@@ -3,25 +3,33 @@ use super::{
     program_instance::ProgramInstance,
 };
 use serde::Serialize;
-use std::collections::HashSet;
 use std::error::Error;
+use std::{cell::Cell, collections::HashSet};
 
 use crate::{
     grammar::{script_writer::print_ast_as_script_with_defaults, Statement},
     utils::topological_sort::TopologicalSort,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TaskClass {
     SetupTask,
     ProgramTask,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+impl Default for TaskClass {
+    fn default() -> Self {
+        TaskClass::ProgramTask
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TaskStatusCode {
     Pending,
     Skipped,
-    Running,
+    Preparing,
+    Prepared,
+    Executing,
     Blocked,
     Failed,
     Completed,
@@ -61,7 +69,7 @@ impl Default for SetupTaskType {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct SetupTask {
     pub task_type: SetupTaskType,
-    pub task_status_code: TaskStatusCode,
+    pub task_status: Cell<TaskStatusCode>,
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub object_id: usize,
@@ -92,7 +100,7 @@ impl Default for ProgramTaskType {
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct ProgramTask {
     pub task_type: ProgramTaskType,
-    pub task_status_code: TaskStatusCode,
+    pub task_status: Cell<TaskStatusCode>,
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub origin_statement: usize,
@@ -142,10 +150,10 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
     for stmt_id in 0..next.program.statements.len() {
         let mixin = ProgramTask {
             task_type: ProgramTaskType::None,
-            task_status_code: if next.statement_liveness[stmt_id] {
-                TaskStatusCode::Pending
+            task_status: if next.statement_liveness[stmt_id] {
+                Cell::new(TaskStatusCode::Pending)
             } else {
-                TaskStatusCode::Skipped
+                Cell::new(TaskStatusCode::Skipped)
             },
             depends_on: Vec::new(),
             required_for: Vec::new(),
@@ -316,7 +324,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
 
         // Task not completed?
         // Irrelevant for the graph migration.
-        if a.task_status_code != TaskStatusCode::Completed {
+        if a.task_status.get() != TaskStatusCode::Completed {
             invalidate(ctx, prev_task_id);
             continue;
         }
@@ -460,7 +468,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
 
             // Update the target id of the new task and mark it as complete
             let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
-            next_task.task_status_code = TaskStatusCode::Completed;
+            next_task.task_status.set(TaskStatusCode::Completed);
             next_task.object_id = prev_task.object_id;
             debug_assert!(next_task.object_name == prev_task.object_name);
             continue;
@@ -489,7 +497,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
         else if drop_task != SetupTaskType::None {
             setup[prev_task_id] = Some(SetupTask {
                 task_type: drop_task,
-                task_status_code: TaskStatusCode::Pending,
+                task_status: Cell::new(TaskStatusCode::Pending),
                 depends_on: prev_task.depends_on.clone(),
                 required_for: Vec::new(),
                 object_id: prev_task.object_id,
@@ -651,7 +659,7 @@ IMPORT a FROM 'https://some/remote'
                     setup_tasks: vec![],
                     program_tasks: vec![ProgramTask {
                         task_type: ProgramTaskType::Import,
-                        task_status_code: TaskStatusCode::Skipped,
+                        task_status: Cell::new(TaskStatusCode::Skipped),
                         depends_on: vec![],
                         required_for: vec![],
                         origin_statement: 0,
@@ -680,7 +688,7 @@ LOAD b FROM a USING PARQUET;
                     program_tasks: vec![
                         ProgramTask {
                             task_type: ProgramTaskType::Import,
-                            task_status_code: TaskStatusCode::Skipped,
+                            task_status: Cell::new(TaskStatusCode::Skipped),
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
@@ -689,7 +697,7 @@ LOAD b FROM a USING PARQUET;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
-                            task_status_code: TaskStatusCode::Skipped,
+                            task_status: Cell::new(TaskStatusCode::Skipped),
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,
@@ -720,7 +728,7 @@ CREATE TABLE c AS SELECT * FROM b
                     program_tasks: vec![
                         ProgramTask {
                             task_type: ProgramTaskType::Import,
-                            task_status_code: TaskStatusCode::Skipped,
+                            task_status: Cell::new(TaskStatusCode::Skipped),
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
@@ -729,7 +737,7 @@ CREATE TABLE c AS SELECT * FROM b
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
-                            task_status_code: TaskStatusCode::Skipped,
+                            task_status: Cell::new(TaskStatusCode::Skipped),
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: 1,
@@ -738,7 +746,7 @@ CREATE TABLE c AS SELECT * FROM b
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
-                            task_status_code: TaskStatusCode::Skipped,
+                            task_status: Cell::new(TaskStatusCode::Skipped),
                             depends_on: vec![1],
                             required_for: vec![],
                             origin_statement: 2,
@@ -770,7 +778,7 @@ VIZ c USING TABLE;
                     program_tasks: vec![
                         ProgramTask {
                             task_type: ProgramTaskType::Import,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
@@ -779,7 +787,7 @@ VIZ c USING TABLE;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: 1,
@@ -788,7 +796,7 @@ VIZ c USING TABLE;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![1],
                             required_for: vec![3],
                             origin_statement: 2,
@@ -797,7 +805,7 @@ VIZ c USING TABLE;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![2],
                             required_for: vec![],
                             origin_statement: 3,
@@ -826,7 +834,7 @@ VIZ a USING TABLE;
                     program_tasks: vec![
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
@@ -835,7 +843,7 @@ VIZ a USING TABLE;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,
@@ -856,7 +864,7 @@ VIZ a USING TABLE;
                     next_object_id: 4,
                     setup_tasks: vec![SetupTask {
                         task_type: SetupTaskType::DropTable,
-                        task_status_code: TaskStatusCode::Pending,
+                        task_status: Cell::new(TaskStatusCode::Pending),
                         depends_on: vec![],
                         required_for: vec![],
                         object_id: 0,
@@ -865,7 +873,7 @@ VIZ a USING TABLE;
                     program_tasks: vec![
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
@@ -874,7 +882,7 @@ VIZ a USING TABLE;
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::UpdateViz,
-                            task_status_code: TaskStatusCode::Pending,
+                            task_status: Cell::new(TaskStatusCode::Pending),
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,

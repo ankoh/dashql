@@ -102,8 +102,6 @@ pub fn analyze_program<'arena>(
     input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
     let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
-    let exec = ExecutionContext::with_arena(arena);
-    let mut exec_snap = exec.snapshot();
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);

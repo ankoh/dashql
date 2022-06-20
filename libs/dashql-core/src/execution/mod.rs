@@ -6,3 +6,4 @@ pub mod import;
 pub mod scalar_value;
 pub mod task;
 pub mod task_scheduler;
+pub mod task_scheduler_log;
