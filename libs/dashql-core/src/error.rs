@@ -6,7 +6,6 @@ use crate::execution::scalar_value::LogicalType;
 
 #[derive(Debug)]
 pub enum SystemError {
-    InternalError(&'static str),
     CastFailed(Option<usize>, LogicalType, LogicalType),
     CastNotImplemented(Option<usize>, LogicalType, LogicalType),
     ExpressionTypeNotImplemented(Option<usize>),
@@ -15,14 +14,17 @@ pub enum SystemError {
     FunctionNotImplementedButKnown(proto::KnownFunction),
     Generic(String),
     HTTPRequestFailed(reqwest::Error),
+    ImportNotRegistered(Option<usize>, String),
+    ImportURIUnsupported(Option<usize>, String),
     InsufficientArguments,
-    InvalidImport(String),
+    InternalError(&'static str),
     InvalidGroupByItem(Option<usize>),
-    InvalidStatementRoot(Option<usize>),
+    InvalidStatementRoot(usize, usize),
     InvalidStatementType(&'static str),
     InvalidTableRef(Option<usize>),
-    TaskPreparationFailed(Box<SystemError>),
+    NotImplemented(String),
     TaskExecutionFailed(Box<SystemError>),
+    TaskPreparationFailed(Box<SystemError>),
     TranslationNotImplemented(Option<usize>, proto::NodeType),
     UnexpectedAttribute(Option<usize>, proto::NodeType, proto::AttributeKey),
     UnexpectedElement(Option<usize>, proto::AttributeKey, proto::NodeType),
@@ -41,9 +43,10 @@ impl SystemError {
             SystemError::Generic(_) => "generic",
             SystemError::HTTPRequestFailed(_) => "http request failed",
             SystemError::InsufficientArguments => "insufficient arguments",
-            SystemError::InvalidImport(_) => "invalid import",
+            SystemError::ImportNotRegistered(_, _) => "import was not registered",
+            SystemError::ImportURIUnsupported(_, _) => "import uri is unsupported",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
-            SystemError::InvalidStatementRoot(_) => "invalid statement root",
+            SystemError::InvalidStatementRoot(_, _) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
             SystemError::InvalidTableRef(_) => "invalid table reference",
             SystemError::TaskPreparationFailed(_) => "task preparation failed",
@@ -51,6 +54,7 @@ impl SystemError {
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
             SystemError::UnexpectedAttribute(_, _, _) => "unexpected attribute",
             SystemError::UnexpectedElement(_, _, _) => "unexpected element",
+            SystemError::NotImplemented(_) => "not implemented",
         }
     }
 }
@@ -70,12 +74,12 @@ impl From<reqwest::Error> for SystemError {
 impl<'a> fmt::Display for SystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
-            SystemError::CastFailed(node, from, to) => write!(f, "[{:?}] cast failed: {:?} -> {:?}", node, from, to),
-            SystemError::CastNotImplemented(node, from, to) => {
-                write!(f, "[{:?}] cast not implemented: {:?} -> {:?}", node, from, to)
+            SystemError::CastFailed(_node, from, to) => write!(f, "cast failed: {:?} -> {:?}", from, to),
+            SystemError::CastNotImplemented(_node, from, to) => {
+                write!(f, "cast not implemented: {:?} -> {:?}", from, to)
             }
-            SystemError::ExpressionTypeNotImplemented(node) => {
-                write!(f, "[{:?}] expression type not implemented", node)
+            SystemError::ExpressionTypeNotImplemented(_node) => {
+                write!(f, "expression type not implemented")
             }
             SystemError::InternalError(e) => write!(f, "internal error: {}", e),
             SystemError::FunctionEvaluationFailed(error) => write!(f, "{}", error.to_string()),
@@ -88,26 +92,26 @@ impl<'a> fmt::Display for SystemError {
             SystemError::Generic(error) => write!(f, "error: {:?}", error),
             SystemError::HTTPRequestFailed(error) => write!(f, "http request failed: {:?}", error),
             SystemError::InsufficientArguments => write!(f, "insufficient arguments"),
-            SystemError::InvalidImport(repr) => write!(f, "invalid import: {}", repr),
-            SystemError::InvalidGroupByItem(node) => write!(f, "[{:?}] invalid group by item", node),
-            SystemError::InvalidStatementRoot(stmt) => write!(f, "[{:?}] invalid statement root", stmt),
-            SystemError::InvalidTableRef(node) => write!(f, "[{:?}] invalid table ref", node),
+            SystemError::ImportURIUnsupported(_node, uri) => write!(f, "import has an unsupported URI: {}", uri),
+            SystemError::ImportNotRegistered(_node, name) => write!(f, "import not registered: {}", name),
+            SystemError::InvalidGroupByItem(_node) => write!(f, "invalid group by item"),
+            SystemError::InvalidStatementRoot(stmt_id, node_id) => {
+                write!(f, "invalid statement root for statement: {} -> {}", stmt_id, node_id)
+            }
+            SystemError::InvalidTableRef(_node) => write!(f, "invalid table ref"),
             SystemError::InvalidStatementType(stmt) => write!(f, "invalid statement type: {}", stmt),
             SystemError::TaskPreparationFailed(err) => write!(f, "task preparation failed: {}", err),
             SystemError::TaskExecutionFailed(err) => write!(f, "task execution failed: {}", err),
-            SystemError::TranslationNotImplemented(node, node_type) => {
-                write!(f, "[{:?}] translation not implemented for type: {:?}", node, node_type)
+            SystemError::TranslationNotImplemented(_node, node_type) => {
+                write!(f, "translation not implemented for type: {:?}", node_type)
             }
-            SystemError::UnexpectedAttribute(node, node_type, key) => {
-                write!(f, "[{:?}] unexpected attribute: {:?} -> {:?}", node, node_type, key)
+            SystemError::UnexpectedAttribute(_node, node_type, key) => {
+                write!(f, "unexpected attribute: {:?} -> {:?}", node_type, key)
             }
-            SystemError::UnexpectedElement(node, parent_type, child_type) => {
-                write!(
-                    f,
-                    "[{:?}] unexpected element: {:?} -> {:?}",
-                    node, parent_type, child_type
-                )
+            SystemError::UnexpectedElement(_node, parent_type, child_type) => {
+                write!(f, "unexpected element: {:?} -> {:?}", parent_type, child_type)
             }
+            SystemError::NotImplemented(msg) => write!(f, "{}", msg),
         }
     }
 }

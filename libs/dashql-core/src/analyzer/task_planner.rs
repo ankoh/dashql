@@ -6,10 +6,7 @@ use serde::Serialize;
 use std::error::Error;
 use std::{cell::Cell, collections::HashSet};
 
-use crate::{
-    grammar::{script_writer::print_ast_as_script_with_defaults, Statement},
-    utils::topological_sort::TopologicalSort,
-};
+use crate::{grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TaskClass {
@@ -73,7 +70,6 @@ pub struct SetupTask {
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub object_id: usize,
-    pub object_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -105,7 +101,6 @@ pub struct ProgramTask {
     pub required_for: Vec<usize>,
     pub origin_statement: usize,
     pub object_id: usize,
-    pub object_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
@@ -159,7 +154,6 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             required_for: Vec::new(),
             origin_statement: stmt_id,
             object_id: next_object_id,
-            object_name: next.statement_names[stmt_id].map(|n| print_ast_as_script_with_defaults(&n)),
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(_c) => ProgramTask {
@@ -470,7 +464,6 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
             next_task.task_status.set(TaskStatusCode::Completed);
             next_task.object_id = prev_task.object_id;
-            debug_assert!(next_task.object_name == prev_task.object_name);
             continue;
         }
 
@@ -501,7 +494,6 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 depends_on: prev_task.depends_on.clone(),
                 required_for: Vec::new(),
                 object_id: prev_task.object_id,
-                object_name: prev_task.object_name.clone(),
             });
         }
     }
@@ -664,7 +656,6 @@ IMPORT a FROM 'https://some/remote'
                         required_for: vec![],
                         origin_statement: 0,
                         object_id: 0,
-                        object_name: Some("main.a".to_string()),
                     }],
                     program_task_by_statement: vec![Some(0)],
                 },
@@ -693,7 +684,6 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            object_name: Some("main.a".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -702,7 +692,6 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![],
                             origin_statement: 1,
                             object_id: 1,
-                            object_name: Some("main.b".to_string()),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -733,7 +722,6 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            object_name: Some("main.a".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -742,7 +730,6 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![2],
                             origin_statement: 1,
                             object_id: 1,
-                            object_name: Some("main.b".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
@@ -751,7 +738,6 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![],
                             origin_statement: 2,
                             object_id: 2,
-                            object_name: Some("main.c".to_string()),
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2)],
@@ -783,7 +769,6 @@ VIZ c USING TABLE;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            object_name: Some("main.a".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -792,7 +777,6 @@ VIZ c USING TABLE;
                             required_for: vec![2],
                             origin_statement: 1,
                             object_id: 1,
-                            object_name: Some("main.b".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
@@ -801,7 +785,6 @@ VIZ c USING TABLE;
                             required_for: vec![3],
                             origin_statement: 2,
                             object_id: 2,
-                            object_name: Some("main.c".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -810,7 +793,6 @@ VIZ c USING TABLE;
                             required_for: vec![],
                             origin_statement: 3,
                             object_id: 3,
-                            object_name: None,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
@@ -839,7 +821,6 @@ VIZ a USING TABLE;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 0,
-                            object_name: Some("main.a".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -848,7 +829,6 @@ VIZ a USING TABLE;
                             required_for: vec![],
                             origin_statement: 1,
                             object_id: 1,
-                            object_name: None,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -868,7 +848,6 @@ VIZ a USING TABLE;
                         depends_on: vec![],
                         required_for: vec![],
                         object_id: 0,
-                        object_name: Some("main.a".to_string()),
                     }],
                     program_tasks: vec![
                         ProgramTask {
@@ -878,7 +857,6 @@ VIZ a USING TABLE;
                             required_for: vec![1],
                             origin_statement: 0,
                             object_id: 2,
-                            object_name: Some("main.a".to_string()),
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::UpdateViz,
@@ -887,7 +865,6 @@ VIZ a USING TABLE;
                             required_for: vec![],
                             origin_statement: 1,
                             object_id: 1,
-                            object_name: None,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],

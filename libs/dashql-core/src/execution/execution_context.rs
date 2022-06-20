@@ -14,7 +14,7 @@ use std::sync::RwLockWriteGuard;
 pub struct ExecutionContextData<'ast> {
     pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
-    pub imports_by_id: HashMap<usize, Import>,
+    pub imports_by_name: HashMap<NamePath<'ast>, Import>,
 }
 
 impl<'ast> ExecutionContextData<'ast> {
@@ -25,8 +25,8 @@ impl<'ast> ExecutionContextData<'ast> {
         for (k, v) in self.cached_values.drain() {
             other.cached_values.insert(k, v);
         }
-        for (k, v) in self.imports_by_id.drain() {
-            other.imports_by_id.insert(k, v);
+        for (k, v) in self.imports_by_name.drain() {
+            other.imports_by_name.insert(k, v);
         }
     }
 }

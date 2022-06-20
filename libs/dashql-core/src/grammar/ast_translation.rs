@@ -1389,7 +1389,7 @@ pub fn deserialize_ast<'a>(
 
     // Do a postorder dfs traversal
     let mut stmts: Vec<Statement<'a>> = Vec::new();
-    for statement in buffer_stmts.iter() {
+    for (stmt_id, statement) in buffer_stmts.iter().enumerate() {
         let node = &nodes[statement.root_node() as usize];
         let stmt = match node {
             ASTNode::SelectStatement(s) => Statement::Select(s),
@@ -1401,11 +1401,17 @@ pub fn deserialize_ast<'a>(
             ASTNode::CreateAs(s) => Statement::CreateAs(s),
             ASTNode::CreateView(s) => Statement::CreateView(s),
             ASTNode::SetStatement(s) => Statement::Set(s),
-            _ => return Err(SystemError::InvalidStatementRoot(Some(statement.root_node() as usize))),
+            _ => {
+                return Err(SystemError::InvalidStatementRoot(
+                    stmt_id,
+                    statement.root_node() as usize,
+                ))
+            }
         };
         stmts.push(stmt);
     }
     Ok(Program {
+        buffer,
         nodes,
         statements: stmts,
     })

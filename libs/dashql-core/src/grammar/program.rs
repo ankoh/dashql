@@ -18,8 +18,9 @@ pub enum Statement<'arena> {
     Set(&'arena SetStatement<'arena>),
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Program<'arena> {
+    pub buffer: dashql_proto::Program<'arena>,
     pub nodes: Vec<ASTNode<'arena>>,
     pub statements: Vec<Statement<'arena>>,
 }

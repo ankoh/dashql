@@ -1,18 +1,17 @@
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import::{FileImport, HttpImport, Import};
+use crate::execution::import::{FileImport, HttpImport, Import, TestImport};
 use crate::execution::task::Task;
 use crate::grammar::{ImportStatement, Program, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
-use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct ImportTask<'ast> {
     program: &'ast Program<'ast>,
+    statement: &'ast ImportStatement<'ast>,
     task: Rc<ProgramTask>,
-    connection: Box<dyn DatabaseConnection>,
 }
 
 fn infer_import_method(url: &str) -> proto::ImportMethodType {
@@ -20,18 +19,13 @@ fn infer_import_method(url: &str) -> proto::ImportMethodType {
         return proto::ImportMethodType::HTTP;
     } else if url.starts_with("file://") {
         return proto::ImportMethodType::FILE;
+    } else if url.starts_with("test://") {
+        return proto::ImportMethodType::TEST;
     }
     return proto::ImportMethodType::NONE;
 }
 
-impl<'ast> ImportTask<'ast> {
-    fn get_statement<'snap>(&self) -> Result<&'ast ImportStatement<'ast>, SystemError> {
-        match &self.program.statements[self.task.origin_statement] {
-            Statement::Import(fetch) => Ok(fetch),
-            _ => Err(SystemError::InvalidStatementType("import")),
-        }
-    }
-}
+impl<'ast> ImportTask<'ast> {}
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for ImportTask<'ast> {
@@ -39,15 +33,20 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
         Ok(())
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let stmt = self.get_statement()?;
-        let mut method = stmt.method.get();
+        let stmt_name = self.statement.name.get();
+        let mut method = self.statement.method.get();
         let mut url = None;
 
         // User specified uri?
-        if let Some(from_uri_expr) = stmt.from_uri.get() {
+        if let Some(from_uri_expr) = self.statement.from_uri.get() {
             let from_uri = match from_uri_expr.evaluate(ctx)?.map(|v| format!("{}", v)) {
                 Some(uri) => uri,
-                None => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
+                None => {
+                    return Err(SystemError::ImportURIUnsupported(
+                        self.statement.from_uri.get_node_id(),
+                        format!("{:?}", self.statement),
+                    ))
+                }
             };
             method = infer_import_method(&from_uri);
             url = Some(from_uri);
@@ -60,9 +59,10 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
         let import = match method {
             proto::ImportMethodType::FILE => Import::File(FileImport { url: url }),
             proto::ImportMethodType::HTTP => Import::Http(HttpImport { url: url }),
-            _ => return Err(SystemError::InvalidImport(format!("{:?}", stmt))),
+            proto::ImportMethodType::TEST => Import::Test(TestImport { url: url }),
+            _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        ctx.local.imports_by_id.insert(self.task.object_id, import);
+        ctx.local.imports_by_name.insert(stmt_name, import);
         Ok(())
     }
 }

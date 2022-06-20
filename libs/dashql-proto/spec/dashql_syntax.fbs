@@ -10,8 +10,9 @@ enum InputComponentType: uint8 {
 
 enum ImportMethodType: uint8 {
     NONE = 0,
-    HTTP = 1,
-    FILE = 2
+    TEST = 1,
+    HTTP = 2,
+    FILE = 3,
 }
 
 enum LoadMethodType: uint8 {

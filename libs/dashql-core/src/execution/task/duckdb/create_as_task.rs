@@ -28,7 +28,7 @@ impl<'ast> Task<'ast> for CreateAsTask<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let stmt = self.get_statement()?;
         let stmt_select = stmt.statement.get();
         let script = print_ast_as_script_with_defaults(stmt_select);
