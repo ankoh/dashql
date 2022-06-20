@@ -58,7 +58,7 @@ fn translate_program_task<'ast>(task: &ProgramTask) -> Option<Box<dyn Task<'ast>
 
 impl<'ast> TaskScheduler<'ast> {
     /// Create setup scheduler
-    pub fn schedule_setup(program: &'ast ProgramInstance<'ast>, task_graph: &'ast mut TaskGraph) -> Self {
+    pub fn schedule_setup(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
@@ -81,7 +81,7 @@ impl<'ast> TaskScheduler<'ast> {
     }
 
     /// Create program scheduler
-    pub fn schedule_program(program: &'ast ProgramInstance<'ast>, task_graph: &'ast mut TaskGraph) -> Self {
+    pub fn schedule_program(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
@@ -234,18 +234,53 @@ impl<'ast> TaskScheduler<'ast> {
             }
         }
 
-        let call_again = !self.task_topology.is_empty();
-        Ok(call_again)
+        let work_left = !self.task_topology.is_empty();
+        Ok(work_left)
     }
 }
 
-// pub struct TaskSchedulerStateMachine<'ast> {
-//     /// The program
-//     program: &'ast ProgramInstance<'ast>,
-//     /// The task graph
-//     task_graph: &'ast TaskGraph,
-//     /// The setup tasks
-//     setup_tasks: TaskScheduler<'ast>,
-//     /// The program tasks
-//     program_tasks: TaskScheduler<'ast>,
-// }
+#[derive(PartialEq, Eq)]
+enum TaskGraphSchedulerPhase {
+    SetupTasks,
+    ProgramTasks,
+}
+
+pub struct TaskGraphScheduler<'ast> {
+    /// The program
+    program: &'ast ProgramInstance<'ast>,
+    /// The task graph
+    task_graph: &'ast TaskGraph,
+    /// The setup tasks
+    setup_scheduler: TaskScheduler<'ast>,
+    /// The program tasks
+    program_scheduler: TaskScheduler<'ast>,
+    /// The scheduler phase
+    current_phase: TaskGraphSchedulerPhase,
+}
+
+impl<'ast> TaskGraphScheduler<'ast> {
+    pub fn schedule(program: &'ast ProgramInstance<'ast>, graph: &'ast TaskGraph) -> Self {
+        let setup_sched = TaskScheduler::schedule_setup(program, graph);
+        let program_sched = TaskScheduler::schedule_program(program, graph);
+        Self {
+            program,
+            task_graph: graph,
+            setup_scheduler: setup_sched,
+            program_scheduler: program_sched,
+            current_phase: TaskGraphSchedulerPhase::SetupTasks,
+        }
+    }
+
+    pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
+        let scheduler = match self.current_phase {
+            TaskGraphSchedulerPhase::ProgramTasks => &mut self.program_scheduler,
+            TaskGraphSchedulerPhase::SetupTasks => &mut self.setup_scheduler,
+        };
+        let mut work_left = scheduler.next(log).await?;
+        if !work_left && self.current_phase == TaskGraphSchedulerPhase::SetupTasks {
+            work_left = true;
+            self.current_phase = TaskGraphSchedulerPhase::ProgramTasks;
+        }
+        Ok(work_left)
+    }
+}
