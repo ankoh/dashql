@@ -21,7 +21,7 @@ pub struct TaskSchedulerLog {
 }
 
 impl TaskSchedulerLog {
-    pub fn change_task_status(&mut self, task_class: TaskClass, task_id: usize, status: TaskStatusCode) {
+    pub fn task_updated(&mut self, task_class: TaskClass, task_id: usize, status: TaskStatusCode) {
         self.updates.push(TaskSchedulerLogEntry {
             task_class,
             task_id,
@@ -29,7 +29,7 @@ impl TaskSchedulerLog {
             error: None,
         });
     }
-    pub fn fail_task(&mut self, task_class: TaskClass, task_id: usize, error: SystemError) {
+    pub fn task_failed(&mut self, task_class: TaskClass, task_id: usize, error: SystemError) {
         self.updates.push(TaskSchedulerLogEntry {
             task_class,
             task_id,

@@ -158,7 +158,7 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Prepare all tasks
         for task_id in task_ids.iter() {
-            log.change_task_status(self.task_class, *task_id, TaskStatusCode::Preparing);
+            log.task_updated(self.task_class, *task_id, TaskStatusCode::Preparing);
         }
         log.flush().await;
         let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
@@ -177,11 +177,11 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
-                    log.change_task_status(self.task_class, task_id, TaskStatusCode::Prepared);
+                    log.task_updated(self.task_class, task_id, TaskStatusCode::Prepared);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
-                    log.fail_task(self.task_class, task_id, e);
+                    log.task_failed(self.task_class, task_id, e);
                 }
             };
             log.flush().await;
@@ -194,7 +194,7 @@ impl<'ast> TaskScheduler<'ast> {
         // Execute all tasks
         for task_id in task_ids.iter() {
             if self.task_alive[*task_id] {
-                log.change_task_status(self.task_class, *task_id, TaskStatusCode::Executing);
+                log.task_updated(self.task_class, *task_id, TaskStatusCode::Executing);
             }
         }
         log.flush().await;
@@ -214,11 +214,11 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
-                    log.change_task_status(self.task_class, task_id, TaskStatusCode::Completed);
+                    log.task_updated(self.task_class, task_id, TaskStatusCode::Completed);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
-                    log.fail_task(self.task_class, task_id, e);
+                    log.task_failed(self.task_class, task_id, e);
                 }
             };
             log.flush().await;
