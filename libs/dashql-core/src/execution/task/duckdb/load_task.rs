@@ -1,7 +1,7 @@
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import::{FileImport, HttpImport, Import, TestImport};
+use crate::execution::import::Import;
 use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, NamePath, Program};
@@ -42,15 +42,7 @@ impl<'ast> LoadTask<'ast> {
         Ok(())
     }
 
-    async fn fetch_data_from_file(&mut self, _import: &FileImport) -> Result<(), SystemError> {
-        Ok(())
-    }
-
-    async fn fetch_data_from_http(&mut self, _import: &HttpImport) -> Result<(), SystemError> {
-        Ok(())
-    }
-
-    async fn fetch_data_from_test(&mut self, _import: &TestImport) -> Result<(), SystemError> {
+    async fn import_data(&mut self, import: &Import) -> Result<(), SystemError> {
         Ok(())
     }
 }
@@ -62,7 +54,7 @@ impl<'ast> Task<'ast> for LoadTask<'ast> {
     }
 
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let import = match ctx.global.imports_by_name.get(self.target) {
+        let import = match ctx.global_state.imports_by_name.get(self.target) {
             Some(import) => import,
             None => {
                 return Err(SystemError::ImportNotRegistered(
@@ -72,11 +64,7 @@ impl<'ast> Task<'ast> for LoadTask<'ast> {
             }
         };
         if !self.try_create_view(&import).await? {
-            match import {
-                Import::File(i) => self.fetch_data_from_file(i).await?,
-                Import::Http(i) => self.fetch_data_from_http(i).await?,
-                Import::Test(i) => self.fetch_data_from_test(i).await?,
-            }
+            self.import_data(&import).await?;
         }
         Ok(())
     }

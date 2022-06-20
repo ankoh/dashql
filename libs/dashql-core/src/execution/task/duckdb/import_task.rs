@@ -3,7 +3,7 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import::{FileImport, HttpImport, Import, TestImport};
 use crate::execution::task::Task;
-use crate::grammar::{ImportStatement, Program, Statement};
+use crate::grammar::{ImportStatement, Program};
 use async_trait::async_trait;
 use dashql_proto as proto;
 use std::rc::Rc;
@@ -14,7 +14,7 @@ pub struct ImportTask<'ast> {
     task: Rc<ProgramTask>,
 }
 
-fn infer_import_method(url: &str) -> proto::ImportMethodType {
+fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
     if url.starts_with("http://") || url.starts_with("https://") {
         return proto::ImportMethodType::HTTP;
     } else if url.starts_with("file://") {
@@ -48,7 +48,7 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
                     ))
                 }
             };
-            method = infer_import_method(&from_uri);
+            method = infer_import_method_from_url(&from_uri);
             url = Some(from_uri);
         }
 
@@ -62,7 +62,7 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
             proto::ImportMethodType::TEST => Import::Test(TestImport { url: url }),
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        ctx.local.imports_by_name.insert(stmt_name, import);
+        ctx.local_state.imports_by_name.insert(stmt_name, import);
         Ok(())
     }
 }

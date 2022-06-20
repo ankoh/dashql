@@ -14,10 +14,10 @@ impl<'a> Expression<'a> {
         ctx: &mut ExecutionContextSnapshot<'a, 'snap>,
     ) -> Result<Option<Rc<ScalarValue>>, SystemError> {
         if let Some(value) = ctx
-            .local
+            .local_state
             .cached_values
             .get(&self)
-            .or(ctx.global.cached_values.get(&self))
+            .or(ctx.global_state.cached_values.get(&self))
         {
             return Ok(value.clone());
         }
@@ -29,10 +29,10 @@ impl<'a> Expression<'a> {
                 s.trim_matches(STRING_REF_TRIMMING).to_string(),
             ))),
             Expression::ColumnRef(name) => ctx
-                .local
+                .local_state
                 .named_values
                 .get(name)
-                .or(ctx.global.named_values.get(name))
+                .or(ctx.global_state.named_values.get(name))
                 .cloned(),
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
@@ -45,7 +45,7 @@ impl<'a> Expression<'a> {
             },
             _ => return Err(SystemError::ExpressionTypeNotImplemented(None)),
         };
-        ctx.local.cached_values.insert(self.clone(), value.clone());
+        ctx.local_state.cached_values.insert(self.clone(), value.clone());
         Ok(value)
     }
 }

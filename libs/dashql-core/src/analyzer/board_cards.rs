@@ -38,7 +38,7 @@ impl Default for Card {
 }
 
 pub fn allocate_card_positions<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), SystemError> {
-    let mut snap = inst.execution_context.snapshot();
+    let mut snap = inst.context.snapshot();
     let mut errors = Vec::new();
     type Key = proto::AttributeKey;
 
@@ -132,7 +132,7 @@ pub fn allocate_card_positions<'ast>(inst: &mut ProgramInstance<'ast>) -> Result
         inst.node_error_messages.push(err);
     }
     let exec_update = snap.finish();
-    let exec_data = &mut inst.execution_context.data.write().unwrap();
+    let exec_data = &mut inst.context.state.write().unwrap();
     exec_update.merge_into(exec_data);
     Ok(())
 }

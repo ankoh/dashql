@@ -21,7 +21,7 @@ pub fn is_constant_expression<'ast, 'snap>(
             Expression::Uint32(_) => true,
             Expression::StringRef(_) => true,
             Expression::ColumnRef(name) => {
-                ctx.local.named_values.contains_key(&name) || ctx.global.named_values.contains_key(&name)
+                ctx.local_state.named_values.contains_key(&name) || ctx.global_state.named_values.contains_key(&name)
             }
             Expression::Array(elems) => {
                 for elem in elems.iter() {

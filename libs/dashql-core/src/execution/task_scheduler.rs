@@ -1,5 +1,5 @@
 use super::{
-    execution_context::{ExecutionContext, ExecutionContextData, ExecutionContextSnapshot},
+    execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::Task,
     task_scheduler_log::TaskSchedulerLog,
 };
@@ -148,7 +148,7 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Merge execution context data
         let merge_into =
-            |local: Vec<ExecutionContextData<'ast>>, global: &ExecutionContext<'ast>| -> Result<(), SystemError> {
+            |local: Vec<ExecutionState<'ast>>, global: &ExecutionContext<'ast>| -> Result<(), SystemError> {
                 let mut global = global.try_write_global()?;
                 for data in local {
                     data.merge_into(&mut global);
@@ -165,7 +165,7 @@ impl<'ast> TaskScheduler<'ast> {
             .iter_mut()
             .enumerate()
             .filter(|(task_id, _task)| self.task_alive[*task_id])
-            .map(|(task_id, task)| (task_id, task, self.program.execution_context.snapshot()))
+            .map(|(task_id, task)| (task_id, task, self.program.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
@@ -187,7 +187,7 @@ impl<'ast> TaskScheduler<'ast> {
             log.flush().await;
         }
         drop(task_futures);
-        merge_into(snapshots, &self.program.execution_context)?;
+        merge_into(snapshots, &self.program.context)?;
 
         // XXX Opportunity to run shared computations after preparing every task
 
@@ -202,7 +202,7 @@ impl<'ast> TaskScheduler<'ast> {
             .iter_mut()
             .enumerate()
             .filter(|(task_id, _task)| self.task_alive[*task_id])
-            .map(|(task_id, task)| (task_id, task, self.program.execution_context.snapshot()))
+            .map(|(task_id, task)| (task_id, task, self.program.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
@@ -223,7 +223,7 @@ impl<'ast> TaskScheduler<'ast> {
             };
             log.flush().await;
         }
-        merge_into(snapshots, &self.program.execution_context)?;
+        merge_into(snapshots, &self.program.context)?;
 
         // Update topology
         for task_id in task_ids.iter() {

@@ -2,7 +2,7 @@ use super::program_instance::*;
 use crate::grammar::{ASTCell, ASTNode, Indirection, Statement, TableRef};
 use dashql_proto as proto;
 
-fn normalize_name_with<'a, F, R>(ctx: &mut ProgramInstance<'a>, name: &'a [ASTCell<Indirection<'a>>], f: F) -> R
+fn normalize_name_with<'a, F, R>(inst: &mut ProgramInstance<'a>, name: &'a [ASTCell<Indirection<'a>>], f: F) -> R
 where
     F: Fn(&mut ProgramInstance<'a>, &[ASTCell<Indirection<'a>>], bool) -> R,
 {
@@ -19,24 +19,24 @@ where
     }
     let path = &path[0..path_length];
     if path.len() > 1 {
-        return f(ctx, name, false);
+        return f(inst, name, false);
     }
-    let node: Indirection<'a> = if let Some(schema) = ctx.cached_default_schema.borrow().clone() {
+    let node: Indirection<'a> = if let Some(schema) = inst.cached_default_schema.borrow().clone() {
         Indirection::Name(schema)
     } else {
-        let s = ctx.arena.alloc_str(&ctx.settings.default_schema);
+        let s = inst.context.arena.alloc_str(&inst.context.settings.default_schema);
         Indirection::Name(s)
     };
-    f(ctx, &[ASTCell::with_value(node), name[0].clone()], true)
+    f(inst, &[ASTCell::with_value(node), name[0].clone()], true)
 }
 
 fn normalize_name_clone<'a>(
     ctx: &mut ProgramInstance<'a>,
     name: &'a [ASTCell<Indirection<'a>>],
 ) -> &'a [ASTCell<Indirection<'a>>] {
-    normalize_name_with(ctx, name, |ctx, normalized, tmp| -> &'a [ASTCell<Indirection<'a>>] {
+    normalize_name_with(ctx, name, |inst, normalized, tmp| -> &'a [ASTCell<Indirection<'a>>] {
         if tmp {
-            ctx.arena.alloc_slice_clone(normalized)
+            inst.context.arena.alloc_slice_clone(normalized)
         } else {
             name
         }
@@ -141,6 +141,7 @@ mod test {
 
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
+    use crate::execution::execution_context::ExecutionContext;
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
@@ -158,11 +159,11 @@ mod test {
         script: &'static str,
         expected: &[DependencyTest],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
+        let context = ExecutionContext::create_default(&arena);
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
-        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, HashMap::new());
+        let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx

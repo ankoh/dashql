@@ -34,19 +34,19 @@ pub fn determine_statement_liveness<'a>(inst: &mut ProgramInstance<'a>) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::name_resolution::*;
+    use crate::execution::execution_context::ExecutionContext;
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
 
     fn test_liveness(script: &'static str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
+        let context = ExecutionContext::create_default(&arena);
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
-        let mut ctx = ProgramInstance::new(settings.clone(), &arena, script, ast, prog, HashMap::new());
+        let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         determine_statement_liveness(&mut ctx);

@@ -1,5 +1,8 @@
 use super::import::Import;
+use super::runtime;
+use super::runtime::create_default_runtime;
 use super::scalar_value::ScalarValue;
+use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
@@ -11,14 +14,14 @@ use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
 
 #[derive(Clone, Debug, Default)]
-pub struct ExecutionContextData<'ast> {
+pub struct ExecutionState<'ast> {
     pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
     pub imports_by_name: HashMap<NamePath<'ast>, Import>,
 }
 
-impl<'ast> ExecutionContextData<'ast> {
-    pub fn merge_into(mut self, other: &mut ExecutionContextData<'ast>) {
+impl<'ast> ExecutionState<'ast> {
+    pub fn merge_into(mut self, other: &mut ExecutionState<'ast>) {
         for (k, v) in self.named_values.drain() {
             other.named_values.insert(k, v);
         }
@@ -33,15 +36,31 @@ impl<'ast> ExecutionContextData<'ast> {
 
 #[derive(Debug, Clone)]
 pub struct ExecutionContext<'ast> {
+    pub settings: Arc<ProgramAnalysisSettings>,
+    pub runtime: Arc<dyn runtime::Runtime>,
     pub arena: &'ast bumpalo::Bump,
-    pub data: Arc<RwLock<ExecutionContextData<'ast>>>,
+    pub state: Arc<RwLock<ExecutionState<'ast>>>,
 }
 
 impl<'ast> ExecutionContext<'ast> {
-    pub fn with_arena(arena: &'ast bumpalo::Bump) -> Self {
+    pub fn create_default(arena: &'ast bumpalo::Bump) -> Self {
         Self {
+            settings: Arc::new(ProgramAnalysisSettings::default()),
+            runtime: create_default_runtime(),
             arena,
-            data: Arc::new(RwLock::new(ExecutionContextData::default())),
+            state: Arc::new(RwLock::new(ExecutionState::default())),
+        }
+    }
+    pub fn create(
+        settings: Arc<ProgramAnalysisSettings>,
+        runtime: Arc<dyn runtime::Runtime>,
+        arena: &'ast bumpalo::Bump,
+    ) -> Self {
+        Self {
+            settings,
+            runtime,
+            arena,
+            state: Arc::new(RwLock::new(ExecutionState::default())),
         }
     }
 }
@@ -49,14 +68,14 @@ impl<'ast> ExecutionContext<'ast> {
 impl<'ast> ExecutionContext<'ast> {
     pub fn snapshot<'snap>(&'snap self) -> ExecutionContextSnapshot<'ast, 'snap> {
         ExecutionContextSnapshot {
-            arena: self.arena,
-            global: self.data.read().unwrap(),
-            local: Default::default(),
+            context: self,
+            global_state: self.state.read().unwrap(),
+            local_state: Default::default(),
         }
     }
 
-    pub fn try_write_global(&self) -> Result<RwLockWriteGuard<'_, ExecutionContextData<'ast>>, SystemError> {
-        self.data
+    pub fn try_write_global(&self) -> Result<RwLockWriteGuard<'_, ExecutionState<'ast>>, SystemError> {
+        self.state
             .try_write()
             .map_err(|_| SystemError::InternalError("failed to lock global execution context"))
     }
@@ -64,13 +83,13 @@ impl<'ast> ExecutionContext<'ast> {
 
 #[derive(Debug)]
 pub struct ExecutionContextSnapshot<'ast, 'snap> {
-    pub arena: &'ast bumpalo::Bump,
-    pub global: RwLockReadGuard<'snap, ExecutionContextData<'ast>>,
-    pub local: ExecutionContextData<'ast>,
+    pub context: &'snap ExecutionContext<'ast>,
+    pub global_state: RwLockReadGuard<'snap, ExecutionState<'ast>>,
+    pub local_state: ExecutionState<'ast>,
 }
 
 impl<'ast, 'snap> ExecutionContextSnapshot<'ast, 'snap> {
-    pub fn finish(self) -> ExecutionContextData<'ast> {
-        self.local
+    pub fn finish(self) -> ExecutionState<'ast> {
+        self.local_state
     }
 }

@@ -481,7 +481,7 @@ impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
 mod test {
     use super::*;
     use crate::{
-        execution::{execution_context::ExecutionContext, scalar_value::ScalarValue},
+        execution::{execution_context::ExecutionContext, runtime::create_default_runtime, scalar_value::ScalarValue},
         grammar::{self, ASTCell, Statement},
     };
     use std::collections::HashMap;
@@ -512,7 +512,7 @@ mod test {
     }
 
     fn test_json<'a>(arena: &'a bumpalo::Bump, dson: DsonValue<'a>, json: &'static str) -> Result<(), SystemError> {
-        let ctx = ExecutionContext::with_arena(&arena);
+        let ctx = ExecutionContext::create_default(&arena);
         let mut ctx_snap = ctx.snapshot();
         let value = dson.as_json(&mut ctx_snap)?;
         let value_text = value.to_string();
@@ -526,9 +526,9 @@ mod test {
         json: &'static str,
         named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
     ) -> Result<(), SystemError> {
-        let ctx = ExecutionContext::with_arena(&arena);
+        let ctx = ExecutionContext::create_default(&arena);
         let mut ctx_snap = ctx.snapshot();
-        ctx_snap.local.named_values = named_values;
+        ctx_snap.local_state.named_values = named_values;
         let value = dson.as_json(&mut ctx_snap)?;
         let value_text = value.to_string();
         assert_eq!(value_text, json);

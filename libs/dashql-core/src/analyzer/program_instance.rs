@@ -23,10 +23,9 @@ pub type NodeID = usize;
 
 #[derive(Debug, Clone)]
 pub struct ProgramInstance<'a> {
-    pub settings: Rc<ProgramAnalysisSettings>,
+    pub context: ExecutionContext<'a>,
 
     // AST buffer
-    pub arena: &'a bumpalo::Bump,
     pub script_text: &'a str,
     pub program_proto: proto::Program<'a>,
     pub program: Rc<Program<'a>>,
@@ -35,7 +34,6 @@ pub struct ProgramInstance<'a> {
     pub input: HashMap<usize, ScalarValue>,
 
     // Analysis state
-    pub execution_context: ExecutionContext<'a>,
     pub node_error_messages: Vec<NodeError>,
     pub node_linter_messages: Vec<NodeLinterMessage>,
     pub statement_names: Vec<Option<NamePath<'a>>>,
@@ -54,21 +52,18 @@ pub struct ProgramInstance<'a> {
 
 impl<'a> ProgramInstance<'a> {
     pub fn new(
-        settings: Rc<ProgramAnalysisSettings>,
-        arena: &'a bumpalo::Bump,
+        context: ExecutionContext<'a>,
         text: &'a str,
         program_proto: proto::Program<'a>,
         program_translated: Rc<Program<'a>>,
         input: HashMap<usize, ScalarValue>,
     ) -> Self {
         let mut ctx = ProgramInstance {
-            settings,
-            arena,
+            context,
             script_text: text,
             program_proto: program_proto,
             program: program_translated,
             input,
-            execution_context: ExecutionContext::with_arena(arena),
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -94,14 +89,13 @@ impl<'a> ProgramInstance<'a> {
 }
 
 pub fn analyze_program<'arena>(
-    settings: Rc<ProgramAnalysisSettings>,
-    arena: &'arena bumpalo::Bump,
+    context: ExecutionContext<'arena>,
     text: &'arena str,
     program_proto: proto::Program<'arena>,
     program: Rc<Program<'arena>>,
     input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
-    let mut inst = ProgramInstance::new(settings, arena, text, program_proto, program, input);
+    let mut inst = ProgramInstance::new(context, text, program_proto, program, input);
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
@@ -136,12 +130,14 @@ mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::execution::runtime::create_default_runtime;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use dashql_proto as proto;
     use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
+    use std::sync::Arc;
 
     #[derive(Debug)]
     struct ExpectedTaskInstance {
@@ -161,11 +157,11 @@ mod test {
     }
 
     fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let settings = Rc::new(ProgramAnalysisSettings::default());
         let arena = bumpalo::Bump::new();
+        let context = ExecutionContext::create_default(&arena);
         let ast = grammar::parse(&arena, test.script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast).unwrap());
-        let inst = analyze_program(settings.clone(), &arena, test.script, ast, prog, test.input.clone())?;
+        let inst = analyze_program(context, test.script, ast, prog, test.input.clone())?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());
         for i in 0..inst.node_error_messages.len() {

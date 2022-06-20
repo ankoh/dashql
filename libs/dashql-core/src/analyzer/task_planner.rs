@@ -556,9 +556,12 @@ mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::execution::execution_context::ExecutionContext;
+    use crate::execution::runtime::create_default_runtime;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use std::rc::Rc;
+    use std::sync::Arc;
 
     struct ExpectedInstance {
         script: &'static str,
@@ -572,10 +575,12 @@ mod test {
     }
 
     fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let settings = Rc::new(ProgramAnalysisSettings::default());
+        let settings = Arc::new(ProgramAnalysisSettings::default());
+        let runtime = create_default_runtime();
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();
+        let prev_context = ExecutionContext::create(settings.clone(), runtime.clone(), &prev_arena);
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
@@ -587,8 +592,7 @@ mod test {
             );
             let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast).unwrap());
             prev_instance = Some(analyze_program(
-                settings.clone(),
-                &prev_arena,
+                prev_context,
                 prev.script,
                 prev_ast,
                 prev_prog,
@@ -605,6 +609,7 @@ mod test {
 
         // Instantiate next program
         let next_arena = bumpalo::Bump::new();
+        let next_context = ExecutionContext::create(settings, runtime, &next_arena);
         let next_instance = {
             let next_ast = grammar::parse(&next_arena, test.next.script)?;
             assert!(
@@ -614,8 +619,7 @@ mod test {
             );
             let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast).unwrap());
             analyze_program(
-                settings.clone(),
-                &next_arena,
+                next_context,
                 test.next.script,
                 next_ast,
                 next_prog,
