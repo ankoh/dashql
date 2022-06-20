@@ -140,7 +140,6 @@ mod test {
     use dashql_proto::DependencyType;
 
     use super::*;
-    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::execution::execution_context::ExecutionContext;
     use crate::grammar;
     use std::collections::HashMap;

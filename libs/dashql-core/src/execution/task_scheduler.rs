@@ -247,9 +247,9 @@ enum TaskGraphSchedulerPhase {
 
 pub struct TaskGraphScheduler<'ast> {
     /// The program
-    program: &'ast ProgramInstance<'ast>,
+    _program: &'ast ProgramInstance<'ast>,
     /// The task graph
-    task_graph: &'ast TaskGraph,
+    _task_graph: &'ast TaskGraph,
     /// The setup tasks
     setup_scheduler: TaskScheduler<'ast>,
     /// The program tasks
@@ -263,8 +263,8 @@ impl<'ast> TaskGraphScheduler<'ast> {
         let setup_sched = TaskScheduler::schedule_setup(program, graph);
         let program_sched = TaskScheduler::schedule_program(program, graph);
         Self {
-            program,
-            task_graph: graph,
+            _program: program,
+            _task_graph: graph,
             setup_scheduler: setup_sched,
             program_scheduler: program_sched,
             current_phase: TaskGraphSchedulerPhase::SetupTasks,

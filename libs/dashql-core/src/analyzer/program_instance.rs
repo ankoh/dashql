@@ -1,5 +1,4 @@
 use super::super::grammar::*;
-use super::analysis_settings::ProgramAnalysisSettings;
 use super::board_cards::allocate_card_positions;
 use super::board_cards::collect_cards;
 use super::board_cards::Card;
@@ -128,16 +127,13 @@ pub struct NodeError {
 mod test {
 
     use super::*;
-    use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
-    use crate::execution::runtime::create_default_runtime;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
     use dashql_proto as proto;
     use std::collections::HashMap;
     use std::error::Error;
     use std::rc::Rc;
-    use std::sync::Arc;
 
     #[derive(Debug)]
     struct ExpectedTaskInstance {

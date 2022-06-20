@@ -1,24 +1,24 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct FileImport {
+pub struct FileImportInfo {
     pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct HttpImport {
+pub struct HttpImportInfo {
     pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct TestImport {
+pub struct TestImportInfo {
     pub url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "t", content = "v")]
-pub enum Import {
-    File(FileImport),
-    Http(HttpImport),
-    Test(TestImport),
+pub enum ImportInfo {
+    File(FileImportInfo),
+    Http(HttpImportInfo),
+    Test(TestImportInfo),
 }

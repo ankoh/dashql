@@ -1,7 +1,7 @@
 use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import::Import;
+use crate::execution::import_info::ImportInfo;
 use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, NamePath, Program};
@@ -12,15 +12,15 @@ use proto::LoadMethodType;
 use std::rc::Rc;
 
 pub struct LoadTask<'ast> {
-    program: &'ast Program<'ast>,
+    _program: &'ast Program<'ast>,
     statement: &'ast LoadStatement<'ast>,
-    task: Rc<ProgramTask>,
+    _task: Rc<ProgramTask>,
     target: NamePath<'ast>,
-    connection: Box<dyn DatabaseConnection>,
+    _connection: Box<dyn DatabaseConnection>,
 }
 
 impl<'ast> LoadTask<'ast> {
-    async fn try_create_view(&self, _import: &Import) -> Result<bool, SystemError> {
+    async fn try_create_view(&self, _import: &ImportInfo) -> Result<bool, SystemError> {
         if self.statement.method.get() == proto::LoadMethodType::JSON {
             return Ok(false);
         }
@@ -33,16 +33,12 @@ impl<'ast> LoadTask<'ast> {
     }
 
     async fn create_parquet_view(&self) -> Result<(), SystemError> {
-        let _script = format!("create view {} as parquet_scan(\"{}\")", "", "");
+        let _script = format!("create view {} as select * from parquet_scan(\"{}\")", "", "");
         Ok(())
     }
 
     async fn create_csv_view(&self) -> Result<(), SystemError> {
-        let _script = format!("create view {} as read_csv_auto(\"{}\")", "", "");
-        Ok(())
-    }
-
-    async fn import_data(&mut self, import: &Import) -> Result<(), SystemError> {
+        let _script = format!("create view {} as select * from read_csv_auto(\"{}\")", "", "");
         Ok(())
     }
 }
@@ -64,7 +60,8 @@ impl<'ast> Task<'ast> for LoadTask<'ast> {
             }
         };
         if !self.try_create_view(&import).await? {
-            self.import_data(&import).await?;
+            let hdl = ctx.base.runtime.import_data(&ctx, &import).await?;
+            ctx.base.runtime.load_data(&ctx, hdl).await?;
         }
         Ok(())
     }

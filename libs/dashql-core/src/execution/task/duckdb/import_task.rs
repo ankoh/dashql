@@ -1,17 +1,13 @@
-use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import::{FileImport, HttpImport, Import, TestImport};
+use crate::execution::import_info::{FileImportInfo, HttpImportInfo, ImportInfo, TestImportInfo};
 use crate::execution::task::Task;
-use crate::grammar::{ImportStatement, Program};
+use crate::grammar::ImportStatement;
 use async_trait::async_trait;
 use dashql_proto as proto;
-use std::rc::Rc;
 
 pub struct ImportTask<'ast> {
-    program: &'ast Program<'ast>,
     statement: &'ast ImportStatement<'ast>,
-    task: Rc<ProgramTask>,
 }
 
 fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
@@ -57,9 +53,9 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
 
         // Register import
         let import = match method {
-            proto::ImportMethodType::FILE => Import::File(FileImport { url: url }),
-            proto::ImportMethodType::HTTP => Import::Http(HttpImport { url: url }),
-            proto::ImportMethodType::TEST => Import::Test(TestImport { url: url }),
+            proto::ImportMethodType::FILE => ImportInfo::File(FileImportInfo { url: url }),
+            proto::ImportMethodType::HTTP => ImportInfo::Http(HttpImportInfo { url: url }),
+            proto::ImportMethodType::TEST => ImportInfo::Test(TestImportInfo { url: url }),
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
         ctx.local_state.imports_by_name.insert(stmt_name, import);

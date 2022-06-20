@@ -8,9 +8,9 @@ use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct SetTask<'ast> {
-    program: &'ast Program<'ast>,
-    task: Rc<ProgramTask>,
-    connection: Box<dyn DatabaseConnection>,
+    _program: &'ast Program<'ast>,
+    _task: Rc<ProgramTask>,
+    _connection: Box<dyn DatabaseConnection>,
 }
 
 #[async_trait(?Send)]
@@ -19,7 +19,7 @@ impl<'ast> Task<'ast> for SetTask<'ast> {
         todo!()
     }
 
-    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         todo!()
     }
 }

@@ -481,7 +481,7 @@ impl<'arena> DsonAccess<&str> for DsonValue<'arena> {
 mod test {
     use super::*;
     use crate::{
-        execution::{execution_context::ExecutionContext, runtime::create_default_runtime, scalar_value::ScalarValue},
+        execution::{execution_context::ExecutionContext, scalar_value::ScalarValue},
         grammar::{self, ASTCell, Statement},
     };
     use std::collections::HashMap;

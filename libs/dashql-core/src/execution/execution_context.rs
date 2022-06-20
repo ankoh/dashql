@@ -1,4 +1,4 @@
-use super::import::Import;
+use super::import_info::ImportInfo;
 use super::runtime;
 use super::runtime::create_default_runtime;
 use super::scalar_value::ScalarValue;
@@ -17,7 +17,7 @@ use std::sync::RwLockWriteGuard;
 pub struct ExecutionState<'ast> {
     pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
-    pub imports_by_name: HashMap<NamePath<'ast>, Import>,
+    pub imports_by_name: HashMap<NamePath<'ast>, ImportInfo>,
 }
 
 impl<'ast> ExecutionState<'ast> {
@@ -68,7 +68,7 @@ impl<'ast> ExecutionContext<'ast> {
 impl<'ast> ExecutionContext<'ast> {
     pub fn snapshot<'snap>(&'snap self) -> ExecutionContextSnapshot<'ast, 'snap> {
         ExecutionContextSnapshot {
-            context: self,
+            base: self,
             global_state: self.state.read().unwrap(),
             local_state: Default::default(),
         }
@@ -83,7 +83,7 @@ impl<'ast> ExecutionContext<'ast> {
 
 #[derive(Debug)]
 pub struct ExecutionContextSnapshot<'ast, 'snap> {
-    pub context: &'snap ExecutionContext<'ast>,
+    pub base: &'snap ExecutionContext<'ast>,
     pub global_state: RwLockReadGuard<'snap, ExecutionState<'ast>>,
     pub local_state: ExecutionState<'ast>,
 }
