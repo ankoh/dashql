@@ -3,25 +3,19 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
-use crate::grammar::{CreateViewStatement, Program, Statement};
+use crate::grammar::{CreateViewStatement, Program};
 use async_trait::async_trait;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct CreateViewTask<'ast> {
-    program: &'ast Program<'ast>,
-    task: Rc<ProgramTask>,
+    _program: &'ast Program<'ast>,
+    statement: &'ast CreateViewStatement<'ast>,
+    _task: Rc<ProgramTask>,
     connection: Box<dyn DatabaseConnection>,
 }
 
-impl<'ast> CreateViewTask<'ast> {
-    fn get_statement<'snap>(&self) -> Result<&'ast CreateViewStatement<'ast>, SystemError> {
-        match &self.program.statements[self.task.origin_statement] {
-            Statement::CreateView(view) => Ok(view),
-            _ => Err(SystemError::InvalidStatementType("create view")),
-        }
-    }
-}
+impl<'ast> CreateViewTask<'ast> {}
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for CreateViewTask<'ast> {
@@ -29,9 +23,7 @@ impl<'ast> Task<'ast> for CreateViewTask<'ast> {
         Ok(())
     }
     async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let stmt = self.get_statement()?;
-        let stmt_select = stmt.statement.get();
-        let script = print_ast_as_script_with_defaults(stmt_select);
+        let script = print_ast_as_script_with_defaults(self.statement);
         self.connection.run_query(&script).await?;
         Ok(())
     }
