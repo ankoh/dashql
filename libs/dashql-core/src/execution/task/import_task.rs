@@ -1,14 +1,16 @@
+use crate::analyzer::program_instance::ProgramInstance;
+use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::{FileImportInfo, HttpImportInfo, ImportInfo, TestImportInfo};
 use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
-use crate::grammar::ImportStatement;
+use crate::grammar::{ImportStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 
 pub struct ImportTask<'ast> {
-    statement: &'ast ImportStatement<'ast>,
+    pub statement: &'ast ImportStatement<'ast>,
 }
 
 fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
@@ -22,7 +24,16 @@ fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
     return proto::ImportMethodType::NONE;
 }
 
-impl<'ast> ImportTask<'ast> {}
+impl<'ast> ImportTask<'ast> {
+    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast ProgramTask) -> Result<Self, SystemError> {
+        let stmt_id = task.origin_statement;
+        let stmt: &'ast ImportStatement<'ast> = match instance.program.statements[stmt_id] {
+            Statement::Import(i) => i,
+            _ => return Err(SystemError::InvalidStatementType("expected import")),
+        };
+        Ok(Self { statement: stmt })
+    }
+}
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for ImportTask<'ast> {

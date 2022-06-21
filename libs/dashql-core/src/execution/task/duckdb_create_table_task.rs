@@ -8,17 +8,17 @@ use async_trait::async_trait;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
-pub struct CreateTableTask<'ast> {
+pub struct DuckDBCreateTableTask<'ast> {
     _program: &'ast Program<'ast>,
     statement: &'ast CreateStatement<'ast>,
     _task: Rc<ProgramTask>,
     connection: Box<dyn DatabaseConnection>,
 }
 
-impl<'ast> CreateTableTask<'ast> {}
+impl<'ast> DuckDBCreateTableTask<'ast> {}
 
 #[async_trait(?Send)]
-impl<'ast> Task<'ast> for CreateTableTask<'ast> {
+impl<'ast> Task<'ast> for DuckDBCreateTableTask<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

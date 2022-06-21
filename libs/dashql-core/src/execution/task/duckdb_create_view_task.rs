@@ -3,22 +3,22 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
-use crate::grammar::{CreateAsStatement, Program};
+use crate::grammar::{CreateViewStatement, Program};
 use async_trait::async_trait;
 use duckdbx_api::api::DatabaseConnection;
 use std::rc::Rc;
 
-pub struct CreateAsTask<'ast> {
+pub struct DuckDBCreateViewTask<'ast> {
     _program: &'ast Program<'ast>,
-    statement: &'ast CreateAsStatement<'ast>,
+    statement: &'ast CreateViewStatement<'ast>,
     _task: Rc<ProgramTask>,
     connection: Box<dyn DatabaseConnection>,
 }
 
-impl<'ast> CreateAsTask<'ast> {}
+impl<'ast> DuckDBCreateViewTask<'ast> {}
 
 #[async_trait(?Send)]
-impl<'ast> Task<'ast> for CreateAsTask<'ast> {
+impl<'ast> Task<'ast> for DuckDBCreateViewTask<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
