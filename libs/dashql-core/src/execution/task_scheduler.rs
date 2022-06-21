@@ -28,8 +28,8 @@ pub struct TaskScheduler<'ast> {
     task_required_for: Vec<&'ast [usize]>,
 }
 
-fn translate_setup_task<'ast>(task: &SetupTask) -> Option<Box<dyn Task<'ast>>> {
-    match task.task_type {
+fn translate_setup_task<'ast>(task: &SetupTask) -> Result<Option<Box<dyn Task<'ast>>>, SystemError> {
+    let logic = match task.task_type {
         SetupTaskType::None => None,
         SetupTaskType::DropBlob => todo!(),
         SetupTaskType::DropInput => todo!(),
@@ -37,12 +37,13 @@ fn translate_setup_task<'ast>(task: &SetupTask) -> Option<Box<dyn Task<'ast>>> {
         SetupTaskType::DropView => todo!(),
         SetupTaskType::DropViz => todo!(),
         SetupTaskType::Unset => todo!(),
-    }
+    };
+    Ok(logic)
 }
 
-fn translate_program_task<'ast>(task: &ProgramTask) -> Option<Box<dyn Task<'ast>>> {
-    match task.task_type {
-        ProgramTaskType::None => todo!(),
+fn translate_program_task<'ast>(task: &ProgramTask) -> Result<Option<Box<dyn Task<'ast>>>, SystemError> {
+    let logic = match task.task_type {
+        ProgramTaskType::None => None,
         ProgramTaskType::CreateAs => todo!(),
         ProgramTaskType::CreateTable => todo!(),
         ProgramTaskType::CreateView => todo!(),
@@ -53,12 +54,16 @@ fn translate_program_task<'ast>(task: &ProgramTask) -> Option<Box<dyn Task<'ast>
         ProgramTaskType::ModifyTable => todo!(),
         ProgramTaskType::Set => todo!(),
         ProgramTaskType::UpdateViz => todo!(),
-    }
+    };
+    Ok(logic)
 }
 
 impl<'ast> TaskScheduler<'ast> {
     /// Create setup scheduler
-    pub fn schedule_setup(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
+    pub fn schedule_setup(
+        program: &'ast ProgramInstance<'ast>,
+        task_graph: &'ast TaskGraph,
+    ) -> Result<Self, SystemError> {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
@@ -67,21 +72,24 @@ impl<'ast> TaskScheduler<'ast> {
         for (setup_id, setup_task) in task_graph.setup_tasks.iter().enumerate() {
             topo.push((setup_id, setup_task.depends_on.len()));
             alive.push(setup_task.task_status.get() == TaskStatusCode::Pending);
-            logic.push(translate_setup_task(setup_task));
+            logic.push(translate_setup_task(setup_task)?);
             required_for.push(setup_task.required_for.as_slice());
         }
-        Self {
+        Ok(Self {
             program,
             task_class: TaskClass::SetupTask,
             task_logic: logic,
             task_topology: TopologicalSort::new(topo),
             task_alive: alive,
             task_required_for: required_for,
-        }
+        })
     }
 
     /// Create program scheduler
-    pub fn schedule_program(program: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Self {
+    pub fn schedule_program(
+        program: &'ast ProgramInstance<'ast>,
+        task_graph: &'ast TaskGraph,
+    ) -> Result<Self, SystemError> {
         let n = task_graph.setup_tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
@@ -89,18 +97,18 @@ impl<'ast> TaskScheduler<'ast> {
         let mut required_for = Vec::with_capacity(n);
         for (program_id, program_task) in task_graph.program_tasks.iter().enumerate() {
             topo.push((program_id, program_task.depends_on.len()));
-            logic.push(translate_program_task(program_task));
+            logic.push(translate_program_task(program_task)?);
             alive.push(program_task.task_status.get() == TaskStatusCode::Pending);
             required_for.push(program_task.required_for.as_slice());
         }
-        Self {
+        Ok(Self {
             program,
             task_class: TaskClass::ProgramTask,
             task_logic: logic,
             task_alive: alive,
             task_topology: TopologicalSort::new(topo),
             task_required_for: required_for,
-        }
+        })
     }
 
     /// Prepare a task
@@ -259,16 +267,16 @@ pub struct TaskGraphScheduler<'ast> {
 }
 
 impl<'ast> TaskGraphScheduler<'ast> {
-    pub fn schedule(program: &'ast ProgramInstance<'ast>, graph: &'ast TaskGraph) -> Self {
-        let setup_sched = TaskScheduler::schedule_setup(program, graph);
-        let program_sched = TaskScheduler::schedule_program(program, graph);
-        Self {
+    pub fn schedule(program: &'ast ProgramInstance<'ast>, graph: &'ast TaskGraph) -> Result<Self, SystemError> {
+        let setup_sched = TaskScheduler::schedule_setup(program, graph)?;
+        let program_sched = TaskScheduler::schedule_program(program, graph)?;
+        Ok(Self {
             _program: program,
             _task_graph: graph,
             setup_scheduler: setup_sched,
             program_scheduler: program_sched,
             current_phase: TaskGraphSchedulerPhase::SetupTasks,
-        }
+        })
     }
 
     pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
@@ -282,5 +290,36 @@ impl<'ast> TaskGraphScheduler<'ast> {
             self.current_phase = TaskGraphSchedulerPhase::ProgramTasks;
         }
         Ok(work_left)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    pub use super::*;
+
+    struct QueryTest {
+        pub query: &'static str,
+        pub output: &'static str,
+    }
+
+    async fn test_scheduler(script: &'static str, tests: &'static [QueryTest]) -> Result<(), SystemError> {
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_load_0() -> Result<(), SystemError> {
+        test_scheduler(
+            r#"
+import lineitem_data from 'test://tpch/0_01/lineitem.parquet';
+load lineitem from lineitem_data using parquet;
+vis lineitem using table;
+        "#,
+            &[QueryTest {
+                query: "select count(*) from lineitem",
+                output: "42",
+            }],
+        )
+        .await?;
+        Ok(())
     }
 }

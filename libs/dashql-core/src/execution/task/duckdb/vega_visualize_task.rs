@@ -16,10 +16,9 @@ pub struct VegaVisualizeTask<'ast> {
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for VegaVisualizeTask<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        todo!()
+        Ok(())
     }
-
     async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        todo!()
+        Ok(())
     }
 }
