@@ -511,8 +511,12 @@ mod test {
         Ok(())
     }
 
-    fn test_json<'a>(arena: &'a bumpalo::Bump, dson: DsonValue<'a>, json: &'static str) -> Result<(), SystemError> {
-        let ctx = ExecutionContext::create_default(&arena);
+    async fn test_json<'a>(
+        arena: &'a bumpalo::Bump,
+        dson: DsonValue<'a>,
+        json: &'static str,
+    ) -> Result<(), SystemError> {
+        let ctx = ExecutionContext::create_simple(&arena).await?;
         let mut ctx_snap = ctx.snapshot();
         let value = dson.as_json(&mut ctx_snap)?;
         let value_text = value.to_string();
@@ -520,13 +524,13 @@ mod test {
         Ok(())
     }
 
-    fn test_json_with_values<'a>(
+    async fn test_json_with_values<'a>(
         arena: &'a bumpalo::Bump,
         dson: DsonValue<'a>,
         json: &'static str,
         named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
     ) -> Result<(), SystemError> {
-        let ctx = ExecutionContext::create_default(&arena);
+        let ctx = ExecutionContext::create_simple(&arena).await?;
         let mut ctx_snap = ctx.snapshot();
         ctx_snap.local_state.named_values = named_values;
         let value = dson.as_json(&mut ctx_snap)?;
@@ -535,15 +539,15 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_as_json_simple() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_as_json_simple() -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        test_json(&arena, DsonValue::Expression(Expression::Boolean(true)), "true")?;
-        test_json(&arena, DsonValue::Expression(Expression::Boolean(false)), "false")?;
-        test_json(&arena, DsonValue::Expression(Expression::StringRef("foo")), "\"foo\"")?;
-        test_json(&arena, DsonValue::Expression(Expression::StringRef("")), "\"\"")?;
-        test_json(&arena, DsonValue::Expression(Expression::Uint32(0)), "0")?;
-        test_json(&arena, DsonValue::Expression(Expression::Uint32(42)), "42")?;
+        test_json(&arena, DsonValue::Expression(Expression::Boolean(true)), "true").await?;
+        test_json(&arena, DsonValue::Expression(Expression::Boolean(false)), "false").await?;
+        test_json(&arena, DsonValue::Expression(Expression::StringRef("foo")), "\"foo\"").await?;
+        test_json(&arena, DsonValue::Expression(Expression::StringRef("")), "\"\"").await?;
+        test_json(&arena, DsonValue::Expression(Expression::Uint32(0)), "0").await?;
+        test_json(&arena, DsonValue::Expression(Expression::Uint32(42)), "42").await?;
         test_json(
             &arena,
             DsonValue::Array(&[
@@ -551,7 +555,8 @@ mod test {
                 DsonValue::Expression(Expression::Boolean(false)),
             ]),
             "[true,false]",
-        )?;
+        )
+        .await?;
         test_json(
             &arena,
             DsonValue::Object(&[DsonField {
@@ -559,7 +564,8 @@ mod test {
                 value: DsonValue::Expression(Expression::Boolean(true)),
             }]),
             r#"{"fill":true}"#,
-        )?;
+        )
+        .await?;
         test_json(
             &arena,
             DsonValue::Object(&[
@@ -573,12 +579,13 @@ mod test {
                 },
             ]),
             r#"{"fill":true,"foo":"bar"}"#,
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_column_ref() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_column_ref() -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         test_json_with_values(
             &arena,
@@ -588,12 +595,13 @@ mod test {
                 [ASTCell::with_value(Indirection::Name("foo"))].as_slice(),
                 Rc::new(ScalarValue::Int64(42)),
             )]),
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_missing_function() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_missing_function() -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let res = test_json(
             &arena,
@@ -602,15 +610,16 @@ mod test {
                 ..FunctionExpression::default()
             })),
             r#""42""#,
-        );
+        )
+        .await;
         assert!(res.is_err());
         let err = res.err().unwrap();
         assert_eq!(err.to_string(), "function not implemented: notexisting");
         Ok(())
     }
 
-    #[test]
-    fn test_format_function() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_format_function() -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         test_json(
             &arena,
@@ -629,7 +638,8 @@ mod test {
                 ..FunctionExpression::default()
             })),
             r#""42""#,
-        )?;
+        )
+        .await?;
         test_json(
             &arena,
             DsonValue::Object(&[DsonField {
@@ -650,7 +660,8 @@ mod test {
                 })),
             }]),
             r#"{"url":"42"}"#,
-        )?;
+        )
+        .await?;
         Ok(())
     }
 }

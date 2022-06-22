@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use duckdbx_api::DatabaseInstance;
 
 use crate::{
     error::SystemError,
@@ -9,6 +10,8 @@ pub type RuntimeDataHandle = u64;
 
 #[async_trait(?Send)]
 pub trait Runtime: std::fmt::Debug {
+    async fn resolve_test_data(&self, url: &str) -> Result<String, SystemError>;
+
     async fn import_data<'ast, 'snap>(
         &self,
         ctx: &ExecutionContextSnapshot<'ast, 'snap>,

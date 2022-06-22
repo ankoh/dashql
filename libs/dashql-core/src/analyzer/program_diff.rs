@@ -734,13 +734,13 @@ mod test {
     use std::rc::Rc;
 
     // Test a difference
-    fn test_diff(
+    async fn test_diff(
         script0: &'static str,
         script1: &'static str,
         expected: &[DiffOp],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let context = ExecutionContext::create_default(&arena);
+        let context = ExecutionContext::create_simple(&arena).await?;
         let ast0 = grammar::parse(&arena, script0)?;
         let ast1 = grammar::parse(&arena, script1)?;
         let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0).unwrap());
@@ -752,8 +752,8 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_diff_equal_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_equal_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             "SELECT 1",
             "SELECT 1",
@@ -762,12 +762,13 @@ mod test {
                 source: Some(0),
                 target: Some(0),
             }],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_delete_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_delete_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"SELECT 1; SELECT 42;"#,
             r#"SELECT 1;"#,
@@ -783,12 +784,13 @@ mod test {
                     target: None,
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_insert_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_insert_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"SELECT 1;"#,
             r#"SELECT 1;SELECT 42;"#,
@@ -804,12 +806,13 @@ mod test {
                     target: Some(1),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_insert_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_insert_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"SELECT 1;"#,
             r#"SELECT 42;SELECT 1;"#,
@@ -825,12 +828,13 @@ mod test {
                     target: Some(0),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_move_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_move_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"SELECT 1;SELECT 2;SELECT 3;"#,
             r#"SELECT 1;SELECT 3;SELECT 2;"#,
@@ -851,12 +855,13 @@ mod test {
                     target: Some(1),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_script_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_script_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"
 LOAD weather FROM weather_csv USING CSV;
@@ -897,12 +902,13 @@ VIZ weather_avg_2 USING BAR;
                     target: Some(3),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_script_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_script_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"
 LOAD weather FROM weather_csv USING CSV;
@@ -937,12 +943,13 @@ VIZ weather_avg USING LINE;
                     target: Some(2),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_script_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_script_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"
 LOAD weather FROM weather_csv USING CSV;
@@ -976,12 +983,13 @@ VIZ weather_avg USING LINE;
                     target: Some(1),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_diff_script_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_diff_script_3() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_diff(
             r#"
 LOAD weather FROM weather_csv USING CSV;
@@ -1010,7 +1018,8 @@ VIZ weather_avg USING LINE;
                     target: Some(2),
                 },
             ],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 }

@@ -21,6 +21,9 @@ pub struct TaskSchedulerLog {
 }
 
 impl TaskSchedulerLog {
+    pub fn create() -> Self {
+        Self { updates: Vec::new() }
+    }
     pub fn task_updated(&mut self, task_class: TaskClass, task_id: usize, status: TaskStatusCode) {
         self.updates.push(TaskSchedulerLogEntry {
             task_class,

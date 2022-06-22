@@ -3,6 +3,7 @@ use crate::{
     execution::{execution_context::ExecutionContextSnapshot, import_info::ImportInfo, load_info::LoadInfo},
 };
 use async_trait::async_trait;
+use duckdbx_api::DatabaseInstance;
 
 use super::{Runtime, RuntimeDataHandle};
 
@@ -11,6 +12,10 @@ pub struct PlaceholderRuntime {}
 
 #[async_trait(?Send)]
 impl Runtime for PlaceholderRuntime {
+    async fn resolve_test_data(&self, url: &str) -> Result<String, SystemError> {
+        Ok(url.to_string())
+    }
+
     async fn import_data<'ast, 'snap>(
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,

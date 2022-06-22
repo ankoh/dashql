@@ -145,7 +145,7 @@ impl<'ast> TaskScheduler<'ast> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut tasks = Vec::with_capacity(self.task_logic.len());
-        loop {
+        while !self.task_topology.is_empty() {
             let (task_id, waiting_for) = self.task_topology.top();
             if *waiting_for > 0 {
                 break;
@@ -303,7 +303,10 @@ impl<'ast> TaskGraphScheduler<'ast> {
 mod test {
     use std::{collections::HashMap, error::Error, rc::Rc};
 
-    use crate::{analyzer::program_instance::analyze_program, grammar};
+    use crate::{
+        analyzer::{program_instance::analyze_program, task_planner::plan_tasks},
+        grammar,
+    };
 
     pub use super::*;
 
@@ -314,14 +317,22 @@ mod test {
 
     async fn test_simple_script(
         script: &'static str,
-        tests: &'static [QueryTest],
+        _tests: &'static [QueryTest],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let context = ExecutionContext::create_default(&arena);
+        let context = ExecutionContext::create_simple(&arena).await?;
         let program_ast = grammar::parse(&arena, script)?;
         let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast).unwrap());
-        let inst = analyze_program(context, script, program_ast, program, HashMap::new())?;
-
+        let instance = analyze_program(context, script, program_ast, program, HashMap::new())?;
+        let task_graph = plan_tasks(&instance, None)?;
+        let mut task_scheduler = TaskGraphScheduler::schedule(&instance, &task_graph)?;
+        let mut scheduler_log = TaskSchedulerLog::create();
+        loop {
+            let work_left = task_scheduler.next(&mut scheduler_log).await?;
+            if !work_left {
+                break;
+            }
+        }
         Ok(())
     }
 

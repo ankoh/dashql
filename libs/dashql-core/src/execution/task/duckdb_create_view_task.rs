@@ -5,14 +5,14 @@ use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{CreateViewStatement, Program};
 use async_trait::async_trait;
-use duckdbx_api::api::DatabaseConnection;
+use duckdbx_api::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct DuckDBCreateViewTask<'ast> {
     _program: &'ast Program<'ast>,
     statement: &'ast CreateViewStatement<'ast>,
     _task: Rc<ProgramTask>,
-    connection: Box<dyn DatabaseConnection>,
+    connection: DatabaseConnection,
 }
 
 impl<'ast> DuckDBCreateViewTask<'ast> {}

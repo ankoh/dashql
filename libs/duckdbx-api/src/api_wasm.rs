@@ -2,6 +2,7 @@ use crate::api::{DatabaseClient, DatabaseConnection, DatabaseInstance};
 use crate::arrow_ipc::read_arrow_ipc_buffer;
 use async_trait::async_trait;
 use js_sys::Uint8Array;
+use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/js/bindings.mjs")]
@@ -20,48 +21,50 @@ extern "C" {
     async fn duckdbx_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
 }
 
-pub async fn configure() -> Result<Box<dyn DatabaseClient>, String> {
-    let result = duckdbx_configure()
-        .await
-        .map_err(|e| e.as_string().unwrap_or_default())?;
-    Ok(Box::new(WasmDatabaseClient { inner: result }))
-}
-
-pub struct WasmDatabaseClient {
+pub struct DatabaseClient {
     inner: JsValue,
 }
 
-#[async_trait(?Send)]
-impl DatabaseClient for WasmDatabaseClient {
-    async fn open_transient(&self) -> Result<Box<dyn DatabaseInstance>, String> {
+impl std::fmt::Debug for DatabaseClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseClient").finish()
+    }
+}
+
+impl DatabaseClient {
+    pub async fn create() -> Result<Self, String> {
+        let result = duckdbx_configure()
+            .await
+            .map_err(|e| e.as_string().unwrap_or_default())?;
+        Ok(DatabaseClient { inner: result })
+    }
+    pub async fn open_transient(&self) -> Result<DatabaseInstance, String> {
         let result = duckdbx_open(self.inner.clone(), JsValue::null())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
-        Ok(Box::new(WasmDatabaseInstance { inner: result }))
+        Ok(Box::new(DatabaseInstance { inner: result }))
     }
 }
 
-pub struct WasmDatabaseInstance {
+pub struct DatabaseInstance {
     inner: JsValue,
 }
 
-#[async_trait(?Send)]
-impl DatabaseInstance for WasmDatabaseInstance {
-    async fn connect(&self) -> Result<Box<dyn DatabaseConnection>, String> {
+impl DatabaseInstance {
+    pub async fn connect(&self) -> Result<DatabaseConnection, String> {
         let result = duckdbx_connect(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
-        Ok(Box::new(WasmDatabaseConnection { inner: result }))
+        Ok(Box::new(DatabaseConnection { inner: result }))
     }
 }
 
-pub struct WasmDatabaseConnection {
+pub struct DatabaseConnection {
     inner: JsValue,
 }
 
-#[async_trait(?Send)]
-impl DatabaseConnection for WasmDatabaseConnection {
-    async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+impl DatabaseConnection {
+    pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
         let result = duckdbx_run_query(self.inner.clone(), text)
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;

@@ -61,15 +61,20 @@ impl<'ast> Task<'ast> for ImportTask<'ast> {
             url = Some(from_uri);
         }
 
-        // XXX If none, resolve from extras
-        let url = url.unwrap();
+        let url = match url {
+            Some(url) => url,
+            None => return Err(SystemError::NotImplemented("dynamic import urls".to_string())),
+        };
 
         // Register import
         type ImportMethod = proto::ImportMethodType;
         let import = match method {
             ImportMethod::FILE => ImportInfo::File(FileImportInfo { name: name_string, url }),
             ImportMethod::HTTP => ImportInfo::Http(HttpImportInfo { name: name_string, url }),
-            ImportMethod::TEST => ImportInfo::Test(TestImportInfo { name: name_string, url }),
+            ImportMethod::TEST => {
+                let url = ctx.base.runtime.resolve_test_data(&url).await?;
+                ImportInfo::Test(TestImportInfo { name: name_string, url })
+            }
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
         ctx.local_state.imports_by_name.insert(name, import);

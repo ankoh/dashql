@@ -1,3 +1,5 @@
+use duckdbx_api::DatabaseInstance;
+
 use super::import_info::ImportInfo;
 use super::runtime;
 use super::runtime::create_default_runtime;
@@ -38,27 +40,33 @@ impl<'ast> ExecutionState<'ast> {
 pub struct ExecutionContext<'ast> {
     pub settings: Arc<ProgramAnalysisSettings>,
     pub runtime: Arc<dyn runtime::Runtime>,
+    pub database: Arc<DatabaseInstance>,
     pub arena: &'ast bumpalo::Bump,
     pub state: Arc<RwLock<ExecutionState<'ast>>>,
 }
 
 impl<'ast> ExecutionContext<'ast> {
-    pub fn create_default(arena: &'ast bumpalo::Bump) -> Self {
-        Self {
+    pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
+        let db = duckdbx_api::DatabaseClient::create().await?;
+        let instance = db.open_transient().await?;
+        Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: create_default_runtime(),
+            database: Arc::new(instance),
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),
-        }
+        })
     }
     pub fn create(
         settings: Arc<ProgramAnalysisSettings>,
         runtime: Arc<dyn runtime::Runtime>,
+        database: Arc<DatabaseInstance>,
         arena: &'ast bumpalo::Bump,
     ) -> Self {
         Self {
             settings,
             runtime,
+            database,
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),
         }

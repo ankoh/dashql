@@ -41,9 +41,9 @@ mod test {
     use std::error::Error;
     use std::rc::Rc;
 
-    fn test_liveness(script: &'static str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_liveness(script: &'static str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let context = ExecutionContext::create_default(&arena);
+        let context = ExecutionContext::create_simple(&arena).await?;
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
         let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
@@ -54,13 +54,13 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_liveness(r#"SELECT 1"#, &[false])
+    #[tokio::test]
+    async fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_liveness(r#"SELECT 1"#, &[false]).await
     }
 
-    #[test]
-    fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_liveness(
             r#"
             CREATE TABLE foo AS SELECT 1;
@@ -68,10 +68,11 @@ mod test {
         "#,
             &[true, true],
         )
+        .await
     }
 
-    #[test]
-    fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_liveness(
             r#"
             CREATE TABLE dead AS SELECT 42;
@@ -80,5 +81,6 @@ mod test {
         "#,
             &[false, true, true],
         )
+        .await
     }
 }

@@ -154,12 +154,12 @@ mod test {
     }
 
     // Test a difference
-    fn test_name_resolution(
+    async fn test_name_resolution(
         script: &'static str,
         expected: &[DependencyTest],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let context = ExecutionContext::create_default(&arena);
+        let context = ExecutionContext::create_simple(&arena).await?;
         let ast = grammar::parse(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
         let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
@@ -178,18 +178,19 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_name_resolution(
             r#"
 CREATE TABLE foo AS SELECT 1;
         "#,
             &[],
         )
+        .await
     }
 
-    #[test]
-    fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_name_resolution(
             r#"
 CREATE TABLE foo AS SELECT 1;
@@ -201,10 +202,11 @@ VISUALIZE foo USING TABLE;
                 target_statement: 1,
             }],
         )
+        .await
     }
 
-    #[test]
-    fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_name_resolution(
             r#"
 CREATE TABLE foo AS SELECT 1;
@@ -224,10 +226,11 @@ VISUALIZE foo USING BAR CHART;
                 },
             ],
         )
+        .await
     }
 
-    #[test]
-    fn test_simple_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_simple_3() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_name_resolution(
             r#"
 CREATE TABLE foo AS SELECT 1;
@@ -248,5 +251,6 @@ VISUALIZE foo2 USING BAR CHART;
                 },
             ],
         )
+        .await
     }
 }

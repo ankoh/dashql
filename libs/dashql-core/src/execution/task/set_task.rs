@@ -4,13 +4,13 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
 use crate::grammar::Program;
 use async_trait::async_trait;
-use duckdbx_api::api::DatabaseConnection;
+use duckdbx_api::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct SetTask<'ast> {
     _program: &'ast Program<'ast>,
     _task: Rc<ProgramTask>,
-    _connection: Box<dyn DatabaseConnection>,
+    _connection: DatabaseConnection,
 }
 
 #[async_trait(?Send)]

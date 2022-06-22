@@ -1,42 +1,45 @@
-use crate::api::{DatabaseClient, DatabaseConnection, DatabaseInstance};
 use crate::arrow_ipc::read_arrow_ipc_buffer;
-use async_trait::async_trait;
 use duckdbx;
 
-pub async fn configure() -> Result<Box<dyn DatabaseClient>, String> {
-    Ok(Box::new(FFIDatabaseClient {}))
-}
+pub struct DatabaseClient {}
 
-pub struct FFIDatabaseClient {}
-
-#[async_trait(?Send)]
-impl DatabaseClient for FFIDatabaseClient {
-    async fn open_transient(&self) -> Result<Box<dyn DatabaseInstance>, String> {
-        duckdbx::Database::open_transient()
-            .map(|db| Box::new(FFIDatabaseInstance { inner: db }) as Box<dyn DatabaseInstance>)
+impl DatabaseClient {
+    pub async fn create() -> Result<Self, String> {
+        Ok(Self {})
+    }
+    pub async fn open_transient(&self) -> Result<DatabaseInstance, String> {
+        duckdbx::Database::open_transient().map(|db| DatabaseInstance { inner: db })
     }
 }
 
-pub struct FFIDatabaseInstance {
+impl std::fmt::Debug for DatabaseClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseClient").finish()
+    }
+}
+
+pub struct DatabaseInstance {
     inner: duckdbx::Database,
 }
 
-#[async_trait(?Send)]
-impl DatabaseInstance for FFIDatabaseInstance {
-    async fn connect(&self) -> Result<Box<dyn DatabaseConnection>, String> {
-        self.inner
-            .connect()
-            .map(|conn| Box::new(FFIDatabaseConnection { inner: conn }) as Box<dyn DatabaseConnection>)
+impl std::fmt::Debug for DatabaseInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseInstance").finish()
     }
 }
 
-pub struct FFIDatabaseConnection {
+impl DatabaseInstance {
+    pub async fn connect(&self) -> Result<DatabaseConnection, String> {
+        self.inner.connect().map(|conn| DatabaseConnection { inner: conn })
+    }
+}
+
+pub struct DatabaseConnection {
     inner: duckdbx::Connection,
 }
 
-#[async_trait(?Send)]
-impl DatabaseConnection for FFIDatabaseConnection {
-    async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+impl DatabaseConnection {
+    pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
         let buffer = self.inner.run_query(text)?;
         read_arrow_ipc_buffer(buffer.get())
     }

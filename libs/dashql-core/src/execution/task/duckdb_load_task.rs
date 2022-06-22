@@ -9,13 +9,13 @@ use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, NamePath, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
-use duckdbx_api::api::DatabaseConnection;
+use duckdbx_api::DatabaseConnection;
 use proto::LoadMethodType;
 
 pub struct DuckDBLoadTask<'ast> {
     statement: &'ast LoadStatement<'ast>,
-    target: Option<NamePath<'ast>>,
-    connection: Option<Box<dyn DatabaseConnection>>,
+    source: NamePath<'ast>,
+    connection: Option<DatabaseConnection>,
 }
 
 impl<'ast> DuckDBLoadTask<'ast> {
@@ -27,12 +27,12 @@ impl<'ast> DuckDBLoadTask<'ast> {
         };
         Ok(Self {
             statement: stmt,
-            target: None,
+            source: stmt.source.get(),
             connection: None,
         })
     }
 
-    async fn try_create_view(&self, conn: &dyn DatabaseConnection, _import: &ImportInfo) -> Result<bool, SystemError> {
+    async fn try_create_view(&self, conn: &DatabaseConnection, _import: &ImportInfo) -> Result<bool, SystemError> {
         if self.statement.method.get() == proto::LoadMethodType::JSON {
             return Ok(false);
         }
@@ -44,13 +44,13 @@ impl<'ast> DuckDBLoadTask<'ast> {
         return Ok(true);
     }
 
-    async fn create_parquet_view(&self, conn: &dyn DatabaseConnection) -> Result<(), SystemError> {
+    async fn create_parquet_view(&self, conn: &DatabaseConnection) -> Result<(), SystemError> {
         let script = format!("create view {} as select * from parquet_scan(\"{}\")", "", "");
         conn.run_query(&script).await?;
         Ok(())
     }
 
-    async fn create_csv_view(&self, conn: &dyn DatabaseConnection) -> Result<(), SystemError> {
+    async fn create_csv_view(&self, conn: &DatabaseConnection) -> Result<(), SystemError> {
         let script = format!("create view {} as select * from read_csv_auto(\"{}\")", "", "");
         conn.run_query(&script).await?;
         Ok(())
@@ -59,26 +59,26 @@ impl<'ast> DuckDBLoadTask<'ast> {
 
 #[async_trait(?Send)]
 impl<'ast> Task<'ast> for DuckDBLoadTask<'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+        self.connection = Some(ctx.base.database.connect().await?);
         Ok(())
     }
-
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let connection = self.connection.as_ref().unwrap().as_ref();
-        let target = self.target.unwrap();
-
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        let import = match ctx.global_state.imports_by_name.get(target) {
+        let import = match ctx.global_state.imports_by_name.get(self.source) {
             Some(import) => import,
             None => {
                 return Err(SystemError::ImportNotRegistered(
                     self.statement.name.get_node_id(),
-                    print_ast_as_script_with_defaults(&target),
+                    print_ast_as_script_with_defaults(&self.source),
                 ))
             }
         };
-        if !self.try_create_view(connection, &import).await? {
+        if !self
+            .try_create_view(&self.connection.as_ref().unwrap(), &import)
+            .await?
+        {
             let hdl = ctx.base.runtime.import_data(&ctx, &import).await?;
             let info = match self.statement.method.get() {
                 LoadMethodType::CSV => LoadInfo::Csv(CsvLoadInfo { name: name_string }),

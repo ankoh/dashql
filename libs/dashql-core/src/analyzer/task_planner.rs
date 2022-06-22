@@ -553,6 +553,8 @@ pub fn plan_tasks<'a>(
 
 #[cfg(test)]
 mod test {
+    use duckdbx_api::DatabaseClient;
+
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
@@ -574,13 +576,20 @@ mod test {
         next: ExpectedInstance,
     }
 
-    fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = create_default_runtime();
+        let database = Arc::new(DatabaseClient::create().await?);
+        let database_instance = Arc::new(database.open_transient().await?);
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();
-        let prev_context = ExecutionContext::create(settings.clone(), runtime.clone(), &prev_arena);
+        let prev_context = ExecutionContext::create(
+            settings.clone(),
+            runtime.clone(),
+            database_instance.clone(),
+            &prev_arena,
+        );
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
@@ -609,7 +618,7 @@ mod test {
 
         // Instantiate next program
         let next_arena = bumpalo::Bump::new();
-        let next_context = ExecutionContext::create(settings, runtime, &next_arena);
+        let next_context = ExecutionContext::create(settings, runtime, database_instance.clone(), &next_arena);
         let next_instance = {
             let next_ast = grammar::parse(&next_arena, test.next.script)?;
             assert!(
@@ -641,8 +650,8 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -665,10 +674,11 @@ IMPORT a FROM 'https://some/remote'
                 },
             },
         })
+        .await
     }
 
-    #[test]
-    fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -702,10 +712,11 @@ LOAD b FROM a USING PARQUET;
                 },
             },
         })
+        .await
     }
 
-    #[test]
-    fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -748,10 +759,11 @@ CREATE TABLE c AS SELECT * FROM b
                 },
             },
         })
+        .await
     }
 
-    #[test]
-    fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -803,10 +815,11 @@ VIZ c USING TABLE;
                 },
             },
         })
+        .await
     }
 
-    #[test]
-    fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             prev: Some(ExpectedInstance {
                 script: r#"
@@ -875,5 +888,6 @@ VIZ a USING TABLE;
                 },
             },
         })
+        .await
     }
 }

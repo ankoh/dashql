@@ -152,9 +152,9 @@ mod test {
         expected: ExpectedTaskInstance,
     }
 
-    fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let context = ExecutionContext::create_default(&arena);
+        let context = ExecutionContext::create_simple(&arena).await?;
         let ast = grammar::parse(&arena, test.script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast).unwrap());
         let inst = analyze_program(context, test.script, ast, prog, test.input.clone())?;
@@ -221,8 +221,8 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 IMPORT a FROM 'http://remote/data1.parquet';
@@ -236,12 +236,13 @@ IMPORT a FROM 'http://remote/data1.parquet';
                 statement_depends_on: vec![],
                 statement_liveness: vec![false],
             },
-        })?;
+        })
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 CREATE TABLE a AS SELECT 1;
@@ -256,12 +257,13 @@ CREATE TABLE b AS SELECT 2;
                 statement_depends_on: vec![],
                 statement_liveness: vec![false, false],
             },
-        })?;
+        })
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 CREATE TABLE a AS SELECT 1;
@@ -277,12 +279,13 @@ VIZ a USING TABLE;
                 statement_depends_on: vec![(2, 0, proto::DependencyType::TABLE_REF)],
                 statement_liveness: vec![true, false, true],
             },
-        })?;
+        })
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 IMPORT a FROM 'http://remote/data.parquet';
@@ -308,12 +311,13 @@ VIZ c USING TABLE;
                 ],
                 statement_liveness: vec![true, true, true, true],
             },
-        })?;
+        })
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_planner(&TaskPlannerTest {
             script: r#"
 IMPORT a FROM 'http://remote/data1.parquet';
@@ -360,7 +364,8 @@ VIZ f USING TABLE;
                 ],
                 statement_liveness: vec![true, true, true, true, true, true, true, true, true],
             },
-        })?;
+        })
+        .await?;
         Ok(())
     }
 }
