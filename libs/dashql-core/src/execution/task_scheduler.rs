@@ -317,14 +317,17 @@ mod test {
 
     async fn test_simple_script(
         script: &'static str,
-        _tests: &'static [QueryTest],
+        tests: &'static [QueryTest],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // Plan the program
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let program_ast = grammar::parse(&arena, script)?;
         let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast).unwrap());
         let instance = analyze_program(context, script, program_ast, program, HashMap::new())?;
         let task_graph = plan_tasks(&instance, None)?;
+
+        // Run the scheduler
         let mut task_scheduler = TaskGraphScheduler::schedule(&instance, &task_graph)?;
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
@@ -332,6 +335,13 @@ mod test {
             if !work_left {
                 break;
             }
+        }
+        assert!(!scheduler_log.any_failed, "{:?}", scheduler_log.entries);
+
+        // Test all queries
+        let connection = instance.context.database.connect().await?;
+        for (_test_id, test) in tests.iter().enumerate() {
+            let _result = connection.run_query(test.query).await?;
         }
         Ok(())
     }

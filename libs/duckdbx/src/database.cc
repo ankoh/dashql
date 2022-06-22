@@ -11,6 +11,7 @@
 #include "arrow/type_fwd.h"
 #include "duckdb/main/connection.hpp"
 #include "duckdbx/bridge.h"
+#include "parquet-extension.hpp"
 
 namespace duckdbx {
 
@@ -121,7 +122,9 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> Database::Connection::FetchQueryRe
     }
 }
 
-Database::Database(std::unique_ptr<duckdb::DuckDB> db) : database_(std::move(db)), connections_() {}
+Database::Database(std::unique_ptr<duckdb::DuckDB> db) : database_(std::move(db)), connections_() {
+    database_->LoadExtension<duckdb::ParquetExtension>();
+}
 Database::~Database() {}
 
 std::string_view Database::GetVersion() { return database_->LibraryVersion(); }

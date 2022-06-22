@@ -4,6 +4,7 @@ use crate::execution::scalar_value::ScalarValue;
 use crate::fmt::dynfmt;
 use crate::grammar::FunctionExpression;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 pub fn evaluate_scalar<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
@@ -37,7 +38,7 @@ pub fn evaluate_scalar<'ast, 'snap>(
 
     // Format string
     let result = dynfmt(&template_str, &args_unnamed, &args_named)
-        .map_err(|e| SystemError::FunctionEvaluationFailed(e.into()))?;
+        .map_err(|e| SystemError::FunctionEvaluationFailed(Arc::new(e)))?;
     Ok(ScalarValue::Varchar(result))
 }
 

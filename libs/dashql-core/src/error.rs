@@ -1,19 +1,20 @@
 use dashql_proto as proto;
 use std::error::Error;
 use std::fmt;
+use std::sync::Arc;
 
 use crate::execution::scalar_value::LogicalType;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SystemError {
     CastFailed(Option<usize>, LogicalType, LogicalType),
     CastNotImplemented(Option<usize>, LogicalType, LogicalType),
     ExpressionTypeNotImplemented(Option<usize>),
-    FunctionEvaluationFailed(Box<dyn Error + Send + Sync>),
+    FunctionEvaluationFailed(Arc<dyn Error + Send + Sync>),
     FunctionNotImplemented(String),
     FunctionNotImplementedButKnown(proto::KnownFunction),
     Generic(String),
-    HTTPRequestFailed(reqwest::Error),
+    HTTPRequestFailed(Arc<reqwest::Error>),
     ImportNotRegistered(Option<usize>, String),
     ImportURIUnsupported(Option<usize>, String),
     InsufficientArguments,
@@ -67,7 +68,7 @@ impl From<std::string::String> for SystemError {
 
 impl From<reqwest::Error> for SystemError {
     fn from(e: reqwest::Error) -> Self {
-        SystemError::HTTPRequestFailed(e)
+        SystemError::HTTPRequestFailed(Arc::new(e))
     }
 }
 

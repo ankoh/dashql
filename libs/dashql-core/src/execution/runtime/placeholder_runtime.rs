@@ -3,7 +3,6 @@ use crate::{
     execution::{execution_context::ExecutionContextSnapshot, import_info::ImportInfo, load_info::LoadInfo},
 };
 use async_trait::async_trait;
-use duckdbx_api::DatabaseInstance;
 
 use super::{Runtime, RuntimeDataHandle};
 

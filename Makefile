@@ -124,6 +124,16 @@ yarn_install:
 # ---------------------------------------------------------------------------
 # Environment
 
+.PHONY: duckdb
+duckdb:
+	mkdir -p ${DUCKDB_DEBUG_DIR}
+	cmake -S ${DUCKDB_SOURCE_DIR} -B ${DUCKDB_DEBUG_DIR} \
+		-GNinja \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
+	ln -sf ${DUCKDB_DEBUG_DIR}/compile_commands.json ${DUCKDB_SOURCE_DIR}/compile_commands.json
+	cmake --build ${DUCKDB_DEBUG_DIR}
+
 .PHONY: parser
 parser:
 	mkdir -p ${PARSER_DEBUG_DIR}

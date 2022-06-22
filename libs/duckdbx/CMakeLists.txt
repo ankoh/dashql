@@ -45,8 +45,10 @@ include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
 # ---------------------------------------------------------------------------
 # Headers
 
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include"
-                    "${DUCKDB_INCLUDE_DIR}" "${DUCKDB_UTF8PROC_INCLUDE_DIR}")
+include_directories(
+  "${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include"
+  "${DUCKDB_INCLUDE_DIR}" "${DUCKDB_UTF8PROC_INCLUDE_DIR}"
+  "${DUCKDB_PARQUET_INCLUDE_DIR}")
 
 # ---------------------------------------------------------------------------
 # Libraries
