@@ -1,6 +1,9 @@
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
+        duckdb_create_as_task::DuckDBCreateAsTask,
+        duckdb_create_table_task::DuckDBCreateTableTask,
+        duckdb_create_view_task::DuckDBCreateViewTask,
         Task,
         {duckdb_load_task::DuckDBLoadTask, import_task::ImportTask, vega_visualize_task::VegaVisualizeTask},
     },
@@ -50,9 +53,9 @@ fn translate_program_task<'ast>(
 ) -> Result<Option<Box<dyn Task<'ast> + 'ast>>, SystemError> {
     let logic: Box<dyn Task<'ast>> = match task.task_type {
         ProgramTaskType::None => return Ok(None),
-        ProgramTaskType::CreateAs => todo!(),
-        ProgramTaskType::CreateTable => todo!(),
-        ProgramTaskType::CreateView => todo!(),
+        ProgramTaskType::CreateAs => Box::new(DuckDBCreateAsTask::create(instance, task)?),
+        ProgramTaskType::CreateTable => Box::new(DuckDBCreateTableTask::create(instance, task)?),
+        ProgramTaskType::CreateView => Box::new(DuckDBCreateViewTask::create(instance, task)?),
         ProgramTaskType::CreateViz => Box::new(VegaVisualizeTask::create(instance, task)?),
         ProgramTaskType::Import => Box::new(ImportTask::create(instance, task)?),
         ProgramTaskType::Input => todo!(),
@@ -366,6 +369,30 @@ vis lineitem using table;
                 expected: RecordBatch::try_new(
                     Arc::new(Schema::new(vec![Field::new("a", DataType::Int64, true)])),
                     vec![Arc::new(Int64Array::from(vec![60175]))],
+                )?,
+            }],
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_load_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_simple_script(
+            r#"
+import nation_data from 'test://tpch/0_01/parquet/nation.parquet';
+import region_data from 'test://tpch/0_01/parquet/region.parquet';
+load nation from nation_data using parquet;
+load region from region_data using parquet;
+create table joined as
+    select * from nation, region where n_nationkey = r_nationkey;
+vis joined using table;
+            "#,
+            vec![QueryTest {
+                query: "select count(*) as a from joined",
+                expected: RecordBatch::try_new(
+                    Arc::new(Schema::new(vec![Field::new("a", DataType::Int64, true)])),
+                    vec![Arc::new(Int64Array::from(vec![125]))],
                 )?,
             }],
         )
