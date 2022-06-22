@@ -350,7 +350,7 @@ mod test {
     async fn test_load_0() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_simple_script(
             r#"
-import lineitem_data from 'test://tpch/0_01/lineitem.parquet';
+import lineitem_data from 'test://tpch/0_01/parquet/lineitem.parquet';
 load lineitem from lineitem_data using parquet;
 vis lineitem using table;
         "#,

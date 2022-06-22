@@ -23,6 +23,7 @@ pub enum SystemError {
     InvalidStatementRoot(usize, usize),
     InvalidStatementType(&'static str),
     InvalidTableRef(Option<usize>),
+    MissingEnvironmentVariable(&'static str),
     NotImplemented(String),
     TaskExecutionFailed(Box<SystemError>),
     TaskPreparationFailed(Box<SystemError>),
@@ -50,6 +51,7 @@ impl SystemError {
             SystemError::InvalidStatementRoot(_, _) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
             SystemError::InvalidTableRef(_) => "invalid table reference",
+            SystemError::MissingEnvironmentVariable(_) => "missing environment variable",
             SystemError::TaskPreparationFailed(_) => "task preparation failed",
             SystemError::TaskExecutionFailed(_) => "task execution failed",
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
@@ -101,6 +103,7 @@ impl<'a> fmt::Display for SystemError {
             }
             SystemError::InvalidTableRef(_node) => write!(f, "invalid table ref"),
             SystemError::InvalidStatementType(stmt) => write!(f, "invalid statement type: {}", stmt),
+            SystemError::MissingEnvironmentVariable(var) => write!(f, "missing environment variable: {}", var),
             SystemError::TaskPreparationFailed(err) => write!(f, "task preparation failed: {}", err),
             SystemError::TaskExecutionFailed(err) => write!(f, "task execution failed: {}", err),
             SystemError::TranslationNotImplemented(_node, node_type) => {
