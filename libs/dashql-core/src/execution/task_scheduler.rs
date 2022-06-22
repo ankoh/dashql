@@ -301,23 +301,28 @@ impl<'ast> TaskGraphScheduler<'ast> {
 
 #[cfg(test)]
 mod test {
-    use std::{collections::HashMap, error::Error, rc::Rc};
-
     use crate::{
         analyzer::{program_instance::analyze_program, task_planner::plan_tasks},
         grammar,
     };
+    use arrow::record_batch::RecordBatch;
+    use arrow::{
+        array::Int64Array,
+        datatypes::{DataType, Field, Schema},
+    };
+    use pretty_assertions::assert_eq;
+    use std::{collections::HashMap, error::Error, rc::Rc, sync::Arc};
 
     pub use super::*;
 
     struct QueryTest {
         pub query: &'static str,
-        pub output: &'static str,
+        pub expected: arrow::record_batch::RecordBatch,
     }
 
     async fn test_simple_script(
         script: &'static str,
-        tests: &'static [QueryTest],
+        tests: Vec<QueryTest>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Plan the program
         let arena = bumpalo::Bump::new();
@@ -341,7 +346,9 @@ mod test {
         // Test all queries
         let connection = instance.context.database.connect().await?;
         for (_test_id, test) in tests.iter().enumerate() {
-            let _result = connection.run_query(test.query).await?;
+            let result = connection.run_query(test.query).await?;
+            assert_eq!(result.len(), 1);
+            assert_eq!(test.expected, result[0]);
         }
         Ok(())
     }
@@ -354,9 +361,12 @@ import lineitem_data from 'test://tpch/0_01/parquet/lineitem.parquet';
 load lineitem from lineitem_data using parquet;
 vis lineitem using table;
         "#,
-            &[QueryTest {
-                query: "select count(*) from lineitem",
-                output: "42",
+            vec![QueryTest {
+                query: "select count(*) as a from lineitem",
+                expected: RecordBatch::try_new(
+                    Arc::new(Schema::new(vec![Field::new("a", DataType::Int64, true)])),
+                    vec![Arc::new(Int64Array::from(vec![60175]))],
+                )?,
             }],
         )
         .await?;
