@@ -360,7 +360,7 @@ mod test {
 import lineitem_data from 'test://tpch/0_01/parquet/lineitem.parquet';
 load lineitem from lineitem_data using parquet;
 vis lineitem using table;
-        "#,
+            "#,
             vec![QueryTest {
                 query: "select count(*) as a from lineitem",
                 expected: RecordBatch::try_new(
