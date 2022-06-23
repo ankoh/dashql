@@ -1,6 +1,5 @@
 {
     "private": true,
-    "type": "module",
     "workspaces": [
         "libs/dashql-proto",
         "libs/duckdbx-neon"

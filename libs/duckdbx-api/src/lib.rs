@@ -1,10 +1,10 @@
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "native")]
 mod api_ffi;
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 mod api_wasm;
 mod arrow_ipc;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "native")]
 pub use api_ffi::*;
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 pub use api_wasm::*;

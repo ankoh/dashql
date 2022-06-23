@@ -1,4 +1,3 @@
-use crate::api::{DatabaseClient, DatabaseConnection, DatabaseInstance};
 use crate::arrow_ipc::read_arrow_ipc_buffer;
 use async_trait::async_trait;
 use js_sys::Uint8Array;
@@ -42,7 +41,7 @@ impl DatabaseClient {
         let result = duckdbx_open(self.inner.clone(), JsValue::null())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
-        Ok(Box::new(DatabaseInstance { inner: result }))
+        Ok(DatabaseInstance { inner: result })
     }
 }
 
@@ -55,7 +54,7 @@ impl DatabaseInstance {
         let result = duckdbx_connect(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
-        Ok(Box::new(DatabaseConnection { inner: result }))
+        Ok(DatabaseConnection { inner: result })
     }
 }
 

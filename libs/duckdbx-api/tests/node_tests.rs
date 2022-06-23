@@ -1,4 +1,4 @@
-#![cfg(target_arch = "wasm32")]
+#![cfg(feature = "wasm")]
 
 use std::assert_eq;
 
