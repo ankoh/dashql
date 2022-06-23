@@ -1,4 +1,4 @@
-#![cfg(feature = "wasm")]
+#![cfg(feature = "node")]
 
 use std::assert_eq;
 

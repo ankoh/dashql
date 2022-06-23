@@ -4,18 +4,20 @@ use js_sys::Uint8Array;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/js/bindings.mjs")]
+#[cfg_attr(feature = "browser", wasm_bindgen(module = "/js/browser_runtime.mjs"))]
+#[cfg_attr(feature = "node", wasm_bindgen(module = "/js/node_runtime.mjs"))]
+#[cfg_attr(feature = "node-ipc", wasm_bindgen(module = "/js/node_ipc_runtime.mjs"))]
 extern "C" {
-    #[wasm_bindgen(js_name = "configure", catch)]
-    async fn duckdbx_configure() -> Result<JsValue, JsValue>;
-    #[wasm_bindgen(js_name = "open", catch)]
-    async fn duckdbx_open(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
-    #[wasm_bindgen(js_name = "close", catch)]
-    async fn duckdbx_close(db: JsValue) -> Result<(), JsValue>;
-    #[wasm_bindgen(js_name = "connect", catch)]
-    async fn duckdbx_connect(db: JsValue) -> Result<JsValue, JsValue>;
-    #[wasm_bindgen(js_name = "disconnect", catch)]
-    async fn duckdbx_disconnect(conn: JsValue) -> Result<(), JsValue>;
+    #[wasm_bindgen(js_name = "createClient", catch)]
+    async fn duckdbx_create_client() -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(js_name = "openDatabase", catch)]
+    async fn duckdb_open_database(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(js_name = "closeDatabase", catch)]
+    async fn duckdbx_close_database(db: JsValue) -> Result<(), JsValue>;
+    #[wasm_bindgen(js_name = "createConnection", catch)]
+    async fn duckdb_create_connection(db: JsValue) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(js_name = "closeConnection", catch)]
+    async fn duckdb_close_connection(conn: JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(js_name = "runQuery", catch)]
     async fn duckdbx_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
 }
@@ -32,13 +34,13 @@ impl std::fmt::Debug for DatabaseClient {
 
 impl DatabaseClient {
     pub async fn create() -> Result<Self, String> {
-        let result = duckdbx_configure()
+        let result = duckdbx_create_client()
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseClient { inner: result })
     }
     pub async fn open_transient(&self) -> Result<DatabaseInstance, String> {
-        let result = duckdbx_open(self.inner.clone(), JsValue::null())
+        let result = duckdb_open_database(self.inner.clone(), JsValue::null())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseInstance { inner: result })
@@ -51,7 +53,7 @@ pub struct DatabaseInstance {
 
 impl DatabaseInstance {
     pub async fn connect(&self) -> Result<DatabaseConnection, String> {
-        let result = duckdbx_connect(self.inner.clone())
+        let result = duckdb_create_connection(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseConnection { inner: result })
