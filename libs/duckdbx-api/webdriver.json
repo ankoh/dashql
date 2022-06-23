@@ -1,0 +1,16 @@
+{
+    "moz:firefoxOptions": {
+        "prefs": {},
+        "args": []
+    },
+    "goog:chromeOptions": {
+        "args": [
+            "--headless",
+            "--no-sandbox",
+            "window-size=1280,800",
+            "--fullscreen",
+            "--disable-gpu",
+            "--disable-dev-shm-usage"
+        ]
+    }
+}

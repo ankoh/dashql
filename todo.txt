@@ -1,0 +1,6 @@
+Browser tests fail with the chrome snap.
+We should automate this.
+
+CHROMEDRIVER=/snap/bin/chromium.chromedriver \
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+cargo test --target wasm32-unknown-unknown --features browser
