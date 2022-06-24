@@ -108,13 +108,13 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn get<'a>(&'a self) -> &'a [u8] {
+    pub fn get<'a>(&'a self) -> &'a mut [u8] {
         let mut data: *const cty::c_char = std::ptr::null();
         let mut data_length: cty::c_int = 0;
         unsafe {
             duckdbx_access_buffer(self.buffer, &mut data, &mut data_length);
-            let data = std::mem::transmute::<*const cty::c_char, *const u8>(data);
-            std::slice::from_raw_parts(data, data_length as usize)
+            let data = std::mem::transmute::<*const cty::c_char, *mut u8>(data);
+            std::slice::from_raw_parts_mut(data, data_length as usize)
         }
     }
 }

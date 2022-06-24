@@ -80,6 +80,13 @@ impl Connection {
     }
 }
 
+impl Buffer {
+    pub fn get(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+        let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
+        Ok(JsArrayBuffer::external(&mut cx, buffer.inner.get()))
+    }
+}
+
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("openInMemory", Database::open_in_memory)?;
