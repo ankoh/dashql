@@ -580,7 +580,7 @@ mod test {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = create_default_runtime();
         let database = Arc::new(DatabaseClient::create().await?);
-        let database_instance = Arc::new(database.open_transient().await?);
+        let database_instance = Arc::new(database.open_in_memory().await?);
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();

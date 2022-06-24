@@ -48,7 +48,7 @@ pub struct ExecutionContext<'ast> {
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
         let db = duckdbx_api::DatabaseClient::create().await?;
-        let instance = db.open_transient().await?;
+        let instance = db.open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: create_default_runtime(),

@@ -39,7 +39,7 @@ impl DatabaseClient {
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseClient { inner: result })
     }
-    pub async fn open_transient(&self) -> Result<DatabaseInstance, String> {
+    pub async fn open_in_memory(&self) -> Result<DatabaseInstance, String> {
         let result = duckdb_open_database(self.inner.clone(), JsValue::null())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;

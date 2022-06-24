@@ -7,8 +7,8 @@ impl DatabaseClient {
     pub async fn create() -> Result<Self, String> {
         Ok(Self {})
     }
-    pub async fn open_transient(&self) -> Result<DatabaseInstance, String> {
-        duckdbx::Database::open_transient().map(|db| DatabaseInstance { inner: db })
+    pub async fn open_in_memory(&self) -> Result<DatabaseInstance, String> {
+        duckdbx::Database::open_in_memory().map(|db| DatabaseInstance { inner: db })
     }
 }
 

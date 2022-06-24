@@ -15,6 +15,10 @@ pub struct Connection {
     deleter: DeleterPtr,
 }
 
+unsafe impl Send for Database {}
+unsafe impl Send for Connection {}
+unsafe impl Send for Buffer {}
+
 impl Drop for Database {
     fn drop(&mut self) {
         (self.deleter)(self.inner)
@@ -28,7 +32,7 @@ impl Drop for Connection {
 }
 
 impl Database {
-    pub fn open_transient() -> Result<Self, String> {
+    pub fn open_in_memory() -> Result<Self, String> {
         let mut result = FFIResult {
             status_code: 0,
             data_length: 0,
