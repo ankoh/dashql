@@ -1,5 +1,3 @@
-// These bindings were derived from the SQLite example of the Neon project
-
 use neon::prelude::*;
 use std::sync::mpsc;
 use std::thread;
