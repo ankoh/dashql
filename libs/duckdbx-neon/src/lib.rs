@@ -24,17 +24,17 @@ enum ConnectionMessage {
 
 impl Database {
     pub fn open_in_memory(mut cx: FunctionContext) -> JsResult<JsBox<Database>> {
-        let db = duckdbx::Database::open_in_memory().map_err(|e| cx.throw_error(e))?;
+        let db = duckdbx::Database::open_in_memory().or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
     }
     pub fn open(mut cx: FunctionContext) -> JsResult<JsBox<Database>> {
         let path = cx.argument::<JsString>(0)?.value(&mut cx);
-        let db = duckdbx::Database::open(&path).map_err(|e| cx.throw_error(e))?;
+        let db = duckdbx::Database::open(&path).or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
     }
     pub fn connect(mut cx: FunctionContext) -> JsResult<JsBox<Connection>> {
         let db = cx.this().downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
-        let conn = db.inner.connect().or_else(|e| cx.throw_error(e))?;
+        let mut conn = db.inner.connect().or_else(|e| cx.throw_error(e))?;
         let (tx, rx) = mpsc::channel::<ConnectionMessage>();
         let channel = cx.channel();
         thread::spawn(move || {
@@ -75,7 +75,9 @@ impl Connection {
                 });
             }
         });
-        conn.tx.send(ConnectionMessage::Callback(callback));
+        conn.tx
+            .send(ConnectionMessage::Callback(callback))
+            .or_else(|e| cx.throw_error(e.to_string()))?;
         Ok(cx.undefined())
     }
 }
@@ -83,7 +85,8 @@ impl Connection {
 impl Buffer {
     pub fn get(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
         let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
-        Ok(JsArrayBuffer::external(&mut cx, buffer.inner.get()))
+        let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.get()) };
+        Ok(JsArrayBuffer::external(&mut cx, data))
     }
 }
 
@@ -93,6 +96,6 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("open", Database::open)?;
     cx.export_function("connect", Database::connect)?;
     cx.export_function("runQuery", Connection::run_query)?;
-
+    cx.export_function("accessBuffer", Buffer::get)?;
     Ok(())
 }

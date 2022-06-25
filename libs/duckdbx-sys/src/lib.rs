@@ -1,17 +1,24 @@
 use ffi::{
     duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_noop_deleter, duckdbx_open,
-    ConnectionPtr, DatabasePtr, DeleterPtr, FFIResult,
+    DeleterPtr, FFIResult,
 };
+use std::sync::atomic::{AtomicPtr, Ordering};
 
 pub mod ffi;
 
+pub type BufferPtr = *mut cty::c_void;
+
 pub struct Database {
-    inner: DatabasePtr,
+    inner: AtomicPtr<cty::c_void>,
     deleter: DeleterPtr,
 }
 
 pub struct Connection {
-    inner: ConnectionPtr,
+    inner: AtomicPtr<cty::c_void>,
+    deleter: DeleterPtr,
+}
+pub struct Buffer {
+    inner: AtomicPtr<cty::c_void>,
     deleter: DeleterPtr,
 }
 
@@ -21,17 +28,27 @@ unsafe impl Send for Buffer {}
 
 impl Drop for Database {
     fn drop(&mut self) {
-        (self.deleter)(self.inner)
+        self.close();
     }
 }
-
 impl Drop for Connection {
     fn drop(&mut self) {
-        (self.deleter)(self.inner)
+        self.close();
+    }
+}
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        self.close();
     }
 }
 
 impl Database {
+    pub fn close(&mut self) {
+        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
+        if ptr != std::ptr::null_mut() {
+            (self.deleter)(ptr);
+        }
+    }
     pub fn open_in_memory() -> Result<Self, String> {
         let mut result = FFIResult {
             status_code: 0,
@@ -47,9 +64,8 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, DatabasePtr>(result.data);
             return Ok(Database {
-                inner: data,
+                inner: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             });
         }
@@ -70,15 +86,18 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, DatabasePtr>(result.data);
             return Ok(Database {
-                inner: data,
+                inner: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             });
         }
     }
 
     pub fn connect(&self) -> Result<Connection, String> {
+        let ptr = self.inner.load(Ordering::SeqCst);
+        if ptr == std::ptr::null_mut() {
+            return Err("database is closed".to_string());
+        }
         let mut result = FFIResult {
             status_code: 0,
             data_length: 0,
@@ -86,47 +105,55 @@ impl Database {
             data_deleter: duckdbx_noop_deleter,
         };
         unsafe {
-            duckdbx_connect(&mut result, self.inner);
+            duckdbx_connect(&mut result, ptr);
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            let data = std::mem::transmute::<*mut cty::c_void, ConnectionPtr>(result.data);
             return Ok(Connection {
-                inner: data,
+                inner: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             });
         }
     }
 }
 
-pub struct Buffer {
-    buffer: *mut cty::c_void,
-    deleter: DeleterPtr,
-}
-
 impl Buffer {
+    pub fn close(&mut self) {
+        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
+        if ptr != std::ptr::null_mut() {
+            (self.deleter)(ptr);
+        }
+    }
     pub fn get<'a>(&'a self) -> &'a mut [u8] {
+        let ptr = self.inner.load(Ordering::SeqCst);
+        if ptr == std::ptr::null_mut() {
+            return [].as_mut_slice();
+        }
         let mut data: *const cty::c_char = std::ptr::null();
         let mut data_length: cty::c_int = 0;
         unsafe {
-            duckdbx_access_buffer(self.buffer, &mut data, &mut data_length);
+            duckdbx_access_buffer(ptr, &mut data, &mut data_length);
             let data = std::mem::transmute::<*const cty::c_char, *mut u8>(data);
             std::slice::from_raw_parts_mut(data, data_length as usize)
         }
     }
 }
 
-impl Drop for Buffer {
-    fn drop(&mut self) {
-        (self.deleter)(self.buffer)
-    }
-}
-
 impl Connection {
+    pub fn close(&mut self) {
+        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
+        if ptr != std::ptr::null_mut() {
+            (self.deleter)(ptr);
+        }
+    }
     pub fn run_query(&self, query: &str) -> Result<Buffer, String> {
+        let ptr = self.inner.load(Ordering::SeqCst);
+        if ptr == std::ptr::null_mut() {
+            return Err("connection is closed".to_string());
+        }
         let mut result = FFIResult {
             status_code: 0,
             data_length: 0,
@@ -135,7 +162,7 @@ impl Connection {
         };
         let c_query = std::ffi::CString::new(query).unwrap_or_default();
         unsafe {
-            duckdbx_connection_run_query(&mut result, self.inner, c_query.as_ptr());
+            duckdbx_connection_run_query(&mut result, ptr, c_query.as_ptr());
             if result.status_code != 0 {
                 let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data);
                 let c_msg = std::ffi::CStr::from_ptr(data);
@@ -144,7 +171,7 @@ impl Connection {
                 return Err(msg);
             }
             Ok(Buffer {
-                buffer: result.data,
+                inner: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             })
         }
