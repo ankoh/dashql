@@ -43,7 +43,7 @@ impl Drop for Buffer {
 }
 
 impl Database {
-    pub fn close(&mut self) {
+    pub fn close(&self) {
         let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
         if ptr != std::ptr::null_mut() {
             (self.deleter)(ptr);
@@ -121,7 +121,7 @@ impl Database {
 }
 
 impl Buffer {
-    pub fn close(&mut self) {
+    pub fn close(&self) {
         let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
         if ptr != std::ptr::null_mut() {
             (self.deleter)(ptr);
@@ -143,7 +143,7 @@ impl Buffer {
 }
 
 impl Connection {
-    pub fn close(&mut self) {
+    pub fn close(&self) {
         let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
         if ptr != std::ptr::null_mut() {
             (self.deleter)(ptr);

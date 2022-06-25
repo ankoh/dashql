@@ -23,6 +23,11 @@ enum ConnectionMessage {
 }
 
 impl Database {
+    pub fn close(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+        let db = cx.this().downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
+        db.inner.close();
+        Ok(cx.undefined())
+    }
     pub fn open_in_memory(mut cx: FunctionContext) -> JsResult<JsBox<Database>> {
         let db = duckdbx::Database::open_in_memory().or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
@@ -50,6 +55,13 @@ impl Database {
 }
 
 impl Connection {
+    pub fn close(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+        let conn = cx.this().downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
+        conn.tx
+            .send(ConnectionMessage::Close)
+            .or_else(|e| cx.throw_error(e.to_string()))?;
+        Ok(cx.undefined())
+    }
     pub fn run_query(mut cx: FunctionContext) -> JsResult<JsUndefined> {
         let conn = cx.this().downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
         let script = cx.argument::<JsString>(1)?.value(&mut cx);
@@ -83,6 +95,11 @@ impl Connection {
 }
 
 impl Buffer {
+    pub fn delete(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+        let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
+        buffer.inner.close();
+        Ok(cx.undefined())
+    }
     pub fn get(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
         let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
         let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.get()) };
@@ -94,8 +111,11 @@ impl Buffer {
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("openInMemory", Database::open_in_memory)?;
     cx.export_function("open", Database::open)?;
+    cx.export_function("closeDatabase", Database::close)?;
     cx.export_function("connect", Database::connect)?;
+    cx.export_function("closeConnection", Connection::close)?;
     cx.export_function("runQuery", Connection::run_query)?;
     cx.export_function("accessBuffer", Buffer::get)?;
+    cx.export_function("deleteBuffer", Buffer::delete)?;
     Ok(())
 }
