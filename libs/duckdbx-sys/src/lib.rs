@@ -127,7 +127,7 @@ impl Buffer {
             (self.deleter)(ptr);
         }
     }
-    pub fn get<'a>(&'a self) -> &'a mut [u8] {
+    pub fn access<'a>(&'a self) -> &'a mut [u8] {
         let ptr = self.inner.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
             return [].as_mut_slice();

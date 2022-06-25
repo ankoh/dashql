@@ -41,6 +41,6 @@ pub struct DatabaseConnection {
 impl DatabaseConnection {
     pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
         let buffer = self.inner.run_query(text)?;
-        read_arrow_ipc_buffer(buffer.get())
+        read_arrow_ipc_buffer(buffer.access())
     }
 }

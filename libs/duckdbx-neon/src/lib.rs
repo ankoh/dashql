@@ -100,9 +100,9 @@ impl Buffer {
         buffer.inner.close();
         Ok(cx.undefined())
     }
-    pub fn get(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+    pub fn access(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
         let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
-        let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.get()) };
+        let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.access()) };
         Ok(JsArrayBuffer::external(&mut cx, data))
     }
 }
@@ -115,7 +115,7 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("connect", Database::connect)?;
     cx.export_function("closeConnection", Connection::close)?;
     cx.export_function("runQuery", Connection::run_query)?;
-    cx.export_function("accessBuffer", Buffer::get)?;
+    cx.export_function("accessBuffer", Buffer::access)?;
     cx.export_function("deleteBuffer", Buffer::delete)?;
     Ok(())
 }
