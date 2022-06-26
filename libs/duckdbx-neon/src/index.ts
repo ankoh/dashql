@@ -19,6 +19,9 @@ export class Database {
         const conn = duckdbx.connect(this.handle);
         return new Connection(conn);
     }
+    public async close(): Promise<void> {
+        duckdbx.closeDatabase(this.handle);
+    }
 }
 
 export class Connection {
@@ -31,6 +34,9 @@ export class Connection {
         return new Promise((onSuccess, onError) => {
             duckdbx.runQuery(this.handle, text, buffer => onSuccess(new Buffer(buffer)), onError);
         });
+    }
+    public async close(): Promise<void> {
+        duckdbx.closeConnection(this.handle);
     }
 }
 

@@ -19,6 +19,19 @@ export function testBindings() {
             expect(table.numRows).toEqual(1);
             const rows = table.toArray();
             expect(rows[0].a).toEqual(42);
+            await conn.close();
+        });
+        it('invalid sql', async () => {
+            const db = await duckdbx.openInMemory();
+            const conn = await db.connect();
+            let error = null;
+            try {
+                await conn.runQuery('invalid sql');
+            } catch (e) {
+                error = e;
+            }
+            expect(error).not.toEqual(null);
+            expect(async () => await conn.runQuery('select 42::integer as a')).not.toThrow();
         });
     });
 }
