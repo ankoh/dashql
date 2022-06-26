@@ -32,6 +32,10 @@ impl DatabaseInstance {
     pub async fn connect(&self) -> Result<DatabaseConnection, String> {
         self.inner.connect().map(|conn| DatabaseConnection { inner: conn })
     }
+    pub async fn close(&self) -> Result<(), String> {
+        self.inner.close();
+        Ok(())
+    }
 }
 
 pub struct DatabaseConnection {
@@ -42,5 +46,9 @@ impl DatabaseConnection {
     pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
         let buffer = self.inner.run_query(text)?;
         read_arrow_ipc_buffer(buffer.access())
+    }
+    pub async fn close(&self) -> Result<(), String> {
+        self.inner.close();
+        Ok(())
     }
 }
