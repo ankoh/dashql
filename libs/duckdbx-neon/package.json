@@ -1,18 +1,27 @@
 {
-    "name": "duckdb-neon",
+    "name": "duckdbx-neon",
     "version": "0.1.0",
     "description": "",
-    "main": "index.node",
     "scripts": {
-        "build": "cargo-cp-artifact -nc index.node -- cargo build --message-format=json-render-diagnostics",
-        "build-debug": "npm run build --",
-        "build-release": "npm run build -- --release",
-        "install": "npm run build-release",
-        "test": "cargo test"
+        "build:debug": "yarn run compile:debug && yarn run bundle:debug",
+        "build:release": "yarn run compile:release && yarn run bundle:release",
+        "bundle:debug": "node bundle.mjs debug",
+        "bundle:release": "node bundle.mjs release",
+        "compile": "cargo-cp-artifact -nc ./dist/duckdbx.node -- cargo build --message-format=json-render-diagnostics",
+        "compile:debug": "yarn run compile",
+        "compile:release": "yarn run compile --release",
+        "install": "yarn run build:release",
+        "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./dist/tests-node.cjs"
     },
     "author": "",
-    "license": "MPL-2",
+    "license": "MPL-2.0",
     "devDependencies": {
-        "cargo-cp-artifact": "^0.1"
+        "cargo-cp-artifact": "^0.1",
+        "jasmine": "^4.1.0",
+        "jasmine-core": "^4.1.1",
+        "jasmine-spec-reporter": "^7.0.0",
+        "rimraf": "^3.0.2",
+        "make-dir": "^3.1.0",
+        "esbuild": "^0.14.39"
     }
 }

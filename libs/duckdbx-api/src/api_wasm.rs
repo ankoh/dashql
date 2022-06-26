@@ -4,9 +4,9 @@ use js_sys::Uint8Array;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
-#[cfg_attr(feature = "browser", wasm_bindgen(module = "/js/browser_runtime.mjs"))]
-#[cfg_attr(feature = "node", wasm_bindgen(module = "/js/node_runtime.mjs"))]
-#[cfg_attr(feature = "node-ipc", wasm_bindgen(module = "/js/node_ipc_runtime.mjs"))]
+#[cfg_attr(feature = "browser", wasm_bindgen(module = "./js/browser_runtime.mjs"))]
+#[cfg_attr(feature = "node", wasm_bindgen(module = "./js/node_runtime.mjs"))]
+#[cfg_attr(feature = "node-ipc", wasm_bindgen(module = "./js/node_ipc_runtime.mjs"))]
 extern "C" {
     #[wasm_bindgen(js_name = "createClient", catch)]
     async fn duckdbx_create_client() -> Result<JsValue, JsValue>;
