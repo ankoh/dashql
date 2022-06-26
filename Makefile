@@ -46,6 +46,14 @@ check_format:
 	${ROOT_DIR}/scripts/format check
 
 # ---------------------------------------------------------------------------
+# Tests
+
+.PHONY: tests
+tests:
+	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ cargo test --features native
+	cd ./libs/duckdbx-api && wasm-pack test --node --features node
+
+# ---------------------------------------------------------------------------
 # Building
 
 .PHONY: duckdb
