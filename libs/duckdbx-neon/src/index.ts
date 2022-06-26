@@ -1,10 +1,10 @@
 import duckdbx from '../dist/duckdbx.node';
 
-export async function openInMemory() {
-    const db = await duckdbx.openInMemory();
+export function openInMemory() {
+    const db = duckdbx.openInMemory();
     return new Database(db);
 }
-export async function open(path: string) {
+export function open(path: string) {
     const db = duckdbx.open(path);
     return new Database(db);
 }
@@ -15,11 +15,11 @@ export class Database {
     constructor(handle: duckdbx.Database) {
         this.handle = handle;
     }
-    public async connect(): Promise<Connection> {
+    public connect(): Connection {
         const conn = duckdbx.connect(this.handle);
         return new Connection(conn);
     }
-    public async close(): Promise<void> {
+    public close() {
         duckdbx.closeDatabase(this.handle);
     }
 }
@@ -35,7 +35,7 @@ export class Connection {
             duckdbx.runQuery(this.handle, text, buffer => onSuccess(new Buffer(buffer)), onError);
         });
     }
-    public async close(): Promise<void> {
+    public close() {
         duckdbx.closeConnection(this.handle);
     }
 }

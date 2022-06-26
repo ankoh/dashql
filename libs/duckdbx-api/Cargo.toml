@@ -16,6 +16,7 @@ opt-level = "s"
 async-trait = "0.1.56"
 log = "0.4.14"
 arrow = { version = "14.0.0", features = ["csv", "ipc"] }
+futures = "0.3.21"
 
 duckdbx = { path = "../duckdbx-sys", optional = true }
 tokio = { version = "1.19.2", features = ["rt", "macros"], optional = true }

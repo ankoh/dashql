@@ -293,6 +293,7 @@ dependencies = [
  "arrow",
  "async-trait",
  "duckdbx",
+ "futures",
  "getrandom",
  "js-sys",
  "log",

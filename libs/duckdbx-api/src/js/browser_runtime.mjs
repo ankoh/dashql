@@ -44,3 +44,7 @@ export async function runQuery(conn, text) {
     const id = conn.useUnsafe((_, c) => c);
     return await conn.bindings.runQuery(id, text);
 }
+export function accessBuffer(buffer) {
+    return buffer;
+}
+export function deleteBuffer(_) {}
