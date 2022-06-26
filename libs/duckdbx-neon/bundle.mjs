@@ -1,5 +1,6 @@
 import esbuild from 'esbuild';
 import path from 'path';
+import fs from 'fs';
 import rimraf from 'rimraf';
 import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
@@ -16,7 +17,6 @@ if (args.length == 0) {
     if (args[0] == 'debug') is_debug = true;
 }
 console.log(`DEBUG=${is_debug}`);
-
 // -------------------------------
 // Cleanup output directory
 
@@ -35,7 +35,7 @@ rimraf.sync(`${dist}/*.cjs.map`);
 
 console.log('[ ESBUILD ] duckdbx-neon.cjs');
 esbuild.build({
-    entryPoints: ['./src/index.mjs'],
+    entryPoints: ['./src/index.ts'],
     outfile: 'dist/duckdbx.cjs',
     platform: 'node',
     format: 'cjs',
@@ -52,7 +52,7 @@ esbuild.build({
 
 console.log('[ ESBUILD ] tests-node.cjs');
 esbuild.build({
-    entryPoints: ['./test/index.mjs'],
+    entryPoints: ['./test/index.ts'],
     outfile: 'dist/tests-node.cjs',
     platform: 'node',
     format: 'cjs',

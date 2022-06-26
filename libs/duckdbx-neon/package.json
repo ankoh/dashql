@@ -20,6 +20,7 @@
     "author": "",
     "license": "MPL-2.0",
     "devDependencies": {
+        "@types/jasmine": "^4.0.3",
         "cargo-cp-artifact": "^0.1",
         "jasmine": "^4.1.0",
         "jasmine-core": "^4.1.1",

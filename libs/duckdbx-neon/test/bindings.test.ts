@@ -1,4 +1,4 @@
-import * as duckdbx from '../src/index.mjs';
+import * as duckdbx from '../src';
 
 export function testBindings() {
     describe('Bindings', () => {
