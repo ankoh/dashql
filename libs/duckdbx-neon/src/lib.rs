@@ -24,7 +24,9 @@ enum ConnectionMessage {
 
 impl Database {
     pub fn close(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let db = cx.this().downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
+        let db = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
         db.inner.close();
         Ok(cx.undefined())
     }
@@ -38,7 +40,9 @@ impl Database {
         Ok(cx.boxed(Database { inner: db }))
     }
     pub fn connect(mut cx: FunctionContext) -> JsResult<JsBox<Connection>> {
-        let db = cx.this().downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
+        let db = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Database>, _>(&mut cx)?;
         let mut conn = db.inner.connect().or_else(|e| cx.throw_error(e))?;
         let (tx, rx) = mpsc::channel::<ConnectionMessage>();
         let channel = cx.channel();
@@ -56,14 +60,18 @@ impl Database {
 
 impl Connection {
     pub fn close(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let conn = cx.this().downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
+        let conn = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
         conn.tx
             .send(ConnectionMessage::Close)
             .or_else(|e| cx.throw_error(e.to_string()))?;
         Ok(cx.undefined())
     }
     pub fn run_query(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let conn = cx.this().downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
+        let conn = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Connection>, _>(&mut cx)?;
         let script = cx.argument::<JsString>(1)?.value(&mut cx);
         let on_success = cx.argument::<JsFunction>(2)?.root(&mut cx);
         let on_error = cx.argument::<JsFunction>(3)?.root(&mut cx);
@@ -96,12 +104,16 @@ impl Connection {
 
 impl Buffer {
     pub fn delete(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
+        let buffer = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
         buffer.inner.close();
         Ok(cx.undefined())
     }
     pub fn access(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
-        let buffer = cx.this().downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
+        let buffer = cx
+            .argument::<JsValue>(0)?
+            .downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
         let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.access()) };
         Ok(JsArrayBuffer::external(&mut cx, data))
     }
