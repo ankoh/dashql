@@ -11,8 +11,12 @@
         "compile:debug": "yarn run compile",
         "compile:release": "yarn run compile --release",
         "install": "yarn run build:release",
-        "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./dist/tests-node.cjs"
+        "test": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./dist/tests-node.cjs"
     },
+    "main": "dist/duckdbx.cjs",
+    "files": [
+        "dist"
+    ],
     "author": "",
     "license": "MPL-2.0",
     "devDependencies": {

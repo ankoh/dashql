@@ -5,7 +5,7 @@ import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
 
 const TARGET_NODE = ['node14.6'];
-const EXTERNALS_NODE = ['./dist/index.node'];
+const EXTERNALS_NODE = ['./dist/duckdbx.node'];
 
 // Read CLI flags
 let is_debug = false;
