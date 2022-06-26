@@ -27,6 +27,7 @@
         "jasmine-spec-reporter": "^7.0.0",
         "rimraf": "^3.0.2",
         "make-dir": "^3.1.0",
-        "esbuild": "^0.14.39"
+        "esbuild": "^0.14.39",
+        "apache-arrow": "^8.0.0"
     }
 }
