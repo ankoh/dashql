@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 
 export function testBindings() {
     describe('Bindings', () => {
-        it('hello duckdb', async () => {
+        it('select 42', async () => {
             const db = await duckdbx.openInMemory();
             const conn = await db.connect();
             const result = await conn.runQuery('select 42::integer as a');
@@ -24,13 +24,14 @@ export function testBindings() {
         it('invalid sql', async () => {
             const db = await duckdbx.openInMemory();
             const conn = await db.connect();
-            let error = null;
+            let error: any | null = null;
             try {
                 await conn.runQuery('invalid sql');
-            } catch (e) {
+            } catch (e: any) {
                 error = e;
             }
             expect(error).not.toEqual(null);
+            expect(error.toString()).toContain('syntax error');
             expect(async () => await conn.runQuery('select 42::integer as a')).not.toThrow();
         });
     });
