@@ -5,9 +5,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "start": "webpack serve --config webpack.app.dev.js",
-        "build:dev": "webpack --config webpack.app.dev.js",
-        "build:prod": "webpack --config webpack.app.prod.js",
+        "pwa:start": "webpack serve --config webpack.pwa.dev.js",
+        "pwa:build:dev": "webpack --config webpack.pwa.dev.js",
+        "pwa:build:prod": "webpack --config webpack.pwa.prod.js",
         "lint": "yarn run eslint {src,test}/**/*.t{s,sx}"
     },
     "engines": {
