@@ -7,10 +7,10 @@ use async_trait::async_trait;
 use super::{Runtime, RuntimeDataHandle};
 
 #[derive(Debug)]
-pub struct PlaceholderRuntime {}
+pub struct DummyRuntime {}
 
 #[async_trait(?Send)]
-impl Runtime for PlaceholderRuntime {
+impl Runtime for DummyRuntime {
     async fn resolve_test_data(&self, url: &str) -> Result<String, SystemError> {
         Ok(url.to_string())
     }
