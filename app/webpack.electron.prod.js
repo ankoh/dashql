@@ -36,7 +36,7 @@ const main = {
     },
     output: {
         ...renderer.output,
-        filename: '[name].js',
+        filename: '[name].cjs',
     },
     plugins: [],
 };
