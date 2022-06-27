@@ -23,8 +23,8 @@ test = false
 doctest = false
 
 [dependencies]
-dashql_proto = { path = "../dashql-proto" }
-dashql_parser = { path = "../dashql-parser-sys" }
+dashql-proto = { path = "../dashql-proto" }
+dashql-parser = { path = "../dashql-parser-sys" }
 duckdbx = { path = "../duckdbx-api" }
 async-trait = "0.1.56"
 arrow = { version = "14.0.0", features = ['ipc'] }

@@ -1,5 +1,5 @@
 [package]
-name = "dashql_proto"
+name = "dashql-proto"
 version = "0.1.0"
 edition = "2018"
 

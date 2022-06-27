@@ -221,6 +221,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
+name = "dashql-parser"
+version = "0.1.0"
+dependencies = [
+ "bumpalo",
+ "cmake",
+ "dashql-proto",
+ "flatbuffers",
+ "libc",
+]
+
+[[package]]
+name = "dashql-proto"
+version = "0.1.0"
+dependencies = [
+ "flatbuffers",
+]
+
+[[package]]
 name = "dashql_core"
 version = "0.1.0"
 dependencies = [
@@ -228,8 +246,8 @@ dependencies = [
  "async-trait",
  "bumpalo",
  "clap",
- "dashql_parser",
- "dashql_proto",
+ "dashql-parser",
+ "dashql-proto",
  "duckdbx",
  "env_logger",
  "flatbuffers",
@@ -244,24 +262,6 @@ dependencies = [
  "serde_json",
  "smallvec",
  "tokio",
-]
-
-[[package]]
-name = "dashql_parser"
-version = "0.1.0"
-dependencies = [
- "bumpalo",
- "cmake",
- "dashql_proto",
- "flatbuffers",
- "libc",
-]
-
-[[package]]
-name = "dashql_proto"
-version = "0.1.0"
-dependencies = [
- "flatbuffers",
 ]
 
 [[package]]
