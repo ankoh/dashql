@@ -1,0 +1,44 @@
+{
+    "compilerOptions": {
+        "outDir": "./build/ts",
+        "target": "es6",
+        "module": "es2020",
+        "moduleResolution": "node",
+        "sourceMap": false,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./build/types/",
+        "esModuleInterop": true,
+        "allowJs": true,
+
+        "allowSyntheticDefaultImports": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "strictNullChecks": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true,
+
+        "jsx": "react",
+        "types": ["node", "jest"],
+        "lib": ["es6", "es2020", "dom"],
+        "baseUrl": ".",
+        "plugins": [{ "name": "typescript-plugin-css-modules" }]
+    },
+    "exclude": ["./node_modules"],
+    "include": [
+        "./__mocks__/**/*.ts",
+        "./__mocks__/**/*.tsx",
+        "./__tests__/**/*.ts",
+        "./__tests__/**/*.tsx",
+        "./src/**/*.ts",
+        "./src/**/*.tsx",
+        "./test/**/*.ts",
+        "./test/**/*.tsx",
+        "./types/*.d.ts",
+        "../../node_modules/@duckdb/react-duckdb/src/*.ts",
+        "../../node_modules/@duckdb/react-duckdb/src/*.tsx",
+        "../../node_modules/@duckdb/react-duckdb-table/src/*.ts",
+        "../../node_modules/@duckdb/react-duckdb-table/src/*.tsx"
+    ]
+}
