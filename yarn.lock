@@ -286,6 +286,16 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
+"@dashql/duckdbx-node@link:libs/duckdbx-node":
+  version "0.1.0"
+
+"@duckdb/duckdb-wasm@^1.14.4":
+  version "1.14.4"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.14.4.tgz#805acaf16d62adf9c0d23fa9e6e0a838f15acb71"
+  integrity sha512-MftCJ42GEeM0Hk2QX2QqvhWx9/POjD6gjHnuNfFUPIdfZtybgw71TH0/sB8naVSrSGKHkCdoSh2E40E4gMje/w==
+  dependencies:
+    apache-arrow "^8.0.0"
+
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@istanbuljs/load-nyc-config/-/load-nyc-config-1.1.0.tgz#fd3db1d59ecf7cf121e80650bb86712f9b55eced"

@@ -62,3 +62,11 @@ esbuild.build({
     sourcemap: is_debug ? 'inline' : true,
     external: EXTERNALS_NODE,
 });
+
+// -------------------------------
+// Write declaration files
+
+function printErr(err) {
+    if (err) return console.log(err);
+}
+fs.writeFile(path.join(dist, 'duckdbx-node.d.ts'), "export * from './types/src/index';", printErr);

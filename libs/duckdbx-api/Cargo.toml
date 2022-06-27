@@ -32,7 +32,4 @@ wasm-bindgen-test = "0.3.12"
 [features]
 native = ['dep:duckdbx-sys', 'dep:tokio']
 wasm = ['dep:js-sys', 'dep:getrandom', 'dep:wasm-bindgen', 'dep:wasm-bindgen-futures']
-node = ['wasm']
-node-ipc = ['wasm']
-browser = ['wasm']
 default = []

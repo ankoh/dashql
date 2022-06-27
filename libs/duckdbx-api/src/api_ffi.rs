@@ -22,12 +22,6 @@ pub struct DatabaseInstance {
     inner: duckdbx_sys::Database,
 }
 
-impl std::fmt::Debug for DatabaseInstance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatabaseInstance").finish()
-    }
-}
-
 impl DatabaseInstance {
     pub async fn connect(&self) -> Result<DatabaseConnection, String> {
         self.inner.connect().map(|conn| DatabaseConnection { inner: conn })
@@ -50,5 +44,23 @@ impl DatabaseConnection {
     pub async fn close(&self) -> Result<(), String> {
         self.inner.close();
         Ok(())
+    }
+}
+
+impl std::fmt::Debug for DatabaseInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseInstance").finish()
+    }
+}
+
+impl Drop for DatabaseInstance {
+    fn drop(&mut self) {
+        self.inner.close();
+    }
+}
+
+impl Drop for DatabaseConnection {
+    fn drop(&mut self) {
+        self.inner.close();
     }
 }

@@ -12,18 +12,18 @@ const DUCKDB_BUNDLES = {
         mainWorker: new URL('@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js', import.meta.url).toString(),
     },
 };
-let duckdbBundle = null;
+let duckdbBundle: duckdb.DuckDBBundle | null = null;
 
-export async function createClient() {
+async function createClient() {
     if (duckdbBundle != null) {
         duckdbBundle = await duckdb.selectBundle(DUCKDB_BUNDLES);
     }
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
-    const worker = new Worker(duckdbBundle.mainWorker);
+    const worker = new Worker(duckdbBundle!.mainWorker!);
     return new duckdb.AsyncDuckDB(logger, worker);
 }
 
-export async function openDatabase(db, path) {
+async function openDatabase(db: duckdb.AsyncDuckDB, path: string) {
     if (path !== undefined && path !== null) {
         await db.open({
             path: path,
@@ -31,20 +31,33 @@ export async function openDatabase(db, path) {
     }
     return db;
 }
-export async function closeDatabase(db) {
+async function closeDatabase(db: duckdb.AsyncDuckDB) {
     return await db.terminate();
 }
-export async function createConnection(db) {
+async function createConnection(db: duckdb.AsyncDuckDB) {
     return await db.connect();
 }
-export async function closeConnection(conn) {
+async function closeConnection(conn: duckdb.AsyncDuckDBConnection) {
     return await conn.close();
 }
-export async function runQuery(conn, text) {
+async function runQuery(conn: duckdb.AsyncDuckDBConnection, text: string) {
     const id = conn.useUnsafe((_, c) => c);
     return await conn.bindings.runQuery(id, text);
 }
-export function accessBuffer(buffer) {
+function accessBuffer(buffer: Uint8Array) {
     return buffer;
 }
-export function deleteBuffer(_) {}
+function deleteBuffer(_buffer: Uint8Array) {}
+
+export function register(global: any) {
+    global.DUCKDBX_RUNTIME = {
+        createClient,
+        openDatabase,
+        closeDatabase,
+        createConnection,
+        closeConnection,
+        runQuery,
+        accessBuffer,
+        deleteBuffer,
+    };
+}

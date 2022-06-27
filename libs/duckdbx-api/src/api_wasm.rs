@@ -2,9 +2,7 @@ use crate::arrow_ipc::read_arrow_ipc_buffer;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
-#[cfg_attr(feature = "browser", wasm_bindgen(module = "/src/js/browser_runtime.mjs"))]
-#[cfg_attr(feature = "node", wasm_bindgen(module = "/src/js/node_runtime.cjs"))]
-#[cfg_attr(feature = "node-ipc", wasm_bindgen(module = "/src/js/node_ipc_runtime.mjs"))]
+#[wasm_bindgen(module = "/src/api_wasm_bindings.mjs")]
 extern "C" {
     #[wasm_bindgen(js_name = "createClient", catch)]
     async fn duckdbx_create_client() -> Result<JsValue, JsValue>;
