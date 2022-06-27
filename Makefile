@@ -48,7 +48,7 @@ tests:
 .PHONY: proto
 proto:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/generate_proto.sh
-	yarn workspace @dashql/proto build
+	yarn workspace @dashql/dashql-proto build
 
 # ---------------------------------------------------------------------------
 # C++
