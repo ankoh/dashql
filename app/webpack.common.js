@@ -33,7 +33,7 @@ export function configure(params) {
     return {
         target: 'browserslist',
         entry: {
-            app: ['./src/app.tsx'],
+            app: ['./src/targets/app.tsx'],
         },
         output: {
             path: params.buildDir,
@@ -41,7 +41,7 @@ export function configure(params) {
             filename: 'static/js/[name].[contenthash].js',
             chunkFilename: 'static/js/[name].[contenthash].js',
             assetModuleFilename: 'static/assets/[name].[contenthash][ext]',
-            clean: true,
+            clean: false,
         },
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],

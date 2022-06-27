@@ -8,6 +8,9 @@
         "pwa:start": "webpack serve --config webpack.pwa.dev.js",
         "pwa:build:dev": "webpack --config webpack.pwa.dev.js",
         "pwa:build:prod": "webpack --config webpack.pwa.prod.js",
+        "electron:start": "webpack watch --config webpack.electron.dev.js",
+        "electron:build:dev": "webpack --config webpack.electron.prod.js",
+        "electron:build:prod": "webpack --config webpack.electron.prod.js",
         "lint": "yarn run eslint {src,test}/**/*.t{s,sx}"
     },
     "engines": {

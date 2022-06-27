@@ -3,9 +3,10 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const buildDir = path.resolve(__dirname, './dist/electron');
 
 const base = configure({
-    buildDir: path.resolve(__dirname, './build/electron/dev'),
+    buildDir,
     tsLoaderOptions: {
         compilerOptions: {
             configFile: './tsconfig.json',
@@ -20,8 +21,9 @@ const base = configure({
     githubOAuthRedirect: `http://localhost:9001/static/html/github_oauth.${GITHUB_OAUTH_VERSION}.html`,
 });
 
-export default {
+const renderer = {
     ...base,
+    target: 'electron-renderer',
     output: {
         ...base.output,
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
@@ -34,27 +36,19 @@ export default {
         hints: false,
     },
     devtool: 'source-map',
-    devServer: {
-        historyApiFallback: true,
-        compress: true,
-        port: 9001,
-        static: {
-            directory: path.join(__dirname, './build/electron/dev'),
-        },
-        devMiddleware: {
-            mimeTypes: {
-                'text/plain': ['dashql'],
-            },
-        },
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
-            // This will enable SharedArrayBuffers in Firefox but will block most requests to third-party sites.
-            //
-            // "Cross-Origin-Resource-Policy": "cross-origin",
-            // "Cross-Origin-Embedder-Policy": "require-corp",
-            // "Cross-Origin-Opener-Policy": "same-origin"
-        },
-    },
 };
+
+const main = {
+    ...renderer,
+    target: 'electron-main',
+    entry: {
+        electron: ['./src/targets/electron.ts'],
+    },
+    output: {
+        ...renderer.output,
+        filename: '[name].js',
+    },
+    plugins: [],
+};
+
+export default [renderer, main];

@@ -3,9 +3,10 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const buildDir = path.resolve(__dirname, './dist/pwa');
 
 const base = configure({
-    buildDir: path.resolve(__dirname, './build/pwa/dev'),
+    buildDir,
     tsLoaderOptions: {
         compilerOptions: {
             configFile: './tsconfig.json',
@@ -39,7 +40,7 @@ export default {
         compress: true,
         port: 9001,
         static: {
-            directory: path.join(__dirname, './build/pwa/dev'),
+            directory: buildDir,
         },
         devMiddleware: {
             mimeTypes: {
@@ -50,11 +51,6 @@ export default {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
             'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
-            // This will enable SharedArrayBuffers in Firefox but will block most requests to third-party sites.
-            //
-            // "Cross-Origin-Resource-Policy": "cross-origin",
-            // "Cross-Origin-Embedder-Policy": "require-corp",
-            // "Cross-Origin-Opener-Policy": "same-origin"
         },
     },
 };

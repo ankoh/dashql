@@ -12,5 +12,9 @@
     "dependencies": {
         "jest": "^27.4.7",
         "prettier": "^2.5.1"
-    }
+    },
+    "browserslist": [
+        "last 1 version",
+        "> 1%"
+    ]
 }

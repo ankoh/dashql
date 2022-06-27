@@ -3,10 +3,11 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const buildDir = path.resolve(__dirname, './dist/pwa');
 
 export default {
     ...configure({
-        buildDir: path.resolve(__dirname, './build/pwa/prod'),
+        buildDir,
         tsLoaderOptions: {
             compilerOptions: {
                 configFile: './tsconfig.json',

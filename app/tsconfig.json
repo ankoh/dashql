@@ -7,7 +7,7 @@
         "sourceMap": false,
         "declaration": true,
         "declarationMap": true,
-        "declarationDir": "./build/types/",
+        "declarationDir": "./dist/types/",
         "esModuleInterop": true,
         "allowJs": true,
 
@@ -20,7 +20,7 @@
         "suppressImplicitAnyIndexErrors": true,
 
         "jsx": "react",
-        "types": ["node", "jest"],
+        "types": ["node", "jest", "electron"],
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": ".",
         "plugins": [{ "name": "typescript-plugin-css-modules" }]
