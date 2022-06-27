@@ -1,5 +1,5 @@
 [package]
-name = "duckdbx_api"
+name = "duckdbx"
 version = "0.1.0"
 authors = ["Andre Kohn <kohn.a@outlook.com>"]
 edition = "2018"
@@ -18,7 +18,7 @@ log = "0.4.14"
 arrow = { version = "14.0.0", features = ["csv", "ipc"] }
 futures = "0.3.21"
 
-duckdbx = { path = "../duckdbx-sys", optional = true }
+duckdbx-sys = { path = "../duckdbx-sys", optional = true }
 tokio = { version = "1.19.2", features = ["rt", "macros"], optional = true }
 
 wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"], optional = true }
@@ -30,7 +30,7 @@ getrandom = { version = "0.2.6", features = ["js"], optional = true }
 wasm-bindgen-test = "0.3.12"
 
 [features]
-native = ['dep:duckdbx', 'dep:tokio']
+native = ['dep:duckdbx-sys', 'dep:tokio']
 wasm = ['dep:js-sys', 'dep:getrandom', 'dep:wasm-bindgen', 'dep:wasm-bindgen-futures']
 node = ['wasm']
 node-ipc = ['wasm']

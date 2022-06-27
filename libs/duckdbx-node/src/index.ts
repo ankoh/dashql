@@ -1,4 +1,4 @@
-import duckdbx from '../dist/duckdbx.node';
+import duckdbx from '../dist/duckdbx-node.node';
 
 export function openInMemory() {
     const db = duckdbx.openInMemory();

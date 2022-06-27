@@ -3,20 +3,20 @@ use std::sync::mpsc;
 use std::thread;
 
 struct Database {
-    inner: duckdbx::Database,
+    inner: duckdbx_sys::Database,
 }
 struct Connection {
     tx: mpsc::Sender<ConnectionMessage>,
 }
 struct Buffer {
-    inner: duckdbx::Buffer,
+    inner: duckdbx_sys::Buffer,
 }
 
 impl Finalize for Database {}
 impl Finalize for Connection {}
 impl Finalize for Buffer {}
 
-type ConnectionCallback = Box<dyn FnOnce(&mut duckdbx::Connection, &Channel) + Send>;
+type ConnectionCallback = Box<dyn FnOnce(&mut duckdbx_sys::Connection, &Channel) + Send>;
 enum ConnectionMessage {
     Callback(ConnectionCallback),
     Close,
@@ -31,12 +31,12 @@ impl Database {
         Ok(cx.undefined())
     }
     pub fn open_in_memory(mut cx: FunctionContext) -> JsResult<JsBox<Database>> {
-        let db = duckdbx::Database::open_in_memory().or_else(|e| cx.throw_error(e))?;
+        let db = duckdbx_sys::Database::open_in_memory().or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
     }
     pub fn open(mut cx: FunctionContext) -> JsResult<JsBox<Database>> {
         let path = cx.argument::<JsString>(0)?.value(&mut cx);
-        let db = duckdbx::Database::open(&path).or_else(|e| cx.throw_error(e))?;
+        let db = duckdbx_sys::Database::open(&path).or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
     }
     pub fn connect(mut cx: FunctionContext) -> JsResult<JsBox<Connection>> {

@@ -553,7 +553,7 @@ pub fn plan_tasks<'a>(
 
 #[cfg(test)]
 mod test {
-    use duckdbx_api::DatabaseClient;
+    use duckdbx::DatabaseClient;
 
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;

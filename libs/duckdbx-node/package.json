@@ -1,19 +1,17 @@
 {
-    "name": "duckdbx-neon",
+    "name": "duckdbx-node",
     "version": "0.1.0",
     "description": "",
     "scripts": {
-        "build:debug": "yarn run compile:debug && yarn run bundle:debug",
-        "build:release": "yarn run compile:release && yarn run bundle:release",
-        "bundle:debug": "node bundle.mjs debug",
-        "bundle:release": "node bundle.mjs release",
-        "compile": "cargo-cp-artifact -nc ./dist/duckdbx.node -- cargo build --message-format=json-render-diagnostics",
+        "build:debug": "yarn run compile:debug && node build.mjs debug",
+        "build:release": "yarn run compile:release && node build.mjs release",
+        "compile": "cargo-cp-artifact -nc ./dist/duckdbx-node.node -- cargo build --message-format=json-render-diagnostics",
         "compile:debug": "yarn run compile",
         "compile:release": "yarn run compile --release",
         "install": "yarn run build:release",
         "test": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./dist/tests-node.cjs"
     },
-    "main": "dist/duckdbx.cjs",
+    "main": "dist/duckdbx-node.cjs",
     "files": [
         "dist"
     ],

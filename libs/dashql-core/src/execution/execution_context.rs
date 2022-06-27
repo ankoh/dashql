@@ -1,4 +1,4 @@
-use duckdbx_api::DatabaseInstance;
+use duckdbx::DatabaseInstance;
 
 use super::import_info::ImportInfo;
 use super::runtime;
@@ -47,7 +47,7 @@ pub struct ExecutionContext<'ast> {
 
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
-        let db = duckdbx_api::DatabaseClient::create().await?;
+        let db = duckdbx::DatabaseClient::create().await?;
         let instance = db.open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),

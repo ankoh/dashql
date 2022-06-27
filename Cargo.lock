@@ -230,7 +230,7 @@ dependencies = [
  "clap",
  "dashql_parser",
  "dashql_proto",
- "duckdbx_api",
+ "duckdbx",
  "env_logger",
  "flatbuffers",
  "futures",
@@ -274,25 +274,9 @@ checksum = "0e25ea47919b1560c4e3b7fe0aaab9becf5b84a10325ddf7db0f0ba5e1026499"
 name = "duckdbx"
 version = "0.1.0"
 dependencies = [
- "cmake",
- "cty",
-]
-
-[[package]]
-name = "duckdbx-neon"
-version = "0.1.0"
-dependencies = [
- "duckdbx",
- "neon",
-]
-
-[[package]]
-name = "duckdbx_api"
-version = "0.1.0"
-dependencies = [
  "arrow",
  "async-trait",
- "duckdbx",
+ "duckdbx-sys",
  "futures",
  "getrandom",
  "js-sys",
@@ -301,6 +285,22 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "duckdbx-node"
+version = "0.1.0"
+dependencies = [
+ "duckdbx-sys",
+ "neon",
+]
+
+[[package]]
+name = "duckdbx-sys"
+version = "0.1.0"
+dependencies = [
+ "cmake",
+ "cty",
 ]
 
 [[package]]

@@ -1,14 +1,14 @@
 [package]
-name = "duckdbx-neon"
+name = "duckdbx-node"
 version = "0.1.0"
 edition = "2018"
-exclude = ["index.node"]
+exclude = ["dist"]
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-duckdbx = { path = "../duckdbx-sys" }
+duckdbx-sys = { path = "../duckdbx-sys" }
 
 [dependencies.neon]
 version = "0.10"

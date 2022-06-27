@@ -25,7 +25,7 @@ doctest = false
 [dependencies]
 dashql_proto = { path = "../dashql-proto" }
 dashql_parser = { path = "../dashql-parser-sys" }
-duckdbx_api = { path = "../duckdbx-api" }
+duckdbx = { path = "../duckdbx-api" }
 async-trait = "0.1.56"
 arrow = { version = "14.0.0", features = ['ipc'] }
 getrandom = { version = "0.2.6", features = ['js'] }

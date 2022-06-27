@@ -6,7 +6,7 @@ use crate::execution::task::Task;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{CreateAsStatement, Statement};
 use async_trait::async_trait;
-use duckdbx_api::DatabaseConnection;
+use duckdbx::DatabaseConnection;
 
 pub struct DuckDBCreateAsTask<'ast> {
     statement: &'ast CreateAsStatement<'ast>,

@@ -2,7 +2,7 @@
     "private": true,
     "workspaces": [
         "libs/dashql-proto",
-        "libs/duckdbx-neon"
+        "libs/duckdbx-node"
     ],
     "scripts": {
         "format": "prettier --write packages"

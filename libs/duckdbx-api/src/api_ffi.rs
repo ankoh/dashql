@@ -1,5 +1,5 @@
 use crate::arrow_ipc::read_arrow_ipc_buffer;
-use duckdbx;
+use duckdbx_sys;
 
 pub struct DatabaseClient {}
 
@@ -8,7 +8,7 @@ impl DatabaseClient {
         Ok(Self {})
     }
     pub async fn open_in_memory(&self) -> Result<DatabaseInstance, String> {
-        duckdbx::Database::open_in_memory().map(|db| DatabaseInstance { inner: db })
+        duckdbx_sys::Database::open_in_memory().map(|db| DatabaseInstance { inner: db })
     }
 }
 
@@ -19,7 +19,7 @@ impl std::fmt::Debug for DatabaseClient {
 }
 
 pub struct DatabaseInstance {
-    inner: duckdbx::Database,
+    inner: duckdbx_sys::Database,
 }
 
 impl std::fmt::Debug for DatabaseInstance {
@@ -39,7 +39,7 @@ impl DatabaseInstance {
 }
 
 pub struct DatabaseConnection {
-    inner: duckdbx::Connection,
+    inner: duckdbx_sys::Connection,
 }
 
 impl DatabaseConnection {

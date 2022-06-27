@@ -6,13 +6,13 @@ import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
 
 const TARGET_NODE = ['node14.6'];
-const EXTERNALS_NODE = ['./dist/duckdbx.node'];
+const EXTERNALS_NODE = ['./dist/duckdbx-node.node'];
 
 // Read CLI flags
 let is_debug = false;
 let args = process.argv.slice(2);
 if (args.length == 0) {
-    console.warn('Usage: node bundle.mjs {debug/release}');
+    console.warn('Usage: node build.mjs {debug/release}');
 } else {
     if (args[0] == 'debug') is_debug = true;
 }
@@ -33,10 +33,10 @@ rimraf.sync(`${dist}/*.cjs.map`);
 // -------------------------------
 // Node bundles
 
-console.log('[ ESBUILD ] duckdbx-neon.cjs');
+console.log('[ ESBUILD ] duckdbx-node.cjs');
 esbuild.build({
     entryPoints: ['./src/index.ts'],
-    outfile: 'dist/duckdbx.cjs',
+    outfile: 'dist/duckdbx-node.cjs',
     platform: 'node',
     format: 'cjs',
     globalName: 'duckdbx',

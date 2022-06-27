@@ -9,7 +9,7 @@ use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
-use duckdbx_api::DatabaseConnection;
+use duckdbx::DatabaseConnection;
 use proto::LoadMethodType;
 
 pub struct DuckDBLoadTask<'ast> {

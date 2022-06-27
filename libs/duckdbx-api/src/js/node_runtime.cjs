@@ -1,4 +1,4 @@
-const duckdbx = require('duckdbx-neon');
+const duckdbx = require('duckdbx-node');
 
 async function createClient() {
     return null;

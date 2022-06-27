@@ -1,4 +1,4 @@
-declare module '*/duckdbx.node' {
+declare module '*/duckdbx-node.node' {
     interface Database {}
     interface Connection {}
     interface Buffer {}

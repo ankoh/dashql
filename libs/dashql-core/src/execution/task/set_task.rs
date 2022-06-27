@@ -4,7 +4,7 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
 use crate::grammar::Program;
 use async_trait::async_trait;
-use duckdbx_api::DatabaseConnection;
+use duckdbx::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct SetTask<'ast> {
