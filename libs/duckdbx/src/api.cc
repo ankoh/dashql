@@ -1,7 +1,6 @@
-#include <arrow/buffer.h>
-
 #include <cstring>
 
+#include "arrow/buffer.h"
 #include "duckdb/main/database.hpp"
 #include "duckdbx/database.h"
 

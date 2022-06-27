@@ -8,7 +8,6 @@
         "compile": "cargo-cp-artifact -nc ./dist/duckdbx-node.node -- cargo build --message-format=json-render-diagnostics",
         "compile:debug": "yarn run compile",
         "compile:release": "yarn run compile --release",
-        "install": "yarn run build:release",
         "test": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./dist/tests-node.cjs"
     },
     "main": "dist/duckdbx-node.cjs",
