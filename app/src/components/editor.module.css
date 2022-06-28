@@ -1,0 +1,78 @@
+:global(.monaco-editor .glyph-margin) {
+    border-right: 1px solid var(--border_color);
+}
+
+.editor {
+    width: 100%;
+    height: 100%;
+    position: relative;
+
+    -webkit-app-region: no-drag;
+}
+
+.editor_monaco {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.deco_statement {
+}
+
+.deco_glyph_status {
+    height: 100%;
+    line-height: 100%;
+}
+
+.deco_glyph_status::before {
+    color: rgb(25, 28, 31);
+    width: var(--editor_glyph_status_size);
+    height: var(--editor_glyph_status_size);
+}
+
+.deco_glyph_status_running::before {
+    content: url('../../static/svg/icons/status_running.svg');
+    transform-origin: 50% 50%;
+    animation: status_rotate 1s linear infinite;
+}
+
+.deco_glyph_status_blocked::before {
+    content: url('../../static/svg/icons/status_blocked.svg');
+}
+
+.deco_glyph_status_completed::before {
+    content: url('../../static/svg/icons/status_completed.svg');
+}
+
+.deco_glyph_status_failed::before {
+    content: url('../../static/svg/icons/status_failed.svg');
+}
+
+.deco_glyph_status_none::before {
+    content: url('../../static/svg/icons/status_none.svg');
+}
+
+@keyframes status_rotate {
+    100% {
+        transform: rotate(1turn);
+    }
+}
+
+.dep_target {
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.dep_target_focused {
+    background-color: rgba(70, 130, 180, 0.25);
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.dep_source_focused {
+    background-color: rgba(70, 130, 180, 0.25);
+}

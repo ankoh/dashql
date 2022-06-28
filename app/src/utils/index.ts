@@ -1,4 +1,3 @@
-export * from './size_observer';
 export * from './binary_search';
 export * from './clipboard';
 export * from './color_schemes';
@@ -7,8 +6,11 @@ export * from './format';
 export * from './hash';
 export * from './http';
 export * from './max_element_size';
+export * from './native_bitmap';
+export * from './native_stack';
 export * from './random';
 export * from './semaphore';
+export * from './size_observer';
 export * from './sleep';
 export * from './text';
 export * from './time';

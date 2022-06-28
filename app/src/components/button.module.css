@@ -1,0 +1,52 @@
+.buttonset {
+    display: flex;
+    flex-direction: row;
+    align-items: end;
+}
+
+.button {
+    position: relative;
+    height: 100%;
+    width: 48px;
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+
+    color: var(--button_fg);
+    border-radius: var(--border_radius);
+}
+
+.button.disabled {
+    color: rgb(170, 170, 170);
+}
+
+.button.active,
+.button:hover:not(.disabled) {
+    background-color: var(--button_hover_bg);
+    color: var(--button_hover_fg);
+}
+
+.button_inverted {
+    height: 100%;
+    width: 48px;
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+
+    color: var(--button_fg_inverted);
+    border-radius: var(--border_radius);
+}
+
+.button_inverted.disabled {
+    color: rgb(170, 170, 170);
+}
+
+.button_inverted.active,
+.button_inverted:hover:not(.disabled) {
+    background-color: var(--button_hover_bg_inverted);
+    color: var(--button_hover_fg_inverted);
+}
