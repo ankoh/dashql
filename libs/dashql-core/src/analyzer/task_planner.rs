@@ -69,7 +69,7 @@ pub struct SetupTask {
     pub task_status: Cell<TaskStatusCode>,
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
-    pub object_id: usize,
+    pub state_id: usize,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
@@ -100,12 +100,12 @@ pub struct ProgramTask {
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub origin_statement: usize,
-    pub object_id: usize,
+    pub state_id: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TaskGraph {
-    pub next_object_id: usize,
+    pub next_state_id: usize,
     pub setup_tasks: Vec<SetupTask>,
     pub program_tasks: Vec<ProgramTask>,
     pub program_task_by_statement: Vec<Option<usize>>,
@@ -136,7 +136,7 @@ struct TaskPlannerContext<'a> {
 
 fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
     let next = ctx.next_program;
-    let mut next_object_id = ctx.prev_program.map(|(_, t)| t.next_object_id).unwrap_or_default();
+    let mut next_state_id = ctx.prev_program.map(|(_, t)| t.next_state_id).unwrap_or_default();
 
     let mut program_tasks: Vec<ProgramTask> = Vec::with_capacity(next.program.statements.len());
     let mut program_task_by_statement: Vec<Option<usize>> = Vec::new();
@@ -153,7 +153,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
             depends_on: Vec::new(),
             required_for: Vec::new(),
             origin_statement: stmt_id,
-            object_id: next_object_id,
+            state_id: next_state_id,
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(_c) => ProgramTask {
@@ -193,7 +193,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 ..mixin
             },
         };
-        next_object_id += 1;
+        next_state_id += 1;
         program_task_by_statement[stmt_id] = Some(program_tasks.len());
         program_tasks.push(task);
     }
@@ -210,7 +210,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
     }
 
     ctx.next_task_graph = Some(TaskGraph {
-        next_object_id,
+        next_state_id,
         setup_tasks: Vec::new(),
         program_tasks,
         program_task_by_statement,
@@ -463,7 +463,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             // Update the target id of the new task and mark it as complete
             let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
             next_task.task_status.set(TaskStatusCode::Completed);
-            next_task.object_id = prev_task.object_id;
+            next_task.state_id = prev_task.state_id;
             continue;
         }
 
@@ -484,7 +484,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             debug_assert!(next_task_id.is_some()); // Applicability
             let next_task = &mut next_tasks.program_tasks[next_task_id.unwrap()];
             next_task.task_type = update_task;
-            next_task.object_id = prev_task.object_id;
+            next_task.state_id = prev_task.state_id;
         }
         // Drop if there's a drop task defined
         else if drop_task != SetupTaskType::None {
@@ -493,7 +493,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
                 task_status: Cell::new(TaskStatusCode::Pending),
                 depends_on: prev_task.depends_on.clone(),
                 required_for: Vec::new(),
-                object_id: prev_task.object_id,
+                state_id: prev_task.state_id,
             });
         }
     }
@@ -610,7 +610,7 @@ mod test {
             prev_tasks = Some(plan_tasks(prev_instance.as_ref().unwrap(), None)?);
             let have = prev_tasks.as_ref().unwrap();
             let expected = &test.prev.as_ref().unwrap().tasks;
-            assert_eq!(have.next_object_id, expected.next_object_id);
+            assert_eq!(have.next_state_id, expected.next_state_id);
             assert_eq!(have.setup_tasks, expected.setup_tasks);
             assert_eq!(have.program_tasks, expected.program_tasks);
             assert_eq!(have.program_task_by_statement, expected.program_task_by_statement);
@@ -646,7 +646,7 @@ mod test {
         assert_eq!(have.setup_tasks, expected.setup_tasks);
         assert_eq!(have.program_tasks, expected.program_tasks);
         assert_eq!(have.program_task_by_statement, expected.program_task_by_statement);
-        assert_eq!(have.next_object_id, expected.next_object_id);
+        assert_eq!(have.next_state_id, expected.next_state_id);
         Ok(())
     }
 
@@ -660,7 +660,7 @@ IMPORT a FROM 'https://some/remote'
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 1,
+                    next_state_id: 1,
                     setup_tasks: vec![],
                     program_tasks: vec![ProgramTask {
                         task_type: ProgramTaskType::Import,
@@ -668,7 +668,7 @@ IMPORT a FROM 'https://some/remote'
                         depends_on: vec![],
                         required_for: vec![],
                         origin_statement: 0,
-                        object_id: 0,
+                        state_id: 0,
                     }],
                     program_task_by_statement: vec![Some(0)],
                 },
@@ -688,7 +688,7 @@ LOAD b FROM a USING PARQUET;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 2,
+                    next_state_id: 2,
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
@@ -697,7 +697,7 @@ LOAD b FROM a USING PARQUET;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
-                            object_id: 0,
+                            state_id: 0,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -705,7 +705,7 @@ LOAD b FROM a USING PARQUET;
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,
-                            object_id: 1,
+                            state_id: 1,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -727,7 +727,7 @@ CREATE TABLE c AS SELECT * FROM b
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 3,
+                    next_state_id: 3,
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
@@ -736,7 +736,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
-                            object_id: 0,
+                            state_id: 0,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -744,7 +744,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: 1,
-                            object_id: 1,
+                            state_id: 1,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
@@ -752,7 +752,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![1],
                             required_for: vec![],
                             origin_statement: 2,
-                            object_id: 2,
+                            state_id: 2,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2)],
@@ -775,7 +775,7 @@ VIZ c USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 4,
+                    next_state_id: 4,
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
@@ -784,7 +784,7 @@ VIZ c USING TABLE;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
-                            object_id: 0,
+                            state_id: 0,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::Load,
@@ -792,7 +792,7 @@ VIZ c USING TABLE;
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: 1,
-                            object_id: 1,
+                            state_id: 1,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateAs,
@@ -800,7 +800,7 @@ VIZ c USING TABLE;
                             depends_on: vec![1],
                             required_for: vec![3],
                             origin_statement: 2,
-                            object_id: 2,
+                            state_id: 2,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -808,7 +808,7 @@ VIZ c USING TABLE;
                             depends_on: vec![2],
                             required_for: vec![],
                             origin_statement: 3,
-                            object_id: 3,
+                            state_id: 3,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1), Some(2), Some(3)],
@@ -828,7 +828,7 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 2,
+                    next_state_id: 2,
                     setup_tasks: vec![],
                     program_tasks: vec![
                         ProgramTask {
@@ -837,7 +837,7 @@ VIZ a USING TABLE;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
-                            object_id: 0,
+                            state_id: 0,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::CreateViz,
@@ -845,7 +845,7 @@ VIZ a USING TABLE;
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,
-                            object_id: 1,
+                            state_id: 1,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
@@ -858,13 +858,13 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    next_object_id: 4,
+                    next_state_id: 4,
                     setup_tasks: vec![SetupTask {
                         task_type: SetupTaskType::DropTable,
                         task_status: Cell::new(TaskStatusCode::Pending),
                         depends_on: vec![],
                         required_for: vec![],
-                        object_id: 0,
+                        state_id: 0,
                     }],
                     program_tasks: vec![
                         ProgramTask {
@@ -873,7 +873,7 @@ VIZ a USING TABLE;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: 0,
-                            object_id: 2,
+                            state_id: 2,
                         },
                         ProgramTask {
                             task_type: ProgramTaskType::UpdateViz,
@@ -881,7 +881,7 @@ VIZ a USING TABLE;
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: 1,
-                            object_id: 1,
+                            state_id: 1,
                         },
                     ],
                     program_task_by_statement: vec![Some(0), Some(1)],
