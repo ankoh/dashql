@@ -5,9 +5,8 @@ import { NotFound } from './pages/not_found';
 import { Route, BrowserRouter, Routes, Navigate, HashRouter } from 'react-router-dom';
 import { AppLauncher } from './app_launcher';
 import { AppConfigResolver } from './model/app_config';
-// import { GitHubAuthProvider, GitHubProfileProvider } from '../github';
-
 import { isElectron } from './utils';
+// import { GitHubAuthProvider, GitHubProfileProvider } from '../github';
 
 import './globals.module.css';
 import './app.module.css';
