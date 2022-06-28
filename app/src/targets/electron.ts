@@ -12,7 +12,7 @@ function createWindow() {
         show: false,
     });
     console.log(__dirname);
-    win.loadFile('./index.html');
+    win.loadFile('./app/index.html');
     win.once('ready-to-show', () => {
         win.show();
     });

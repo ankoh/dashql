@@ -42,7 +42,7 @@ export function configure(params) {
             chunkFilename: 'static/js/[name].[contenthash].js',
             assetModuleFilename: 'static/assets/[name].[contenthash][ext]',
             globalObject: 'globalThis',
-            clean: false,
+            clean: true,
         },
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],

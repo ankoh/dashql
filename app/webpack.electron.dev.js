@@ -4,6 +4,7 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.resolve(__dirname, './dist/electron');
+const buildDirRenderer = path.join(buildDir, 'app');
 
 const base = configure({
     buildDir,
@@ -26,6 +27,7 @@ const renderer = {
     target: 'electron-renderer',
     output: {
         ...base.output,
+        path: buildDirRenderer,
         publicPath: './',
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
     },
@@ -46,11 +48,18 @@ const main = {
         electron: ['./src/targets/electron.ts'],
     },
     output: {
-        ...renderer.output,
+        ...base.output,
+        path: buildDir,
         publicPath: './',
         filename: '[name].cjs',
+        chunkFilename: 'js/[name].[contenthash].cjs',
+        assetModuleFilename: 'assets/[name].[contenthash][ext]',
+        globalObject: 'globalThis',
+        clean: {
+            keep: /app\//,
+        },
     },
     plugins: [],
 };
 
-export default [renderer, main];
+export default [main, renderer];
