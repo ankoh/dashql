@@ -24,11 +24,18 @@ interface WorkflowBackend {
 }
 
 interface WorkflowFrontend {
-    beforeUpdate(): Promise<void>;
-    afterUpdate(): Promise<void>;
+    beginUpdateBatch(): Promise<void>;
+    endUpdateBatch(): Promise<void>;
     updateProgram(session: SessionId, program: proto.Program | null): Promise<void>;
     updateTaskGraph(session: SessionId, graph: TaskGraph | null): Promise<void>;
-    updateTaskStatus(session: SessionId, task_class: TaskClass, task_id: number, status: TaskStatusCode): Promise<void>;
+    updateTaskStatus(
+        session: SessionId,
+        task_class: TaskClass,
+        task_id: number,
+        status: TaskStatusCode,
+        error?: any,
+    ): Promise<void>;
+    deleteTaskState(session: SessionId, state: StateId): Promise<void>;
     updateInputState(session: SessionId, state: StateId): Promise<void>;
     updateImportState(session: SessionId, state: StateId): Promise<void>;
     updateLoadState(session: SessionId, state: StateId): Promise<void>;
