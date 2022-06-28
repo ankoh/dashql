@@ -38,8 +38,8 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={styles.steps}>
                     {renderStatus('Configure the application', config.status)}
-                    {renderStatus('Prepare the language analyzer', model.ResolvableStatus.COMPLETED)}
-                    {renderStatus('Prepare the embedded database', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare the language backend', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare the database backend', model.ResolvableStatus.COMPLETED)}
                 </div>
             </div>
         </div>
