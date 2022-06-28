@@ -15,15 +15,18 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { withNavBar } from './components/navbar';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
+
+const ExplorerPage = withNavBar(Explorer);
 
 ReactDOM.render(
     <AppConfigResolver>
         <AppLauncher>
             <Router>
                 <Routes>
-                    <Route path="/explorer/*" element={<Explorer />} />
+                    <Route path="/explorer/*" element={<ExplorerPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
                     <Route path="*" element={<Navigate to="/404" />} />
