@@ -24,10 +24,10 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
         </div>
     );
 
-    // const completed = config.value != null && analyzer.value != null && database != null && dbc != null;
-    // if (completed) {
-    //     return props.children;
-    // }
+    const completed = config.value != null;
+    if (completed) {
+        return props.children;
+    }
     return (
         <div className={styles.launcher}>
             <div className={styles.inner}>
@@ -38,8 +38,8 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={styles.steps}>
                     {renderStatus('Configure the application', config.status)}
-                    {renderStatus('Prepare the language analyzer', model.ResolvableStatus.RUNNING)}
-                    {renderStatus('Prepare the embedded database', model.ResolvableStatus.RUNNING)}
+                    {renderStatus('Prepare the language analyzer', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare the embedded database', model.ResolvableStatus.COMPLETED)}
                 </div>
             </div>
         </div>
