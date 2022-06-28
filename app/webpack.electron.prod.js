@@ -38,7 +38,7 @@ const main = {
     ...renderer,
     target: 'electron-main',
     entry: {
-        electron: ['./src/targets/electron.ts'],
+        electron: ['./src/electron.ts'],
     },
     output: {
         ...base.output,

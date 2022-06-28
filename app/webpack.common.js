@@ -33,7 +33,7 @@ export function configure(params) {
     return {
         target: 'browserslist',
         entry: {
-            app: ['./src/targets/app.tsx'],
+            app: ['./src/app.tsx'],
         },
         output: {
             path: params.buildDir,
