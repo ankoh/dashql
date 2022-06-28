@@ -16,14 +16,14 @@ interface DatabaseBackend {
     runQuery(conn: ConnectionId, text: string): Promise<Uint8Array>;
 }
 
-interface LanguageBackend {
+interface WorkflowBackend {
     configure(): Promise<void>;
     createSession(db: DatabaseId): Promise<SessionId>;
     closeSession(session: SessionId): Promise<void>;
     updateProgram(session: SessionId, text: string): Promise<void>;
 }
 
-interface LanguageFrontend {
+interface WorkflowFrontend {
     beforeUpdate(): Promise<void>;
     afterUpdate(): Promise<void>;
     updateProgram(session: SessionId, program: proto.Program | null): Promise<void>;
