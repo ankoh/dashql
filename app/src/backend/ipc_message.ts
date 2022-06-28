@@ -2,8 +2,8 @@ export type DatabaseID = number;
 export type ConnectionID = number;
 
 export enum IPCFType {
-    BACKEND_DATABASE_CONFIGURE = 'BACKEND_DATABASE_CONFIGURE',
-    BACKEND_WORKFLOW_CONFIGURE = 'BACKEND_WORKFLOW_CONFIGURE',
+    BACKEND_CONFIGURE_DATABASE = 'BACKEND_CONFIGURE_DATABASE',
+    BACKEND_CONFIGURE_WORKFLOW = 'BACKEND_CONFIGURE_WORKFLOW',
     DATABASE_OPEN = 'DATABASE_OPEN',
     DATABASE_CLOSE = 'DATABASE_OPEN',
     DATABASE_CONNECTION_CREATE = 'DATABASE_CONNECTION_CREATE',
@@ -80,8 +80,8 @@ export type IPCBackendMessageVariant =
     | IPCBackendMessage<IPCBType.DATABASE_QUERY_RESULT, Uint8Array>;
 
 export type IPCBackendCall =
-    | IPCCall<IPCFType.BACKEND_DATABASE_CONFIGURE, null, null, null>
-    | IPCCall<IPCFType.BACKEND_WORKFLOW_CONFIGURE, null, null, null>
+    | IPCCall<IPCFType.BACKEND_CONFIGURE_DATABASE, null, null, null>
+    | IPCCall<IPCFType.BACKEND_CONFIGURE_WORKFLOW, null, null, null>
     | IPCCall<IPCFType.DATABASE_OPEN, IPCBType.DATABASE_ID, null, number>
     | IPCCall<IPCFType.DATABASE_CLOSE, null, DatabaseID, null>
     | IPCCall<IPCFType.DATABASE_CONNECTION_CREATE, null, DatabaseID, ConnectionID>
