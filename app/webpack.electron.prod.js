@@ -24,6 +24,10 @@ const base = configure({
 const renderer = {
     ...base,
     target: 'electron-renderer',
+    output: {
+        ...base.output,
+        publicPath: './',
+    },
     mode: 'production',
     devtool: false,
 };
@@ -36,6 +40,7 @@ const main = {
     },
     output: {
         ...renderer.output,
+        publicPath: './',
         filename: '[name].cjs',
     },
     plugins: [],

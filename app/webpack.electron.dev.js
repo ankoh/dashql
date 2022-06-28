@@ -26,6 +26,7 @@ const renderer = {
     target: 'electron-renderer',
     output: {
         ...base.output,
+        publicPath: './',
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
     },
     mode: 'development',
@@ -46,6 +47,7 @@ const main = {
     },
     output: {
         ...renderer.output,
+        publicPath: './',
         filename: '[name].cjs',
     },
     plugins: [],

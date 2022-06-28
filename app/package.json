@@ -8,6 +8,7 @@
         "pwa:start": "webpack serve --config webpack.pwa.dev.js",
         "pwa:build:dev": "webpack --config webpack.pwa.dev.js",
         "pwa:build:prod": "webpack --config webpack.pwa.prod.js",
+        "electron:open": "electron ./dist/electron/electron.cjs",
         "electron:start": "webpack watch --config webpack.electron.dev.js",
         "electron:build:dev": "webpack --config webpack.electron.dev.js",
         "electron:build:prod": "webpack --config webpack.electron.prod.js",

@@ -4,22 +4,18 @@ import path from 'path';
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1400,
-        height: 800,
+        width: 1000,
+        height: 750,
         webPreferences: {
             nodeIntegration: true,
         },
+        show: false,
     });
-    win.webContents.openDevTools();
-    //win.loadURL(`file://index.html`);
-    //    win.loadURL(
-    //        url.format({
-    //            pathname: path.join(__dirname, 'index.html'),
-    //            protocol: 'file',
-    //            slashes: true,
-    //        }),
-    //    );
-    win.loadFile('index.html');
+    console.log(__dirname);
+    win.loadFile('./index.html');
+    win.once('ready-to-show', () => {
+        win.show();
+    });
 }
 
 app.on('ready', createWindow);
