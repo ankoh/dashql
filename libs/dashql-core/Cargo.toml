@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2018"
 
 [lib]
-name = "dashql"
 path = "src/lib.rs"
-crate-type = ["lib"]
+crate-type = ["cdylib", "lib"]
 test = true
 doctest = false
 
@@ -48,7 +47,7 @@ getrandom = { version = "0.2.6", features = ["js"], optional = true }
 
 [features]
 tests = ['native']
-native = ['dep:duckdbx-sys', 'dep:tokio']
-node = ['native', 'dep:neon']
-wasm = ['dep:js-sys', 'dep:getrandom', 'dep:wasm-bindgen', 'dep:wasm-bindgen-futures']
+native = ['duckdbx-sys', 'duckdbx/native', 'tokio']
+node = ['native', 'neon']
+wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures']
 default = ['tests']

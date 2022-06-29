@@ -1,0 +1,30 @@
+{
+    "name": "@dashql/dashql-core",
+    "version": "0.1.0",
+    "description": "",
+    "scripts": {
+        "node:build:debug": "yarn run node:compile:debug && node build.mjs debug && tsc --emitDeclarationOnly",
+        "node:build:release": "yarn run node:compile:release && node build.mjs release && tsc --emitDeclarationOnly",
+        "node:compile": "cargo-cp-artifact -nc ./dist/node/dashql_core.node -- cargo build --lib --features node --message-format=json-render-diagnostics ",
+        "node:compile:debug": "yarn run node:compile",
+        "node:compile:release": "yarn run node:compile --release"
+    },
+    "main": "dist/duckdbx-node.cjs",
+    "types": "dist/duckdbx-node.d.ts",
+    "files": [
+        "dist"
+    ],
+    "author": "",
+    "license": "MPL-2.0",
+    "devDependencies": {
+        "@types/jasmine": "^4.0.3",
+        "cargo-cp-artifact": "^0.1",
+        "jasmine": "^4.1.0",
+        "jasmine-core": "^4.1.1",
+        "jasmine-spec-reporter": "^7.0.0",
+        "rimraf": "^3.0.2",
+        "make-dir": "^3.1.0",
+        "esbuild": "^0.14.39",
+        "apache-arrow": "^8.0.0"
+    }
+}

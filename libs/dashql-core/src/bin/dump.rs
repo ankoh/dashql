@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 
 use clap::{App, Arg, SubCommand};
-use dashql::grammar::ast_dump::ASTDump;
-use dashql::grammar::ast_dump::ASTDumpTemplateFile;
+use dashql_core::grammar::ast_dump::ASTDump;
+use dashql_core::grammar::ast_dump::ASTDumpTemplateFile;
+use dashql_core::utils::shared_writer::SharedWriter;
+use dashql_core::*;
 use log::info;
 use log::warn;
 use quick_xml::Writer;
@@ -12,9 +14,6 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::PathBuf;
-
-use crate::utils::shared_writer::SharedWriter;
-use dashql::*;
 
 use grammar::ast_dump::ASTDumpFile;
 

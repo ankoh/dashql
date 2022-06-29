@@ -7,6 +7,8 @@ publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+test = false
+doctest = false
 
 [profile.release]
 lto = true

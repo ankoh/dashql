@@ -5,7 +5,7 @@ edition = "2018"
 
 [lib]
 name = "duckdbx_sys"
-test = true
+test = false
 doctest = false
 
 [dependencies]

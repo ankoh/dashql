@@ -2,6 +2,7 @@
     "private": true,
     "workspaces": [
         "app",
+        "libs/dashql-core",
         "libs/dashql-proto",
         "libs/duckdbx-node",
         "libs/duckdbx-bindings"
