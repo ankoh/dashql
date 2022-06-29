@@ -239,6 +239,7 @@ dependencies = [
  "js-sys",
  "libc",
  "log",
+ "neon",
  "pretty_assertions",
  "quick-xml",
  "reqwest",

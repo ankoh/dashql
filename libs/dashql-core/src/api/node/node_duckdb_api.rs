@@ -118,3 +118,15 @@ impl Buffer {
         Ok(JsArrayBuffer::external(&mut cx, data))
     }
 }
+
+pub fn export_duckdb_api(cx: &mut ModuleContext) -> NeonResult<()> {
+    cx.export_function("duckdb_open_in_memory", Database::open_in_memory)?;
+    cx.export_function("duckdb_open", Database::open)?;
+    cx.export_function("duckdb_close", Database::close)?;
+    cx.export_function("duckdb_connection_create", Database::connect)?;
+    cx.export_function("duckdb_connection_close", Connection::close)?;
+    cx.export_function("duckdb_run_query", Connection::run_query)?;
+    cx.export_function("duckdb_buffer_access", Buffer::access)?;
+    cx.export_function("duckdb_buffer_create", Buffer::delete)?;
+    Ok(())
+}
