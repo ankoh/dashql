@@ -1,8 +1,8 @@
 import * as d from '@duckdb/duckdb-wasm';
-import * as rd from '@duckdb/react-duckdb';
 import React from 'react';
 import axios from 'axios';
 import config_url from '../../static/config.json';
+import { Resolvable } from './resolvable_status';
 
 export interface AppFeatures {
     scriptBeans?: boolean;
@@ -26,7 +26,7 @@ export function isAppConfig(object: any): object is AppConfig {
     //return object.program !== undefined;
 }
 
-const configCtx = React.createContext<rd.Resolvable<AppConfig>>(null);
+const configCtx = React.createContext<Resolvable<AppConfig>>(null);
 const reconfigureCtx = React.createContext<(config: AppConfig) => void>(null);
 
 type Props = {
@@ -34,7 +34,7 @@ type Props = {
 };
 
 export const AppConfigResolver: React.FC<Props> = (props: Props) => {
-    const [config, setConfig] = React.useState<rd.Resolvable<AppConfig>>(new rd.Resolvable());
+    const [config, setConfig] = React.useState<Resolvable<AppConfig>>(new Resolvable());
     const started = React.useRef<boolean>(false);
     if (!started.current) {
         started.current = true;
@@ -61,5 +61,5 @@ export const AppConfigResolver: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const useAppConfig = (): rd.Resolvable<AppConfig> => React.useContext(configCtx);
+export const useAppConfig = (): Resolvable<AppConfig> => React.useContext(configCtx);
 export const useAppReconfigure = (): ((config: AppConfig) => void) => React.useContext(reconfigureCtx);

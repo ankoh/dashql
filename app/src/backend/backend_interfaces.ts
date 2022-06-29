@@ -1,13 +1,13 @@
-import * as proto from '@dashql/dashql-proto';
 import { TaskStatusCode } from 'src/model/task_status';
 import { TaskClass, TaskGraph } from '../model/task_graph';
 
-type DatabaseId = number;
-type ConnectionId = number;
-type SessionId = number;
-type StateId = number;
+export type DatabaseId = number;
+export type ConnectionId = number;
+export type SessionId = number;
+export type StateId = number;
+export type TaskId = number;
 
-interface DatabaseBackend {
+export interface DatabaseBackend {
     configure(): Promise<void>;
     openDatabase(): Promise<DatabaseId>;
     closeDatabase(db: DatabaseId): Promise<void>;
@@ -16,22 +16,22 @@ interface DatabaseBackend {
     runQuery(conn: ConnectionId, text: string): Promise<Uint8Array>;
 }
 
-interface WorkflowBackend {
+export interface WorkflowBackend {
     configure(): Promise<void>;
-    createSession(db: DatabaseId): Promise<SessionId>;
+    createSession(db: DatabaseId, frontend: WorkflowFrontend): Promise<SessionId>;
     closeSession(session: SessionId): Promise<void>;
     updateProgram(session: SessionId, text: string): Promise<void>;
 }
 
-interface WorkflowFrontend {
-    beginUpdateBatch(): Promise<void>;
-    endUpdateBatch(): Promise<void>;
-    updateProgram(session: SessionId, program: proto.Program | null): Promise<void>;
+export interface WorkflowFrontend {
+    beginBatchUpdate(session: SessionId): Promise<void>;
+    endBatchUpdate(session: SessionId): Promise<void>;
+    updateProgram(session: SessionId, program: Uint8Array | null): Promise<void>;
     updateTaskGraph(session: SessionId, graph: TaskGraph | null): Promise<void>;
     updateTaskStatus(
         session: SessionId,
-        task_class: TaskClass,
-        task_id: number,
+        taskClass: TaskClass,
+        taskId: TaskId,
         status: TaskStatusCode,
         error?: any,
     ): Promise<void>;
@@ -41,4 +41,9 @@ interface WorkflowFrontend {
     updateLoadState(session: SessionId, state: StateId): Promise<void>;
     updateTableState(session: SessionId, state: StateId): Promise<void>;
     updateVisualizationState(session: SessionId, state: StateId): Promise<void>;
+}
+
+export interface Backend {
+    database: DatabaseBackend;
+    workflow: WorkflowBackend;
 }

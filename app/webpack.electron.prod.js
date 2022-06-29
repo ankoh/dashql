@@ -5,6 +5,7 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const buildDir = path.resolve(__dirname, './dist/electron');
 const buildDirRenderer = path.join(buildDir, 'app');
+const buildDirPreload = path.join(buildDir, 'preload');
 
 const base = configure({
     buildDir,
@@ -34,6 +35,22 @@ const renderer = {
     devtool: false,
 };
 
+const preload = {
+    ...base,
+    target: 'electron-preload',
+    entry: {
+        preload: ['./src/electron_preload.ts'],
+    },
+    output: {
+        ...base.output,
+        path: buildDirPreload,
+        filename: '[name].cjs',
+        publicPath: './',
+        globalObject: 'globalThis',
+    },
+    plugins: [],
+};
+
 const main = {
     ...renderer,
     target: 'electron-main',
@@ -55,4 +72,4 @@ const main = {
     plugins: [],
 };
 
-export default [renderer, main];
+export default [renderer, preload, main];
