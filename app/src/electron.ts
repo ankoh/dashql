@@ -1,4 +1,8 @@
 import { app, BrowserWindow, MessageChannelMain } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -6,6 +10,7 @@ function createWindow() {
         height: 750,
         webPreferences: {
             nodeIntegration: true,
+            preload: path.join(__dirname, 'app', 'preload.cjs'),
         },
         show: false,
         autoHideMenuBar: true,
@@ -14,8 +19,6 @@ function createWindow() {
     win.once('ready-to-show', () => {
         win.show();
     });
-    const { port1, port2 } = new MessageChannelMain();
-    win.webContents.postMessage('ipc_backend_configure', null, [port2]);
 }
 
 app.on('ready', createWindow);
