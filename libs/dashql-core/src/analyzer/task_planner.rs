@@ -559,9 +559,9 @@ mod test {
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::execution_context::ExecutionContext;
-    use crate::execution::runtime::create_default_runtime;
     use crate::execution::scalar_value::ScalarValue;
     use crate::grammar;
+    use crate::runtime::create_runtime;
     use std::rc::Rc;
     use std::sync::Arc;
 
@@ -578,7 +578,7 @@ mod test {
 
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
-        let runtime = create_default_runtime();
+        let runtime = create_runtime();
         let database = Arc::new(DatabaseClient::create().await?);
         let database_instance = Arc::new(database.open_in_memory().await?);
 

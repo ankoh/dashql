@@ -28,7 +28,6 @@ dashql-parser = { path = "../dashql-parser-sys" }
 duckdbx = { path = "../duckdbx-api" }
 async-trait = "0.1.56"
 arrow = { version = "14.0.0", features = ['ipc'] }
-getrandom = { version = "0.2.6", features = ['js'] }
 futures = "0.3.21"
 smallvec = "1.8.0"
 bumpalo = "3.9.1"
@@ -43,5 +42,15 @@ env_logger = "0.8.3"
 pretty_assertions = "1.2.1"
 reqwest = "0.11.10"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.19.2", features = ["rt", "macros"] }
+duckdbx-sys = { path = "../duckdbx-sys", optional = true }
+tokio = { version = "1.19.2", features = ["rt", "macros"], optional = true }
+
+wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"], optional = true }
+wasm-bindgen-futures = { version = "0.4.24", optional = true }
+js-sys = { version = "0.3.51", optional = true }
+getrandom = { version = "0.2.6", features = ["js"], optional = true }
+
+[features]
+native = ['dep:duckdbx-sys', 'dep:tokio']
+wasm = ['dep:js-sys', 'dep:getrandom', 'dep:wasm-bindgen', 'dep:wasm-bindgen-futures']
+default = []

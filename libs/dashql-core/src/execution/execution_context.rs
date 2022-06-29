@@ -1,13 +1,13 @@
 use duckdbx::DatabaseInstance;
 
 use super::import_info::ImportInfo;
-use super::runtime;
-use super::runtime::create_default_runtime;
 use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
+use crate::runtime;
+use crate::runtime::create_runtime;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -51,7 +51,7 @@ impl<'ast> ExecutionContext<'ast> {
         let instance = db.open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
-            runtime: create_default_runtime(),
+            runtime: create_runtime(),
             database: Arc::new(instance),
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),

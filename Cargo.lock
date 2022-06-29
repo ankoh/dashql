@@ -231,10 +231,12 @@ dependencies = [
  "dashql-parser",
  "dashql-proto",
  "duckdbx",
+ "duckdbx-sys",
  "env_logger",
  "flatbuffers",
  "futures",
  "getrandom",
+ "js-sys",
  "libc",
  "log",
  "pretty_assertions",
@@ -244,6 +246,8 @@ dependencies = [
  "serde_json",
  "smallvec",
  "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
