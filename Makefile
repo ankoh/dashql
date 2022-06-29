@@ -41,6 +41,11 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 tests:
 	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ cargo test --features native
 
+.PHONY: js_tests
+js_tests:
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
+
+
 # ---------------------------------------------------------------------------
 # Flatbuffers
 

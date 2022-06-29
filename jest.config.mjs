@@ -1,5 +1,5 @@
 export default {
-    projects: ['<rootDir>/packages/*'],
+    projects: ['<rootDir>/app'],
 
     // Coverage output
     coverageDirectory: '<rootDir>/coverage',
