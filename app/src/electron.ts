@@ -1,8 +1,9 @@
-import { app, BrowserWindow, MessageChannelMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import process from 'process';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const baseDir = path.dirname(process.argv[1]);
+const preloadScript = path.resolve(baseDir, 'preload', 'preload.cjs');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -10,7 +11,7 @@ function createWindow() {
         height: 750,
         webPreferences: {
             nodeIntegration: true,
-            preload: path.join(__dirname, 'app', 'preload.cjs'),
+            preload: preloadScript,
         },
         show: false,
         autoHideMenuBar: true,
