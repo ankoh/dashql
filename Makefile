@@ -38,11 +38,11 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 # Tests
 
 .PHONY: tests
-tests:
+tests_rs:
 	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ cargo test --features native
 
 .PHONY: js_tests
-js_tests:
+tests_js:
 	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
 
 
