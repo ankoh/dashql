@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "description": "",
     "scripts": {
+        "wasm:compile:debug": "wasm-pack build -d dist/wasm --target bundler --features wasm",
         "node:build:debug": "yarn run node:compile:debug && node build.mjs debug && tsc --emitDeclarationOnly",
         "node:build:release": "yarn run node:compile:release && node build.mjs release && tsc --emitDeclarationOnly",
         "node:compile": "cargo-cp-artifact -nc ./dist/node/dashql_core.node -- cargo build --lib --features node --message-format=json-render-diagnostics ",

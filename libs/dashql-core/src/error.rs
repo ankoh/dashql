@@ -14,7 +14,6 @@ pub enum SystemError {
     FunctionNotImplemented(String),
     FunctionNotImplementedButKnown(proto::KnownFunction),
     Generic(String),
-    HTTPRequestFailed(Arc<reqwest::Error>),
     ImportNotRegistered(Option<usize>, String),
     ImportURIUnsupported(Option<usize>, String),
     InsufficientArguments,
@@ -43,7 +42,6 @@ impl SystemError {
             SystemError::FunctionNotImplemented(_) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_) => "function not implemented",
             SystemError::Generic(_) => "generic",
-            SystemError::HTTPRequestFailed(_) => "http request failed",
             SystemError::InsufficientArguments => "insufficient arguments",
             SystemError::ImportNotRegistered(_, _) => "import was not registered",
             SystemError::ImportURIUnsupported(_, _) => "import uri is unsupported",
@@ -68,12 +66,6 @@ impl From<std::string::String> for SystemError {
     }
 }
 
-impl From<reqwest::Error> for SystemError {
-    fn from(e: reqwest::Error) -> Self {
-        SystemError::HTTPRequestFailed(Arc::new(e))
-    }
-}
-
 impl<'a> fmt::Display for SystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
@@ -93,7 +85,6 @@ impl<'a> fmt::Display for SystemError {
                 write!(f, "function node implemented: {:?}", func)
             }
             SystemError::Generic(error) => write!(f, "error: {:?}", error),
-            SystemError::HTTPRequestFailed(error) => write!(f, "http request failed: {:?}", error),
             SystemError::InsufficientArguments => write!(f, "insufficient arguments"),
             SystemError::ImportURIUnsupported(_node, uri) => write!(f, "import has an unsupported URI: {}", uri),
             SystemError::ImportNotRegistered(_node, name) => write!(f, "import not registered: {}", name),
