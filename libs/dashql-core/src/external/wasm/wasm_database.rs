@@ -1,8 +1,8 @@
-use super::arrow_ipc::read_arrow_ipc_buffer;
+use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/src/runtime/wasm/wasm_database_bindings.mjs")]
+#[wasm_bindgen(module = "/src/external/wasm/wasm_database.mjs")]
 extern "C" {
     #[wasm_bindgen(js_name = "createClient", catch)]
     async fn ext_create_client() -> Result<JsValue, JsValue>;

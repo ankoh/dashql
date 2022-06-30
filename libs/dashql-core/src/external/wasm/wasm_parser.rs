@@ -1,5 +1,7 @@
-use super::arrow_ipc::read_arrow_ipc_buffer;
-use js_sys::Uint8Array;
+//use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
+use dashql_proto as proto;
+//use js_sys::Uint8Array;
+use std::error::Error;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "/src/external/wasm/wasm_parser.mjs")]
