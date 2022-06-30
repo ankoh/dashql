@@ -119,7 +119,7 @@ impl Buffer {
     }
 }
 
-pub fn export_duckdb_api(cx: &mut ModuleContext) -> NeonResult<()> {
+pub fn export_database_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("database_open_in_memory", Database::open_in_memory)?;
     cx.export_function("database_open", Database::open)?;
     cx.export_function("database_close", Database::close)?;
