@@ -18,6 +18,20 @@ impl DatabaseClient {
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseClient { inner: result })
     }
+    pub fn once(&self) -> AsyncDatabaseClient {
+        AsyncDatabaseClient {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct AsyncDatabaseClient {
+    inner: JsValue,
+}
+
+#[wasm_bindgen]
+impl AsyncDatabaseClient {
     pub async fn open_in_memory(self) -> Result<DatabaseInstance, String> {
         let result = js_open(self.inner.clone(), JsValue::null())
             .await
@@ -33,6 +47,20 @@ pub struct DatabaseInstance {
 
 #[wasm_bindgen]
 impl DatabaseInstance {
+    pub fn once(&self) -> AsyncDatabaseInstance {
+        AsyncDatabaseInstance {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct AsyncDatabaseInstance {
+    inner: JsValue,
+}
+
+#[wasm_bindgen]
+impl AsyncDatabaseInstance {
     pub async fn close(self) -> Result<(), String> {
         js_close(self.inner.clone())
             .await
@@ -54,6 +82,20 @@ pub struct DatabaseConnection {
 
 #[wasm_bindgen]
 impl DatabaseConnection {
+    pub fn once(&self) -> AsyncDatabaseConnection {
+        AsyncDatabaseConnection {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub struct AsyncDatabaseConnection {
+    inner: JsValue,
+}
+
+#[wasm_bindgen]
+impl AsyncDatabaseConnection {
     pub async fn close(self) -> Result<(), String> {
         js_close_connection(self.inner.clone())
             .await
