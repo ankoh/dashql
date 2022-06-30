@@ -1,19 +1,19 @@
-declare module '*/dist/node/dashql-core.node' {
+declare module '*/dist/node/dashql_core.node' {
     interface Database {}
-    interface Connection {}
-    interface Buffer {}
+    interface DatabaseConnection {}
+    interface DatabaseBuffer {}
 
-    function openInMemory(): Promise<Database>;
-    function open(path: string): Promise<Database>;
-    function closeDatabase(db: Database): Promise<void>;
-    function connect(db: Database): Promise<Connection>;
-    function closeConnection(conn: Connection): Promise<void>;
-    function runQuery(
-        conn: Connection,
+    function database_open_in_memory(): Promise<Database>;
+    function database_open(path: string): Promise<Database>;
+    function database_close(db: Database): Promise<void>;
+    function database_connection_create(db: Database): Promise<DatabaseConnection>;
+    function database_connection_close(conn: DatabaseConnection): Promise<void>;
+    function database_run_query(
+        conn: DatabaseConnection,
         text: string,
-        onSuccess: (buffer: Buffer) => void,
+        onSuccess: (buffer: DatabaseBuffer) => void,
         onError: (err: string) => void,
-    ): Promise<Buffer>;
-    function accessBuffer(buffer: Buffer): ArrayBuffer;
-    function deleteBuffer(buffer: Buffer): void;
+    ): Promise<DatabaseBuffer>;
+    function database_buffer_access(buffer: DatabaseBuffer): ArrayBuffer;
+    function database_buffer_delete(buffer: DatabaseBuffer): void;
 }
