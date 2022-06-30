@@ -553,13 +553,13 @@ pub fn plan_tasks<'a>(
 
 #[cfg(test)]
 mod test {
-    use duckdbx::DatabaseClient;
 
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
+    use crate::external::database::DatabaseClient;
     use crate::external::parser::parse;
     use crate::external::runtime;
     use crate::grammar;

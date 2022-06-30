@@ -1,10 +1,9 @@
-use duckdbx::DatabaseInstance;
-
 use super::import_info::ImportInfo;
 use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::external;
+use crate::external::database::{DatabaseClient, DatabaseInstance};
 use crate::external::runtime;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
@@ -47,7 +46,7 @@ pub struct ExecutionContext<'ast> {
 
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
-        let db = duckdbx::DatabaseClient::create().await?;
+        let db = DatabaseClient::create().await?;
         let instance = db.open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),

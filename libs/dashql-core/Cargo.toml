@@ -17,8 +17,6 @@ doctest = false
 
 [dependencies]
 dashql-proto = { path = "../dashql-proto" }
-dashql-parser = { path = "../dashql-parser-sys" }
-duckdbx = { path = "../duckdbx-api" }
 async-trait = "0.1.56"
 arrow = { version = "14.0.0", features = ['ipc'] }
 futures = "0.3.21"
@@ -37,6 +35,7 @@ pretty_assertions = "1.2.1"
 # Native
 duckdbx-sys = { path = "../duckdbx-sys", optional = true }
 tokio = { version = "1.19.2", features = ["rt", "macros"], optional = true }
+dashql-parser = { path = "../dashql-parser-sys", optional = true }
 
 # Node
 neon = { version = "0.10", features = ["napi-4", "channel-api"], default-features = false, optional = true }
@@ -49,7 +48,7 @@ getrandom = { version = "0.2.6", features = ["js"], optional = true }
 
 [features]
 tests = ['native']
-native = ['duckdbx-sys', 'duckdbx/native', 'tokio']
+native = ['duckdbx-sys', 'dashql-parser', 'tokio']
 node = ['native', 'neon']
 wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures']
 default = ['tests']

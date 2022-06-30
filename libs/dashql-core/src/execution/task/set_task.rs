@@ -2,9 +2,9 @@ use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
+use crate::external::database::DatabaseConnection;
 use crate::grammar::Program;
 use async_trait::async_trait;
-use duckdbx::DatabaseConnection;
 use std::rc::Rc;
 
 pub struct SetTask<'ast> {

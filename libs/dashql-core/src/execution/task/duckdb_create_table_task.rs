@@ -3,10 +3,10 @@ use crate::analyzer::task_planner::ProgramTask;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::Task;
+use crate::external::database::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{CreateStatement, Statement};
 use async_trait::async_trait;
-use duckdbx::DatabaseConnection;
 
 pub struct DuckDBCreateTableTask<'ast> {
     statement: &'ast CreateStatement<'ast>,

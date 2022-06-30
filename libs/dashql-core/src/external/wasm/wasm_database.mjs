@@ -2,10 +2,10 @@ export async function createClient() {
     return await globalThis.DASHQL_DATABASE.createClient();
 }
 export async function openDatabase(db, path) {
-    return await globalThis.DASHQL_DATABASE.open(db, path);
+    return await globalThis.DASHQL_DATABASE.openDatabase(db, path);
 }
 export async function closeDatabase(db) {
-    return await globalThis.DASHQL_DATABASE.close(db);
+    return await globalThis.DASHQL_DATABASE.closeDatabase(db);
 }
 export async function createConnection(db) {
     return await globalThis.DASHQL_DATABASE.createConnection(db);
