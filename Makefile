@@ -90,6 +90,21 @@ pwa_start:
 	yarn workspace @dashql/dashql-app pwa:start
 
 # ---------------------------------------------------------------------------
+# Electron
+
+.PHONY: electron
+electron:
+	yarn workspace @dashql/dashql-app electron:build:dev
+
+.PHONY: electron_start
+electron_start:
+	yarn workspace @dashql/dashql-app electron:start
+
+.PHONY: electron_open
+electron_open:
+	yarn workspace @dashql/dashql-app electron:open
+
+# ---------------------------------------------------------------------------
 # Utils
 
 # Format all source files
