@@ -18,6 +18,7 @@
         "node": ">=14.13"
     },
     "dependencies": {
+        "@dashql/dashql-core": "link:../libs/dashql-core",
         "@dashql/dashql-proto": "link:../libs/dashql-proto",
         "@duckdb/duckdb-wasm": "^1.14.4",
         "@duckdb/duckdb-wasm-shell": "^1.14.4",

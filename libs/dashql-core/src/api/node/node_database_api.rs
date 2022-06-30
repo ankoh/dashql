@@ -127,6 +127,6 @@ pub fn export_database_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("database_connection_close", Connection::close)?;
     cx.export_function("database_run_query", Connection::run_query)?;
     cx.export_function("database_buffer_access", Buffer::access)?;
-    cx.export_function("database_buffer_create", Buffer::delete)?;
+    cx.export_function("database_buffer_delete", Buffer::delete)?;
     Ok(())
 }

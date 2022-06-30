@@ -30,7 +30,7 @@ export class Connection {
     constructor(handle: dashql.DatabaseConnection) {
         this.handle = handle;
     }
-    public async runQuery(text: string): Promise<dashql.DatabaseBuffer> {
+    public async runQuery(text: string): Promise<Buffer> {
         return new Promise((onSuccess, onError) => {
             dashql.database_run_query(this.handle, text, buffer => onSuccess(new Buffer(buffer)), onError);
         });

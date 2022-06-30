@@ -83,11 +83,11 @@ parser:
 
 .PHONY: core_wasm
 core_wasm:
-	yarn workspace @dashql/dashql-core run wasm:compile:debug
+	yarn workspace @dashql/dashql-core run wasm:build:debug
 
 .PHONY: core_node
 core_node:
-	yarn workspace @dashql/dashql-core run node:compile:debug
+	yarn workspace @dashql/dashql-core run node:build:debug
 
 # ---------------------------------------------------------------------------
 # PWA

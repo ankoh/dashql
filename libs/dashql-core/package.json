@@ -1,22 +1,19 @@
 {
     "name": "@dashql/dashql-core",
     "version": "0.1.0",
-    "description": "",
+    "license": "MPL-2.0",
+    "private": true,
     "scripts": {
-        "wasm:compile:debug": "wasm-pack build -d dist/wasm --target bundler --features wasm --no-default-features && rm ./dist/wasm/package.json",
+        "wasm:build:debug": "wasm-pack build -d dist/wasm --target bundler --features wasm --no-default-features && rm ./dist/wasm/package.json",
         "node:build:debug": "yarn run node:compile:debug && node build.mjs debug && tsc --emitDeclarationOnly",
         "node:build:release": "yarn run node:compile:release && node build.mjs release && tsc --emitDeclarationOnly",
         "node:compile": "cargo-cp-artifact -nc ./dist/node/dashql_core.node -- cargo build --lib --features node --message-format=json-render-diagnostics ",
         "node:compile:debug": "yarn run node:compile",
         "node:compile:release": "yarn run node:compile --release"
     },
-    "main": "dist/duckdbx-node.cjs",
-    "types": "dist/duckdbx-node.d.ts",
     "files": [
         "dist"
     ],
-    "author": "",
-    "license": "MPL-2.0",
     "devDependencies": {
         "@types/jasmine": "^4.0.3",
         "cargo-cp-artifact": "^0.1",
@@ -27,5 +24,23 @@
         "make-dir": "^3.1.0",
         "esbuild": "^0.14.39",
         "apache-arrow": "^8.0.0"
+    },
+    "main": "dist/node/dashql_core.cjs",
+    "types": "dist/node/dashql_core.d.ts",
+    "sideEffects": false,
+    "exports": {
+        "./wasm/*": "./dist/wasm/*",
+        "./node/*": "./dist/node/*",
+        "./types/*": "./dist/types/*",
+        "./wasm": {
+            "types": "./dist/wasm/dashql_core.d.ts",
+            "import": "./dist/wasm/dashql_core.js",
+            "require": "./dist/wasm/dashql_core.js"
+        },
+        "./node": {
+            "types": "./dist/node/dashql_core.d.ts",
+            "import": "./dist/node/dashql_core.cjs",
+            "require": "./dist/node/dashql_core.cjs"
+        }
     }
 }
