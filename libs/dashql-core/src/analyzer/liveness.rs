@@ -11,7 +11,7 @@ pub fn determine_statement_liveness<'a>(inst: &mut ProgramInstance<'a>) {
     let mut visited = HashSet::new();
     for (stmt_id, stmt) in inst.program.statements.iter().enumerate() {
         match stmt {
-            Statement::Viz(_) | Statement::Input(_) => pending.push(stmt_id),
+            Statement::Viz(_) | Statement::Declare(_) => pending.push(stmt_id),
             _ => {}
         }
     }

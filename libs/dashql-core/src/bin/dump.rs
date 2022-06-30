@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use clap::{App, Arg, SubCommand};
+use dashql_core::external::parser::parse;
 use dashql_core::grammar::ast_dump::ASTDump;
 use dashql_core::grammar::ast_dump::ASTDumpTemplateFile;
 use dashql_core::utils::shared_writer::SharedWriter;
@@ -58,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             let mut dumps = Vec::new();
             let alloc = bumpalo::Bump::new();
             for dump in dump_file.dumps.iter() {
-                let ast = grammar::parse(&alloc, &dump.input)?;
+                let ast = parse(&alloc, &dump.input)?;
                 let translated = match grammar::deserialize_ast(&arena, &dump.input, ast) {
                     Ok(p) => Some(p),
                     Err(e) => {

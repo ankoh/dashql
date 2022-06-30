@@ -58,7 +58,7 @@
         </parsed>
         <translated>Program {
     statements: [
-        Input(
+        Declare(
             DeclareStatement {
                 name: [
                     Name(
@@ -81,7 +81,7 @@
                 extra: None,
             },
         ),
-        Input(
+        Declare(
             DeclareStatement {
                 name: [
                     Name(
@@ -104,7 +104,7 @@
                 extra: None,
             },
         ),
-        Input(
+        Declare(
             DeclareStatement {
                 name: [
                     Name(
@@ -173,7 +173,7 @@
         </parsed>
         <translated>Program {
     statements: [
-        Input(
+        Declare(
             DeclareStatement {
                 name: [
                     Name(

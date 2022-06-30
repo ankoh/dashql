@@ -68,7 +68,7 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
             Statement::CreateView(view) => Some(normalize_name_clone(ctx, view.name.get())),
             Statement::Import(import) => Some(normalize_name_clone(ctx, import.name.get())),
             Statement::Load(load) => Some(normalize_name_clone(ctx, load.name.get())),
-            Statement::Input(input) => Some(normalize_name_clone(ctx, input.name.get())),
+            Statement::Declare(input) => Some(normalize_name_clone(ctx, input.name.get())),
             _ => None,
         };
         if let Some(name) = name {

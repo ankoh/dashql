@@ -80,7 +80,7 @@ pub enum ProgramTaskType {
     CreateView,
     CreateViz,
     Import,
-    Input,
+    Declare,
     Load,
     ModifyTable,
     Set,
@@ -168,8 +168,8 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
                 task_type: ProgramTaskType::CreateView,
                 ..mixin
             },
-            Statement::Input(_i) => ProgramTask {
-                task_type: ProgramTaskType::Input,
+            Statement::Declare(_i) => ProgramTask {
+                task_type: ProgramTaskType::Declare,
                 ..mixin
             },
             Statement::Import(_f) => ProgramTask {
@@ -281,7 +281,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 ProgramTaskType::CreateView => true,
                 ProgramTaskType::CreateViz => false,
                 ProgramTaskType::Import => false,
-                ProgramTaskType::Input => false,
+                ProgramTaskType::Declare => false,
                 ProgramTaskType::Load => false,
                 ProgramTaskType::ModifyTable => true,
                 ProgramTaskType::Set => false,
@@ -375,10 +375,10 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                     break;
                 }
 
-                // Input task?
+                // Declare task?
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
-                if a.task_type == ProgramTaskType::Input {
+                if a.task_type == ProgramTaskType::Declare {
                     let prev_stmt_id = diff_op.source.unwrap_or_default();
                     let next_stmt_id = diff_op.target.unwrap_or_default();
                     let prev_param = prev_program.input.get(&prev_stmt_id);
@@ -445,7 +445,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
             ProgramTaskType::CreateView => (SetupTaskType::DropView, ProgramTaskType::None),
             ProgramTaskType::CreateViz => (SetupTaskType::DropViz, ProgramTaskType::UpdateViz),
             ProgramTaskType::Import => (SetupTaskType::DropBlob, ProgramTaskType::None),
-            ProgramTaskType::Input => (SetupTaskType::DropInput, ProgramTaskType::None),
+            ProgramTaskType::Declare => (SetupTaskType::DropInput, ProgramTaskType::None),
             ProgramTaskType::Load => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::ModifyTable => (SetupTaskType::DropTable, ProgramTaskType::None),
             ProgramTaskType::Set => (SetupTaskType::Unset, ProgramTaskType::None),

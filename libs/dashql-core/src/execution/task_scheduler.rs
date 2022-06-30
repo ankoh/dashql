@@ -58,7 +58,7 @@ fn translate_program_task<'ast>(
         ProgramTaskType::CreateView => Box::new(DuckDBCreateViewTask::create(instance, task)?),
         ProgramTaskType::CreateViz => Box::new(VegaVisualizeTask::create(instance, task)?),
         ProgramTaskType::Import => Box::new(ImportTask::create(instance, task)?),
-        ProgramTaskType::Input => todo!(),
+        ProgramTaskType::Declare => todo!(),
         ProgramTaskType::Load => Box::new(DuckDBLoadTask::create(instance, task)?),
         ProgramTaskType::ModifyTable => todo!(),
         ProgramTaskType::Set => todo!(),

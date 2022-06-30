@@ -1393,7 +1393,7 @@ pub fn deserialize_ast<'a>(
         let node = &nodes[statement.root_node() as usize];
         let stmt = match node {
             ASTNode::SelectStatement(s) => Statement::Select(s),
-            ASTNode::DeclareStatement(s) => Statement::Input(s),
+            ASTNode::DeclareStatement(s) => Statement::Declare(s),
             ASTNode::ImportStatement(s) => Statement::Import(s),
             ASTNode::VizStatement(s) => Statement::Viz(s),
             ASTNode::LoadStatement(s) => Statement::Load(s),

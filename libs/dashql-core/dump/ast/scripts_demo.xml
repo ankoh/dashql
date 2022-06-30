@@ -170,7 +170,7 @@
         </parsed>
         <translated>Program {
     statements: [
-        Input(
+        Declare(
             DeclareStatement {
                 name: [
                     Name(

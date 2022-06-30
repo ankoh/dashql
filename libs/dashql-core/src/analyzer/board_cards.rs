@@ -80,7 +80,7 @@ pub fn allocate_card_positions<'ast>(inst: &mut ProgramInstance<'ast>) -> Result
     let program = inst.program.clone();
     for (stmt_id, stmt) in program.statements.iter().enumerate() {
         let stmt = match stmt {
-            Statement::Input(i) => i,
+            Statement::Declare(i) => i,
             _ => continue,
         };
         let settings = stmt.extra.get().unwrap_or_default();
@@ -142,7 +142,7 @@ pub fn collect_cards<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), Syste
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();
         match stmt {
-            Statement::Input(_input) => {
+            Statement::Declare(_input) => {
                 card.position = position;
                 if let Some(name) = inst.statement_names[stmt_id] {
                     card.title = print_ast_as_script_with_defaults(&name);
