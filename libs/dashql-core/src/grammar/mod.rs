@@ -1,5 +1,3 @@
-pub use dashql_parser::parse;
-
 pub mod ast_cell;
 pub mod ast_dump;
 pub mod ast_list;

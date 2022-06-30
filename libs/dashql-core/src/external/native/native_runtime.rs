@@ -5,7 +5,7 @@ use crate::{
 use async_trait::async_trait;
 use std::{env, path::Path};
 
-use crate::runtime::{Runtime, RuntimeDataHandle};
+use crate::external::{Runtime, RuntimeDataHandle};
 
 #[derive(Debug)]
 pub struct NativeRuntime {}

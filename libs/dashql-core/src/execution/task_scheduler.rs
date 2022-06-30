@@ -306,6 +306,7 @@ impl<'ast> TaskGraphScheduler<'ast> {
 mod test {
     use crate::{
         analyzer::{program_instance::analyze_program, task_planner::plan_tasks},
+        external::parser::parse,
         grammar,
     };
     use arrow::record_batch::RecordBatch;
@@ -330,7 +331,7 @@ mod test {
         // Plan the program
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let program_ast = grammar::parse(&arena, script)?;
+        let program_ast = parse(&arena, script)?;
         let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast).unwrap());
         let instance = analyze_program(context, script, program_ast, program, HashMap::new())?;
         let task_graph = plan_tasks(&instance, None)?;

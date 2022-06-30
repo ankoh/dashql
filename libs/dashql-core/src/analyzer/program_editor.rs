@@ -69,6 +69,7 @@ pub fn edit_viz_statement<'arena, 'edit>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::external::parser::parse;
     use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
     use crate::grammar::{self, Statement};
     use std::error::Error;
@@ -79,7 +80,7 @@ mod test {
         edits: &[EditOperation],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let ast = grammar::parse(&arena, text)?;
+        let ast = parse(&arena, text)?;
         let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
         assert_eq!(prog.statements.len(), 1);
 

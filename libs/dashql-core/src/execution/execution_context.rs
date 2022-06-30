@@ -4,10 +4,10 @@ use super::import_info::ImportInfo;
 use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
+use crate::external;
+use crate::external::create_runtime;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
-use crate::runtime;
-use crate::runtime::create_runtime;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -39,7 +39,7 @@ impl<'ast> ExecutionState<'ast> {
 #[derive(Debug, Clone)]
 pub struct ExecutionContext<'ast> {
     pub settings: Arc<ProgramAnalysisSettings>,
-    pub runtime: Arc<dyn runtime::Runtime>,
+    pub runtime: Arc<dyn external::Runtime>,
     pub database: Arc<DatabaseInstance>,
     pub arena: &'ast bumpalo::Bump,
     pub state: Arc<RwLock<ExecutionState<'ast>>>,
@@ -59,7 +59,7 @@ impl<'ast> ExecutionContext<'ast> {
     }
     pub fn create(
         settings: Arc<ProgramAnalysisSettings>,
-        runtime: Arc<dyn runtime::Runtime>,
+        runtime: Arc<dyn external::Runtime>,
         database: Arc<DatabaseInstance>,
         arena: &'ast bumpalo::Bump,
     ) -> Self {

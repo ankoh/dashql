@@ -79,6 +79,17 @@ parser:
 	cmake --build ${PARSER_DEBUG_DIR}
 
 # ---------------------------------------------------------------------------
+# Core
+
+.PHONY: core_wasm
+core_wasm:
+	yarn workspace @dashql/dashql-core run wasm:compile:debug
+
+.PHONY: core_node
+core_node:
+	yarn workspace @dashql/dashql-core run node:compile:debug
+
+# ---------------------------------------------------------------------------
 # PWA
 
 .PHONY: pwa

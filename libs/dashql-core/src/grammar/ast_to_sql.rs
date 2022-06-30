@@ -1457,12 +1457,13 @@ impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::external::parser::parse;
     use crate::grammar;
     use std::error::Error;
 
     fn test_pipe(text: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let ast = grammar::parse(&arena, text)?;
+        let ast = parse(&arena, text)?;
         assert!(
             ast.errors().is_none(),
             "{}",

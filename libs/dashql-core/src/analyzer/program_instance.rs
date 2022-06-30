@@ -129,6 +129,7 @@ mod test {
     use super::*;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::scalar_value::ScalarValue;
+    use crate::external::parser::parse;
     use crate::grammar;
     use dashql_proto as proto;
     use std::collections::HashMap;
@@ -155,7 +156,7 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast = grammar::parse(&arena, test.script)?;
+        let ast = parse(&arena, test.script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast).unwrap());
         let inst = analyze_program(context, test.script, ast, prog, test.input.clone())?;
 

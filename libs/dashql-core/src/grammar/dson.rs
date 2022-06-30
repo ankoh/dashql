@@ -482,6 +482,7 @@ mod test {
     use super::*;
     use crate::{
         execution::{execution_context::ExecutionContext, scalar_value::ScalarValue},
+        external::parser::parse,
         grammar::{self, ASTCell, Statement},
     };
     use std::collections::HashMap;
@@ -494,7 +495,7 @@ mod test {
             set 'key' = 42;
         "#;
         let arena = bumpalo::Bump::new();
-        let ast = grammar::parse(&arena, text)?;
+        let ast = parse(&arena, text)?;
         let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
         assert_eq!(prog.statements.len(), 1);
 

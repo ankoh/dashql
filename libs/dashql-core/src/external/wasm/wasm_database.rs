@@ -2,24 +2,24 @@ use super::arrow_ipc::read_arrow_ipc_buffer;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen(module = "/src/database/wasm_duckdb_bindings.mjs")]
+#[wasm_bindgen(module = "/src/runtime/wasm/wasm_database_bindings.mjs")]
 extern "C" {
     #[wasm_bindgen(js_name = "createClient", catch)]
-    async fn duckdbx_create_client() -> Result<JsValue, JsValue>;
+    async fn db_create_client() -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "openDatabase", catch)]
-    async fn duckdbx_open_database(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
+    async fn db_open(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "closeDatabase", catch)]
-    async fn duckdbx_close_database(db: JsValue) -> Result<(), JsValue>;
+    async fn db_close(db: JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(js_name = "createConnection", catch)]
-    async fn duckdbx_create_connection(db: JsValue) -> Result<JsValue, JsValue>;
+    async fn db_create_connection(db: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "closeConnection", catch)]
-    async fn duckdbx_close_connection(conn: JsValue) -> Result<(), JsValue>;
+    async fn db_close_connection(conn: JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(js_name = "runQuery", catch)]
-    async fn duckdbx_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
+    async fn db_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "accessBuffer", catch)]
-    fn duckdbx_access_buffer(buffer: JsValue) -> Result<JsValue, JsValue>;
+    fn db_access_buffer(buffer: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "deleteBuffer", catch)]
-    fn duckdbx_delete_buffer(buffer: JsValue) -> Result<(), JsValue>;
+    fn db_delete_buffer(buffer: JsValue) -> Result<(), JsValue>;
 }
 
 pub struct DatabaseClient {
@@ -28,13 +28,13 @@ pub struct DatabaseClient {
 
 impl DatabaseClient {
     pub async fn create() -> Result<Self, String> {
-        let result = duckdbx_create_client()
+        let result = db_create_client()
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseClient { inner: result })
     }
     pub async fn open_in_memory(&self) -> Result<DatabaseInstance, String> {
-        let result = duckdbx_open_database(self.inner.clone(), JsValue::null())
+        let result = db_open(self.inner.clone(), JsValue::null())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseInstance { inner: result })
@@ -47,13 +47,13 @@ pub struct DatabaseInstance {
 
 impl DatabaseInstance {
     pub async fn close(&self) -> Result<(), String> {
-        duckdbx_close_database(self.inner.clone())
+        db_close(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(())
     }
     pub async fn connect(&self) -> Result<DatabaseConnection, String> {
-        let result = duckdbx_create_connection(self.inner.clone())
+        let result = db_create_connection(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(DatabaseConnection { inner: result })
@@ -66,18 +66,18 @@ pub struct DatabaseConnection {
 
 impl DatabaseConnection {
     pub async fn close(&self) -> Result<(), String> {
-        duckdbx_close_connection(self.inner.clone())
+        db_close_connection(self.inner.clone())
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
         Ok(())
     }
     pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
-        let result = duckdbx_run_query(self.inner.clone(), text)
+        let result = db_run_query(self.inner.clone(), text)
             .await
             .map_err(|e| e.as_string().unwrap_or_default())?;
-        let buffer = duckdbx_access_buffer(result.clone()).map_err(|e| e.as_string().unwrap_or_default())?;
+        let buffer = db_access_buffer(result.clone()).map_err(|e| e.as_string().unwrap_or_default())?;
         let owned = Uint8Array::from(buffer.clone()).to_vec();
-        duckdbx_delete_buffer(result).map_err(|e| e.as_string().unwrap_or_default())?;
+        db_delete_buffer(result).map_err(|e| e.as_string().unwrap_or_default())?;
         read_arrow_ipc_buffer(&owned)
     }
 }
