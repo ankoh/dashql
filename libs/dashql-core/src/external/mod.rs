@@ -3,11 +3,11 @@ mod runtime_trait;
 pub use runtime_trait::*;
 
 #[cfg(feature = "native")]
-mod native;
+pub(crate) mod native;
 #[cfg(feature = "native")]
 pub use native::*;
 
 #[cfg(feature = "wasm")]
-mod wasm;
+pub(crate) mod wasm;
 #[cfg(all(feature = "wasm", not(feature = "native")))]
 pub use wasm::*;

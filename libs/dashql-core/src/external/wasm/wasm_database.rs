@@ -5,21 +5,21 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(module = "/src/external/wasm/wasm_database.mjs")]
 extern "C" {
     #[wasm_bindgen(js_name = "createClient", catch)]
-    async fn ext_create_client() -> Result<JsValue, JsValue>;
+    pub(crate) async fn ext_create_client() -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "openDatabase", catch)]
-    async fn ext_open(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
+    pub(crate) async fn ext_open(client: JsValue, path: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "closeDatabase", catch)]
-    async fn ext_close(db: JsValue) -> Result<(), JsValue>;
+    pub(crate) async fn ext_close(db: JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(js_name = "createConnection", catch)]
-    async fn ext_create_connection(db: JsValue) -> Result<JsValue, JsValue>;
+    pub(crate) async fn ext_create_connection(db: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "closeConnection", catch)]
-    async fn ext_close_connection(conn: JsValue) -> Result<(), JsValue>;
+    pub(crate) async fn ext_close_connection(conn: JsValue) -> Result<(), JsValue>;
     #[wasm_bindgen(js_name = "runQuery", catch)]
-    async fn ext_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
+    pub(crate) async fn ext_run_query(conn: JsValue, text: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "accessBuffer", catch)]
-    fn ext_access_buffer(buffer: JsValue) -> Result<JsValue, JsValue>;
+    pub(crate) fn ext_access_buffer(buffer: JsValue) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(js_name = "deleteBuffer", catch)]
-    fn ext_delete_buffer(buffer: JsValue) -> Result<(), JsValue>;
+    pub(crate) fn ext_delete_buffer(buffer: JsValue) -> Result<(), JsValue>;
 }
 
 pub struct DatabaseClient {

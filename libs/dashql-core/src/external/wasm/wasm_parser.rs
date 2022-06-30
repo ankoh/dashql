@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(module = "/src/external/wasm/wasm_parser.mjs")]
 extern "C" {
     #[wasm_bindgen(js_name = "parse", catch)]
-    fn ext_parse(text: &str) -> Result<JsValue, JsValue>;
+    pub(crate) fn ext_parse(text: &str) -> Result<JsValue, JsValue>;
 }
 
 pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
