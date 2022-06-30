@@ -16,8 +16,8 @@ extern "C" {
     fn dashql_parse(response: *mut FFIResponse, text: *const u8, text_length: libc::size_t) -> ();
 }
 
-/// Parse a text and return a program buffer
-pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
+/// Parse a text and return the raw ast buffer
+pub fn parse_with<R, Fn: FnOnce(&[u8]) -> R>(text: &str, f: Fn) -> Result<R, Box<dyn Error + Send + Sync>> {
     let mut response = FFIResponse {
         status: 0,
         data_or_value: 0,
@@ -26,13 +26,10 @@ pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<
     unsafe {
         dashql_parse(&mut response, text.as_bytes().as_ptr(), text.len());
         match response.status {
-            0 => {
-                let buffer = alloc.alloc_slice_copy(std::slice::from_raw_parts(
-                    response.data_or_value as *mut u8,
-                    response.data_size,
-                ));
-                Ok(flatbuffers::root::<proto::Program>(buffer)?)
-            }
+            0 => Ok(f(std::slice::from_raw_parts(
+                response.data_or_value as *mut u8,
+                response.data_size,
+            ))),
             _ => {
                 let msg = String::from_raw_parts(
                     response.data_or_value as *mut u8,
@@ -43,6 +40,12 @@ pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<
             }
         }
     }
+}
+
+/// Parse a text and return a program buffer
+pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
+    let raw = parse_with(text, |data| alloc.alloc_slice_copy(data))?;
+    Ok(flatbuffers::root::<proto::Program>(raw)?)
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
