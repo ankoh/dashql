@@ -3,6 +3,7 @@ use crate::{
     execution::{execution_context::ExecutionContextSnapshot, import_info::ImportInfo, load_info::LoadInfo},
 };
 use async_trait::async_trait;
+use std::sync::Arc;
 use std::{env, path::Path};
 
 use crate::external::{Runtime, RuntimeDataHandle};
@@ -39,4 +40,8 @@ impl Runtime for NativeRuntime {
     ) -> Result<(), SystemError> {
         todo!();
     }
+}
+
+pub fn create() -> Arc<dyn Runtime> {
+    Arc::new(NativeRuntime {})
 }

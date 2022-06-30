@@ -1,6 +1,6 @@
 mod dummy_runtime;
-mod runtime;
-pub use runtime::*;
+mod runtime_trait;
+pub use runtime_trait::*;
 
 #[cfg(feature = "native")]
 mod native;

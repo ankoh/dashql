@@ -560,8 +560,8 @@ mod test {
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
-    use crate::external::create_runtime;
     use crate::external::parser::parse;
+    use crate::external::runtime;
     use crate::grammar;
     use std::rc::Rc;
     use std::sync::Arc;
@@ -579,7 +579,7 @@ mod test {
 
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
-        let runtime = create_runtime();
+        let runtime = runtime::create();
         let database = Arc::new(DatabaseClient::create().await?);
         let database_instance = Arc::new(database.open_in_memory().await?);
 
