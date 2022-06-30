@@ -5,5 +5,5 @@ pub use node::*;
 
 #[cfg(feature = "wasm")]
 mod wasm;
-#[cfg(feature = "wasm")]
+#[cfg(all(feature = "wasm", not(feature = "node")))]
 pub use wasm::*;

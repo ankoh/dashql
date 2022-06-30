@@ -9,5 +9,5 @@ pub use native::*;
 
 #[cfg(feature = "wasm")]
 mod wasm;
-#[cfg(feature = "wasm")]
+#[cfg(all(feature = "wasm", not(feature = "native")))]
 pub use wasm::*;
