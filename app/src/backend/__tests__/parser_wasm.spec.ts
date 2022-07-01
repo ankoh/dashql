@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { WASI } from 'wasi';
+import { init as initWASI, WASI } from '@wasmer/wasi';
 import * as flatbuffers from 'flatbuffers';
 import * as proto from '@dashql/dashql-proto';
 
@@ -11,13 +11,15 @@ const encoder = new TextEncoder();
 
 describe('Wasm Parser', () => {
     it('hello parser', async () => {
-        const wasi = new WASI();
+        await initWASI();
+        const wasi = new WASI({
+            env: {},
+            args: [],
+        });
         const parserModuleBuffer = fs.readFileSync(PARSER_MODULE_URL);
         const parserModule = await WebAssembly.compile(parserModuleBuffer);
-        const parserInstance = await WebAssembly.instantiate(parserModule, {
-            wasi_snapshot_preview1: wasi.wasiImport,
-        });
-        wasi.start(parserInstance);
+        const parserInstance = await wasi.instantiate(parserModule, {});
+        wasi.start();
 
         const parserExports = parserInstance.exports;
         expect(parserExports).toBeDefined();

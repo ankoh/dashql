@@ -1664,6 +1664,11 @@
     "@typescript-eslint/types" "5.29.0"
     eslint-visitor-keys "^3.3.0"
 
+"@wasmer/wasi@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@wasmer/wasi/-/wasi-1.0.2.tgz#77b638024199f82beaa92719b390aa1a562ea6e9"
+  integrity sha512-Y256k0Vjj9ZymIk8Cw1XDfuBYCOH9SZc2LjGk55vM+h6mhrKZkNvbR4pZeoXNdPWIu84luW0dULaAsLv5LA9NA==
+
 "@webassemblyjs/ast@1.11.1":
   version "1.11.1"
   resolved "https://registry.yarnpkg.com/@webassemblyjs/ast/-/ast-1.11.1.tgz#2bfd767eae1a6996f432ff7e8d7fc75679c0b6a7"
