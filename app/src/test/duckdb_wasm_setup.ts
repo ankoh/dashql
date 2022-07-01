@@ -4,9 +4,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DUCKDB_WASM_BASE = path.resolve(__dirname, '../../../node_modules/@duckdb/duckdb-wasm/');
-const DUCKDB_WASM_MODULE = path.resolve(DUCKDB_WASM_BASE, 'dist', 'duckdb-eh.wasm');
-const DUCKDB_WORKER = path.resolve(DUCKDB_WASM_BASE, 'dist', 'duckdb-node-eh.worker.cjs');
+const DUCKDB_WASM_DIR = path.resolve(__dirname, '../../../node_modules/@duckdb/duckdb-wasm/');
+const DUCKDB_WASM_MODULE = path.resolve(DUCKDB_WASM_DIR, 'dist', 'duckdb-eh.wasm');
+const DUCKDB_WORKER = path.resolve(DUCKDB_WASM_DIR, 'dist', 'duckdb-node-eh.worker.cjs');
 
 export let DUCKDB_WASM: duckdb.AsyncDuckDB | null = null;
 
