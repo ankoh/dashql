@@ -82,7 +82,11 @@ parser:
 parser_wasm:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Fast
 
-.PHONY: parser_wasm
+.PHONY: parser_wasm_debug
+parser_wasm_debug:
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Debug
+
+.PHONY: parser_wasm_release
 parser_wasm_release:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Release
 
