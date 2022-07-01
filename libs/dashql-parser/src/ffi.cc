@@ -24,8 +24,8 @@ extern "C" FFIResult* dashql_new_result() {
 }
 
 extern "C" char* dashql_new_string(size_t length) {
-    auto buffer = new char[length + 1];
-    memset(buffer, 0, (length + 1) * sizeof(char));
+    auto buffer = new char[length];
+    memset(buffer, 0, length * sizeof(char));
     return buffer;
 }
 
