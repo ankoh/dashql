@@ -78,6 +78,10 @@ parser:
 	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
 	cmake --build ${PARSER_DEBUG_DIR}
 
+.PHONY: parser_wasm
+parser_wasm:
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh
+
 # ---------------------------------------------------------------------------
 # Core
 

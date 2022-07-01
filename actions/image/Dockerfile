@@ -1,9 +1,9 @@
-FROM ubuntu:21.04
+FROM ubuntu:22.04
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         tini build-essential git \
-        ccache cmake ninja-build llvm clang clang-format clang-tidy curl python python3 \
+        ccache cmake ninja-build llvm clang clang-format clang-tidy curl python3 \
         bison flex \
         brotli rsync \
         libpthread-stubs0-dev \
@@ -46,8 +46,8 @@ ARG GID=1000
 RUN groupadd -g ${GID} -o ${UNAME} \
     && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
 
-ARG WASI_VERSION=12
-ARG WASI_VERSION_FULL=12.0
+ARG WASI_VERSION=16
+ARG WASI_VERSION_FULL=16.0
 RUN mkdir -p /opt/wasi \
     && cd /opt/wasi \
     && curl -SL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz | tar -xz --strip-components=1 \
