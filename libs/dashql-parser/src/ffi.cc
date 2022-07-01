@@ -13,7 +13,7 @@ struct FFIResult {
     void (*owner_deleter)(void*);
 };
 
-extern "C" FFIResult* dashql_result_new() {
+extern "C" FFIResult* dashql_new_result() {
     auto result = new FFIResult();
     result->status_code = 0;
     result->data_length = 0;
@@ -23,7 +23,14 @@ extern "C" FFIResult* dashql_result_new() {
     return result;
 }
 
-extern "C" void dashql_result_delete(FFIResult* result) { delete result; }
+extern "C" char* dashql_new_string(size_t length) {
+    auto buffer = new char[length + 1];
+    memset(buffer, 0, (length + 1) * sizeof(char));
+    return buffer;
+}
+
+extern "C" void dashql_delete_result(FFIResult* result) { delete result; }
+extern "C" void dashql_delete_string(char* buffer) { delete buffer; }
 
 extern "C" void dashql_parse(FFIResult* result, const uint8_t* text, size_t length) {
     static_assert(sizeof(uint8_t) == sizeof(char));

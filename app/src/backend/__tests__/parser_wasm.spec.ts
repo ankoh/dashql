@@ -13,8 +13,10 @@ describe('Wasm Parser', () => {
         const imports = { wasi_snapshot_preview1: wasi.wasiImport };
         const parser = await WebAssembly.instantiate(buf, imports);
         const parserExports = parser.instance.exports;
-        expect(parserExports['dashql_result_new']).toBeDefined();
-        expect(parserExports['dashql_result_delete']).toBeDefined();
+        expect(parserExports['dashql_new_result']).toBeDefined();
+        expect(parserExports['dashql_new_string']).toBeDefined();
+        expect(parserExports['dashql_delete_result']).toBeDefined();
+        expect(parserExports['dashql_delete_string']).toBeDefined();
         expect(parserExports['dashql_parse']).toBeDefined();
     });
 });
