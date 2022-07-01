@@ -17,9 +17,9 @@ CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 ADDITIONAL_FLAGS=
 case $MODE in
-  "debug") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=Debug" ;;
-  "fast") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo" ;;
-  "release") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=Release" ;;
+  "Debug") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=Debug" ;;
+  "Fast") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo" ;;
+  "Release") ADDITIONAL_FLAGS="-DCMAKE_BUILD_TYPE=Release" ;;
    *) ;;
 esac
 echo "BUILD_TYPE=${MODE}"

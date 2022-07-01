@@ -14,12 +14,12 @@ APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 
 PARSER_SOURCE_DIR="${ROOT_DIR}/libs/dashql-parser"
-PARSER_DEBUG_DIR="${PARSER_SOURCE_DIR}/build/Debug"
+PARSER_DEBUG_DIR="${PARSER_SOURCE_DIR}/build/native/Debug"
 PARSER_RELEASE_DIR="${PARSER_SOURCE_DIR}/build/Release"
 PARSER_RELWITHDEBINFO_DIR="${PARSER_SOURCE_DIR}/build/RelWithDebInfo"
 
 DUCKDB_SOURCE_DIR="${ROOT_DIR}/libs/duckdbx"
-DUCKDB_DEBUG_DIR="${DUCKDB_SOURCE_DIR}/build/Debug"
+DUCKDB_DEBUG_DIR="${DUCKDB_SOURCE_DIR}/build/native/Debug"
 DUCKDB_RELEASE_DIR="${DUCKDB_SOURCE_DIR}/build/Release"
 DUCKDB_RELWITHDEBINFO_DIR="${DUCKDB_SOURCE_DIR}/build/RelWithDebInfo"
 
@@ -80,7 +80,11 @@ parser:
 
 .PHONY: parser_wasm
 parser_wasm:
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Fast
+
+.PHONY: parser_wasm
+parser_wasm_release:
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/build_parser.sh Release
 
 # ---------------------------------------------------------------------------
 # Core
