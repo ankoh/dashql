@@ -22,6 +22,7 @@ console.log(`DEBUG=${is_debug}`);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
+const js = path.resolve(__dirname, 'js');
 mkdir.sync(dist);
 rimraf.sync(`${dist}/*.js`);
 rimraf.sync(`${dist}/*.js.map`);
@@ -53,4 +54,4 @@ esbuild.build({
 function printErr(err) {
     if (err) return console.log(err);
 }
-fs.writeFile(path.join(dist, 'node', 'dashql_core.d.ts'), "export * from '../types/node_api';", printErr);
+fs.writeFileSync(path.join(dist, 'node', 'dashql_core.d.ts'), "export * from '../types/node_api';", printErr);

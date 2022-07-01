@@ -18,9 +18,9 @@ export module database {
     }
 
     export class Database {
-        handle: dashql.Database;
+        handle: any;
 
-        constructor(handle: dashql.Database) {
+        constructor(handle: any) {
             this.handle = handle;
         }
         public connect(): DatabaseConnection {
@@ -33,9 +33,9 @@ export module database {
     }
 
     export class DatabaseConnection {
-        handle: dashql.DatabaseConnection;
+        handle: any;
 
-        constructor(handle: dashql.DatabaseConnection) {
+        constructor(handle: any) {
             this.handle = handle;
         }
         public async runQuery(text: string): Promise<DatabaseBuffer> {
@@ -49,9 +49,9 @@ export module database {
     }
 
     export class DatabaseBuffer {
-        handle: dashql.DatabaseBuffer;
+        handle: any;
 
-        constructor(handle: dashql.DatabaseBuffer) {
+        constructor(handle: any) {
             this.handle = handle;
         }
         public access(): Uint8Array {
