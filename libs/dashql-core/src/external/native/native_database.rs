@@ -26,7 +26,7 @@ impl DatabaseInstance {
     pub async fn connect(&self) -> Result<DatabaseConnection, String> {
         self.inner.connect().map(|conn| DatabaseConnection { inner: conn })
     }
-    pub async fn close(&self) -> Result<(), String> {
+    pub async fn close(&mut self) -> Result<(), String> {
         self.inner.close();
         Ok(())
     }
@@ -41,7 +41,7 @@ impl DatabaseConnection {
         let buffer = self.inner.run_query(text)?;
         read_arrow_ipc_buffer(buffer.access())
     }
-    pub async fn close(&self) -> Result<(), String> {
+    pub async fn close(&mut self) -> Result<(), String> {
         self.inner.close();
         Ok(())
     }

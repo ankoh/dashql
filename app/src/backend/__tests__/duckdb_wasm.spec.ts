@@ -1,6 +1,6 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { Int32 } from 'apache-arrow/type';
-import * as test from '../test';
+import * as test from '../../test';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 

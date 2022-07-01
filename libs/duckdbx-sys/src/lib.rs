@@ -2,52 +2,53 @@ use ffi::{
     duckdbx_access_buffer, duckdbx_connect, duckdbx_connection_run_query, duckdbx_noop_deleter, duckdbx_open,
     DeleterPtr, FFIResult,
 };
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::{
+    atomic::{AtomicPtr, Ordering},
+    Arc,
+};
 
 pub mod ffi;
 
 pub type BufferPtr = *mut cty::c_void;
 
-pub struct Database {
-    inner: AtomicPtr<cty::c_void>,
+pub struct FFIUniquePtr {
+    ptr: AtomicPtr<cty::c_void>,
     deleter: DeleterPtr,
 }
 
-pub struct Connection {
-    inner: AtomicPtr<cty::c_void>,
-    deleter: DeleterPtr,
+impl Drop for FFIUniquePtr {
+    fn drop(&mut self) {
+        let ptr = self.ptr.swap(std::ptr::null_mut(), Ordering::SeqCst);
+        if ptr != std::ptr::null_mut() {
+            (self.deleter)(ptr);
+        }
+    }
 }
+
+#[derive(Clone)]
+pub struct Database {
+    database: Arc<FFIUniquePtr>,
+}
+#[derive(Clone)]
+pub struct Connection {
+    database: Arc<FFIUniquePtr>,
+    connection: Arc<FFIUniquePtr>,
+}
+#[derive(Clone)]
 pub struct Buffer {
-    inner: AtomicPtr<cty::c_void>,
-    deleter: DeleterPtr,
+    buffer: Arc<FFIUniquePtr>,
 }
 
 unsafe impl Send for Database {}
 unsafe impl Send for Connection {}
 unsafe impl Send for Buffer {}
 
-impl Drop for Database {
-    fn drop(&mut self) {
-        self.close();
-    }
-}
-impl Drop for Connection {
-    fn drop(&mut self) {
-        self.close();
-    }
-}
-impl Drop for Buffer {
-    fn drop(&mut self) {
-        self.close();
-    }
-}
-
 impl Database {
-    pub fn close(&self) {
-        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
-        if ptr != std::ptr::null_mut() {
-            (self.deleter)(ptr);
-        }
+    pub fn close(&mut self) {
+        self.database = Arc::new(FFIUniquePtr {
+            ptr: AtomicPtr::new(std::ptr::null_mut()),
+            deleter: duckdbx_noop_deleter,
+        });
     }
     pub fn open_in_memory() -> Result<Self, String> {
         let mut result = FFIResult {
@@ -64,9 +65,12 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            return Ok(Database {
-                inner: AtomicPtr::new(result.data),
+            let ptr = FFIUniquePtr {
+                ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
+            };
+            return Ok(Database {
+                database: Arc::new(ptr),
             });
         }
     }
@@ -86,15 +90,18 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            return Ok(Database {
-                inner: AtomicPtr::new(result.data),
+            let ptr = FFIUniquePtr {
+                ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
+            };
+            return Ok(Database {
+                database: Arc::new(ptr),
             });
         }
     }
 
     pub fn connect(&self) -> Result<Connection, String> {
-        let ptr = self.inner.load(Ordering::SeqCst);
+        let ptr = self.database.ptr.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
             return Err("database is closed".to_string());
         }
@@ -112,23 +119,21 @@ impl Database {
                 let msg = c_msg.to_str().unwrap_or_default().to_owned();
                 return Err(msg);
             }
-            return Ok(Connection {
-                inner: AtomicPtr::new(result.data),
+            let ptr = FFIUniquePtr {
+                ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
+            };
+            return Ok(Connection {
+                database: self.database.clone(),
+                connection: Arc::new(ptr),
             });
         }
     }
 }
 
 impl Buffer {
-    pub fn close(&self) {
-        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
-        if ptr != std::ptr::null_mut() {
-            (self.deleter)(ptr);
-        }
-    }
     pub fn access<'a>(&'a self) -> &'a mut [u8] {
-        let ptr = self.inner.load(Ordering::SeqCst);
+        let ptr = self.buffer.ptr.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
             return [].as_mut_slice();
         }
@@ -143,14 +148,18 @@ impl Buffer {
 }
 
 impl Connection {
-    pub fn close(&self) {
-        let ptr = self.inner.swap(std::ptr::null_mut(), Ordering::SeqCst);
-        if ptr != std::ptr::null_mut() {
-            (self.deleter)(ptr);
-        }
+    pub fn close(&mut self) {
+        self.connection = Arc::new(FFIUniquePtr {
+            ptr: AtomicPtr::new(std::ptr::null_mut()),
+            deleter: duckdbx_noop_deleter,
+        });
+        self.database = Arc::new(FFIUniquePtr {
+            ptr: AtomicPtr::new(std::ptr::null_mut()),
+            deleter: duckdbx_noop_deleter,
+        });
     }
     pub fn run_query(&self, query: &str) -> Result<Buffer, String> {
-        let ptr = self.inner.load(Ordering::SeqCst);
+        let ptr = self.connection.ptr.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
             return Err("connection is closed".to_string());
         }
@@ -170,10 +179,17 @@ impl Connection {
                 (result.data_deleter)(result.data);
                 return Err(msg);
             }
-            Ok(Buffer {
-                inner: AtomicPtr::new(result.data),
+            let ptr = FFIUniquePtr {
+                ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
-            })
+            };
+            Ok(Buffer { buffer: Arc::new(ptr) })
         }
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        self.close();
     }
 }

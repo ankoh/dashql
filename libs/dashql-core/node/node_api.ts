@@ -20,7 +20,7 @@ export class Database {
         return new Connection(conn);
     }
     public close() {
-        dashql.database_connection_close(this.handle);
+        dashql.database_close(this.handle);
     }
 }
 
