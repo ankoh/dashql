@@ -43,7 +43,7 @@ tests_rs:
 
 .PHONY: js_tests
 tests_js:
-	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --experimental-wasi-unstable-preview1 --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
 
 
 # ---------------------------------------------------------------------------

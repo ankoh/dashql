@@ -1,0 +1,9 @@
+{
+    "name": "@dashql/dashql-parser",
+    "version": "0.0.5",
+    "description": "",
+    "license": "MPL-2.0",
+    "files": [
+        "build/wasm/Release/dashql_parser.wasm"
+    ]
+}

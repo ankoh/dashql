@@ -436,6 +436,9 @@
 "@dashql/dashql-core@link:libs/dashql-core":
   version "0.1.0"
 
+"@dashql/dashql-parser@link:libs/dashql-parser":
+  version "0.0.5"
+
 "@dashql/dashql-proto@link:libs/dashql-proto":
   version "0.0.5"
   dependencies:

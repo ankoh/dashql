@@ -4,6 +4,7 @@
         "app",
         "libs/dashql-core",
         "libs/dashql-proto",
+        "libs/dashql-parser",
         "libs/duckdbx-node",
         "libs/duckdbx-bindings"
     ],

@@ -20,6 +20,7 @@
     "dependencies": {
         "@dashql/dashql-core": "link:../libs/dashql-core",
         "@dashql/dashql-proto": "link:../libs/dashql-proto",
+        "@dashql/dashql-parser": "link:../libs/dashql-parser",
         "@duckdb/duckdb-wasm": "^1.14.4",
         "@duckdb/duckdb-wasm-shell": "^1.14.4",
         "@duckdb/react-duckdb": "^1.14.4",
