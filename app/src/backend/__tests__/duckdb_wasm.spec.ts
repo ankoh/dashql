@@ -9,7 +9,7 @@ describe('DuckDB', () => {
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     beforeAll(async () => {
-        db = test.DATABASE;
+        db = test.DUCKDB_WASM;
     });
     beforeEach(async () => {
         conn = await db.connect();
