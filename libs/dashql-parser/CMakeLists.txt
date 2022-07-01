@@ -38,6 +38,8 @@ if(WASM)
   set(CMAKE_EXE_LINKER_FLAGS
       "${CMAKE_EXE_LINKER_FLAGS} \
         -Wl,--export=dashql_parse \
+        -Wl,--export=dashql_result_new \
+        -Wl,--export=dashql_result_delete \
         -flto \
     ")
 endif()

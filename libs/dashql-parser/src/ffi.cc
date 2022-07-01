@@ -13,6 +13,18 @@ struct FFIResult {
     void (*owner_deleter)(void*);
 };
 
+extern "C" FFIResult* dashql_result_new() {
+    auto result = new FFIResult();
+    result->status_code = 0;
+    result->data_length = 0;
+    result->data_ptr = nullptr;
+    result->owner_ptr = nullptr;
+    result->owner_deleter = [](void* buffer) {};
+    return result;
+}
+
+extern "C" void dashql_result_delete(FFIResult* result) { delete result; }
+
 extern "C" void dashql_parse(FFIResult* result, const uint8_t* text, size_t length) {
     static_assert(sizeof(uint8_t) == sizeof(char));
 
