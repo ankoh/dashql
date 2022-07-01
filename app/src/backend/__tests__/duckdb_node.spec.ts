@@ -2,8 +2,8 @@ import * as dashql from '@dashql/dashql-core/node';
 import * as arrow from 'apache-arrow';
 
 describe('Node Database', () => {
-    it('hello world', async () => {
-        const instance = dashql.openInMemory();
+    it('hello database', async () => {
+        const instance = dashql.database.openInMemory();
         const conn = instance.connect();
         const result = await conn.runQuery('select 42::Integer as a;');
         const reader = arrow.RecordBatchReader.from<{ a: arrow.Int32 }>(result.access());

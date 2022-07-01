@@ -16,6 +16,6 @@ pub fn parse_script(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
 }
 
 pub fn export_parser_api(cx: &mut ModuleContext) -> NeonResult<()> {
-    cx.export_function("parse_script", parse_script)?;
+    cx.export_function("parser_parse_script", parse_script)?;
     Ok(())
 }

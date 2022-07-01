@@ -1,4 +1,6 @@
 declare module '*/dist/node/dashql_core.node' {
+    function parser_parse_script(text: string): ArrayBuffer;
+
     interface Database {}
     interface DatabaseConnection {}
     interface DatabaseBuffer {}
