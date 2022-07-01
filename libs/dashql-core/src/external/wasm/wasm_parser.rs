@@ -10,7 +10,10 @@ extern "C" {
     pub(crate) fn js_parse(text: &str) -> Result<JsValue, JsValue>;
 }
 
-pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
+pub fn parse_into<'a>(
+    alloc: &'a bumpalo::Bump,
+    text: &str,
+) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
     let result = js_parse(text).map_err(|e| e.as_string().unwrap_or_default())?;
     let ast_array: Uint8Array = result.into();
     let mut ast_buffer = alloc.alloc_slice_fill_default(ast_array.length() as usize);

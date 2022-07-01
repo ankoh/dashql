@@ -33,9 +33,9 @@ rimraf.sync(`${dist}/*.cjs.map`);
 // -------------------------------
 // Node bundles
 
-console.log('[ ESBUILD ] node/dashql_core.cjs');
+console.log('[ ESBUILD ] js/dashql_core.cjs');
 esbuild.build({
-    entryPoints: ['./node/node_api.ts'],
+    entryPoints: ['./js/node_api.ts'],
     outfile: 'dist/node/dashql_core.cjs',
     platform: 'node',
     format: 'cjs',

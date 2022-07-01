@@ -19,6 +19,6 @@
         "typeRoots": ["./types", "./node_modules/@types", "../../node_modules/@types"],
         "lib": ["es6"]
     },
-    "include": ["./node/**/*"],
+    "include": ["js/**/*"],
     "exclude": []
 }
