@@ -217,9 +217,9 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "cmake",
+ "cty",
  "dashql-proto",
  "flatbuffers",
- "libc",
 ]
 
 [[package]]

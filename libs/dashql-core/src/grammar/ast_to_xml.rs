@@ -190,7 +190,7 @@ fn encode_error<'writer, 'a>(writer: &mut BytesStart<'writer>, error: proto::Err
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod test {
     use super::*;
-    use crate::external::parser::parse;
+    use crate::external::parser::parse_into;
     use pretty_assertions::assert_eq;
     use quick_xml::Writer;
     use std::error::Error;
@@ -198,7 +198,7 @@ mod test {
     fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let alloc = bumpalo::Bump::new();
         let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
-        let ast = parse(&alloc, text)?;
+        let ast = parse_into(&alloc, text)?;
         serialize_ast_as_xml(&mut writer, ast, text)?;
         let buffer = writer.into_inner();
         let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");

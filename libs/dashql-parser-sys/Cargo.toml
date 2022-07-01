@@ -11,7 +11,7 @@ doctest = false
 [dependencies]
 dashql-proto = { path = "../dashql-proto" }
 flatbuffers = "2.1.1"
-libc = "0.2.121"
+cty = "0.2.2"
 bumpalo = "3.9.1"
 
 [build-dependencies]

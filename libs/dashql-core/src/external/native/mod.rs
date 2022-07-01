@@ -6,7 +6,7 @@ pub mod database {
 }
 pub mod parser {
     pub use dashql_parser::parse;
-    pub use dashql_parser::parse_with;
+    pub use dashql_parser::parse_into;
 }
 pub mod runtime {
     pub use super::native_runtime::*;

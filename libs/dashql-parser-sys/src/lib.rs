@@ -1,51 +1,80 @@
-use crate::error::RawError;
 use dashql_proto as proto;
 use std::error::Error;
 
-mod error;
+pub type DeleterPtr = extern "C" fn(*mut cty::c_void);
 
-#[repr(C, packed)]
-struct FFIResponse {
-    status: libc::uintptr_t,
-    data_or_value: libc::uintptr_t,
-    data_size: libc::uintptr_t,
+pub extern "C" fn dashql_parser_noop_deleter(_data: *mut cty::c_void) {}
+
+#[repr(C)]
+struct FFIResult {
+    status_code: cty::uint32_t,
+    data_length: cty::uint32_t,
+    data_ptr: *mut cty::c_void,
+    owner_ptr: *mut cty::c_void,
+    owner_deleter: DeleterPtr,
 }
 
 #[link(name = "dashql_parser")]
 extern "C" {
-    fn dashql_parse(response: *mut FFIResponse, text: *const u8, text_length: libc::size_t) -> ();
+    fn dashql_parse(result: *mut FFIResult, text: *const u8, text_length: cty::size_t) -> ();
 }
 
-/// Parse a text and return the raw ast buffer
-pub fn parse_with<R, Fn: FnOnce(&[u8]) -> R>(text: &str, f: Fn) -> Result<R, Box<dyn Error + Send + Sync>> {
-    let mut response = FFIResponse {
-        status: 0,
-        data_or_value: 0,
-        data_size: 0,
-    };
-    unsafe {
-        dashql_parse(&mut response, text.as_bytes().as_ptr(), text.len());
-        match response.status {
-            0 => Ok(f(std::slice::from_raw_parts(
-                response.data_or_value as *mut u8,
-                response.data_size,
-            ))),
-            _ => {
-                let msg = String::from_raw_parts(
-                    response.data_or_value as *mut u8,
-                    response.data_size,
-                    response.data_size,
-                );
-                Err(RawError::from(msg).boxed())
-            }
+pub struct ProgramBuffer {
+    data_length: cty::uint32_t,
+    data_ptr: *const u8,
+    owner_ptr: *mut cty::c_void,
+    owner_deleter: DeleterPtr,
+}
+
+impl Drop for ProgramBuffer {
+    fn drop(&mut self) {
+        let ptr = self.owner_ptr;
+        self.owner_ptr = std::ptr::null_mut();
+        if ptr != std::ptr::null_mut() {
+            (self.owner_deleter)(self.owner_ptr);
         }
     }
 }
 
-/// Parse a text and return a program buffer
-pub fn parse<'a>(alloc: &'a bumpalo::Bump, text: &str) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
-    let raw = parse_with(text, |data| alloc.alloc_slice_copy(data))?;
-    Ok(flatbuffers::root::<proto::Program>(raw)?)
+impl ProgramBuffer {
+    pub fn access<'a>(&'a self) -> &'a [u8] {
+        unsafe { std::slice::from_raw_parts(self.data_ptr, self.data_length as usize) }
+    }
+}
+
+pub fn parse(text: &str) -> Result<ProgramBuffer, String> {
+    let mut result = FFIResult {
+        status_code: 0,
+        data_length: 0,
+        data_ptr: std::ptr::null_mut(),
+        owner_ptr: std::ptr::null_mut(),
+        owner_deleter: dashql_parser_noop_deleter,
+    };
+    unsafe {
+        dashql_parse(&mut result, text.as_bytes().as_ptr(), text.len());
+        if result.status_code != 0 {
+            let data = std::mem::transmute::<*mut cty::c_void, *const cty::c_char>(result.data_ptr);
+            let c_msg = std::ffi::CStr::from_ptr(data);
+            let msg = c_msg.to_str().unwrap_or_default().to_owned();
+            return Err(msg);
+        }
+        let buffer = ProgramBuffer {
+            data_length: result.data_length,
+            data_ptr: std::mem::transmute::<*mut cty::c_void, *const u8>(result.data_ptr),
+            owner_ptr: result.owner_ptr,
+            owner_deleter: result.owner_deleter,
+        };
+        Ok(buffer)
+    }
+}
+
+pub fn parse_into<'a>(
+    alloc: &'a bumpalo::Bump,
+    text: &str,
+) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
+    let buffer = parse(text)?;
+    let copy = alloc.alloc_slice_copy(buffer.access());
+    Ok(flatbuffers::root::<proto::Program>(copy)?)
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -56,7 +85,7 @@ mod test {
     #[test]
     fn test_parser_call() -> Result<(), Box<dyn Error + Send + Sync>> {
         let alloc = bumpalo::Bump::new();
-        let program = super::parse(&alloc, "select 1;")?;
+        let program = super::parse_into(&alloc, "select 1;")?;
         let stmts = program.statements().expect("must have statements");
         assert_eq!(stmts.len(), 1);
         assert_eq!(stmts.get(0).statement_type(), proto::StatementType::SELECT);

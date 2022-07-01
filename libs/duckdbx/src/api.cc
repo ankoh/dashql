@@ -6,7 +6,7 @@
 
 using namespace duckdbx;
 
-struct Result {
+struct FFIResult {
     uint32_t status_code;
     uint32_t data_length;
     void* data;
@@ -17,13 +17,13 @@ using db_ptr = void*;
 using conn_ptr = void*;
 
 extern "C" {
-void duckdbx_open(Result* result, const char* path);
-void duckdbx_connect(Result* result, db_ptr db);
-void duckdbx_connection_run_query(Result* result, conn_ptr conn, const char* text);
-void duckdbx_connection_send_query(Result* result, conn_ptr conn, const char* text);
-void duckdbx_connection_fetch_query_results(Result* result, conn_ptr conn);
+void duckdbx_open(FFIResult* result, const char* path);
+void duckdbx_connect(FFIResult* result, db_ptr db);
+void duckdbx_connection_run_query(FFIResult* result, conn_ptr conn, const char* text);
+void duckdbx_connection_send_query(FFIResult* result, conn_ptr conn, const char* text);
+void duckdbx_connection_fetch_query_results(FFIResult* result, conn_ptr conn);
 
-void duckdbx_open(Result* result, const char* raw_path) {
+void duckdbx_open(FFIResult* result, const char* raw_path) {
     std::unique_ptr<duckdb::DuckDB> db;
     if (raw_path != nullptr) {
         db = std::make_unique<duckdb::DuckDB>(std::string{raw_path});
@@ -39,7 +39,7 @@ void duckdbx_open(Result* result, const char* raw_path) {
 
 void duckdbx_close(db_ptr db) { delete reinterpret_cast<Database*>(db); }
 
-void duckdbx_connect(Result* result, db_ptr dbp) {
+void duckdbx_connect(FFIResult* result, db_ptr dbp) {
     auto db = reinterpret_cast<Database*>(dbp);
     auto conn = db->Connect();
     result->status_code = 0;
@@ -57,7 +57,7 @@ struct RawArrowBuffer {
     std::shared_ptr<arrow::Buffer> buffer;
     RawArrowBuffer(std::shared_ptr<arrow::Buffer> buffer) : buffer(buffer) {}
 };
-void return_arrow_buffer_result(Result* out, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
+void return_arrow_buffer_result(FFIResult* out, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
     if (!result.ok()) {
         auto& msg = result.status().message();
         auto msg_length = msg.length();
@@ -82,21 +82,21 @@ void duckdbx_access_buffer(RawArrowBuffer* buffer, const char** out_data, int* o
     *out_length = buffer->buffer->size();
 }
 
-void duckdbx_connection_run_query(Result* out, conn_ptr connp, const char* raw_text) {
+void duckdbx_connection_run_query(FFIResult* out, conn_ptr connp, const char* raw_text) {
     auto text = std::string_view{raw_text};
     auto conn = reinterpret_cast<Database::Connection*>(connp);
     auto result = conn->RunQuery(text);
     return_arrow_buffer_result(out, result);
 }
 
-void duckdbx_connection_send_query(Result* out, conn_ptr connp, const char* raw_text) {
+void duckdbx_connection_send_query(FFIResult* out, conn_ptr connp, const char* raw_text) {
     auto text = std::string_view{raw_text};
     auto conn = reinterpret_cast<Database::Connection*>(connp);
     auto result = conn->SendQuery(text);
     return_arrow_buffer_result(out, result);
 }
 
-void duckdbx_connection_fetch_query_results(Result* out, conn_ptr connp) {
+void duckdbx_connection_fetch_query_results(FFIResult* out, conn_ptr connp) {
     auto conn = reinterpret_cast<Database::Connection*>(connp);
     auto result = conn->FetchQueryResults();
     return_arrow_buffer_result(out, result);

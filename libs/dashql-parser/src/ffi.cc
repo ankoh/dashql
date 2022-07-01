@@ -1,12 +1,19 @@
-#include "dashql/parser/ffi.h"
-
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
+#include "flatbuffers/flatbuffers.h"
 
 using namespace dashql::parser;
 namespace proto = dashql::proto;
 
-extern "C" void dashql_parse(FFIResponse* response, const uint8_t* text, size_t length) {
+struct FFIResult {
+    uint32_t status_code;
+    uint32_t data_length;
+    void* data_ptr;
+    void* owner_ptr;
+    void (*owner_deleter)(void*);
+};
+
+extern "C" void dashql_parse(FFIResult* result, const uint8_t* text, size_t length) {
     static_assert(sizeof(uint8_t) == sizeof(char));
 
     // Parse the program
@@ -16,10 +23,14 @@ extern "C" void dashql_parse(FFIResponse* response, const uint8_t* text, size_t 
     flatbuffers::FlatBufferBuilder fb;
     auto program_ofs = proto::Program::Pack(fb, program.get());
     fb.Finish(program_ofs);
-    auto program_buffer = fb.Release();
 
-    // Store response
-    FFIResponseBuffer::Get().Store(*response, std::move(program_buffer));
+    // Store the buffer
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    result->status_code = 0;
+    result->data_ptr = detached->data();
+    result->data_length = detached->size();
+    result->owner_ptr = detached.release();
+    result->owner_deleter = [](void* buffer) { delete reinterpret_cast<flatbuffers::DetachedBuffer*>(buffer); };
 }
 
 #ifdef WASM

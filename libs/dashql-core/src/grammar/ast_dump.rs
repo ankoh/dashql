@@ -87,7 +87,7 @@ mod test {
     use std::io::BufReader;
     use std::path::PathBuf;
 
-    use crate::external::parser::parse;
+    use crate::external::parser::parse_into;
     use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
 
     use super::super::ast_translation::deserialize_ast;
@@ -152,7 +152,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let have = parse(&arena, have_input)?;
+                        let have = parse_into(&arena, have_input)?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
@@ -252,7 +252,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let have = parse(&arena, have_input)?;
+                        let have = parse_into(&arena, have_input)?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;

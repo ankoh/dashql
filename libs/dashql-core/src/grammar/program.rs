@@ -1,4 +1,4 @@
-use crate::external::parser::parse;
+use crate::external::parser::parse_into;
 use crate::grammar;
 
 use super::ast_node::*;
@@ -44,7 +44,7 @@ impl ProgramContainer {
         // Parse and deserialize the text
         let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
-        let ast = parse(&arena, &text)?;
+        let ast = parse_into(&arena, &text)?;
         let program = grammar::deserialize_ast(&arena, &text, ast).unwrap();
 
         // Now transmute the lifetimes

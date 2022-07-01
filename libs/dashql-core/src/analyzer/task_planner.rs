@@ -560,7 +560,7 @@ mod test {
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
     use crate::external::database::DatabaseClient;
-    use crate::external::parser::parse;
+    use crate::external::parser::parse_into;
     use crate::external::runtime;
     use crate::grammar;
     use std::rc::Rc;
@@ -594,7 +594,7 @@ mod test {
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
-            let prev_ast = parse(&prev_arena, prev.script)?;
+            let prev_ast = parse_into(&prev_arena, prev.script)?;
             assert!(
                 prev_ast.errors().is_none(),
                 "{}",
@@ -621,7 +621,7 @@ mod test {
         let next_arena = bumpalo::Bump::new();
         let next_context = ExecutionContext::create(settings, runtime, database_instance.clone(), &next_arena);
         let next_instance = {
-            let next_ast = parse(&next_arena, test.next.script)?;
+            let next_ast = parse_into(&next_arena, test.next.script)?;
             assert!(
                 next_ast.errors().is_none(),
                 "{}",

@@ -141,7 +141,7 @@ mod test {
 
     use super::*;
     use crate::execution::execution_context::ExecutionContext;
-    use crate::external::parser::parse;
+    use crate::external::parser::parse_into;
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
@@ -161,7 +161,7 @@ mod test {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast = parse(&arena, script)?;
+        let ast = parse_into(&arena, script)?;
         let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
         let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
