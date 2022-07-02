@@ -37,9 +37,11 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                     </svg>
                 </div>
                 <div className={styles.steps}>
-                    {renderStatus('Configure the application', config.status)}
-                    {renderStatus('Prepare the database backend', model.ResolvableStatus.COMPLETED)}
-                    {renderStatus('Prepare the workflow backend', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Load settings', config.status)}
+                    {renderStatus('Prepare WASI runtime', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare DashQL parser', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare DashQL database', model.ResolvableStatus.COMPLETED)}
+                    {renderStatus('Prepare DashQL worfklows', model.ResolvableStatus.COMPLETED)}
                 </div>
             </div>
         </div>
