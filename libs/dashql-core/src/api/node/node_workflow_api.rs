@@ -1,11 +1,6 @@
-use std::borrow::BorrowMut;
-
 use neon::prelude::*;
 
-use crate::{
-    analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode},
-    grammar::Program,
-};
+use crate::analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode};
 
 struct JsWorkflowFrontend {
     value: JsObject,
