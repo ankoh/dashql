@@ -13,7 +13,7 @@ extern "C" {
     #[wasm_bindgen(catch, method, js_name = "updateProgram")]
     fn update_program(this: &JsWorkflowFrontend, session_id: u32, program: Uint8Array) -> Result<(), JsValue>;
     #[wasm_bindgen(catch, method, js_name = "updateTaskGraph")]
-    fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, program: JsValue) -> Result<(), JsValue>;
+    fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: String) -> Result<(), JsValue>;
     #[wasm_bindgen(catch, method, js_name = "updateTaskStatus")]
     fn update_task_status(
         this: &JsWorkflowFrontend,
