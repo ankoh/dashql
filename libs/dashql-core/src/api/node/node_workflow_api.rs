@@ -1,6 +1,9 @@
 use neon::prelude::*;
 
-use crate::{analyzer::task_planner::TaskGraph, grammar::Program};
+use crate::{
+    analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode},
+    grammar::Program,
+};
 
 struct JsWorkflowFrontend {
     value: JsObject,
@@ -41,18 +44,33 @@ impl JsWorkflowFrontend {
         session_id: u32,
         graph: &TaskGraph,
     ) -> Result<(), String> {
-        todo!();
+        let session_id = JsNumber::new(cx, session_id).as_value(cx);
+        let data = serde_json::to_string(&graph).map_err(|e| e.to_string())?;
+        let data = JsString::new(cx, data).as_value(cx);
+        self.call_method(cx, "updateTaskGraph", &[session_id, data])
     }
     pub fn update_task_status<'a>(
         &self,
         cx: &mut FunctionContext<'a>,
         session_id: u32,
-        task_class: u32,
+        task_class: TaskClass,
         task_id: u32,
-        status: u32,
-        error: JsValue,
+        status: TaskStatusCode,
+        error: Option<JsValue>,
     ) -> Result<(), String> {
-        todo!();
+        let session_id = JsNumber::new(cx, session_id).as_value(cx);
+        let task_class = JsNumber::new(cx, task_class as u8).as_value(cx);
+        let task_id = JsNumber::new(cx, task_id).as_value(cx);
+        let status = JsNumber::new(cx, status as u8).as_value(cx);
+        let error = match error {
+            Some(value) => value.as_value(cx),
+            None => cx.undefined().as_value(cx),
+        };
+        self.call_method(
+            cx,
+            "updateTaskStatus",
+            &[session_id, task_class, task_id, status, error],
+        )
     }
     pub fn delete_task_state<'a>(
         &self,

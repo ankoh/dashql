@@ -9,9 +9,10 @@ use std::{cell::Cell, collections::HashSet};
 use crate::{grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[repr(u8)]
 pub enum TaskClass {
-    SetupTask,
-    ProgramTask,
+    SetupTask = 0,
+    ProgramTask = 1,
 }
 
 impl Default for TaskClass {
@@ -21,15 +22,16 @@ impl Default for TaskClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[repr(u8)]
 pub enum TaskStatusCode {
-    Pending,
-    Skipped,
-    Preparing,
-    Prepared,
-    Executing,
-    Blocked,
-    Failed,
-    Completed,
+    Pending = 0,
+    Skipped = 1,
+    Preparing = 2,
+    Prepared = 3,
+    Executing = 4,
+    Blocked = 5,
+    Failed = 6,
+    Completed = 7,
 }
 
 impl Default for TaskStatusCode {
