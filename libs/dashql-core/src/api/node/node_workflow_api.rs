@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use neon::prelude::*;
 
 use crate::{
@@ -34,9 +36,15 @@ impl JsWorkflowFrontend {
         &self,
         cx: &mut impl Context<'a>,
         session_id: u32,
-        program: &Program,
+        program_ipc: &mut [u8],
     ) -> Result<(), String> {
-        todo!();
+        let session_id = JsNumber::new(cx, session_id).as_value(cx);
+        unsafe {
+            let program_ipc = std::mem::transmute::<&mut [u8], &'static mut [u8]>(program_ipc);
+            let program_buffer = JsArrayBuffer::external(cx, program_ipc);
+            let program_buffer = program_buffer.as_value(cx);
+            self.call_method(cx, "updateProgram", &[session_id, program_buffer])
+        }
     }
     pub fn update_task_graph<'a>(
         &self,
