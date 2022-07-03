@@ -12,7 +12,7 @@ struct JsWorkflowFrontend {
 impl JsWorkflowFrontend {
     fn call_method<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         method_name: &str,
         args: &[Handle<'a, JsValue>],
     ) -> Result<(), String> {
@@ -32,7 +32,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_program<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         program: &Program,
     ) -> Result<(), String> {
@@ -40,7 +40,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_task_graph<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         graph: &TaskGraph,
     ) -> Result<(), String> {
@@ -51,7 +51,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_task_status<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         task_class: TaskClass,
         task_id: u32,
@@ -74,7 +74,7 @@ impl JsWorkflowFrontend {
     }
     pub fn delete_task_state<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         state_id: u32,
     ) -> Result<(), String> {
@@ -84,7 +84,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_input_state<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         state_id: u32,
     ) -> Result<(), String> {
@@ -94,7 +94,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_import_state<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         state_id: u32,
     ) -> Result<(), String> {
@@ -104,7 +104,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_table_state<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         state_id: u32,
     ) -> Result<(), String> {
@@ -114,7 +114,7 @@ impl JsWorkflowFrontend {
     }
     pub fn update_visualization_state<'a>(
         &self,
-        cx: &mut FunctionContext<'a>,
+        cx: &mut impl Context<'a>,
         session_id: u32,
         state_id: u32,
     ) -> Result<(), String> {
