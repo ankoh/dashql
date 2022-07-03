@@ -31,8 +31,8 @@ export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
             },
             createSession: async (db: DatabaseId, frontend: WorkflowFrontend): Promise<SessionId> => {
                 const sessionID = await ipc.invoke('WorkflowBackend.createSession', [db]);
-                ipc.on(`WorkflowFrontend.session[${sessionID}]`, async (_event, message) => {
-                    await invokeIPCWorkflowFrontend(frontend, message);
+                ipc.on(`WorkflowFrontend.session[${sessionID}]`, (_event, message) => {
+                    invokeIPCWorkflowFrontend(frontend, message);
                 });
                 return sessionID;
             },
@@ -73,7 +73,7 @@ export function registerIPCBackend(backend: Backend, ipc: IpcMain, renderer: Web
         return await backend.workflow.configure();
     });
     ipc.on('WorkflowBackend.createSession', async (_event, db) => {
-        const workflow = createIPCWorkflowFrontendBridge(async (session, msg) => {
+        const workflow = createIPCWorkflowFrontendBridge((session, msg) => {
             renderer.send(`WorkflowFrontend.session[${session}]`, msg);
         });
         return await backend.workflow.createSession(db, workflow);

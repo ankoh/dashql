@@ -1,5 +1,6 @@
 pub mod node_database_api;
 pub mod node_parser_api;
+pub mod node_workflow_api;
 
 use neon::prelude::*;
 

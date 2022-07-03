@@ -24,23 +24,23 @@ export interface WorkflowBackend {
 }
 
 export interface WorkflowFrontend {
-    beginBatchUpdate(session: SessionId): Promise<void>;
-    endBatchUpdate(session: SessionId): Promise<void>;
-    updateProgram(session: SessionId, program: Uint8Array | null): Promise<void>;
-    updateTaskGraph(session: SessionId, graph: TaskGraph | null): Promise<void>;
+    beginBatchUpdate(session: SessionId): void;
+    endBatchUpdate(session: SessionId): void;
+    updateProgram(session: SessionId, program: Uint8Array | null): void;
+    updateTaskGraph(session: SessionId, graph: TaskGraph | null): void;
     updateTaskStatus(
         session: SessionId,
         taskClass: TaskClass,
         taskId: TaskId,
         status: TaskStatusCode,
         error?: any,
-    ): Promise<void>;
-    deleteTaskState(session: SessionId, state: StateId): Promise<void>;
-    updateInputState(session: SessionId, state: StateId): Promise<void>;
-    updateImportState(session: SessionId, state: StateId): Promise<void>;
-    updateLoadState(session: SessionId, state: StateId): Promise<void>;
-    updateTableState(session: SessionId, state: StateId): Promise<void>;
-    updateVisualizationState(session: SessionId, state: StateId): Promise<void>;
+    ): void;
+    deleteTaskState(session: SessionId, state: StateId): void;
+    updateInputState(session: SessionId, state: StateId): void;
+    updateImportState(session: SessionId, state: StateId): void;
+    updateLoadState(session: SessionId, state: StateId): void;
+    updateTableState(session: SessionId, state: StateId): void;
+    updateVisualizationState(session: SessionId, state: StateId): void;
 }
 
 export interface Backend {
