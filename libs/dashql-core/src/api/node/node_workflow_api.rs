@@ -3,7 +3,7 @@ use std::{cell::RefCell, sync::Arc};
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::task_planner::{TaskGraph, TaskStatusCode},
+    analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     grammar::ProgramContainer,
 };

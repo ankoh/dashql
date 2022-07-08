@@ -15,7 +15,8 @@ use super::{
 use crate::{
     analyzer::{
         program_instance::ProgramInstance,
-        task_planner::{Task, TaskGraph, TaskStatusCode, TaskType},
+        task::{Task, TaskStatusCode, TaskType},
+        task_planner::TaskGraph,
     },
     error::SystemError,
     utils::topological_sort::TopologicalSort,

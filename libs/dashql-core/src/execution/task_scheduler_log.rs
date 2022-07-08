@@ -1,4 +1,4 @@
-use crate::{analyzer::task_planner::TaskStatusCode, error::SystemError};
+use crate::{analyzer::task::TaskStatusCode, error::SystemError};
 
 #[derive(Debug, Default)]
 pub struct TaskSchedulerLogEntry {
