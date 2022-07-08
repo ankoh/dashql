@@ -10,16 +10,13 @@ describe('Node Workflows', () => {
         frontend.beginBatchUpdate = jest.fn();
         frontend.endBatchUpdate = jest.fn();
         frontend.updateProgram = jest.fn();
-
         const session = dashql.workflow.createSession(frontend);
 
         session.updateProgram('create table foo as select 42');
 
-        let closeSession: any;
         const sessionClosed = new Promise((resolve, _) => {
-            closeSession = resolve;
+            session.close(() => resolve(null));
         });
-        session.close(() => closeSession());
         await sessionClosed;
 
         expect(frontend.beginBatchUpdate).toHaveBeenCalledWith(session.sessionId);
