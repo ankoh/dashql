@@ -9,253 +9,177 @@ use crate::{
 };
 
 struct JsWorkflowFrontend {
-    value: Root<JsObject>,
-}
-
-impl JsWorkflowFrontend {
-    fn call_method<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        method_name: &str,
-        args: &[Handle<'a, JsValue>],
-    ) -> Result<(), String> {
-        let value = self.value.to_inner(cx);
-        let method: Handle<JsFunction> = value.get(cx, method_name).map_err(|e| e.to_string())?;
-        let handle = value.as_value(cx);
-        method.call(cx, handle, args).map_err(|e| e.to_string())?;
-        Ok(())
-    }
-
-    pub fn begin_batch_update<'a>(&self, cx: &mut impl Context<'a>, session_id: u32) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        self.call_method(cx, "beginBatchUpdate", &[session_id])
-    }
-    pub fn end_batch_update<'a>(&self, cx: &mut impl Context<'a>, session_id: u32) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        self.call_method(cx, "endBatchUpdate", &[session_id])
-    }
-    pub fn update_program<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        program_ipc: Vec<u8>,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let mut data_buffer = JsArrayBuffer::new(cx, program_ipc.len()).map_err(|e| e.to_string())?;
-        let data_slice = data_buffer.as_mut_slice(cx);
-        data_slice.copy_from_slice(&program_ipc);
-        let program_buffer = data_buffer.as_value(cx);
-        self.call_method(cx, "updateProgram", &[session_id, program_buffer])?;
-        Ok(())
-    }
-    pub fn update_task_graph<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        graph_json: &str,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let graph_json = JsString::new(cx, graph_json).as_value(cx);
-        self.call_method(cx, "updateTaskGraph", &[session_id, graph_json])
-    }
-    pub fn update_task_status<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        task_id: u32,
-        status: TaskStatusCode,
-        error: Option<String>,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let task_id = JsNumber::new(cx, task_id).as_value(cx);
-        let status = JsNumber::new(cx, status as u8).as_value(cx);
-        let error = match error {
-            Some(value) => JsString::new(cx, value).as_value(cx),
-            None => cx.undefined().as_value(cx),
-        };
-        self.call_method(cx, "updateTaskStatus", &[session_id, task_id, status, error])
-    }
-    pub fn delete_task_state<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        state_id: u32,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let state_id = JsNumber::new(cx, state_id).as_value(cx);
-        self.call_method(cx, "deleteTaskState", &[session_id, state_id])
-    }
-    pub fn update_input_state<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        state_id: u32,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let state_id = JsNumber::new(cx, state_id).as_value(cx);
-        self.call_method(cx, "updateInputState", &[session_id, state_id])
-    }
-    pub fn update_import_state<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        state_id: u32,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let state_id = JsNumber::new(cx, state_id).as_value(cx);
-        self.call_method(cx, "updateImportState", &[session_id, state_id])
-    }
-    pub fn update_table_state<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        state_id: u32,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let state_id = JsNumber::new(cx, state_id).as_value(cx);
-        self.call_method(cx, "updateTableState", &[session_id, state_id])
-    }
-    pub fn update_visualization_state<'a>(
-        &self,
-        cx: &mut impl Context<'a>,
-        session_id: u32,
-        state_id: u32,
-    ) -> Result<(), String> {
-        let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let state_id = JsNumber::new(cx, state_id).as_value(cx);
-        self.call_method(cx, "updateVisualizationState", &[session_id, state_id])
-    }
-}
-
-struct JsWorkflowFrontendBridge {
-    frontend: Arc<JsWorkflowFrontend>,
+    inner: Arc<Root<JsObject>>,
     channel: Channel,
 }
 
-impl WorkflowFrontend for JsWorkflowFrontendBridge {
-    fn begin_batch_update(&mut self, session_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+impl JsWorkflowFrontend {
+    fn get_inner<'a>(&self, ctx: &mut impl Context<'a>) -> Handle<'a, JsObject> {
+        self.inner.to_inner(ctx)
+    }
+}
+
+impl WorkflowFrontend for JsWorkflowFrontend {
+    fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .begin_batch_update(&mut cx, session_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "beginBatchUpdate")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id])?;
+            Ok(())
         });
         Ok(())
     }
-    fn end_batch_update(&mut self, session_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .end_batch_update(&mut cx, session_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "endBatchUpdate")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id])?;
+            Ok(())
         });
         Ok(())
     }
-    fn update_program(&mut self, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String> {
-        let frontend = self.frontend.clone();
-        let program = program.get_program().ast_data.to_vec();
+    fn update_program(self: &Arc<Self>, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String> {
+        let self2 = self.clone();
+        let program_ipc = program.get_program().ast_data.to_vec();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_program(&mut cx, session_id, program)
-                .or_else(|e| cx.throw_error(e))
-        });
-        Ok(())
-    }
-    fn update_task_graph(&mut self, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String> {
-        let frontend = self.frontend.clone();
-        let graph = graph.clone();
-        self.channel.send(move |mut cx| {
-            let graph_json = serde_json::to_string(graph.as_ref()).or_else(|e| cx.throw_error(e.to_string()))?;
-            frontend
-                .update_task_graph(&mut cx, session_id, &graph_json)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let mut data_buffer = JsArrayBuffer::new(&mut cx, program_ipc.len())?;
+            let data_slice = data_buffer.as_mut_slice(&mut cx);
+            data_slice.copy_from_slice(&program_ipc);
+            let data_buffer = data_buffer.as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgram")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, data_buffer])?;
+            Ok(())
         });
         Ok(())
     }
 
+    fn update_task_graph<'a>(self: &Arc<Self>, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String> {
+        let self2 = self.clone();
+        let graph_json = serde_json::to_string(graph.as_ref()).map_err(|e| e.to_string())?;
+        self.channel.send(move |mut cx| {
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let graph_json = JsString::new(&mut cx, &graph_json).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTaskGraph")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, graph_json])?;
+            Ok(())
+        });
+        Ok(())
+    }
     fn update_task_status(
-        &self,
+        self: &Arc<Self>,
         session_id: u32,
         task_id: u32,
         status: TaskStatusCode,
         error: Option<String>,
     ) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_task_status(&mut cx, session_id, task_id, status, error)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let task_id = JsNumber::new(&mut cx, task_id).as_value(&mut cx);
+            let status = JsNumber::new(&mut cx, status as u8).as_value(&mut cx);
+            let error = match error {
+                Some(value) => JsString::new(&mut cx, value).as_value(&mut cx),
+                None => cx.undefined().as_value(&mut cx),
+            };
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTaskStatus")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, task_id, status, error])?;
+            Ok(())
         });
         Ok(())
     }
-
-    fn delete_task_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .delete_task_state(&mut cx, session_id, state_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "deleteTaskState")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, state_id])?;
+            Ok(())
         });
         Ok(())
     }
-
-    fn update_input_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_input_state(&mut cx, session_id, state_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateInputState")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, state_id])?;
+            Ok(())
         });
         Ok(())
     }
-
-    fn update_import_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_import_state(&mut cx, session_id, state_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableState")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, state_id])?;
+            Ok(())
         });
         Ok(())
     }
-
-    fn update_table_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_table_state(&mut cx, session_id, state_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableState")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, state_id])?;
+            Ok(())
         });
         Ok(())
     }
-
-    fn update_visualization_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        let frontend = self.frontend.clone();
+    fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        let self2 = self.clone();
         self.channel.send(move |mut cx| {
-            frontend
-                .update_visualization_state(&mut cx, session_id, state_id)
-                .or_else(|e| cx.throw_error(e))
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateVisualizationState")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, state_id])?;
+            Ok(())
         });
         Ok(())
     }
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<WorkflowAPI>  = RefCell::new(WorkflowAPI::default());
+    static WORKFLOW_API: RefCell<WorkflowAPI<JsWorkflowFrontend>>  = RefCell::new(WorkflowAPI::default());
 }
 
 pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
-    let frontend = Arc::new(JsWorkflowFrontend {
-        value: cx.argument::<JsObject>(0)?.root(&mut cx),
-    });
-    let frontend_bridge: Box<dyn WorkflowFrontend> = Box::new(JsWorkflowFrontendBridge {
+    let frontend: Arc<JsWorkflowFrontend> = Arc::new(JsWorkflowFrontend {
+        inner: Arc::new(cx.argument::<JsObject>(0)?.root(&mut cx)),
         channel: cx.channel(),
-        frontend: frontend,
     });
     let session = WORKFLOW_API
         .with(|api_cell| {
             let mut api = api_cell.borrow_mut();
-            api.create_session(frontend_bridge)
+            api.create_session(frontend)
         })
         .or_else(|e| cx.throw_error(e))?;
     Ok(JsNumber::new(&mut cx, session))
@@ -263,12 +187,19 @@ pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
 
 pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
-    WORKFLOW_API
-        .with(|api_cell| {
-            let mut api = api_cell.borrow_mut();
-            api.close_session(session_id as u32)
-        })
-        .or_else(|e| cx.throw_error(e))?;
+    let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
+    WORKFLOW_API.with(|api_cell| {
+        let mut api = api_cell.borrow_mut();
+        if let Some(session) = api.release_session(session_id as u32) {
+            let session_lock = session.lock().unwrap();
+            session_lock.frontend.channel.send(|mut cx| {
+                let callback = callback.into_inner(&mut cx);
+                let this = cx.undefined();
+                callback.call(&mut cx, this, &[])?;
+                Ok(())
+            });
+        }
+    });
     Ok(cx.undefined())
 }
 

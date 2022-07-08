@@ -16,8 +16,8 @@ export module workflow {
             this.sessionId = sessionId;
             this.frontend = frontend;
         }
-        public close() {
-            dashql.workflow_close_session(this.sessionId);
+        public close(callback: () => void) {
+            dashql.workflow_close_session(this.sessionId, callback);
         }
         public updateProgram(text: string) {
             dashql.workflow_update_program(this.sessionId, text);

@@ -22,7 +22,7 @@ declare module '*/dist/node/dashql_core.node' {
     interface WorkflowFrontend {
         beginBatchUpdate(sessionId: number);
         endBatchUpdate(sessionId: number);
-        updateProgram(sessionId: number, buffer: Uint8Array);
+        updateProgram(sessionId: number, buffer: ArrayBuffer);
         updateTaskGraph(sessionId: number, graphJson: string);
         updateTaskStatus(sessionId: number, taskId: number, status: number, error: string | null);
         deleteTaskState(sessionId: number, stateId: number);
@@ -32,6 +32,6 @@ declare module '*/dist/node/dashql_core.node' {
     }
 
     function workflow_create_session(frontend: WorkflowFrontend): number;
-    function workflow_close_session(sessionId: number);
+    function workflow_close_session(sessionId: number, callback: () => void);
     function workflow_update_program(sessionId: number, text: string);
 }

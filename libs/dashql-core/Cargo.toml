@@ -38,7 +38,7 @@ tokio = { version = "1.19.2", features = ["rt", "macros"], optional = true }
 dashql-parser = { path = "../dashql-parser-sys", optional = true }
 
 # Node
-neon = { version = "0.10", features = ["napi-4", "channel-api"], default-features = false, optional = true }
+neon = { version = "0.10", features = ["napi-6", "channel-api"], default-features = false, optional = true }
 
 # Wasm
 wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"], optional = true }

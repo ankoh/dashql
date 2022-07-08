@@ -1,8 +1,6 @@
 const CONFIG = {
     // ESM preset, leaves js files as-is
     preset: 'ts-jest/presets/default-esm',
-    // Use custom jsdom environment
-    testEnvironment: '<rootDir>/__tests__/jsdom_env.ts',
     // Map module names
     moduleNameMapper: {
         // Map everything to src
@@ -14,10 +12,6 @@ const CONFIG = {
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
         // Remap react-router
         'react-router-dom': 'react-router-dom/react-router-dom.development.js',
-        // Jest does not read the export map
-        '@duckdb/duckdb-wasm': '@duckdb/duckdb-wasm/dist/duckdb-node.cjs',
-        '@dashql/dashql-core/node': '@dashql/dashql-core/dist/node/dashql_core.cjs',
-        '@dashql/dashql-core/wasm': '@dashql/dashql-core/dist/wasm/dashql_core.js',
     },
     // Module path ignore
     modulePathIgnorePatterns: ['<rootDir>/src/duckdb_bundles.ts'],
