@@ -1,9 +1,9 @@
 use crate::analyzer::program_instance::ProgramInstance;
-use crate::analyzer::task_planner::ProgramTask;
+use crate::analyzer::task_planner::Task;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::{FileImportInfo, HttpImportInfo, ImportInfo, TestImportInfo};
-use crate::execution::task::Task;
+use crate::execution::task::TaskOperator;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{ImportStatement, Statement};
 use async_trait::async_trait;
@@ -25,8 +25,8 @@ fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
 }
 
 impl<'ast> ImportTask<'ast> {
-    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast ProgramTask) -> Result<Self, SystemError> {
-        let stmt_id = task.origin_statement;
+    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast Task) -> Result<Self, SystemError> {
+        let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast ImportStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Import(i) => i,
             _ => return Err(SystemError::InvalidStatementType("expected import")),
@@ -36,7 +36,7 @@ impl<'ast> ImportTask<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> Task<'ast> for ImportTask<'ast> {
+impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

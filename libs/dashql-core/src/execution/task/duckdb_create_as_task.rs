@@ -1,21 +1,21 @@
 use crate::analyzer::program_instance::ProgramInstance;
-use crate::analyzer::task_planner::ProgramTask;
+use crate::analyzer::task_planner::Task;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::task::Task;
+use crate::execution::task::TaskOperator;
 use crate::external::database::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{CreateAsStatement, Statement};
 use async_trait::async_trait;
 
-pub struct DuckDBCreateAsTask<'ast> {
+pub struct DuckDBCreateAsTaskOperator<'ast> {
     statement: &'ast CreateAsStatement<'ast>,
     connection: Option<DatabaseConnection>,
 }
 
-impl<'ast> DuckDBCreateAsTask<'ast> {
-    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast ProgramTask) -> Result<Self, SystemError> {
-        let stmt_id = task.origin_statement;
+impl<'ast> DuckDBCreateAsTaskOperator<'ast> {
+    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast Task) -> Result<Self, SystemError> {
+        let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast CreateAsStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::CreateAs(s) => s,
             _ => return Err(SystemError::InvalidStatementType("expected create")),
@@ -28,7 +28,7 @@ impl<'ast> DuckDBCreateAsTask<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> Task<'ast> for DuckDBCreateAsTask<'ast> {
+impl<'ast> TaskOperator<'ast> for DuckDBCreateAsTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         self.connection = Some(ctx.base.database.connect().await?);
         Ok(())

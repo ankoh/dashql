@@ -1,12 +1,7 @@
-use crate::{
-    analyzer::task_planner::{TaskClass, TaskStatusCode},
-    error::SystemError,
-};
+use crate::{analyzer::task_planner::TaskStatusCode, error::SystemError};
 
 #[derive(Debug, Default)]
 pub struct TaskSchedulerLogEntry {
-    /// The task class
-    pub task_class: TaskClass,
     /// The task id
     pub task_id: usize,
     /// The task status
@@ -30,18 +25,16 @@ impl TaskSchedulerLog {
             any_failed: false,
         }
     }
-    pub fn task_updated(&mut self, task_class: TaskClass, task_id: usize, status: TaskStatusCode) {
+    pub fn task_updated(&mut self, task_id: usize, status: TaskStatusCode) {
         self.entries.push(TaskSchedulerLogEntry {
-            task_class,
             task_id,
             status,
             error: None,
         });
         self.any_failed |= status == TaskStatusCode::Failed;
     }
-    pub fn task_failed(&mut self, task_class: TaskClass, task_id: usize, error: SystemError) {
+    pub fn task_failed(&mut self, task_id: usize, error: SystemError) {
         self.entries.push(TaskSchedulerLogEntry {
-            task_class,
             task_id,
             status: TaskStatusCode::Failed,
             error: Some(error),

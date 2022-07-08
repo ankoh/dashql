@@ -1,18 +1,21 @@
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
-        duckdb_create_as_task::DuckDBCreateAsTask,
-        duckdb_create_table_task::DuckDBCreateTableTask,
-        duckdb_create_view_task::DuckDBCreateViewTask,
-        Task,
-        {duckdb_load_task::DuckDBLoadTask, import_task::ImportTask, vega_visualize_task::VegaVisualizeTask},
+        duckdb_create_as_task::DuckDBCreateAsTaskOperator,
+        duckdb_create_table_task::DuckDBCreateTableTaskOperator,
+        duckdb_create_view_task::DuckDBCreateViewTaskOperator,
+        TaskOperator,
+        {
+            duckdb_load_task::DuckDBLoadTaskOperator, import_task::ImportTask,
+            vega_visualize_task::VegaVisualizeTaskOperator,
+        },
     },
     task_scheduler_log::TaskSchedulerLog,
 };
 use crate::{
     analyzer::{
         program_instance::ProgramInstance,
-        task_planner::{ProgramTask, ProgramTaskType, SetupTask, SetupTaskType, TaskClass, TaskGraph, TaskStatusCode},
+        task_planner::{Task, TaskGraph, TaskStatusCode, TaskType},
     },
     error::SystemError,
     utils::topological_sort::TopologicalSort,
@@ -22,10 +25,8 @@ use futures::StreamExt;
 pub struct TaskScheduler<'ast> {
     /// The program
     instance: &'ast ProgramInstance<'ast>,
-    /// The task class
-    task_class: TaskClass,
     /// The derived task logic
-    task_logic: Vec<Option<Box<dyn Task<'ast> + 'ast>>>,
+    task_logic: Vec<Option<Box<dyn TaskOperator<'ast> + 'ast>>>,
     /// The task alive
     task_alive: Vec<bool>,
     /// The task topology
@@ -34,85 +35,49 @@ pub struct TaskScheduler<'ast> {
     task_required_for: Vec<&'ast [usize]>,
 }
 
-fn translate_setup_task<'ast>(task: &SetupTask) -> Result<Option<Box<dyn Task<'ast>>>, SystemError> {
-    let logic = match task.task_type {
-        SetupTaskType::None => None,
-        SetupTaskType::DropBlob => todo!(),
-        SetupTaskType::DropInput => todo!(),
-        SetupTaskType::DropTable => todo!(),
-        SetupTaskType::DropView => todo!(),
-        SetupTaskType::DropViz => todo!(),
-        SetupTaskType::Unset => todo!(),
-    };
-    Ok(logic)
-}
-
-fn translate_program_task<'ast>(
+fn create_task_operator<'ast>(
     instance: &'ast ProgramInstance<'ast>,
-    task: &'ast ProgramTask,
-) -> Result<Option<Box<dyn Task<'ast> + 'ast>>, SystemError> {
-    let logic: Box<dyn Task<'ast>> = match task.task_type {
-        ProgramTaskType::None => return Ok(None),
-        ProgramTaskType::CreateAs => Box::new(DuckDBCreateAsTask::create(instance, task)?),
-        ProgramTaskType::CreateTable => Box::new(DuckDBCreateTableTask::create(instance, task)?),
-        ProgramTaskType::CreateView => Box::new(DuckDBCreateViewTask::create(instance, task)?),
-        ProgramTaskType::CreateViz => Box::new(VegaVisualizeTask::create(instance, task)?),
-        ProgramTaskType::Import => Box::new(ImportTask::create(instance, task)?),
-        ProgramTaskType::Declare => todo!(),
-        ProgramTaskType::Load => Box::new(DuckDBLoadTask::create(instance, task)?),
-        ProgramTaskType::ModifyTable => todo!(),
-        ProgramTaskType::Set => todo!(),
-        ProgramTaskType::UpdateViz => todo!(),
+    task: &'ast Task,
+) -> Result<Option<Box<dyn TaskOperator<'ast> + 'ast>>, SystemError> {
+    let op: Box<dyn TaskOperator<'ast> + 'ast> = match task.task_type {
+        TaskType::None => todo!(),
+        TaskType::DropBlob => todo!(),
+        TaskType::DropInput => todo!(),
+        TaskType::DropTable => todo!(),
+        TaskType::DropView => todo!(),
+        TaskType::DropViz => todo!(),
+        TaskType::Unset => todo!(),
+        TaskType::CreateAs => Box::new(DuckDBCreateAsTaskOperator::create(instance, task)?),
+        TaskType::CreateTable => Box::new(DuckDBCreateTableTaskOperator::create(instance, task)?),
+        TaskType::CreateView => Box::new(DuckDBCreateViewTaskOperator::create(instance, task)?),
+        TaskType::CreateViz => Box::new(VegaVisualizeTaskOperator::create(instance, task)?),
+        TaskType::Import => Box::new(ImportTask::create(instance, task)?),
+        TaskType::Declare => todo!(),
+        TaskType::Load => Box::new(DuckDBLoadTaskOperator::create(instance, task)?),
+        TaskType::ModifyTable => todo!(),
+        TaskType::Set => todo!(),
+        TaskType::UpdateViz => todo!(),
     };
-    Ok(Some(logic))
+    Ok(Some(op))
 }
 
 impl<'ast> TaskScheduler<'ast> {
-    /// Create setup scheduler
-    pub fn schedule_setup(
-        program: &'ast ProgramInstance<'ast>,
-        task_graph: &'ast TaskGraph,
-    ) -> Result<Self, SystemError> {
-        let n = task_graph.setup_tasks.len();
+    pub fn schedule(instance: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Result<Self, SystemError> {
+        let n = task_graph.tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
         let mut alive = Vec::with_capacity(n);
         let mut required_for = Vec::with_capacity(n);
-        for (setup_id, setup_task) in task_graph.setup_tasks.iter().enumerate() {
-            topo.push((setup_id, setup_task.depends_on.len()));
-            alive.push(setup_task.task_status.get() == TaskStatusCode::Pending);
-            logic.push(translate_setup_task(setup_task)?);
-            required_for.push(setup_task.required_for.as_slice());
-        }
-        Ok(Self {
-            instance: program,
-            task_class: TaskClass::SetupTask,
-            task_logic: logic,
-            task_topology: TopologicalSort::new(topo),
-            task_alive: alive,
-            task_required_for: required_for,
-        })
-    }
-
-    /// Create program scheduler
-    pub fn schedule_program(
-        instance: &'ast ProgramInstance<'ast>,
-        task_graph: &'ast TaskGraph,
-    ) -> Result<Self, SystemError> {
-        let n = task_graph.setup_tasks.len();
-        let mut logic = Vec::with_capacity(n);
-        let mut topo = Vec::with_capacity(n);
-        let mut alive = Vec::with_capacity(n);
-        let mut required_for = Vec::with_capacity(n);
-        for (program_id, program_task) in task_graph.program_tasks.iter().enumerate() {
+        for (program_id, program_task) in task_graph.tasks.iter().enumerate() {
             topo.push((program_id, program_task.depends_on.len()));
-            logic.push(translate_program_task(instance, program_task)?);
-            alive.push(program_task.task_status.get() == TaskStatusCode::Pending);
+            logic.push(create_task_operator(instance, program_task)?);
+            alive.push(
+                program_task.task_status.load(std::sync::atomic::Ordering::SeqCst) == TaskStatusCode::Pending as u8,
+            );
             required_for.push(program_task.required_for.as_slice());
         }
         Ok(Self {
             instance,
-            task_class: TaskClass::ProgramTask,
             task_logic: logic,
             task_alive: alive,
             task_topology: TopologicalSort::new(topo),
@@ -123,7 +88,7 @@ impl<'ast> TaskScheduler<'ast> {
     /// Prepare a task
     async fn prepare_task<'snap, 'task>(
         task_id: usize,
-        task: &'task mut Box<dyn Task<'ast> + 'ast>,
+        task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
         match task.prepare(&mut snapshot).await {
@@ -135,7 +100,7 @@ impl<'ast> TaskScheduler<'ast> {
     /// Execute a task
     async fn execute_task<'snap, 'task>(
         task_id: usize,
-        task: &'task mut Box<dyn Task<'ast> + 'ast>,
+        task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
         match task.execute(&mut snapshot).await {
@@ -175,7 +140,7 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Prepare all tasks
         for task_id in task_ids.iter() {
-            log.task_updated(self.task_class, *task_id, TaskStatusCode::Preparing);
+            log.task_updated(*task_id, TaskStatusCode::Preparing);
         }
         log.flush().await;
         let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
@@ -194,11 +159,11 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
-                    log.task_updated(self.task_class, task_id, TaskStatusCode::Prepared);
+                    log.task_updated(task_id, TaskStatusCode::Prepared);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
-                    log.task_failed(self.task_class, task_id, e);
+                    log.task_failed(task_id, e);
                 }
             };
             log.flush().await;
@@ -211,7 +176,7 @@ impl<'ast> TaskScheduler<'ast> {
         // Execute all tasks
         for task_id in task_ids.iter() {
             if self.task_alive[*task_id] {
-                log.task_updated(self.task_class, *task_id, TaskStatusCode::Executing);
+                log.task_updated(*task_id, TaskStatusCode::Executing);
             }
         }
         log.flush().await;
@@ -231,11 +196,11 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
-                    log.task_updated(self.task_class, task_id, TaskStatusCode::Completed);
+                    log.task_updated(task_id, TaskStatusCode::Completed);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
-                    log.task_failed(self.task_class, task_id, e);
+                    log.task_failed(task_id, e);
                 }
             };
             log.flush().await;
@@ -252,52 +217,6 @@ impl<'ast> TaskScheduler<'ast> {
         }
 
         let work_left = !self.task_topology.is_empty();
-        Ok(work_left)
-    }
-}
-
-#[derive(PartialEq, Eq)]
-enum TaskGraphSchedulerPhase {
-    SetupTasks,
-    ProgramTasks,
-}
-
-pub struct TaskGraphScheduler<'ast> {
-    /// The program
-    _program: &'ast ProgramInstance<'ast>,
-    /// The task graph
-    _task_graph: &'ast TaskGraph,
-    /// The setup tasks
-    setup_scheduler: TaskScheduler<'ast>,
-    /// The program tasks
-    program_scheduler: TaskScheduler<'ast>,
-    /// The scheduler phase
-    current_phase: TaskGraphSchedulerPhase,
-}
-
-impl<'ast> TaskGraphScheduler<'ast> {
-    pub fn schedule(program: &'ast ProgramInstance<'ast>, graph: &'ast TaskGraph) -> Result<Self, SystemError> {
-        let setup_sched = TaskScheduler::schedule_setup(program, graph)?;
-        let program_sched = TaskScheduler::schedule_program(program, graph)?;
-        Ok(Self {
-            _program: program,
-            _task_graph: graph,
-            setup_scheduler: setup_sched,
-            program_scheduler: program_sched,
-            current_phase: TaskGraphSchedulerPhase::SetupTasks,
-        })
-    }
-
-    pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
-        let scheduler = match self.current_phase {
-            TaskGraphSchedulerPhase::ProgramTasks => &mut self.program_scheduler,
-            TaskGraphSchedulerPhase::SetupTasks => &mut self.setup_scheduler,
-        };
-        let mut work_left = scheduler.next(log).await?;
-        if !work_left && self.current_phase == TaskGraphSchedulerPhase::SetupTasks {
-            work_left = true;
-            self.current_phase = TaskGraphSchedulerPhase::ProgramTasks;
-        }
         Ok(work_left)
     }
 }
@@ -337,7 +256,7 @@ mod test {
         let task_graph = plan_tasks(&instance, None)?;
 
         // Run the scheduler
-        let mut task_scheduler = TaskGraphScheduler::schedule(&instance, &task_graph)?;
+        let mut task_scheduler = TaskScheduler::schedule(&instance, &task_graph)?;
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
             let work_left = task_scheduler.next(&mut scheduler_log).await?;

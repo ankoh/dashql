@@ -1,10 +1,10 @@
 use crate::analyzer::program_instance::ProgramInstance;
-use crate::analyzer::task_planner::ProgramTask;
+use crate::analyzer::task_planner::Task;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::ImportInfo;
 use crate::execution::load_info::{CsvLoadInfo, JsonLoadInfo, LoadInfo, ParquetLoadInfo};
-use crate::execution::task::Task;
+use crate::execution::task::TaskOperator;
 use crate::external::database::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
@@ -12,14 +12,14 @@ use async_trait::async_trait;
 use dashql_proto as proto;
 use proto::LoadMethodType;
 
-pub struct DuckDBLoadTask<'ast> {
+pub struct DuckDBLoadTaskOperator<'ast> {
     statement: &'ast LoadStatement<'ast>,
     connection: Option<DatabaseConnection>,
 }
 
-impl<'ast> DuckDBLoadTask<'ast> {
-    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast ProgramTask) -> Result<Self, SystemError> {
-        let stmt_id = task.origin_statement;
+impl<'ast> DuckDBLoadTaskOperator<'ast> {
+    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast Task) -> Result<Self, SystemError> {
+        let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast LoadStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Load(l) => l,
             _ => return Err(SystemError::InvalidStatementType("expected load")),
@@ -66,7 +66,7 @@ impl<'ast> DuckDBLoadTask<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> Task<'ast> for DuckDBLoadTask<'ast> {
+impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         self.connection = Some(ctx.base.database.connect().await?);
         Ok(())

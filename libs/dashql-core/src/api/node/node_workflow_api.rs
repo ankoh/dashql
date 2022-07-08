@@ -3,7 +3,7 @@ use std::{cell::RefCell, sync::Arc};
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode},
+    analyzer::task_planner::{TaskGraph, TaskStatusCode},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     grammar::ProgramContainer,
 };
@@ -52,35 +52,28 @@ impl JsWorkflowFrontend {
         &self,
         cx: &mut impl Context<'a>,
         session_id: u32,
-        graph: &TaskGraph,
+        graph_json: &str,
     ) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let data = serde_json::to_string(&graph).map_err(|e| e.to_string())?;
-        let data = JsString::new(cx, data).as_value(cx);
-        self.call_method(cx, "updateTaskGraph", &[session_id, data])
+        let graph_json = JsString::new(cx, graph_json).as_value(cx);
+        self.call_method(cx, "updateTaskGraph", &[session_id, graph_json])
     }
     pub fn update_task_status<'a>(
         &self,
         cx: &mut impl Context<'a>,
         session_id: u32,
-        task_class: TaskClass,
         task_id: u32,
         status: TaskStatusCode,
         error: Option<JsValue>,
     ) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        let task_class = JsNumber::new(cx, task_class as u8).as_value(cx);
         let task_id = JsNumber::new(cx, task_id).as_value(cx);
         let status = JsNumber::new(cx, status as u8).as_value(cx);
         let error = match error {
             Some(value) => value.as_value(cx),
             None => cx.undefined().as_value(cx),
         };
-        self.call_method(
-            cx,
-            "updateTaskStatus",
-            &[session_id, task_class, task_id, status, error],
-        )
+        self.call_method(cx, "updateTaskStatus", &[session_id, task_id, status, error])
     }
     pub fn delete_task_state<'a>(
         &self,
@@ -169,6 +162,14 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         Ok(())
     }
     fn update_task_graph(&mut self, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String> {
+        let frontend = self.frontend.clone();
+        let graph = graph.clone();
+        self.channel.send(move |mut cx| {
+            let graph_json = serde_json::to_string(graph.as_ref()).or_else(|e| cx.throw_error(e.to_string()))?;
+            frontend
+                .update_task_graph(&mut cx, session_id, &graph_json)
+                .or_else(|e| cx.throw_error(e))
+        });
         todo!()
     }
 
