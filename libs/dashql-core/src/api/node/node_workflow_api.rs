@@ -64,13 +64,13 @@ impl JsWorkflowFrontend {
         session_id: u32,
         task_id: u32,
         status: TaskStatusCode,
-        error: Option<JsValue>,
+        error: Option<String>,
     ) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
         let task_id = JsNumber::new(cx, task_id).as_value(cx);
         let status = JsNumber::new(cx, status as u8).as_value(cx);
         let error = match error {
-            Some(value) => value.as_value(cx),
+            Some(value) => JsString::new(cx, value).as_value(cx),
             None => cx.undefined().as_value(cx),
         };
         self.call_method(cx, "updateTaskStatus", &[session_id, task_id, status, error])
@@ -170,38 +170,73 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
                 .update_task_graph(&mut cx, session_id, &graph_json)
                 .or_else(|e| cx.throw_error(e))
         });
-        todo!()
+        Ok(())
     }
 
     fn update_task_status(
         &self,
         session_id: u32,
-        task_class: u32,
         task_id: u32,
-        status: u32,
+        status: TaskStatusCode,
         error: Option<String>,
     ) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_task_status(&mut cx, session_id, task_id, status, error)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 
     fn delete_task_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .delete_task_state(&mut cx, session_id, state_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 
     fn update_input_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_input_state(&mut cx, session_id, state_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 
     fn update_import_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_import_state(&mut cx, session_id, state_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 
     fn update_table_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_table_state(&mut cx, session_id, state_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 
     fn update_visualization_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
-        todo!()
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_visualization_state(&mut cx, session_id, state_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
     }
 }
 

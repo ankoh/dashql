@@ -3,7 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{analyzer::task_planner::TaskGraph, grammar::ProgramContainer};
+use crate::{
+    analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
+    grammar::ProgramContainer,
+};
 
 pub type WorkflowSessionId = u32;
 
@@ -38,9 +41,8 @@ pub trait WorkflowFrontend {
     fn update_task_status(
         &self,
         session_id: u32,
-        task_class: u32,
         task_id: u32,
-        status: u32,
+        status: TaskStatusCode,
         error: Option<String>,
     ) -> Result<(), String>;
     fn delete_task_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String>;
