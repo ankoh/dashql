@@ -20,4 +20,4 @@ beforeAll(async () => {
 afterAll(async () => {
     await DUCKDB_WASM.reset();
     await DUCKDB_WASM.terminate();
-});
+}, 20000);
