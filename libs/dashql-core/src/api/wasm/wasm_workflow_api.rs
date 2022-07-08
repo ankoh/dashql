@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
 
 use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
 
-use crate::api::workflow_api::WorkflowFrontend;
+use crate::api::workflow_api::{WorkflowAPI, WorkflowFrontend};
 
 #[wasm_bindgen]
 extern "C" {
@@ -107,9 +107,18 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
     }
 }
 
+thread_local! {
+    static WORKFLOW_API: RefCell<WorkflowAPI<JsWorkflowFrontendBridge>>  = RefCell::new(WorkflowAPI::default());
+}
+
 #[wasm_bindgen(js_name = "createWorkflowSession")]
 pub async fn create_session(frontend: JsWorkflowFrontend) -> Result<u32, JsValue> {
-    Ok(42)
+    let frontend = Arc::new(JsWorkflowFrontendBridge { inner: frontend });
+    let session = WORKFLOW_API.with(|api_cell| {
+        let mut api = api_cell.borrow_mut();
+        api.create_session(frontend)
+    })?;
+    Ok(session)
 }
 
 #[wasm_bindgen(js_name = "closeWorkflowSession")]
@@ -118,6 +127,12 @@ pub async fn close_session(session_id: u32) -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen(js_name = "runWorkflowQuery")]
-pub async fn updateProgram(session_id: u32, text: String) -> Result<Uint8Array, JsValue> {
-    Ok(Uint8Array::new_with_length(0))
+pub async fn updateProgram(session_id: u32, text: String) -> Result<(), JsValue> {
+    let session_mtx = match WORKFLOW_API.with(|api_cell| api_cell.borrow().get_session(session_id as u32)) {
+        Some(session) => session,
+        None => return Err(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_guard = session_mtx.lock().expect("cannot lock session");
+    session_guard.update_program(&text)?;
+    Ok(())
 }
