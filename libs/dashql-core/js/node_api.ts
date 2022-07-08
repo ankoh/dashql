@@ -7,6 +7,29 @@ export module parser {
     }
 }
 
+export module workflow {
+    export class WorkflowSession {
+        public sessionId: number;
+        public frontend: dashql.WorkflowFrontend;
+
+        constructor(sessionId: number, frontend: dashql.WorkflowFrontend) {
+            this.sessionId = sessionId;
+            this.frontend = frontend;
+        }
+        public close() {
+            dashql.workflow_close_session(this.sessionId);
+        }
+        public updateProgram(text: string) {
+            dashql.workflow_update_program(this.sessionId, text);
+        }
+    }
+
+    export function createSession(workflow: dashql.WorkflowFrontend): WorkflowSession {
+        const sessionId = dashql.workflow_create_session(workflow);
+        return new WorkflowSession(sessionId, workflow);
+    }
+}
+
 export module database {
     export function openInMemory() {
         const db = dashql.database_open_in_memory();

@@ -18,4 +18,20 @@ declare module '*/dist/node/dashql_core.node' {
     ): Promise<DatabaseBuffer>;
     function database_buffer_access(buffer: DatabaseBuffer): ArrayBuffer;
     function database_buffer_delete(buffer: DatabaseBuffer): void;
+
+    interface WorkflowFrontend {
+        beginBatchUpdate(sessionId: number);
+        endBatchUpdate(sessionId: number);
+        updateProgram(sessionId: number, buffer: Uint8Array);
+        updateTaskGraph(sessionId: number, graphJson: string);
+        updateTaskStatus(sessionId: number, taskId: number, status: number, error: string | null);
+        deleteTaskState(sessionId: number, stateId: number);
+        updateInputState(sessionId: number, stateId: number);
+        updateTableState(sessionId: number, stateId: number);
+        updateVisualizationState(sessionId: number, stateId: number);
+    }
+
+    function workflow_create_session(frontend: WorkflowFrontend): number;
+    function workflow_close_session(sessionId: number);
+    function workflow_update_program(sessionId: number, text: string);
 }

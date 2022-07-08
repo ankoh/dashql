@@ -32,7 +32,7 @@ impl JsWorkflowFrontend {
     }
     pub fn end_batch_update<'a>(&self, cx: &mut impl Context<'a>, session_id: u32) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        self.call_method(cx, "beginBatchUpdate", &[session_id])
+        self.call_method(cx, "endBatchUpdate", &[session_id])
     }
     pub fn update_program<'a>(
         &self,
