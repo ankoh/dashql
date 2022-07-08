@@ -21,8 +21,9 @@ pub enum Statement<'arena> {
 
 #[derive(Clone)]
 pub struct Program<'arena> {
-    pub buffer: dashql_proto::Program<'arena>,
-    pub nodes: Vec<ASTNode<'arena>>,
+    pub ast_data: &'arena [u8],
+    pub ast_flat: dashql_proto::Program<'arena>,
+    pub ast_translated: Vec<ASTNode<'arena>>,
     pub statements: Vec<Statement<'arena>>,
 }
 
@@ -44,8 +45,8 @@ impl ProgramContainer {
         // Parse and deserialize the text
         let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
-        let ast = parse_into(&arena, &text)?;
-        let program = grammar::deserialize_ast(&arena, &text, ast).unwrap();
+        let (ast, ast_data) = parse_into(&arena, &text)?;
+        let program = grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap();
 
         // Now transmute the lifetimes
         let text_static = unsafe { std::mem::transmute::<&str, &'static str>(text) };

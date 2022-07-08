@@ -1,3 +1,5 @@
+mod workflow_api;
+
 #[cfg(feature = "node")]
 mod node;
 #[cfg(feature = "node")]

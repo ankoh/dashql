@@ -331,8 +331,8 @@ mod test {
         // Plan the program
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let program_ast = parse_into(&arena, script)?;
-        let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast).unwrap());
+        let (program_ast, program_data) = parse_into(&arena, script)?;
+        let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast, program_data).unwrap());
         let instance = analyze_program(context, script, program_ast, program, HashMap::new())?;
         let task_graph = plan_tasks(&instance, None)?;
 

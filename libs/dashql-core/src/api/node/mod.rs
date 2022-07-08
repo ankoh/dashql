@@ -8,5 +8,6 @@ use neon::prelude::*;
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
     node_database_api::export_database_api(&mut cx)?;
     node_parser_api::export_parser_api(&mut cx)?;
+    node_workflow_api::export_workflow_api(&mut cx)?;
     Ok(())
 }

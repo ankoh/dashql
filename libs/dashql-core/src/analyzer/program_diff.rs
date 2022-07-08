@@ -742,10 +742,10 @@ mod test {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast0 = parse_into(&arena, script0)?;
-        let ast1 = parse_into(&arena, script1)?;
-        let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0).unwrap());
-        let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1).unwrap());
+        let (ast0, ast0_data) = parse_into(&arena, script0)?;
+        let (ast1, ast1_data) = parse_into(&arena, script1)?;
+        let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0, ast0_data).unwrap());
+        let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1, ast1_data).unwrap());
         let mut ctx0 = ProgramInstance::new(context.clone(), script0, ast0, prog0, HashMap::new());
         let mut ctx1 = ProgramInstance::new(context, script1, ast1, prog1, HashMap::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);

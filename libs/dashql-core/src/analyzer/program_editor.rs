@@ -80,8 +80,8 @@ mod test {
         edits: &[EditOperation],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let ast = parse_into(&arena, text)?;
-        let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
+        let (ast, ast_data) = parse_into(&arena, text)?;
+        let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
         assert_eq!(prog.statements.len(), 1);
 
         let viz = match prog.statements[0] {

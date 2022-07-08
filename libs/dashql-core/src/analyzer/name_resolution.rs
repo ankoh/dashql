@@ -96,7 +96,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
         }
     }
     for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
-        let node_translated = ctx.program.nodes[node_id];
+        let node_translated = ctx.program.ast_translated[node_id];
         match node_proto.node_type() {
             proto::NodeType::OBJECT_SQL_COLUMN_REF => {
                 if let ASTNode::ColumnRef(name) = &node_translated {
@@ -161,8 +161,8 @@ mod test {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast = parse_into(&arena, script)?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
+        let (ast, ast_data) = parse_into(&arena, script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
         let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);

@@ -1,9 +1,15 @@
-use neon::prelude::*;
+use std::{cell::RefCell, sync::Arc};
 
-use crate::analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode};
+use neon::{prelude::*, types::buffer::TypedArray};
+
+use crate::{
+    analyzer::task_planner::{TaskClass, TaskGraph, TaskStatusCode},
+    api::workflow_api::{WorkflowAPI, WorkflowFrontend},
+    grammar::ProgramContainer,
+};
 
 struct JsWorkflowFrontend {
-    value: JsObject,
+    value: Root<JsObject>,
 }
 
 impl JsWorkflowFrontend {
@@ -13,17 +19,18 @@ impl JsWorkflowFrontend {
         method_name: &str,
         args: &[Handle<'a, JsValue>],
     ) -> Result<(), String> {
-        let method: Handle<JsFunction> = self.value.get(cx, method_name).map_err(|e| e.to_string())?;
-        let handle = self.value.as_value(cx);
+        let value = self.value.to_inner(cx);
+        let method: Handle<JsFunction> = value.get(cx, method_name).map_err(|e| e.to_string())?;
+        let handle = value.as_value(cx);
         method.call(cx, handle, args).map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    pub fn begin_batch_update<'a>(&self, cx: &mut FunctionContext<'a>, session_id: u32) -> Result<(), String> {
+    pub fn begin_batch_update<'a>(&self, cx: &mut impl Context<'a>, session_id: u32) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
         self.call_method(cx, "beginBatchUpdate", &[session_id])
     }
-    pub fn end_batch_update<'a>(&self, cx: &mut FunctionContext<'a>, session_id: u32) -> Result<(), String> {
+    pub fn end_batch_update<'a>(&self, cx: &mut impl Context<'a>, session_id: u32) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
         self.call_method(cx, "beginBatchUpdate", &[session_id])
     }
@@ -31,15 +38,15 @@ impl JsWorkflowFrontend {
         &self,
         cx: &mut impl Context<'a>,
         session_id: u32,
-        program_ipc: &mut [u8],
+        program_ipc: Vec<u8>,
     ) -> Result<(), String> {
         let session_id = JsNumber::new(cx, session_id).as_value(cx);
-        unsafe {
-            let program_ipc = std::mem::transmute::<&mut [u8], &'static mut [u8]>(program_ipc);
-            let program_buffer = JsArrayBuffer::external(cx, program_ipc);
-            let program_buffer = program_buffer.as_value(cx);
-            self.call_method(cx, "updateProgram", &[session_id, program_buffer])
-        }
+        let mut data_buffer = JsArrayBuffer::new(cx, program_ipc.len()).map_err(|e| e.to_string())?;
+        let data_slice = data_buffer.as_mut_slice(cx);
+        data_slice.copy_from_slice(&program_ipc);
+        let program_buffer = data_buffer.as_value(cx);
+        self.call_method(cx, "updateProgram", &[session_id, program_buffer])?;
+        Ok(())
     }
     pub fn update_task_graph<'a>(
         &self,
@@ -127,14 +134,123 @@ impl JsWorkflowFrontend {
     }
 }
 
-pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    Ok(cx.undefined())
+struct JsWorkflowFrontendBridge {
+    frontend: Arc<JsWorkflowFrontend>,
+    channel: Channel,
+}
+
+impl WorkflowFrontend for JsWorkflowFrontendBridge {
+    fn begin_batch_update(&mut self, session_id: u32) -> Result<(), String> {
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .begin_batch_update(&mut cx, session_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
+    }
+    fn end_batch_update(&mut self, session_id: u32) -> Result<(), String> {
+        let frontend = self.frontend.clone();
+        self.channel.send(move |mut cx| {
+            frontend
+                .end_batch_update(&mut cx, session_id)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
+    }
+    fn update_program(&mut self, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String> {
+        let frontend = self.frontend.clone();
+        let program = program.get_program().ast_data.to_vec();
+        self.channel.send(move |mut cx| {
+            frontend
+                .update_program(&mut cx, session_id, program)
+                .or_else(|e| cx.throw_error(e))
+        });
+        Ok(())
+    }
+    fn update_task_graph(&mut self, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String> {
+        todo!()
+    }
+
+    fn update_task_status(
+        &self,
+        session_id: u32,
+        task_class: u32,
+        task_id: u32,
+        status: u32,
+        error: Option<String>,
+    ) -> Result<(), String> {
+        todo!()
+    }
+
+    fn delete_task_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
+        todo!()
+    }
+
+    fn update_input_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
+        todo!()
+    }
+
+    fn update_import_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
+        todo!()
+    }
+
+    fn update_table_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
+        todo!()
+    }
+
+    fn update_visualization_state(&mut self, session_id: u32, state_id: u32) -> Result<(), String> {
+        todo!()
+    }
+}
+
+thread_local! {
+    static WORKFLOW_API: RefCell<WorkflowAPI>  = RefCell::new(WorkflowAPI::default());
+}
+
+pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
+    let frontend = Arc::new(JsWorkflowFrontend {
+        value: cx.argument::<JsObject>(0)?.root(&mut cx),
+    });
+    let frontend_bridge: Box<dyn WorkflowFrontend> = Box::new(JsWorkflowFrontendBridge {
+        channel: cx.channel(),
+        frontend: frontend,
+    });
+    let session = WORKFLOW_API
+        .with(|api_cell| {
+            let mut api = api_cell.borrow_mut();
+            api.create_session(frontend_bridge)
+        })
+        .or_else(|e| cx.throw_error(e))?;
+    Ok(JsNumber::new(&mut cx, session))
 }
 
 pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    WORKFLOW_API
+        .with(|api_cell| {
+            let mut api = api_cell.borrow_mut();
+            api.close_session(session_id as u32)
+        })
+        .or_else(|e| cx.throw_error(e))?;
     Ok(cx.undefined())
 }
 
 pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    let text = cx.argument::<JsString>(1)?.value(&mut cx);
+    let session_mtx = match WORKFLOW_API.with(|api_cell| api_cell.borrow().get_session(session_id as u32)) {
+        Some(session) => session,
+        None => cx.throw_error(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_guard = session_mtx.lock().expect("cannot lock session");
+    session_guard.update_program(&text).or_else(|e| cx.throw_error(e))?;
     Ok(cx.undefined())
+}
+
+pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
+    cx.export_function("workflow_create_session", create_session)?;
+    cx.export_function("workflow_close_session", close_session)?;
+    cx.export_function("workflow_update_program", update_program)?;
+    Ok(())
 }

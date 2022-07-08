@@ -59,8 +59,8 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             let mut dumps = Vec::new();
             let alloc = bumpalo::Bump::new();
             for dump in dump_file.dumps.iter() {
-                let ast = parse_into(&alloc, &dump.input)?;
-                let translated = match grammar::deserialize_ast(&arena, &dump.input, ast) {
+                let (ast, ast_data) = parse_into(&alloc, &dump.input)?;
+                let translated = match grammar::deserialize_ast(&arena, &dump.input, ast, ast_data) {
                     Ok(p) => Some(p),
                     Err(e) => {
                         warn!("{}", e);

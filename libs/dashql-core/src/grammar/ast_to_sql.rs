@@ -1463,13 +1463,13 @@ mod test {
 
     fn test_pipe(text: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let ast = parse_into(&arena, text)?;
+        let (ast, ast_data) = parse_into(&arena, text)?;
         assert!(
             ast.errors().is_none(),
             "{}",
             ast.errors().unwrap().get(0).message().unwrap_or_default()
         );
-        let prog = grammar::deserialize_ast(&arena, text, ast).unwrap();
+        let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
         assert_eq!(prog.statements.len(), 1);
 
         let writer_arena = bumpalo::Bump::new();

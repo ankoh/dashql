@@ -596,13 +596,14 @@ mod test {
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
-            let prev_ast = parse_into(&prev_arena, prev.script)?;
+            let (prev_ast, prev_ast_data) = parse_into(&prev_arena, prev.script)?;
             assert!(
                 prev_ast.errors().is_none(),
                 "{}",
                 prev_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
-            let prev_prog = Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast).unwrap());
+            let prev_prog =
+                Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast, prev_ast_data).unwrap());
             prev_instance = Some(analyze_program(
                 prev_context,
                 prev.script,
@@ -623,13 +624,14 @@ mod test {
         let next_arena = bumpalo::Bump::new();
         let next_context = ExecutionContext::create(settings, runtime, database_instance.clone(), &next_arena);
         let next_instance = {
-            let next_ast = parse_into(&next_arena, test.next.script)?;
+            let (next_ast, next_ast_data) = parse_into(&next_arena, test.next.script)?;
             assert!(
                 next_ast.errors().is_none(),
                 "{}",
                 next_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
-            let next_prog = Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast).unwrap());
+            let next_prog =
+                Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast, next_ast_data).unwrap());
             analyze_program(
                 next_context,
                 test.next.script,

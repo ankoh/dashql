@@ -152,7 +152,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let have = parse_into(&arena, have_input)?;
+                        let (have, have_buffer) = parse_into(&arena, have_input)?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
@@ -160,7 +160,7 @@ mod test {
                         // Compare output
                         assert_eq!(have_str, expected_str);
                         // Remember AST buffer
-                        ast_buffer = Some(have);
+                        ast_buffer = Some((have, have_buffer));
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::End(e))?;
                     }
@@ -178,11 +178,12 @@ mod test {
 
                         // Translate the ast
                         let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
-                        let ast = ast_buffer.as_ref().expect("expected ast buffer");
+                        let (ast, ast_data) = ast_buffer.as_ref().expect("expected ast buffer");
                         let translated = deserialize_ast(
                             &arena,
                             script_text.as_ref().expect("expected script text").as_str(),
                             *ast,
+                            ast_data,
                         )?;
                         assert_eq!(&format!("{:#?}", translated), &unescaped);
                     }
@@ -252,7 +253,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let have = parse_into(&arena, have_input)?;
+                        let (have, have_data) = parse_into(&arena, have_input)?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
@@ -261,7 +262,7 @@ mod test {
                         assert_eq!(have_str, expected_str);
 
                         // Deserialize the ast
-                        let program = deserialize_ast(&arena, have_input, have)?;
+                        let program = deserialize_ast(&arena, have_input, have, have_data)?;
 
                         // Print AST buffer
                         let mut printer = ScriptWriter::new();

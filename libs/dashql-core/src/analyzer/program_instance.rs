@@ -156,8 +156,8 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast = parse_into(&arena, test.script)?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast).unwrap());
+        let (ast, ast_data) = parse_into(&arena, test.script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast, ast_data).unwrap());
         let inst = analyze_program(context, test.script, ast, prog, test.input.clone())?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());

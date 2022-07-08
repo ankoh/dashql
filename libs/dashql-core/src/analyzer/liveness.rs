@@ -45,8 +45,8 @@ mod test {
     async fn test_liveness(script: &'static str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let ast = parse_into(&arena, script)?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast).unwrap());
+        let (ast, ast_data) = parse_into(&arena, script)?;
+        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
         let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);

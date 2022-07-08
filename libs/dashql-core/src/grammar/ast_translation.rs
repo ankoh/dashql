@@ -21,10 +21,11 @@ fn oom() -> ! {
 pub fn deserialize_ast<'a>(
     arena: &'a bumpalo::Bump,
     text: &'a str,
-    buffer: proto::Program<'a>,
+    ast_flat: proto::Program<'a>,
+    ast_data: &'a [u8],
 ) -> Result<Program<'a>, SystemError> {
-    let buffer_stmts = buffer.statements().unwrap_or_default();
-    let buffer_nodes = buffer.nodes().unwrap_or_default();
+    let buffer_stmts = ast_flat.statements().unwrap_or_default();
+    let buffer_nodes = ast_flat.nodes().unwrap_or_default();
 
     // Translate all nodes from left-to-right
     let mut nodes: Vec<ASTNode<'a>> = Vec::new();
@@ -1367,7 +1368,7 @@ pub fn deserialize_ast<'a>(
                     let k = proto::AttributeKey(buffer_nodes[children_begin + i].attribute_key());
                     let ks = if k.0 >= proto::AttributeKey::DSON_DYNAMIC_KEYS_.0 {
                         let ki = k.0 - proto::AttributeKey::DSON_DYNAMIC_KEYS_.0;
-                        let dson_keys = buffer.dson_keys().unwrap_or_default();
+                        let dson_keys = ast_flat.dson_keys().unwrap_or_default();
                         let dson_key = dson_keys[ki as usize];
                         DsonKey::Unknown(
                             &text[(dson_key.offset() as usize)..((dson_key.offset() + dson_key.length()) as usize)],
@@ -1411,8 +1412,9 @@ pub fn deserialize_ast<'a>(
         stmts.push(stmt);
     }
     Ok(Program {
-        buffer,
-        nodes,
+        ast_data,
+        ast_flat,
+        ast_translated: nodes,
         statements: stmts,
     })
 }

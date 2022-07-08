@@ -71,10 +71,10 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, String> {
 pub fn parse_into<'a>(
     alloc: &'a bumpalo::Bump,
     text: &str,
-) -> Result<proto::Program<'a>, Box<dyn Error + Send + Sync>> {
+) -> Result<(proto::Program<'a>, &'a [u8]), Box<dyn Error + Send + Sync>> {
     let buffer = parse(text)?;
     let copy = alloc.alloc_slice_copy(buffer.access());
-    Ok(flatbuffers::root::<proto::Program>(copy)?)
+    Ok((flatbuffers::root::<proto::Program>(copy)?, copy))
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -85,7 +85,7 @@ mod test {
     #[test]
     fn test_parser_call() -> Result<(), Box<dyn Error + Send + Sync>> {
         let alloc = bumpalo::Bump::new();
-        let program = super::parse_into(&alloc, "select 1;")?;
+        let (program, _program_buffer) = super::parse_into(&alloc, "select 1;")?;
         let stmts = program.statements().expect("must have statements");
         assert_eq!(stmts.len(), 1);
         assert_eq!(stmts.get(0).statement_type(), proto::StatementType::SELECT);
