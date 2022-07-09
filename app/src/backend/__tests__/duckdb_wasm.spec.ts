@@ -4,7 +4,7 @@ import * as test from '../../test';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
-describe('DuckDB', () => {
+describe('DuckDB Wasm', () => {
     let db: duckdb.AsyncDuckDB | null = null;
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
