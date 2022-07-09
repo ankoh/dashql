@@ -43,6 +43,7 @@ neon = { version = "0.10", features = ["napi-6", "channel-api"], default-feature
 # Wasm
 wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"], optional = true }
 wasm-bindgen-futures = { version = "0.4.24", optional = true }
+web-sys = { version = "0.3.58", optional = true }
 js-sys = { version = "0.3.51", optional = true }
 getrandom = { version = "0.2.6", features = ["js"], optional = true }
 
@@ -50,5 +51,5 @@ getrandom = { version = "0.2.6", features = ["js"], optional = true }
 tests = ['native']
 native = ['duckdbx-sys', 'dashql-parser', 'tokio']
 node = ['native', 'neon']
-wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures']
+wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures', 'web-sys']
 default = ['tests']

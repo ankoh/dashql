@@ -111,7 +111,7 @@ thread_local! {
     static WORKFLOW_API: RefCell<WorkflowAPI<JsWorkflowFrontendBridge>>  = RefCell::new(WorkflowAPI::default());
 }
 
-#[wasm_bindgen(js_name = "createWorkflowSession")]
+#[wasm_bindgen(js_name = "workflowCreateSession")]
 pub async fn create_session(frontend: JsWorkflowFrontend) -> Result<u32, JsValue> {
     let frontend = Arc::new(JsWorkflowFrontendBridge { inner: frontend });
     let session = WORKFLOW_API.with(|api_cell| {
@@ -121,13 +121,17 @@ pub async fn create_session(frontend: JsWorkflowFrontend) -> Result<u32, JsValue
     Ok(session)
 }
 
-#[wasm_bindgen(js_name = "closeWorkflowSession")]
+#[wasm_bindgen(js_name = "workflowCloseSession")]
 pub async fn close_session(session_id: u32) -> Result<(), JsValue> {
+    WORKFLOW_API.with(|api_cell| {
+        let mut api = api_cell.borrow_mut();
+        api.release_session(session_id)
+    });
     Ok(())
 }
 
-#[wasm_bindgen(js_name = "runWorkflowQuery")]
-pub async fn updateProgram(session_id: u32, text: String) -> Result<(), JsValue> {
+#[wasm_bindgen(js_name = "workflowUpdateProgram")]
+pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue> {
     let session_mtx = match WORKFLOW_API.with(|api_cell| api_cell.borrow().get_session(session_id as u32)) {
         Some(session) => session,
         None => return Err(format!("unknown session id: {}", session_id))?,
