@@ -455,7 +455,7 @@ mod test {
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
-    use crate::external::database::DatabaseClient;
+    use crate::external::database::Database;
     use crate::external::parser::parse_into;
     use crate::external::runtime;
     use crate::grammar;
@@ -476,8 +476,7 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = runtime::create();
-        let database = Arc::new(DatabaseClient::create().await?);
-        let database_instance = Arc::new(database.open_in_memory().await?);
+        let database_instance = Arc::new(Database::open_in_memory().await?);
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();

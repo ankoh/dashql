@@ -3,7 +3,7 @@ use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::external;
-use crate::external::database::{DatabaseClient, DatabaseInstance};
+use crate::external::database::Database;
 use crate::external::runtime;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
@@ -39,19 +39,18 @@ impl<'ast> ExecutionState<'ast> {
 pub struct ExecutionContext<'ast> {
     pub settings: Arc<ProgramAnalysisSettings>,
     pub runtime: Arc<dyn external::Runtime>,
-    pub database: Arc<DatabaseInstance>,
+    pub database: Arc<Database>,
     pub arena: &'ast bumpalo::Bump,
     pub state: Arc<RwLock<ExecutionState<'ast>>>,
 }
 
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
-        let db = DatabaseClient::create().await?;
-        let instance = db.open_in_memory().await?;
+        let database = Database::open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: runtime::create(),
-            database: Arc::new(instance),
+            database: Arc::new(database),
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),
         })
@@ -59,7 +58,7 @@ impl<'ast> ExecutionContext<'ast> {
     pub fn create(
         settings: Arc<ProgramAnalysisSettings>,
         runtime: Arc<dyn external::Runtime>,
-        database: Arc<DatabaseInstance>,
+        database: Arc<Database>,
         arena: &'ast bumpalo::Bump,
     ) -> Self {
         Self {

@@ -1,30 +1,18 @@
-use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
+use crate::{error::SystemError, utils::arrow_ipc::read_arrow_ipc_buffer};
 use duckdbx_sys;
 
-pub struct DatabaseClient {}
-
-impl DatabaseClient {
-    pub async fn create() -> Result<Self, String> {
-        Ok(Self {})
-    }
-    pub async fn open_in_memory(&self) -> Result<DatabaseInstance, String> {
-        duckdbx_sys::Database::open_in_memory().map(|db| DatabaseInstance { inner: db })
-    }
-}
-
-impl std::fmt::Debug for DatabaseClient {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatabaseClient").finish()
-    }
-}
-
-pub struct DatabaseInstance {
+pub struct Database {
     inner: duckdbx_sys::Database,
 }
 
-impl DatabaseInstance {
-    pub async fn connect(&self) -> Result<DatabaseConnection, String> {
-        self.inner.connect().map(|conn| DatabaseConnection { inner: conn })
+impl Database {
+    pub async fn open_in_memory() -> Result<Database, SystemError> {
+        let db = duckdbx_sys::Database::open_in_memory().map_err(|err| SystemError::Generic(err))?;
+        Ok(Database { inner: db })
+    }
+    pub async fn connect(&self) -> Result<DatabaseConnection, SystemError> {
+        let conn = self.inner.connect().map_err(|err| SystemError::Generic(err))?;
+        Ok(DatabaseConnection { inner: conn })
     }
     pub async fn close(&mut self) -> Result<(), String> {
         self.inner.close();
@@ -37,7 +25,7 @@ pub struct DatabaseConnection {
 }
 
 impl DatabaseConnection {
-    pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, String> {
+    pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
         let buffer = self.inner.run_query(text)?;
         read_arrow_ipc_buffer(buffer.access())
     }
@@ -47,13 +35,19 @@ impl DatabaseConnection {
     }
 }
 
-impl std::fmt::Debug for DatabaseInstance {
+impl std::fmt::Debug for Database {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatabaseInstance").finish()
+        f.debug_struct("Database").finish()
     }
 }
 
-impl Drop for DatabaseInstance {
+impl std::fmt::Debug for DatabaseConnection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseConnection").finish()
+    }
+}
+
+impl Drop for Database {
     fn drop(&mut self) {
         self.inner.close();
     }
