@@ -57,7 +57,7 @@ export class Parser {
         };
     }
 
-    parse(text: string): ResultBuffer {
+    async parse(text: string): Promise<ResultBuffer> {
         const textEncoded = encoder.encode(text);
         const textPtr = this.instanceExports.dashql_new_string(textEncoded.length);
         const resultPtr = this.instanceExports.dashql_new_result();

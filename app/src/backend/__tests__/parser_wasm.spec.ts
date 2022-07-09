@@ -22,7 +22,7 @@ describe('Wasm Parser', () => {
         wasi.start();
 
         const parser = new Parser(parserInstance);
-        const programData = parser.parse(`CREATE TABLE foo AS SELECT 42`);
+        const programData = await parser.parse(`CREATE TABLE foo AS SELECT 42`);
 
         const programBuffer = new flatbuffers.ByteBuffer(programData.getData());
         const program = proto.Program.getRootAsProgram(programBuffer);
