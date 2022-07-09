@@ -5,16 +5,16 @@ use std::thread;
 struct Database {
     inner: duckdbx_sys::Database,
 }
-struct Connection {
+struct DatabaseConnection {
     tx: mpsc::Sender<ConnectionMessage>,
 }
-struct Buffer {
+struct DatabaseBuffer {
     inner: duckdbx_sys::Buffer,
 }
 
 impl Finalize for Database {}
-impl Finalize for Connection {}
-impl Finalize for Buffer {}
+impl Finalize for DatabaseConnection {}
+impl Finalize for DatabaseBuffer {}
 
 type ConnectionCallback = Box<dyn FnOnce(&mut duckdbx_sys::Connection, &Channel) + Send>;
 enum ConnectionMessage {
@@ -37,7 +37,7 @@ impl Database {
         let db = duckdbx_sys::Database::open(&path).or_else(|e| cx.throw_error(e))?;
         Ok(cx.boxed(Database { inner: db }))
     }
-    pub fn connect(mut cx: FunctionContext) -> JsResult<JsBox<Connection>> {
+    pub fn connect(mut cx: FunctionContext) -> JsResult<JsBox<DatabaseConnection>> {
         let db = cx.argument::<JsBox<Database>>(0)?;
         let mut conn = db.inner.connect().or_else(|e| cx.throw_error(e))?;
         let (tx, rx) = mpsc::channel::<ConnectionMessage>();
@@ -50,20 +50,20 @@ impl Database {
                 }
             }
         });
-        Ok(cx.boxed(Connection { tx }))
+        Ok(cx.boxed(DatabaseConnection { tx }))
     }
 }
 
-impl Connection {
+impl DatabaseConnection {
     pub fn close(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let conn = cx.argument::<JsBox<Connection>>(0)?;
+        let conn = cx.argument::<JsBox<DatabaseConnection>>(0)?;
         conn.tx
             .send(ConnectionMessage::Close)
             .or_else(|e| cx.throw_error(e.to_string()))?;
         Ok(cx.undefined())
     }
     pub fn run_query(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let conn = cx.argument::<JsBox<Connection>>(0)?;
+        let conn = cx.argument::<JsBox<DatabaseConnection>>(0)?;
         let script = cx.argument::<JsString>(1)?.value(&mut cx);
         let on_success = cx.argument::<JsFunction>(2)?.root(&mut cx);
         let on_error = cx.argument::<JsFunction>(3)?.root(&mut cx);
@@ -72,7 +72,7 @@ impl Connection {
                 channel.send(move |mut cx| {
                     let on_success = on_success.into_inner(&mut cx);
                     let this = cx.undefined();
-                    let args = vec![cx.boxed(Buffer { inner: res }).upcast()];
+                    let args = vec![cx.boxed(DatabaseBuffer { inner: res }).upcast()];
                     on_success.call(&mut cx, this, args)?;
                     Ok(())
                 });
@@ -94,16 +94,16 @@ impl Connection {
     }
 }
 
-impl Buffer {
+impl DatabaseBuffer {
     pub fn delete(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-        let buffer = cx.argument::<JsBox<Buffer>>(0)?;
+        let buffer = cx.argument::<JsBox<DatabaseBuffer>>(0)?;
         drop(buffer);
         Ok(cx.undefined())
     }
     pub fn access(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
         let buffer = cx
             .argument::<JsValue>(0)?
-            .downcast_or_throw::<JsBox<Buffer>, _>(&mut cx)?;
+            .downcast_or_throw::<JsBox<DatabaseBuffer>, _>(&mut cx)?;
         let data = unsafe { std::mem::transmute::<&mut [u8], &'static mut [u8]>(buffer.inner.access()) };
         Ok(JsArrayBuffer::external(&mut cx, data))
     }
@@ -114,9 +114,9 @@ pub fn export_database_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("database_open", Database::open)?;
     cx.export_function("database_close", Database::close)?;
     cx.export_function("database_connection_create", Database::connect)?;
-    cx.export_function("database_connection_close", Connection::close)?;
-    cx.export_function("database_run_query", Connection::run_query)?;
-    cx.export_function("database_buffer_access", Buffer::access)?;
-    cx.export_function("database_buffer_delete", Buffer::delete)?;
+    cx.export_function("database_connection_close", DatabaseConnection::close)?;
+    cx.export_function("database_run_query", DatabaseConnection::run_query)?;
+    cx.export_function("database_buffer_access", DatabaseBuffer::access)?;
+    cx.export_function("database_buffer_delete", DatabaseBuffer::delete)?;
     Ok(())
 }
