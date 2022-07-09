@@ -1,5 +1,6 @@
 use std::{cell::RefCell, sync::Arc};
 
+use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
@@ -211,7 +212,7 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     let mut session_guard = session_mtx.lock().expect("cannot lock session");
-    session_guard.update_program(&text).or_else(|e| cx.throw_error(e))?;
+    block_on(session_guard.update_program(&text)).or_else(|e| cx.throw_error(e))?;
     Ok(cx.undefined())
 }
 

@@ -80,8 +80,8 @@ impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
 {
-    pub fn update_program(&mut self, text: &str) -> Result<(), String> {
-        let program = Arc::new(ProgramContainer::parse(&text).map_err(|e| e.to_string())?);
+    pub async fn update_program(&mut self, text: &str) -> Result<(), String> {
+        let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
         // XXX plan the workflow
 
         self.frontend.begin_batch_update(self.session_id)?;

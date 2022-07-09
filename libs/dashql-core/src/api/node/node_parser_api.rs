@@ -1,9 +1,9 @@
-use crate::external;
+use dashql_parser::parse;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 pub fn parse_script(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
     let text = cx.argument::<JsString>(0)?.value(&mut cx);
-    let result = external::native::parser::parse(&text).or_else(|e| cx.throw_error(e))?;
+    let result = parse(&text).or_else(|e| cx.throw_error(e))?;
     let result_data = result.access();
     let buffer = JsArrayBuffer::new(&mut cx, result_data.len())
         .map(|mut buffer| {

@@ -490,7 +490,7 @@ mod test {
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
-            let (prev_ast, prev_ast_data) = parse_into(&prev_arena, prev.script)?;
+            let (prev_ast, prev_ast_data) = parse_into(&prev_arena, prev.script).await?;
             assert!(
                 prev_ast.errors().is_none(),
                 "{}",
@@ -517,7 +517,7 @@ mod test {
         let next_arena = bumpalo::Bump::new();
         let next_context = ExecutionContext::create(settings, runtime, database_instance.clone(), &next_arena);
         let next_instance = {
-            let (next_ast, next_ast_data) = parse_into(&next_arena, test.next.script)?;
+            let (next_ast, next_ast_data) = parse_into(&next_arena, test.next.script).await?;
             assert!(
                 next_ast.errors().is_none(),
                 "{}",

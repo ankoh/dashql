@@ -195,10 +195,10 @@ mod test {
     use quick_xml::Writer;
     use std::error::Error;
 
-    fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_grammar(text: &str, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let alloc = bumpalo::Bump::new();
         let mut writer = Writer::new_with_indent(Vec::new(), ' ' as u8, 4);
-        let (ast, _ast_buffer) = parse_into(&alloc, text)?;
+        let (ast, _ast_buffer) = parse_into(&alloc, text).await?;
         serialize_ast_as_xml(&mut writer, ast, text)?;
         let buffer = writer.into_inner();
         let xml_str = std::str::from_utf8(&buffer).expect("invalid utf8");
@@ -206,8 +206,8 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_select_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_grammar(
             "select 1;",
             r#"
@@ -228,10 +228,11 @@ mod test {
 <dson_keys/>
 "#,
         )
+        .await
     }
 
-    #[test]
-    fn test_select_1_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_select_1_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_grammar(
             "
             select 1;
@@ -268,5 +269,6 @@ mod test {
 <dson_keys/>
 "#,
         )
+        .await
     }
 }

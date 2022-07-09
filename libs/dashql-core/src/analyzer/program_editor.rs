@@ -74,13 +74,13 @@ mod test {
     use crate::grammar::{self, Statement};
     use std::error::Error;
 
-    fn test_viz_edits(
+    async fn test_viz_edits(
         text: &'static str,
         expected: &'static str,
         edits: &[EditOperation],
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let (ast, ast_data) = parse_into(&arena, text)?;
+        let (ast, ast_data) = parse_into(&arena, text).await?;
         let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
         assert_eq!(prog.statements.len(), 1);
 
@@ -100,8 +100,8 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_viz_position() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_viz_position() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_viz_edits(
             "viz foo using table",
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
@@ -111,7 +111,8 @@ mod test {
                 width: 10,
                 height: 3,
             })],
-        )?;
+        )
+        .await?;
         test_viz_edits(
             "viz foo using table (position = (row = 1, column = 0, width = 10, height = 3))",
             "viz foo using table (position = (row = 2, column = 0, width = 12, height = 4))",
@@ -121,7 +122,8 @@ mod test {
                 width: 12,
                 height: 4,
             })],
-        )?;
+        )
+        .await?;
         Ok(())
     }
 }

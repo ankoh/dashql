@@ -41,11 +41,11 @@ pub struct ProgramContainer {
 }
 
 impl ProgramContainer {
-    pub fn parse(text: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    pub async fn parse(text: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
         // Parse and deserialize the text
         let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
-        let (ast, ast_data) = parse_into(&arena, &text)?;
+        let (ast, ast_data) = parse_into(&arena, &text).await?;
         let program = grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap();
 
         // Now transmute the lifetimes

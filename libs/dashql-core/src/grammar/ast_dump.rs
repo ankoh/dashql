@@ -92,7 +92,7 @@ mod test {
 
     use super::super::ast_translation::deserialize_ast;
 
-    fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_ast_dump(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut arena = bumpalo::Bump::new();
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let dump_dir = base.join("dump").join("ast");
@@ -152,7 +152,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let (have, have_buffer) = parse_into(&arena, have_input)?;
+                        let (have, have_buffer) = parse_into(&arena, have_input).await?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
@@ -199,7 +199,7 @@ mod test {
         Ok(())
     }
 
-    fn test_ast_dump_2(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_ast_dump_2(name: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut arena = bumpalo::Bump::new();
         let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let dump_dir = base.join("dump").join("ast");
@@ -253,7 +253,7 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let (have, have_data) = parse_into(&arena, have_input)?;
+                        let (have, have_data) = parse_into(&arena, have_input).await?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
@@ -296,45 +296,45 @@ mod test {
 
     type ASTTestResult = Result<(), Box<dyn Error + Send + Sync>>;
 
-    #[test]
-    fn test_dashql_import() -> ASTTestResult {
-        test_ast_dump("dashql_import.xml")
+    #[tokio::test]
+    async fn test_dashql_import() -> ASTTestResult {
+        test_ast_dump("dashql_import.xml").await
     }
-    #[test]
-    fn test_dashql_declare() -> ASTTestResult {
-        test_ast_dump("dashql_declare.xml")
+    #[tokio::test]
+    async fn test_dashql_declare() -> ASTTestResult {
+        test_ast_dump("dashql_declare.xml").await
     }
-    #[test]
-    fn test_dashql_set() -> ASTTestResult {
-        test_ast_dump("dashql_set.xml")
+    #[tokio::test]
+    async fn test_dashql_set() -> ASTTestResult {
+        test_ast_dump("dashql_set.xml").await
     }
-    #[test]
-    fn test_dashql_statement() -> ASTTestResult {
-        test_ast_dump("dashql_statement.xml")
+    #[tokio::test]
+    async fn test_dashql_statement() -> ASTTestResult {
+        test_ast_dump("dashql_statement.xml").await
     }
-    #[test]
-    fn test_dashql_viz() -> ASTTestResult {
-        test_ast_dump("dashql_viz.xml")
+    #[tokio::test]
+    async fn test_dashql_viz() -> ASTTestResult {
+        test_ast_dump("dashql_viz.xml").await
     }
-    #[test]
-    fn test_scripts_demo() -> ASTTestResult {
-        test_ast_dump("scripts_demo.xml")
+    #[tokio::test]
+    async fn test_scripts_demo() -> ASTTestResult {
+        test_ast_dump("scripts_demo.xml").await
     }
-    #[test]
-    fn test_sql_create() -> ASTTestResult {
-        test_ast_dump("sql_create.xml")
+    #[tokio::test]
+    async fn test_sql_create() -> ASTTestResult {
+        test_ast_dump("sql_create.xml").await
     }
-    #[test]
-    fn test_sql_select() -> ASTTestResult {
-        test_ast_dump("sql_select.xml")
+    #[tokio::test]
+    async fn test_sql_select() -> ASTTestResult {
+        test_ast_dump("sql_select.xml").await
     }
-    #[test]
-    fn test_sql_view() -> ASTTestResult {
-        test_ast_dump("sql_view.xml")
+    #[tokio::test]
+    async fn test_sql_view() -> ASTTestResult {
+        test_ast_dump("sql_view.xml").await
     }
 
-    #[test]
-    fn test_dashql_import_2() -> ASTTestResult {
-        test_ast_dump_2("dashql_import.xml")
+    #[tokio::test]
+    async fn test_dashql_import_2() -> ASTTestResult {
+        test_ast_dump_2("dashql_import.xml").await
     }
 }

@@ -6,6 +6,7 @@ pub mod database {
     pub use super::wasm_database::{DatabaseClient, DatabaseConnection, DatabaseInstance};
 }
 pub mod parser {
+    pub use super::wasm_parser::parse;
     pub use super::wasm_parser::parse_into;
 }
 pub mod runtime {

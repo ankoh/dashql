@@ -1461,9 +1461,9 @@ mod test {
     use crate::grammar;
     use std::error::Error;
 
-    fn test_pipe(text: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_pipe(text: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
-        let (ast, ast_data) = parse_into(&arena, text)?;
+        let (ast, ast_data) = parse_into(&arena, text).await?;
         assert!(
             ast.errors().is_none(),
             "{}",
@@ -1481,163 +1481,164 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn test_expressions() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe(&r#"select a + b"#)?;
-        test_pipe(&r#"select a - b"#)?;
-        test_pipe(&r#"select a * b"#)?;
-        test_pipe(&r#"select a / b"#)?;
-        test_pipe(&r#"select a % b"#)?;
-        test_pipe(&r#"select a ^ b"#)?;
-        test_pipe(&r#"select a and b"#)?;
-        test_pipe(&r#"select a or b"#)?;
-        test_pipe(&r#"select a like b"#)?;
-        test_pipe(&r#"select a ilike b"#)?;
-        test_pipe(&r#"select a not like b"#)?;
-        test_pipe(&r#"select a not ilike b"#)?;
-        test_pipe(&r#"select not a and b"#)?;
-        test_pipe(&r#"select not a or b"#)?;
-        test_pipe(&r#"select not a + b"#)?;
-        test_pipe(&r#"select (a + b) * c"#)?;
-        test_pipe(&r#"select a * (b + c)"#)?;
-        test_pipe(&r#"select a + (b + c)"#)?;
-        test_pipe(&r#"select a + b * c"#)?;
-        test_pipe(&r#"select a + b and b + c and c + d"#)?;
+    #[tokio::test]
+    async fn test_expressions() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"select a + b"#).await?;
+        test_pipe(&r#"select a - b"#).await?;
+        test_pipe(&r#"select a * b"#).await?;
+        test_pipe(&r#"select a / b"#).await?;
+        test_pipe(&r#"select a % b"#).await?;
+        test_pipe(&r#"select a ^ b"#).await?;
+        test_pipe(&r#"select a and b"#).await?;
+        test_pipe(&r#"select a or b"#).await?;
+        test_pipe(&r#"select a like b"#).await?;
+        test_pipe(&r#"select a ilike b"#).await?;
+        test_pipe(&r#"select a not like b"#).await?;
+        test_pipe(&r#"select a not ilike b"#).await?;
+        test_pipe(&r#"select not a and b"#).await?;
+        test_pipe(&r#"select not a or b"#).await?;
+        test_pipe(&r#"select not a + b"#).await?;
+        test_pipe(&r#"select (a + b) * c"#).await?;
+        test_pipe(&r#"select a * (b + c)"#).await?;
+        test_pipe(&r#"select a + (b + c)"#).await?;
+        test_pipe(&r#"select a + b * c"#).await?;
+        test_pipe(&r#"select a + b and b + c and c + d"#).await?;
         Ok(())
     }
 
-    #[test]
-    fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("set 'foo' = 42")?;
+    #[tokio::test]
+    async fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("set 'foo' = 42").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_from() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("import foo from 'http://someremote'")?;
-        test_pipe("import foo from http (url = 'http://someremote')")?;
+    #[tokio::test]
+    async fn test_from() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("import foo from 'http://someremote'").await?;
+        test_pipe("import foo from http (url = 'http://someremote')").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_load() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("load a from b using json")?;
-        test_pipe("load a from b using csv")?;
-        test_pipe("load a from b using parquet")?;
-        test_pipe("load a from b using parquet ('someextra' = 'foo')")?;
+    #[tokio::test]
+    async fn test_load() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("load a from b using json").await?;
+        test_pipe("load a from b using csv").await?;
+        test_pipe("load a from b using parquet").await?;
+        test_pipe("load a from b using parquet ('someextra' = 'foo')").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_viz() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("viz a using table")?;
-        test_pipe("viz a using stacked bar chart")?;
-        test_pipe("viz a using stacked bar chart ('some' = 'config')")?;
-        test_pipe("viz a using clustered bar chart")?;
-        test_pipe("viz a using (mark = 'bar')")?;
-        test_pipe("viz a using (encoding = ('x' = ('some' = 'thing')), mark = 'bar')")?;
+    #[tokio::test]
+    async fn test_viz() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("viz a using table").await?;
+        test_pipe("viz a using stacked bar chart").await?;
+        test_pipe("viz a using stacked bar chart ('some' = 'config')").await?;
+        test_pipe("viz a using clustered bar chart").await?;
+        test_pipe("viz a using (mark = 'bar')").await?;
+        test_pipe("viz a using (encoding = ('x' = ('some' = 'thing')), mark = 'bar')").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_select() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("select 1")?;
-        test_pipe("select null")?;
-        test_pipe("select * from foo")?;
-        test_pipe("select * from only foo f")?;
-        test_pipe("select * from main.foo")?;
-        test_pipe("select f.g from main.foo f")?;
-        test_pipe("select * from A cross join B")?;
-        test_pipe("select * from A join B using (a, b)")?;
-        test_pipe("select * from A join B on a = b")?;
-        test_pipe("select * from A left join B on a = b")?;
-        test_pipe("select * from A left outer join B on a = b")?;
-        test_pipe("select * from A right join B on a = b")?;
-        test_pipe("select * from A right outer join B on a = b")?;
-        test_pipe("select * from A order by a")?;
-        test_pipe("select * from A order by a, b")?;
-        test_pipe("select * from A order by a asc")?;
-        test_pipe("select * from A order by a asc nulls first")?;
-        test_pipe("select * from A order by a desc")?;
-        test_pipe("select * from A order by a nulls first")?;
-        test_pipe("select * from A order by a asc nulls first, b desc")?;
-        test_pipe("select * from A order by a limit 10")?;
-        test_pipe("select * from A order by a limit 10 offset 10")?;
-        test_pipe("select * from A order by a limit all")?;
-        test_pipe("select 1 union select 2")?;
-        test_pipe("select 1 union all select 2")?;
-        test_pipe("select 1 union distinct select 2")?;
-        test_pipe("select 1 except select 2")?;
-        test_pipe("select 1 intersect select 2")?;
+    #[tokio::test]
+    async fn test_select() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("select 1").await?;
+        test_pipe("select null").await?;
+        test_pipe("select * from foo").await?;
+        test_pipe("select * from only foo f").await?;
+        test_pipe("select * from main.foo").await?;
+        test_pipe("select f.g from main.foo f").await?;
+        test_pipe("select * from A cross join B").await?;
+        test_pipe("select * from A join B using (a, b)").await?;
+        test_pipe("select * from A join B on a = b").await?;
+        test_pipe("select * from A left join B on a = b").await?;
+        test_pipe("select * from A left outer join B on a = b").await?;
+        test_pipe("select * from A right join B on a = b").await?;
+        test_pipe("select * from A right outer join B on a = b").await?;
+        test_pipe("select * from A order by a").await?;
+        test_pipe("select * from A order by a, b").await?;
+        test_pipe("select * from A order by a asc").await?;
+        test_pipe("select * from A order by a asc nulls first").await?;
+        test_pipe("select * from A order by a desc").await?;
+        test_pipe("select * from A order by a nulls first").await?;
+        test_pipe("select * from A order by a asc nulls first, b desc").await?;
+        test_pipe("select * from A order by a limit 10").await?;
+        test_pipe("select * from A order by a limit 10 offset 10").await?;
+        test_pipe("select * from A order by a limit all").await?;
+        test_pipe("select 1 union select 2").await?;
+        test_pipe("select 1 union all select 2").await?;
+        test_pipe("select 1 union distinct select 2").await?;
+        test_pipe("select 1 except select 2").await?;
+        test_pipe("select 1 intersect select 2").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_values() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe("values (1)")?;
-        test_pipe("values (1, 'foo')")?;
-        test_pipe("values (1), (2)")?;
-        test_pipe("values (1, 'foo'), (2, 'bar')")?;
+    #[tokio::test]
+    async fn test_values() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe("values (1)").await?;
+        test_pipe("values (1, 'foo')").await?;
+        test_pipe("values (1), (2)").await?;
+        test_pipe("values (1, 'foo'), (2, 'bar')").await?;
         Ok(())
     }
 
-    #[test]
-    fn test_linebreaks() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_linebreaks() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_pipe(
             &r#"viz a using table (
     position = (row = 0, column = 1, width = 10, height = 4),
     encoding = (x = ('foo' = 'bar'), y = ('foo' = 'bar2'))
 )"#,
-        )?;
+        )
+        .await?;
         Ok(())
     }
 
-    #[test]
-    fn create_table_as() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe(&r#"create table foo as (select 1)"#)?;
-        test_pipe(&r#"create temp table foo as (select 1)"#)?;
-        test_pipe(&r#"create global temp table foo as (select 1)"#)?;
-        test_pipe(&r#"create table if not exists foo as (select 1)"#)?;
-        test_pipe(&r#"create table if not exists foo on commit drop as (select 1)"#)?;
-        test_pipe(&r#"create table foo (a) as (select 1)"#)?;
-        test_pipe(&r#"create table foo (a, b) as (select 1, 2)"#)?;
+    #[tokio::test]
+    async fn create_table_as() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create table foo as (select 1)"#).await?;
+        test_pipe(&r#"create temp table foo as (select 1)"#).await?;
+        test_pipe(&r#"create global temp table foo as (select 1)"#).await?;
+        test_pipe(&r#"create table if not exists foo as (select 1)"#).await?;
+        test_pipe(&r#"create table if not exists foo on commit drop as (select 1)"#).await?;
+        test_pipe(&r#"create table foo (a) as (select 1)"#).await?;
+        test_pipe(&r#"create table foo (a, b) as (select 1, 2)"#).await?;
         Ok(())
     }
 
-    #[test]
-    fn creat_view() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe(&r#"create view foo as (select 1)"#)?;
-        test_pipe(&r#"create temp view foo as (select 1)"#)?;
-        test_pipe(&r#"create global temp view foo as (select 1)"#)?;
+    #[tokio::test]
+    async fn creat_view() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create view foo as (select 1)"#).await?;
+        test_pipe(&r#"create temp view foo as (select 1)"#).await?;
+        test_pipe(&r#"create global temp view foo as (select 1)"#).await?;
         Ok(())
     }
 
-    #[test]
-    fn create_table() -> Result<(), Box<dyn Error + Send + Sync>> {
-        test_pipe(&r#"create table foo ()"#)?;
-        test_pipe(&r#"create table foo (a integer)"#)?;
-        test_pipe(&r#"create table foo (a integer, b varchar)"#)?;
-        test_pipe(&r#"create table foo (a integer primary key, b varchar)"#)?;
-        test_pipe(&r#"create table foo (a varchar collate noaccent)"#)?;
-        test_pipe(&r#"create table foo (a varchar initially deferred)"#)?;
-        test_pipe(&r#"create table foo (a varchar deferrable)"#)?;
-        test_pipe(&r#"create table foo (a varchar not deferrable)"#)?;
-        test_pipe(&r#"create table foo (a varchar not null)"#)?;
-        test_pipe(&r#"create table foo (a varchar null)"#)?;
-        test_pipe(&r#"create table foo (a varchar check (a = 42))"#)?;
-        test_pipe(&r#"create table foo (a integer default 1)"#)?;
-        test_pipe(&r#"create table foo (a integer not null unique)"#)?;
-        test_pipe(&r#"create table foo (a bit(1))"#)?;
-        test_pipe(&r#"create table foo (a bool)"#)?;
-        test_pipe(&r#"create table foo (a float)"#)?;
-        test_pipe(&r#"create table foo (a double)"#)?;
-        test_pipe(&r#"create table foo (a time(2))"#)?;
-        test_pipe(&r#"create table foo (a char(20))"#)?;
-        test_pipe(&r#"create table foo (a numeric(12, 2))"#)?;
-        test_pipe(&r#"create table foo (a time with time zone)"#)?;
-        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#)?;
-        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a, b))"#)?;
-        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a), unique (b))"#)?;
+    #[tokio::test]
+    async fn create_table() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_pipe(&r#"create table foo ()"#).await?;
+        test_pipe(&r#"create table foo (a integer)"#).await?;
+        test_pipe(&r#"create table foo (a integer, b varchar)"#).await?;
+        test_pipe(&r#"create table foo (a integer primary key, b varchar)"#).await?;
+        test_pipe(&r#"create table foo (a varchar collate noaccent)"#).await?;
+        test_pipe(&r#"create table foo (a varchar initially deferred)"#).await?;
+        test_pipe(&r#"create table foo (a varchar deferrable)"#).await?;
+        test_pipe(&r#"create table foo (a varchar not deferrable)"#).await?;
+        test_pipe(&r#"create table foo (a varchar not null)"#).await?;
+        test_pipe(&r#"create table foo (a varchar null)"#).await?;
+        test_pipe(&r#"create table foo (a varchar check (a = 42))"#).await?;
+        test_pipe(&r#"create table foo (a integer default 1)"#).await?;
+        test_pipe(&r#"create table foo (a integer not null unique)"#).await?;
+        test_pipe(&r#"create table foo (a bit(1))"#).await?;
+        test_pipe(&r#"create table foo (a bool)"#).await?;
+        test_pipe(&r#"create table foo (a float)"#).await?;
+        test_pipe(&r#"create table foo (a double)"#).await?;
+        test_pipe(&r#"create table foo (a time(2))"#).await?;
+        test_pipe(&r#"create table foo (a char(20))"#).await?;
+        test_pipe(&r#"create table foo (a numeric(12, 2))"#).await?;
+        test_pipe(&r#"create table foo (a time with time zone)"#).await?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a))"#).await?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a, b))"#).await?;
+        test_pipe(&r#"create table foo (a integer, b varchar, primary key (a), unique (b))"#).await?;
         test_pipe(
             &r#"create table foo (
     a integer,
@@ -1646,7 +1647,8 @@ mod test {
     unique (b),
     foreign key (b) references c
 )"#,
-        )?;
+        )
+        .await?;
         test_pipe(
             &r#"create table foo (
     a integer,
@@ -1655,7 +1657,8 @@ mod test {
     unique (b),
     foreign key (b) references c on delete cascade
 )"#,
-        )?;
+        )
+        .await?;
         Ok(())
     }
 }

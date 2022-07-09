@@ -137,6 +137,6 @@ pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue
         None => return Err(format!("unknown session id: {}", session_id))?,
     };
     let mut session_guard = session_mtx.lock().expect("cannot lock session");
-    session_guard.update_program(&text)?;
+    session_guard.update_program(&text).await?;
     Ok(())
 }

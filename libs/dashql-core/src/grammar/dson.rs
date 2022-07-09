@@ -489,13 +489,13 @@ mod test {
     use std::error::Error;
     use std::rc::Rc;
 
-    #[test]
-    fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
+    #[tokio::test]
+    async fn test_set() -> Result<(), Box<dyn Error + Send + Sync>> {
         let text = r#"
             set 'key' = 42;
         "#;
         let arena = bumpalo::Bump::new();
-        let (ast, ast_data) = parse_into(&arena, text)?;
+        let (ast, ast_data) = parse_into(&arena, text).await?;
         let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
         assert_eq!(prog.statements.len(), 1);
 

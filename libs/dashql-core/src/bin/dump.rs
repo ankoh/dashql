@@ -6,6 +6,7 @@ use dashql_core::grammar::ast_dump::ASTDump;
 use dashql_core::grammar::ast_dump::ASTDumpTemplateFile;
 use dashql_core::utils::shared_writer::SharedWriter;
 use dashql_core::*;
+use futures::executor::block_on;
 use log::info;
 use log::warn;
 use quick_xml::Writer;
@@ -19,6 +20,10 @@ use std::path::PathBuf;
 use grammar::ast_dump::ASTDumpFile;
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    block_on(main_async())
+}
+
+async fn main_async() -> Result<(), Box<dyn Error + Send + Sync>> {
     let arena = bumpalo::Bump::new();
     env_logger::builder().filter_level(log::LevelFilter::Info).init();
 
@@ -59,7 +64,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             let mut dumps = Vec::new();
             let alloc = bumpalo::Bump::new();
             for dump in dump_file.dumps.iter() {
-                let (ast, ast_data) = parse_into(&alloc, &dump.input)?;
+                let (ast, ast_data) = parse_into(&alloc, &dump.input).await?;
                 let translated = match grammar::deserialize_ast(&arena, &dump.input, ast, ast_data) {
                     Ok(p) => Some(p),
                     Err(e) => {
