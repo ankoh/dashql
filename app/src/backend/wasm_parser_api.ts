@@ -9,6 +9,33 @@ interface ParserAPI {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+export class ResultBuffer {
+    parser: Parser;
+    resultPtr: number | null;
+    data: Uint8Array;
+
+    constructor(parser: Parser, resultPtr: number, data: Uint8Array) {
+        this.parser = parser;
+        this.resultPtr = resultPtr;
+        this.data = data;
+    }
+
+    delete() {
+        this.parser.instanceExports.dashql_delete_result(this.resultPtr);
+        this.resultPtr = null;
+    }
+
+    getDataCopy(): Uint8Array {
+        const copy = new Uint8Array(new ArrayBuffer(this.data.byteLength));
+        copy.set(this.data);
+        return copy;
+    }
+
+    getData(): Uint8Array {
+        return this.data;
+    }
+}
+
 export class Parser {
     instance: WebAssembly.Instance;
     instanceExports: ParserAPI;
@@ -30,7 +57,7 @@ export class Parser {
         };
     }
 
-    parse(text: string): Uint8Array {
+    parse(text: string): ResultBuffer {
         const textEncoded = encoder.encode(text);
         const textPtr = this.instanceExports.dashql_new_string(textEncoded.length);
         const resultPtr = this.instanceExports.dashql_new_result();
@@ -43,10 +70,7 @@ export class Parser {
         const dataPtr = this.heapU32[resultPtrU32 + 2];
         const dataArray = this.heapU8.subarray(dataPtr, dataPtr + dataLength);
         if (statusCode == 0) {
-            const copy = new Uint8Array(new ArrayBuffer(dataArray.byteLength));
-            copy.set(dataArray);
-            this.instanceExports.dashql_delete_result(resultPtr);
-            return copy;
+            return new ResultBuffer(this, resultPtr, dataArray);
         } else {
             const error = decoder.decode(dataArray);
             this.instanceExports.dashql_delete_result(resultPtr);

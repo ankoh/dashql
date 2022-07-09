@@ -24,9 +24,11 @@ describe('Wasm Parser', () => {
         const parser = new Parser(parserInstance);
         const programData = parser.parse(`CREATE TABLE foo AS SELECT 42`);
 
-        const programBuffer = new flatbuffers.ByteBuffer(programData);
+        const programBuffer = new flatbuffers.ByteBuffer(programData.getData());
         const program = proto.Program.getRootAsProgram(programBuffer);
         expect(program.errorsLength()).toEqual(0);
         expect(program.statementsLength()).toEqual(1);
+
+        programData.delete();
     });
 });
