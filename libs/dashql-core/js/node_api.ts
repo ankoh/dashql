@@ -8,32 +8,21 @@ export module parser {
 }
 
 export module workflow {
-    export class WorkflowSession {
-        public sessionId: number;
-        public frontend: dashql.WorkflowFrontend;
-
-        constructor(sessionId: number, frontend: dashql.WorkflowFrontend) {
-            this.sessionId = sessionId;
-            this.frontend = frontend;
-        }
-        public close(callback: () => void) {
-            dashql.workflow_close_session(this.sessionId, callback);
-        }
-        public updateProgram(text: string) {
-            dashql.workflow_update_program(this.sessionId, text);
-        }
-        public runQuery(text: string): Uint8Array {
-            const buffer = dashql.workflow_run_query(this.sessionId, text);
-            return new Uint8Array(buffer);
-        }
-    }
-
     export function configureDefault(): void {
         dashql.workflow_configure_default();
     }
-    export function createSession(workflow: dashql.WorkflowFrontend): WorkflowSession {
-        const sessionId = dashql.workflow_create_session(workflow);
-        return new WorkflowSession(sessionId, workflow);
+    export function createSession(workflow: dashql.WorkflowFrontend): number {
+        return dashql.workflow_create_session(workflow);
+    }
+    export function closeSession(sessionId: number, callback: () => void) {
+        dashql.workflow_close_session(sessionId, callback);
+    }
+    export function updateProgram(sessionId: number, text: string) {
+        dashql.workflow_update_program(sessionId, text);
+    }
+    export function runQuery(sessionId: number, text: string) {
+        const buffer = dashql.workflow_run_query(sessionId, text);
+        return new Uint8Array(buffer);
     }
 }
 

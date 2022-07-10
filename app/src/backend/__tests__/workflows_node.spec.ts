@@ -13,17 +13,17 @@ describe('Node Workflows', () => {
         frontend.updateProgram = jest.fn();
         const session = dashql.workflow.createSession(frontend);
 
-        session.updateProgram('create table foo as select 42');
+        dashql.workflow.updateProgram(session, 'create table foo as select 42');
 
-        const sessionClosed = new Promise((resolve, _) => session.close(() => resolve(null)));
+        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
         await sessionClosed;
 
-        expect(frontend.beginBatchUpdate).toHaveBeenCalledWith(session.sessionId);
-        expect(frontend.endBatchUpdate).toHaveBeenCalledWith(session.sessionId);
+        expect(frontend.beginBatchUpdate).toHaveBeenCalledWith(session);
+        expect(frontend.endBatchUpdate).toHaveBeenCalledWith(session);
         expect(frontend.updateProgram).toHaveBeenCalled();
 
         const args = frontend.updateProgram.mock.calls[0];
-        expect(args[0]).toEqual(session.sessionId);
+        expect(args[0]).toEqual(session);
         expect(args[1].byteLength).toBeGreaterThan(0);
 
         const buffer = new flatbuffers.ByteBuffer(new Uint8Array(args[1]));
@@ -35,7 +35,7 @@ describe('Node Workflows', () => {
     it('hello database', async () => {
         const frontend = {} as any;
         const session = dashql.workflow.createSession(frontend);
-        const query = session.runQuery('select 42::integer as v');
+        const query = dashql.workflow.runQuery(session, 'select 42::integer as v');
 
         const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
         expect(reader.isSync()).toBeTruthy();
@@ -45,7 +45,7 @@ describe('Node Workflows', () => {
         expect(rows.length).toEqual(1);
         expect(rows[0].v).toEqual(42);
 
-        const sessionClosed = new Promise((resolve, _) => session.close(() => resolve(null)));
+        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
         await sessionClosed;
     });
 });

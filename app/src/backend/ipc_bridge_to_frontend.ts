@@ -1,6 +1,6 @@
 import { TaskGraph } from 'src/model/task_graph';
 import { TaskStatusCode } from 'src/model/task_status';
-import { SessionId, StateId, TaskId, WorkflowFrontend } from './workflow_backend';
+import { SessionId, StateId, TaskId, WorkflowFrontend } from './backend';
 
 export type DatabaseID = number;
 export type ConnectionID = number;

@@ -1,5 +1,5 @@
 import { IpcRenderer } from 'electron';
-import { Backend, SessionId, WorkflowFrontend } from './workflow_backend';
+import { Backend, SessionId, WorkflowFrontend } from './backend';
 import { invokeIPCWorkflowFrontend, createIPCWorkflowFrontendBridge } from './ipc_bridge_to_frontend';
 import { IpcMain, WebContents } from 'electron';
 
