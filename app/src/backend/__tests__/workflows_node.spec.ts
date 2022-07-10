@@ -6,6 +6,8 @@ import { jest } from '@jest/globals';
 
 describe('Node Workflows', () => {
     it('hello workflows', async () => {
+        dashql.workflow.configureDefault();
+
         const frontend = {} as any;
         frontend.beginBatchUpdate = jest.fn();
         frontend.endBatchUpdate = jest.fn();

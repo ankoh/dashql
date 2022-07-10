@@ -6,6 +6,7 @@ use neon::{prelude::*, types::buffer::TypedArray};
 use crate::{
     analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
+    error::SystemError,
     grammar::ProgramContainer,
 };
 
@@ -169,7 +170,27 @@ impl WorkflowFrontend for JsWorkflowFrontend {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<WorkflowAPI<JsWorkflowFrontend>>  = RefCell::new(WorkflowAPI::default());
+    static WORKFLOW_API: RefCell<Option<WorkflowAPI<JsWorkflowFrontend>>>  = RefCell::new(None);
+}
+
+pub fn configure_default<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let workflow = block_on(WorkflowAPI::new()).or_else(|e| cx.throw_error(e.to_string()))?;
+    WORKFLOW_API.with(|api_cell| api_cell.replace(Some(workflow)));
+    Ok(cx.undefined())
+}
+
+fn with_api<F, R>(f: F) -> Result<R, SystemError>
+where
+    F: FnOnce(&mut WorkflowAPI<JsWorkflowFrontend>) -> Result<R, SystemError>,
+{
+    WORKFLOW_API.with(|api_cell| {
+        let mut api_opt = api_cell.borrow_mut();
+        let api = match api_opt.as_mut() {
+            Some(api) => api,
+            None => return Err(SystemError::Generic("workflow api not configured".to_string())),
+        };
+        Ok(f(api)?)
+    })
 }
 
 pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
@@ -177,20 +198,14 @@ pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
         inner: Arc::new(cx.argument::<JsObject>(0)?.root(&mut cx)),
         channel: cx.channel(),
     });
-    let session = WORKFLOW_API
-        .with(|api_cell| {
-            let mut api = api_cell.borrow_mut();
-            api.create_session(frontend)
-        })
-        .or_else(|e| cx.throw_error(e))?;
+    let session = with_api(|api| api.create_session(frontend)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(JsNumber::new(&mut cx, session))
 }
 
 pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
-    WORKFLOW_API.with(|api_cell| {
-        let mut api = api_cell.borrow_mut();
+    with_api(|api| {
         if let Some(session) = api.release_session(session_id as u32) {
             let session_lock = session.lock().unwrap();
             session_lock.frontend.channel.send(|mut cx| {
@@ -200,23 +215,28 @@ pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
                 Ok(())
             });
         }
-    });
+        Ok(())
+    })
+    .or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(cx.undefined())
 }
 
 pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let text = cx.argument::<JsString>(1)?.value(&mut cx);
-    let session_mtx = match WORKFLOW_API.with(|api_cell| api_cell.borrow().get_session(session_id as u32)) {
+    let maybe_session =
+        with_api(|api| Ok(api.get_session(session_id as u32))).or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = match maybe_session {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
-    let mut session_guard = session_mtx.lock().expect("cannot lock session");
-    block_on(session_guard.update_program(&text)).or_else(|e| cx.throw_error(e))?;
+    let mut session_lock = session.lock().expect("cannot lock session");
+    block_on(session_lock.update_program(&text)).or_else(|e| cx.throw_error(e))?;
     Ok(cx.undefined())
 }
 
 pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
+    cx.export_function("workflow_configure_default", configure_default)?;
     cx.export_function("workflow_create_session", create_session)?;
     cx.export_function("workflow_close_session", close_session)?;
     cx.export_function("workflow_update_program", update_program)?;

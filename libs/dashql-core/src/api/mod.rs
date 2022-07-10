@@ -1,6 +1,4 @@
 #[cfg(any(feature = "node", feature = "wasm"))]
-mod database_api;
-#[cfg(any(feature = "node", feature = "wasm"))]
 mod workflow_api;
 
 #[cfg(feature = "node")]

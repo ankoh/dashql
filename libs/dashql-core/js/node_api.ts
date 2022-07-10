@@ -24,6 +24,9 @@ export module workflow {
         }
     }
 
+    export function configureDefault(): void {
+        dashql.workflow_configure_default();
+    }
     export function createSession(workflow: dashql.WorkflowFrontend): WorkflowSession {
         const sessionId = dashql.workflow_create_session(workflow);
         return new WorkflowSession(sessionId, workflow);

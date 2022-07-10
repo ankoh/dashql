@@ -21,12 +21,7 @@ pub struct WasmDatabase {
 }
 
 fn map_result<T>(result: Result<T, js_sys::Error>) -> Result<T, SystemError> {
-    result.map_err(|e| {
-        let msg = js_sys::JSON::stringify(&e)
-            .map(|s| s.as_string().unwrap_or_default())
-            .unwrap_or_default();
-        SystemError::Generic(msg)
-    })
+    result.map_err(|e| SystemError::Generic(e.message().to_string().as_string().unwrap_or_default()))
 }
 
 impl WasmDatabase {
@@ -34,9 +29,9 @@ impl WasmDatabase {
         let db = DUCKDB.with(|db| db.borrow().clone());
         let db = match db {
             Some(db) => db,
-            None => return Err(SystemError::Generic("database not linked".to_string())),
+            None => return Err(SystemError::Generic("duckdb not linked".to_string())),
         };
-        map_result(db.open("").await)?;
+        map_result(db.open(None).await)?;
         Ok(WasmDatabase { db })
     }
 }

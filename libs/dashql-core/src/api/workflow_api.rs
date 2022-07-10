@@ -5,6 +5,8 @@ use std::{
 
 use crate::{
     analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
+    error::SystemError,
+    external::{database::open_in_memory, Database},
     grammar::ProgramContainer,
 };
 
@@ -14,30 +16,32 @@ pub struct WorkflowAPI<WF>
 where
     WF: WorkflowFrontend,
 {
+    default_database: Arc<Mutex<dyn Database>>,
     next_session_id: u32,
     sessions: HashMap<WorkflowSessionId, Arc<Mutex<WorkflowSession<WF>>>>,
-}
-
-impl<WF> Default for WorkflowAPI<WF>
-where
-    WF: WorkflowFrontend,
-{
-    fn default() -> Self {
-        Self {
-            next_session_id: Default::default(),
-            sessions: Default::default(),
-        }
-    }
 }
 
 impl<WF> WorkflowAPI<WF>
 where
     WF: WorkflowFrontend,
 {
-    pub fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, String> {
+    pub async fn new() -> Result<Self, SystemError> {
+        let database = open_in_memory().await?;
+        Ok(WorkflowAPI {
+            default_database: Arc::new(Mutex::new(database)),
+            next_session_id: 1,
+            sessions: HashMap::new(),
+        })
+    }
+
+    pub fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, SystemError> {
         let session_id = self.next_session_id;
         self.next_session_id += 1;
-        let session = Arc::new(Mutex::new(WorkflowSession { session_id, frontend }));
+        let session = Arc::new(Mutex::new(WorkflowSession {
+            session_id,
+            frontend,
+            database: self.default_database.clone(),
+        }));
         self.sessions.insert(session_id, session);
         Ok(session_id)
     }
@@ -74,6 +78,8 @@ where
 {
     session_id: WorkflowSessionId,
     pub frontend: Arc<WF>,
+    #[allow(dead_code)]
+    database: Arc<Mutex<dyn Database>>,
 }
 
 impl<WF> WorkflowSession<WF>

@@ -31,6 +31,7 @@ declare module '*/dist/node/dashql_core.node' {
         updateVisualizationState(sessionId: number, stateId: number);
     }
 
+    function workflow_configure_default(): void;
     function workflow_create_session(frontend: WorkflowFrontend): number;
     function workflow_close_session(sessionId: number, callback: () => void);
     function workflow_update_program(sessionId: number, text: string);

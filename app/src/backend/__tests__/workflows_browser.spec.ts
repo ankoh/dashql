@@ -1,5 +1,7 @@
 import fs from 'fs';
 import { init as initWASI, WASI } from '@wasmer/wasi';
+import * as test from '../../test';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as dashql from '@dashql/dashql-core/wasm';
 import * as proto from '@dashql/dashql-proto';
 import * as flatbuffers from 'flatbuffers';
@@ -27,6 +29,12 @@ async function initParser(): Promise<Parser> {
 }
 
 describe('Wasm Workflows', () => {
+    let db: duckdb.AsyncDuckDB | null = null;
+
+    beforeAll(async () => {
+        db = test.DUCKDB_WASM;
+    });
+
     it('hello workflows', async () => {
         const frontend = {} as any;
         frontend.beginBatchUpdate = jest.fn();
@@ -38,7 +46,9 @@ describe('Wasm Workflows', () => {
 
         const parser = await initParser();
         dashql.linkParser(parser);
+        dashql.linkDuckDB(db);
 
+        await dashql.workflowConfigureDefault();
         const session = await dashql.workflowCreateSession(frontend);
         await dashql.workflowUpdateProgram(session, 'create table foo as select 42');
         await dashql.workflowCloseSession(session);
