@@ -6,6 +6,23 @@ import * as flatbuffers from 'flatbuffers';
 import { jest } from '@jest/globals';
 
 describe('Node Workflows', () => {
+    it('hello database', async () => {
+        const frontend = {} as any;
+        const session = dashql.workflow.createSession(frontend);
+        const query = dashql.workflow.runQuery(session, 'select 42::integer as v');
+
+        const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
+        expect(reader.isSync()).toBeTruthy();
+        expect(reader.isFile()).toBeTruthy();
+        const table = new arrow.Table(reader as arrow.RecordBatchFileReader);
+        const rows = table.toArray();
+        expect(rows.length).toEqual(1);
+        expect(rows[0].v).toEqual(42);
+
+        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
+        await sessionClosed;
+    });
+
     it('hello frontend', async () => {
         const frontend = {} as any;
         frontend.beginBatchUpdate = jest.fn();
@@ -30,22 +47,5 @@ describe('Node Workflows', () => {
         const program = proto.Program.getRootAsProgram(buffer);
         expect(program.errorsLength()).toEqual(0);
         expect(program.statementsLength()).toEqual(1);
-    });
-
-    it('hello database', async () => {
-        const frontend = {} as any;
-        const session = dashql.workflow.createSession(frontend);
-        const query = dashql.workflow.runQuery(session, 'select 42::integer as v');
-
-        const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
-        expect(reader.isSync()).toBeTruthy();
-        expect(reader.isFile()).toBeTruthy();
-        const table = new arrow.Table(reader as arrow.RecordBatchFileReader);
-        const rows = table.toArray();
-        expect(rows.length).toEqual(1);
-        expect(rows[0].v).toEqual(42);
-
-        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
-        await sessionClosed;
     });
 });

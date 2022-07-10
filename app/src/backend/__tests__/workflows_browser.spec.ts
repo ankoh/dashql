@@ -7,6 +7,22 @@ import * as flatbuffers from 'flatbuffers';
 import { jest } from '@jest/globals';
 
 describe('Wasm Workflows', () => {
+    it('hello database', async () => {
+        const frontend = {} as any;
+        const session = await dashql.workflowCreateSession(frontend);
+
+        const query = await dashql.workflowRunQuery(session, 'select 42::integer as v');
+        const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
+        expect(reader.isSync()).toBeTruthy();
+        expect(reader.isFile()).toBeTruthy();
+        const table = new arrow.Table(reader as arrow.RecordBatchFileReader);
+        const rows = table.toArray();
+        expect(rows.length).toEqual(1);
+        expect(rows[0].v).toEqual(42);
+
+        await dashql.workflowCloseSession(session);
+    });
+
     it('hello frontend', async () => {
         const frontend = {} as any;
         frontend.beginBatchUpdate = jest.fn();
@@ -28,22 +44,6 @@ describe('Wasm Workflows', () => {
         const program = proto.Program.getRootAsProgram(buffer);
         expect(program.errorsLength()).toEqual(0);
         expect(program.statementsLength()).toEqual(1);
-
-        await dashql.workflowCloseSession(session);
-    });
-
-    it('hello database', async () => {
-        const frontend = {} as any;
-        const session = await dashql.workflowCreateSession(frontend);
-
-        const query = await dashql.workflowRunQuery(session, 'select 42::integer as v');
-        const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
-        expect(reader.isSync()).toBeTruthy();
-        expect(reader.isFile()).toBeTruthy();
-        const table = new arrow.Table(reader as arrow.RecordBatchFileReader);
-        const rows = table.toArray();
-        expect(rows.length).toEqual(1);
-        expect(rows[0].v).toEqual(42);
 
         await dashql.workflowCloseSession(session);
     });
