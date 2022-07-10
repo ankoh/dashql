@@ -1,59 +1,68 @@
+use std::sync::{Arc, Mutex};
+
+use super::super::database_trait::{Database, DatabaseConnection};
 use crate::{error::SystemError, utils::arrow_ipc::read_arrow_ipc_buffer};
+use async_trait::async_trait;
 use duckdbx_sys;
 
-pub struct Database {
+pub struct NativeDatabase {
     inner: duckdbx_sys::Database,
 }
 
-impl Database {
-    pub async fn open_in_memory() -> Result<Database, SystemError> {
+impl NativeDatabase {
+    pub async fn open_in_memory() -> Result<NativeDatabase, SystemError> {
         let db = duckdbx_sys::Database::open_in_memory().map_err(|err| SystemError::Generic(err))?;
-        Ok(Database { inner: db })
+        Ok(NativeDatabase { inner: db })
     }
-    pub async fn connect(&self) -> Result<DatabaseConnection, SystemError> {
+}
+
+#[async_trait(?Send)]
+impl Database for NativeDatabase {
+    async fn close(&mut self) -> Result<(), SystemError> {
+        self.inner.close();
+        Ok(())
+    }
+    async fn connect(&mut self) -> Result<Arc<Mutex<dyn DatabaseConnection>>, SystemError> {
         let conn = self.inner.connect().map_err(|err| SystemError::Generic(err))?;
-        Ok(DatabaseConnection { inner: conn })
-    }
-    pub async fn close(&mut self) -> Result<(), String> {
-        self.inner.close();
-        Ok(())
+        Ok(Arc::new(Mutex::new(NativeDatabaseConnection { inner: conn })))
     }
 }
 
-pub struct DatabaseConnection {
-    inner: duckdbx_sys::Connection,
-}
-
-impl DatabaseConnection {
-    pub async fn run_query(&self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
-        let buffer = self.inner.run_query(text)?;
-        read_arrow_ipc_buffer(buffer.access())
-    }
-    pub async fn close(&mut self) -> Result<(), String> {
-        self.inner.close();
-        Ok(())
-    }
-}
-
-impl std::fmt::Debug for Database {
+impl std::fmt::Debug for NativeDatabase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Database").finish()
     }
 }
 
-impl std::fmt::Debug for DatabaseConnection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DatabaseConnection").finish()
-    }
-}
-
-impl Drop for Database {
+impl Drop for NativeDatabase {
     fn drop(&mut self) {
         self.inner.close();
     }
 }
 
-impl Drop for DatabaseConnection {
+pub struct NativeDatabaseConnection {
+    inner: duckdbx_sys::Connection,
+}
+
+#[async_trait(?Send)]
+impl DatabaseConnection for NativeDatabaseConnection {
+    async fn close(&mut self) -> Result<(), SystemError> {
+        self.inner.close();
+        Ok(())
+    }
+    async fn run_query(&mut self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
+        let buffer = self.inner.run_query(text)?;
+        read_arrow_ipc_buffer(buffer.access())
+    }
+}
+
+impl std::fmt::Debug for NativeDatabaseConnection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseConnection").finish()
+    }
+}
+
+impl Drop for NativeDatabaseConnection {
     fn drop(&mut self) {
         self.inner.close();
     }

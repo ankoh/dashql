@@ -1,3 +1,6 @@
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
+
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task::Task;
 use crate::error::SystemError;
@@ -5,7 +8,7 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::ImportInfo;
 use crate::execution::load_info::{CsvLoadInfo, JsonLoadInfo, LoadInfo, ParquetLoadInfo};
 use crate::execution::task::TaskOperator;
-use crate::external::database::DatabaseConnection;
+use crate::external::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
@@ -14,7 +17,7 @@ use proto::LoadMethodType;
 
 pub struct DuckDBLoadTaskOperator<'ast> {
     statement: &'ast LoadStatement<'ast>,
-    connection: Option<DatabaseConnection>,
+    connection: Option<Arc<Mutex<dyn DatabaseConnection>>>,
 }
 
 impl<'ast> DuckDBLoadTaskOperator<'ast> {
@@ -30,7 +33,11 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         })
     }
 
-    async fn try_create_view(&self, conn: &DatabaseConnection, import: &ImportInfo) -> Result<bool, SystemError> {
+    async fn try_create_view(
+        &self,
+        conn: &mut dyn DatabaseConnection,
+        import: &ImportInfo,
+    ) -> Result<bool, SystemError> {
         if self.statement.method.get() == proto::LoadMethodType::JSON {
             return Ok(false);
         }
@@ -42,7 +49,11 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         return Ok(true);
     }
 
-    async fn create_parquet_view(&self, conn: &DatabaseConnection, import: &ImportInfo) -> Result<(), SystemError> {
+    async fn create_parquet_view(
+        &self,
+        conn: &mut dyn DatabaseConnection,
+        import: &ImportInfo,
+    ) -> Result<(), SystemError> {
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
         let url = match import {
@@ -58,7 +69,11 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         Ok(())
     }
 
-    async fn create_csv_table(&self, conn: &DatabaseConnection, _import: &ImportInfo) -> Result<(), SystemError> {
+    async fn create_csv_table(
+        &self,
+        conn: &mut dyn DatabaseConnection,
+        _import: &ImportInfo,
+    ) -> Result<(), SystemError> {
         let script = format!("create table {} as select * from read_csv_auto(\"{}\")", "", "");
         conn.run_query(&script).await?;
         Ok(())
@@ -68,7 +83,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
 #[async_trait(?Send)]
 impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        self.connection = Some(ctx.base.database.connect().await?);
+        self.connection = Some(ctx.base.database.lock().unwrap().connect().await?);
         Ok(())
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
@@ -84,10 +99,8 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
                 ))
             }
         };
-        if !self
-            .try_create_view(&self.connection.as_ref().unwrap(), &import)
-            .await?
-        {
+        let mut connection = self.connection.as_ref().unwrap().lock().unwrap();
+        if !self.try_create_view(connection.deref_mut(), &import).await? {
             let hdl = ctx.base.runtime.import_data(&ctx, &import).await?;
             let info = match self.statement.method.get() {
                 LoadMethodType::CSV => LoadInfo::Csv(CsvLoadInfo { name: name_string }),

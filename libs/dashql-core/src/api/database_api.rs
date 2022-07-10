@@ -1,4 +1,4 @@
-use crate::external::database::Database;
+use crate::external::database::NativeDatabase;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -7,5 +7,5 @@ use std::{
 pub type DatabaseID = usize;
 
 pub struct DatabaseAPI {
-    databases: HashMap<DatabaseID, Arc<RwLock<Database>>>,
+    databases: HashMap<DatabaseID, Arc<RwLock<NativeDatabase>>>,
 }

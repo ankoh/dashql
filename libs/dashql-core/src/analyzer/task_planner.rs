@@ -455,12 +455,12 @@ mod test {
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
-    use crate::external::database::Database;
+    use crate::external::database::NativeDatabase;
     use crate::external::parser::parse_into;
-    use crate::external::runtime;
+    use crate::external::{runtime, Database};
     use crate::grammar;
     use std::rc::Rc;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     struct ExpectedInstance {
         script: &'static str,
@@ -476,7 +476,7 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = runtime::create();
-        let database_instance = Arc::new(Database::open_in_memory().await?);
+        let database_instance: Arc<Mutex<dyn Database>> = Arc::new(Mutex::new(NativeDatabase::open_in_memory().await?));
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();

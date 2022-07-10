@@ -2,7 +2,7 @@ use crate::analyzer::task::Task;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::external::database::DatabaseConnection;
+use crate::external::database::NativeDatabaseConnection;
 use crate::grammar::Program;
 use async_trait::async_trait;
 use std::rc::Rc;
@@ -10,7 +10,7 @@ use std::rc::Rc;
 pub struct SetTask<'ast> {
     _program: &'ast Program<'ast>,
     _task: Rc<Task>,
-    _connection: DatabaseConnection,
+    _connection: NativeDatabaseConnection,
 }
 
 #[async_trait(?Send)]

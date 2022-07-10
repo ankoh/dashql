@@ -3,13 +3,15 @@ use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::external;
-use crate::external::database::Database;
+use crate::external::database::NativeDatabase;
 use crate::external::runtime;
+use crate::external::Database;
 use crate::grammar::Expression;
 use crate::grammar::NamePath;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
@@ -39,18 +41,18 @@ impl<'ast> ExecutionState<'ast> {
 pub struct ExecutionContext<'ast> {
     pub settings: Arc<ProgramAnalysisSettings>,
     pub runtime: Arc<dyn external::Runtime>,
-    pub database: Arc<Database>,
+    pub database: Arc<Mutex<dyn Database>>,
     pub arena: &'ast bumpalo::Bump,
     pub state: Arc<RwLock<ExecutionState<'ast>>>,
 }
 
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
-        let database = Database::open_in_memory().await?;
+        let database = NativeDatabase::open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: runtime::create(),
-            database: Arc::new(database),
+            database: Arc::new(Mutex::new(database)),
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),
         })
@@ -58,7 +60,7 @@ impl<'ast> ExecutionContext<'ast> {
     pub fn create(
         settings: Arc<ProgramAnalysisSettings>,
         runtime: Arc<dyn external::Runtime>,
-        database: Arc<Database>,
+        database: Arc<Mutex<dyn Database>>,
         arena: &'ast bumpalo::Bump,
     ) -> Self {
         Self {

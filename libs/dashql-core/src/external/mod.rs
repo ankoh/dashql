@@ -1,5 +1,7 @@
+mod database_trait;
 mod dummy_runtime;
 mod runtime_trait;
+pub use database_trait::*;
 pub use runtime_trait::*;
 
 #[cfg(feature = "native")]
