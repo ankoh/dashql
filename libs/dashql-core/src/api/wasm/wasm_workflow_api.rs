@@ -1,4 +1,4 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, sync::Arc, sync::Mutex};
 
 use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
@@ -111,63 +111,67 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<WorkflowAPI<JsWorkflowFrontendBridge>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsWorkflowFrontendBridge>>>>>  = RefCell::new(None);
 }
 
-fn with_api<F, R>(f: F) -> Result<R, SystemError>
-where
-    F: FnOnce(&mut WorkflowAPI<JsWorkflowFrontendBridge>) -> Result<R, SystemError>,
-{
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsWorkflowFrontendBridge>>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
             Some(api) => api,
             None => return Err(SystemError::Generic("workflow api not initialized".to_string())),
         };
-        Ok(f(api)?)
+        Ok(api.clone())
     })
 }
 
 #[wasm_bindgen(js_name = "workflowConfigureDefault")]
 pub async fn configure_default() -> Result<(), JsValue> {
     let workflow = WorkflowAPI::new().await.map_err(|e| e.to_string())?;
-    WORKFLOW_API.with(|api_cell| api_cell.replace(Some(workflow)));
+    WORKFLOW_API.with(|api_cell| api_cell.replace(Some(Arc::new(Mutex::new(workflow)))));
     Ok(())
 }
 
 #[wasm_bindgen(js_name = "workflowCreateSession")]
 pub async fn create_session(frontend: JsWorkflowFrontend) -> Result<u32, JsValue> {
     let frontend = Arc::new(JsWorkflowFrontendBridge { inner: frontend });
-    let session = with_api(|api| api.create_session(frontend)).map_err(|e| e.to_string())?;
+    let api = get_api().map_err(|e| e.to_string())?;
+    let session = api
+        .lock()
+        .unwrap()
+        .create_session(frontend)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(session)
 }
 
 #[wasm_bindgen(js_name = "workflowCloseSession")]
 pub async fn close_session(session_id: u32) -> Result<(), JsValue> {
-    with_api(|api| Ok(api.release_session(session_id))).map_err(|e| e.to_string())?;
+    let api = get_api().map_err(|e| e.to_string())?;
+    api.lock().unwrap().release_session(session_id);
     Ok(())
 }
 
 #[wasm_bindgen(js_name = "workflowUpdateProgram")]
 pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue> {
-    let maybe_session = with_api(|api| Ok(api.get_session(session_id))).map_err(|e| e.to_string())?;
-    let session = match maybe_session {
+    let api = get_api().map_err(|e| e.to_string())?;
+    let session = match api.lock().unwrap().get_session(session_id) {
         Some(session) => session,
         None => return Err(format!("unknown session id: {}", session_id))?,
     };
     let mut session_lock = session.lock().expect("cannot lock session");
-    session_lock.update_program(&text).await?;
+    session_lock.update_program(&text).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[wasm_bindgen(js_name = "workflowRunQuery")]
-pub async fn run_query(session_id: u32, text: String) -> Result<(), JsValue> {
-    let maybe_session = with_api(|api| Ok(api.get_session(session_id))).map_err(|e| e.to_string())?;
-    let session = match maybe_session {
+pub async fn run_query(session_id: u32, text: String) -> Result<Uint8Array, JsValue> {
+    let api = get_api().map_err(|e| e.to_string())?;
+    let session = match api.lock().unwrap().get_session(session_id) {
         Some(session) => session,
         None => return Err(format!("unknown session id: {}", session_id))?,
     };
     let mut session_lock = session.lock().expect("cannot lock session");
-    let result_ipc = session_lock.run_query(&text).await?;
-    Ok(())
+    let result = session_lock.run_query(&text).await.map_err(|e| e.to_string())?;
+    Ok(result.read_wasm_data_handle().clone())
 }

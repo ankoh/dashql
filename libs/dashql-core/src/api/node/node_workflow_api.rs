@@ -1,4 +1,7 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{
+    cell::RefCell,
+    sync::{Arc, Mutex},
+};
 
 use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
@@ -170,27 +173,24 @@ impl WorkflowFrontend for JsWorkflowFrontend {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<WorkflowAPI<JsWorkflowFrontend>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsWorkflowFrontend>>>>>  = RefCell::new(None);
 }
 
-pub fn configure_default<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let workflow = block_on(WorkflowAPI::new()).or_else(|e| cx.throw_error(e.to_string()))?;
-    WORKFLOW_API.with(|api_cell| api_cell.replace(Some(workflow)));
-    Ok(cx.undefined())
-}
-
-fn with_api<F, R>(f: F) -> Result<R, SystemError>
-where
-    F: FnOnce(&mut WorkflowAPI<JsWorkflowFrontend>) -> Result<R, SystemError>,
-{
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsWorkflowFrontend>>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
             Some(api) => api,
-            None => return Err(SystemError::Generic("workflow api not configured".to_string())),
+            None => return Err(SystemError::Generic("workflow api not initialized".to_string())),
         };
-        Ok(f(api)?)
+        Ok(api.clone())
     })
+}
+
+pub fn configure_default<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let workflow = block_on(WorkflowAPI::new()).or_else(|e| cx.throw_error(e.to_string()))?;
+    WORKFLOW_API.with(|api_cell| api_cell.replace(Some(Arc::new(Mutex::new(workflow)))));
+    Ok(cx.undefined())
 }
 
 pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
@@ -198,41 +198,57 @@ pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
         inner: Arc::new(cx.argument::<JsObject>(0)?.root(&mut cx)),
         channel: cx.channel(),
     });
-    let session = with_api(|api| api.create_session(frontend)).or_else(|e| cx.throw_error(e.to_string()))?;
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = block_on(api.lock().unwrap().create_session(frontend)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(JsNumber::new(&mut cx, session))
 }
 
 pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
-    with_api(|api| {
-        if let Some(session) = api.release_session(session_id as u32) {
-            let session_lock = session.lock().unwrap();
-            session_lock.frontend.channel.send(|mut cx| {
-                let callback = callback.into_inner(&mut cx);
-                let this = cx.undefined();
-                callback.call(&mut cx, this, &[])?;
-                Ok(())
-            });
-        }
-        Ok(())
-    })
-    .or_else(|e| cx.throw_error(e.to_string()))?;
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    if let Some(session) = api.lock().unwrap().release_session(session_id as u32) {
+        let session_lock = session.lock().unwrap();
+        session_lock.frontend.channel.send(|mut cx| {
+            let callback = callback.into_inner(&mut cx);
+            let this = cx.undefined();
+            callback.call(&mut cx, this, &[])?;
+            Ok(())
+        });
+    }
     Ok(cx.undefined())
 }
 
 pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let text = cx.argument::<JsString>(1)?.value(&mut cx);
-    let maybe_session =
-        with_api(|api| Ok(api.get_session(session_id as u32))).or_else(|e| cx.throw_error(e.to_string()))?;
-    let session = match maybe_session {
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = match api.lock().unwrap().get_session(session_id as u32) {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     let mut session_lock = session.lock().expect("cannot lock session");
-    block_on(session_lock.update_program(&text)).or_else(|e| cx.throw_error(e))?;
+    block_on(session_lock.update_program(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(cx.undefined())
+}
+
+pub fn run_query<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsArrayBuffer> {
+    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    let text = cx.argument::<JsString>(1)?.value(&mut cx);
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = match api.lock().unwrap().get_session(session_id as u32) {
+        Some(session) => session,
+        None => cx.throw_error(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_lock = session.lock().expect("cannot lock session");
+    let result = block_on(session_lock.run_query(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
+    let result_data = result.read_native_data_handle().access();
+    let buffer = JsArrayBuffer::new(&mut cx, result_data.len()).map(|mut buffer| {
+        let writer: &mut [u8] = buffer.as_mut_slice(&mut cx);
+        writer.copy_from_slice(result_data);
+        buffer
+    })?;
+    Ok(buffer)
 }
 
 pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
@@ -240,5 +256,6 @@ pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("workflow_create_session", create_session)?;
     cx.export_function("workflow_close_session", close_session)?;
     cx.export_function("workflow_update_program", update_program)?;
+    cx.export_function("workflow_run_query", run_query)?;
     Ok(())
 }

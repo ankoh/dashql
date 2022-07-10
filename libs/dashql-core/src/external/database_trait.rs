@@ -8,11 +8,11 @@ pub trait QueryResultBuffer {
     fn read_arrow_batches(&self) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError>;
 
     // Raw passthrough of the duckdbx buffer
-    #[cfg(all(feature = "native", not(feature = "wasm")))]
-    fn read_data_handle<'a>(&'a self) -> &'a duckdbx_sys::Buffer;
+    #[cfg(feature = "native")]
+    fn read_native_data_handle<'a>(&'a self) -> &'a duckdbx_sys::Buffer;
     // Raw passthrough of the uint8array
-    #[cfg(all(feature = "wasm", not(feature = "native")))]
-    fn read_data_handle<'a>(&'a self) -> &'a js_sys::Uint8Array;
+    #[cfg(feature = "wasm")]
+    fn read_wasm_data_handle<'a>(&'a self) -> &'a js_sys::Uint8Array;
 }
 
 #[async_trait(?Send)]

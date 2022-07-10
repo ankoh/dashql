@@ -77,8 +77,12 @@ impl QueryResultBuffer for NativeQueryResultBuffer {
         let copy = self.buffer.access();
         read_arrow_ipc_buffer(copy)
     }
-    #[cfg(all(feature = "native", not(feature = "wasm")))]
-    fn read_data_handle<'a>(&'a self) -> &'a duckdbx_sys::Buffer {
+    #[cfg(feature = "native")]
+    fn read_native_data_handle<'a>(&'a self) -> &'a duckdbx_sys::Buffer {
         &self.buffer
+    }
+    #[cfg(feature = "wasm")]
+    fn read_wasm_data_handle<'a>(&'a self) -> &'a js_sys::Uint8Array {
+        unreachable!()
     }
 }

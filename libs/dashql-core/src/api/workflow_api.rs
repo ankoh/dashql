@@ -6,7 +6,7 @@ use std::{
 use crate::{
     analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
     error::SystemError,
-    external::{database::open_in_memory, Database},
+    external::{database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
 };
 
@@ -34,13 +34,15 @@ where
         })
     }
 
-    pub fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, SystemError> {
+    pub async fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, SystemError> {
         let session_id = self.next_session_id;
         self.next_session_id += 1;
+        let connection = self.default_database.lock().unwrap().connect().await?;
         let session = Arc::new(Mutex::new(WorkflowSession {
             session_id,
             frontend,
             database: self.default_database.clone(),
+            default_connection: connection,
         }));
         self.sessions.insert(session_id, session);
         Ok(session_id)
@@ -80,13 +82,14 @@ where
     pub frontend: Arc<WF>,
     #[allow(dead_code)]
     database: Arc<Mutex<dyn Database>>,
+    default_connection: Arc<Mutex<dyn DatabaseConnection>>,
 }
 
 impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
 {
-    pub async fn update_program(&mut self, text: &str) -> Result<(), String> {
+    pub async fn update_program(&mut self, text: &str) -> Result<(), SystemError> {
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
         // XXX plan the workflow
 
@@ -96,7 +99,8 @@ where
         Ok(())
     }
 
-    pub async fn run_query(&mut self, text: &str) -> Result<Vec<u8>, String> {
-        Ok(Vec::new())
+    pub async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
+        let mut conn = self.default_connection.lock().unwrap();
+        conn.run_query(text).await
     }
 }
