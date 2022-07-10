@@ -1,4 +1,4 @@
-import * as dashql from '@dashql/dashql-core/node';
+import * as dashql from '@dashql/dashql-core/dist/node';
 import * as arrow from 'apache-arrow';
 
 describe('Node Database', () => {

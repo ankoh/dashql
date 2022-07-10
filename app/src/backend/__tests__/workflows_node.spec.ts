@@ -1,5 +1,6 @@
+import '../../testenv';
 import * as arrow from 'apache-arrow';
-import * as dashql from '@dashql/dashql-core/node';
+import * as dashql from '@dashql/dashql-core/dist/node';
 import * as proto from '@dashql/dashql-proto';
 import * as flatbuffers from 'flatbuffers';
 

@@ -3,8 +3,6 @@ const CONFIG = {
     preset: 'ts-jest/presets/default-esm',
     // Map module names
     moduleNameMapper: {
-        // Map everything to src
-        '^@/(.*)$': '<rootDir>/src/$1',
         // Mock static files
         '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|dashql|wasm)$':
             '<rootDir>/__tests__/file_mock.ts',

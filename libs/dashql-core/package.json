@@ -4,12 +4,10 @@
     "license": "MPL-2.0",
     "private": true,
     "scripts": {
-        "wasm:build:debug": "wasm-pack build -d dist/wasm --target web --features wasm --no-default-features && rm ./dist/wasm/package.json && mv ./dist/wasm/dashql_core.js ./dist/wasm/dashql_core.mjs",
-        "node:build:debug": "yarn run node:compile:debug && node build.mjs debug && tsc --emitDeclarationOnly",
-        "node:build:release": "yarn run node:compile:release && node build.mjs release && tsc --emitDeclarationOnly",
-        "node:compile": "cargo-cp-artifact -nc ./dist/node/dashql_core.node -- cargo build --lib --features node --message-format=json-render-diagnostics ",
-        "node:compile:debug": "yarn run node:compile",
-        "node:compile:release": "yarn run node:compile --release"
+        "wasm:debug": "node build_wasm.mjs debug && tsc --emitDeclarationOnly",
+        "wasm:release": "node build_wasm.mjs release && tsc --emitDeclarationOnly",
+        "node:debug": "node build_node.mjs debug",
+        "node:release": "node build_node.mjs release"
     },
     "files": [
         "dist"
@@ -25,22 +23,5 @@
         "esbuild": "^0.14.39",
         "apache-arrow": "^8.0.0"
     },
-    "main": "dist/node/dashql_core.cjs",
-    "types": "dist/node/dashql_core.d.ts",
-    "sideEffects": false,
-    "exports": {
-        "./wasm/*": "./dist/wasm/*",
-        "./node/*": "./dist/node/*",
-        "./types/*": "./dist/types/*",
-        "./wasm": {
-            "types": "./dist/wasm/dashql_core.d.ts",
-            "import": "./dist/wasm/dashql_core.mjs",
-            "require": "./dist/wasm/dashql_core.mjs"
-        },
-        "./node": {
-            "types": "./dist/node/dashql_core.d.ts",
-            "import": "./dist/node/dashql_core.cjs",
-            "require": "./dist/node/dashql_core.cjs"
-        }
-    }
+    "sideEffects": false
 }

@@ -1,8 +1,9 @@
 import { Parser } from '../backend/wasm_parser_api';
 import { init as initWASI, WASI } from '@wasmer/wasi';
-import fs from 'fs';
 import { DUCKDB_WASM } from './duckdb_wasm_setup';
-import * as dashql from '@dashql/dashql-core/wasm';
+import fs from 'fs';
+import * as dashql from '@dashql/dashql-core/dist/wasm';
+import initDashql from '@dashql/dashql-core/dist/wasm';
 
 const PARSER_MODULE_URL = new URL('../../../libs/dashql-parser/build/wasm/Release/dashql_parser.wasm', import.meta.url);
 const CORE_MODULE_URL = new URL('../../../libs/dashql-core/dist/wasm/dashql_core_bg.wasm', import.meta.url);
@@ -24,7 +25,7 @@ export let DASHQL_PARSER: Parser | null = null;
 
 beforeAll(async () => {
     DASHQL_PARSER = await initParser();
-    await dashql.default(fs.readFileSync(CORE_MODULE_URL));
+    await initDashql(fs.readFileSync(CORE_MODULE_URL));
     dashql.linkParser(DASHQL_PARSER);
     dashql.linkDuckDB(DUCKDB_WASM);
     await dashql.workflowConfigureDefault();

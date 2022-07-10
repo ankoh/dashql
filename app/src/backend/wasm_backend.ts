@@ -1,5 +1,5 @@
 import { Backend, WorkflowBackend, WorkflowFrontend } from './backend';
-import * as dashql from '@dashql/dashql-core/wasm';
+import * as dashql from '@dashql/dashql-core/dist/wasm';
 
 export class WasmWorkflowBackend implements WorkflowBackend {
     async configureDefault(): Promise<void> {

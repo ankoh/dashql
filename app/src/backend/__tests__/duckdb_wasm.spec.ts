@@ -1,7 +1,7 @@
 import { DUCKDB_WASM } from '../../testenv';
+import { Int32 } from 'apache-arrow/type';
 
 import * as duckdb from '@duckdb/duckdb-wasm';
-import { Int32 } from 'apache-arrow/type';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
