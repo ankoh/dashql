@@ -9,8 +9,8 @@ thread_local! {
     static DUCKDB: RefCell<Option<Arc<AsyncDuckDB>>> = RefCell::new(None);
 }
 
-#[wasm_bindgen(js_name = "linkDatabase")]
-pub fn link_database(db: JsAsyncDuckDB) {
+#[wasm_bindgen(js_name = "linkDuckDB")]
+pub fn link_duckdb(db: JsAsyncDuckDB) {
     DUCKDB.with(|linked| linked.replace(Some(Arc::new(AsyncDuckDB::from_bindings(db)))));
 }
 
