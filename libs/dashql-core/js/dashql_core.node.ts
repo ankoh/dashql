@@ -20,19 +20,20 @@ declare module '*/dist/node/dashql_core.node' {
     function database_buffer_delete(buffer: DatabaseBuffer): void;
 
     interface WorkflowFrontend {
-        beginBatchUpdate(sessionId: number);
-        endBatchUpdate(sessionId: number);
-        updateProgram(sessionId: number, buffer: ArrayBuffer);
-        updateTaskGraph(sessionId: number, graphJson: string);
-        updateTaskStatus(sessionId: number, taskId: number, status: number, error: string | null);
-        deleteTaskState(sessionId: number, stateId: number);
-        updateInputState(sessionId: number, stateId: number);
-        updateTableState(sessionId: number, stateId: number);
-        updateVisualizationState(sessionId: number, stateId: number);
+        beginBatchUpdate(sessionId: number): void;
+        endBatchUpdate(sessionId: number): void;
+        updateProgram(sessionId: number, buffer: ArrayBuffer): void;
+        updateTaskGraph(sessionId: number, graphJson: string): void;
+        updateTaskStatus(sessionId: number, taskId: number, status: number, error: string | null): void;
+        deleteTaskState(sessionId: number, stateId: number): void;
+        updateInputState(sessionId: number, stateId: number): void;
+        updateTableState(sessionId: number, stateId: number): void;
+        updateVisualizationState(sessionId: number, stateId: number): void;
     }
 
     function workflow_configure_default(): void;
     function workflow_create_session(frontend: WorkflowFrontend): number;
-    function workflow_close_session(sessionId: number, callback: () => void);
-    function workflow_update_program(sessionId: number, text: string);
+    function workflow_close_session(sessionId: number, callback: () => void): void;
+    function workflow_update_program(sessionId: number, text: string): void;
+    function workflow_run_query(sessionId: number, text: string): Uint8Array;
 }
