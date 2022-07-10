@@ -1,4 +1,4 @@
-import * as utils from './compare';
+import * as utils from '../compare';
 
 describe('isSubset', () => {
     it('simple', () => {

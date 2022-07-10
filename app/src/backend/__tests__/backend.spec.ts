@@ -11,6 +11,7 @@ describe('Backend', () => {
             const frontend = {} as any;
             const session = await backend.workflow.createSession(frontend);
             const query = await backend.workflow.runQuery(session, 'select 42::integer as v');
+            await backend.workflow.closeSession(session);
 
             const reader = arrow.RecordBatchReader.from<{ v: arrow.Int32 }>(query);
             expect(reader.isSync()).toBeTruthy();
@@ -19,8 +20,6 @@ describe('Backend', () => {
             const rows = table.toArray();
             expect(rows.length).toEqual(1);
             expect(rows[0].v).toEqual(42);
-
-            await backend.workflow.closeSession(session);
         });
 
         it('hello frontend', async () => {
