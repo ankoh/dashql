@@ -476,16 +476,11 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = runtime::create();
-        let database_instance: Arc<Mutex<dyn Database>> = Arc::new(Mutex::new(NativeDatabase::open_in_memory().await?));
+        let database: Arc<Mutex<dyn Database>> = Arc::new(Mutex::new(NativeDatabase::open_in_memory().await?));
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();
-        let prev_context = ExecutionContext::create(
-            settings.clone(),
-            runtime.clone(),
-            database_instance.clone(),
-            &prev_arena,
-        );
+        let prev_context = ExecutionContext::create(settings.clone(), runtime.clone(), database.clone(), &prev_arena);
         let mut prev_instance = None;
         let mut prev_tasks = None;
         if let Some(prev) = &test.prev {
@@ -514,7 +509,7 @@ mod test {
 
         // Instantiate next program
         let next_arena = bumpalo::Bump::new();
-        let next_context = ExecutionContext::create(settings, runtime, database_instance.clone(), &next_arena);
+        let next_context = ExecutionContext::create(settings, runtime, database.clone(), &next_arena);
         let next_instance = {
             let (next_ast, next_ast_data) = parse_into(&next_arena, test.next.script).await?;
             assert!(

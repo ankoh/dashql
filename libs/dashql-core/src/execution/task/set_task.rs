@@ -2,15 +2,16 @@ use crate::analyzer::task::Task;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::external::database::NativeDatabaseConnection;
+use crate::external::DatabaseConnection;
 use crate::grammar::Program;
 use async_trait::async_trait;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 pub struct SetTask<'ast> {
     _program: &'ast Program<'ast>,
     _task: Rc<Task>,
-    _connection: NativeDatabaseConnection,
+    _connection: Arc<Mutex<dyn DatabaseConnection>>,
 }
 
 #[async_trait(?Send)]

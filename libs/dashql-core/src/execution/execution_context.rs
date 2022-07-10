@@ -3,7 +3,7 @@ use super::scalar_value::ScalarValue;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::external;
-use crate::external::database::NativeDatabase;
+use crate::external::database::open_in_memory;
 use crate::external::runtime;
 use crate::external::Database;
 use crate::grammar::Expression;
@@ -48,7 +48,7 @@ pub struct ExecutionContext<'ast> {
 
 impl<'ast> ExecutionContext<'ast> {
     pub async fn create_simple(arena: &'ast bumpalo::Bump) -> Result<ExecutionContext<'ast>, SystemError> {
-        let database = NativeDatabase::open_in_memory().await?;
+        let database = open_in_memory().await?;
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: runtime::create(),

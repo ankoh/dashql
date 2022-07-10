@@ -2,7 +2,13 @@ mod native_database;
 mod native_runtime;
 
 pub mod database {
+    use crate::error::SystemError;
+
     pub use super::native_database::*;
+
+    pub async fn open_in_memory() -> Result<NativeDatabase, SystemError> {
+        super::native_database::NativeDatabase::open_in_memory().await
+    }
 }
 pub mod parser {
     use dashql_proto as proto;
