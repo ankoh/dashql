@@ -1,4 +1,4 @@
-import { WorkflowBackend, WorkflowFrontend } from './backend';
+import { Backend, WorkflowBackend, WorkflowFrontend } from './backend';
 import * as dashql from '@dashql/dashql-core/wasm';
 
 export class WasmWorkflowBackend implements WorkflowBackend {
@@ -17,4 +17,10 @@ export class WasmWorkflowBackend implements WorkflowBackend {
     async runQuery(session: number, text: string): Promise<Uint8Array> {
         return await dashql.workflowRunQuery(session, text);
     }
+}
+
+export function createWasmBackend(): Backend {
+    return {
+        workflow: new WasmWorkflowBackend(),
+    };
 }
