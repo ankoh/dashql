@@ -1,36 +1,16 @@
 import { IpcRenderer } from 'electron';
-import { Backend, ConnectionId, DatabaseId, SessionId, WorkflowFrontend } from './backend_interfaces';
+import { Backend, SessionId, WorkflowFrontend } from './workflow_backend';
 import { invokeIPCWorkflowFrontend, createIPCWorkflowFrontendBridge } from './ipc_bridge_to_frontend';
 import { IpcMain, WebContents } from 'electron';
 
 export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
     return {
-        database: {
-            configure: async (): Promise<void> => {
-                await ipc.invoke('DatabaseBackend.configure');
-            },
-            openDatabase: async (): Promise<DatabaseId> => {
-                return await ipc.invoke('DatabaseBackend.openDatabase');
-            },
-            closeDatabase: async (db: DatabaseId): Promise<void> => {
-                await ipc.invoke('DatabaseBackend.closeDatabase', db);
-            },
-            createConnection: async (db: DatabaseId): Promise<ConnectionId> => {
-                return await ipc.invoke('DatabaseBackend.createConnection', db);
-            },
-            closeConnection: async (conn: ConnectionId): Promise<void> => {
-                await ipc.invoke('DatabaseBackend.closeConnection', conn);
-            },
-            runQuery: async (conn: ConnectionId, text: string): Promise<Uint8Array> => {
-                return await ipc.invoke('DatabaseBackend.runQuery', conn, text);
-            },
-        },
         workflow: {
-            configure: async (): Promise<void> => {
+            configureDefault: async (): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.configure');
             },
-            createSession: async (db: DatabaseId, frontend: WorkflowFrontend): Promise<SessionId> => {
-                const sessionID = await ipc.invoke('WorkflowBackend.createSession', [db]);
+            createSession: async (frontend: WorkflowFrontend): Promise<SessionId> => {
+                const sessionID = await ipc.invoke('WorkflowBackend.createSession', []);
                 ipc.on(`WorkflowFrontend.session[${sessionID}]`, (_event, message) => {
                     invokeIPCWorkflowFrontend(frontend, message);
                 });
@@ -43,45 +23,30 @@ export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
             updateProgram: async (session: SessionId, text: string): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.updateProgram', session, text);
             },
+            runQuery: async (session: SessionId, text: string): Promise<Uint8Array> => {
+                return await ipc.invoke('WorkflowBackend.runQuery', session, text);
+            },
         },
     };
 }
 
 export function registerIPCBackend(backend: Backend, ipc: IpcMain, renderer: WebContents) {
-    // Link Database backend
-    ipc.on('DatabaseBackend.configure', async _event => {
-        return await backend.database.configure();
-    });
-    ipc.on('DatabaseBackend.openDatabase', async _event => {
-        return await backend.database.openDatabase();
-    });
-    ipc.on('DatabaseBackend.closeDatabase', async (_event, db) => {
-        return await backend.database.closeDatabase(db);
-    });
-    ipc.on('DatabaseBackend.createConnection', async (_event, db) => {
-        return await backend.database.createConnection(db);
-    });
-    ipc.on('DatabaseBackend.closeConnection', async (_event, conn) => {
-        return await backend.database.closeConnection(conn);
-    });
-    ipc.on('DatabaseBackend.runQuery', async (_event, conn, text) => {
-        return await backend.database.runQuery(conn, text);
-    });
-
-    // Link Workflow backend
     ipc.on('WorkflowBackend.configure', async _event => {
-        return await backend.workflow.configure();
+        return await backend.workflow.configureDefault();
     });
     ipc.on('WorkflowBackend.createSession', async (_event, db) => {
         const workflow = createIPCWorkflowFrontendBridge((session, msg) => {
             renderer.send(`WorkflowFrontend.session[${session}]`, msg);
         });
-        return await backend.workflow.createSession(db, workflow);
+        return await backend.workflow.createSession(workflow);
     });
     ipc.on('WorkflowBackend.closeSession', async (_event, session) => {
         return await backend.workflow.closeSession(session);
     });
     ipc.on('WorkflowBackend.updateProgram', async (_event, session, text) => {
         return await backend.workflow.updateProgram(session, text);
+    });
+    ipc.on('WorkflowBackend.runQuery', async (_event, session, text) => {
+        return await backend.workflow.runQuery(session, text);
     });
 }

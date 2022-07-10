@@ -1,6 +1,6 @@
-import { TaskClass, TaskGraph } from 'src/model/task_graph';
+import { TaskGraph } from 'src/model/task_graph';
 import { TaskStatusCode } from 'src/model/task_status';
-import { SessionId, StateId, TaskId, WorkflowFrontend } from './backend_interfaces';
+import { SessionId, StateId, TaskId, WorkflowFrontend } from './workflow_backend';
 
 export type DatabaseID = number;
 export type ConnectionID = number;
@@ -57,7 +57,6 @@ interface UpdateTaskGraphMsg {
 
 interface UpdateTaskStatusMsg {
     session: SessionId;
-    taskClass: TaskClass;
     task: number;
     status: TaskStatusCode;
     error?: any;
@@ -105,18 +104,11 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, program } }),
         updateTaskGraph: (session: SessionId, graph: TaskGraph | null) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TASK_GRAPH, data: { session, graph } }),
-        updateTaskStatus: (
-            session: SessionId,
-            taskClass: TaskClass,
-            task: TaskId,
-            status: TaskStatusCode,
-            error?: any,
-        ) =>
+        updateTaskStatus: (session: SessionId, task: TaskId, status: TaskStatusCode, error?: any) =>
             send(session, {
                 type: IPCFrontendMessageType.UPDATE_TASK_STATUS,
                 data: {
                     session,
-                    taskClass,
                     task,
                     status,
                     error,
@@ -150,7 +142,6 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
         case IPCFrontendMessageType.UPDATE_TASK_STATUS:
             return frontend.updateTaskStatus(
                 message.data.session,
-                message.data.taskClass,
                 message.data.task,
                 message.data.status,
                 message.data.error,
