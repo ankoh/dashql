@@ -1,18 +1,15 @@
+import { DUCKDB_WASM } from '../../testenv';
+
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { Int32 } from 'apache-arrow/type';
-import * as test from '../../test';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
 describe('DuckDB Wasm', () => {
-    let db: duckdb.AsyncDuckDB | null = null;
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
-    beforeAll(async () => {
-        db = test.DUCKDB_WASM;
-    });
     beforeEach(async () => {
-        conn = await db.connect();
+        conn = await DUCKDB_WASM.connect();
     });
     afterEach(async () => {
         await conn.close();
@@ -46,7 +43,7 @@ describe('DuckDB Wasm', () => {
         expect(read).toEqual(text);
 
         // Scan the temporary file
-        await db.registerFileURL('foo.csv', tmpName);
+        await DUCKDB_WASM.registerFileURL('foo.csv', tmpName);
         const result = await conn.query<{ a: Int32; b: Int32 }>(`SELECT * FROM read_csv_auto('foo.csv') LIMIT 10`);
         expect(result.numCols).toEqual(2);
 

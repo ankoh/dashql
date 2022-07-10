@@ -18,7 +18,7 @@ where
 {
     default_database: Arc<Mutex<dyn Database>>,
     next_session_id: u32,
-    sessions: HashMap<WorkflowSessionId, Arc<Mutex<WorkflowSession<WF>>>>,
+    pub sessions: HashMap<WorkflowSessionId, Arc<Mutex<WorkflowSession<WF>>>>,
 }
 
 impl<WF> WorkflowAPI<WF>

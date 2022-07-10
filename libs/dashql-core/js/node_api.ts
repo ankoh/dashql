@@ -22,8 +22,9 @@ export module workflow {
         public updateProgram(text: string) {
             dashql.workflow_update_program(this.sessionId, text);
         }
-        public runQuery(text: string) {
-            dashql.workflow_run_query(this.sessionId, text);
+        public runQuery(text: string): Uint8Array {
+            const buffer = dashql.workflow_run_query(this.sessionId, text);
+            return new Uint8Array(buffer);
         }
     }
 
