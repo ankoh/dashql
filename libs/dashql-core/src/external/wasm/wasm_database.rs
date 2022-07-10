@@ -1,8 +1,10 @@
 use super::super::database_trait::{Database, DatabaseConnection};
 use super::duckdb_wasm_bindings::{AsyncDuckDB, AsyncDuckDBConnection, JsAsyncDuckDB};
 use crate::error::SystemError;
+use crate::external::QueryResultBuffer;
 use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
 use async_trait::async_trait;
+use js_sys::Uint8Array;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
@@ -63,13 +65,28 @@ impl DatabaseConnection for WasmDatabaseConnection {
     async fn close(&mut self) -> Result<(), SystemError> {
         map_result(self.conn.disconnect().await)
     }
-    async fn run_query(&mut self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
-        let buffer = map_result(self.conn.run_query(text).await)?.to_vec();
-        read_arrow_ipc_buffer(&buffer)
+    async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
+        let buffer = map_result(self.conn.run_query(text).await)?;
+        Ok(Arc::new(WasmQueryResultBuffer { buffer }))
     }
 }
 impl std::fmt::Debug for WasmDatabaseConnection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DatabaseConnection").finish()
+    }
+}
+
+pub struct WasmQueryResultBuffer {
+    buffer: Uint8Array,
+}
+
+impl QueryResultBuffer for WasmQueryResultBuffer {
+    fn read_arrow_batches(&self) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
+        let copy = self.buffer.to_vec();
+        read_arrow_ipc_buffer(&copy)
+    }
+    #[cfg(all(feature = "wasm", not(feature = "native")))]
+    fn read_data_handle<'a>(&'a self) -> &'a Uint8Array {
+        &self.buffer
     }
 }

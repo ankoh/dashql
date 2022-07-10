@@ -271,8 +271,9 @@ mod test {
         let connection = instance.context.database.lock().unwrap().connect().await?;
         for (_test_id, test) in tests.iter().enumerate() {
             let result = connection.lock().unwrap().run_query(test.query).await?;
-            assert_eq!(result.len(), 1);
-            assert_eq!(test.expected, result[0]);
+            let result_batches = result.read_arrow_batches()?;
+            assert_eq!(result_batches.len(), 1);
+            assert_eq!(test.expected, result_batches[0]);
         }
         Ok(())
     }

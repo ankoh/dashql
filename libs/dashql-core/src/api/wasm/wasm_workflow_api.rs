@@ -159,3 +159,15 @@ pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue
     session_lock.update_program(&text).await?;
     Ok(())
 }
+
+#[wasm_bindgen(js_name = "workflowRunQuery")]
+pub async fn run_query(session_id: u32, text: String) -> Result<(), JsValue> {
+    let maybe_session = with_api(|api| Ok(api.get_session(session_id))).map_err(|e| e.to_string())?;
+    let session = match maybe_session {
+        Some(session) => session,
+        None => return Err(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_lock = session.lock().expect("cannot lock session");
+    let result_ipc = session_lock.run_query(&text).await?;
+    Ok(())
+}

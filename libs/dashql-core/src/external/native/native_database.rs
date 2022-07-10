@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use super::super::database_trait::{Database, DatabaseConnection};
-use crate::{error::SystemError, utils::arrow_ipc::read_arrow_ipc_buffer};
+use crate::{error::SystemError, external::QueryResultBuffer, utils::arrow_ipc::read_arrow_ipc_buffer};
 use async_trait::async_trait;
 use duckdbx_sys;
 
@@ -50,9 +50,9 @@ impl DatabaseConnection for NativeDatabaseConnection {
         self.inner.close();
         Ok(())
     }
-    async fn run_query(&mut self, text: &str) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
+    async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let buffer = self.inner.run_query(text)?;
-        read_arrow_ipc_buffer(buffer.access())
+        Ok(Arc::new(NativeQueryResultBuffer { buffer }))
     }
 }
 
@@ -65,5 +65,20 @@ impl std::fmt::Debug for NativeDatabaseConnection {
 impl Drop for NativeDatabaseConnection {
     fn drop(&mut self) {
         self.inner.close();
+    }
+}
+
+pub struct NativeQueryResultBuffer {
+    buffer: duckdbx_sys::Buffer,
+}
+
+impl QueryResultBuffer for NativeQueryResultBuffer {
+    fn read_arrow_batches(&self) -> Result<Vec<arrow::record_batch::RecordBatch>, SystemError> {
+        let copy = self.buffer.access();
+        read_arrow_ipc_buffer(copy)
+    }
+    #[cfg(all(feature = "native", not(feature = "wasm")))]
+    fn read_data_handle<'a>(&'a self) -> &'a duckdbx_sys::Buffer {
+        &self.buffer
     }
 }

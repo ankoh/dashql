@@ -95,4 +95,8 @@ where
         self.frontend.end_batch_update(self.session_id)?;
         Ok(())
     }
+
+    pub async fn run_query(&mut self, text: &str) -> Result<Vec<u8>, String> {
+        Ok(Vec::new())
+    }
 }
