@@ -9,6 +9,7 @@ export * from './max_element_size';
 export * from './native_bitmap';
 export * from './native_stack';
 export * from './random';
+export * from './resolvable';
 export * from './size_observer';
 export * from './sleep';
 export * from './text';
