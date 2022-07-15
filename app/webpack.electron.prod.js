@@ -26,6 +26,9 @@ const base = configure({
 const renderer = {
     ...base,
     target: 'electron-renderer',
+    entry: {
+        app: ['./src/app.electron.tsx'],
+    },
     output: {
         ...base.output,
         path: buildDirRenderer,
@@ -39,6 +42,7 @@ const preload = {
     ...base,
     target: 'electron-preload',
     entry: {
+        app: ['./src/app.electron.tsx'],
         preload: ['./src/electron_preload.ts'],
     },
     output: {

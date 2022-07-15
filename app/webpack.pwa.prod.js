@@ -23,6 +23,9 @@ const base = configure({
 
 export default {
     ...base,
+    entry: {
+        app: ['./src/app.pwa.tsx'],
+    },
     mode: 'production',
     devtool: false,
 };

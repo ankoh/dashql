@@ -23,6 +23,9 @@ const base = configure({
 
 export default {
     ...base,
+    entry: {
+        app: ['./src/app.pwa.tsx'],
+    },
     output: {
         ...base.output,
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
