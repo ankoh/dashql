@@ -17,8 +17,10 @@ export enum InstantiationStatus {
     FAILED,
 }
 
+export type InstantiationError = any;
+
 export interface BackendInstantiationProgress {
-    db: [InstantiationStatus, any | null];
-    parser: [InstantiationStatus, any | null];
-    core: [InstantiationStatus, any | null];
+    db: [InstantiationStatus, InstantiationError | null];
+    parser: [InstantiationStatus, InstantiationError | null];
+    core: [InstantiationStatus, InstantiationError | null];
 }

@@ -5,9 +5,10 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import { Resolvable } from '../model';
 import { Backend } from './backend';
 import {
-    BackendInstantiationProgress as BackendInitProgress,
+    BackendInstantiationProgress as BackendProgress,
     BACKEND_CONTEXT,
     BACKEND_RESOLVER_CONTEXT,
+    InstantiationError,
     InstantiationStatus,
 } from './backend_provider';
 import { init as initWASI, WASI } from '@wasmer/wasi';
@@ -29,16 +30,16 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
         mainWorker: new URL('@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js', import.meta.url).toString(),
     },
 };
-const dbLogger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
+const DUCKDB_LOGGER = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
 
 interface Props {
     children: JSX.Element;
 }
 
-type ProgressUpdater = (fn: (progress: BackendInitProgress) => BackendInitProgress) => void;
+type ProgressUpdater = (fn: (progress: BackendProgress) => BackendProgress) => void;
 
 let PARSER_INSTANCE: Parser | null = null;
-async function initParser(progress: ProgressUpdater): Promise<Parser | null> {
+async function initParser(progress: ProgressUpdater): Promise<[Parser | null, InstantiationError | null]> {
     try {
         if (PARSER_INSTANCE == null) {
             progress(p => ({ ...p, parser: [InstantiationStatus.PREPARING, null] }));
@@ -55,38 +56,41 @@ async function initParser(progress: ProgressUpdater): Promise<Parser | null> {
             PARSER_INSTANCE = new Parser(inst);
         }
         progress(p => ({ ...p, parser: [InstantiationStatus.READY, null] }));
-        return PARSER_INSTANCE;
+        return [PARSER_INSTANCE, null];
     } catch (e: any) {
         progress(p => ({ ...p, parser: [InstantiationStatus.FAILED, e] }));
-        return null;
+        return [null, e];
     }
 }
 
 let DUCKDB_INSTANCE: duckdb.AsyncDuckDB | null = null;
-async function initDuckDB(progress: ProgressUpdater): Promise<duckdb.AsyncDuckDB | null> {
+async function initDuckDB(progress: ProgressUpdater): Promise<[duckdb.AsyncDuckDB | null, InstantiationError | null]> {
     try {
         if (PARSER_INSTANCE == null) {
             progress(p => ({ ...p, db: [InstantiationStatus.PREPARING, null] }));
             const bundle = await duckdb.selectBundle(DUCKDB_BUNDLES);
             const worker = new Worker(bundle.mainWorker!);
             progress(p => ({ ...p, db: [InstantiationStatus.INSTANTIATING, null] }));
-            DUCKDB_INSTANCE = new duckdb.AsyncDuckDB(dbLogger, worker);
+            DUCKDB_INSTANCE = new duckdb.AsyncDuckDB(DUCKDB_LOGGER, worker);
         }
         progress(p => ({ ...p, db: [InstantiationStatus.READY, null] }));
-        return DUCKDB_INSTANCE;
+        return [DUCKDB_INSTANCE, null];
     } catch (e: any) {
         progress(p => ({ ...p, db: [InstantiationStatus.FAILED, e] }));
-        return null;
+        return [null, e];
     }
 }
 
 let DASHQL_INITIALIZED = false;
-async function initCore(progress: ProgressUpdater): Promise<boolean> {
+async function initCore(progress: ProgressUpdater): Promise<InstantiationError | null> {
     try {
         if (!DASHQL_INITIALIZED) {
-            const [parser, db] = await Promise.all([initParser(progress), initDuckDB(progress)]);
-            if (parser == null || db == null) {
-                return false;
+            const [parserRes, dbRes] = await Promise.all([initParser(progress), initDuckDB(progress)]);
+            const [parser, parserError] = parserRes;
+            const [db, dbError] = dbRes;
+            const anyError = parserError ?? dbError;
+            if (anyError != null) {
+                return anyError;
             }
             progress(p => ({ ...p, core: [InstantiationStatus.INSTANTIATING, null] }));
             await dashql.init(DASHQL_MODULE_URL);
@@ -97,27 +101,28 @@ async function initCore(progress: ProgressUpdater): Promise<boolean> {
             DASHQL_INITIALIZED = true;
         }
         progress(p => ({ ...p, core: [InstantiationStatus.READY, null] }));
-        return true;
+        return null;
     } catch (e: any) {
         progress(p => ({ ...p, core: [InstantiationStatus.FAILED, e] }));
-        return false;
+        return e;
     }
 }
 
 export const WasmBackendProvider: React.FC<Props> = (props: Props) => {
     const resolverInFlight = React.useRef<Promise<Backend | null> | null>(null);
-    const [backend, setBackend] = React.useState<Resolvable<Backend, BackendInitProgress>>(new Resolvable<Backend>());
+    const [backend, setBackend] = React.useState<Resolvable<Backend, BackendProgress>>(new Resolvable<Backend>());
     const backendResolver = React.useCallback(async () => {
         resolverInFlight.current = (async () => {
-            const updater = (fn: (progress: BackendInitProgress) => BackendInitProgress) => {
+            const updater = (fn: (progress: BackendProgress) => BackendProgress) => {
                 setBackend(r => r.updateProgressWith(fn));
             };
-            if (await initCore(updater)) {
+            const coreError = await initCore(updater);
+            if (coreError == null) {
                 const b = createWasmBackend();
                 setBackend(r => r.completeWith(b));
                 return b;
             } else {
-                setBackend(r => r.failWith('instantiation failed'));
+                setBackend(r => r.failWith(coreError));
                 return null;
             }
         })();
