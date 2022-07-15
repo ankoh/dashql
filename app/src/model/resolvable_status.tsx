@@ -29,7 +29,10 @@ export class Resolvable<Value, Progress = null, Error = string> {
     public failWith(error: Error, progress: Progress | null = null): Resolvable<Value, Progress, Error> {
         return new Resolvable(ResolvableStatus.FAILED, this.value, error, progress);
     }
-    public updateRunning(progress: Progress | null = null): Resolvable<Value, Progress, Error> {
+    public updateProgress(progress: Progress | null = null): Resolvable<Value, Progress, Error> {
         return new Resolvable(ResolvableStatus.RUNNING, this.value, this.error, progress);
+    }
+    public updateProgressWith(update: (progress: Progress) => Progress): Resolvable<Value, Progress, Error> {
+        return new Resolvable(ResolvableStatus.RUNNING, this.value, this.error, update(this.progress));
     }
 }

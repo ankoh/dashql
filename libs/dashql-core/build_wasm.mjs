@@ -37,8 +37,7 @@ fs.renameSync(path.join(dist_wasm, 'dashql_core.js'), path.join(dist_wasm, 'dash
 
 const index_exports = `
 export * from './dashql_core';
-import init from './dashql_core';
-export default init;
+export { default as init } from './dashql_core';
 `;
 fs.writeFileSync(path.join(dist_wasm, 'index.mjs'), index_exports, printErr);
 fs.writeFileSync(path.join(dist_wasm, 'index.d.ts'), index_exports, printErr);

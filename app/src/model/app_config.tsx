@@ -39,7 +39,7 @@ export const AppConfigResolver: React.FC<Props> = (props: Props) => {
     if (!started.current) {
         started.current = true;
         const resolve = async (): Promise<void> => {
-            setConfig(c => c.updateRunning());
+            setConfig(c => c.updateProgress());
             try {
                 const resp = await axios.get(config_url as string);
                 if (isAppConfig(resp.data)) {
