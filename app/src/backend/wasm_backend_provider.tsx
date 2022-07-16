@@ -48,9 +48,8 @@ async function initParser(progress: ProgressUpdater): Promise<[Parser | null, In
         return [PARSER_INSTANCE, null];
     } catch (e: any) {
         progress(p => ({ ...p, parser: [InstantiationStatus.FAILED, e] }));
-        throw e;
-        //console.error(e);
-        //return [null, e];
+        console.error(e);
+        return [null, e];
     }
 }
 
@@ -98,9 +97,8 @@ async function initCore(progress: ProgressUpdater): Promise<InstantiationError |
         return null;
     } catch (e: any) {
         progress(p => ({ ...p, core: [InstantiationStatus.FAILED, e] }));
-        throw e;
-        // console.error(e);
-        // return e;
+        console.error(e);
+        return e;
     }
 }
 
