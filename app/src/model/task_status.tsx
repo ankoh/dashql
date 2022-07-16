@@ -6,3 +6,7 @@ export enum TaskStatusCode {
     PENDING,
     BLOCKED,
 }
+
+export interface TaskStatus {
+    code: TaskStatusCode;
+}

@@ -17,6 +17,8 @@ extern "C" {
     fn begin_batch_update(this: &JsWorkflowFrontend, session_id: u32) -> Result<(), JsValue>;
     #[wasm_bindgen(catch, method, js_name = "endBatchUpdate")]
     fn end_batch_update(this: &JsWorkflowFrontend, session_id: u32) -> Result<(), JsValue>;
+    #[wasm_bindgen(catch, method, js_name = "updateProgramText")]
+    fn update_program_text(this: &JsWorkflowFrontend, session_id: u32, program_text: &str) -> Result<(), JsValue>;
     #[wasm_bindgen(catch, method, js_name = "updateProgram")]
     fn update_program(this: &JsWorkflowFrontend, session_id: u32, program: Uint8Array) -> Result<(), JsValue>;
     #[wasm_bindgen(catch, method, js_name = "updateTaskGraph")]
@@ -61,6 +63,9 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
     }
     fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
         self.map_result(self.inner.end_batch_update(session_id))
+    }
+    fn update_program_text(self: &Arc<Self>, session_id: u32, text: &str) -> Result<(), String> {
+        self.map_result(self.inner.update_program_text(session_id, text))
     }
     fn update_program(
         self: &Arc<Self>,

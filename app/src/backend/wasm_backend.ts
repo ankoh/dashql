@@ -12,7 +12,7 @@ export class WasmWorkflowBackend implements WorkflowBackend {
         return await dashql.workflowCloseSession(session);
     }
     async updateProgram(session: number, text: string): Promise<void> {
-        await await dashql.workflowUpdateProgram(session, text);
+        await dashql.workflowUpdateProgram(session, text);
     }
     async runQuery(session: number, text: string): Promise<Uint8Array> {
         return await dashql.workflowRunQuery(session, text);

@@ -49,6 +49,20 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
+    fn update_program_text(self: &Arc<Self>, session_id: u32, program: &str) -> Result<(), String> {
+        let self2 = self.clone();
+        let program_copy = program.to_string();
+        self.channel.send(move |mut cx| {
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let program_text = JsString::new(&mut cx, program_copy).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgramText")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, program_text])?;
+            Ok(())
+        });
+        Ok(())
+    }
     fn update_program(self: &Arc<Self>, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String> {
         let self2 = self.clone();
         let program_ipc = program.get_program().ast_data.to_vec();

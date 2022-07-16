@@ -9,6 +9,7 @@ export enum IPCFrontendMessageType {
     BATCH_UPDATE_BEGIN = 'BATCH_UPDATE_BEGIN',
     BATCH_UPDATE_END = 'BATCH_UPDATE_END',
     UPDATE_PROGRAM = 'UPDATE_PROGRAM',
+    UPDATE_PROGRAM_TEXT = 'UPDATE_PROGRAM_TEXT',
     UPDATE_TASK_GRAPH = 'UPDATE_TASK_GRAPH',
     UPDATE_TASK_STATUS = 'UPDATE_TASK_STATUS',
     DELETE_TASK_STATE = 'DELETE_TASK_STATE',
@@ -27,6 +28,7 @@ export type IPCFrontendMessage<T, P> = {
 export type IPCWorkflowFrontendMessage =
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_BEGIN, BatchUpdateBeginMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_END, BatchUpdateEndMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM_TEXT, UpdateProgramTextMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM, UpdateProgramMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_GRAPH, UpdateTaskGraphMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_STATUS, UpdateTaskStatusMsg>
@@ -43,6 +45,11 @@ interface BatchUpdateBeginMsg {
 
 interface BatchUpdateEndMsg {
     session: SessionId;
+}
+
+interface UpdateProgramTextMsg {
+    session: SessionId;
+    programText: string;
 }
 
 interface UpdateProgramMsg {
@@ -102,6 +109,8 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_END, data: null }),
         updateProgram: (session: SessionId, program: Uint8Array | null) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, program } }),
+        updateProgramText: (session: SessionId, programText: string | null) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM_TEXT, data: { session, programText } }),
         updateTaskGraph: (session: SessionId, graph: TaskGraph | null) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TASK_GRAPH, data: { session, graph } }),
         updateTaskStatus: (session: SessionId, task: TaskId, status: TaskStatusCode, error?: any) =>
@@ -137,6 +146,8 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
             return frontend.endBatchUpdate(message.data.session);
         case IPCFrontendMessageType.UPDATE_PROGRAM:
             return frontend.updateProgram(message.data.session, message.data.program);
+        case IPCFrontendMessageType.UPDATE_PROGRAM_TEXT:
+            return frontend.updateProgramText(message.data.session, message.data.programText);
         case IPCFrontendMessageType.UPDATE_TASK_GRAPH:
             return frontend.updateTaskGraph(message.data.session, message.data.graph);
         case IPCFrontendMessageType.UPDATE_TASK_STATUS:
