@@ -2,7 +2,7 @@ import * as d from '@duckdb/duckdb-wasm';
 import React from 'react';
 import axios from 'axios';
 import config_url from '../../static/config.json';
-import { Resolvable } from './resolvable_status';
+import { Resolvable, ResolvableStatus } from './resolvable_status';
 
 export interface AppFeatures {
     scriptBeans?: boolean;
@@ -34,12 +34,14 @@ type Props = {
 };
 
 export const AppConfigResolver: React.FC<Props> = (props: Props) => {
-    const [config, setConfig] = React.useState<Resolvable<AppConfig>>(new Resolvable());
+    const [config, setConfig] = React.useState<Resolvable<AppConfig>>(
+        new Resolvable<AppConfig, null>(ResolvableStatus.NONE, null),
+    );
     const started = React.useRef<boolean>(false);
     if (!started.current) {
         started.current = true;
         const resolve = async (): Promise<void> => {
-            setConfig(c => c.updateProgress());
+            setConfig(c => c.updateProgress(null));
             try {
                 const resp = await axios.get(config_url as string);
                 if (isAppConfig(resp.data)) {

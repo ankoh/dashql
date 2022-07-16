@@ -16,6 +16,7 @@ import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { withNavBar } from './components/navbar';
+import { WasmBackendProvider } from './backend/wasm_backend_provider';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
@@ -23,16 +24,18 @@ const ExplorerPage = withNavBar(Explorer);
 
 ReactDOM.render(
     <AppConfigResolver>
-        <AppLauncher>
-            <Router>
-                <Routes>
-                    <Route path="/explorer/*" element={<ExplorerPage />} />
-                    <Route path="/404" element={<NotFound />} />
-                    <Route path="/" element={<Navigate to="/explorer" />} />
-                    <Route path="*" element={<Navigate to="/404" />} />
-                </Routes>
-            </Router>
-        </AppLauncher>
+        <WasmBackendProvider>
+            <AppLauncher>
+                <Router>
+                    <Routes>
+                        <Route path="/explorer/*" element={<ExplorerPage />} />
+                        <Route path="/404" element={<NotFound />} />
+                        <Route path="/" element={<Navigate to="/explorer" />} />
+                        <Route path="*" element={<Navigate to="/404" />} />
+                    </Routes>
+                </Router>
+            </AppLauncher>
+        </WasmBackendProvider>
     </AppConfigResolver>,
     document.getElementById('root'),
 );

@@ -23,12 +23,7 @@
         "types": ["node", "jest", "electron"],
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": ".",
-        "plugins": [{ "name": "typescript-plugin-css-modules" }],
-
-        "paths": {
-            "@dashql/dashql-core/node": ["../libs/dashql-core/dist/node/dashql_core"],
-            "@dashql/dashql-core/wasm": ["../libs/dashql-core/dist/wasm/dashql_core"]
-        }
+        "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },
     "exclude": ["./node_modules"],
     "include": [

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '@dashql/dashql-core/dist/wasm';
 import * as duckdb from '@duckdb/duckdb-wasm';
 
-import { Resolvable } from '../model';
+import { Resolvable, ResolvableStatus } from '../model';
 import { Backend } from './backend';
 import {
     BackendInstantiationProgress as BackendProgress,
@@ -11,7 +11,7 @@ import {
     InstantiationError,
     InstantiationStatus,
 } from './backend_provider';
-import { init as initWASI, WASI } from '@wasmer/wasi';
+import * as wasi from '@wasmer/wasi';
 
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm';
 import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm';
@@ -43,23 +43,27 @@ async function initParser(progress: ProgressUpdater): Promise<[Parser | null, In
     try {
         if (PARSER_INSTANCE == null) {
             progress(p => ({ ...p, parser: [InstantiationStatus.PREPARING, null] }));
-            await initWASI();
-            const wasi = new WASI({
-                env: {},
+            await wasi.init();
+            const wasiInstance = new wasi.WASI({
                 args: [],
+                env: {},
             });
             progress(p => ({ ...p, parser: [InstantiationStatus.COMPILING, null] }));
-            const mod = await WebAssembly.compileStreaming(fetch(PARSER_MODULE_URL.href));
+            const parserBytesReq = await fetch(PARSER_MODULE_URL.href);
+            const parserBytes = await parserBytesReq.arrayBuffer();
+            const mod = await WebAssembly.compile(parserBytes);
             progress(p => ({ ...p, parser: [InstantiationStatus.INSTANTIATING, null] }));
-            const inst = await wasi.instantiate(mod, {});
-            wasi.start();
+            const inst = await wasiInstance.instantiate(mod, {});
+            wasiInstance.start();
             PARSER_INSTANCE = new Parser(inst);
         }
         progress(p => ({ ...p, parser: [InstantiationStatus.READY, null] }));
         return [PARSER_INSTANCE, null];
     } catch (e: any) {
         progress(p => ({ ...p, parser: [InstantiationStatus.FAILED, e] }));
-        return [null, e];
+        throw e;
+        //console.error(e);
+        //return [null, e];
     }
 }
 
@@ -71,12 +75,15 @@ async function initDuckDB(progress: ProgressUpdater): Promise<[duckdb.AsyncDuckD
             const bundle = await duckdb.selectBundle(DUCKDB_BUNDLES);
             const worker = new Worker(bundle.mainWorker!);
             progress(p => ({ ...p, db: [InstantiationStatus.INSTANTIATING, null] }));
-            DUCKDB_INSTANCE = new duckdb.AsyncDuckDB(DUCKDB_LOGGER, worker);
+            const instance = new duckdb.AsyncDuckDB(DUCKDB_LOGGER, worker);
+            await instance.instantiate(bundle.mainModule);
+            DUCKDB_INSTANCE = instance;
         }
         progress(p => ({ ...p, db: [InstantiationStatus.READY, null] }));
         return [DUCKDB_INSTANCE, null];
     } catch (e: any) {
         progress(p => ({ ...p, db: [InstantiationStatus.FAILED, e] }));
+        console.error(e);
         return [null, e];
     }
 }
@@ -104,14 +111,23 @@ async function initCore(progress: ProgressUpdater): Promise<InstantiationError |
         return null;
     } catch (e: any) {
         progress(p => ({ ...p, core: [InstantiationStatus.FAILED, e] }));
-        return e;
+        throw e;
+        // console.error(e);
+        // return e;
     }
 }
 
 export const WasmBackendProvider: React.FC<Props> = (props: Props) => {
     const resolverInFlight = React.useRef<Promise<Backend | null> | null>(null);
-    const [backend, setBackend] = React.useState<Resolvable<Backend, BackendProgress>>(new Resolvable<Backend>());
+    const [backend, setBackend] = React.useState<Resolvable<Backend, BackendProgress>>(
+        new Resolvable<Backend, BackendProgress>(ResolvableStatus.NONE, {
+            db: [null, null],
+            core: [null, null],
+            parser: [null, null],
+        }),
+    );
     const backendResolver = React.useCallback(async () => {
+        if (resolverInFlight.current) return await resolverInFlight.current;
         resolverInFlight.current = (async () => {
             const updater = (fn: (progress: BackendProgress) => BackendProgress) => {
                 setBackend(r => r.updateProgressWith(fn));

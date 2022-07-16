@@ -6,6 +6,7 @@ export const BACKEND_RESOLVER_CONTEXT = React.createContext<Resolver<Backend> | 
 export const BACKEND_CONTEXT = React.createContext<Resolvable<Backend, BackendInstantiationProgress> | null>(null);
 
 export const useBackend = (): Resolvable<Backend, BackendInstantiationProgress> => React.useContext(BACKEND_CONTEXT)!;
+export const useBackendResolver = (): Resolver<Backend> => React.useContext(BACKEND_RESOLVER_CONTEXT)!;
 
 export enum InstantiationStatus {
     WAITING,

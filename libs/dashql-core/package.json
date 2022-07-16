@@ -23,5 +23,32 @@
         "esbuild": "^0.14.39",
         "apache-arrow": "^8.0.0"
     },
-    "sideEffects": false
+    "sideEffects": false,
+    "exports": {
+        "./dist/wasm": {
+            "types": "./dist/wasm/index.d.ts",
+            "import": "./dist/wasm/index.mjs",
+            "require": "./dist/wasm/index.mjs"
+        },
+        "./dist/node": {
+            "types": "./dist/node/index.d.ts",
+            "import": "./dist/node/index.cjs",
+            "require": "./dist/node/index.cjs"
+        },
+        ".": {
+            "browser": {
+                "types": "./dist/wasm/index.d.ts",
+                "import": "./dist/wasm/index.mjs",
+                "require": "./dist/wasm/index.mjs"
+            },
+            "node": {
+                "types": "./dist/node/index.d.ts",
+                "import": "./dist/node/index.cjs",
+                "require": "./dist/node/index.cjs"
+            },
+            "types": "./dist/wasm/index.d.ts",
+            "import": "./dist/wasm/index.mjs",
+            "require": "./dist/wasm/index.mjs"
+        }
+    }
 }

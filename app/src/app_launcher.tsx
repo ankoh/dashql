@@ -7,27 +7,78 @@ import { AppConfigResolver, useAppConfig } from './model/app_config';
 import logo from '../static/svg/logo/logo.svg';
 import styles from './app_launcher.module.css';
 
+import { InstantiationStatus, useBackend, useBackendResolver } from './backend/backend_provider';
+
 interface Props {
     children: JSX.Element;
 }
 
 const AppLaunchSequence: React.FC<Props> = (props: Props) => {
-    const config = useAppConfig();
+    // const config = useAppConfig();
+    const backend = useBackend();
+    const resolveBackend = useBackendResolver();
+
+    // Resolve backend if not done yet
+    React.useEffect(() => {
+        if (!backend.resolving()) {
+            resolveBackend();
+        }
+    }, [backend]);
+    console.log(backend.progress);
 
     // Render status steps
-    const renderStatus = (label: string, status: model.ResolvableStatus) => (
-        <div key={label} className={styles.step}>
-            <div className={styles.step_status}>
-                <StatusIndicator width="18px" height="18px" status={status} />
+    const renderBackendStatus = (label: string, status: InstantiationStatus | null, error: any | null) => {
+        let indicator = model.ResolvableStatus.NONE;
+        switch (status) {
+            case InstantiationStatus.WAITING:
+                indicator = model.ResolvableStatus.NONE;
+                break;
+            case InstantiationStatus.READY:
+                indicator = model.ResolvableStatus.COMPLETED;
+                break;
+            case InstantiationStatus.INSTANTIATING:
+            case InstantiationStatus.PREPARING:
+            case InstantiationStatus.COMPILING:
+            case InstantiationStatus.CONFIGURING:
+                indicator = model.ResolvableStatus.RUNNING;
+                break;
+            case InstantiationStatus.FAILED:
+                indicator = model.ResolvableStatus.FAILED;
+                break;
+        }
+        return (
+            <div key={label} className={styles.step}>
+                <div className={styles.step_status}>
+                    <StatusIndicator width="18px" height="18px" status={indicator} />
+                </div>
+                <div className={styles.step_name}>{label}</div>
             </div>
-            <div className={styles.step_name}>{label}</div>
-        </div>
-    );
+        );
+    };
 
-    const completed = config.value != null;
-    if (completed) {
-        return props.children;
+    // // Render status steps
+    // const renderStatus = (label: string, status: model.ResolvableStatus) => (
+    //     <div key={label} className={styles.step}>
+    //         <div className={styles.step_status}>
+    //             <StatusIndicator width="18px" height="18px" status={status} />
+    //         </div>
+    //         <div className={styles.step_name}>{label}</div>
+    //     </div>
+    // );
+
+    // const completed = config.value != null;
+    // if (completed) {
+    //     return props.children;
+    // }
+
+    if (backend.progress == null) {
+        return <div />;
     }
+
+    const [dbStatus, dbError] = backend.progress.db;
+    const [parserStatus, parserError] = backend.progress.parser;
+    const [coreStatus, coreError] = backend.progress.core;
+
     return (
         <div className={styles.launcher}>
             <div className={styles.inner}>
@@ -37,11 +88,9 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                     </svg>
                 </div>
                 <div className={styles.steps}>
-                    {renderStatus('Load settings', config.status)}
-                    {renderStatus('Prepare WASI runtime', model.ResolvableStatus.COMPLETED)}
-                    {renderStatus('Prepare DashQL parser', model.ResolvableStatus.COMPLETED)}
-                    {renderStatus('Prepare DashQL database', model.ResolvableStatus.COMPLETED)}
-                    {renderStatus('Prepare DashQL worfklows', model.ResolvableStatus.COMPLETED)}
+                    {renderBackendStatus('Parser', parserStatus, parserError)}
+                    {renderBackendStatus('Database', dbStatus, dbError)}
+                    {renderBackendStatus('Core', coreStatus, coreError)}
                 </div>
             </div>
         </div>

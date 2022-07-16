@@ -45,7 +45,10 @@ export function configure(params) {
             clean: true,
         },
         resolve: {
-            extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
+            extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
+        },
+        externals: {
+            'wasmer_wasi_js_bg.wasm': true,
         },
         module: {
             rules: [
@@ -147,6 +150,17 @@ export function configure(params) {
         },
         plugins: [
             new webpack.ProgressPlugin(),
+            new webpack.ProvidePlugin({
+                Buffer: ['buffer', 'Buffer'],
+            }),
+            new webpack.DefinePlugin({
+                'process.env.ENV_BROWSER': true,
+                'process.env.DASHQL_APP_URL': JSON.stringify(params.dashqlAPP),
+                'process.env.DASHQL_API_URL': JSON.stringify(params.dashqlAPI),
+                'process.env.GITHUB_OAUTH_CLIENT_ID': JSON.stringify(params.githubOAuthClientID),
+                'process.env.GITHUB_OAUTH_REDIRECT': JSON.stringify(params.githubOAuthRedirect),
+                'process.env.DEBUG_SCHEDULER': true,
+            }),
             new HtmlWebpackPlugin({
                 template: './static/index.html',
                 filename: './index.html',
@@ -163,14 +177,6 @@ export function configure(params) {
                         to: './static/favicons',
                     },
                 ],
-            }),
-            new webpack.DefinePlugin({
-                'process.env.ENV_BROWSER': true,
-                'process.env.DASHQL_APP_URL': JSON.stringify(params.dashqlAPP),
-                'process.env.DASHQL_API_URL': JSON.stringify(params.dashqlAPI),
-                'process.env.GITHUB_OAUTH_CLIENT_ID': JSON.stringify(params.githubOAuthClientID),
-                'process.env.GITHUB_OAUTH_REDIRECT': JSON.stringify(params.githubOAuthRedirect),
-                'process.env.DEBUG_SCHEDULER': true,
             }),
             new MonacoWebpackPlugin({
                 features: ['clipboard', 'links'],
