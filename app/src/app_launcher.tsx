@@ -24,7 +24,6 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
             resolveBackend();
         }
     }, [backend]);
-    console.log(backend.progress);
 
     // Render status steps
     const renderBackendStatus = (label: string, status: InstantiationStatus | null, error: any | null) => {

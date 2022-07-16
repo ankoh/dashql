@@ -26,7 +26,6 @@
         "@duckdb/react-duckdb": "^1.14.4",
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.11.2",
-        "@wasmer/wasi": "^1.0.2",
         "apache-arrow": "^8.0.0",
         "axios": "^0.25.0",
         "bootstrap": "^5.1.1",

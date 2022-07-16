@@ -47,9 +47,6 @@ export function configure(params) {
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
         },
-        externals: {
-            'wasmer_wasi_js_bg.wasm': true,
-        },
         module: {
             rules: [
                 {
