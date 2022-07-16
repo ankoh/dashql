@@ -11,11 +11,10 @@ import {
     InstantiationError,
     InstantiationStatus,
 } from './backend_provider';
-import * as wasi from '@wasmer/wasi';
 
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm';
 import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm';
-import { Parser } from './wasm_parser_api';
+import { instantiateParserStreaming, Parser } from './wasm_parser_api';
 import { createWasmBackend } from './wasm_backend';
 
 const PARSER_MODULE_URL = new URL('../../../libs/dashql-parser/build/wasm/Release/dashql_parser.wasm', import.meta.url);
@@ -42,20 +41,8 @@ let PARSER_INSTANCE: Parser | null = null;
 async function initParser(progress: ProgressUpdater): Promise<[Parser | null, InstantiationError | null]> {
     try {
         if (PARSER_INSTANCE == null) {
-            progress(p => ({ ...p, parser: [InstantiationStatus.PREPARING, null] }));
-            await wasi.init();
-            const wasiInstance = new wasi.WASI({
-                args: [],
-                env: {},
-            });
-            progress(p => ({ ...p, parser: [InstantiationStatus.COMPILING, null] }));
-            const parserBytesReq = await fetch(PARSER_MODULE_URL.href);
-            const parserBytes = await parserBytesReq.arrayBuffer();
-            const mod = await WebAssembly.compile(parserBytes);
             progress(p => ({ ...p, parser: [InstantiationStatus.INSTANTIATING, null] }));
-            const inst = await wasiInstance.instantiate(mod, {});
-            wasiInstance.start();
-            PARSER_INSTANCE = new Parser(inst);
+            PARSER_INSTANCE = await instantiateParserStreaming(fetch(PARSER_MODULE_URL.href));
         }
         progress(p => ({ ...p, parser: [InstantiationStatus.READY, null] }));
         return [PARSER_INSTANCE, null];

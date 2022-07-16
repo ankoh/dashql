@@ -78,3 +78,31 @@ export class Parser {
         }
     }
 }
+
+const PARSER_WASM_IMPORT_STUBS = {
+    wasi_snapshot_preview1: {
+        proc_exit: (code: number) => console.error(`proc_exit(${code})`),
+        environ_sizes_get: () => console.error(`environ_sizes_get()`),
+        environ_get: (environ: number, buf: number) => console.error(`environ_get(${environ}, ${buf})`),
+        fd_fdstat_get: (fd: number) => console.error(`fd_fdstat_get(${fd})`),
+        fd_seek: (fd: number, offset: number, whence: number) => console.error(`fd_seek(${fd}, ${offset}, ${whence})`),
+        fd_write: (fd: number, iovs: number) => console.error(`fd_write(${fd}, ${iovs})`),
+        fd_read: (fd: number, iovs: number) => console.error(`fd_read(${fd}, ${iovs})`),
+        fd_close: (fd: number) => console.error(`fd_close(${fd})`),
+    },
+};
+
+export async function instantiateParser(mod: WebAssembly.Module): Promise<Parser> {
+    const instance = await WebAssembly.instantiate(mod, PARSER_WASM_IMPORT_STUBS);
+    const startFn = instance.exports['_start'] as () => number;
+    startFn();
+    return new Parser(instance);
+}
+
+export async function instantiateParserStreaming(url: PromiseLike<Response>): Promise<Parser> {
+    const streaming = await WebAssembly.instantiateStreaming(url, PARSER_WASM_IMPORT_STUBS);
+    const instance = streaming.instance;
+    const startFn = instance.exports['_start'] as () => number;
+    startFn();
+    return new Parser(instance);
+}

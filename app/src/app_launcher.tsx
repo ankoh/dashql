@@ -38,7 +38,6 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                 break;
             case InstantiationStatus.INSTANTIATING:
             case InstantiationStatus.PREPARING:
-            case InstantiationStatus.COMPILING:
             case InstantiationStatus.CONFIGURING:
                 indicator = model.ResolvableStatus.RUNNING;
                 break;

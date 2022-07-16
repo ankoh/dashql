@@ -11,7 +11,6 @@ export const useBackendResolver = (): Resolver<Backend> => React.useContext(BACK
 export enum InstantiationStatus {
     WAITING,
     PREPARING,
-    COMPILING,
     INSTANTIATING,
     CONFIGURING,
     READY,
