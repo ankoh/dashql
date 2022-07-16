@@ -14,7 +14,7 @@ interface Props {
 }
 
 const AppLaunchSequence: React.FC<Props> = (props: Props) => {
-    // const config = useAppConfig();
+    const config = useAppConfig();
     const backend = useBackend();
     const resolveBackend = useBackendResolver();
 
@@ -28,46 +28,54 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
     // Render status steps
     const renderBackendStatus = (label: string, status: InstantiationStatus | null, error: any | null) => {
         let indicator = model.ResolvableStatus.NONE;
+        let text = '';
         switch (status) {
+            case null:
             case InstantiationStatus.WAITING:
                 indicator = model.ResolvableStatus.NONE;
+                text = 'WAIT';
                 break;
             case InstantiationStatus.READY:
                 indicator = model.ResolvableStatus.COMPLETED;
+                text = 'READY';
                 break;
             case InstantiationStatus.INSTANTIATING:
+                indicator = model.ResolvableStatus.RUNNING;
+                text = 'COMPILE';
+                break;
             case InstantiationStatus.PREPARING:
+                indicator = model.ResolvableStatus.RUNNING;
+                text = 'PREP';
+                break;
             case InstantiationStatus.CONFIGURING:
                 indicator = model.ResolvableStatus.RUNNING;
+                text = 'CONFIG';
                 break;
             case InstantiationStatus.FAILED:
                 indicator = model.ResolvableStatus.FAILED;
+                text = 'ERROR';
                 break;
         }
         return (
-            <div key={label} className={styles.step}>
+            <>
                 <div className={styles.step_status}>
                     <StatusIndicator width="18px" height="18px" status={indicator} />
                 </div>
                 <div className={styles.step_name}>{label}</div>
-            </div>
+                <div className={styles.step_status_text}>{text}</div>
+            </>
         );
     };
 
-    // // Render status steps
-    // const renderStatus = (label: string, status: model.ResolvableStatus) => (
-    //     <div key={label} className={styles.step}>
-    //         <div className={styles.step_status}>
-    //             <StatusIndicator width="18px" height="18px" status={status} />
-    //         </div>
-    //         <div className={styles.step_name}>{label}</div>
-    //     </div>
-    // );
-
-    // const completed = config.value != null;
-    // if (completed) {
-    //     return props.children;
-    // }
+    // Render status steps
+    const renderStatus = (label: string, status: model.ResolvableStatus) => (
+        <>
+            <div className={styles.step_status}>
+                <StatusIndicator width="18px" height="18px" status={status} />
+            </div>
+            <div className={styles.step_name}>{label}</div>
+        </>
+    );
 
     if (backend.progress == null) {
         return <div />;
@@ -86,9 +94,10 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
                     </svg>
                 </div>
                 <div className={styles.steps}>
-                    {renderBackendStatus('Parser', parserStatus, parserError)}
-                    {renderBackendStatus('Database', dbStatus, dbError)}
-                    {renderBackendStatus('Core', coreStatus, coreError)}
+                    {renderStatus('Configure App', config.status)}
+                    {renderBackendStatus('DuckDB', dbStatus, dbError)}
+                    {renderBackendStatus('DashQL Parser', parserStatus, parserError)}
+                    {renderBackendStatus('DashQL Core', coreStatus, coreError)}
                 </div>
             </div>
         </div>

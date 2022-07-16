@@ -23,18 +23,12 @@
 
 .steps {
     margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-}
 
-.step {
     display: grid;
-    grid-template-columns: 48px auto;
-    grid-template-rows: 32px;
+    grid-template-columns: 48px max-content max-content;
 }
 
 .step_status {
-    grid-row: 1;
     grid-column: 1;
 
     display: grid;
@@ -43,10 +37,23 @@
 }
 
 .step_name {
-    grid-row: 1;
     grid-column: 2;
 
     display: grid;
     align-items: center;
     justify-content: start;
+}
+
+.step_status_text {
+    font-family: 'RobotoMono';
+    font-size: 90%;
+    grid-column: 3;
+    margin: 0px 0px 0px 32px;
+    width: 4.4em;
+
+    display: grid;
+    align-items: center;
+    justify-content: start;
+
+    color: rgb(230, 230, 230);
 }
