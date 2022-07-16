@@ -42,3 +42,9 @@ make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${MODE}" \
     -j${CORES} \
     dashql_parser
+
+if [ ${MODE} == "Release" ]; then
+    wasm-opt -O3 -o ${CPP_BUILD_DIR}/dashql_parser_opt.wasm ${CPP_BUILD_DIR}/dashql_parser.wasm
+    wasm-strip ${CPP_BUILD_DIR}/dashql_parser_opt.wasm
+    mv ${CPP_BUILD_DIR}/dashql_parser_opt.wasm ${CPP_BUILD_DIR}/dashql_parser.wasm
+fi
