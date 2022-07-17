@@ -18,8 +18,8 @@ console.log(`DEBUG=${isDebug}`);
 // -------------------------------
 // Build wasm
 
-const mode = isDebug ? '' : '--release';
-execSync(`wasm-pack build -d dist/wasm --target web --features wasm --no-default-features  ${mode}`, {
+const mode = isDebug ? '--dev' : '--release';
+execSync(`wasm-pack build ${mode} -d dist/wasm --target web --features wasm --no-default-features`, {
     cwd: __dirname,
     stdio: 'inherit',
 });

@@ -97,6 +97,10 @@ parser_wasm_release:
 core_wasm:
 	yarn workspace @dashql/dashql-core run wasm:debug
 
+.PHONY: core_wasm_release
+core_wasm_release:
+	yarn workspace @dashql/dashql-core run wasm:release
+
 .PHONY: core_node
 core_node:
 	yarn workspace @dashql/dashql-core run node:debug
