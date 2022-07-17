@@ -15,19 +15,17 @@ export interface SessionStore {
     taskStatusById: imm.Map<TaskId, TaskStatus>;
 }
 
-export const WORKFLOW_FRONTEND_DATA_CONTEXT = React.createContext<SessionStore>(null);
+export const WORKFLOW_DATA_CONTEXT = React.createContext<SessionStore>(null);
 export const WORKFLOW_FRONTEND_CONTEXT = React.createContext<WorkflowFrontend>(null);
 
-export const useWorkflowFrontendData = (): SessionStore => React.useContext(WORKFLOW_FRONTEND_DATA_CONTEXT);
+export const useWorkflowData = (): SessionStore => React.useContext(WORKFLOW_DATA_CONTEXT);
 export const useWorkflowFrontend = (): WorkflowFrontend => React.useContext(WORKFLOW_FRONTEND_CONTEXT);
 
 type WorkflowFrontendProviderProps = {
     children: React.ReactElement | ReactElement[];
 };
 
-export const WorkflowFrontendProvider: React.FC<WorkflowFrontendProviderProps> = (
-    props: WorkflowFrontendProviderProps,
-) => {
+export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (props: WorkflowFrontendProviderProps) => {
     const [committed, setCommitted] = React.useState<SessionStore>({
         sessionId: null,
         programText: null,
@@ -98,9 +96,7 @@ export const WorkflowFrontendProvider: React.FC<WorkflowFrontendProviderProps> =
 
     return (
         <WORKFLOW_FRONTEND_CONTEXT.Provider value={workflow}>
-            <WORKFLOW_FRONTEND_DATA_CONTEXT.Provider value={committed}>
-                {props.children}
-            </WORKFLOW_FRONTEND_DATA_CONTEXT.Provider>
+            <WORKFLOW_DATA_CONTEXT.Provider value={committed}>{props.children}</WORKFLOW_DATA_CONTEXT.Provider>
         </WORKFLOW_FRONTEND_CONTEXT.Provider>
     );
 };

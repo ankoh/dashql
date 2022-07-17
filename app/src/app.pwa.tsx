@@ -17,7 +17,7 @@ import 'react-virtualized/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';
-import { WorkflowFrontendProvider } from './backend/workflow_frontend_provider';
+import { WorkflowDataProvider } from './backend/workflow_data_provider';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
@@ -26,7 +26,7 @@ const ExplorerPage = withNavBar(Explorer);
 ReactDOM.render(
     <AppConfigResolver>
         <WasmBackendProvider>
-            <WorkflowFrontendProvider>
+            <WorkflowDataProvider>
                 <AppLauncher>
                     <Router>
                         <Routes>
@@ -37,7 +37,7 @@ ReactDOM.render(
                         </Routes>
                     </Router>
                 </AppLauncher>
-            </WorkflowFrontendProvider>
+            </WorkflowDataProvider>
         </WasmBackendProvider>
     </AppConfigResolver>,
     document.getElementById('root'),
