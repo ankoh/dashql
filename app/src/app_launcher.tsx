@@ -84,6 +84,15 @@ const AppLaunchSequence: React.FC<Props> = (props: Props) => {
     const [dbStatus, dbError] = backend.progress.db;
     const [parserStatus, parserError] = backend.progress.parser;
     const [coreStatus, coreError] = backend.progress.core;
+    const completed =
+        config.value != null &&
+        dbStatus == InstantiationStatus.READY &&
+        parserStatus == InstantiationStatus.READY &&
+        coreStatus == InstantiationStatus.READY;
+
+    if (completed) {
+        return props.children;
+    }
 
     return (
         <div className={styles.launcher}>
