@@ -17,7 +17,7 @@ import 'react-virtualized/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';
-import { WorkflowDataProvider } from './backend/workflow_data_provider';
+import { WorkflowDataProvider, WorkflowSessionProvider } from './backend/workflow_data_provider';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
@@ -26,18 +26,20 @@ const ExplorerPage = withNavBar(Explorer);
 ReactDOM.render(
     <AppConfigResolver>
         <WasmBackendProvider>
-            <WorkflowDataProvider>
-                <AppLauncher>
-                    <Router>
-                        <Routes>
-                            <Route path="/explorer/*" element={<ExplorerPage />} />
-                            <Route path="/404" element={<NotFound />} />
-                            <Route path="/" element={<Navigate to="/explorer" />} />
-                            <Route path="*" element={<Navigate to="/404" />} />
-                        </Routes>
-                    </Router>
-                </AppLauncher>
-            </WorkflowDataProvider>
+            <AppLauncher>
+                <WorkflowDataProvider>
+                    <WorkflowSessionProvider>
+                        <Router>
+                            <Routes>
+                                <Route path="/explorer/*" element={<ExplorerPage />} />
+                                <Route path="/404" element={<NotFound />} />
+                                <Route path="/" element={<Navigate to="/explorer" />} />
+                                <Route path="*" element={<Navigate to="/404" />} />
+                            </Routes>
+                        </Router>
+                    </WorkflowSessionProvider>
+                </WorkflowDataProvider>
+            </AppLauncher>
         </WasmBackendProvider>
     </AppConfigResolver>,
     document.getElementById('root'),

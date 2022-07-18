@@ -5,6 +5,7 @@ import * as fb from 'flatbuffers';
 import { TaskGraph } from '../model/task_graph';
 import { TaskStatus, TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowFrontend } from './backend';
+import { useBackend, useBackendResolver } from './backend_provider';
 
 export type TaskId = number;
 export interface SessionStore {
@@ -17,9 +18,11 @@ export interface SessionStore {
 
 export const WORKFLOW_DATA_CONTEXT = React.createContext<SessionStore>(null);
 export const WORKFLOW_FRONTEND_CONTEXT = React.createContext<WorkflowFrontend>(null);
+export const WORKFLOW_SESSION_CONTEXT = React.createContext<number>(null);
 
 export const useWorkflowData = (): SessionStore => React.useContext(WORKFLOW_DATA_CONTEXT);
 export const useWorkflowFrontend = (): WorkflowFrontend => React.useContext(WORKFLOW_FRONTEND_CONTEXT);
+export const useWorkflowSession = (): number => React.useContext(WORKFLOW_SESSION_CONTEXT);
 
 type WorkflowFrontendProviderProps = {
     children: React.ReactElement | ReactElement[];
@@ -99,4 +102,41 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
             <WORKFLOW_DATA_CONTEXT.Provider value={committed}>{props.children}</WORKFLOW_DATA_CONTEXT.Provider>
         </WORKFLOW_FRONTEND_CONTEXT.Provider>
     );
+};
+
+type WorkflowSessionProviderProps = {
+    children: React.ReactElement;
+};
+
+export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
+    props: WorkflowSessionProviderProps,
+) => {
+    const backend = useBackend();
+    const resolveBackend = useBackendResolver();
+    const frontend = useWorkflowFrontend();
+    const [session, setSession] = React.useState<number>();
+    const inFlight = React.useRef<Promise<void | null> | null>(null);
+
+    React.useEffect(() => {
+        if (!backend.resolving()) {
+            resolveBackend();
+        }
+    });
+    React.useEffect(() => {
+        if (backend.value == null || inFlight.current != null) {
+            return;
+        }
+        inFlight.current = (async () => {
+            const prev = session;
+            if (prev != null) {
+                setSession(null);
+                await backend.value.workflow.closeSession(prev);
+            }
+            const next = await backend.value.workflow.createSession(frontend);
+            setSession(next);
+            inFlight.current = null;
+        })();
+    }, [backend, frontend]);
+
+    return <WORKFLOW_SESSION_CONTEXT.Provider value={session}>{props.children}</WORKFLOW_SESSION_CONTEXT.Provider>;
 };
