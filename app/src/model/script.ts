@@ -1,13 +1,6 @@
 // Copyright (c) 2021 The DashQL Authors
 
-export interface Script {
-    /// The program text
-    text: string;
-    /// The line count
-    lineCount: number;
-    /// The file size
-    bytes: number;
-}
+export interface Script {}
 
 export enum ScriptOriginType {
     LOCAL,

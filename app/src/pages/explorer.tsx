@@ -1,13 +1,15 @@
 import * as React from 'react';
 import cn from 'classnames';
+import { AnimatePresence } from 'framer-motion';
 import { Route, Routes } from 'react-router-dom';
 import { useAppConfig } from '../model';
 import { useWorkflowData } from '../backend/workflow_data_provider';
+import { OverlayContainer } from '../components/overlay';
+import { LazyLoader } from '../components/lazy_loader';
 
 import styles from './explorer.module.css';
 import styles_cmd from '../components/button.module.css';
 
-import { AnimatePresence } from 'framer-motion';
 import icon_eye from '../../static/svg/icons/eye.svg';
 import icon_cloud_upload from '../../static/svg/icons/cloud_upload.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
@@ -29,6 +31,27 @@ type Props = {
 export const Explorer: React.FC<Props> = (props: Props) => {
     const appConfig = useAppConfig();
     const workflowData = useWorkflowData();
+    const editorReadOnly = false;
 
-    return <div>Explorer</div>;
+    return (
+        <div className={styles.explorer}>
+            <AnimatePresence>
+                <div key="program_page" className={styles.program_page}>
+                    <div className={styles.program_info_and_actions}></div>
+                    <Routes>
+                        <Route
+                            path="/"
+                            element={
+                                <OverlayContainer id={SYM_FORK_OVERLAY} className={styles.program_editor}>
+                                    <LazyLoader>
+                                        <LazyEditor readOnly={editorReadOnly} />
+                                    </LazyLoader>
+                                </OverlayContainer>
+                            }
+                        />
+                    </Routes>
+                </div>
+            </AnimatePresence>
+        </div>
+    );
 };

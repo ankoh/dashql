@@ -1,25 +1,25 @@
 import React, { ReactElement } from 'react';
 import * as imm from 'immutable';
 import * as model from '../model';
-import { TaskStatus, TaskStatusCode } from '../model/task_status';
+import { TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
-import { Program } from '../model';
+import { Program, StatementStatus } from '../model';
 
 export type TaskId = number;
-export interface SessionStore {
+export interface WorkflowData {
     sessionId: number | null;
-    script: model.Script | null;
     program: model.Program | null;
     taskGraph: model.TaskGraph | null;
-    taskStatusById: imm.Map<TaskId, TaskStatus>;
+    statusByTask: imm.Map<TaskId, TaskStatusCode>;
+    statusByStatement: imm.List<StatementStatus>;
 }
 
-export const WORKFLOW_DATA_CONTEXT = React.createContext<SessionStore>(null);
+export const WORKFLOW_DATA_CONTEXT = React.createContext<WorkflowData>(null);
 export const WORKFLOW_FRONTEND_CONTEXT = React.createContext<WorkflowFrontend>(null);
 export const WORKFLOW_SESSION_CONTEXT = React.createContext<number>(null);
 
-export const useWorkflowData = (): SessionStore => React.useContext(WORKFLOW_DATA_CONTEXT);
+export const useWorkflowData = (): WorkflowData => React.useContext(WORKFLOW_DATA_CONTEXT);
 export const useWorkflowFrontend = (): WorkflowFrontend => React.useContext(WORKFLOW_FRONTEND_CONTEXT);
 export const useWorkflowSession = (): number => React.useContext(WORKFLOW_SESSION_CONTEXT);
 
@@ -28,19 +28,19 @@ type WorkflowFrontendProviderProps = {
 };
 
 export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (props: WorkflowFrontendProviderProps) => {
-    const [committed, setCommitted] = React.useState<SessionStore>({
+    const [committed, setCommitted] = React.useState<WorkflowData>({
         sessionId: null,
-        script: null,
         program: null,
         taskGraph: null,
-        taskStatusById: null,
+        statusByTask: imm.Map(),
+        statusByStatement: imm.List(),
     });
-    const uncommitted = React.useRef<SessionStore>({
+    const uncommitted = React.useRef<WorkflowData>({
         sessionId: null,
-        script: null,
         program: null,
         taskGraph: null,
-        taskStatusById: null,
+        statusByTask: imm.Map(),
+        statusByStatement: imm.List(),
     });
     const workflow: WorkflowFrontend = React.useMemo(
         () => ({
@@ -49,16 +49,16 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 const pending = uncommitted.current;
                 if (commit.sessionId != session) {
                     pending.sessionId = session;
-                    pending.script = null;
                     pending.program = null;
                     pending.taskGraph = null;
-                    pending.taskStatusById = null;
+                    pending.statusByTask = imm.Map();
+                    pending.statusByStatement = imm.List();
                 } else {
                     pending.sessionId = commit.sessionId;
-                    pending.script = commit.script;
                     pending.program = commit.program;
                     pending.taskGraph = commit.taskGraph;
-                    pending.taskStatusById = commit.taskStatusById;
+                    pending.statusByTask = commit.statusByTask;
+                    pending.statusByStatement = commit.statusByStatement;
                 }
             },
             endBatchUpdate: (session: SessionId) => {
@@ -66,10 +66,10 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 if (pending.sessionId != session) {
                     setCommitted({
                         sessionId: pending.sessionId,
-                        script: pending.script,
                         program: pending.program,
                         taskGraph: pending.taskGraph,
-                        taskStatusById: pending.taskStatusById,
+                        statusByTask: pending.statusByTask,
+                        statusByStatement: pending.statusByStatement,
                     });
                 }
             },
