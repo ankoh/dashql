@@ -58,8 +58,8 @@ where
 pub trait WorkflowFrontend {
     fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
     fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
-    fn update_program_text(self: &Arc<Self>, session_id: u32, program_text: &str) -> Result<(), String>;
-    fn update_program(self: &Arc<Self>, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String>;
+    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &Arc<ProgramContainer>)
+        -> Result<(), String>;
     fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String>;
     fn update_task_status(
         self: &Arc<Self>,
@@ -95,7 +95,7 @@ where
         // XXX plan the workflow
 
         self.frontend.begin_batch_update(self.session_id)?;
-        self.frontend.update_program(self.session_id, &program)?;
+        self.frontend.update_program(self.session_id, text, &program)?;
         self.frontend.end_batch_update(self.session_id)?;
         Ok(())
     }

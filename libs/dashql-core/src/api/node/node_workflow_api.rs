@@ -49,33 +49,27 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
-    fn update_program_text(self: &Arc<Self>, session_id: u32, program: &str) -> Result<(), String> {
+    fn update_program(
+        self: &Arc<Self>,
+        session_id: u32,
+        text: &str,
+        ast: &Arc<ProgramContainer>,
+    ) -> Result<(), String> {
         let self2 = self.clone();
-        let program_copy = program.to_string();
+        let text = text.as_bytes().to_vec();
+        let ast_ipc = ast.get_program().ast_data.to_vec();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let program_text = JsString::new(&mut cx, program_copy).as_value(&mut cx);
-            let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgramText")?;
-            let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, program_text])?;
-            Ok(())
-        });
-        Ok(())
-    }
-    fn update_program(self: &Arc<Self>, session_id: u32, program: &Arc<ProgramContainer>) -> Result<(), String> {
-        let self2 = self.clone();
-        let program_ipc = program.get_program().ast_data.to_vec();
-        self.channel.send(move |mut cx| {
-            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let mut data_buffer = JsArrayBuffer::new(&mut cx, program_ipc.len())?;
-            let data_slice = data_buffer.as_mut_slice(&mut cx);
-            data_slice.copy_from_slice(&program_ipc);
-            let data_buffer = data_buffer.as_value(&mut cx);
+            let mut text_buffer = JsArrayBuffer::new(&mut cx, text.len())?;
+            let mut ast_buffer = JsArrayBuffer::new(&mut cx, ast_ipc.len())?;
+            text_buffer.as_mut_slice(&mut cx).copy_from_slice(&text);
+            ast_buffer.as_mut_slice(&mut cx).copy_from_slice(&ast_ipc);
+            let text_buffer = text_buffer.as_value(&mut cx);
+            let ast_buffer = ast_buffer.as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
             let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgram")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, data_buffer])?;
+            method.call(&mut cx, this, &[session_id, text_buffer, ast_buffer])?;
             Ok(())
         });
         Ok(())

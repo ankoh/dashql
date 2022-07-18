@@ -11,8 +11,8 @@ import * as React from 'react';
 // import styles from './editor.module.css';
 //
 // import { TokensProvider } from '../model/editor_tokens';
-// import { useAnalyzer } from '../analyzer';
 // import { TaskStatusCode } from '../model/task_status';
+// import { useWorkflowData } from '../backend/workflow_data_provider';
 //
 // /// Does the mouse movement affect the decorations?
 // /// Right now, the only mouse effect is focus on dependency target nodes.
@@ -57,13 +57,11 @@ import * as React from 'react';
 //     const monacoRef = React.useRef(null);
 //     const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
 //
-//     const { script, program, programInstance } = model.useProgramContext();
-//     const { statementStatus } = model.usePlanContext();
-//     const programContextDispatch = model.useProgramContextDispatch();
+//     const workflowData = useWorkflowData();
 //
 //     // Expose program and script via ref for monaco
 //     const scriptRef = React.useRef<model.Script>(script);
-//     const programRef = React.useRef<model.Program | null>(program);
+//     const programRef = React.useRef<model.Program | null>(workflow);
 //     const programInstanceRef = React.useRef<model.ProgramInstance | null>(programInstance);
 //     React.useEffect(() => {
 //         scriptRef.current = script;

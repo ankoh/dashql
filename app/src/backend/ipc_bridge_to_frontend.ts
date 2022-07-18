@@ -28,7 +28,6 @@ export type IPCFrontendMessage<T, P> = {
 export type IPCWorkflowFrontendMessage =
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_BEGIN, BatchUpdateBeginMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_END, BatchUpdateEndMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM_TEXT, UpdateProgramTextMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM, UpdateProgramMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_GRAPH, UpdateTaskGraphMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_STATUS, UpdateTaskStatusMsg>
@@ -54,6 +53,7 @@ interface UpdateProgramTextMsg {
 
 interface UpdateProgramMsg {
     session: SessionId;
+    text: Uint8Array;
     program: Uint8Array;
 }
 
@@ -107,10 +107,8 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_BEGIN, data: null }),
         endBatchUpdate: (session: SessionId) =>
             send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_END, data: null }),
-        updateProgram: (session: SessionId, program: Uint8Array | null) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, program } }),
-        updateProgramText: (session: SessionId, programText: string | null) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM_TEXT, data: { session, programText } }),
+        updateProgram: (session: SessionId, text: Uint8Array, program: Uint8Array) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, text, program } }),
         updateTaskGraph: (session: SessionId, graph: TaskGraph | null) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TASK_GRAPH, data: { session, graph } }),
         updateTaskStatus: (session: SessionId, task: TaskId, status: TaskStatusCode, error?: any) =>
@@ -145,9 +143,7 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
         case IPCFrontendMessageType.BATCH_UPDATE_END:
             return frontend.endBatchUpdate(message.data.session);
         case IPCFrontendMessageType.UPDATE_PROGRAM:
-            return frontend.updateProgram(message.data.session, message.data.program);
-        case IPCFrontendMessageType.UPDATE_PROGRAM_TEXT:
-            return frontend.updateProgramText(message.data.session, message.data.programText);
+            return frontend.updateProgram(message.data.session, message.data.text, message.data.program);
         case IPCFrontendMessageType.UPDATE_TASK_GRAPH:
             return frontend.updateTaskGraph(message.data.session, message.data.graph);
         case IPCFrontendMessageType.UPDATE_TASK_STATUS:

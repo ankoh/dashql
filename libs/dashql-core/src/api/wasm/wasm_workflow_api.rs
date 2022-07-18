@@ -17,9 +17,7 @@ extern "C" {
     #[wasm_bindgen(structural, method, js_name = "endBatchUpdate")]
     fn end_batch_update(this: &JsWorkflowFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
-    fn update_program(this: &JsWorkflowFrontend, session_id: u32, program: Uint8Array);
-    #[wasm_bindgen(structural, method, js_name = "updateProgramText")]
-    fn update_program_text(this: &JsWorkflowFrontend, session_id: u32, text: &str);
+    fn update_program(this: &JsWorkflowFrontend, session_id: u32, text: Uint8Array, ast: Uint8Array);
     #[wasm_bindgen(structural, method, js_name = "updateTaskGraph")]
     fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskStatus")]
@@ -52,16 +50,16 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
     fn update_program(
         self: &Arc<Self>,
         session_id: u32,
-        program: &Arc<crate::grammar::ProgramContainer>,
+        text: &str,
+        ast: &Arc<crate::grammar::ProgramContainer>,
     ) -> Result<(), String> {
-        let program_ipc = program.get_program().ast_data;
-        let program_array = Uint8Array::new_with_length(program_ipc.len() as u32);
-        program_array.copy_from(&program_ipc);
-        self.inner.update_program(session_id, program_array);
-        Ok(())
-    }
-    fn update_program_text(self: &Arc<Self>, session_id: u32, text: &str) -> Result<(), String> {
-        self.inner.update_program_text(session_id, text);
+        let text_bytes = text.as_bytes();
+        let text_array = Uint8Array::new_with_length(text_bytes.len() as u32);
+        text_array.copy_from(text_bytes);
+        let ast_ipc = ast.get_program().ast_data;
+        let ast_array = Uint8Array::new_with_length(ast_ipc.len() as u32);
+        ast_array.copy_from(&ast_ipc);
+        self.inner.update_program(session_id, text_array, ast_array);
         Ok(())
     }
     fn update_task_graph(

@@ -64,7 +64,7 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         if (!this._program.current) return result;
 
         // Get highlighting data
-        const buffer = this._program.current.buffer;
+        const buffer = this._program.current.ast;
         const hl = buffer?.highlighting();
         if (!hl) return result;
 

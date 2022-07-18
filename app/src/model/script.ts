@@ -1,5 +1,14 @@
 // Copyright (c) 2021 The DashQL Authors
 
+export interface Script {
+    /// The program text
+    text: string;
+    /// The line count
+    lineCount: number;
+    /// The file size
+    bytes: number;
+}
+
 export enum ScriptOriginType {
     LOCAL,
     EXAMPLES,
@@ -23,22 +32,16 @@ export interface ScriptOrigin {
     githubGistName?: string;
 }
 
-export interface Script {
+export interface ScriptMetadata {
     /// The origin
     origin: ScriptOrigin;
     /// The description
     description: string;
-    /// The program text
-    text?: string;
     /// Has been modified?
     modified?: boolean;
-    /// The line count
-    lineCount?: number;
-    /// The file size
-    bytes?: number;
 }
 
-export function getScriptNamespace(script: Script): string | null {
+export function getScriptNamespace(script: ScriptMetadata): string | null {
     switch (script.origin.originType) {
         case ScriptOriginType.LOCAL:
             return '#';
@@ -51,7 +54,7 @@ export function getScriptNamespace(script: Script): string | null {
     }
 }
 
-export function getScriptName(script: Script): string | null {
+export function getScriptName(script: ScriptMetadata): string | null {
     switch (script.origin.originType) {
         case ScriptOriginType.HTTP:
         case ScriptOriginType.HTTPS: {
@@ -82,7 +85,7 @@ export function getScriptOriginTypeName(prefix: ScriptOriginType): string {
     }
 }
 
-export function getScriptBeans(script: Script): string[] {
+export function getScriptBeans(script: ScriptMetadata): string[] {
     const beans = [];
     switch (script.origin.originType) {
         case ScriptOriginType.LOCAL:
@@ -98,14 +101,14 @@ export function getScriptBeans(script: Script): string[] {
     return beans;
 }
 
-export function scriptSupportsStats(script: Script): boolean {
+export function scriptSupportsStats(script: ScriptMetadata): boolean {
     return (
         script.origin.originType == ScriptOriginType.GITHUB_GIST ||
         script.origin.originType == ScriptOriginType.EXAMPLES
     );
 }
 
-export function canEditScript(script: Script): boolean {
+export function canEditScript(script: ScriptMetadata): boolean {
     return (
         script.origin.originType == ScriptOriginType.LOCAL || script.origin.originType == ScriptOriginType.GITHUB_GIST
     );

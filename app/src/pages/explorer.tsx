@@ -1,6 +1,8 @@
 import * as React from 'react';
 import cn from 'classnames';
 import { Route, Routes } from 'react-router-dom';
+import { useAppConfig } from '../model';
+import { useWorkflowData } from '../backend/workflow_data_provider';
 
 import styles from './explorer.module.css';
 import styles_cmd from '../components/button.module.css';
@@ -25,5 +27,8 @@ type Props = {
 };
 
 export const Explorer: React.FC<Props> = (props: Props) => {
+    const appConfig = useAppConfig();
+    const workflowData = useWorkflowData();
+
     return <div>Explorer</div>;
 };

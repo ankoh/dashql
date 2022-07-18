@@ -18,8 +18,7 @@ export interface WorkflowBackend {
 export interface WorkflowFrontend {
     beginBatchUpdate(session: SessionId): void;
     endBatchUpdate(session: SessionId): void;
-    updateProgramText(session: SessionId, text: string): void;
-    updateProgram(session: SessionId, program: Uint8Array): void;
+    updateProgram(session: SessionId, text: Uint8Array, program: Uint8Array): void;
     updateTaskGraph(session: SessionId, graph: TaskGraph): void;
     updateTaskStatus(session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any): void;
     deleteTaskState(session: SessionId, state: StateId): void;

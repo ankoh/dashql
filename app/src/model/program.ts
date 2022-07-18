@@ -1,32 +1,36 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { NativeStack, NativeBitmap } from '../utils';
+import { NativeStack, NativeBitmap, countLines } from '../utils';
 import * as proto from '@dashql/dashql-proto';
+import * as flatbuffers from 'flatbuffers';
 import { TaskStatusCode } from './task_status';
 
 const decoder = new TextDecoder();
 
 export class Program {
-    /// The program text
-    public readonly text: string;
-    /// The encoded text buffer based to the core
+    /// The encoded text buffer as utf8
     public readonly textBuffer: Uint8Array;
+    /// The decoded text
+    public readonly text: string;
+    /// The line count
+    public readonly textLineCount: number;
+    /// The file size
+    public readonly textBytes: number;
     /// The program
-    public readonly buffer: proto.Program;
+    public readonly ast: proto.Program;
     /// The statement dependencies
     public readonly statementDependencies: Map<number, number[]>;
 
     /// Constructor
-    public constructor(
-        text = '',
-        textBuffer: Uint8Array = new Uint8Array(0),
-        program: proto.Program = new proto.Program(),
-    ) {
-        this.text = text;
-        this.textBuffer = textBuffer;
-        this.buffer = program;
+    public constructor(text: Uint8Array, program: Uint8Array) {
+        // Read text
+        this.textBuffer = text;
+        this.text = decoder.decode(text);
+        this.textLineCount = countLines(this.text);
+        this.textBytes = this.textBuffer.length;
 
-        /// Build statement dependencies
+        // Read program
+        this.ast = proto.Program.getRootAsProgram(new flatbuffers.ByteBuffer(program));
         this.statementDependencies = new Map<number, number[]>();
         this.iterateDependencies((_: number, dep: proto.Dependency) => {
             const deps = this.statementDependencies.get(dep.targetStatement()) || [];
@@ -37,25 +41,25 @@ export class Program {
 
     /// The line break offsets
     public getLineBreaks(): Float64Array {
-        const n = this.buffer.lineBreaksLength();
+        const n = this.ast.lineBreaksLength();
         const breaks = new Float64Array(n);
         const tmpLoc = new proto.Location();
         for (let i = 0; i < n; ++i) {
-            breaks[i] = this.buffer.lineBreaks(i, tmpLoc)!.offset();
+            breaks[i] = this.ast.lineBreaks(i, tmpLoc)!.offset();
         }
         return breaks;
     }
 
     /// Access the text
-    public textAt(_loc: proto.Location): string {
-        const view = new Uint8Array(this.textBuffer.buffer, _loc.offset(), _loc.length());
+    public textAt(loc: proto.Location): string {
+        const view = new Uint8Array(this.textBuffer.buffer, loc.offset(), loc.length());
         return decoder.decode(view);
     }
 
     /// Get a node
     public getNode(i: number, n: Node | null = null): Node {
         n = n || new Node(this);
-        n.buffer = this.buffer.nodes(i, n.buffer)!;
+        n.buffer = this.ast.nodes(i, n.buffer)!;
         return n;
     }
 
@@ -63,17 +67,17 @@ export class Program {
     public getStatement(i: number): Statement {
         const stmt = new Statement(this);
         stmt.statementId = i;
-        stmt.statement = this.buffer.statements(i, stmt.statement)!;
+        stmt.statement = this.ast.statements(i, stmt.statement)!;
         return stmt;
     }
 
     /// Iterate over statements
     public iterateStatements(fn: (idx: number, node: Statement) => void): number {
         const stmt = new Statement(this);
-        const count = this.buffer.statementsLength();
+        const count = this.ast.statementsLength();
         for (let i = 0; i < count; ++i) {
             stmt.statementId = i;
-            stmt.statement = this.buffer.statements(i, stmt.statement)!;
+            stmt.statement = this.ast.statements(i, stmt.statement)!;
             fn(i, stmt);
         }
         return count;
@@ -82,9 +86,9 @@ export class Program {
     /// Iterate over dependencies
     public iterateDependencies(fn: (idx: number, node: proto.Dependency) => void): number {
         let dep = new proto.Dependency();
-        const count = this.buffer.dependenciesLength();
+        const count = this.ast.dependenciesLength();
         for (let i = 0; i < count; ++i) {
-            dep = this.buffer.dependencies(i, dep)!;
+            dep = this.ast.dependencies(i, dep)!;
             fn(i, dep);
         }
         return count;
@@ -108,7 +112,7 @@ export class Node {
     }
     /// Get the module
     public get programBuffer(): proto.Program {
-        return this.program.buffer;
+        return this.program.ast;
     }
     /// Get the parent
     public get parent(): number {
@@ -274,7 +278,7 @@ export class Statement {
     }
     /// Get the module buffer
     public get programBuffer(): proto.Program {
-        return this._program.buffer;
+        return this._program.ast;
     }
     /// Get the statement id
     public get statementId(): number {

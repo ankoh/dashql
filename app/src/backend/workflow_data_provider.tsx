@@ -1,18 +1,17 @@
 import React, { ReactElement } from 'react';
-import * as proto from '@dashql/dashql-proto';
 import * as imm from 'immutable';
-import * as fb from 'flatbuffers';
-import { TaskGraph } from '../model/task_graph';
+import * as model from '../model';
 import { TaskStatus, TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
+import { Program } from '../model';
 
 export type TaskId = number;
 export interface SessionStore {
     sessionId: number | null;
-    programText: string | null;
-    program: proto.Program | null;
-    taskGraph: TaskGraph | null;
+    script: model.Script | null;
+    program: model.Program | null;
+    taskGraph: model.TaskGraph | null;
     taskStatusById: imm.Map<TaskId, TaskStatus>;
 }
 
@@ -31,14 +30,14 @@ type WorkflowFrontendProviderProps = {
 export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (props: WorkflowFrontendProviderProps) => {
     const [committed, setCommitted] = React.useState<SessionStore>({
         sessionId: null,
-        programText: null,
+        script: null,
         program: null,
         taskGraph: null,
         taskStatusById: null,
     });
     const uncommitted = React.useRef<SessionStore>({
         sessionId: null,
-        programText: null,
+        script: null,
         program: null,
         taskGraph: null,
         taskStatusById: null,
@@ -50,13 +49,13 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 const pending = uncommitted.current;
                 if (commit.sessionId != session) {
                     pending.sessionId = session;
-                    pending.programText = null;
+                    pending.script = null;
                     pending.program = null;
                     pending.taskGraph = null;
                     pending.taskStatusById = null;
                 } else {
                     pending.sessionId = commit.sessionId;
-                    pending.programText = commit.programText;
+                    pending.script = commit.script;
                     pending.program = commit.program;
                     pending.taskGraph = commit.taskGraph;
                     pending.taskStatusById = commit.taskStatusById;
@@ -67,25 +66,19 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 if (pending.sessionId != session) {
                     setCommitted({
                         sessionId: pending.sessionId,
-                        programText: pending.programText,
+                        script: pending.script,
                         program: pending.program,
                         taskGraph: pending.taskGraph,
                         taskStatusById: pending.taskStatusById,
                     });
                 }
             },
-            updateProgramText: (session: SessionId, text: string) => {
+            updateProgram: (session: SessionId, text: Uint8Array, ast: Uint8Array) => {
                 const pending = uncommitted.current;
                 if (pending.sessionId != session) return;
-                pending.programText = text;
+                pending.program = new Program(text, ast);
             },
-            updateProgram: (session: SessionId, program: Uint8Array) => {
-                const pending = uncommitted.current;
-                if (pending.sessionId != session) return;
-                const bb = new fb.ByteBuffer(program);
-                pending.program = proto.Program.getRootAsProgram(bb);
-            },
-            updateTaskGraph: (session: SessionId, graph: TaskGraph | null) => {},
+            updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {},
             updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {},
             deleteTaskState: (session: SessionId, state: StateId) => {},
             updateInputState: (session: SessionId, state: StateId) => {},
