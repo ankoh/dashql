@@ -39,8 +39,9 @@ describe('Backend', () => {
             const args = frontend.updateProgram.mock.calls[0];
             expect(args[0]).toEqual(session);
             expect(args[1].byteLength).toBeGreaterThan(0);
+            expect(args[2].byteLength).toBeGreaterThan(0);
 
-            const buffer = new flatbuffers.ByteBuffer(new Uint8Array(args[1]));
+            const buffer = new flatbuffers.ByteBuffer(new Uint8Array(args[2]));
             const program = proto.Program.getRootAsProgram(buffer);
             expect(program.errorsLength()).toEqual(0);
             expect(program.statementsLength()).toEqual(1);
