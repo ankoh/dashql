@@ -54,7 +54,7 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         return new TokensProviderState();
     }
 
-    tokenize(_line: string, state: TokensProviderState): monaco.languages.ILineTokens {
+    tokenize(line: string, state: TokensProviderState): monaco.languages.ILineTokens {
         state.advance();
         const result: monaco.languages.ILineTokens = {
             tokens: [],
@@ -69,10 +69,12 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         if (!hl) return result;
 
         // Line break valid?
-        const tokenBreaks = hl.tokenBreaksArray();
+        const tokenBreaks = hl.tokenBreaksArray() ?? new Uint32Array();
         const tokenOffsets = hl.tokenOffsetsArray();
         const tokenTypes = hl.tokenTypesArray();
-        if (!tokenBreaks || !tokenOffsets || !tokenTypes) return result;
+        if (!tokenOffsets || !tokenTypes) {
+            return result;
+        }
 
         // Resolve token range & lineOffset
         // breaks[0] refers to the offset of the first token after linebreak 0
