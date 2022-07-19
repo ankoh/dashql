@@ -50,7 +50,7 @@ pub struct DiffOp {
 
 fn compute_tree_size<'a>(ctx: &ProgramInstance<'a>, node_id: usize) -> usize {
     // Init tree sizes
-    let nodes = ctx.program_proto.nodes().unwrap_or_default();
+    let nodes = ctx.program.ast_flat.nodes().unwrap_or_default();
     let mut cached_subtree_sizes = ctx.cached_subtree_sizes.borrow_mut();
     if cached_subtree_sizes.len() != nodes.len() {
         cached_subtree_sizes.resize(nodes.len(), 0);
@@ -122,15 +122,17 @@ fn estimate_similarity(
 ) -> SimilarityEstimate {
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.program_proto.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.program_proto.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program.ast_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program.ast_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -161,15 +163,17 @@ fn compute_similarity(
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.program_proto.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.program_proto.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program.ast_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program.ast_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -309,15 +313,17 @@ fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramI
     // Unpack arguments
     let (source_ctx, source_stmt_id) = source;
     let (target_ctx, target_stmt_id) = target;
-    let source_nodes = source_ctx.program_proto.nodes().unwrap_or_default();
-    let target_nodes = target_ctx.program_proto.nodes().unwrap_or_default();
+    let source_nodes = source_ctx.program.ast_flat.nodes().unwrap_or_default();
+    let target_nodes = target_ctx.program.ast_flat.nodes().unwrap_or_default();
     let source_stmt = source_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(source_stmt_id);
     let target_stmt = target_ctx
-        .program_proto
+        .program
+        .ast_flat
         .statements()
         .unwrap_or_default()
         .get(target_stmt_id);
@@ -438,8 +444,8 @@ fn map_statements(
     let mut source_ambiguous: Vec<bool> = Vec::new();
     let mut target_ambiguous: Vec<bool> = Vec::new();
     let mut target_mapping: Vec<Option<usize>> = Vec::new();
-    let source_stmts = source.program_proto.statements().unwrap_or_default();
-    let target_stmts = target.program_proto.statements().unwrap_or_default();
+    let source_stmts = source.program.ast_flat.statements().unwrap_or_default();
+    let target_stmts = target.program.ast_flat.statements().unwrap_or_default();
     source_ambiguous.resize(source_stmts.len(), false);
     target_ambiguous.resize(target_stmts.len(), false);
     target_mapping.resize(target_stmts.len(), None);
@@ -575,8 +581,8 @@ impl std::cmp::Ord for SimilarityScoreEntry {
 
 pub fn compute_diff(source: &ProgramInstance<'_>, target: &ProgramInstance<'_>) -> Vec<DiffOp> {
     // Unpack arguments
-    let source_stmts = source.program_proto.statements().unwrap_or_default();
-    let target_stmts = target.program_proto.statements().unwrap_or_default();
+    let source_stmts = source.program.ast_flat.statements().unwrap_or_default();
+    let target_stmts = target.program.ast_flat.statements().unwrap_or_default();
     let mut source_emitted = Vec::new();
     let mut target_emitted = Vec::new();
     source_emitted.resize(source_stmts.len(), false);
@@ -732,7 +738,7 @@ mod test {
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     // Test a difference
     async fn test_diff(
@@ -744,10 +750,10 @@ mod test {
         let context = ExecutionContext::create_simple(&arena).await?;
         let (ast0, ast0_data) = parse_into(&arena, script0).await?;
         let (ast1, ast1_data) = parse_into(&arena, script1).await?;
-        let prog0 = Rc::new(grammar::deserialize_ast(&arena, script0, ast0, ast0_data).unwrap());
-        let prog1 = Rc::new(grammar::deserialize_ast(&arena, script1, ast1, ast1_data).unwrap());
-        let mut ctx0 = ProgramInstance::new(context.clone(), script0, ast0, prog0, HashMap::new());
-        let mut ctx1 = ProgramInstance::new(context, script1, ast1, prog1, HashMap::new());
+        let prog0 = Arc::new(grammar::deserialize_ast(&arena, script0, ast0, ast0_data).unwrap());
+        let prog1 = Arc::new(grammar::deserialize_ast(&arena, script1, ast1, ast1_data).unwrap());
+        let mut ctx0 = ProgramInstance::new(context.clone(), script0, prog0, HashMap::new());
+        let mut ctx1 = ProgramInstance::new(context, script1, prog1, HashMap::new());
         let diff = compute_diff(&mut ctx0, &mut ctx1);
         assert_eq!(diff, expected);
         Ok(())

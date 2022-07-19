@@ -459,7 +459,6 @@ mod test {
     use crate::external::parser::parse_into;
     use crate::external::{runtime, Database};
     use crate::grammar;
-    use std::rc::Rc;
     use std::sync::{Arc, Mutex};
 
     struct ExpectedInstance {
@@ -491,11 +490,10 @@ mod test {
                 prev_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
             let prev_prog =
-                Rc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast, prev_ast_data).unwrap());
+                Arc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast, prev_ast_data).unwrap());
             prev_instance = Some(analyze_program(
                 prev_context,
                 prev.script,
-                prev_ast,
                 prev_prog,
                 prev.input.iter().cloned().collect(),
             )?);
@@ -518,11 +516,10 @@ mod test {
                 next_ast.errors().unwrap().get(0).message().unwrap_or_default()
             );
             let next_prog =
-                Rc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast, next_ast_data).unwrap());
+                Arc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast, next_ast_data).unwrap());
             analyze_program(
                 next_context,
                 test.next.script,
-                next_ast,
                 next_prog,
                 test.next.input.iter().cloned().collect(),
             )?

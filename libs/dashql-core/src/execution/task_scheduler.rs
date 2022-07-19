@@ -235,7 +235,7 @@ mod test {
         datatypes::{DataType, Field, Schema},
     };
     use pretty_assertions::assert_eq;
-    use std::{collections::HashMap, error::Error, rc::Rc, sync::Arc};
+    use std::{collections::HashMap, error::Error, sync::Arc};
 
     pub use super::*;
 
@@ -252,8 +252,8 @@ mod test {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let (program_ast, program_data) = parse_into(&arena, script).await?;
-        let program = Rc::new(grammar::deserialize_ast(&arena, script, program_ast, program_data).unwrap());
-        let instance = analyze_program(context, script, program_ast, program, HashMap::new())?;
+        let program = Arc::new(grammar::deserialize_ast(&arena, script, program_ast, program_data).unwrap());
+        let instance = analyze_program(context, script, program, HashMap::new())?;
         let task_graph = plan_tasks(&instance, None)?;
 
         // Run the scheduler

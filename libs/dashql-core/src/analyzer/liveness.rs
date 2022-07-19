@@ -40,14 +40,14 @@ mod test {
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     async fn test_liveness(script: &'static str, expected: &[bool]) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let (ast, ast_data) = parse_into(&arena, script).await?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
-        let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
+        let prog = Arc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
+        let mut ctx = ProgramInstance::new(context, script, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         determine_statement_liveness(&mut ctx);

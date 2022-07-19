@@ -44,7 +44,7 @@ fn normalize_name_clone<'a>(
 }
 
 fn resolve_statement_id<'a>(ctx: &mut ProgramInstance<'a>, node_id: usize) -> usize {
-    let nodes = ctx.program_proto.nodes().unwrap_or_default();
+    let nodes = ctx.program.ast_flat.nodes().unwrap_or_default();
     let mut cursor = node_id;
     while (nodes[cursor].parent() as usize) != cursor {
         cursor = nodes[cursor].parent() as usize;
@@ -95,7 +95,7 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
             );
         }
     }
-    for (node_id, node_proto) in ctx.program_proto.nodes().unwrap_or_default().iter().enumerate() {
+    for (node_id, node_proto) in ctx.program.ast_flat.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = ctx.program.ast_translated[node_id];
         match node_proto.node_type() {
             proto::NodeType::OBJECT_SQL_COLUMN_REF => {
@@ -145,7 +145,7 @@ mod test {
     use crate::grammar;
     use std::collections::HashMap;
     use std::error::Error;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     #[derive(Debug, PartialEq, Eq)]
     struct DependencyTest {
@@ -162,8 +162,8 @@ mod test {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let (ast, ast_data) = parse_into(&arena, script).await?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
-        let mut ctx = ProgramInstance::new(context, script, ast, prog, HashMap::new());
+        let prog = Arc::new(grammar::deserialize_ast(&arena, script, ast, ast_data).unwrap());
+        let mut ctx = ProgramInstance::new(context, script, prog, HashMap::new());
         normalize_statement_names(&mut ctx);
         discover_statement_dependencies(&mut ctx);
         let have: Vec<_> = ctx

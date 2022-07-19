@@ -12,7 +12,7 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::analyzer::liveness::determine_statement_liveness;
 use crate::analyzer::name_resolution::{discover_statement_dependencies, normalize_statement_names};
@@ -27,8 +27,7 @@ pub struct ProgramInstance<'a> {
 
     // AST buffer
     pub script_text: &'a str,
-    pub program_proto: proto::Program<'a>,
-    pub program: Rc<Program<'a>>,
+    pub program: Arc<Program<'a>>,
 
     // The input values
     pub input: HashMap<usize, ScalarValue>,
@@ -54,15 +53,13 @@ impl<'a> ProgramInstance<'a> {
     pub fn new(
         context: ExecutionContext<'a>,
         text: &'a str,
-        program_proto: proto::Program<'a>,
-        program_translated: Rc<Program<'a>>,
+        program: Arc<Program<'a>>,
         input: HashMap<usize, ScalarValue>,
     ) -> Self {
         let mut ctx = ProgramInstance {
             context,
             script_text: text,
-            program_proto: program_proto,
-            program: program_translated,
+            program: program.clone(),
             input,
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
@@ -77,7 +74,7 @@ impl<'a> ProgramInstance<'a> {
             cached_subtree_sizes: RefCell::new(Vec::new()),
             cached_default_schema: RefCell::new(None),
         };
-        let stmts_proto = program_proto.statements().unwrap_or_default();
+        let stmts_proto = program.ast_flat.statements().unwrap_or_default();
         ctx.statement_names.resize(stmts_proto.len(), None);
         ctx.statement_by_name.reserve(stmts_proto.len());
         ctx.statement_by_root.reserve(stmts_proto.len());
@@ -106,11 +103,10 @@ impl<'a> ProgramInstance<'a> {
 pub fn analyze_program<'arena>(
     context: ExecutionContext<'arena>,
     text: &'arena str,
-    program_proto: proto::Program<'arena>,
-    program: Rc<Program<'arena>>,
+    program: Arc<Program<'arena>>,
     input: HashMap<usize, ScalarValue>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
-    let mut inst = ProgramInstance::new(context, text, program_proto, program, input);
+    let mut inst = ProgramInstance::new(context, text, program, input);
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
@@ -150,7 +146,6 @@ mod test {
     use dashql_proto as proto;
     use std::collections::HashMap;
     use std::error::Error;
-    use std::rc::Rc;
 
     #[derive(Debug)]
     struct ExpectedTaskInstance {
@@ -173,8 +168,8 @@ mod test {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let (ast, ast_data) = parse_into(&arena, test.script).await?;
-        let prog = Rc::new(grammar::deserialize_ast(&arena, test.script, ast, ast_data).unwrap());
-        let inst = analyze_program(context, test.script, ast, prog, test.input.clone())?;
+        let prog = Arc::new(grammar::deserialize_ast(&arena, test.script, ast, ast_data).unwrap());
+        let inst = analyze_program(context, test.script, prog, test.input.clone())?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());
         for i in 0..inst.node_error_messages.len() {

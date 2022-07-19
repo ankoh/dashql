@@ -17,9 +17,9 @@ pub mod parser {
     pub async fn parse(text: &str) -> Result<dashql_parser::ProgramBuffer, String> {
         dashql_parser::parse(text)
     }
-    pub async fn parse_into<'a, 'b>(
+    pub async fn parse_into<'a>(
         alloc: &'a bumpalo::Bump,
-        text: &'b str,
+        text: &str,
     ) -> Result<(proto::Program<'a>, &'a [u8]), Box<dyn Error + Send + Sync>> {
         dashql_parser::parse_into(alloc, text)
     }
