@@ -7,6 +7,7 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContext;
 use crate::execution::scalar_value::ScalarValue;
 use dashql_proto as proto;
+use flatbuffers::FlatBufferBuilder;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -84,6 +85,21 @@ impl<'a> ProgramInstance<'a> {
             ctx.statement_by_root.insert(stmt.root_node() as usize, stmt_id);
         }
         ctx
+    }
+
+    pub fn pack_analysis<'fbb>(
+        &self,
+        fbb: &mut FlatBufferBuilder<'fbb>,
+    ) -> flatbuffers::WIPOffset<proto::ProgramAnalysis<'fbb>> {
+        fbb.start_vector::<proto::Dependency>(self.statement_depends_on.len());
+        for ((target, source), (dep_type, node)) in self.statement_depends_on.iter() {
+            let dep = proto::Dependency::new(*dep_type, *source as u32, *target as u32, *node as u32);
+            fbb.push(dep);
+        }
+        let deps = fbb.end_vector::<proto::Dependency>(self.statement_depends_on.len());
+        let mut pab = proto::ProgramAnalysisBuilder::new(fbb);
+        pab.add_statement_dependencies(deps);
+        pab.finish()
     }
 }
 
