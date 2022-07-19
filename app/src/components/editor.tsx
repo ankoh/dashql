@@ -299,6 +299,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
         // Highlight ranges
         program.iterateDependencies((idx: number, dep: proto.Dependency) => {
+            console.log(`${dep.sourceStatement()} ${dep.targetStatement()}`);
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = getLineFromOffset(targetLoc[0]);
             const targetEnd = getLineFromOffset(targetLoc[0] + targetLoc[1]);

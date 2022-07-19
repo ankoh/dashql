@@ -725,6 +725,11 @@ table Program {
     line_breaks: [Location];
     comments: [Location];
     dson_keys: [Location];
-    dependencies: [Dependency];
     highlighting: Highlighting;
+}
+
+table ProgramAnalysis {
+    statement_dependencies: [Dependency];
+    statement_liveness: [bool];
+    statement_names: [string];
 }

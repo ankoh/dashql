@@ -18,8 +18,6 @@ export class Program {
     public readonly textBytes: number;
     /// The program
     public readonly ast: proto.Program;
-    /// The statement dependencies
-    public readonly statementDependencies: Map<number, number[]>;
 
     /// Constructor
     public constructor(text: Uint8Array, program: Uint8Array) {
@@ -31,12 +29,6 @@ export class Program {
 
         // Read program
         this.ast = proto.Program.getRootAsProgram(new flatbuffers.ByteBuffer(program));
-        this.statementDependencies = new Map<number, number[]>();
-        this.iterateDependencies((_: number, dep: proto.Dependency) => {
-            const deps = this.statementDependencies.get(dep.targetStatement()) || [];
-            deps.push(dep.sourceStatement());
-            this.statementDependencies.set(dep.targetStatement(), deps);
-        });
     }
 
     /// The line break offsets
@@ -85,13 +77,14 @@ export class Program {
 
     /// Iterate over dependencies
     public iterateDependencies(fn: (idx: number, node: proto.Dependency) => void): number {
-        let dep = new proto.Dependency();
-        const count = this.ast.dependenciesLength();
-        for (let i = 0; i < count; ++i) {
-            dep = this.ast.dependencies(i, dep)!;
-            fn(i, dep);
-        }
-        return count;
+        // let dep = new proto.Dependency();
+        // const count = this.ast.dependenciesLength();
+        // for (let i = 0; i < count; ++i) {
+        //     dep = this.ast.dependencies(i, dep)!;
+        //     fn(i, dep);
+        // }
+        // return count;
+        return 0;
     }
 }
 

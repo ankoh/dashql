@@ -175,12 +175,12 @@ compile_commands:
 	ln -sf ${DUCKDB_DEBUG_DIR}/compile_commands.json ${DUCKDB_SOURCE_DIR}/compile_commands.json
 	ln -sf ${PARSER_DEBUG_DIR}/compile_commands.json ${PARSER_SOURCE_DIR}/compile_commands.json
 
-# Clean the repository
+# Clean build directories
 .PHONY: clean
 clean:
-	git clean -xfd
-	git submodule foreach --recursive git clean -xfd
-	git submodule update --init --recursive
+	rm -r ./libs/dashql-core/dist
+	rm -r ./libs/dashql-parser/build
+	rm -r ./libs/dashql-proto/dist
 
 # Build the docker dev image
 .PHONY: docker_ci_image
