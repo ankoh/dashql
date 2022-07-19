@@ -727,9 +727,3 @@ table Program {
     dson_keys: [Location];
     highlighting: Highlighting;
 }
-
-table ProgramAnalysis {
-    statement_dependencies: [Dependency];
-    statement_liveness: [bool];
-    statement_names: [string];
-}

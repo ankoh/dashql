@@ -46,7 +46,7 @@ pub async fn parse<'a>(text: &'a str) -> Result<Uint8Array, SystemError> {
         .await
         .map_err(|e| {
             let err = js_sys::Error::from(e);
-            err.message().as_string().unwrap_or_default()
+            SystemError::Generic(err.message().as_string().unwrap_or_default())
         })?
         .into();
     let ast_array: Uint8Array = result.get_data_copy().into();
@@ -68,7 +68,7 @@ pub async fn parse_into<'a, 'b>(
         .await
         .map_err(|e| {
             let err = js_sys::Error::from(e);
-            err.message().as_string().unwrap_or_default()
+            SystemError::Generic(err.message().as_string().unwrap_or_default())
         })?
         .into();
     let ast_array: Uint8Array = result.get_data().into();
