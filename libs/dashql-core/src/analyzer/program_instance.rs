@@ -7,6 +7,7 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContext;
 use crate::execution::scalar_value::ScalarValue;
 use dashql_proto as proto;
+use serde::ser::SerializeStruct;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -81,6 +82,38 @@ impl<'a> ProgramInstance<'a> {
             ctx.statement_by_root.insert(stmt.root_node() as usize, stmt_id);
         }
         ctx
+    }
+}
+
+impl<'a> Serialize for ProgramInstance<'a> {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Serialize)]
+        struct Dependency {
+            source: usize,
+            target: usize,
+            node: usize,
+        }
+        let deps: Vec<_> = self
+            .statement_depends_on
+            .iter()
+            .map(|((target, source), (_dep_type, node))| Dependency {
+                source: *source,
+                target: *target,
+                node: *node,
+            })
+            .collect();
+
+        let mut ana = s.serialize_struct("ProgramAnalysis", 10)?;
+        ana.serialize_field("statement_dependencies", &deps)?;
+        ana.serialize_field("statement_names", &self.statement_names)?;
+        ana.serialize_field("statement_liveness", &self.statement_liveness)?;
+        ana.serialize_field("node_error_messages", &self.node_error_messages)?;
+        ana.serialize_field("node_linter_messages", &self.node_linter_messages)?;
+        ana.end()?;
+        todo!()
     }
 }
 
