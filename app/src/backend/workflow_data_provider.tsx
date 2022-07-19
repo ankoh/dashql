@@ -81,6 +81,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 if (pending.sessionId != session) return;
                 pending.program = new Program(text, ast);
             },
+            updateProgramAnalysis: (session: SessionId, analysis: string) => {},
             updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {},
             updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {},
             deleteTaskState: (session: SessionId, state: StateId) => {},

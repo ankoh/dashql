@@ -68,9 +68,9 @@ pub fn parse(text: &str) -> Result<ProgramBuffer, String> {
     }
 }
 
-pub fn parse_into<'a>(
+pub fn parse_into<'a, 'b>(
     alloc: &'a bumpalo::Bump,
-    text: &str,
+    text: &'b str,
 ) -> Result<(proto::Program<'a>, &'a [u8]), Box<dyn Error + Send + Sync>> {
     let buffer = parse(text)?;
     let copy: &'a mut [u8] = alloc.alloc_slice_copy(buffer.access());

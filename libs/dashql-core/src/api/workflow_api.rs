@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
+    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_planner::TaskGraph},
     error::SystemError,
     external::{database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
@@ -58,9 +58,9 @@ where
 pub trait WorkflowFrontend {
     fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
     fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
-    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &Arc<ProgramContainer>)
-        -> Result<(), String>;
-    fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String>;
+    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String>;
+    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String>;
+    fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String>;
     fn update_task_status(
         self: &Arc<Self>,
         session_id: u32,

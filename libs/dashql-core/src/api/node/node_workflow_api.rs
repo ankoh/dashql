@@ -7,7 +7,7 @@ use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::{task::TaskStatusCode, task_planner::TaskGraph},
+    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_planner::TaskGraph},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     error::SystemError,
     grammar::ProgramContainer,
@@ -49,12 +49,7 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
-    fn update_program(
-        self: &Arc<Self>,
-        session_id: u32,
-        text: &str,
-        ast: &Arc<ProgramContainer>,
-    ) -> Result<(), String> {
+    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
         let self2 = self.clone();
         let text = text.as_bytes().to_vec();
         let ast_ipc = ast.get_program().ast_data.to_vec();
@@ -74,10 +69,23 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
-
-    fn update_task_graph<'a>(self: &Arc<Self>, session_id: u32, graph: &Arc<TaskGraph>) -> Result<(), String> {
+    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
         let self2 = self.clone();
-        let graph_json = serde_json::to_string(graph.as_ref()).map_err(|e| e.to_string())?;
+        let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
+        self.channel.send(move |mut cx| {
+            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let analysis = JsString::new(&mut cx, analysis).as_value(&mut cx);
+            let frontend = self2.get_inner(&mut cx);
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgramAnalysis")?;
+            let this = frontend.as_value(&mut cx);
+            method.call(&mut cx, this, &[session_id, analysis])?;
+            Ok(())
+        });
+        Ok(())
+    }
+    fn update_task_graph<'a>(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
+        let self2 = self.clone();
+        let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let graph_json = JsString::new(&mut cx, &graph_json).as_value(&mut cx);

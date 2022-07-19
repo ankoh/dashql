@@ -4,6 +4,7 @@ use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::{
+    analyzer::program_instance::ProgramInstance,
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     error::SystemError,
 };
@@ -18,6 +19,8 @@ extern "C" {
     fn end_batch_update(this: &JsWorkflowFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
     fn update_program(this: &JsWorkflowFrontend, session_id: u32, text: Uint8Array, ast: Uint8Array);
+    #[wasm_bindgen(structural, method, js_name = "updateProgram")]
+    fn update_program_analysis(this: &JsWorkflowFrontend, session_id: u32, analysis: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskGraph")]
     fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskStatus")]
@@ -51,7 +54,7 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         self: &Arc<Self>,
         session_id: u32,
         text: &str,
-        ast: &Arc<crate::grammar::ProgramContainer>,
+        ast: &crate::grammar::ProgramContainer,
     ) -> Result<(), String> {
         let text_bytes = text.as_bytes();
         let text_array = Uint8Array::new_with_length(text_bytes.len() as u32);
@@ -62,12 +65,17 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         self.inner.update_program(session_id, text_array, ast_array);
         Ok(())
     }
+    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
+        let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
+        self.inner.update_program_analysis(session_id, &analysis);
+        Ok(())
+    }
     fn update_task_graph(
         self: &Arc<Self>,
         session_id: u32,
-        graph: &Arc<crate::analyzer::task_planner::TaskGraph>,
+        graph: &crate::analyzer::task_planner::TaskGraph,
     ) -> Result<(), String> {
-        let graph_json = serde_json::to_string(graph.as_ref()).map_err(|e| e.to_string())?;
+        let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
         self.inner.update_task_graph(session_id, &graph_json);
         Ok(())
     }
