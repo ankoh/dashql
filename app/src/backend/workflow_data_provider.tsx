@@ -13,6 +13,7 @@ export interface WorkflowData {
     taskGraph: model.TaskGraph | null;
     statusByTask: imm.Map<TaskId, TaskStatusCode>;
     statusByStatement: imm.List<StatementStatus>;
+    cards: imm.List<any>; // TODO
 }
 
 export const WORKFLOW_DATA_CONTEXT = React.createContext<WorkflowData>(null);
@@ -34,6 +35,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
         taskGraph: null,
         statusByTask: imm.Map(),
         statusByStatement: imm.List(),
+        cards: imm.List(),
     });
     const uncommitted = React.useRef<WorkflowData>({
         sessionId: null,
@@ -41,6 +43,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
         taskGraph: null,
         statusByTask: imm.Map(),
         statusByStatement: imm.List(),
+        cards: imm.List(),
     });
     const workflow: WorkflowFrontend = React.useMemo(
         () => ({
@@ -70,6 +73,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                         taskGraph: pending.taskGraph,
                         statusByTask: pending.statusByTask,
                         statusByStatement: pending.statusByStatement,
+                        cards: pending.cards,
                     });
                 }
             },

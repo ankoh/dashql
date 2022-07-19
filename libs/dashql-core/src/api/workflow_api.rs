@@ -100,6 +100,10 @@ where
         Ok(())
     }
 
+    pub async fn edit_program(&mut self, edits: &str) -> Result<(), SystemError> {
+        Ok(())
+    }
+
     pub async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let mut conn = self.default_connection.lock().unwrap();
         conn.run_query(text).await

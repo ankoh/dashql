@@ -20,6 +20,9 @@ export module workflow {
     export function updateProgram(sessionId: number, text: string) {
         dashql.workflow_update_program(sessionId, text);
     }
+    export function editProgram(sessionId: number, edits: string) {
+        dashql.workflow_edit_program(sessionId, edits);
+    }
     export function runQuery(sessionId: number, text: string) {
         const buffer = dashql.workflow_run_query(sessionId, text);
         return new Uint8Array(buffer);

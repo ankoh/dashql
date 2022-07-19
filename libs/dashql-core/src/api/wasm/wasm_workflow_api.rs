@@ -161,6 +161,18 @@ pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue
     Ok(())
 }
 
+#[wasm_bindgen(js_name = "workflowEditProgram")]
+pub async fn edit_program(session_id: u32, edits: String) -> Result<(), JsValue> {
+    let api = get_api().map_err(|e| e.to_string())?;
+    let session = match api.lock().unwrap().get_session(session_id) {
+        Some(session) => session,
+        None => return Err(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_lock = session.lock().expect("cannot lock session");
+    session_lock.edit_program(&edits).await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[wasm_bindgen(js_name = "workflowRunQuery")]
 pub async fn run_query(session_id: u32, text: String) -> Result<Uint8Array, JsValue> {
     let api = get_api().map_err(|e| e.to_string())?;

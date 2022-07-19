@@ -6,6 +6,7 @@ import { useAppConfig } from '../model';
 import { useWorkflowData } from '../backend/workflow_data_provider';
 import { OverlayContainer } from '../components/overlay';
 import { LazyLoader } from '../components/lazy_loader';
+import { BoardEditor } from '../components/board_editor';
 
 import styles from './explorer.module.css';
 import styles_cmd from '../components/button.module.css';
@@ -51,6 +52,24 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         />
                     </Routes>
                 </div>
+                <Routes>
+                    <Route
+                        path="/"
+                        element={
+                            <>
+                                <div key="board" className={styles.board}>
+                                    <OverlayContainer id={SYM_SHARE_OVERLAY}>
+                                        <BoardEditor
+                                            immutable={false}
+                                            scaleFactor={1.0}
+                                            className={styles.board_editor}
+                                        />
+                                    </OverlayContainer>
+                                </div>
+                            </>
+                        }
+                    />
+                </Routes>
             </AnimatePresence>
         </div>
     );

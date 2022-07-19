@@ -1,4 +1,5 @@
-import { TaskStatusCode } from 'src/model/task_status';
+import { EditOperationVariant } from '../model';
+import { TaskStatusCode } from '../model/task_status';
 import { TaskGraph } from '../model/task_graph';
 
 export type DatabaseId = number;
@@ -12,6 +13,7 @@ export interface WorkflowBackend {
     createSession(frontend: WorkflowFrontend): Promise<SessionId>;
     closeSession(session: SessionId): Promise<void>;
     updateProgram(session: SessionId, text: string): Promise<void>;
+    editProgram(session: SessionId, edits: EditOperationVariant[]): Promise<void>;
     runQuery(session: SessionId, text: string): Promise<Uint8Array>;
 }
 

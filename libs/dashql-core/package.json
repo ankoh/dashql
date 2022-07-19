@@ -6,8 +6,8 @@
     "scripts": {
         "wasm:debug": "node build_wasm.mjs debug && tsc --emitDeclarationOnly",
         "wasm:release": "node build_wasm.mjs release && tsc --emitDeclarationOnly",
-        "node:debug": "node build_node.mjs debug",
-        "node:release": "node build_node.mjs release"
+        "node:debug": "node build_node.mjs debug && tsc --emitDeclarationOnly",
+        "node:release": "node build_node.mjs release && tsc --emitDeclarationOnly"
     },
     "files": [
         "dist"

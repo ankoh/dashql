@@ -1,5 +1,6 @@
 import { Backend, WorkflowBackend, WorkflowFrontend } from './backend';
 import * as dashql from '@dashql/dashql-core/dist/node';
+import { EditOperationVariant } from '../model';
 
 export class NodeWorkflowBackend implements WorkflowBackend {
     async configureDefault(): Promise<void> {
@@ -13,6 +14,10 @@ export class NodeWorkflowBackend implements WorkflowBackend {
     }
     async updateProgram(session: number, text: string): Promise<void> {
         dashql.workflow.updateProgram(session, text);
+    }
+    async editProgram(session: number, edits: EditOperationVariant[]): Promise<void> {
+        const editsJSON = JSON.stringify(edits);
+        await dashql.workflow.editProgram(session, editsJSON);
     }
     async runQuery(session: number, text: string): Promise<Uint8Array> {
         return dashql.workflow.runQuery(session, text);
