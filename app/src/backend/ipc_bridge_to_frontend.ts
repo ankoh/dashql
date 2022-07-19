@@ -9,6 +9,7 @@ export enum IPCFrontendMessageType {
     BATCH_UPDATE_BEGIN = 'BATCH_UPDATE_BEGIN',
     BATCH_UPDATE_END = 'BATCH_UPDATE_END',
     UPDATE_PROGRAM = 'UPDATE_PROGRAM',
+    UPDATE_PROGRAM_ANALYSIS = 'UPDATE_PROGRAM_ANALYSIS',
     UPDATE_PROGRAM_TEXT = 'UPDATE_PROGRAM_TEXT',
     UPDATE_TASK_GRAPH = 'UPDATE_TASK_GRAPH',
     UPDATE_TASK_STATUS = 'UPDATE_TASK_STATUS',
@@ -29,6 +30,7 @@ export type IPCWorkflowFrontendMessage =
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_BEGIN, BatchUpdateBeginMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_END, BatchUpdateEndMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM, UpdateProgramMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, UpdateProgramAnalysisMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_GRAPH, UpdateTaskGraphMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_STATUS, UpdateTaskStatusMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.DELETE_TASK_STATE, DeleteTaskMsg>
@@ -46,15 +48,15 @@ interface BatchUpdateEndMsg {
     session: SessionId;
 }
 
-interface UpdateProgramTextMsg {
-    session: SessionId;
-    programText: string;
-}
-
 interface UpdateProgramMsg {
     session: SessionId;
     text: Uint8Array;
     program: Uint8Array;
+}
+
+interface UpdateProgramAnalysisMsg {
+    session: SessionId;
+    analysis: string;
 }
 
 interface UpdateTaskGraphMsg {
@@ -109,6 +111,8 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_END, data: null }),
         updateProgram: (session: SessionId, text: Uint8Array, program: Uint8Array) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, text, program } }),
+        updateProgramAnalysis: (session: SessionId, analysis: string) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, data: { session, analysis } }),
         updateTaskGraph: (session: SessionId, graph: TaskGraph | null) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TASK_GRAPH, data: { session, graph } }),
         updateTaskStatus: (session: SessionId, task: TaskId, status: TaskStatusCode, error?: any) =>
