@@ -153,12 +153,11 @@ export const Editor: React.FC<Props> = (props: Props) => {
         // Finalize the editor
         e.onDidChangeModelContent(_event => {
             const backend = backendRef.current;
-            const program = programRef.current;
             const session = sessionRef.current;
-            if (backend == null || program == null || session == null) {
+            if (backend == null || session == null) {
                 return;
             }
-            if (e.getValue() != program.text) {
+            if (e.getValue() != program?.text) {
                 backendRef.current.workflow.updateProgram(session, e.getValue());
             }
         });

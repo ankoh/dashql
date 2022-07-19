@@ -35,7 +35,7 @@ pub fn link_parser(parser: JsParser) {
     PARSER.with(|linked| linked.replace(Some(Rc::new(parser))));
 }
 
-pub async fn parse(text: &str) -> Result<Uint8Array, SystemError> {
+pub async fn parse<'a>(text: &'a str) -> Result<Uint8Array, SystemError> {
     let parser: Option<Rc<JsParser>> = PARSER.with(|linked| linked.borrow().clone());
     let parser = match parser {
         Some(parser) => parser,
@@ -45,9 +45,8 @@ pub async fn parse(text: &str) -> Result<Uint8Array, SystemError> {
         .parse(text)
         .await
         .map_err(|e| {
-            js_sys::JSON::stringify(&e)
-                .map(|s| s.as_string().unwrap_or_default())
-                .unwrap_or_default()
+            let err = js_sys::Error::from(e);
+            err.message().as_string().unwrap_or_default()
         })?
         .into();
     let ast_array: Uint8Array = result.get_data_copy().into();
@@ -55,9 +54,9 @@ pub async fn parse(text: &str) -> Result<Uint8Array, SystemError> {
     Ok(ast_array)
 }
 
-pub async fn parse_into<'a>(
+pub async fn parse_into<'a, 'b>(
     alloc: &'a bumpalo::Bump,
-    text: &str,
+    text: &'b str,
 ) -> Result<(proto::Program<'a>, &'a [u8]), SystemError> {
     let parser: Option<Rc<JsParser>> = PARSER.with(|linked| linked.borrow().clone());
     let parser = match parser {
@@ -68,9 +67,8 @@ pub async fn parse_into<'a>(
         .parse(text)
         .await
         .map_err(|e| {
-            js_sys::JSON::stringify(&e)
-                .map(|s| s.as_string().unwrap_or_default())
-                .unwrap_or_default()
+            let err = js_sys::Error::from(e);
+            err.message().as_string().unwrap_or_default()
         })?
         .into();
     let ast_array: Uint8Array = result.get_data().into();

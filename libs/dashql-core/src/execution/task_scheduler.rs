@@ -87,7 +87,7 @@ impl<'ast> TaskScheduler<'ast> {
     }
 
     /// Prepare a task
-    async fn prepare_task<'snap, 'task>(
+    async fn prepare_task<'snap, 'task: 'snap>(
         task_id: usize,
         task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
@@ -99,7 +99,7 @@ impl<'ast> TaskScheduler<'ast> {
     }
 
     /// Execute a task
-    async fn execute_task<'snap, 'task>(
+    async fn execute_task<'snap, 'task: 'snap>(
         task_id: usize,
         task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,

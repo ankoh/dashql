@@ -66,16 +66,15 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
             },
             endBatchUpdate: (session: SessionId) => {
                 const pending = uncommitted.current;
-                if (pending.sessionId != session) {
-                    setCommitted({
-                        sessionId: pending.sessionId,
-                        program: pending.program,
-                        taskGraph: pending.taskGraph,
-                        statusByTask: pending.statusByTask,
-                        statusByStatement: pending.statusByStatement,
-                        cards: pending.cards,
-                    });
-                }
+                if (pending.sessionId != session) return;
+                setCommitted({
+                    sessionId: pending.sessionId,
+                    program: pending.program,
+                    taskGraph: pending.taskGraph,
+                    statusByTask: pending.statusByTask,
+                    statusByStatement: pending.statusByStatement,
+                    cards: pending.cards,
+                });
             },
             updateProgram: (session: SessionId, text: Uint8Array, ast: Uint8Array) => {
                 const pending = uncommitted.current;
