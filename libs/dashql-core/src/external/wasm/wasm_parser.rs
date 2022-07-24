@@ -54,7 +54,7 @@ pub async fn parse<'a>(text: &'a str) -> Result<Uint8Array, SystemError> {
     Ok(ast_array)
 }
 
-pub async fn parse_into<'a, 'b>(
+pub async fn parse_into<'a, 'b: 'a>(
     alloc: &'a bumpalo::Bump,
     text: &'b str,
 ) -> Result<(proto::Program<'a>, &'a [u8]), SystemError> {

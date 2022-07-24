@@ -55,8 +55,8 @@ where
             frontend,
             database: self.default_database.clone(),
             database_connection: connection,
-            pending_program: None,
-            pending_instance: None,
+            latest_program: None,
+            latest_instance: None,
             planned_instance: None,
             planned_graph: None,
         }));
@@ -107,8 +107,8 @@ where
     #[allow(dead_code)]
     database: Arc<Mutex<dyn Database>>,
     database_connection: Arc<Mutex<dyn DatabaseConnection>>,
-    pending_program: Option<Arc<ProgramContainer>>,
-    pending_instance: Option<WorkflowSessionInstance>,
+    latest_program: Option<Arc<ProgramContainer>>,
+    latest_instance: Option<WorkflowSessionInstance>,
     planned_instance: Option<WorkflowSessionInstance>,
     planned_graph: Option<Arc<TaskGraph>>,
 }
@@ -119,7 +119,7 @@ where
 {
     pub async fn update_program(&mut self, text: &str) -> Result<(), SystemError> {
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
-        self.pending_program = Some(program.clone());
+        self.latest_program = Some(program.clone());
 
         let context = ExecutionContext::create(
             self.settings.clone(),
@@ -142,6 +142,25 @@ where
     }
 
     pub async fn update_program_input(&mut self, input: &str) -> Result<(), SystemError> {
+        // TODO Deserialize input from json
+        let new_input = HashMap::new();
+
+        let program = match &self.latest_program {
+            Some(program) => program,
+            None => return Err(SystemError::Generic("program not known".to_string())),
+        };
+        let context = ExecutionContext::create(
+            self.settings.clone(),
+            self.runtime.clone(),
+            self.database.clone(),
+            program.get_arena(),
+        );
+        let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)
+            .map(|instance| Arc::new(instance))?;
+
+        self.frontend.begin_batch_update(self.session_id)?;
+        self.frontend.update_program_analysis(self.session_id, &instance)?;
+        self.frontend.end_batch_update(self.session_id)?;
         Ok(())
     }
 
