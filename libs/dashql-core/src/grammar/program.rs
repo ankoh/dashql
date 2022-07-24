@@ -5,6 +5,7 @@ use super::ast_node::*;
 use super::ast_nodes_dashql::*;
 use super::ast_nodes_sql::*;
 use std::error::Error;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum Statement<'arena> {
@@ -37,7 +38,7 @@ impl<'arena> std::fmt::Debug for Program<'arena> {
 pub struct ProgramContainer {
     arena: bumpalo::Bump,
     text: &'static str,
-    program: Program<'static>,
+    program: Arc<Program<'static>>,
 }
 
 impl ProgramContainer {
@@ -46,12 +47,12 @@ impl ProgramContainer {
         let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
         let (ast, ast_data) = parse_into(&arena, &text).await?;
-        let program = grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap();
+        let program = Arc::new(grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap());
 
         // Now transmute the lifetimes
         let text_static = unsafe { std::mem::transmute::<&str, &'static str>(text) };
         let program_static =
-            unsafe { std::mem::transmute::<&grammar::Program<'_>, &grammar::Program<'static>>(&program) };
+            unsafe { std::mem::transmute::<&Arc<grammar::Program<'_>>, &Arc<grammar::Program<'static>>>(&program) };
         Ok(Self {
             arena,
             text: text_static,
@@ -65,7 +66,7 @@ impl ProgramContainer {
     pub fn get_text<'buffer>(&'buffer self) -> &'buffer str {
         &self.text
     }
-    pub fn get_program<'buffer>(&'buffer self) -> &'buffer Program<'buffer> {
-        unsafe { std::mem::transmute::<&'buffer Program<'static>, &'buffer Program<'buffer>>(&self.program) }
+    pub fn get_program<'buffer>(&'buffer self) -> &'buffer Arc<Program<'buffer>> {
+        unsafe { std::mem::transmute::<&'buffer Arc<Program<'static>>, &'buffer Arc<Program<'buffer>>>(&self.program) }
     }
 }

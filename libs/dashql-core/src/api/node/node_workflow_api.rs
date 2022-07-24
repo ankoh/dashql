@@ -248,6 +248,12 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
     Ok(cx.undefined())
 }
 
+pub fn update_program_input<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    let input = cx.argument::<JsString>(1)?.value(&mut cx);
+    Ok(cx.undefined())
+}
+
 pub fn edit_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let edits = cx.argument::<JsString>(1)?.value(&mut cx);
@@ -285,6 +291,7 @@ pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("workflow_create_session", create_session)?;
     cx.export_function("workflow_close_session", close_session)?;
     cx.export_function("workflow_update_program", update_program)?;
+    cx.export_function("workflow_update_program_input", update_program_input)?;
     cx.export_function("workflow_run_query", run_query)?;
     Ok(())
 }

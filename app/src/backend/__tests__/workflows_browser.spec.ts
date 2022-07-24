@@ -28,6 +28,7 @@ describe('Wasm Workflows', () => {
         frontend.beginBatchUpdate = jest.fn();
         frontend.endBatchUpdate = jest.fn();
         frontend.updateProgram = jest.fn();
+        frontend.updateProgramAnalysis = jest.fn();
 
         const session = await dashql.workflowCreateSession(frontend);
         await dashql.workflowUpdateProgram(session, 'create table foo as select 42');

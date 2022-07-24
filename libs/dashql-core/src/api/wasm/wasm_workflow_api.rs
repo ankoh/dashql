@@ -19,7 +19,7 @@ extern "C" {
     fn end_batch_update(this: &JsWorkflowFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
     fn update_program(this: &JsWorkflowFrontend, session_id: u32, text: Uint8Array, ast: Uint8Array);
-    #[wasm_bindgen(structural, method, js_name = "updateProgram")]
+    #[wasm_bindgen(structural, method, js_name = "updateProgramAnalysis")]
     fn update_program_analysis(this: &JsWorkflowFrontend, session_id: u32, analysis: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskGraph")]
     fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: &str);
@@ -166,6 +166,11 @@ pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue
     };
     let mut session_lock = session.lock().expect("cannot lock session");
     session_lock.update_program(&text).await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[wasm_bindgen(js_name = "workflowUpdateProgramInput")]
+pub async fn update_program_input(session_id: u32, input: String) -> Result<(), JsValue> {
     Ok(())
 }
 
