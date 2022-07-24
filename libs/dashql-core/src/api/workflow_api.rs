@@ -141,7 +141,6 @@ where
             self.frontend.update_program_analysis(self.session_id, &instance)?;
         }
         self.frontend.end_batch_update(self.session_id)?;
-
         instance.map(|_| ())
     }
 
@@ -161,6 +160,10 @@ where
         );
         let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)
             .map(|instance| Arc::new(instance))?;
+        self.latest_instance = Some(WorkflowSessionInstance {
+            program: program.clone(),
+            instance: unsafe { std::mem::transmute(instance.clone()) },
+        });
 
         self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_program_analysis(self.session_id, &instance)?;
