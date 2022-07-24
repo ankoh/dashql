@@ -128,12 +128,16 @@ where
             program.get_arena(),
         );
         let input = HashMap::new();
-        let instance =
-            analyze_program(context, text, program.get_program().clone(), input).map(|instance| Arc::new(instance));
+        let instance = analyze_program(context, program.get_text(), program.get_program().clone(), input)
+            .map(|instance| Arc::new(instance));
 
         self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_program(self.session_id, text, &program)?;
         if let Ok(instance) = &instance {
+            self.latest_instance = Some(WorkflowSessionInstance {
+                program: program.clone(),
+                instance: unsafe { std::mem::transmute(instance.clone()) },
+            });
             self.frontend.update_program_analysis(self.session_id, &instance)?;
         }
         self.frontend.end_batch_update(self.session_id)?;
