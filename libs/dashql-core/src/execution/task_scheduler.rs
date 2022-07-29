@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
@@ -25,7 +27,9 @@ use futures::StreamExt;
 
 pub struct TaskScheduler<'ast> {
     /// The program
-    instance: &'ast ProgramInstance<'ast>,
+    instance: Arc<ProgramInstance<'ast>>,
+    /// The graph
+    task_graph: Arc<TaskGraph>,
     /// The derived task logic
     task_logic: Vec<Option<Box<dyn TaskOperator<'ast> + 'ast>>>,
     /// The task alive
@@ -33,13 +37,15 @@ pub struct TaskScheduler<'ast> {
     /// The task topology
     task_topology: TopologicalSort<usize>,
     /// The dependencies
-    task_required_for: Vec<&'ast [usize]>,
+    task_required_for: Vec<Vec<usize>>,
 }
 
 fn create_task_operator<'ast>(
-    instance: &'ast ProgramInstance<'ast>,
-    task: &'ast Task,
+    instance: &Arc<ProgramInstance<'ast>>,
+    task_graph: &Arc<TaskGraph>,
+    task_id: usize,
 ) -> Result<Option<Box<dyn TaskOperator<'ast> + 'ast>>, SystemError> {
+    let task = &task_graph.tasks[task_id];
     let op: Box<dyn TaskOperator<'ast> + 'ast> = match task.task_type {
         TaskType::None => todo!(),
         TaskType::DropBlob => todo!(),
@@ -48,13 +54,13 @@ fn create_task_operator<'ast>(
         TaskType::DropView => todo!(),
         TaskType::DropViz => todo!(),
         TaskType::Unset => todo!(),
-        TaskType::CreateAs => Box::new(DuckDBCreateAsTaskOperator::create(instance, task)?),
-        TaskType::CreateTable => Box::new(DuckDBCreateTableTaskOperator::create(instance, task)?),
-        TaskType::CreateView => Box::new(DuckDBCreateViewTaskOperator::create(instance, task)?),
-        TaskType::CreateViz => Box::new(VegaVisualizeTaskOperator::create(instance, task)?),
-        TaskType::Import => Box::new(ImportTask::create(instance, task)?),
+        TaskType::CreateAs => Box::new(DuckDBCreateAsTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::CreateTable => Box::new(DuckDBCreateTableTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::CreateView => Box::new(DuckDBCreateViewTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::CreateViz => Box::new(VegaVisualizeTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::Import => Box::new(ImportTask::create(instance, task_graph, task_id)?),
         TaskType::Declare => todo!(),
-        TaskType::Load => Box::new(DuckDBLoadTaskOperator::create(instance, task)?),
+        TaskType::Load => Box::new(DuckDBLoadTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::ModifyTable => todo!(),
         TaskType::Set => todo!(),
         TaskType::UpdateViz => todo!(),
@@ -63,22 +69,21 @@ fn create_task_operator<'ast>(
 }
 
 impl<'ast> TaskScheduler<'ast> {
-    pub fn schedule(instance: &'ast ProgramInstance<'ast>, task_graph: &'ast TaskGraph) -> Result<Self, SystemError> {
+    pub fn schedule(instance: Arc<ProgramInstance<'ast>>, task_graph: Arc<TaskGraph>) -> Result<Self, SystemError> {
         let n = task_graph.tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
         let mut alive = Vec::with_capacity(n);
         let mut required_for = Vec::with_capacity(n);
-        for (program_id, program_task) in task_graph.tasks.iter().enumerate() {
-            topo.push((program_id, program_task.depends_on.len()));
-            logic.push(create_task_operator(instance, program_task)?);
-            alive.push(
-                program_task.task_status.load(std::sync::atomic::Ordering::SeqCst) == TaskStatusCode::Pending as u8,
-            );
-            required_for.push(program_task.required_for.as_slice());
+        for (task_id, task) in task_graph.tasks.iter().enumerate() {
+            topo.push((task_id, task.depends_on.len()));
+            logic.push(create_task_operator(&instance, &task_graph, task_id)?);
+            alive.push(task.task_status.load(std::sync::atomic::Ordering::SeqCst) == TaskStatusCode::Pending as u8);
+            required_for.push(task.required_for.clone());
         }
         Ok(Self {
             instance,
+            task_graph,
             task_logic: logic,
             task_alive: alive,
             task_topology: TopologicalSort::new(topo),
@@ -144,11 +149,12 @@ impl<'ast> TaskScheduler<'ast> {
             log.task_updated(*task_id, TaskStatusCode::Preparing);
         }
         log.flush().await;
+        let instance = self.instance.clone();
         let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
             .iter_mut()
             .enumerate()
             .filter(|(task_id, _task)| self.task_alive[*task_id])
-            .map(|(task_id, task)| (task_id, task, self.instance.context.snapshot()))
+            .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
@@ -185,7 +191,7 @@ impl<'ast> TaskScheduler<'ast> {
             .iter_mut()
             .enumerate()
             .filter(|(task_id, _task)| self.task_alive[*task_id])
-            .map(|(task_id, task)| (task_id, task, self.instance.context.snapshot()))
+            .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
@@ -211,7 +217,7 @@ impl<'ast> TaskScheduler<'ast> {
         // Update topology
         for task_id in task_ids.iter() {
             if self.task_alive[*task_id] {
-                for req_for in self.task_required_for[*task_id] {
+                for req_for in self.task_required_for[*task_id].iter() {
                     self.task_topology.decrement_key(req_for);
                 }
             }
@@ -253,11 +259,11 @@ mod test {
         let context = ExecutionContext::create_simple(&arena).await?;
         let (program_ast, program_data) = parse_into(&arena, script).await?;
         let program = Arc::new(grammar::deserialize_ast(&arena, script, program_ast, program_data).unwrap());
-        let instance = analyze_program(context, script, program, HashMap::new())?;
-        let task_graph = plan_tasks(&instance, None)?;
+        let instance = Arc::new(analyze_program(context, script, program, HashMap::new())?);
+        let task_graph = Arc::new(plan_tasks(instance.clone(), None)?);
 
         // Run the scheduler
-        let mut task_scheduler = TaskScheduler::schedule(&instance, &task_graph)?;
+        let mut task_scheduler = TaskScheduler::schedule(instance.clone(), task_graph)?;
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
             let work_left = task_scheduler.next(&mut scheduler_log).await?;

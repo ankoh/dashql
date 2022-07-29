@@ -1,4 +1,3 @@
-//use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
 use dashql_proto as proto;
 use js_sys::Uint8Array;
 use std::cell::RefCell;

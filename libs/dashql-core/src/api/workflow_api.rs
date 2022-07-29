@@ -8,7 +8,7 @@ use crate::{
         analysis_settings::ProgramAnalysisSettings,
         program_instance::{analyze_program, ProgramInstance},
         task::TaskStatusCode,
-        task_planner::TaskGraph,
+        task_planner::{plan_tasks, TaskGraph},
     },
     error::SystemError,
     execution::execution_context::ExecutionContext,
@@ -58,7 +58,6 @@ where
             latest_program: None,
             latest_instance: None,
             planned_instance: None,
-            planned_graph: None,
         }));
         self.sessions.insert(session_id, session);
         Ok(session_id)
@@ -109,14 +108,23 @@ where
     database_connection: Arc<Mutex<dyn DatabaseConnection>>,
     latest_program: Option<Arc<ProgramContainer>>,
     latest_instance: Option<WorkflowSessionInstance>,
-    planned_instance: Option<WorkflowSessionInstance>,
-    planned_graph: Option<Arc<TaskGraph>>,
+    planned_instance: Option<(WorkflowSessionInstance, Arc<TaskGraph>)>,
 }
 
 impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
 {
+    pub async fn try_schedule_tasks(&mut self) -> Result<(), SystemError> {
+        let latest = self.latest_instance.as_ref().unwrap();
+        let planned = self
+            .planned_instance
+            .as_ref()
+            .map(|(i, tasks)| (i.instance.clone(), tasks.clone()));
+        plan_tasks(latest.instance.clone(), planned)?;
+        Ok(())
+    }
+
     pub async fn update_program(&mut self, text: &str) -> Result<(), SystemError> {
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
         self.latest_program = Some(program.clone());

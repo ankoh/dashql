@@ -2,7 +2,7 @@ use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
 
 use crate::analyzer::program_instance::ProgramInstance;
-use crate::analyzer::task::Task;
+use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::import_info::ImportInfo;
@@ -21,7 +21,12 @@ pub struct DuckDBLoadTaskOperator<'ast> {
 }
 
 impl<'ast> DuckDBLoadTaskOperator<'ast> {
-    pub fn create(instance: &'ast ProgramInstance<'ast>, task: &'ast Task) -> Result<Self, SystemError> {
+    pub fn create(
+        instance: &Arc<ProgramInstance<'ast>>,
+        task_graph: &Arc<TaskGraph>,
+        task_id: usize,
+    ) -> Result<Self, SystemError> {
+        let task = &task_graph.tasks[task_id];
         let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast LoadStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Load(l) => l,

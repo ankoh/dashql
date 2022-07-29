@@ -4,10 +4,10 @@ use super::{
     task::{Task, TaskStatusCode, TaskType},
 };
 use serde::Serialize;
+use std::sync::{atomic::AtomicU8, Arc};
 use std::{collections::HashSet, sync::atomic::Ordering};
-use std::{error::Error, sync::atomic::AtomicU8};
 
-use crate::{grammar::Statement, utils::topological_sort::TopologicalSort};
+use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TaskGraph {
@@ -19,9 +19,9 @@ pub struct TaskGraph {
 #[derive(Debug)]
 struct TaskPlannerContext<'a> {
     /// The next program
-    pub next_program: &'a ProgramInstance<'a>,
+    pub next_program: Arc<ProgramInstance<'a>>,
     /// The previous program
-    pub prev_program: Option<(&'a ProgramInstance<'a>, &'a TaskGraph)>,
+    pub prev_program: Option<(Arc<ProgramInstance<'a>>, Arc<TaskGraph>)>,
     /// The diff between the programs
     pub diff: Vec<DiffOp>,
     /// The reverse task mapping.
@@ -39,9 +39,13 @@ struct TaskPlannerContext<'a> {
     pub next_task_graph: Option<TaskGraph>,
 }
 
-fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let next = ctx.next_program;
-    let mut next_state_id = ctx.prev_program.map(|(_, t)| t.next_state_id).unwrap_or_default();
+fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
+    let next = ctx.next_program.clone();
+    let mut next_state_id = ctx
+        .prev_program
+        .clone()
+        .map(|(_, t)| t.next_state_id)
+        .unwrap_or_default();
 
     let mut tasks: Vec<Task> = Vec::with_capacity(next.program.statements.len());
     let mut tasks_by_statement: Vec<usize> = Vec::new();
@@ -117,13 +121,13 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<
     Ok(())
 }
 
-fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
     // Compute the diff
     let (prev_prog, _) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
         None => return Ok(()),
     };
-    ctx.diff = compute_diff(prev_prog, ctx.next_program);
+    ctx.diff = compute_diff(prev_prog, &ctx.next_program);
 
     // Compute the reverse task mapping
     let next_task_graph = ctx.next_task_graph.as_ref().unwrap();
@@ -141,8 +145,8 @@ fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Err
     Ok(())
 }
 
-fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (prev_program, prev_tasks) = match ctx.prev_program {
+fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
+    let (prev_program, prev_tasks) = match ctx.prev_program.clone() {
         Some((prev_program, prev_tasks)) => (prev_program, prev_tasks),
         None => return Ok(()),
     };
@@ -295,7 +299,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     Ok(())
 }
 
-fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dyn Error + Send + Sync>> {
+fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
     let (_, prev_tasks) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
         None => return Ok(()),
@@ -429,9 +433,9 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Box<dy
 }
 
 pub fn plan_tasks<'a>(
-    next_program: &'a ProgramInstance<'a>,
-    prev_program: Option<(&'a ProgramInstance<'a>, &'a TaskGraph)>,
-) -> Result<TaskGraph, Box<dyn Error + Send + Sync>> {
+    next_program: Arc<ProgramInstance<'a>>,
+    prev_program: Option<(Arc<ProgramInstance<'a>>, Arc<TaskGraph>)>,
+) -> Result<TaskGraph, SystemError> {
     let mut ctx = TaskPlannerContext {
         next_program,
         prev_program,
@@ -453,6 +457,7 @@ mod test {
     use super::*;
     use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
     use crate::analyzer::program_instance::analyze_program;
+    use crate::error::SystemError;
     use crate::execution::execution_context::ExecutionContext;
     use crate::execution::scalar_value::ScalarValue;
     use crate::external::database::NativeDatabase;
@@ -472,7 +477,7 @@ mod test {
         next: ExpectedInstance,
     }
 
-    async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_planner(test: &TaskPlannerTest) -> Result<(), SystemError> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = runtime::create();
         let database: Arc<Mutex<dyn Database>> = Arc::new(Mutex::new(NativeDatabase::open_in_memory().await?));
@@ -491,13 +496,13 @@ mod test {
             );
             let prev_prog =
                 Arc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast, prev_ast_data).unwrap());
-            prev_instance = Some(analyze_program(
+            prev_instance = Some(Arc::new(analyze_program(
                 prev_context,
                 prev.script,
                 prev_prog,
                 prev.input.iter().cloned().collect(),
-            )?);
-            prev_tasks = Some(plan_tasks(prev_instance.as_ref().unwrap(), None)?);
+            )?));
+            prev_tasks = Some(Arc::new(plan_tasks(prev_instance.clone().unwrap(), None)?));
             let have = prev_tasks.as_ref().unwrap();
             let expected = &test.prev.as_ref().unwrap().tasks;
             assert_eq!(have.next_state_id, expected.next_state_id);
@@ -517,20 +522,20 @@ mod test {
             );
             let next_prog =
                 Arc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast, next_ast_data).unwrap());
-            analyze_program(
+            Arc::new(analyze_program(
                 next_context,
                 test.next.script,
                 next_prog,
                 test.next.input.iter().cloned().collect(),
-            )?
+            )?)
         };
 
         // Plan next tasks
-        let prev_state = match (&prev_instance, &prev_tasks) {
+        let prev_state = match (prev_instance.clone(), prev_tasks.clone()) {
             (Some(prev_instance), Some(prev_tasks)) => Some((prev_instance, prev_tasks)),
             (_, _) => None,
         };
-        let have = plan_tasks(&next_instance, prev_state)?;
+        let have = plan_tasks(next_instance, prev_state)?;
         let expected = &test.next.tasks;
         assert_eq!(have.tasks, expected.tasks);
         assert_eq!(have.task_by_statement, expected.task_by_statement);
@@ -539,7 +544,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_1() -> Result<(), SystemError> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -565,7 +570,7 @@ IMPORT a FROM 'https://some/remote'
     }
 
     #[tokio::test]
-    async fn test_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_2() -> Result<(), SystemError> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -602,7 +607,7 @@ LOAD b FROM a USING PARQUET;
     }
 
     #[tokio::test]
-    async fn test_3() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_3() -> Result<(), SystemError> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -648,7 +653,7 @@ CREATE TABLE c AS SELECT * FROM b
     }
 
     #[tokio::test]
-    async fn test_4() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_4() -> Result<(), SystemError> {
         test_planner(&TaskPlannerTest {
             prev: None,
             next: ExpectedInstance {
@@ -703,7 +708,7 @@ VIZ c USING TABLE;
     }
 
     #[tokio::test]
-    async fn test_5() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_5() -> Result<(), SystemError> {
         test_planner(&TaskPlannerTest {
             prev: Some(ExpectedInstance {
                 script: r#"
