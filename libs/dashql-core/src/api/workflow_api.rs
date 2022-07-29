@@ -121,7 +121,14 @@ where
             .planned_instance
             .as_ref()
             .map(|(i, tasks)| (i.instance.clone(), tasks.clone()));
-        plan_tasks(latest.instance.clone(), planned)?;
+        let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
+            Ok(plan) => plan,
+            Err(e) => {
+                // TODO: log things
+                return Ok(());
+            }
+        });
+        // TODO spawn plan execution
         Ok(())
     }
 

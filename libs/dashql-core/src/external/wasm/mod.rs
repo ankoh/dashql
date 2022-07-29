@@ -20,5 +20,7 @@ pub mod parser {
     pub use super::wasm_parser::parse_into;
 }
 pub mod runtime {
+    pub use wasm_bindgen_futures::spawn_local as spawn;
+
     pub use super::wasm_runtime::*;
 }
