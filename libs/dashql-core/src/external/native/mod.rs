@@ -17,7 +17,7 @@ pub mod parser {
     pub async fn parse(text: &str) -> Result<dashql_parser::ProgramBuffer, SystemError> {
         dashql_parser::parse(text).map_err(|e| SystemError::Generic(e))
     }
-    pub async fn parse_into<'a, 'b>(
+    pub async fn parse_into<'b, 'a: 'b>(
         alloc: &'a bumpalo::Bump,
         text: &'b str,
     ) -> Result<(proto::Program<'a>, &'a [u8]), SystemError> {
