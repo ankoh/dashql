@@ -31,6 +31,7 @@ clap = "2.33.3"
 log = "0.4.0"
 env_logger = "0.8.3"
 pretty_assertions = "1.2.1"
+lazy_static = "1.4.0"
 
 # Native
 duckdbx-sys = { path = "../duckdbx-sys", optional = true }

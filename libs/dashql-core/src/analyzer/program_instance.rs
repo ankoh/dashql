@@ -49,6 +49,8 @@ pub struct ProgramInstance<'a> {
     pub(super) cached_default_schema: RefCell<Option<&'a str>>,
 }
 
+unsafe impl<'a> Send for ProgramInstance<'a> {}
+
 impl<'a> ProgramInstance<'a> {
     pub fn new(
         context: ExecutionContext<'a>,

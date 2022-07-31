@@ -198,6 +198,7 @@ dependencies = [
  "futures",
  "getrandom",
  "js-sys",
+ "lazy_static",
  "libc",
  "log",
  "neon",

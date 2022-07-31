@@ -25,7 +25,7 @@ pub mod parser {
     }
 }
 pub mod runtime {
-    pub use tokio::spawn;
+    pub use tokio::task::spawn_local as spawn;
 
     pub use super::native_runtime::*;
 }

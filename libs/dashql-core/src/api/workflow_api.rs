@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    sync::atomic::{AtomicBool, Ordering},
     sync::{Arc, Mutex},
 };
 
@@ -11,7 +12,9 @@ use crate::{
         task_planner::{plan_tasks, TaskGraph},
     },
     error::SystemError,
-    execution::execution_context::ExecutionContext,
+    execution::{
+        execution_context::ExecutionContext, task_scheduler::TaskScheduler, task_scheduler_log::TaskSchedulerLog,
+    },
     external::{self, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
 };
@@ -111,6 +114,10 @@ where
     planned_instance: Option<(WorkflowSessionInstance, Arc<TaskGraph>)>,
 }
 
+lazy_static::lazy_static! {
+    pub static ref SCHEDULER_RUNNING: AtomicBool = AtomicBool::new(false);
+}
+
 impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
@@ -128,7 +135,30 @@ where
                 return Ok(());
             }
         });
-        // TODO spawn plan execution
+        let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
+            Ok(sched) => sched,
+            Err(e) => {
+                // TODO: log things
+                return Ok(());
+            }
+        };
+        crate::external::runtime::spawn(async move {
+            if SCHEDULER_RUNNING
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
+                .unwrap_or(true)
+            {
+                return;
+            }
+            let mut scheduler_log = TaskSchedulerLog::create();
+            loop {
+                match scheduler.next(&mut scheduler_log).await {
+                    Ok(true) => {}
+                    Ok(false) => break,
+                    Err(e) => break,
+                }
+            }
+            SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
+        });
         Ok(())
     }
 

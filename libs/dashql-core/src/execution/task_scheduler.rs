@@ -40,6 +40,8 @@ pub struct TaskScheduler<'ast> {
     task_required_for: Vec<Vec<usize>>,
 }
 
+unsafe impl<'ast> Sync for TaskScheduler<'ast> {}
+
 fn create_task_operator<'ast>(
     instance: &Arc<ProgramInstance<'ast>>,
     task_graph: &Arc<TaskGraph>,
