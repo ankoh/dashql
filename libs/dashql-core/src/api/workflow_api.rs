@@ -122,7 +122,13 @@ impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
 {
-    pub async fn try_schedule_tasks(&mut self) -> Result<(), SystemError> {
+    pub async fn execute_program(&mut self) -> Result<(), SystemError> {
+        if SCHEDULER_RUNNING
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
+            .unwrap_or(true)
+        {
+            return Ok(());
+        }
         let latest = self.latest_instance.as_ref().unwrap();
         let planned = self
             .planned_instance
@@ -130,35 +136,32 @@ where
             .map(|(i, tasks)| (i.instance.clone(), tasks.clone()));
         let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
             Ok(plan) => plan,
-            Err(e) => {
+            Err(_e) => {
                 // TODO: log things
+                SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
                 return Ok(());
             }
         });
         let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
             Ok(sched) => sched,
-            Err(e) => {
+            Err(_e) => {
                 // TODO: log things
+                SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
                 return Ok(());
             }
         };
-        crate::external::runtime::spawn(async move {
-            if SCHEDULER_RUNNING
-                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
-                .unwrap_or(true)
-            {
-                return;
-            }
-            let mut scheduler_log = TaskSchedulerLog::create();
-            loop {
-                match scheduler.next(&mut scheduler_log).await {
-                    Ok(true) => {}
-                    Ok(false) => break,
-                    Err(e) => break,
+        let mut scheduler_log = TaskSchedulerLog::create();
+        loop {
+            match scheduler.next(&mut scheduler_log).await {
+                Ok(true) => {}
+                Ok(false) => break,
+                Err(_e) => {
+                    // TODO: log things
+                    break;
                 }
             }
-            SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
-        });
+        }
+        SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
         Ok(())
     }
 
@@ -186,7 +189,7 @@ where
             self.frontend.update_program_analysis(self.session_id, &instance)?;
         }
         self.frontend.end_batch_update(self.session_id)?;
-        instance.map(|_| ())
+        Ok(())
     }
 
     pub async fn update_program_input(&mut self, input: &str) -> Result<(), SystemError> {
@@ -223,5 +226,126 @@ where
     pub async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let mut conn = self.database_connection.lock().unwrap();
         conn.run_query(text).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{cell::RefCell, error::Error};
+
+    use super::*;
+
+    enum StubWorkflowFrontendCall {
+        BeginBatchUpdate(u32),
+        EndBatchUpdate(u32),
+        UpdateProgram(u32, String, ProgramContainer),
+        UpdateProgramAnalysis(u32),
+        UpdateTaskGraph(u32, TaskGraph),
+        UpdateTaskStatus(u32, u32, TaskStatusCode, Option<String>),
+        DeleteTaskState(u32, u32),
+        UpdateInputState(u32, u32),
+        UpdateImportState(u32, u32),
+        UpdateTableState(u32, u32),
+        UpdateVisualizationState(u32, u32),
+    }
+
+    #[derive(Default)]
+    struct StubWorkflowFrontend {
+        calls: RefCell<Vec<StubWorkflowFrontendCall>>,
+    }
+
+    impl WorkflowFrontend for StubWorkflowFrontend {
+        fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::BeginBatchUpdate(session_id));
+            Ok(())
+        }
+        fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::EndBatchUpdate(session_id));
+            Ok(())
+        }
+        fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
+            self.calls.borrow_mut().push(StubWorkflowFrontendCall::UpdateProgram(
+                session_id,
+                text.to_string(),
+                ast.clone(),
+            ));
+            Ok(())
+        }
+        fn update_program_analysis(
+            self: &Arc<Self>,
+            session_id: u32,
+            _analysis: &ProgramInstance,
+        ) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateProgramAnalysis(session_id));
+            Ok(())
+        }
+        fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateTaskGraph(session_id, graph.clone()));
+            Ok(())
+        }
+        fn update_task_status(
+            self: &Arc<Self>,
+            session_id: u32,
+            task_id: u32,
+            status: TaskStatusCode,
+            error: Option<String>,
+        ) -> Result<(), String> {
+            self.calls.borrow_mut().push(StubWorkflowFrontendCall::UpdateTaskStatus(
+                session_id, task_id, status, error,
+            ));
+            Ok(())
+        }
+        fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::DeleteTaskState(session_id, state_id));
+            Ok(())
+        }
+        fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateInputState(session_id, state_id));
+            Ok(())
+        }
+        fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateImportState(session_id, state_id));
+            Ok(())
+        }
+        fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateTableState(session_id, state_id));
+            Ok(())
+        }
+        fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+            self.calls
+                .borrow_mut()
+                .push(StubWorkflowFrontendCall::UpdateVisualizationState(session_id, state_id));
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_hello_workflow() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
+        let session_id = api.create_session(frontend.clone()).await?;
+        let session = api.get_session(session_id).unwrap();
+        let mut locked_session = session.try_lock().unwrap();
+        locked_session.update_program("SELECT 42").await?;
+
+        let frontend_calls = frontend.calls.borrow();
+        assert_eq!(frontend_calls.len(), 4);
+        Ok(())
     }
 }

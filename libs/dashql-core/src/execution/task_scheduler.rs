@@ -17,7 +17,7 @@ use super::{
 use crate::{
     analyzer::{
         program_instance::ProgramInstance,
-        task::{Task, TaskStatusCode, TaskType},
+        task::{TaskStatusCode, TaskType},
         task_planner::TaskGraph,
     },
     error::SystemError,

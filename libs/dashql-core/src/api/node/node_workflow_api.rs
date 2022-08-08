@@ -286,12 +286,18 @@ pub fn run_query<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsArrayBuffer> {
     Ok(buffer)
 }
 
+pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    Ok(cx.undefined())
+}
+
 pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {
     cx.export_function("workflow_configure_default", configure_default)?;
     cx.export_function("workflow_create_session", create_session)?;
     cx.export_function("workflow_close_session", close_session)?;
     cx.export_function("workflow_update_program", update_program)?;
     cx.export_function("workflow_update_program_input", update_program_input)?;
+    cx.export_function("workflow_execute_program", execute_program)?;
     cx.export_function("workflow_run_query", run_query)?;
     Ok(())
 }

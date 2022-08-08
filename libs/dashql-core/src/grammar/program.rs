@@ -35,8 +35,9 @@ impl<'arena> std::fmt::Debug for Program<'arena> {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct ProgramContainer {
-    arena: bumpalo::Bump,
+    arena: Arc<bumpalo::Bump>,
     text: &'static str,
     program: Arc<Program<'static>>,
 }
@@ -54,7 +55,7 @@ impl ProgramContainer {
         let program_static =
             unsafe { std::mem::transmute::<&Arc<grammar::Program<'_>>, &Arc<grammar::Program<'static>>>(&program) };
         Ok(Self {
-            arena,
+            arena: Arc::new(arena),
             text: text_static,
             program: program_static.clone(),
         })

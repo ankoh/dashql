@@ -1,4 +1,3 @@
-#[cfg(any(feature = "node", feature = "wasm"))]
 mod workflow_api;
 
 #[cfg(feature = "node")]
