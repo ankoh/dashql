@@ -346,6 +346,10 @@ mod test {
 
         let frontend_calls = frontend.calls.borrow();
         assert_eq!(frontend_calls.len(), 4);
+        assert!(match &frontend_calls[0] {
+            StubWorkflowFrontendCall::BeginBatchUpdate(_) => true,
+            _ => false,
+        });
         Ok(())
     }
 }
