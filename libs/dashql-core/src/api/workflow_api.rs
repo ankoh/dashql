@@ -93,6 +93,7 @@ pub trait WorkflowFrontend {
     fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
 }
 
+#[derive(Clone)]
 pub struct WorkflowSessionInstance {
     program: Arc<ProgramContainer>,
     instance: Arc<ProgramInstance<'static>>,
@@ -142,6 +143,7 @@ where
                 return Ok(());
             }
         });
+        self.planned_instance = Some((latest.clone(), plan.clone()));
         let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
             Ok(sched) => sched,
             Err(_e) => {
@@ -152,6 +154,7 @@ where
         };
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
+            println!("{:?}", self.planned_instance.as_ref().unwrap().1.tasks);
             match scheduler.next(&mut scheduler_log).await {
                 Ok(true) => {}
                 Ok(false) => break,
@@ -161,6 +164,7 @@ where
                 }
             }
         }
+        println!("{:?}", self.planned_instance.as_ref().unwrap().1.tasks);
         SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
         Ok(())
     }
@@ -232,6 +236,8 @@ where
 #[cfg(test)]
 mod test {
     use std::{cell::RefCell, error::Error};
+
+    use crate::analyzer::task::TaskType;
 
     use super::*;
 
@@ -350,6 +356,70 @@ mod test {
             StubWorkflowFrontendCall::BeginBatchUpdate(_) => true,
             _ => false,
         });
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_skipped() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
+        let session_id = api.create_session(frontend.clone()).await?;
+        let session = api.get_session(session_id).unwrap();
+        let mut locked_session = session.try_lock().unwrap();
+
+        // Update the program
+        locked_session.update_program("create table foo as select 42").await?;
+        assert!(locked_session.latest_program.is_some());
+        assert!(locked_session.latest_instance.is_some());
+
+        // Execute the plan
+        locked_session.execute_program().await?;
+        assert!(locked_session.planned_instance.is_some());
+        let (_, graph) = locked_session.planned_instance.clone().unwrap();
+        assert_eq!(graph.tasks.len(), 1);
+        assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
+        assert_eq!(
+            graph.tasks[0].task_status.load(Ordering::SeqCst),
+            TaskStatusCode::Skipped as u8
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_visualize_table() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
+        let session_id = api.create_session(frontend.clone()).await?;
+        let session = api.get_session(session_id).unwrap();
+        let mut locked_session = session.try_lock().unwrap();
+
+        // Update the program
+        locked_session
+            .update_program(
+                r#"
+            create table foo as select 42;
+            visualize foo using table;
+        "#,
+            )
+            .await?;
+        assert!(locked_session.latest_program.is_some());
+        assert!(locked_session.latest_instance.is_some());
+
+        // Execute the plan
+        locked_session.execute_program().await?;
+        assert!(locked_session.planned_instance.is_some());
+        let (_, graph) = locked_session.planned_instance.clone().unwrap();
+        assert_eq!(graph.tasks.len(), 2);
+        assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
+        assert_eq!(graph.tasks[1].task_type, TaskType::CreateViz);
+        assert_eq!(
+            graph.tasks[0].task_status.load(Ordering::SeqCst),
+            TaskStatusCode::Completed as u8
+        );
+        assert_eq!(
+            graph.tasks[1].task_status.load(Ordering::SeqCst),
+            TaskStatusCode::Completed as u8
+        );
         Ok(())
     }
 }

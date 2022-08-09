@@ -120,7 +120,7 @@ impl<'ast> TaskScheduler<'ast> {
     pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
-        let mut tasks = Vec::with_capacity(self.task_logic.len());
+        let mut task_ops = Vec::with_capacity(self.task_logic.len());
         while !self.task_topology.is_empty() {
             let (task_id, waiting_for) = self.task_topology.top();
             if *waiting_for > 0 {
@@ -128,7 +128,7 @@ impl<'ast> TaskScheduler<'ast> {
             }
             if self.task_alive[*task_id] {
                 task_ids.push(*task_id);
-                tasks.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
+                task_ops.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
             }
             self.task_topology.pop();
         }
@@ -148,13 +148,17 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Prepare all tasks
         for task_id in task_ids.iter() {
+            self.task_graph.tasks[*task_id]
+                .task_status
+                .store(TaskStatusCode::Preparing as u8, std::sync::atomic::Ordering::SeqCst);
             log.task_updated(*task_id, TaskStatusCode::Preparing);
         }
         log.flush().await;
         let instance = self.instance.clone();
-        let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
+        let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
+            .map(|(task_op_id, task)| (task_ids[task_op_id], task))
             .filter(|(task_id, _task)| self.task_alive[*task_id])
             .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
@@ -168,10 +172,16 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
+                    self.task_graph.tasks[task_id]
+                        .task_status
+                        .store(TaskStatusCode::Prepared as u8, std::sync::atomic::Ordering::SeqCst);
                     log.task_updated(task_id, TaskStatusCode::Prepared);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
+                    self.task_graph.tasks[task_id]
+                        .task_status
+                        .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
                     log.task_failed(task_id, e);
                 }
             };
@@ -185,13 +195,17 @@ impl<'ast> TaskScheduler<'ast> {
         // Execute all tasks
         for task_id in task_ids.iter() {
             if self.task_alive[*task_id] {
+                self.task_graph.tasks[*task_id]
+                    .task_status
+                    .store(TaskStatusCode::Executing as u8, std::sync::atomic::Ordering::SeqCst);
                 log.task_updated(*task_id, TaskStatusCode::Executing);
             }
         }
         log.flush().await;
-        let mut task_futures: futures::stream::FuturesUnordered<_> = tasks
+        let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
+            .map(|(task_op_id, task)| (task_ids[task_op_id], task))
             .filter(|(task_id, _task)| self.task_alive[*task_id])
             .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
@@ -205,10 +219,16 @@ impl<'ast> TaskScheduler<'ast> {
             match res {
                 Ok(snap) => {
                     snapshots.push(snap.finish());
+                    self.task_graph.tasks[task_id]
+                        .task_status
+                        .store(TaskStatusCode::Completed as u8, std::sync::atomic::Ordering::SeqCst);
                     log.task_updated(task_id, TaskStatusCode::Completed);
                 }
                 Err(e) => {
                     self.task_alive[task_id] = false;
+                    self.task_graph.tasks[task_id]
+                        .task_status
+                        .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
                     log.task_failed(task_id, e);
                 }
             };
