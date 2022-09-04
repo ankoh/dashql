@@ -122,7 +122,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             language: 'dashql',
             value: program?.text ?? '',
             links: false,
-            wordWrap: 'on',
+            wordWrap: 'off',
             glyphMargin: true,
             minimap: {
                 enabled: false,

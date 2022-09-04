@@ -16,11 +16,14 @@ static std::string_view textAt(std::string_view text, proto::Location loc) {
 }
 
 /// The keyword map
-static const std::unordered_map<std::string_view, proto::AttributeKey> DSON_KEYS = {
+auto& GET_DSON_KEYS() {
+    static const std::unordered_map<std::string_view, proto::AttributeKey> DSON_KEYS = {
 #define X(NAME, TOKEN) {NAME, proto::AttributeKey::TOKEN},
 #include "./grammar/lists/dson_keys.list"
 #undef X
-};
+    };
+    return DSON_KEYS;
+}
 
 /// Determine the maximum keyword length
 size_t constexpr length(const char* str) { return *str ? 1 + length(str + 1) : 0; }
@@ -116,7 +119,8 @@ static uint16_t knownKeyFromString(std::string_view text) {
         std::string_view text_lc{buffer.data(), text.size()};
 
         // Find the dson
-        if (auto iter = DSON_KEYS.find(text_lc); iter != DSON_KEYS.end()) return static_cast<uint16_t>(iter->second);
+        if (auto iter = GET_DSON_KEYS().find(text_lc); iter != GET_DSON_KEYS().end())
+            return static_cast<uint16_t>(iter->second);
     }
     return 0;
 }
@@ -132,6 +136,7 @@ uint16_t DSONDictionary::keyFromString(std::string_view text) const {
 /// Add a dson file in the parser.
 proto::Node ParserDriver::AddDSONField(proto::Location loc, std::vector<proto::Location>&& key_path,
                                        proto::Node value) {
+    // return Null();
     constexpr size_t MAX_NESTING_LEVEL = 4;
 
     // Check max nesting level
@@ -159,13 +164,12 @@ proto::Node ParserDriver::AddDSONField(proto::Location loc, std::vector<proto::L
         if (key == 0) {
             key_text = trimview(key_text, isNoQuote);
             key_loc = scanner().LocationOf(key_text);
-            auto iter = dson_key_map_.find(key_text);
-            if (iter == dson_key_map_.end()) {
+            if (auto iter = dson_key_map_.find(key_text); iter != dson_key_map_.end()) {
+                key = iter->second;
+            } else {
                 key = static_cast<uint16_t>(proto::AttributeKey::DSON_DYNAMIC_KEYS_) + dson_keys_.size();
                 dson_key_map_.insert({key_text, key});
                 dson_keys_.push_back(key_loc);
-            } else {
-                key = iter->second;
             }
         }
 

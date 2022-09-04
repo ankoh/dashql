@@ -54,6 +54,12 @@ RUN mkdir -p /opt/wasi \
     && curl -SL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz | tar -xz --strip-components=1 \
     && chown -R ${UID}:${GID} /opt/wasi
 
+ARG WABT_VERSION="1.0.29"
+RUN mkdir -p /opt/wabt \
+    && cd /opt/wabt \
+    && curl -SL https://github.com/WebAssembly/wabt/releases/download/${WABT_VERSION}/wabt-${WABT_VERSION}-ubuntu.tar.gz | tar -xz --strip-components=1 \
+    && chown -R ${UID}:${GID} /opt/wabt
+
 ARG RUST_VERSION="1.59.0"
 ARG WASM_PACK_VERSION="0.10.2"
 RUN export RUSTUP_HOME=/opt/rust \
@@ -80,9 +86,10 @@ RUN mkdir -p /opt/nvm \
 RUN echo "export WASI_SDK_PREFIX=/opt/wasi" >> /opt/env.sh \
     && echo "export WASI_SYSROOT=/opt/wasi/share/wasi-sysroot" >> /opt/env.sh \
     && echo "export WASI_CMAKE_TOOLCHAIN=/opt/wasi/share/cmake/wasi-sdk.cmake" >> /opt/env.sh \
-    && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
+    && echo "export WABT_ROOT=/opt/wabt" >> /opt/env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
+    && echo "export PATH=$PATH:/opt/rust/bin:/opt/wabt/bin" >> /opt/env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\nsource /opt/env.sh\nexec env "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh \
