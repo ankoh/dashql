@@ -1,5 +1,5 @@
 -- Fetch the bundled university schema
-FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+IMPORT uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
 
 -- Load the parquet files in the zip archive
 LOAD vorlesungen FROM uni['vorlesungen.parquet'];

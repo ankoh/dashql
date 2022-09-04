@@ -6,6 +6,7 @@ import example_demo_ieeevis from '../static/examples/demo_ieeevis.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_halowars from '../static/examples/demo_halowars.dashql';
+import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_load_json_jmespath from '../static/examples/load_json_jmespath.dashql';
@@ -108,6 +109,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_halowars,
+        enabled: true,
+    },
+    {
+        name: 'demo_unischema',
+        collection: 'Demos',
+        title: 'University Schema',
+        description: 'A script that shows how to query the university schema',
+        icon: icon_dashboard,
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
+        url: example_demo_unischema,
         enabled: true,
     },
     {

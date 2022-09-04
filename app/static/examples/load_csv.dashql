@@ -1,7 +1,7 @@
 -- Fetch covid data
-FETCH csv_deliveries FROM 'https://static.dashql.com/data/test/covid_gov_deliveries_timeseries_2021_07_26.tsv';
-FETCH csv_vaccinations_by_state FROM 'https://static.dashql.com/data/test/covid_gov_vaccinations_by_state_2021_07_26.tsv';
-FETCH csv_vaccinations FROM 'https://static.dashql.com/data/test/covid_gov_vaccinations_timeseries_2021_07_26.tsv';
+IMPORT csv_deliveries FROM 'https://static.dashql.com/data/test/covid_gov_deliveries_timeseries_2021_07_26.tsv';
+IMPORT csv_vaccinations_by_state FROM 'https://static.dashql.com/data/test/covid_gov_vaccinations_by_state_2021_07_26.tsv';
+IMPORT csv_vaccinations FROM 'https://static.dashql.com/data/test/covid_gov_vaccinations_timeseries_2021_07_26.tsv';
 
 -- Load data into DuckDB
 LOAD deliveries FROM csv_deliveries USING CSV;
