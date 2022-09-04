@@ -1,4 +1,7 @@
-FETCH movies_json
-FROM 'https://static.dashql.com/data/examples/movies.json';
+IMPORT movies_json FROM 'https://static.dashql.com/data/examples/movies.json';
+
+LOAD movies FROM movies_json USING JSON (
+    jmespath = '{}'
+);
 
 VIZ movies_json USING JSON;
