@@ -19,10 +19,6 @@ export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize 
             },
         );
     }, [target]);
-    useResizeObserver({
-        ref: target,
-        onResize: s => setSize(s),
-    });
     return size;
 };
 

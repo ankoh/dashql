@@ -3,7 +3,7 @@ import * as utils from '../utils';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimateSharedLayout } from 'framer-motion';
+import { motion, AnimateSharedLayout, LayoutGroup } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
 import styles from './examples.module.css';
@@ -146,14 +146,14 @@ export const Examples: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.gallery_body}>
-                <AnimateSharedLayout>
+                <LayoutGroup id="examples">
                     {renderCollection(collections, 'Demos')}
                     {renderCollection(collections, 'Fetch')}
                     {renderCollection(collections, 'Transform')}
                     {renderCollection(collections, 'Load')}
                     {renderCollection(collections, 'SQL')}
                     {renderCollection(collections, 'Visualize')}
-                </AnimateSharedLayout>
+                </LayoutGroup>
             </div>
         </div>
     );
