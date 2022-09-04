@@ -2,7 +2,7 @@ import * as utils from './utils';
 import * as model from './model';
 import axios from 'axios';
 
-import example_demo_ieeevis from '../static/examples/demo_ieeevis.dashql';
+import example_demo_btw from '../static/examples/demo_btw.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_halowars from '../static/examples/demo_halowars.dashql';
@@ -69,13 +69,13 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        name: 'demo_ieeevis',
+        name: 'demo_btw',
         collection: 'Demos',
-        title: 'IEEE Vis',
-        description: 'A script for the IEEE Vis publication',
+        title: 'BTW 2023',
+        description: 'A script for the BTW publication',
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_demo_ieeevis,
+        url: example_demo_btw,
         enabled: true,
     },
     {

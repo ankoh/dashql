@@ -37,6 +37,11 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 # ---------------------------------------------------------------------------
 # Tests
 
+.PHONY: dump_ast
+dump_ast:
+	cargo build
+	./target/debug/dump grammar --dir ./libs/dashql-core/dump/ast/
+
 .PHONY: tests_rs
 tests_rs:
 	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ cargo test --features native
