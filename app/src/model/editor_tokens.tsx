@@ -2,17 +2,18 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as model from '../model';
 
 export enum HighlightingTokenType {
-    KEYWORD,
-    LITERAL_INTEGER,
-    LITERAL_FLOAT,
-    LITERAL_HEX,
-    LITERAL_BOOLEAN,
-    LITERAL_BINARY,
-    LITERAL_STRING,
-    COMMENT,
-    OPERATOR,
-    DSON_KEY,
-    IDENTIFIER,
+    NONE = 0,
+    KEYWORD = 1,
+    LITERAL_INTEGER = 2,
+    LITERAL_FLOAT = 3,
+    LITERAL_STRING = 4,
+    LITERAL_BINARY = 5,
+    LITERAL_HEX = 6,
+    LITERAL_BOOLEAN = 7,
+    OPERATOR = 8,
+    IDENTIFIER = 9,
+    COMMENT = 10,
+    DSON_KEY = 11,
 }
 
 /** Dummy state to propagate the line number through the TokensProvider API.
@@ -80,6 +81,13 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         // breaks[0] refers to the offset of the first token after linebreak 0
         const tokenBegin = state.lineNumber == 0 ? 0 : tokenBreaks[state.lineNumber - 1];
         const tokenEnd = state.lineNumber < tokenBreaks.length ? tokenBreaks[state.lineNumber] : tokenOffsets.length;
+        console.log({
+            tokenBegin,
+            tokenEnd,
+            lineNumber: state.lineNumber,
+            prevBreak: tokenBreaks[state.lineNumber - 1],
+            nextBreak: tokenBreaks[state.lineNumber],
+        });
 
         // Resolve line offset
         let lineOffset = 0;
@@ -118,6 +126,9 @@ export class TokensProvider implements monaco.languages.TokensProvider {
                     token.scopes = 'dson.key';
                     break;
                 case HighlightingTokenType.IDENTIFIER:
+                    token.scopes = '';
+                    break;
+                case HighlightingTokenType.NONE:
                     token.scopes = '';
                     break;
                 // XXX

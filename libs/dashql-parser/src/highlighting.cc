@@ -11,15 +11,14 @@ namespace sx = proto;
 
 static const proto::HighlightingTokenType MapToken(Parser::symbol_kind_type symbol) {
     switch (symbol) {
-#define X(CATEGORY, NAME, TOKEN)              \
-    case Parser::symbol_kind_type::S_##TOKEN: \
-        return proto::HighlightingTokenType::KEYWORD;
+#define X(CATEGORY, NAME, TOKEN) case Parser::symbol_kind_type::S_##TOKEN:
 #include "./grammar/lists/dashql_keywords.list"
 #include "./grammar/lists/sql_column_name_keywords.list"
 #include "./grammar/lists/sql_reserved_keywords.list"
 #include "./grammar/lists/sql_type_func_keywords.list"
 #include "./grammar/lists/sql_unreserved_keywords.list"
 #undef X
+        return proto::HighlightingTokenType::KEYWORD;
         case Parser::symbol_kind_type::S_STRING_LITERAL:
         case Parser::symbol_kind_type::S_SCONST:
         case Parser::symbol_kind_type::S_USCONST:
