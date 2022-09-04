@@ -1,12 +1,9 @@
 {
     "features": {
-        "scriptBeans": false,
-        "scriptStatistics": false,
         "cloudService": false,
         "userAccount": false,
-        "editorControls": false,
-        "exampleCatalog": false,
-        "systemInfo": false
+        "exampleCatalog": true,
+        "systemInfo": true
     },
     "database": {
         "castBigIntToDouble": true,

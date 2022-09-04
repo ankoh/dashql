@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Explorer } from './pages/explorer';
+import { Examples } from './pages/examples';
 import { NotFound } from './pages/not_found';
 import { Route, BrowserRouter, Routes, Navigate, HashRouter } from 'react-router-dom';
 import { AppLauncher } from './app_launcher';
@@ -22,6 +23,7 @@ import { WorkflowDataProvider, WorkflowSessionProvider } from './backend/workflo
 const Router = isElectron ? HashRouter : BrowserRouter;
 
 const ExplorerPage = withNavBar(Explorer);
+const ExamplesPage = withNavBar(Examples);
 
 ReactDOM.render(
     <AppConfigResolver>
@@ -32,6 +34,7 @@ ReactDOM.render(
                         <Router>
                             <Routes>
                                 <Route path="/explorer/*" element={<ExplorerPage />} />
+                                <Route path="/examples/*" element={<ExamplesPage />} />
                                 <Route path="/404" element={<NotFound />} />
                                 <Route path="/" element={<Navigate to="/explorer" />} />
                                 <Route path="*" element={<Navigate to="/404" />} />

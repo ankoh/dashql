@@ -1,0 +1,4 @@
+FETCH movies_json
+FROM 'https://static.dashql.com/data/examples/movies.json';
+
+VIZ movies_json USING JSON;

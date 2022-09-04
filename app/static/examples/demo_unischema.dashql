@@ -1,0 +1,57 @@
+-- Fetch the bundled university schema
+FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+
+-- Load the parquet files in the zip archive
+LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+LOAD hoeren FROM uni['hoeren.parquet'];
+LOAD studenten FROM uni['studenten.parquet'];
+
+-- Run arbitrary SQL
+CREATE TABLE Enrolments AS
+    SELECT studenten.MatrNr, vorlesungen.Titel
+    FROM studenten, hoeren, vorlesungen
+    WHERE studenten.MatrNr = hoeren.MatrNr
+    AND hoeren.VorlNr = vorlesungen.VorlNr;
+
+-- ... with aggregates
+CREATE TABLE StudentCounts AS
+    SELECT v.titel, count(*)::INTEGER as studenten
+    FROM hoeren h, vorlesungen v
+    WHERE h.vorlnr = v.vorlnr
+    GROUP BY v.titel;
+
+-- ... store as table or view
+CREATE VIEW SWSCounts AS
+    SELECT v.sws, count(*)::INTEGER as cnt
+    FROM vorlesungen v
+    GROUP BY v.sws;
+
+-- Visualize the result with a simple table
+VIZ Enrolments USING TABLE (
+    title = 'Einschreibungen',
+    position = (row = 4, column = 0, width = 12, height = 4),
+);
+
+-- ... or a bar chart
+VIZ StudentCounts USING (
+    title = 'Auslastung',
+    position = (row = 0, column = 0, width = 12, height = 4),
+    mark = 'bar',
+    encoding = (
+        y = (
+            title = 'Vorlesungen',
+            field = 'Titel',
+            type = 'nominal',
+        ),
+        x = (
+            title = 'Studenten',
+            field = 'studenten',
+            type ='quantitative',
+            scale.zero = true,
+            axis.tick_min_step = 1,
+        ),
+    )
+);
+
+-- Dead statement, no viz
+SELECT * FROM SWSCounts;

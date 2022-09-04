@@ -1,0 +1,104 @@
+.root {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    display: grid;
+    grid-template-rows: min-content auto;
+    background-color: var(--body_bg);
+}
+
+.gallery_header {
+    border-bottom: 1px solid var(--border_color);
+}
+
+.gallery_filters {
+    background: white;
+}
+
+.gallery_body {
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.script_card {
+    background: white;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--example_border_color);
+    padding: 8px 8px;
+    font-size: 95%;
+
+    display: grid;
+    grid-template-columns: 24px auto;
+}
+
+.script_card_disabled {
+    background: var(--example_card_bg_disabled);
+}
+
+.script_card_hidden {
+    visibility: hidden;
+}
+
+.example_icon {
+    grid-row: 1;
+    grid-column: 1;
+    color: var(--example_icon_color);
+    display: grid;
+    align-items: center;
+    justify-items: center;
+}
+
+.example_title {
+    grid-row: 1;
+    grid-column: 2;
+    font-weight: 400;
+    margin-left: 8px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.example_unfocus {
+    grid-row: 1;
+    grid-column: 3;
+    padding: 0px !important;
+}
+
+.collection {
+    padding: 8px 16px;
+}
+
+.collection_name {
+    font-size: 100%;
+    padding: 8px 0px;
+}
+
+.collection_grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(auto-fit, auto);
+    grid-column-gap: 16px;
+    grid-row-gap: 16px;
+}
+
+.filter_grid {
+    padding: 16px 16px 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(8, max-content);
+    grid-template-rows: auto;
+    grid-column-gap: 8px;
+    grid-row-gap: 16px;
+}
+
+.filter_tag {
+    padding: 2px 8px;
+    border-radius: var(--border_radius);
+    font-size: 75%;
+    background: rgb(58, 66, 74);
+    color: white;
+    text-align: center;
+}
+
+.filter_tag_active {
+    background: black !important;
+}

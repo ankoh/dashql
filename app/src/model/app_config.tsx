@@ -5,11 +5,8 @@ import config_url from '../../static/config.json';
 import { Resolvable, ResolvableStatus } from './resolvable_status';
 
 export interface AppFeatures {
-    scriptBeans?: boolean;
-    scriptStatistics?: boolean;
     cloudService?: boolean;
     userAccount?: boolean;
-    editorControls?: boolean;
     exampleCatalog?: boolean;
     systemInfo?: boolean;
 }

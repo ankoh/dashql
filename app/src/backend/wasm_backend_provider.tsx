@@ -132,7 +132,7 @@ export const WasmBackendProvider: React.FC<Props> = (props: Props) => {
 
     return (
         <BACKEND_RESOLVER_CONTEXT.Provider value={backendResolver}>
-            <BACKEND_CONTEXT.Provider value={backend}>{props.children}</BACKEND_CONTEXT.Provider>;
+            <BACKEND_CONTEXT.Provider value={backend}>{props.children}</BACKEND_CONTEXT.Provider>
         </BACKEND_RESOLVER_CONTEXT.Provider>
     );
 };

@@ -1,6 +1,11 @@
 // Copyright (c) 2021 The DashQL Authors
 
-export interface Script {}
+export interface Script {
+    metadata: ScriptMetadata;
+    text: string;
+    textLineCount: number;
+    textBytes: number;
+}
 
 export enum ScriptOriginType {
     LOCAL,
