@@ -1,3 +1,4 @@
+mod native_console;
 mod native_database;
 mod native_runtime;
 
@@ -28,4 +29,8 @@ pub mod runtime {
     pub use tokio::task::spawn_local as spawn;
 
     pub use super::native_runtime::*;
+}
+
+pub mod console {
+    pub use super::native_console::println;
 }

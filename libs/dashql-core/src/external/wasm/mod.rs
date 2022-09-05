@@ -2,6 +2,7 @@
 pub(crate) mod duckdb_wasm_bindings;
 #[allow(dead_code)]
 pub(crate) mod duckdb_wasm_tokens;
+pub(crate) mod wasm_console;
 pub(crate) mod wasm_database;
 pub(crate) mod wasm_parser;
 pub(crate) mod wasm_runtime;
@@ -23,4 +24,8 @@ pub mod runtime {
     pub use wasm_bindgen_futures::spawn_local as spawn;
 
     pub use super::wasm_runtime::*;
+}
+
+pub mod console {
+    pub use super::wasm_console::println;
 }

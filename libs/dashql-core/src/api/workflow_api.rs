@@ -166,7 +166,8 @@ where
             .replace((latest.clone(), plan.clone()));
         let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
             Ok(sched) => sched,
-            Err(_e) => {
+            Err(e) => {
+                external::console::println(&format!("{}", &e));
                 // TODO: log things
                 self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
@@ -176,7 +177,7 @@ where
         // Perform scheduler work until done
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
-            println!("{:?}", plan.tasks);
+            external::console::println(&format!("{:?}", &plan.tasks));
             match scheduler.next(&mut scheduler_log).await {
                 Ok(true) => {}
                 Ok(false) => break,
@@ -186,7 +187,7 @@ where
                 }
             }
         }
-        println!("{:?}", plan.tasks);
+        external::console::println("execution done");
         self.scheduler_executing.store(false, Ordering::SeqCst);
         Ok(())
     }

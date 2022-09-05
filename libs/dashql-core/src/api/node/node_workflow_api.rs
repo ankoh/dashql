@@ -224,8 +224,7 @@ pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     if let Some(session) = api.lock().unwrap().release_session(session_id as u32) {
-        let session_lock = session.lock().unwrap();
-        session_lock.frontend.channel.send(|mut cx| {
+        session.frontend.channel.send(|mut cx| {
             let callback = callback.into_inner(&mut cx);
             let this = cx.undefined();
             callback.call(&mut cx, this, &[])?;
@@ -243,8 +242,7 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
-    let mut session_lock = session.lock().expect("cannot lock session");
-    block_on(session_lock.update_program(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
+    block_on(session.update_program(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(cx.undefined())
 }
 
@@ -255,8 +253,7 @@ pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined>
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
-    let mut session_lock = session.lock().expect("cannot lock session");
-    block_on(session_lock.execute_program()).or_else(|e| cx.throw_error(e.to_string()))?;
+    block_on(session.execute_program()).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(cx.undefined())
 }
 
@@ -274,8 +271,7 @@ pub fn edit_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
-    let mut session_lock = session.lock().expect("cannot lock session");
-    block_on(session_lock.edit_program(&edits)).or_else(|e| cx.throw_error(e.to_string()))?;
+    block_on(session.edit_program(&edits)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(cx.undefined())
 }
 
@@ -287,8 +283,7 @@ pub fn run_query<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsArrayBuffer> {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
-    let mut session_lock = session.lock().expect("cannot lock session");
-    let result = block_on(session_lock.run_query(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
+    let result = block_on(session.run_query(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
     let result_data = result.read_native_data_handle().access();
     let buffer = JsArrayBuffer::new(&mut cx, result_data.len()).map(|mut buffer| {
         let writer: &mut [u8] = buffer.as_mut_slice(&mut cx);
