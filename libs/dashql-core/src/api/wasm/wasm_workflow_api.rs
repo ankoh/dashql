@@ -13,10 +13,8 @@ use crate::{
 extern "C" {
     pub type JsWorkflowFrontend;
 
-    #[wasm_bindgen(structural, method, js_name = "beginBatchUpdate")]
-    fn begin_batch_update(this: &JsWorkflowFrontend, session_id: u32);
-    #[wasm_bindgen(structural, method, js_name = "endBatchUpdate")]
-    fn end_batch_update(this: &JsWorkflowFrontend, session_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "flushUpdates")]
+    fn flush_updates(this: &JsWorkflowFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
     fn update_program(this: &JsWorkflowFrontend, session_id: u32, text: Uint8Array, ast: Uint8Array);
     #[wasm_bindgen(structural, method, js_name = "updateProgramAnalysis")]
@@ -42,12 +40,8 @@ struct JsWorkflowFrontendBridge {
 }
 
 impl WorkflowFrontend for JsWorkflowFrontendBridge {
-    fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
-        self.inner.begin_batch_update(session_id);
-        Ok(())
-    }
-    fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
-        self.inner.end_batch_update(session_id);
+    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+        self.inner.flush_updates(session_id);
         Ok(())
     }
     fn update_program(

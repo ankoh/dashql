@@ -25,24 +25,12 @@ impl JsWorkflowFrontend {
 }
 
 impl WorkflowFrontend for JsWorkflowFrontend {
-    fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "beginBatchUpdate")?;
-            let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id])?;
-            Ok(())
-        });
-        Ok(())
-    }
-    fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
-        let self2 = self.clone();
-        self.channel.send(move |mut cx| {
-            let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "endBatchUpdate")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "flushUpdates")?;
             let this = frontend.as_value(&mut cx);
             method.call(&mut cx, this, &[session_id])?;
             Ok(())

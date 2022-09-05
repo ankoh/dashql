@@ -6,8 +6,7 @@ export type DatabaseID = number;
 export type ConnectionID = number;
 
 export enum IPCFrontendMessageType {
-    BATCH_UPDATE_BEGIN = 'BATCH_UPDATE_BEGIN',
-    BATCH_UPDATE_END = 'BATCH_UPDATE_END',
+    FLUSH_UPDATES = 'FLUSH_UPDATES',
     UPDATE_PROGRAM = 'UPDATE_PROGRAM',
     UPDATE_PROGRAM_ANALYSIS = 'UPDATE_PROGRAM_ANALYSIS',
     UPDATE_PROGRAM_TEXT = 'UPDATE_PROGRAM_TEXT',
@@ -27,8 +26,7 @@ export type IPCFrontendMessage<T, P> = {
 };
 
 export type IPCWorkflowFrontendMessage =
-    | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_BEGIN, BatchUpdateBeginMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.BATCH_UPDATE_END, BatchUpdateEndMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.FLUSH_UPDATES, FlushUpdatesMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM, UpdateProgramMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, UpdateProgramAnalysisMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_GRAPH, UpdateTaskGraphMsg>
@@ -40,11 +38,7 @@ export type IPCWorkflowFrontendMessage =
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TABLE_STATE, UpdateTableMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_VISUALIZATION_STATE, UpdateVisualizationMsg>;
 
-interface BatchUpdateBeginMsg {
-    session: SessionId;
-}
-
-interface BatchUpdateEndMsg {
+interface FlushUpdatesMsg {
     session: SessionId;
 }
 
@@ -105,10 +99,8 @@ export function createIPCWorkflowFrontendBridge(
     send: (session: SessionId, msg: IPCWorkflowFrontendMessage) => void,
 ): WorkflowFrontend {
     return {
-        beginBatchUpdate: (session: SessionId) =>
-            send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_BEGIN, data: null }),
-        endBatchUpdate: (session: SessionId) =>
-            send(session, { type: IPCFrontendMessageType.BATCH_UPDATE_END, data: null }),
+        flushUpdates: (session: SessionId) =>
+            send(session, { type: IPCFrontendMessageType.FLUSH_UPDATES, data: { session } }),
         updateProgram: (session: SessionId, text: Uint8Array, program: Uint8Array) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, text, program } }),
         updateProgramAnalysis: (session: SessionId, analysis: string) =>
@@ -142,10 +134,8 @@ export function createIPCWorkflowFrontendBridge(
 
 export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: IPCWorkflowFrontendMessage) {
     switch (message.type) {
-        case IPCFrontendMessageType.BATCH_UPDATE_BEGIN:
-            return frontend.beginBatchUpdate(message.data.session);
-        case IPCFrontendMessageType.BATCH_UPDATE_END:
-            return frontend.endBatchUpdate(message.data.session);
+        case IPCFrontendMessageType.FLUSH_UPDATES:
+            return frontend.flushUpdates(message.data.session);
         case IPCFrontendMessageType.UPDATE_PROGRAM:
             return frontend.updateProgram(message.data.session, message.data.text, message.data.program);
         case IPCFrontendMessageType.UPDATE_TASK_GRAPH:

@@ -28,6 +28,16 @@ type WorkflowFrontendProviderProps = {
     children: React.ReactElement | ReactElement[];
 };
 
+function resetIfNew(data: WorkflowData, sessionId: SessionId) {
+    if (data.sessionId != sessionId) {
+        data.sessionId = sessionId;
+        data.program = null;
+        data.taskGraph = null;
+        data.statusByTask = imm.Map();
+        data.statusByStatement = imm.List();
+    }
+}
+
 export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (props: WorkflowFrontendProviderProps) => {
     const [committed, setCommitted] = React.useState<WorkflowData>({
         sessionId: null,
@@ -48,20 +58,9 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
     const sessionIdRef = React.useRef<number>(null);
     const workflow: WorkflowFrontend = React.useMemo(
         () => ({
-            beginBatchUpdate: (session: SessionId) => {
+            flushUpdates: (session: SessionId) => {
+                resetIfNew(uncommitted.current, session);
                 const pending = uncommitted.current;
-                if (sessionIdRef.current != session) {
-                    sessionIdRef.current = session;
-                    pending.sessionId = session;
-                    pending.program = null;
-                    pending.taskGraph = null;
-                    pending.statusByTask = imm.Map();
-                    pending.statusByStatement = imm.List();
-                }
-            },
-            endBatchUpdate: (session: SessionId) => {
-                const pending = uncommitted.current;
-                if (sessionIdRef.current != session) return;
                 setCommitted({
                     sessionId: pending.sessionId,
                     program: pending.program,
@@ -72,15 +71,13 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 });
             },
             updateProgram: (session: SessionId, text: Uint8Array, ast: Uint8Array) => {
-                const pending = uncommitted.current;
-                if (sessionIdRef.current != session) return;
-                pending.program = new Program(text, ast);
+                resetIfNew(uncommitted.current, session);
+                uncommitted.current.program = new Program(text, ast);
             },
             updateProgramAnalysis: (session: SessionId, analysis: string) => {},
             updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {
-                const pending = uncommitted.current;
-                if (sessionIdRef.current != session) return;
-                pending.taskGraph = graph;
+                resetIfNew(uncommitted.current, session);
+                uncommitted.current.taskGraph = graph;
                 console.log(graph);
             },
             updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {},

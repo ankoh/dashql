@@ -75,8 +75,7 @@ where
 }
 
 pub trait WorkflowFrontend {
-    fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
-    fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
+    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
     fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String>;
     fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String>;
     fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String>;
@@ -155,9 +154,8 @@ where
         });
 
         // Notify the frontend about the plan
-        self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_task_graph(self.session_id, &plan)?;
-        self.frontend.end_batch_update(self.session_id)?;
+        self.frontend.flush_updates(self.session_id)?;
 
         // Setup a task scheduler
         self.planned_instance
@@ -216,12 +214,11 @@ where
             Err(e) => None,
         };
 
-        self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_program(self.session_id, text, &program)?;
         if let Some(instance) = &instance {
             self.frontend.update_program_analysis(self.session_id, &instance)?;
         }
-        self.frontend.end_batch_update(self.session_id)?;
+        self.frontend.flush_updates(self.session_id)?;
         Ok(())
     }
 
@@ -246,9 +243,8 @@ where
             instance: unsafe { std::mem::transmute(instance.clone()) },
         });
 
-        self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_program_analysis(self.session_id, &instance)?;
-        self.frontend.end_batch_update(self.session_id)?;
+        self.frontend.flush_updates(self.session_id)?;
         Ok(())
     }
 
@@ -271,8 +267,7 @@ mod test {
     use super::*;
 
     enum StubWorkflowFrontendCall {
-        BeginBatchUpdate(u32),
-        EndBatchUpdate(u32),
+        FlushUpdates(u32),
         UpdateProgram(u32, String, ProgramContainer),
         UpdateProgramAnalysis(u32),
         UpdateTaskGraph(u32, TaskGraph),
@@ -290,16 +285,10 @@ mod test {
     }
 
     impl WorkflowFrontend for StubWorkflowFrontend {
-        fn begin_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+        fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::BeginBatchUpdate(session_id));
-            Ok(())
-        }
-        fn end_batch_update(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::EndBatchUpdate(session_id));
+                .push(StubWorkflowFrontendCall::FlushUpdates(session_id));
             Ok(())
         }
         fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
@@ -379,11 +368,7 @@ mod test {
         session.update_program("SELECT 42").await?;
 
         let frontend_calls = frontend.calls.borrow();
-        assert_eq!(frontend_calls.len(), 4);
-        assert!(match &frontend_calls[0] {
-            StubWorkflowFrontendCall::BeginBatchUpdate(_) => true,
-            _ => false,
-        });
+        assert_eq!(frontend_calls.len(), 3);
         Ok(())
     }
 
