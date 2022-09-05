@@ -622,28 +622,28 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
   integrity sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==
 
-"@duckdb/duckdb-wasm-shell@^1.14.4":
-  version "1.14.4"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.14.4.tgz#102c3d0396a7cc4d3491b0ff4f07c8acdfcf8234"
-  integrity sha512-qN8eo3/SCnvYYJrHodnkxXPUdksklpSabTzmJGlQq1z3DOAiWwZypv3s3EDxPdubgAwB3QgCJhtRjygFuF85bQ==
+"@duckdb/duckdb-wasm-shell@^1.16.1":
+  version "1.16.1"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.16.1.tgz#b2b710ac41f5580042c7c37cfc58a8202e18f78b"
+  integrity sha512-vNzwuhrcyNfiSTq5Ut5kS8z8bMfy8xSFR9tKIHK/oMC6H51564dTGZlqNxIkTkAZlaNtB9joaiYZrsfgWzJtow==
   dependencies:
-    "@duckdb/duckdb-wasm" "^1.14.4"
-    xterm "^4.18.0"
+    "@duckdb/duckdb-wasm" "^1.16.1"
+    xterm "^4.19.0"
     xterm-addon-fit "^0.5.0"
-    xterm-addon-web-links "^0.5.1"
-    xterm-addon-webgl "^0.11.4"
+    xterm-addon-web-links "^0.6.0"
+    xterm-addon-webgl "^0.12.0"
 
-"@duckdb/duckdb-wasm@^1.14.4":
-  version "1.14.4"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.14.4.tgz#805acaf16d62adf9c0d23fa9e6e0a838f15acb71"
-  integrity sha512-MftCJ42GEeM0Hk2QX2QqvhWx9/POjD6gjHnuNfFUPIdfZtybgw71TH0/sB8naVSrSGKHkCdoSh2E40E4gMje/w==
+"@duckdb/duckdb-wasm@^1.16.1":
+  version "1.16.1"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.16.1.tgz#e34d7eff63f82493747caf24bd7f6ae28399399d"
+  integrity sha512-M/R+7Lc+8fo4YSr5c88+KYItznWHtXvqheOeJ3rvuov9xC41Z8CkXQ0K48lG2hF3pkHDt+FlDnrQRqUTaH8xLw==
   dependencies:
-    apache-arrow "^8.0.0"
+    apache-arrow "^9.0.0"
 
-"@duckdb/react-duckdb@^1.14.4":
-  version "1.14.4"
-  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.14.4.tgz#aa283850f16bf44d79cff4131f7c320d8fc3e621"
-  integrity sha512-3nYv+PqArJbSaIMDuvp1EIKa/hb4iVB2cl3UWlqCEiwkEyjHn0BJ0eUV1Ft6PnXuLKcAxB5VLW6+m9vFf4rL8Q==
+"@duckdb/react-duckdb@^1.16.1":
+  version "1.16.1"
+  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.16.1.tgz#d7fb1edded18b3c7d8e5a935f894914d7ab8dd16"
+  integrity sha512-vS7cWAkU4rKfini94X2Cxhuge5MP56d4ltF5F2mlDOcTCAwv8z1vuc+JA6/LX5jeBeCJxAGD0QsifoIJ54VIrA==
 
 "@electron/get@^1.14.1":
   version "1.14.1"
@@ -1592,7 +1592,7 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.41.tgz#88eb485b1bfdb4c224d878b7832239536aa2f813"
   integrity sha512-mqoYK2TnVjdkGk8qXAVGc/x9nSaTpSrFaGFm43BUH3IdoBV0nta6hYaGmdOvIMlbHJbUEVen3gvwpwovAZKNdQ==
 
-"@types/node@^17.0.18", "@types/node@^17.0.24":
+"@types/node@^17.0.18", "@types/node@^17.0.24", "@types/node@^17.0.36":
   version "17.0.45"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.45.tgz#2c0fafd78705e7a18b7906b5201a522719dc5190"
   integrity sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==
@@ -2138,6 +2138,23 @@ apache-arrow@^8.0.0:
     json-bignum "^0.0.3"
     pad-left "^2.1.0"
     tslib "^2.3.1"
+
+apache-arrow@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/apache-arrow/-/apache-arrow-9.0.0.tgz#c2308e5b9723aef75f7a56d9339c2523736a31f6"
+  integrity sha512-Myt0vtm7eRtg4dYQp1hb2A77jbPhCYZcPeNp1F0u7te3rWQtcDI3EOSLxToFywdLQ1hfPzhzdLfDL0tPQObJjw==
+  dependencies:
+    "@types/command-line-args" "5.2.0"
+    "@types/command-line-usage" "5.0.2"
+    "@types/flatbuffers" "*"
+    "@types/node" "^17.0.36"
+    "@types/pad-left" "2.1.1"
+    command-line-args "5.2.1"
+    command-line-usage "6.1.3"
+    flatbuffers "2.0.4"
+    json-bignum "^0.0.3"
+    pad-left "^2.1.0"
+    tslib "^2.4.0"
 
 argparse@^1.0.7:
   version "1.0.10"
@@ -8590,20 +8607,25 @@ xterm-addon-fit@^0.5.0:
   resolved "https://registry.yarnpkg.com/xterm-addon-fit/-/xterm-addon-fit-0.5.0.tgz#2d51b983b786a97dcd6cde805e700c7f913bc596"
   integrity sha512-DsS9fqhXHacEmsPxBJZvfj2la30Iz9xk+UKjhQgnYNkrUIN5CYLbw7WEfz117c7+S86S/tpHPfvNxJsF5/G8wQ==
 
-xterm-addon-web-links@^0.5.1:
-  version "0.5.1"
-  resolved "https://registry.yarnpkg.com/xterm-addon-web-links/-/xterm-addon-web-links-0.5.1.tgz#73bfa3ed567af98fba947f638bd12093ee2a0bc6"
-  integrity sha512-dBjbOIrCNmxAcUQkkSrKj9BM6yLpmqUpZ9SOCUuZe/sznPl4d8OBZQClK7VcdZ0vf0+5i5Fce2rUUrew/XTZTg==
+xterm-addon-web-links@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/xterm-addon-web-links/-/xterm-addon-web-links-0.6.0.tgz#0296cb6c99588847894670d998c9ea6a6aeb26ee"
+  integrity sha512-H6XzjWWZu8FBo+fnYpxdPk9w5M6drbsvwPEJZGRS38MihiQaVFpKlCMKdfRgDbKGE530tw1yH54rhpZfHgt2/A==
 
-xterm-addon-webgl@^0.11.4:
-  version "0.11.4"
-  resolved "https://registry.yarnpkg.com/xterm-addon-webgl/-/xterm-addon-webgl-0.11.4.tgz#e22f3ec0cafca3d4adcabb89bb7c16efaaf3c8db"
-  integrity sha512-/a/VFeftc+etGXQYWaaks977j1P7/wickBXn15zDxZzXYYMT9RN17ztqyIDVLXg9krtg28+icKK6lvgIYghJ0w==
+xterm-addon-webgl@^0.12.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/xterm-addon-webgl/-/xterm-addon-webgl-0.12.0.tgz#2fba8d31890a122adafa1c2fb945482e2ae12973"
+  integrity sha512-3P5ihdjPnxH6Wrvqjki9UD+duoVrp1fvnO/pSpXP2F1L2GwY6TDNExgj8Yg141vMCNgQbcVqmsTLYEYZxjY92A==
 
 xterm@^4.18.0:
   version "4.18.0"
   resolved "https://registry.yarnpkg.com/xterm/-/xterm-4.18.0.tgz#a1f6ab2c330c3918fb094ae5f4c2562987398ea1"
   integrity sha512-JQoc1S0dti6SQfI0bK1AZvGnAxH4MVw45ZPFSO6FHTInAiau3Ix77fSxNx3mX4eh9OL4AYa8+4C8f5UvnSfppQ==
+
+xterm@^4.19.0:
+  version "4.19.0"
+  resolved "https://registry.yarnpkg.com/xterm/-/xterm-4.19.0.tgz#c0f9d09cd61de1d658f43ca75f992197add9ef6d"
+  integrity sha512-c3Cp4eOVsYY5Q839dR5IejghRPpxciGmLWWaP9g+ppfMeBChMeLa1DCA+pmX/jyDZ+zxFOmlJL/82qVdayVoGQ==
 
 y18n@^5.0.5:
   version "5.0.8"
