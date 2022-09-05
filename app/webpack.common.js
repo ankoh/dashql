@@ -54,6 +54,22 @@ export function configure(params) {
                     resolve: {
                         fullySpecified: false,
                     },
+                    //                    enforce: 'pre',
+                    //                    use: [
+                    //                        {
+                    //                            loader: 'source-map-loader',
+                    //                            options: {
+                    //                                filterSourceMappingUrl: (url, resourcePath) => {
+                    //                                    console.log(resourcePath.toString());
+                    //                                    console.log(/.*apache-arrow.*/i.test(resourcePath.toString()));
+                    //                                    if (/.*apache-arrow.*/i.test(resourcePath.toString())) {
+                    //                                        return false;
+                    //                                    }
+                    //                                    return true;
+                    //                                },
+                    //                            },
+                    //                        },
+                    //                    ],
                 },
                 {
                     test: /\.tsx?$/,
