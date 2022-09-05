@@ -19,6 +19,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';
 import { WorkflowDataProvider, WorkflowSessionProvider } from './backend/workflow_data_provider';
+import { WorkflowDriver } from './backend/workflow_driver';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
@@ -31,15 +32,17 @@ ReactDOM.render(
             <AppLauncher>
                 <WorkflowDataProvider>
                     <WorkflowSessionProvider>
-                        <Router>
-                            <Routes>
-                                <Route path="/explorer/*" element={<ExplorerPage />} />
-                                <Route path="/examples/*" element={<ExamplesPage />} />
-                                <Route path="/404" element={<NotFound />} />
-                                <Route path="/" element={<Navigate to="/explorer" />} />
-                                <Route path="*" element={<Navigate to="/404" />} />
-                            </Routes>
-                        </Router>
+                        <WorkflowDriver>
+                            <Router>
+                                <Routes>
+                                    <Route path="/explorer/*" element={<ExplorerPage />} />
+                                    <Route path="/examples/*" element={<ExamplesPage />} />
+                                    <Route path="/404" element={<NotFound />} />
+                                    <Route path="/" element={<Navigate to="/explorer" />} />
+                                    <Route path="*" element={<Navigate to="/404" />} />
+                                </Routes>
+                            </Router>
+                        </WorkflowDriver>
                     </WorkflowSessionProvider>
                 </WorkflowDataProvider>
             </AppLauncher>

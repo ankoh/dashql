@@ -15,6 +15,9 @@ export class NodeWorkflowBackend implements WorkflowBackend {
     async updateProgram(session: number, text: string): Promise<void> {
         dashql.workflow.updateProgram(session, text);
     }
+    async executeProgram(session: number): Promise<void> {
+        dashql.workflow.executeProgram(session);
+    }
     async editProgram(session: number, edits: EditOperationVariant[]): Promise<void> {
         const editsJSON = JSON.stringify(edits);
         await dashql.workflow.editProgram(session, editsJSON);

@@ -17,6 +17,9 @@ export module workflow {
     export function closeSession(sessionId: number, callback: () => void) {
         dashql.workflow_close_session(sessionId, callback);
     }
+    export function executeProgram(sessionId: number) {
+        dashql.workflow_execute_program(sessionId);
+    }
     export function updateProgram(sessionId: number, text: string) {
         dashql.workflow_update_program(sessionId, text);
     }

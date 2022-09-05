@@ -29,7 +29,7 @@ where
     runtime: Arc<dyn external::Runtime>,
     default_database: Arc<Mutex<dyn Database>>,
     next_session_id: u32,
-    pub sessions: HashMap<WorkflowSessionId, Arc<Mutex<WorkflowSession<WF>>>>,
+    pub sessions: HashMap<WorkflowSessionId, Arc<WorkflowSession<WF>>>,
 }
 
 impl<WF> WorkflowAPI<WF>
@@ -51,24 +51,25 @@ where
         let session_id = self.next_session_id;
         self.next_session_id += 1;
         let connection = self.default_database.lock().unwrap().connect().await?;
-        let session = Arc::new(Mutex::new(WorkflowSession {
+        let session = Arc::new(WorkflowSession {
             settings: self.settings.clone(),
             runtime: self.runtime.clone(),
             session_id,
             frontend,
             database: self.default_database.clone(),
             database_connection: connection,
-            latest_program: None,
-            latest_instance: None,
-            planned_instance: None,
-        }));
+            scheduler_executing: AtomicBool::new(false),
+            latest_parsed: Mutex::new(None),
+            latest_instance: Mutex::new(None),
+            planned_instance: Mutex::new(None),
+        });
         self.sessions.insert(session_id, session);
         Ok(session_id)
     }
-    pub fn release_session(&mut self, session_id: WorkflowSessionId) -> Option<Arc<Mutex<WorkflowSession<WF>>>> {
+    pub fn release_session(&mut self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<WF>>> {
         self.sessions.remove(&session_id)
     }
-    pub fn get_session(&self, session_id: WorkflowSessionId) -> Option<Arc<Mutex<WorkflowSession<WF>>>> {
+    pub fn get_session(&self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<WF>>> {
         self.sessions.get(&session_id).map(|s| s.clone())
     }
 }
@@ -94,7 +95,7 @@ pub trait WorkflowFrontend {
 }
 
 #[derive(Clone)]
-pub struct WorkflowSessionInstance {
+pub struct ProgramInstanceContainer {
     program: Arc<ProgramContainer>,
     instance: Arc<ProgramInstance<'static>>,
 }
@@ -110,51 +111,62 @@ where
     #[allow(dead_code)]
     database: Arc<Mutex<dyn Database>>,
     database_connection: Arc<Mutex<dyn DatabaseConnection>>,
-    latest_program: Option<Arc<ProgramContainer>>,
-    latest_instance: Option<WorkflowSessionInstance>,
-    planned_instance: Option<(WorkflowSessionInstance, Arc<TaskGraph>)>,
-}
-
-lazy_static::lazy_static! {
-    pub static ref SCHEDULER_RUNNING: AtomicBool = AtomicBool::new(false);
+    scheduler_executing: AtomicBool,
+    latest_parsed: Mutex<Option<Arc<ProgramContainer>>>,
+    latest_instance: Mutex<Option<ProgramInstanceContainer>>,
+    planned_instance: Mutex<Option<(ProgramInstanceContainer, Arc<TaskGraph>)>>,
 }
 
 impl<WF> WorkflowSession<WF>
 where
     WF: WorkflowFrontend,
 {
-    pub async fn execute_program(&mut self) -> Result<(), SystemError> {
-        if SCHEDULER_RUNNING
+    pub async fn execute_program(&self) -> Result<(), SystemError> {
+        if self
+            .scheduler_executing
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
             .unwrap_or(true)
         {
             return Ok(());
         }
-        let latest = self.latest_instance.as_ref().unwrap();
+        let latest = match self.latest_instance.lock().unwrap().clone() {
+            Some(instance) => instance,
+            None => {
+                // TODO: log things
+                self.scheduler_executing.store(false, Ordering::SeqCst);
+                return Ok(());
+            }
+        };
         let planned = self
             .planned_instance
+            .lock()
+            .unwrap()
             .as_ref()
-            .map(|(i, tasks)| (i.instance.clone(), tasks.clone()));
+            .map(|(instance, graph)| (instance.instance.clone(), graph.clone()));
+
         let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
             Ok(plan) => plan,
             Err(_e) => {
                 // TODO: log things
-                SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
+                self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
             }
         });
-        self.planned_instance = Some((latest.clone(), plan.clone()));
+        self.planned_instance
+            .lock()
+            .unwrap()
+            .replace((latest.clone(), plan.clone()));
         let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
             Ok(sched) => sched,
             Err(_e) => {
                 // TODO: log things
-                SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
+                self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
             }
         };
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
-            println!("{:?}", self.planned_instance.as_ref().unwrap().1.tasks);
+            println!("{:?}", plan.tasks);
             match scheduler.next(&mut scheduler_log).await {
                 Ok(true) => {}
                 Ok(false) => break,
@@ -164,14 +176,14 @@ where
                 }
             }
         }
-        println!("{:?}", self.planned_instance.as_ref().unwrap().1.tasks);
-        SCHEDULER_RUNNING.store(false, Ordering::SeqCst);
+        println!("{:?}", plan.tasks);
+        self.scheduler_executing.store(false, Ordering::SeqCst);
         Ok(())
     }
 
-    pub async fn update_program(&mut self, text: &str) -> Result<(), SystemError> {
+    pub async fn update_program(&self, text: &str) -> Result<(), SystemError> {
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
-        self.latest_program = Some(program.clone());
+        self.latest_parsed.lock().unwrap().replace(program.clone());
 
         let context = ExecutionContext::create(
             self.settings.clone(),
@@ -180,27 +192,33 @@ where
             program.get_arena(),
         );
         let input = HashMap::new();
-        let instance = analyze_program(context, program.get_text(), program.get_program().clone(), input)
-            .map(|instance| Arc::new(instance));
+        let instance = match analyze_program(context, program.get_text(), program.get_program().clone(), input)
+            .map(|instance| Arc::new(instance))
+        {
+            Ok(instance) => {
+                self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
+                    program: program.clone(),
+                    instance: unsafe { std::mem::transmute(instance.clone()) },
+                });
+                Some(instance)
+            }
+            Err(e) => None,
+        };
 
         self.frontend.begin_batch_update(self.session_id)?;
         self.frontend.update_program(self.session_id, text, &program)?;
-        if let Ok(instance) = &instance {
-            self.latest_instance = Some(WorkflowSessionInstance {
-                program: program.clone(),
-                instance: unsafe { std::mem::transmute(instance.clone()) },
-            });
+        if let Some(instance) = &instance {
             self.frontend.update_program_analysis(self.session_id, &instance)?;
         }
         self.frontend.end_batch_update(self.session_id)?;
         Ok(())
     }
 
-    pub async fn update_program_input(&mut self, input: &str) -> Result<(), SystemError> {
+    pub async fn update_program_input(&self, input: &str) -> Result<(), SystemError> {
         // TODO Deserialize input from json
         let new_input = HashMap::new();
 
-        let program = match &self.latest_program {
+        let program = match self.latest_parsed.lock().unwrap().clone() {
             Some(program) => program,
             None => return Err(SystemError::Generic("program not known".to_string())),
         };
@@ -212,7 +230,7 @@ where
         );
         let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)
             .map(|instance| Arc::new(instance))?;
-        self.latest_instance = Some(WorkflowSessionInstance {
+        self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
             program: program.clone(),
             instance: unsafe { std::mem::transmute(instance.clone()) },
         });
@@ -223,11 +241,11 @@ where
         Ok(())
     }
 
-    pub async fn edit_program(&mut self, edits: &str) -> Result<(), SystemError> {
+    pub async fn edit_program(&self, edits: &str) -> Result<(), SystemError> {
         Ok(())
     }
 
-    pub async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
+    pub async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let mut conn = self.database_connection.lock().unwrap();
         conn.run_query(text).await
     }
@@ -347,8 +365,7 @@ mod test {
         let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend.clone()).await?;
         let session = api.get_session(session_id).unwrap();
-        let mut locked_session = session.try_lock().unwrap();
-        locked_session.update_program("SELECT 42").await?;
+        session.update_program("SELECT 42").await?;
 
         let frontend_calls = frontend.calls.borrow();
         assert_eq!(frontend_calls.len(), 4);
@@ -365,17 +382,19 @@ mod test {
         let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend.clone()).await?;
         let session = api.get_session(session_id).unwrap();
-        let mut locked_session = session.try_lock().unwrap();
 
         // Update the program
-        locked_session.update_program("create table foo as select 42").await?;
-        assert!(locked_session.latest_program.is_some());
-        assert!(locked_session.latest_instance.is_some());
+        session.update_program("create table foo as select 42").await?;
+        let latest_parsed = session.latest_parsed.lock().unwrap().clone();
+        let latest_instance = session.latest_instance.lock().unwrap().clone();
+        assert!(latest_parsed.is_some());
+        assert!(latest_instance.is_some());
 
         // Execute the plan
-        locked_session.execute_program().await?;
-        assert!(locked_session.planned_instance.is_some());
-        let (_, graph) = locked_session.planned_instance.clone().unwrap();
+        session.execute_program().await?;
+        let planned_instance = session.planned_instance.lock().unwrap().clone();
+        assert!(planned_instance.is_some());
+        let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 1);
         assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
         assert_eq!(
@@ -391,10 +410,9 @@ mod test {
         let mut api: WorkflowAPI<StubWorkflowFrontend> = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend.clone()).await?;
         let session = api.get_session(session_id).unwrap();
-        let mut locked_session = session.try_lock().unwrap();
 
         // Update the program
-        locked_session
+        session
             .update_program(
                 r#"
             create table foo as select 42;
@@ -402,13 +420,16 @@ mod test {
         "#,
             )
             .await?;
-        assert!(locked_session.latest_program.is_some());
-        assert!(locked_session.latest_instance.is_some());
+        let latest_parsed = session.latest_parsed.lock().unwrap().clone();
+        let latest_instance = session.latest_instance.lock().unwrap().clone();
+        assert!(latest_parsed.is_some());
+        assert!(latest_instance.is_some());
 
         // Execute the plan
-        locked_session.execute_program().await?;
-        assert!(locked_session.planned_instance.is_some());
-        let (_, graph) = locked_session.planned_instance.clone().unwrap();
+        session.execute_program().await?;
+        let planned_instance = session.planned_instance.lock().unwrap().clone();
+        assert!(planned_instance.is_some());
+        let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 2);
         assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
         assert_eq!(graph.tasks[1].task_type, TaskType::CreateViz);

@@ -248,6 +248,18 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
     Ok(cx.undefined())
 }
 
+pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = match api.lock().unwrap().get_session(session_id as u32) {
+        Some(session) => session,
+        None => cx.throw_error(format!("unknown session id: {}", session_id))?,
+    };
+    let mut session_lock = session.lock().expect("cannot lock session");
+    block_on(session_lock.execute_program()).or_else(|e| cx.throw_error(e.to_string()))?;
+    Ok(cx.undefined())
+}
+
 pub fn update_program_input<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
     let input = cx.argument::<JsString>(1)?.value(&mut cx);
@@ -284,11 +296,6 @@ pub fn run_query<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsArrayBuffer> {
         buffer
     })?;
     Ok(buffer)
-}
-
-pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
-    Ok(cx.undefined())
 }
 
 pub fn export_workflow_api(cx: &mut ModuleContext) -> NeonResult<()> {

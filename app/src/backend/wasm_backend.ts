@@ -15,6 +15,9 @@ export class WasmWorkflowBackend implements WorkflowBackend {
     async updateProgram(session: number, text: string): Promise<void> {
         await dashql.workflowUpdateProgram(session, text);
     }
+    async executeProgram(session: number): Promise<void> {
+        await dashql.workflowExecuteProgram(session);
+    }
     async editProgram(session: number, edits: EditOperationVariant[]): Promise<void> {
         const editsJSON = JSON.stringify(edits);
         await dashql.workflowEditProgram(session, editsJSON);

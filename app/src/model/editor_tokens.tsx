@@ -81,13 +81,6 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         // breaks[0] refers to the offset of the first token after linebreak 0
         const tokenBegin = state.lineNumber == 0 ? 0 : tokenBreaks[state.lineNumber - 1];
         const tokenEnd = state.lineNumber < tokenBreaks.length ? tokenBreaks[state.lineNumber] : tokenOffsets.length;
-        console.log({
-            tokenBegin,
-            tokenEnd,
-            lineNumber: state.lineNumber,
-            prevBreak: tokenBreaks[state.lineNumber - 1],
-            nextBreak: tokenBreaks[state.lineNumber],
-        });
 
         // Resolve line offset
         let lineOffset = 0;

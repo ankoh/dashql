@@ -21,6 +21,9 @@ export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
                 await ipc.invoke('WorkflowBackend.closeSession', session);
                 ipc.removeAllListeners(`WorkflowFrontend.session[${session}]`);
             },
+            executeProgram: async (session: SessionId): Promise<void> => {
+                await ipc.invoke('WorkflowBackend.executeProgram', session);
+            },
             updateProgram: async (session: SessionId, text: string): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.updateProgram', session, text);
             },
@@ -46,6 +49,9 @@ export function registerIPCBackend(backend: Backend, ipc: IpcMain, renderer: Web
     });
     ipc.on('WorkflowBackend.closeSession', async (_event, session) => {
         return await backend.workflow.closeSession(session);
+    });
+    ipc.on('WorkflowBackend.executeProgram', async (_event, session) => {
+        return await backend.workflow.executeProgram(session);
     });
     ipc.on('WorkflowBackend.updateProgram', async (_event, session, text) => {
         return await backend.workflow.updateProgram(session, text);

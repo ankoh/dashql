@@ -158,7 +158,9 @@ export const Editor: React.FC<Props> = (props: Props) => {
                 return;
             }
             if (e.getValue() != program?.text) {
-                backendRef.current.workflow.updateProgram(session, e.getValue());
+                (async () => {
+                    await backendRef.current.workflow.updateProgram(session, e.getValue());
+                })();
             }
         });
 
