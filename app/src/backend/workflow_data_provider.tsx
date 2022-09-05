@@ -45,28 +45,23 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
         statusByStatement: imm.List(),
         cards: imm.List(),
     });
+    const sessionIdRef = React.useRef<number>(null);
     const workflow: WorkflowFrontend = React.useMemo(
         () => ({
             beginBatchUpdate: (session: SessionId) => {
-                const commit = committed;
                 const pending = uncommitted.current;
-                if (commit.sessionId != session) {
+                if (sessionIdRef.current != session) {
+                    sessionIdRef.current = session;
                     pending.sessionId = session;
                     pending.program = null;
                     pending.taskGraph = null;
                     pending.statusByTask = imm.Map();
                     pending.statusByStatement = imm.List();
-                } else {
-                    pending.sessionId = commit.sessionId;
-                    pending.program = commit.program;
-                    pending.taskGraph = commit.taskGraph;
-                    pending.statusByTask = commit.statusByTask;
-                    pending.statusByStatement = commit.statusByStatement;
                 }
             },
             endBatchUpdate: (session: SessionId) => {
                 const pending = uncommitted.current;
-                if (pending.sessionId != session) return;
+                if (sessionIdRef.current != session) return;
                 setCommitted({
                     sessionId: pending.sessionId,
                     program: pending.program,
@@ -78,11 +73,16 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
             },
             updateProgram: (session: SessionId, text: Uint8Array, ast: Uint8Array) => {
                 const pending = uncommitted.current;
-                if (pending.sessionId != session) return;
+                if (sessionIdRef.current != session) return;
                 pending.program = new Program(text, ast);
             },
             updateProgramAnalysis: (session: SessionId, analysis: string) => {},
-            updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {},
+            updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {
+                const pending = uncommitted.current;
+                if (sessionIdRef.current != session) return;
+                pending.taskGraph = graph;
+                console.log(graph);
+            },
             updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {},
             deleteTaskState: (session: SessionId, state: StateId) => {},
             updateInputState: (session: SessionId, state: StateId) => {},

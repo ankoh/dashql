@@ -144,6 +144,7 @@ where
             .as_ref()
             .map(|(instance, graph)| (instance.instance.clone(), graph.clone()));
 
+        // Plan the latest program instance
         let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
             Ok(plan) => plan,
             Err(_e) => {
@@ -152,6 +153,13 @@ where
                 return Ok(());
             }
         });
+
+        // Notify the frontend about the plan
+        self.frontend.begin_batch_update(self.session_id)?;
+        self.frontend.update_task_graph(self.session_id, &plan)?;
+        self.frontend.end_batch_update(self.session_id)?;
+
+        // Setup a task scheduler
         self.planned_instance
             .lock()
             .unwrap()
@@ -164,6 +172,8 @@ where
                 return Ok(());
             }
         };
+
+        // Perform scheduler work until done
         let mut scheduler_log = TaskSchedulerLog::create();
         loop {
             println!("{:?}", plan.tasks);

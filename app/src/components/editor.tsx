@@ -64,6 +64,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
     const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
     const statementStatus = data.statusByStatement;
 
+    const textRef = React.useRef<string>(null);
     const backendRef = React.useRef<Backend>(null);
     const sessionRef = React.useRef<number | null>(session);
     const programRef = React.useRef<model.Program | null>(data.program);
@@ -83,8 +84,9 @@ export const Editor: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         programRef.current = program;
         lineBreaksRef.current = program?.getLineBreaks() || new Float64Array();
-        if (editor && editor.getModel().getValue() !== program.text) {
-            editor.setValue(program.text);
+        const text = program?.text ?? '';
+        if (editor && editor.getModel().getValue() !== text) {
+            editor.setValue(text);
         }
     }, [program]);
 
@@ -154,12 +156,13 @@ export const Editor: React.FC<Props> = (props: Props) => {
         e.onDidChangeModelContent(_event => {
             const backend = backendRef.current;
             const session = sessionRef.current;
-            if (backend == null || session == null) {
+            const program = programRef.current;
+            if (backend == null || session == null || program == null) {
                 return;
             }
             if (e.getValue() != program?.text) {
                 (async () => {
-                    await backendRef.current.workflow.updateProgram(session, e.getValue());
+                    await backendRef.current.workflow.updateProgram(session, program?.text);
                 })();
             }
         });
