@@ -117,7 +117,7 @@ impl<'ast> TaskScheduler<'ast> {
         }
     }
 
-    pub async fn next(&mut self, log: &mut TaskSchedulerLog) -> Result<bool, SystemError> {
+    pub async fn next(&mut self, log: &mut dyn TaskSchedulerLog) -> Result<bool, SystemError> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut task_ops = Vec::with_capacity(self.task_logic.len());
@@ -153,7 +153,7 @@ impl<'ast> TaskScheduler<'ast> {
                 .store(TaskStatusCode::Preparing as u8, std::sync::atomic::Ordering::SeqCst);
             log.task_updated(*task_id, TaskStatusCode::Preparing);
         }
-        log.flush().await;
+        log.flush();
         let instance = self.instance.clone();
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
@@ -185,7 +185,7 @@ impl<'ast> TaskScheduler<'ast> {
                     log.task_failed(task_id, e);
                 }
             };
-            log.flush().await;
+            log.flush();
         }
         drop(task_futures);
         merge_into(snapshots, &self.instance.context)?;
@@ -201,7 +201,7 @@ impl<'ast> TaskScheduler<'ast> {
                 log.task_updated(*task_id, TaskStatusCode::Executing);
             }
         }
-        log.flush().await;
+        log.flush();
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
@@ -232,7 +232,7 @@ impl<'ast> TaskScheduler<'ast> {
                     log.task_failed(task_id, e);
                 }
             };
-            log.flush().await;
+            log.flush();
         }
         merge_into(snapshots, &self.instance.context)?;
 
@@ -254,6 +254,7 @@ impl<'ast> TaskScheduler<'ast> {
 mod test {
     use crate::{
         analyzer::{program_instance::analyze_program, task_planner::plan_tasks},
+        execution::task_scheduler_log::SimpleTaskSchedulerLog,
         external::parser::parse_into,
         grammar,
     };
@@ -286,7 +287,7 @@ mod test {
 
         // Run the scheduler
         let mut task_scheduler = TaskScheduler::schedule(instance.clone(), task_graph)?;
-        let mut scheduler_log = TaskSchedulerLog::create();
+        let mut scheduler_log = SimpleTaskSchedulerLog::create();
         loop {
             let work_left = task_scheduler.next(&mut scheduler_log).await?;
             if !work_left {

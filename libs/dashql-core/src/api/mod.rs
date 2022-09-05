@@ -1,4 +1,4 @@
-mod workflow_api;
+pub(crate) mod workflow_api;
 
 #[cfg(feature = "node")]
 mod node;

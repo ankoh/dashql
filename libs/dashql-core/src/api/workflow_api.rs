@@ -13,7 +13,8 @@ use crate::{
     },
     error::SystemError,
     execution::{
-        execution_context::ExecutionContext, task_scheduler::TaskScheduler, task_scheduler_log::TaskSchedulerLog,
+        execution_context::ExecutionContext, task_scheduler::TaskScheduler,
+        task_scheduler_log::FrontendTaskSchedulerLog,
     },
     external::{self, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
@@ -173,7 +174,7 @@ where
         };
 
         // Perform scheduler work until done
-        let mut scheduler_log = TaskSchedulerLog::create();
+        let mut scheduler_log = FrontendTaskSchedulerLog::create(self.session_id, self.frontend.clone());
         loop {
             external::console::println(&format!("{:?}", &plan.tasks));
             match scheduler.next(&mut scheduler_log).await {

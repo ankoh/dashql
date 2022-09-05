@@ -80,7 +80,9 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 uncommitted.current.taskGraph = graph;
                 console.log(graph);
             },
-            updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {},
+            updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {
+                console.log(`updateTaskStatus ${taskId} ${status} ${error}`);
+            },
             deleteTaskState: (session: SessionId, state: StateId) => {},
             updateInputState: (session: SessionId, state: StateId) => {},
             updateImportState: (session: SessionId, state: StateId) => {},
