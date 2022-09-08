@@ -67,7 +67,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
             ImportInfo::Test(test) => &test.url,
         };
         let script = format!(
-            "create table {} as select * from parquet_scan(\'{}\')",
+            "create view {} as select * from parquet_scan(\'{}\')",
             &name_string, url
         );
         conn.run_query(&script).await?;
@@ -77,9 +77,19 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
     async fn create_csv_table(
         &self,
         conn: &mut dyn DatabaseConnection,
-        _import: &ImportInfo,
+        import: &ImportInfo,
     ) -> Result<(), SystemError> {
-        let script = format!("create table {} as select * from read_csv_auto(\"{}\")", "", "");
+        let name = self.statement.name.get();
+        let name_string = print_ast_as_script_with_defaults(&name);
+        let url = match import {
+            ImportInfo::File(file) => &file.url,
+            ImportInfo::Http(http) => &http.url,
+            ImportInfo::Test(test) => &test.url,
+        };
+        let script = format!(
+            "create table {} as select * from read_csv_auto(\'{}\')",
+            &name_string, url
+        );
         conn.run_query(&script).await?;
         Ok(())
     }

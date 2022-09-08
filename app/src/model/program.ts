@@ -401,9 +401,9 @@ export interface StatementStatus {
 }
 
 /// Derive a statement status
-export function updateStatementStatusCode(s: StatementStatus) {
+export function deriveStatementStatusCode(s: StatementStatus): TaskStatusCode {
     if (s.totalTasks == 0) {
-        s.status = TaskStatusCode.Skipped;
+        return TaskStatusCode.Skipped;
     }
     let best = TaskStatusCode.Pending;
     if (s.totalTasks == s.totalPerStatus[TaskStatusCode.Completed]) {
@@ -423,5 +423,5 @@ export function updateStatementStatusCode(s: StatementStatus) {
             }
         }
     }
-    s.status = best;
+    return best;
 }

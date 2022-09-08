@@ -4,7 +4,7 @@ import * as model from '../model';
 import { TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
-import { Program, StatementStatus, TaskGraph, updateStatementStatusCode } from '../model';
+import { deriveStatementStatusCode, Program, StatementStatus, TaskGraph } from '../model';
 
 export type TaskId = number;
 export interface WorkflowData {
@@ -55,7 +55,6 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
         statusByStatement: Immutable.Map(),
         cards: Immutable.List(),
     });
-    const sessionIdRef = React.useRef<number>(null);
     const workflow: WorkflowFrontend = React.useMemo(
         () => ({
             flushUpdates: (session: SessionId) => {
@@ -84,7 +83,6 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 // Collect status mappings to later construct an immutable map
                 const statusByStatement = new Map();
                 const statusByTask = new Map();
-                console.log(graph);
                 for (let taskId = 0; taskId < graph.tasks.length; ++taskId) {
                     const task = graph.tasks[taskId];
 
@@ -111,7 +109,6 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 state.statusByTask = Immutable.Map(statusByTask);
             },
             updateTaskStatus: (session: SessionId, taskId: TaskId, newStatus: TaskStatusCode, error?: any) => {
-                console.log(`updateTaskStatus ${taskId} ${newStatus} ${error}`);
                 let state = uncommitted.current;
                 let task = state.taskGraph.tasks[taskId];
                 let prevStatus = state.statusByTask.get(taskId);
@@ -120,10 +117,14 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 // Update the statement status (if any)
                 if (task.origin_statement !== undefined && task.origin_statement !== null) {
                     let stmtId = task.origin_statement;
-                    let s = state.statusByStatement.get(stmtId);
+                    let prev = state.statusByStatement.get(stmtId);
+                    let s = {
+                        ...prev,
+                        totalPerStatus: [...prev.totalPerStatus],
+                    };
                     s.totalPerStatus[prevStatus] -= 1;
                     s.totalPerStatus[newStatus] += 1;
-                    updateStatementStatusCode(s);
+                    s.status = deriveStatementStatusCode(s);
                     state.statusByStatement = state.statusByStatement.set(stmtId, s);
                 }
             },
@@ -134,7 +135,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
             updateTableState: (session: SessionId, state: StateId) => {},
             updateVisualizationState: (session: SessionId, state: StateId) => {},
         }),
-        [],
+        [setCommitted],
     );
 
     return (

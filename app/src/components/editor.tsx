@@ -64,7 +64,6 @@ export const Editor: React.FC<Props> = (props: Props) => {
     const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
     const statementStatus = data.statusByStatement;
 
-    const textRef = React.useRef<string>(null);
     const backendRef = React.useRef<Backend>(null);
     const sessionRef = React.useRef<number | null>(session);
     const programRef = React.useRef<model.Program | null>(data.program);
@@ -306,7 +305,6 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
         // Highlight ranges
         program.iterateDependencies((idx: number, dep: proto.Dependency) => {
-            console.log(`${dep.sourceStatement()} ${dep.targetStatement()}`);
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = getLineFromOffset(targetLoc[0]);
             const targetEnd = getLineFromOffset(targetLoc[0] + targetLoc[1]);

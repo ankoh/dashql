@@ -116,5 +116,6 @@ where
             }
         }
         self.entries.clear();
+        self.frontend.flush_updates(self.session_id as u32).ok();
     }
 }
