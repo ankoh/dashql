@@ -211,7 +211,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
     // Update decorations
     const prevDecoration = React.useRef<{
         program: model.Program;
-        statementStatus: Immutable.List<model.StatementStatus>;
+        statementStatus: Immutable.Map<number, model.StatementStatus>;
         mouseOffset: number | null;
         decorationIDs: string[];
     } | null>(null);
@@ -275,20 +275,22 @@ export const Editor: React.FC<Props> = (props: Props) => {
             if (stmtStatus) {
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
-                    case TaskStatusCode.SKIPPED:
-                    case TaskStatusCode.BLOCKED:
+                    case TaskStatusCode.Skipped:
+                    case TaskStatusCode.Blocked:
                         glyphClass = styles.deco_glyph_status_blocked;
                         break;
-                    case TaskStatusCode.COMPLETED:
+                    case TaskStatusCode.Completed:
                         glyphClass = styles.deco_glyph_status_completed;
                         break;
-                    case TaskStatusCode.FAILED:
+                    case TaskStatusCode.Failed:
                         glyphClass = styles.deco_glyph_status_failed;
                         break;
-                    case TaskStatusCode.PENDING:
+                    case TaskStatusCode.Pending:
                         glyphClass = styles.deco_glyph_status_none;
                         break;
-                    case TaskStatusCode.RUNNING:
+                    case TaskStatusCode.Preparing:
+                    case TaskStatusCode.Prepared:
+                    case TaskStatusCode.Executing:
                         glyphClass = styles.deco_glyph_status_running;
                         break;
                 }

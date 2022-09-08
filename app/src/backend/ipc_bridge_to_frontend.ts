@@ -55,7 +55,7 @@ interface UpdateProgramAnalysisMsg {
 
 interface UpdateTaskGraphMsg {
     session: SessionId;
-    graph: any;
+    graph: string;
 }
 
 interface UpdateTaskStatusMsg {
@@ -105,7 +105,7 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, text, program } }),
         updateProgramAnalysis: (session: SessionId, analysis: string) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, data: { session, analysis } }),
-        updateTaskGraph: (session: SessionId, graph: TaskGraph | null) =>
+        updateTaskGraph: (session: SessionId, graph: string) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TASK_GRAPH, data: { session, graph } }),
         updateTaskStatus: (session: SessionId, task: TaskId, status: TaskStatusCode, error?: any) =>
             send(session, {

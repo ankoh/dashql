@@ -1,6 +1,5 @@
 import { EditOperationVariant } from '../model';
 import { TaskStatusCode } from '../model/task_status';
-import { TaskGraph } from '../model/task_graph';
 
 export type DatabaseId = number;
 export type ConnectionId = number;
@@ -22,7 +21,7 @@ export interface WorkflowFrontend {
     flushUpdates(session: SessionId): void;
     updateProgram(session: SessionId, text: Uint8Array, program: Uint8Array): void;
     updateProgramAnalysis(session: SessionId, analysis: string): void;
-    updateTaskGraph(session: SessionId, graph: TaskGraph): void;
+    updateTaskGraph(session: SessionId, graph: string): void;
     updateTaskStatus(session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any): void;
     deleteTaskState(session: SessionId, state: StateId): void;
     updateInputState(session: SessionId, state: StateId): void;

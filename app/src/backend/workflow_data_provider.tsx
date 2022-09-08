@@ -1,19 +1,19 @@
 import React, { ReactElement } from 'react';
-import * as imm from 'immutable';
+import Immutable, * as imm from 'immutable';
 import * as model from '../model';
 import { TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
-import { Program, StatementStatus } from '../model';
+import { Program, StatementStatus, TaskGraph, updateStatementStatusCode } from '../model';
 
 export type TaskId = number;
 export interface WorkflowData {
     sessionId: number | null;
     program: model.Program | null;
     taskGraph: model.TaskGraph | null;
-    statusByTask: imm.Map<TaskId, TaskStatusCode>;
-    statusByStatement: imm.List<StatementStatus>;
-    cards: imm.List<any>; // TODO
+    statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
+    statusByStatement: Immutable.Map<number, StatementStatus>;
+    cards: Immutable.List<any>; // TODO
 }
 
 export const WORKFLOW_DATA_CONTEXT = React.createContext<WorkflowData>(null);
@@ -33,8 +33,8 @@ function resetIfNew(data: WorkflowData, sessionId: SessionId) {
         data.sessionId = sessionId;
         data.program = null;
         data.taskGraph = null;
-        data.statusByTask = imm.Map();
-        data.statusByStatement = imm.List();
+        data.statusByTask = Immutable.Map();
+        data.statusByStatement = Immutable.Map();
     }
 }
 
@@ -43,17 +43,17 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
         sessionId: null,
         program: null,
         taskGraph: null,
-        statusByTask: imm.Map(),
-        statusByStatement: imm.List(),
-        cards: imm.List(),
+        statusByTask: Immutable.Map(),
+        statusByStatement: Immutable.Map(),
+        cards: Immutable.List(),
     });
     const uncommitted = React.useRef<WorkflowData>({
         sessionId: null,
         program: null,
         taskGraph: null,
-        statusByTask: imm.Map(),
-        statusByStatement: imm.List(),
-        cards: imm.List(),
+        statusByTask: Immutable.Map(),
+        statusByStatement: Immutable.Map(),
+        cards: Immutable.List(),
     });
     const sessionIdRef = React.useRef<number>(null);
     const workflow: WorkflowFrontend = React.useMemo(
@@ -75,13 +75,57 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 uncommitted.current.program = new Program(text, ast);
             },
             updateProgramAnalysis: (session: SessionId, analysis: string) => {},
-            updateTaskGraph: (session: SessionId, graph: model.TaskGraph | null) => {
+            updateTaskGraph: (session: SessionId, graphJSON: string) => {
                 resetIfNew(uncommitted.current, session);
-                uncommitted.current.taskGraph = graph;
+                const graph = JSON.parse(graphJSON) as TaskGraph;
+                const state = uncommitted.current;
+                state.taskGraph = graph;
+
+                // Collect status mappings to later construct an immutable map
+                const statusByStatement = new Map();
+                const statusByTask = new Map();
                 console.log(graph);
+                for (let taskId = 0; taskId < graph.tasks.length; ++taskId) {
+                    const task = graph.tasks[taskId];
+
+                    // Map the task status to the task id
+                    statusByTask.set(taskId, task.task_status);
+
+                    // Is the task associated with a statement?
+                    // If yes, update the statement info
+                    if (task.origin_statement !== undefined && task.origin_statement !== null) {
+                        const stmtId = task.origin_statement;
+                        let status = statusByStatement.get(stmtId);
+                        if (status === undefined) {
+                            status = {
+                                status: task.task_status,
+                                totalTasks: 1,
+                                totalPerStatus: Array(8).fill(0),
+                            };
+                        }
+                        status.totalPerStatus[task.task_status] += 1;
+                        statusByStatement.set(stmtId, status);
+                    }
+                }
+                state.statusByStatement = Immutable.Map(statusByStatement);
+                state.statusByTask = Immutable.Map(statusByTask);
             },
-            updateTaskStatus: (session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any) => {
-                console.log(`updateTaskStatus ${taskId} ${status} ${error}`);
+            updateTaskStatus: (session: SessionId, taskId: TaskId, newStatus: TaskStatusCode, error?: any) => {
+                console.log(`updateTaskStatus ${taskId} ${newStatus} ${error}`);
+                let state = uncommitted.current;
+                let task = state.taskGraph.tasks[taskId];
+                let prevStatus = state.statusByTask.get(taskId);
+                state.statusByTask = state.statusByTask.set(taskId, newStatus);
+
+                // Update the statement status (if any)
+                if (task.origin_statement !== undefined && task.origin_statement !== null) {
+                    let stmtId = task.origin_statement;
+                    let s = state.statusByStatement.get(stmtId);
+                    s.totalPerStatus[prevStatus] -= 1;
+                    s.totalPerStatus[newStatus] += 1;
+                    updateStatementStatusCode(s);
+                    state.statusByStatement = state.statusByStatement.set(stmtId, s);
+                }
             },
             deleteTaskState: (session: SessionId, state: StateId) => {},
             updateInputState: (session: SessionId, state: StateId) => {},

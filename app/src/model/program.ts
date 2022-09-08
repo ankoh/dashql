@@ -401,17 +401,27 @@ export interface StatementStatus {
 }
 
 /// Derive a statement status
-export function deriveStatementStatusCode(status: StatementStatus): TaskStatusCode {
-    if (status.totalTasks == 0) {
-        return TaskStatusCode.SKIPPED;
+export function updateStatementStatusCode(s: StatementStatus) {
+    if (s.totalTasks == 0) {
+        s.status = TaskStatusCode.Skipped;
     }
-    if (status.totalPerStatus[TaskStatusCode.COMPLETED as number] == status.totalTasks) {
-        return TaskStatusCode.COMPLETED;
-    }
-    for (const s of [TaskStatusCode.FAILED, TaskStatusCode.BLOCKED, TaskStatusCode.SKIPPED, TaskStatusCode.RUNNING]) {
-        if (status.totalPerStatus[s as number] > 0) {
-            return s;
+    let best = TaskStatusCode.Pending;
+    if (s.totalTasks == s.totalPerStatus[TaskStatusCode.Completed]) {
+        best = TaskStatusCode.Completed;
+    } else {
+        for (const code of [
+            TaskStatusCode.Pending,
+            TaskStatusCode.Skipped,
+            TaskStatusCode.Preparing,
+            TaskStatusCode.Prepared,
+            TaskStatusCode.Executing,
+            TaskStatusCode.Blocked,
+            TaskStatusCode.Failed,
+        ]) {
+            if (s.totalPerStatus[code] > 0) {
+                best = code;
+            }
         }
     }
-    return TaskStatusCode.PENDING;
+    s.status = best;
 }
