@@ -7,11 +7,11 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::external::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
-use crate::grammar::{CreateStatement, Statement};
+use crate::grammar::Statement;
 use async_trait::async_trait;
 
 pub struct DuckDBCreateTableTaskOperator<'ast> {
-    statement: &'ast CreateStatement<'ast>,
+    statement: Statement<'ast>,
     connection: Option<Arc<Mutex<dyn DatabaseConnection>>>,
 }
 
@@ -23,8 +23,9 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
         let stmt_id = task.origin_statement.unwrap();
-        let stmt: &'ast CreateStatement<'ast> = match instance.program.statements[stmt_id] {
-            Statement::Create(s) => s,
+        let stmt = instance.program.statements[stmt_id].clone();
+        match instance.program.statements[stmt_id] {
+            Statement::Create(_) | Statement::CreateAs(_) | Statement::CreateView(_) => {}
             _ => return Err(SystemError::InvalidStatementType("expected create")),
         };
         Ok(Self {
@@ -42,7 +43,7 @@ impl<'ast> TaskOperator<'ast> for DuckDBCreateTableTaskOperator<'ast> {
     }
     async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let connection = self.connection.as_ref().unwrap();
-        let script = print_ast_as_script_with_defaults(self.statement);
+        let script = print_ast_as_script_with_defaults(&self.statement);
         connection.lock().unwrap().run_query(&script).await?;
         Ok(())
     }

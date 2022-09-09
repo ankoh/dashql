@@ -142,7 +142,7 @@ where
             .lock()
             .unwrap()
             .as_ref()
-            .map(|(instance, graph)| (instance.instance.clone(), graph.clone()));
+            .map(|(ic, g)| (ic.instance.clone(), g.clone()));
 
         // Plan the latest program instance
         let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
@@ -391,7 +391,7 @@ mod test {
         assert!(planned_instance.is_some());
         let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 1);
-        assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
+        assert_eq!(graph.tasks[0].task_type, TaskType::CreateTable);
         assert_eq!(
             graph.tasks[0].task_status.load(Ordering::SeqCst),
             TaskStatusCode::Skipped as u8
@@ -426,7 +426,7 @@ mod test {
         assert!(planned_instance.is_some());
         let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 2);
-        assert_eq!(graph.tasks[0].task_type, TaskType::CreateAs);
+        assert_eq!(graph.tasks[0].task_type, TaskType::CreateTable);
         assert_eq!(graph.tasks[1].task_type, TaskType::CreateViz);
         assert_eq!(
             graph.tasks[0].task_status.load(Ordering::SeqCst),

@@ -157,6 +157,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         if (state.loadedScript) {
             async () => {
                 try {
+                    console.log('UPDATE PROGRAM');
                     await backend.value.workflow.updateProgram(workflowSession, state.loadedScript.text);
                     setState(s => ({
                         ...s,
@@ -197,6 +198,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                             return;
                         }
                         const text = resp.data as string;
+                        console.log('UPDATE PROGRAM');
                         await backend.value.workflow.updateProgram(workflowSession, text);
                         const script: model.Script = {
                             metadata: {
@@ -233,6 +235,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 (async () => {
                     try {
                         const script = await examples.getScript(example);
+                        console.log('UPDATE PROGRAM');
                         await backend.value.workflow.updateProgram(workflowSession, script.text);
                         setState(s => ({
                             ...s,

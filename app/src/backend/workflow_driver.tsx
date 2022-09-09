@@ -25,6 +25,7 @@ export const WorkflowDriver: React.FC<Props> = (props: Props) => {
         if (backend.value == null || workflowData.program == null) {
             return;
         }
+        console.log('EXECUTE PROGRAM');
         backend.value.workflow.executeProgram(workflowSession);
     }, [backend.value, workflowData.program]);
 

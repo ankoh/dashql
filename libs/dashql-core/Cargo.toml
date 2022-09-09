@@ -47,10 +47,11 @@ wasm-bindgen-futures = { version = "0.4.24", optional = true }
 web-sys = { version = "0.3.58", optional = true }
 js-sys = { version = "0.3.51", optional = true }
 getrandom = { version = "0.2.6", features = ["js"], optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [features]
 tests = ['native']
 native = ['duckdbx-sys', 'dashql-parser', 'tokio']
 node = ['native', 'neon']
-wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures', 'web-sys']
+wasm = ['js-sys', 'getrandom', 'wasm-bindgen', 'wasm-bindgen-futures', 'web-sys', 'console_error_panic_hook']
 default = ['tests']

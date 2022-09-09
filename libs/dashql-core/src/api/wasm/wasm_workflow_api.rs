@@ -126,6 +126,8 @@ fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsWorkflowFrontendBridge>>>, System
 
 #[wasm_bindgen(js_name = "workflowConfigureDefault")]
 pub async fn configure_default() -> Result<(), JsValue> {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     let workflow = WorkflowAPI::new().await.map_err(|e| e.to_string())?;
     WORKFLOW_API.with(|api_cell| api_cell.replace(Some(Arc::new(Mutex::new(workflow)))));
     Ok(())

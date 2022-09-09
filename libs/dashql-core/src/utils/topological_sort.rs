@@ -1,5 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
+#[derive(Debug)]
 pub struct TopologicalSort<V>
 where
     V: PartialEq + Eq + Hash + Clone,

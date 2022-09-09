@@ -8,11 +8,11 @@ use crate::execution::task::TaskOperator;
 use crate::grammar::{Statement, VizStatement};
 use async_trait::async_trait;
 
-pub struct VegaVisualizeTaskOperator<'ast> {
+pub struct VegaVisTaskOperator<'ast> {
     _statement: &'ast VizStatement<'ast>,
 }
 
-impl<'ast> VegaVisualizeTaskOperator<'ast> {
+impl<'ast> VegaVisTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
         task_graph: &Arc<TaskGraph>,
@@ -29,7 +29,7 @@ impl<'ast> VegaVisualizeTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for VegaVisualizeTaskOperator<'ast> {
+impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

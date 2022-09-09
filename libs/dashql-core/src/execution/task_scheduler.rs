@@ -3,14 +3,17 @@ use std::sync::Arc;
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
-        duckdb_create_as_task::DuckDBCreateAsTaskOperator,
+        declare_task::DeclareTaskOperator,
+        drop_input_task::DropInputTaskOperator,
         duckdb_create_table_task::DuckDBCreateTableTaskOperator,
-        duckdb_create_view_task::DuckDBCreateViewTaskOperator,
+        duckdb_drop_import_task::DuckDBDropImportTaskOperator,
+        duckdb_drop_table_task::DuckDBDropTableTaskOperator,
+        duckdb_update_table_task::DuckDBUpdateTableTaskOperator,
+        set_task::SetTaskOperator,
+        unset_task::UnsetTaskOperator,
+        vega_drop_vis_task::VegaDropVisTaskOperator,
         TaskOperator,
-        {
-            duckdb_load_task::DuckDBLoadTaskOperator, import_task::ImportTask,
-            vega_visualize_task::VegaVisualizeTaskOperator,
-        },
+        {duckdb_load_task::DuckDBLoadTaskOperator, import_task::ImportTask, vega_vis_task::VegaVisTaskOperator},
     },
     task_scheduler_log::TaskSchedulerLog,
 };
@@ -49,23 +52,20 @@ fn create_task_operator<'ast>(
 ) -> Result<Option<Box<dyn TaskOperator<'ast> + 'ast>>, SystemError> {
     let task = &task_graph.tasks[task_id];
     let op: Box<dyn TaskOperator<'ast> + 'ast> = match task.task_type {
-        TaskType::None => todo!(),
-        TaskType::DropBlob => todo!(),
-        TaskType::DropInput => todo!(),
-        TaskType::DropTable => todo!(),
-        TaskType::DropView => todo!(),
-        TaskType::DropViz => todo!(),
-        TaskType::Unset => todo!(),
-        TaskType::CreateAs => Box::new(DuckDBCreateAsTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::None => return Ok(None),
+        TaskType::DropImport => Box::new(DuckDBDropImportTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::DropInput => Box::new(DropInputTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::DropTable => Box::new(DuckDBDropTableTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::DropViz => Box::new(VegaDropVisTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::Unset => Box::new(UnsetTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::CreateTable => Box::new(DuckDBCreateTableTaskOperator::create(instance, task_graph, task_id)?),
-        TaskType::CreateView => Box::new(DuckDBCreateViewTaskOperator::create(instance, task_graph, task_id)?),
-        TaskType::CreateViz => Box::new(VegaVisualizeTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::CreateViz => Box::new(VegaVisTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Import => Box::new(ImportTask::create(instance, task_graph, task_id)?),
-        TaskType::Declare => todo!(),
+        TaskType::Declare => Box::new(DeclareTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Load => Box::new(DuckDBLoadTaskOperator::create(instance, task_graph, task_id)?),
-        TaskType::ModifyTable => todo!(),
-        TaskType::Set => todo!(),
-        TaskType::UpdateViz => todo!(),
+        TaskType::UpdateTable => Box::new(DuckDBUpdateTableTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::Set => Box::new(SetTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::UpdateViz => Box::new(VegaVisTaskOperator::create(instance, task_graph, task_id)?),
     };
     Ok(Some(op))
 }

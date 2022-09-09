@@ -6,11 +6,11 @@ use crate::execution::task::TaskOperator;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
-pub struct SetTaskOperator<'ast> {
+pub struct DuckDBDropTableTaskOperator<'ast> {
     instance: Arc<ProgramInstance<'ast>>,
 }
 
-impl<'ast> SetTaskOperator<'ast> {
+impl<'ast> DuckDBDropTableTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
         _task_graph: &Arc<TaskGraph>,
@@ -23,7 +23,7 @@ impl<'ast> SetTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for SetTaskOperator<'ast> {
+impl<'ast> TaskOperator<'ast> for DuckDBDropTableTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

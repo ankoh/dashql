@@ -7,7 +7,7 @@ use serde::Serialize;
 use std::sync::{atomic::AtomicU8, Arc};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
-use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
+use crate::{error::SystemError, external::console, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TaskGraph {
@@ -70,11 +70,11 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
                 ..mixin
             },
             Statement::CreateAs(_c) => Task {
-                task_type: TaskType::CreateAs,
+                task_type: TaskType::CreateTable,
                 ..mixin
             },
             Statement::CreateView(_c) => Task {
-                task_type: TaskType::CreateView,
+                task_type: TaskType::CreateTable,
                 ..mixin
             },
             Statement::Declare(_i) => Task {
@@ -134,11 +134,10 @@ fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError
     ctx.reverse_task_mapping.resize(next_task_graph.tasks.len(), None);
     for diff_op in ctx.diff.iter() {
         match diff_op.op_code {
-            DiffOpCode::Keep | DiffOpCode::Move | DiffOpCode::Update => continue,
-            _ => (),
-        }
-        match (diff_op.source, diff_op.target) {
-            (Some(src), Some(tgt)) => ctx.reverse_task_mapping[tgt] = Some(src),
+            DiffOpCode::Keep | DiffOpCode::Move | DiffOpCode::Update => match (diff_op.source, diff_op.target) {
+                (Some(src), Some(tgt)) => ctx.reverse_task_mapping[tgt] = Some(src),
+                _ => (),
+            },
             _ => (),
         }
     }
@@ -176,7 +175,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
 
             // Propagates invalidation?
             let propagates = match task.task_type {
-                TaskType::ModifyTable => true,
+                TaskType::UpdateTable => true,
                 _ => false,
             };
             if propagates {
@@ -208,15 +207,14 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
             pending_tasks.decrement_key(next);
         }
 
-        // Task not completed?
-        // Irrelevant for the graph migration.
-        if a.task_status.load(Ordering::SeqCst) != TaskStatusCode::Completed as u8 {
-            invalidate(ctx, prev_task_id);
+        // Has no origin statement?
+        // We need a diff associated with an origin statement to migrate tasks
+        if let None = a.origin_statement {
             continue;
         }
-        let next_task_graph = ctx.next_task_graph.as_mut().unwrap();
 
         // Get the diff of the origin statement
+        let next_task_graph = ctx.next_task_graph.as_mut().unwrap();
         let diff_op = ctx.diff[a.origin_statement.expect("program tasks must have an origin statement")].clone();
         match diff_op.op_code {
             // MOVE or KEEP?
@@ -229,7 +227,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 }
                 if !all_applicable {
                     invalidate(ctx, prev_task_id);
-                    break;
+                    continue;
                 }
 
                 // Check diff to find the corresponing new task.
@@ -258,7 +256,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                 next_deps.sort_unstable();
                 if !deps_mapped || next_deps != prev_deps {
                     invalidate(ctx, prev_task_id);
-                    break;
+                    continue;
                 }
 
                 // Declare task?
@@ -271,13 +269,13 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
                     let next_param = prev_program.input.get(&next_stmt_id);
                     if prev_param != next_param {
                         invalidate(ctx, prev_task_id);
-                        break;
+                        continue;
                     }
                 }
 
                 // The task seems to be applicable, mark it as such
                 ctx.task_applicability[prev_task_id] = true;
-                break;
+                continue;
             }
 
             // UPDATE or DELETE?
@@ -285,7 +283,6 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
             // We have to be very careful since any leftover tables will lead to broken dashboards.
             DiffOpCode::Update | DiffOpCode::Delete => {
                 invalidate(ctx, prev_task_id);
-                break;
             }
 
             // A previous task is marked with INSERT in the diff?
@@ -331,22 +328,19 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
         // Find the task translation
         let (undo_task, update_task) = match prev_task.task_type {
             TaskType::None => (TaskType::None, TaskType::None),
-            TaskType::CreateAs => (TaskType::DropTable, TaskType::None),
             TaskType::CreateTable => (TaskType::DropTable, TaskType::None),
-            TaskType::CreateView => (TaskType::DropView, TaskType::None),
             TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz),
-            TaskType::Import => (TaskType::DropBlob, TaskType::None),
             TaskType::Declare => (TaskType::DropInput, TaskType::None),
-            TaskType::Load => (TaskType::DropTable, TaskType::None),
-            TaskType::ModifyTable => (TaskType::DropTable, TaskType::None),
-            TaskType::Set => (TaskType::Unset, TaskType::None),
-            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz),
-            TaskType::DropBlob => (TaskType::DropBlob, TaskType::None),
+            TaskType::DropImport => (TaskType::DropImport, TaskType::None),
             TaskType::DropInput => (TaskType::DropInput, TaskType::None),
             TaskType::DropTable => (TaskType::DropTable, TaskType::None),
-            TaskType::DropView => (TaskType::DropView, TaskType::None),
             TaskType::DropViz => (TaskType::DropViz, TaskType::None),
+            TaskType::Import => (TaskType::DropImport, TaskType::None),
+            TaskType::Load => (TaskType::DropTable, TaskType::None),
+            TaskType::UpdateTable => (TaskType::DropTable, TaskType::None),
+            TaskType::Set => (TaskType::Unset, TaskType::None),
             TaskType::Unset => (TaskType::Unset, TaskType::None),
+            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz),
         };
 
         // Is applicable?
@@ -357,11 +351,12 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             let next_task_id = next_tasks.task_by_statement[next_stmt_id];
             debug_assert!((diff_op.op_code == DiffOpCode::Keep) || (diff_op.op_code == DiffOpCode::Move));
 
-            // Update the target id of the new task and mark it as complete
+            // Update the target id of the new task and preserve the task status
+            // (either as completed or skipped)
             let next_task = &mut next_tasks.tasks[next_task_id];
             next_task
                 .task_status
-                .store(TaskStatusCode::Completed as u8, Ordering::SeqCst);
+                .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
             next_task.state_id = prev_task.state_id;
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
@@ -637,7 +632,7 @@ CREATE TABLE c AS SELECT * FROM b
                             state_id: 1,
                         },
                         Task {
-                            task_type: TaskType::CreateAs,
+                            task_type: TaskType::CreateTable,
                             task_status: AtomicU8::new(TaskStatusCode::Skipped as u8),
                             depends_on: vec![1],
                             required_for: vec![],
@@ -684,7 +679,7 @@ VIZ c USING TABLE;
                             state_id: 1,
                         },
                         Task {
-                            task_type: TaskType::CreateAs,
+                            task_type: TaskType::CreateTable,
                             task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
                             depends_on: vec![1],
                             required_for: vec![3],
@@ -720,7 +715,7 @@ VIZ a USING TABLE;
                     next_state_id: 2,
                     tasks: vec![
                         Task {
-                            task_type: TaskType::CreateAs,
+                            task_type: TaskType::CreateTable,
                             task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
                             depends_on: vec![],
                             required_for: vec![1],
@@ -749,7 +744,7 @@ VIZ a USING TABLE;
                     next_state_id: 4,
                     tasks: vec![
                         Task {
-                            task_type: TaskType::CreateAs,
+                            task_type: TaskType::CreateTable,
                             task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
                             depends_on: vec![2],
                             required_for: vec![1],
