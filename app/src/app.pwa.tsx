@@ -20,33 +20,36 @@ import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';
 import { WorkflowDataProvider, WorkflowSessionProvider } from './backend/workflow_data_provider';
 import { WorkflowDriver } from './backend/workflow_driver';
+import { withScriptLoader } from './components/script_loader';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
-const ExplorerPage = withNavBar(Explorer);
+const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ExamplesPage = withNavBar(Examples);
 
 ReactDOM.render(
-    <AppConfigResolver>
-        <WasmBackendProvider>
-            <AppLauncher>
-                <WorkflowDataProvider>
-                    <WorkflowSessionProvider>
-                        <WorkflowDriver>
-                            <Router>
-                                <Routes>
-                                    <Route path="/explorer/*" element={<ExplorerPage />} />
-                                    <Route path="/examples/*" element={<ExamplesPage />} />
-                                    <Route path="/404" element={<NotFound />} />
-                                    <Route path="/" element={<Navigate to="/explorer" />} />
-                                    <Route path="*" element={<Navigate to="/404" />} />
-                                </Routes>
-                            </Router>
-                        </WorkflowDriver>
-                    </WorkflowSessionProvider>
-                </WorkflowDataProvider>
-            </AppLauncher>
-        </WasmBackendProvider>
-    </AppConfigResolver>,
+    <React.StrictMode>
+        <AppConfigResolver>
+            <WasmBackendProvider>
+                <AppLauncher>
+                    <WorkflowDataProvider>
+                        <WorkflowSessionProvider>
+                            <WorkflowDriver>
+                                <Router>
+                                    <Routes>
+                                        <Route path="/explorer/*" element={<ExplorerPage />} />
+                                        <Route path="/examples/*" element={<ExamplesPage />} />
+                                        <Route path="/404" element={<NotFound />} />
+                                        <Route path="/" element={<Navigate to="/explorer" />} />
+                                        <Route path="*" element={<Navigate to="/404" />} />
+                                    </Routes>
+                                </Router>
+                            </WorkflowDriver>
+                        </WorkflowSessionProvider>
+                    </WorkflowDataProvider>
+                </AppLauncher>
+            </WasmBackendProvider>
+        </AppConfigResolver>
+    </React.StrictMode>,
     document.getElementById('root'),
 );

@@ -14,17 +14,17 @@ export module workflow {
     export function createSession(workflow: dashql.WorkflowFrontend): number {
         return dashql.workflow_create_session(workflow);
     }
-    export function closeSession(sessionId: number, callback: () => void) {
-        dashql.workflow_close_session(sessionId, callback);
+    export function closeSession(resolve: () => void, sessionId: number) {
+        dashql.workflow_close_session(resolve, sessionId);
     }
-    export function executeProgram(sessionId: number) {
-        dashql.workflow_execute_program(sessionId);
+    export function executeProgram(resolve: () => void, sessionId: number) {
+        dashql.workflow_execute_program(resolve, sessionId);
     }
-    export function updateProgram(sessionId: number, text: string) {
-        dashql.workflow_update_program(sessionId, text);
+    export function updateProgram(resolve: () => void, sessionId: number, text: string) {
+        dashql.workflow_update_program(resolve, sessionId, text);
     }
-    export function editProgram(sessionId: number, edits: string) {
-        dashql.workflow_edit_program(sessionId, edits);
+    export function editProgram(resolve: () => void, sessionId: number, edits: string) {
+        dashql.workflow_edit_program(resolve, sessionId, edits);
     }
     export function runQuery(sessionId: number, text: string) {
         const buffer = dashql.workflow_run_query(sessionId, text);

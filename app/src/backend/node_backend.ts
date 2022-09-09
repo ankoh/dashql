@@ -10,17 +10,17 @@ export class NodeWorkflowBackend implements WorkflowBackend {
         return dashql.workflow.createSession(frontend);
     }
     async closeSession(session: number): Promise<void> {
-        return new Promise(resolve => dashql.workflow.closeSession(session, resolve));
+        return new Promise(resolve => dashql.workflow.closeSession(resolve, session));
     }
     async updateProgram(session: number, text: string): Promise<void> {
-        dashql.workflow.updateProgram(session, text);
+        return new Promise(resolve => dashql.workflow.updateProgram(resolve, session, text));
     }
     async executeProgram(session: number): Promise<void> {
-        dashql.workflow.executeProgram(session);
+        return new Promise(resolve => dashql.workflow.executeProgram(resolve, session));
     }
     async editProgram(session: number, edits: EditOperationVariant[]): Promise<void> {
         const editsJSON = JSON.stringify(edits);
-        await dashql.workflow.editProgram(session, editsJSON);
+        return new Promise(resolve => dashql.workflow.editProgram(resolve, session, editsJSON));
     }
     async runQuery(session: number, text: string): Promise<Uint8Array> {
         return dashql.workflow.runQuery(session, text);

@@ -20,7 +20,7 @@ describe('Node Workflows', () => {
         expect(rows.length).toEqual(1);
         expect(rows[0].v).toEqual(42);
 
-        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
+        const sessionClosed = new Promise<void>(resolve => dashql.workflow.closeSession(resolve, session));
         await sessionClosed;
     });
 
@@ -32,9 +32,11 @@ describe('Node Workflows', () => {
         frontend.updateProgramAnalysis = jest.fn();
         const session = dashql.workflow.createSession(frontend);
 
-        dashql.workflow.updateProgram(session, 'create table foo as select 42');
+        await new Promise<void>(resolve =>
+            dashql.workflow.updateProgram(resolve, session, 'create table foo as select 42'),
+        );
 
-        const sessionClosed = new Promise((resolve, _) => dashql.workflow.closeSession(session, () => resolve(null)));
+        const sessionClosed = new Promise<void>(resolve => dashql.workflow.closeSession(resolve, session));
         await sessionClosed;
 
         expect(frontend.beginBatchUpdate).toHaveBeenCalledWith(session);

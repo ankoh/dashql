@@ -353,9 +353,9 @@ export async function getScript(example: ExampleScriptMetadata): Promise<model.S
                 githubGistName: null,
             },
             description: example.description,
-            modified: false,
         },
         textLineCount: utils.countLines(text),
         textBytes: utils.estimateUTF16Length(text),
+        modified: false,
     };
 }

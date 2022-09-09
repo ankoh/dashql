@@ -6,3 +6,5 @@ export * from './program';
 export * from './resolvable_status';
 export * from './script';
 export * from './task_graph';
+export * from './script_registry';
+export * from './action';

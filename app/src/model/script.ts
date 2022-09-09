@@ -5,6 +5,8 @@ export interface Script {
     text: string;
     textLineCount: number;
     textBytes: number;
+    /// Has been modified?
+    modified?: boolean;
 }
 
 export enum ScriptOriginType {
@@ -35,8 +37,6 @@ export interface ScriptMetadata {
     origin: ScriptOrigin;
     /// The description
     description: string;
-    /// Has been modified?
-    modified?: boolean;
 }
 
 export function getScriptNamespace(script: ScriptMetadata): string | null {

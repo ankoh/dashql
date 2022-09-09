@@ -208,8 +208,8 @@ pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
 }
 
 pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
-    let callback = cx.argument::<JsFunction>(1)?.root(&mut cx);
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     if let Some(session) = api.lock().unwrap().release_session(session_id as u32) {
         session.frontend.channel.send(|mut cx| {
@@ -223,43 +223,62 @@ pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
 }
 
 pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
-    let text = cx.argument::<JsString>(1)?.value(&mut cx);
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
+    let text = cx.argument::<JsString>(2)?.value(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     let session = match api.lock().unwrap().get_session(session_id as u32) {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.update_program(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
+    session.frontend.channel.send(|mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        callback.call(&mut cx, this, &[])?;
+        Ok(())
+    });
     Ok(cx.undefined())
 }
 
 pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     let session = match api.lock().unwrap().get_session(session_id as u32) {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.execute_program()).or_else(|e| cx.throw_error(e.to_string()))?;
+    session.frontend.channel.send(|mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        callback.call(&mut cx, this, &[])?;
+        Ok(())
+    });
     Ok(cx.undefined())
 }
 
 pub fn update_program_input<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
-    let input = cx.argument::<JsString>(1)?.value(&mut cx);
     Ok(cx.undefined())
 }
 
 pub fn edit_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
-    let session_id = cx.argument::<JsNumber>(0)?.value(&mut cx);
-    let edits = cx.argument::<JsString>(1)?.value(&mut cx);
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
+    let edits = cx.argument::<JsString>(2)?.value(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     let session = match api.lock().unwrap().get_session(session_id as u32) {
         Some(session) => session,
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.edit_program(&edits)).or_else(|e| cx.throw_error(e.to_string()))?;
+    session.frontend.channel.send(|mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        callback.call(&mut cx, this, &[])?;
+        Ok(())
+    });
     Ok(cx.undefined())
 }
 
