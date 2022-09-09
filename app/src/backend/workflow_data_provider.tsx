@@ -10,6 +10,7 @@ export type TaskId = number;
 export interface WorkflowData {
     sessionId: number | null;
     program: model.Program | null;
+    programAnalysis: model.ProgramAnalysis | null;
     taskGraph: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
     statusByStatement: Immutable.Map<number, StatementStatus>;
@@ -42,6 +43,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
     const [committed, setCommitted] = React.useState<WorkflowData>({
         sessionId: null,
         program: null,
+        programAnalysis: null,
         taskGraph: null,
         statusByTask: Immutable.Map(),
         statusByStatement: Immutable.Map(),
@@ -50,6 +52,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
     const uncommitted = React.useRef<WorkflowData>({
         sessionId: null,
         program: null,
+        programAnalysis: null,
         taskGraph: null,
         statusByTask: Immutable.Map(),
         statusByStatement: Immutable.Map(),
@@ -63,6 +66,7 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 setCommitted({
                     sessionId: pending.sessionId,
                     program: pending.program,
+                    programAnalysis: pending.programAnalysis,
                     taskGraph: pending.taskGraph,
                     statusByTask: pending.statusByTask,
                     statusByStatement: pending.statusByStatement,
@@ -73,7 +77,11 @@ export const WorkflowDataProvider: React.FC<WorkflowFrontendProviderProps> = (pr
                 resetIfNew(uncommitted.current, session);
                 uncommitted.current.program = new Program(text, ast);
             },
-            updateProgramAnalysis: (session: SessionId, analysis: string) => {},
+            updateProgramAnalysis: (session: SessionId, analysisJSON: string) => {
+                resetIfNew(uncommitted.current, session);
+                const analysis = JSON.parse(analysisJSON) as model.ProgramAnalysis;
+                uncommitted.current.programAnalysis = analysis;
+            },
             updateTaskGraph: (session: SessionId, graphJSON: string) => {
                 resetIfNew(uncommitted.current, session);
                 const graph = JSON.parse(graphJSON) as TaskGraph;

@@ -232,13 +232,8 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 const example = examples.EXAMPLE_SCRIPT_MAP.get(state.loadFrom.exampleName!)!;
                 (async () => {
                     try {
-                        console.log('FOO');
                         const script = await examples.getScript(example);
-                        console.log('BAR');
-                        console.log(workflowSession);
-                        console.log(script.text);
                         await backend.value.workflow.updateProgram(workflowSession, script.text);
-                        console.log('SUCCEEDED');
                         setState(s => ({
                             ...s,
                             task: ScriptLoaderTask.SUCCEEDED,

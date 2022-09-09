@@ -74,18 +74,6 @@ export class Program {
         }
         return count;
     }
-
-    /// Iterate over dependencies
-    public iterateDependencies(fn: (idx: number, node: proto.Dependency) => void): number {
-        // let dep = new proto.Dependency();
-        // const count = this.ast.dependenciesLength();
-        // for (let i = 0; i < count; ++i) {
-        //     dep = this.ast.dependencies(i, dep)!;
-        //     fn(i, dep);
-        // }
-        // return count;
-        return 0;
-    }
 }
 
 export interface InputValue {

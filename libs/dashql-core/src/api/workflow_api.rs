@@ -176,7 +176,6 @@ where
         // Perform scheduler work until done
         let mut scheduler_log = FrontendTaskSchedulerLog::create(self.session_id, self.frontend.clone());
         loop {
-            external::console::println(&format!("{:?}", &plan.tasks));
             match scheduler.next(&mut scheduler_log).await {
                 Ok(true) => {}
                 Ok(false) => break,
@@ -186,7 +185,6 @@ where
                 }
             }
         }
-        external::console::println("execution done");
         self.scheduler_executing.store(false, Ordering::SeqCst);
         Ok(())
     }

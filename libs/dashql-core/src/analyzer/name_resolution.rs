@@ -80,18 +80,21 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
 
 pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
     for stmt_id in 0..ctx.program.statements.len() {
-        let target = match ctx.program.statements[stmt_id] {
-            Statement::Load(l) => normalize_name_with(ctx, l.source.get(), |_, normalized, _| normalized.to_vec()),
+        let (target, target_node) = match ctx.program.statements[stmt_id] {
+            Statement::Load(l) => (
+                normalize_name_with(ctx, l.source.get(), |_, normalized, _| normalized.to_vec()),
+                l.source.get_node_id(),
+            ),
             _ => continue,
         };
         if let Some(target_stmt_id) = ctx.statement_by_name.get(target.as_slice()).cloned() {
             ctx.statement_required_for.insert(
                 (target_stmt_id, stmt_id as usize),
-                (proto::DependencyType::TABLE_REF, usize::MAX),
+                (proto::DependencyType::TABLE_REF, target_node.unwrap_or(usize::MAX)),
             );
             ctx.statement_depends_on.insert(
                 (stmt_id as usize, target_stmt_id),
-                (proto::DependencyType::TABLE_REF, usize::MAX),
+                (proto::DependencyType::TABLE_REF, target_node.unwrap_or(usize::MAX)),
             );
         }
     }

@@ -3,6 +3,7 @@ export * from './card_specification';
 export * from './edit_operation';
 export * from './log';
 export * from './program';
+export * from './program_analysis';
 export * from './resolvable_status';
 export * from './script';
 export * from './task_graph';

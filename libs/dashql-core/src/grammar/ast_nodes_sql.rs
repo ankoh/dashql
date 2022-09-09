@@ -24,6 +24,7 @@ pub struct IndirectionBounds<'a> {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
+#[serde(tag = "type", content = "content")]
 pub enum Indirection<'a> {
     Name(&'a str),
     Index(&'a IndirectionIndex<'a>),

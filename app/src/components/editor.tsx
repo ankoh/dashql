@@ -18,7 +18,12 @@ import { TaskId, Backend } from '../backend/backend';
 
 /// Does the mouse movement affect the decorations?
 /// Right now, the only mouse effect is focus on dependency target nodes.
-const mouseMoveAffectsDecorations = (program: model.Program, prevOffset: number | null, newOffset: number | null) => {
+const mouseMoveAffectsDecorations = (
+    program: model.Program,
+    programAnalysis: model.ProgramAnalysis,
+    prevOffset: number | null,
+    newOffset: number | null,
+) => {
     const tmpNode = new model.Node(program);
     const tmpLoc = new proto.Location();
     const getLoc = (node: model.Node) => {
@@ -29,16 +34,16 @@ const mouseMoveAffectsDecorations = (program: model.Program, prevOffset: number 
     let prevMouseTarget = null;
     let newMouseTarget = null;
 
-    program.iterateDependencies((idx: number, dep: proto.Dependency) => {
-        const targetId = dep.targetNode();
+    for (const dep of programAnalysis.statement_dependencies) {
+        const targetId = dep.target_node;
         const targetLoc = getLoc(program.getNode(targetId, tmpNode));
         if (prevOffset && targetLoc[0] <= prevOffset && prevOffset <= targetLoc[0] + targetLoc[1]) {
-            prevMouseTarget = dep.targetNode();
+            prevMouseTarget = dep.target_node;
         }
         if (newOffset && targetLoc[0] <= newOffset && newOffset <= targetLoc[0] + targetLoc[1]) {
-            newMouseTarget = dep.targetNode();
+            newMouseTarget = dep.target_node;
         }
-    });
+    }
 
     return prevMouseTarget != newMouseTarget;
 };
@@ -80,6 +85,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
     // Program effects
     const program = data.program;
+    const programAnalysis = data.programAnalysis;
     React.useEffect(() => {
         programRef.current = program;
         lineBreaksRef.current = program?.getLineBreaks() || new Float64Array();
@@ -218,7 +224,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
         // Get model.
         // Early aborts if editor is not set.
         const data = editor?.getModel();
-        if (!data || !program) return;
+        if (!data || !program || !programAnalysis) return;
 
         // Program && status didn't change and the new mouse position does not affect the decorations?
         // Nothing to do then.
@@ -226,7 +232,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             prevDecoration.current &&
             prevDecoration.current.program == program &&
             prevDecoration.current.statementStatus == statementStatus &&
-            !mouseMoveAffectsDecorations(program, prevDecoration.current.mouseOffset, mouseOffset)
+            !mouseMoveAffectsDecorations(program, programAnalysis, prevDecoration.current.mouseOffset, mouseOffset)
         ) {
             return;
         }
@@ -304,13 +310,13 @@ export const Editor: React.FC<Props> = (props: Props) => {
         });
 
         // Highlight ranges
-        program.iterateDependencies((idx: number, dep: proto.Dependency) => {
-            const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
+        for (const dep of programAnalysis.statement_dependencies) {
+            const targetLoc = getLoc(program.getNode(dep.target_node, tmpNode));
             const targetBegin = getLineFromOffset(targetLoc[0]);
             const targetEnd = getLineFromOffset(targetLoc[0] + targetLoc[1]);
             const targetRange = new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]);
             if (mouseOffset && targetLoc[0] <= mouseOffset && mouseOffset <= targetLoc[0] + targetLoc[1]) {
-                const sourceStmtId = dep.sourceStatement();
+                const sourceStmtId = dep.source_stmt;
                 const sourceStmt = program.getStatement(sourceStmtId);
                 const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
                 const sourceBegin = getLineFromOffset(sourceLoc[0]);
@@ -338,14 +344,14 @@ export const Editor: React.FC<Props> = (props: Props) => {
                     },
                 });
             }
-        });
+        }
         prevDecoration.current = {
             program: program,
             statementStatus: statementStatus,
             mouseOffset: mouseOffset,
             decorationIDs: data.deltaDecorations(prevDecoration.current?.decorationIDs || [], dec),
         };
-    }, [editor, program, statementStatus, mouseOffset]);
+    }, [editor, program, programAnalysis, statementStatus, mouseOffset]);
 
     /// Debounce editor layouting
     const delayedResize = React.useRef<number | null>();

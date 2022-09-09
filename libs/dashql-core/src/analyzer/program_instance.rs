@@ -94,17 +94,17 @@ impl<'a> Serialize for ProgramInstance<'a> {
     {
         #[derive(Serialize)]
         struct Dependency {
-            source: usize,
-            target: usize,
-            node: usize,
+            source_stmt: usize,
+            target_stmt: usize,
+            target_node: usize,
         }
         let deps: Vec<_> = self
             .statement_depends_on
             .iter()
             .map(|((target, source), (_dep_type, node))| Dependency {
-                source: *source,
-                target: *target,
-                node: *node,
+                source_stmt: *source,
+                target_stmt: *target,
+                target_node: *node,
             })
             .collect();
 
