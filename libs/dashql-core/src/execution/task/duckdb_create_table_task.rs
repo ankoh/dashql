@@ -24,9 +24,14 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
         let task = &task_graph.tasks[task_id];
         let stmt_id = task.origin_statement.unwrap();
         let stmt = instance.program.statements[stmt_id].clone();
-        match instance.program.statements[stmt_id] {
+        match &stmt {
             Statement::Create(_) | Statement::CreateAs(_) | Statement::CreateView(_) => {}
-            _ => return Err(SystemError::InvalidStatementType("expected create")),
+            _ => {
+                return Err(SystemError::InvalidStatementType(format!(
+                    "expected create, got: {:?}",
+                    &stmt
+                )))
+            }
         };
         Ok(Self {
             statement: stmt,

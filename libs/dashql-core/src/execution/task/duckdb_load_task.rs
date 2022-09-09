@@ -30,7 +30,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast LoadStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Load(l) => l,
-            _ => return Err(SystemError::InvalidStatementType("expected load")),
+            _ => return Err(SystemError::InvalidStatementType("expected load".to_string())),
         };
         Ok(Self {
             statement: stmt,

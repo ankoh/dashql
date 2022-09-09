@@ -16,7 +16,7 @@ use crate::{
         execution_context::ExecutionContext, task_scheduler::TaskScheduler,
         task_scheduler_log::FrontendTaskSchedulerLog,
     },
-    external::{self, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
+    external::{self, console, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
 };
 
@@ -127,11 +127,13 @@ where
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
             .unwrap_or(true)
         {
+            console::println("ERROR: scheduler locked");
             return Ok(());
         }
         let latest = match self.latest_instance.lock().unwrap().clone() {
             Some(instance) => instance,
             None => {
+                console::println("ERROR: no instance");
                 // TODO: log things
                 self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
@@ -148,6 +150,7 @@ where
         let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
             Ok(plan) => plan,
             Err(_e) => {
+                console::println("ERROR: planning failed");
                 // TODO: log things
                 self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());

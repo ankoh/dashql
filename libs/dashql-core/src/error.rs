@@ -20,7 +20,7 @@ pub enum SystemError {
     InternalError(&'static str),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(usize, usize),
-    InvalidStatementType(&'static str),
+    InvalidStatementType(String),
     InvalidTableRef(Option<usize>),
     MissingEnvironmentVariable(&'static str),
     NotImplemented(String),

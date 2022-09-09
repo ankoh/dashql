@@ -11,7 +11,7 @@ where
 
 impl<V> TopologicalSort<V>
 where
-    V: PartialEq + Eq + Hash + Clone,
+    V: PartialEq + Eq + Hash + Clone + std::fmt::Debug,
 {
     /// Constructor
     pub fn new(mut entries: Vec<(V, usize)>) -> Self {
@@ -75,12 +75,16 @@ where
     /// Pop the min element
     pub fn pop(&mut self) {
         self.swap_at(0, self.entries.len() - 1);
-        self.entries.pop();
+        let (v, _prio) = self.entries.pop().unwrap();
+        self.index.remove(&v);
         self.sift_down(0);
     }
     /// Decrement the key
     pub fn decrement_key(&mut self, k: &V) {
-        let i = self.index[k];
+        if !self.index.contains_key(k) {
+            return;
+        }
+        let i = *self.index.get(k).unwrap();
         if self.entries[i].1 > 0 {
             self.entries[i].1 -= 1;
             self.sift_up(i);

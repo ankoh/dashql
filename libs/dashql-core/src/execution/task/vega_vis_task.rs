@@ -22,7 +22,7 @@ impl<'ast> VegaVisTaskOperator<'ast> {
         let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast VizStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Viz(v) => v,
-            _ => return Err(SystemError::InvalidStatementType("expected viz")),
+            _ => return Err(SystemError::InvalidStatementType("expected viz".to_string())),
         };
         Ok(Self { _statement: stmt })
     }

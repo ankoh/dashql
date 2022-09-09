@@ -320,9 +320,10 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
     // Currently this only affects the VIZ task to explicitly keep the viz state instead of recreating it.
     for (prev_task_id, prev_task) in prev_tasks.tasks.iter().enumerate() {
         // Get the previous program task and the diff
-        let prev_stmt_id = prev_task
-            .origin_statement
-            .expect("program tasks must have an origin statement");
+        let prev_stmt_id = match prev_task.origin_statement {
+            Some(stmt_id) => stmt_id,
+            None => continue,
+        };
         let diff_op = &ctx.diff[prev_stmt_id];
 
         // Find the task translation

@@ -36,7 +36,7 @@ impl<'ast> ImportTask<'ast> {
         let stmt_id = task.origin_statement.unwrap();
         let stmt: &'ast ImportStatement<'ast> = match instance.program.statements[stmt_id] {
             Statement::Import(i) => i,
-            _ => return Err(SystemError::InvalidStatementType("expected import")),
+            _ => return Err(SystemError::InvalidStatementType("expected import".to_string())),
         };
         Ok(Self { statement: stmt })
     }
