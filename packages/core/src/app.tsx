@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { GitHubAuthProvider, GitHubProfileProvider } from './github';
 import {
     LogProvider,
@@ -48,7 +48,8 @@ const AccountPage = withNavBar(Account);
 const CloudPage = withNavBar(Cloud);
 // const ExamplesPage = withNavBar(withBanner(Examples));
 
-ReactDOM.render(
+const root = createRoot(document.getElementById('root'));
+root.render(
     <DataProviders>
         <AppConfigResolver>
             <AppLauncher>
@@ -67,5 +68,4 @@ ReactDOM.render(
             </AppLauncher>
         </AppConfigResolver>
     </DataProviders>,
-    document.getElementById('root'),
 );

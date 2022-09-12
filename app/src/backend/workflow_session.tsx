@@ -7,6 +7,10 @@ import { useBackend, useBackendResolver } from './backend_provider';
 import {
     deriveStatementStatusCode,
     EditOperationVariant,
+    LogEvent,
+    LogLevel,
+    LogOrigin,
+    LogTopic,
     Program,
     StatementStatus,
     TaskGraph,
@@ -164,6 +168,14 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 let prevStatus = s.statusByTask.get(taskId);
                 s.statusByTask = s.statusByTask.set(taskId, newStatus);
 
+                logger.log({
+                    timestamp: new Date(),
+                    level: LogLevel.INFO,
+                    origin: LogOrigin.WORKFLOW,
+                    topic: LogTopic.TASK,
+                    event: LogEvent.CAPTURE,
+                    value: `${taskId}: ${error}`,
+                });
                 if (newStatus == TaskStatusCode.Failed) {
                     console.warn(`[task ${taskId}] failed with error: \`${error}\``);
                 }

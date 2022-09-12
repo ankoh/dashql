@@ -12,10 +12,10 @@ import { isElectron } from './utils';
 
 import './globals.module.css';
 import './app.module.css';
+import './vendor/virtualized/styles.css';
 import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import 'react-virtualized/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';

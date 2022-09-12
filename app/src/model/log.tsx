@@ -16,12 +16,12 @@ export enum LogLevel {
 
 export enum LogOrigin {
     NONE = 0,
-    WORKFLOW_SESSION = 1001,
+    WORKFLOW = 1001,
 }
 
 export enum LogTopic {
     NONE = 0,
-    EXECUTE_TASK = 1001,
+    TASK = 1001,
 }
 
 export enum LogEvent {
@@ -41,7 +41,7 @@ export type LogEntry<O, T, E, V> = {
 
 export type LogEntryVariant =
     | LogEntry<LogOrigin.NONE, LogTopic.NONE, LogEvent.CAPTURE, any>
-    | LogEntry<LogOrigin.WORKFLOW_SESSION, LogTopic.EXECUTE_TASK, LogEvent.ERROR, string>;
+    | LogEntry<LogOrigin.WORKFLOW, LogTopic.TASK, LogEvent.CAPTURE, string>;
 
 export function getLogLevelLabel(level: LogLevel): string {
     switch (level) {
@@ -62,8 +62,8 @@ export function getLogOriginLabel(origin: LogOrigin): string {
     switch (origin) {
         case LogOrigin.NONE:
             return 'NONE';
-        case LogOrigin.WORKFLOW_SESSION:
-            return 'WORKFLOW SESSION';
+        case LogOrigin.WORKFLOW:
+            return 'WORKFLOW';
     }
 }
 
@@ -71,8 +71,8 @@ export function getLogTopicLabel(topic: LogTopic): string {
     switch (topic) {
         case LogTopic.NONE:
             return 'NONE';
-        case LogTopic.EXECUTE_TASK:
-            return 'EXECUTE_TASK';
+        case LogTopic.TASK:
+            return 'TASK';
     }
 }
 
@@ -123,7 +123,7 @@ export class Logger {
     }
 
     /// Push a new log entry
-    public pushBack(entry: LogEntryVariant): void {
+    public log(entry: LogEntryVariant): void {
         this._dispatch({
             type: PUSH_LOG_ENTRY,
             data: entry,
