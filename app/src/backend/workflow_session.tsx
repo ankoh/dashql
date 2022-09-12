@@ -45,6 +45,9 @@ export class WorkflowSession {
         await this._backend.closeSession(this._sessionId);
     }
     public async updateProgram(text: string): Promise<void> {
+        if (text == this._state.programText) {
+            return;
+        }
         this._state.programText = text;
         await this._backend.updateProgram(this._sessionId, text);
     }

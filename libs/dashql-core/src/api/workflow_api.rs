@@ -193,9 +193,23 @@ where
     }
 
     pub async fn update_program(&self, text: &str) -> Result<(), SystemError> {
+        // Is redundant?
+        let redundant = {
+            let latest = self.latest_parsed.lock().unwrap();
+            match latest.as_ref() {
+                Some(container) => container.get_text() == text,
+                None => false,
+            }
+        };
+        if redundant {
+            return Ok(());
+        }
+
+        // Parse the program
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
         self.latest_parsed.lock().unwrap().replace(program.clone());
 
+        // Create an execution context for the instantiation
         let context = ExecutionContext::create(
             self.settings.clone(),
             self.runtime.clone(),

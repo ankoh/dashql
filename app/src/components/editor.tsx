@@ -215,7 +215,6 @@ export const Editor: React.FC<Props> = (props: Props) => {
         const showTasks =
             sessionState.programTasks?.instance_id == sessionState.programAnalysis?.instance_id && showAnalysis;
 
-        // Get the state
         const tmpNode = new model.Node(program);
         const tmpLoc = new proto.Location();
         const dec: monaco.editor.IModelDeltaDecoration[] = [];
