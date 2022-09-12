@@ -102,7 +102,7 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
                 ))
             }
         };
-        let mut connection = self.connection.as_ref().unwrap();
+        let connection = self.connection.as_ref().unwrap();
         if !self.try_create_view(connection.as_ref(), &import).await? {
             let hdl = ctx.base.runtime.import_data(&ctx, &import).await?;
             let info = match self.statement.method.get() {
