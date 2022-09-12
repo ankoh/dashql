@@ -1,33 +1,26 @@
 import React, { ReactElement } from 'react';
 import * as model from '../model';
-import { useBackend, useBackendResolver } from './backend_provider';
-import { useWorkflowData, useWorkflowSession } from './workflow_data_provider';
+import { useWorkflowSession, useWorkflowSessionState } from './workflow_session';
 
 type Props = {
     children: React.ReactElement | ReactElement[];
 };
 
 export const WorkflowDriver: React.FC<Props> = (props: Props) => {
-    const workflowData = useWorkflowData();
     const workflowSession = useWorkflowSession();
-    const backend = useBackend();
-    const backendResolver = useBackendResolver();
-
-    // Resolve backend (if necessary)
-    React.useEffect(() => {
-        if (backend.value == null && !backend.resolving()) {
-            backendResolver();
-        }
-    }, [backend]);
+    const workflowSessionState = useWorkflowSessionState();
+    const executed = React.useRef<model.Program>(null);
 
     // Execute the program (if it changes)
     React.useEffect(() => {
-        if (backend.value == null || workflowData.program == null) {
+        if (workflowSession == null) {
             return;
         }
-        console.log('EXECUTE PROGRAM');
-        backend.value.workflow.executeProgram(workflowSession);
-    }, [backend.value, workflowData.program]);
+        if (executed.current !== workflowSession.uncommittedState.program) {
+            executed.current = workflowSession.uncommittedState.program;
+            workflowSession.executeProgram();
+        }
+    }, [workflowSession, workflowSessionState]);
 
     return <>{props.children}</>;
 };

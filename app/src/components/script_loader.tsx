@@ -7,11 +7,9 @@ import lz from 'lz-string';
 import { useLocation } from 'react-router-dom';
 import { CenteredRectangleWaveSpinner } from './spinners';
 import { generateLocalFileName, Script, ScriptOriginType, useScriptRegistry } from '../model';
+import { useWorkflowSession } from '../backend/workflow_session';
 
 import styles from './script_loader.module.css';
-import { useBackend, useBackendResolver } from '../backend/backend_provider';
-import { Backend } from '../backend/backend';
-import { useWorkflowSession } from '../backend/workflow_data_provider';
 
 const DEFAULT_EXAMPLE = 'demo_btw';
 
@@ -20,7 +18,7 @@ interface Props {
     children: React.ReactElement;
 }
 
-enum ScriptLoaderTask {
+enum ScriptLoaderProgress {
     REFRESH,
     LOADING,
     FAILED,
@@ -29,7 +27,7 @@ enum ScriptLoaderTask {
 
 interface State {
     location: any | null;
-    task: ScriptLoaderTask;
+    task: ScriptLoaderProgress;
     loadFrom: model.ScriptOrigin | null;
     loadedScript: Script | null;
     error: any | null;
@@ -37,33 +35,23 @@ interface State {
 
 export const ScriptLoader: React.FC<Props> = (props: Props) => {
     const location = useLocation();
-    const backend = useBackend();
-    const resolveBackend = useBackendResolver();
     const workflowSession = useWorkflowSession();
     const scriptRegistry = useScriptRegistry();
     const [state, setState] = React.useState<State>({
         location: null,
-        task: ScriptLoaderTask.REFRESH,
+        task: ScriptLoaderProgress.REFRESH,
         loadFrom: null,
         loadedScript: null,
         error: null,
     });
 
-    // Resolve backend if not resolved
-    const backendRef = React.useRef<Backend>(null);
-    React.useEffect(() => {
-        if (backend.value == null && !backend.resolving()) {
-            resolveBackend();
-        } else {
-            backendRef.current = backend.value;
-        }
-    }, [backend]);
-
     // Find script in the location data
     React.useEffect(() => {
-        if (backend.value == null || workflowSession == null) return;
-        if (state.task != ScriptLoaderTask.REFRESH) return;
+        if (workflowSession == null) return;
+        if (state.task != ScriptLoaderProgress.REFRESH) return;
         const searchParams = new URLSearchParams(location.search);
+
+        console.log('REFRESH');
 
         // URL refers to a raw script text?
         if (searchParams.has('text')) {
@@ -84,7 +72,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             setState({
                 ...state,
                 location,
-                task: ScriptLoaderTask.LOADING,
+                task: ScriptLoaderProgress.LOADING,
                 loadFrom: null,
                 loadedScript: script,
                 error: null,
@@ -105,7 +93,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             setState({
                 ...state,
                 location,
-                task: ScriptLoaderTask.LOADING,
+                task: ScriptLoaderProgress.LOADING,
                 loadFrom: request,
                 loadedScript: null,
                 error: null,
@@ -116,10 +104,11 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         // URL refers to an example?
         if (searchParams.has('example')) {
             const exampleName = searchParams.get('example')!;
+            console.log('SET EXAMPLE');
             setState({
                 ...state,
                 location,
-                task: ScriptLoaderTask.LOADING,
+                task: ScriptLoaderProgress.LOADING,
                 loadFrom: {
                     originType: ScriptOriginType.EXAMPLES,
                     fileName: exampleName,
@@ -136,7 +125,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             setState({
                 ...state,
                 location,
-                task: ScriptLoaderTask.LOADING,
+                task: ScriptLoaderProgress.LOADING,
                 loadFrom: {
                     originType: ScriptOriginType.EXAMPLES,
                     fileName: DEFAULT_EXAMPLE,
@@ -147,27 +136,28 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             });
             return;
         }
-    }, [state.task, backend.value, workflowSession]);
+    }, [state.task, workflowSession]);
 
     // Do the asynchronous load
     React.useEffect(() => {
         // Not loading?
-        if (state.task != ScriptLoaderTask.LOADING) return;
+        if (state.task != ScriptLoaderProgress.LOADING) return;
+        console.log('LOADING');
         // Already loaded? (might happen if cached)
         if (state.loadedScript) {
             async () => {
                 try {
                     console.log('UPDATE PROGRAM');
-                    await backend.value.workflow.updateProgram(workflowSession, state.loadedScript.text);
+                    await workflowSession.updateProgram(state.loadedScript.text);
                     setState(s => ({
                         ...s,
-                        task: ScriptLoaderTask.SUCCEEDED,
+                        task: ScriptLoaderProgress.SUCCEEDED,
                         error: null,
                     }));
                 } catch (e) {
                     setState(s => ({
                         ...s,
-                        task: ScriptLoaderTask.FAILED,
+                        task: ScriptLoaderProgress.FAILED,
                         error: e,
                     }));
                     return;
@@ -192,14 +182,14 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                             );
                             setState(s => ({
                                 ...s,
-                                task: ScriptLoaderTask.FAILED,
+                                task: ScriptLoaderProgress.FAILED,
                                 error: resp.statusText,
                             }));
                             return;
                         }
                         const text = resp.data as string;
                         console.log('UPDATE PROGRAM');
-                        await backend.value.workflow.updateProgram(workflowSession, text);
+                        await workflowSession.updateProgram(text);
                         const script: model.Script = {
                             metadata: {
                                 origin: {
@@ -215,14 +205,14 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                         };
                         setState(s => ({
                             ...s,
-                            task: ScriptLoaderTask.SUCCEEDED,
+                            task: ScriptLoaderProgress.SUCCEEDED,
                             loadedScript: script,
                             error: null,
                         }));
                     } catch (e) {
                         setState(s => ({
                             ...s,
-                            task: ScriptLoaderTask.FAILED,
+                            task: ScriptLoaderProgress.FAILED,
                             error: e,
                         }));
                         return;
@@ -236,17 +226,17 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                     try {
                         const script = await examples.getScript(example);
                         console.log('UPDATE PROGRAM');
-                        await backend.value.workflow.updateProgram(workflowSession, script.text);
+                        await workflowSession.updateProgram(script.text);
                         setState(s => ({
                             ...s,
-                            task: ScriptLoaderTask.SUCCEEDED,
+                            task: ScriptLoaderProgress.SUCCEEDED,
                             loadedScript: script,
                             error: null,
                         }));
                     } catch (e) {
                         setState(s => ({
                             ...s,
-                            task: ScriptLoaderTask.FAILED,
+                            task: ScriptLoaderProgress.FAILED,
                             error: e,
                         }));
                         return;
@@ -260,12 +250,12 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
     }, [state.task, state.loadFrom]);
 
     switch (state.task) {
-        case ScriptLoaderTask.REFRESH:
-        case ScriptLoaderTask.LOADING:
+        case ScriptLoaderProgress.REFRESH:
+        case ScriptLoaderProgress.LOADING:
             return <CenteredRectangleWaveSpinner className={styles.spinner} active={true} color={'rgb(36, 41, 46)'} />;
-        case ScriptLoaderTask.FAILED:
+        case ScriptLoaderProgress.FAILED:
             return <div />;
-        case ScriptLoaderTask.SUCCEEDED:
+        case ScriptLoaderProgress.SUCCEEDED:
             return props.children;
     }
 };

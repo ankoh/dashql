@@ -7,8 +7,7 @@ import { motion, AnimateSharedLayout, LayoutGroup } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
 import styles from './examples.module.css';
-import { useBackend, useBackendResolver } from '../backend/backend_provider';
-import { useWorkflowSession } from '../backend/workflow_data_provider';
+import { useWorkflowSession } from '../backend/workflow_session';
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
@@ -45,16 +44,7 @@ interface State {
 
 export const Examples: React.FC<Props> = (_props: Props) => {
     const navigate = useNavigate();
-    const backend = useBackend();
-    const resolveBackend = useBackendResolver();
     const session = useWorkflowSession();
-
-    // Resolve backend (if necessary)
-    React.useEffect(() => {
-        if (backend.value == null && !backend.resolving()) {
-            resolveBackend();
-        }
-    }, [backend]);
 
     // Maintain feature bitmap
     const [state, setState] = React.useState<State>({
@@ -85,17 +75,17 @@ export const Examples: React.FC<Props> = (_props: Props) => {
 
     const selectExample = React.useCallback(
         async (elem: React.MouseEvent<HTMLDivElement>) => {
-            if (backend == null || session == null) {
+            if (session == null) {
                 return;
             }
 
             const key = (elem.currentTarget as any).dataset.key;
             const nextScript = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
 
-            backend.value.workflow.updateProgram(session, nextScript.text);
+            session.updateProgram(nextScript.text);
             navigate('/explorer');
         },
-        [backend, session],
+        [session],
     );
 
     const renderCollection = (

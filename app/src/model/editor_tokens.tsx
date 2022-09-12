@@ -45,9 +45,9 @@ class TokensProviderState implements monaco.languages.IState {
 
 export class TokensProvider implements monaco.languages.TokensProvider {
     /// The redux store
-    _program: React.RefObject<model.Program>;
+    _program: () => model.Program;
 
-    constructor(program: React.RefObject<model.Program>) {
+    constructor(program: () => model.Program) {
         this._program = program;
     }
 
@@ -62,10 +62,11 @@ export class TokensProvider implements monaco.languages.TokensProvider {
             endState: state,
         };
         // Nothing to do?
-        if (!this._program.current) return result;
+        const program = this._program();
+        if (!program) return result;
 
         // Get highlighting data
-        const buffer = this._program.current.ast;
+        const buffer = program.ast;
         const hl = buffer?.highlighting();
         if (!hl) return result;
 

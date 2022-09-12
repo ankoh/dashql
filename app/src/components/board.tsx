@@ -1,8 +1,7 @@
 import * as model from '../model';
 import * as React from 'react';
 import ReactGrid from 'react-grid-layout';
-import { useBackend } from '../backend/backend_provider';
-import { useWorkflowData, useWorkflowSession } from '../backend/workflow_data_provider';
+import { useWorkflowSession, useWorkflowSessionState } from '../backend/workflow_session';
 
 import './board.module.css';
 
@@ -26,14 +25,13 @@ interface LayoutElement {
 }
 
 export const Board: React.FC<Props> = (props: Props) => {
-    const backend = useBackend();
     const session = useWorkflowSession();
-    const data = useWorkflowData();
+    const sessionState = useWorkflowSessionState();
 
     // Memoize the grid layout
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
-        data.cards.forEach(card => {
+        sessionState.cards.forEach(card => {
             els.push({
                 card: card,
                 i: card.objectId.toString(),
@@ -44,12 +42,12 @@ export const Board: React.FC<Props> = (props: Props) => {
             });
         });
         return els;
-    }, [data.cards]);
+    }, [sessionState.cards]);
 
     const userExpectation = React.useRef<boolean>();
     const onLayoutChanged = React.useCallback(
         (newLayout: ReactGrid.Layout[]) => {
-            if (backend == null || session == null) return;
+            if (session == null) return;
             if (!userExpectation.current) return;
             userExpectation.current = false;
 
@@ -74,9 +72,9 @@ export const Board: React.FC<Props> = (props: Props) => {
             });
 
             // Edit program
-            backend.value.workflow.editProgram(session, updates);
+            session.editProgram(updates);
         },
-        [backend],
+        [session],
     );
 
     // Build card renderers

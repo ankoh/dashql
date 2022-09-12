@@ -3,7 +3,7 @@ import cn from 'classnames';
 import { AnimatePresence } from 'framer-motion';
 import { Route, Routes } from 'react-router-dom';
 import { useAppConfig } from '../model';
-import { useWorkflowData } from '../backend/workflow_data_provider';
+import { useWorkflowSessionState } from '../backend/workflow_session';
 import { OverlayContainer } from '../components/overlay';
 import { LazyLoader } from '../components/lazy_loader';
 import { BoardEditor } from '../components/board_editor';
@@ -31,7 +31,6 @@ type Props = {
 
 export const Explorer: React.FC<Props> = (props: Props) => {
     const appConfig = useAppConfig();
-    const workflowData = useWorkflowData();
     const editorReadOnly = false;
 
     return (

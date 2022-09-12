@@ -12,6 +12,8 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::analyzer::liveness::determine_statement_liveness;
@@ -21,11 +23,14 @@ use crate::grammar::Program;
 pub type StatementID = usize;
 pub type NodeID = usize;
 
+static NEXT_INSTANCE_ID: AtomicU32 = AtomicU32::new(0);
+
 #[derive(Debug, Clone)]
 pub struct ProgramInstance<'a> {
-    pub context: ExecutionContext<'a>,
+    pub instance_id: u32,
 
-    // AST buffer
+    // The Context
+    pub context: ExecutionContext<'a>,
     pub script_text: &'a str,
     pub program: Arc<Program<'a>>,
 
@@ -58,7 +63,9 @@ impl<'a> ProgramInstance<'a> {
         program: Arc<Program<'a>>,
         input: HashMap<usize, ScalarValue>,
     ) -> Self {
+        let instance_id = NEXT_INSTANCE_ID.fetch_add(1, Ordering::SeqCst);
         let mut ctx = ProgramInstance {
+            instance_id,
             context,
             script_text: text,
             program: program.clone(),
@@ -109,6 +116,7 @@ impl<'a> Serialize for ProgramInstance<'a> {
             .collect();
 
         let mut ana = s.serialize_struct("ProgramAnalysis", 10)?;
+        ana.serialize_field("instance_id", &self.instance_id)?;
         ana.serialize_field("statement_dependencies", &deps)?;
         ana.serialize_field("statement_names", &self.statement_names)?;
         ana.serialize_field("statement_liveness", &self.statement_liveness)?;

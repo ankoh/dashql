@@ -12,9 +12,7 @@ import styles from './editor.module.css';
 import { SizeObserver, useObservedSize } from '../utils/size_observer';
 import { TokensProvider } from '../model/editor_tokens';
 import { TaskStatusCode } from '../model/task_status';
-import { useWorkflowData, useWorkflowSession } from '../backend/workflow_data_provider';
-import { useBackend, useBackendResolver } from '../backend/backend_provider';
-import { TaskId, Backend } from '../backend/backend';
+import { useWorkflowSession, useWorkflowSessionState, WorkflowSession } from '../backend/workflow_session';
 
 /// Does the mouse movement affect the decorations?
 /// Right now, the only mouse effect is focus on dependency target nodes.
@@ -58,50 +56,20 @@ type Props = {
 };
 
 export const Editor: React.FC<Props> = (props: Props) => {
-    const data = useWorkflowData();
-    const backend = useBackend();
-    const resolveBackend = useBackendResolver();
     const session = useWorkflowSession();
+    const sessionState = useWorkflowSessionState();
+    const sessionRef = React.useRef<WorkflowSession | null>(session);
 
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
     const monacoRef = React.useRef(null);
     const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
-    const statementStatus = data.statusByStatement;
 
-    const backendRef = React.useRef<Backend>(null);
-    const sessionRef = React.useRef<number | null>(session);
-    const programRef = React.useRef<model.Program | null>(data.program);
-    const lineBreaksRef = React.useRef<Float64Array>(new Float64Array());
-
-    // Resolve backend if not resolved
-    React.useEffect(() => {
-        if (backend.value == null && !backend.resolving()) {
-            resolveBackend();
-        } else {
-            backendRef.current = backend.value;
-        }
-    }, [backend]);
-
-    // Program effects
-    const program = data.program;
-    const programAnalysis = data.programAnalysis;
-    React.useEffect(() => {
-        programRef.current = program;
-        lineBreaksRef.current = program?.getLineBreaks() || new Float64Array();
-        const text = program?.text ?? '';
-        if (editor && editor.getModel().getValue() !== text) {
-            editor.setValue(text);
-        }
-    }, [program]);
-
-    // Session effects
     React.useEffect(() => {
         sessionRef.current = session;
     }, [session]);
-
-    // ReadOnly effects
     React.useEffect(() => {
+        // Update readOnly settings
         if (editor && editor.getOption(monaco.editor.EditorOption.readOnly) != props.readOnly) {
             editor.updateOptions({
                 readOnly: props.readOnly,
@@ -118,7 +86,10 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
         // Setup tokens & theme
         monaco.languages.register({ id: 'dashql' });
-        monaco.languages.setTokensProvider('dashql', new TokensProvider(programRef));
+        monaco.languages.setTokensProvider(
+            'dashql',
+            new TokensProvider(() => sessionRef.current?.uncommittedState.program),
+        );
         monaco.editor.defineTheme('dashql-theme', monaco_theme);
         monaco.editor.setTheme('dashql-theme');
 
@@ -127,7 +98,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             // fontFamily: 'Roboto Mono',
             fontSize: 13,
             language: 'dashql',
-            value: program?.text ?? '',
+            value: sessionRef.current?.uncommittedState.programText ?? '',
             links: false,
             wordWrap: 'off',
             glyphMargin: true,
@@ -150,25 +121,23 @@ export const Editor: React.FC<Props> = (props: Props) => {
             ) {
                 return;
             }
+            const session = sessionRef.current;
             const zeroIndexed = pos.lineNumber - 1;
-            const lineOffset = zeroIndexed == 0 ? 0 : lineBreaksRef.current[zeroIndexed - 1];
+            const lineOffset =
+                zeroIndexed == 0 ? 0 : session.uncommittedState.program?.getLineBreaks()[zeroIndexed - 1];
             const nextMouseOffset = lineOffset + pos.column - 1;
             prevMousePosition.current = pos;
             setMouseOffset(nextMouseOffset);
         });
 
-        // Finalize the editor
+        // Update the program text whenever necessary
         e.onDidChangeModelContent(_event => {
-            const backend = backendRef.current;
             const session = sessionRef.current;
-            const program = programRef.current;
-            if (backend == null || session == null || program == null) {
+            if (session == null) {
                 return;
             }
-            if (e.getValue() != program?.text) {
-                (async () => {
-                    await backendRef.current.workflow.updateProgram(session, program?.text);
-                })();
+            if (e.getValue() != session.uncommittedState.programText) {
+                session.updateProgram(e.getValue());
             }
         });
 
@@ -184,12 +153,12 @@ export const Editor: React.FC<Props> = (props: Props) => {
         const data = editor?.getModel();
         if (!data) return;
 
-        if (!program) {
+        if (!sessionState.program) {
             monaco.editor.setModelMarkers(data, 'dashql-model', []);
         } else {
             const markers: monaco.editor.IMarkerData[] = [];
-            for (let i = 0; i < program.ast.errorsLength(); ++i) {
-                const error = program.ast.errors(i)!;
+            for (let i = 0; i < sessionState.program.ast.errorsLength(); ++i) {
+                const error = sessionState.program.ast.errors(i)!;
                 const location = error.location()!;
                 const begin = data.getPositionAt(location.offset());
                 const startLineNumber = begin.lineNumber;
@@ -211,7 +180,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             }
             monaco.editor.setModelMarkers(data, 'dashql-model', markers);
         }
-    }, [editor, program]);
+    }, [editor, sessionState.program]);
 
     // Update decorations
     const prevDecoration = React.useRef<{
@@ -224,18 +193,35 @@ export const Editor: React.FC<Props> = (props: Props) => {
         // Get model.
         // Early aborts if editor is not set.
         const data = editor?.getModel();
+        const program = sessionState.program;
+        const programAnalysis = sessionState.programAnalysis;
         if (!data || !program || !programAnalysis) return;
+        const lineBreaks = program.getLineBreaks();
 
         // Program && status didn't change and the new mouse position does not affect the decorations?
         // Nothing to do then.
         if (
             prevDecoration.current &&
             prevDecoration.current.program == program &&
-            prevDecoration.current.statementStatus == statementStatus &&
+            prevDecoration.current.statementStatus == sessionState.statusByStatement &&
             !mouseMoveAffectsDecorations(program, programAnalysis, prevDecoration.current.mouseOffset, mouseOffset)
         ) {
+            console.log('SKIP DECO UPDATE');
             return;
         }
+        console.log('DECO UPDATE');
+        console.log(prevDecoration.current?.program != program);
+        console.log(prevDecoration.current?.statementStatus != sessionState.statusByStatement);
+        console.log(
+            mouseMoveAffectsDecorations(
+                program,
+                programAnalysis,
+                prevDecoration.current?.mouseOffset ?? 0,
+                mouseOffset,
+            ),
+        );
+        console.log(prevDecoration.current?.program);
+        console.log(program);
 
         // Get the state
         const tmpNode = new model.Node(program);
@@ -250,7 +236,6 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
         // Get a line from an offset
         const getLineFromOffset = (ofs: number) => {
-            const lineBreaks = lineBreaksRef.current;
             const nextBreak = utils.lowerBound(lineBreaks, ofs, (l, r) => l < r, 0, lineBreaks.length);
             const prevOffset = nextBreak == 0 || lineBreaks.length == 0 ? 0 : lineBreaks[nextBreak - 1] + 1; // + \n
             const column = ofs - prevOffset + 1; // Columns are 1 indexed
@@ -258,6 +243,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
         };
 
         // Draw glyphs
+        console.log([...sessionState.statusByStatement.entries()]);
         program.iterateStatements((idx: number, stmt: model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
@@ -276,7 +262,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             });
 
             // Add status decoration
-            const stmtStatus = statementStatus.get(stmt.statementId);
+            const stmtStatus = sessionState.statusByStatement.get(stmt.statementId);
             if (stmtStatus) {
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
@@ -347,11 +333,11 @@ export const Editor: React.FC<Props> = (props: Props) => {
         }
         prevDecoration.current = {
             program: program,
-            statementStatus: statementStatus,
+            statementStatus: sessionState.statusByStatement,
             mouseOffset: mouseOffset,
             decorationIDs: data.deltaDecorations(prevDecoration.current?.decorationIDs || [], dec),
         };
-    }, [editor, program, programAnalysis, statementStatus, mouseOffset]);
+    }, [editor, sessionState.program, sessionState.programAnalysis, sessionState.statusByStatement, mouseOffset]);
 
     /// Debounce editor layouting
     const delayedResize = React.useRef<number | null>();
