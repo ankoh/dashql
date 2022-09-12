@@ -3,7 +3,6 @@ import { useAppConfig } from '../model/app_config';
 
 import styles from './systembar.module.css';
 
-import icon_database from '../../static/svg/icons/database.svg';
 import icon_log from '../../static/svg/icons/log.svg';
 import icon_info from '../../static/svg/icons/info.svg';
 
@@ -52,16 +51,6 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
     const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
     return (
         <div className={props.className}>
-            <SystemPanel
-                systemID={0}
-                expandedPanel={expanded}
-                onClick={toggleTab.bind(this)}
-                icon={icon_database}
-                preferredHeight="80%"
-                preferredWidth="80%"
-            >
-                <div />
-            </SystemPanel>
             <SystemPanel
                 systemID={1}
                 expandedPanel={expanded}
