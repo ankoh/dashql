@@ -13,8 +13,8 @@ pub struct DuckDBDropImportTaskOperator<'ast> {
 impl<'ast> DuckDBDropImportTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
-        task_id: usize,
+        _task_graph: &Arc<TaskGraph>,
+        _task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
             instance: instance.clone(),

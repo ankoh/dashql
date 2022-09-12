@@ -44,11 +44,8 @@ unsafe impl Send for Connection {}
 unsafe impl Send for Buffer {}
 
 impl Database {
-    pub fn close(&mut self) {
-        self.database = Arc::new(FFIUniquePtr {
-            ptr: AtomicPtr::new(std::ptr::null_mut()),
-            deleter: duckdbx_noop_deleter,
-        });
+    pub fn close(&self) {
+        // TODO
     }
     pub fn open_in_memory() -> Result<Self, String> {
         let mut result = FFIResult {
@@ -148,15 +145,8 @@ impl Buffer {
 }
 
 impl Connection {
-    pub fn close(&mut self) {
-        self.connection = Arc::new(FFIUniquePtr {
-            ptr: AtomicPtr::new(std::ptr::null_mut()),
-            deleter: duckdbx_noop_deleter,
-        });
-        self.database = Arc::new(FFIUniquePtr {
-            ptr: AtomicPtr::new(std::ptr::null_mut()),
-            deleter: duckdbx_noop_deleter,
-        });
+    pub fn close(&self) {
+        // TODO
     }
     pub fn run_query(&self, query: &str) -> Result<Buffer, String> {
         let ptr = self.connection.ptr.load(Ordering::SeqCst);

@@ -41,7 +41,7 @@ impl<'ast> ExecutionState<'ast> {
 pub struct ExecutionContext<'ast> {
     pub settings: Arc<ProgramAnalysisSettings>,
     pub runtime: Arc<dyn external::Runtime>,
-    pub database: Arc<Mutex<dyn Database>>,
+    pub database: Arc<dyn Database>,
     pub arena: &'ast bumpalo::Bump,
     pub state: Arc<RwLock<ExecutionState<'ast>>>,
 }
@@ -52,7 +52,7 @@ impl<'ast> ExecutionContext<'ast> {
         Ok(Self {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: runtime::create(),
-            database: Arc::new(Mutex::new(database)),
+            database: Arc::new(database),
             arena,
             state: Arc::new(RwLock::new(ExecutionState::default())),
         })
@@ -60,7 +60,7 @@ impl<'ast> ExecutionContext<'ast> {
     pub fn create(
         settings: Arc<ProgramAnalysisSettings>,
         runtime: Arc<dyn external::Runtime>,
-        database: Arc<Mutex<dyn Database>>,
+        database: Arc<dyn Database>,
         arena: &'ast bumpalo::Bump,
     ) -> Self {
         Self {

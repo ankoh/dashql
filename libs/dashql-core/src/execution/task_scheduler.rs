@@ -297,9 +297,9 @@ mod test {
         assert!(!scheduler_log.any_failed, "{:?}", scheduler_log.entries);
 
         // Test all queries
-        let connection = instance.context.database.lock().unwrap().connect().await?;
+        let connection = instance.context.database.connect().await?;
         for (_test_id, test) in tests.iter().enumerate() {
-            let result = connection.lock().unwrap().run_query(test.query).await?;
+            let result = connection.run_query(test.query).await?;
             let result_batches = result.read_arrow_batches()?;
             assert_eq!(result_batches.len(), 1);
             assert_eq!(test.expected, result_batches[0]);

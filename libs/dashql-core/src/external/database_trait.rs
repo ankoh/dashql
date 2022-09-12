@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -17,12 +17,12 @@ pub trait QueryResultBuffer {
 
 #[async_trait(?Send)]
 pub trait Database: std::fmt::Debug {
-    async fn close(&mut self) -> Result<(), SystemError>;
-    async fn connect(&mut self) -> Result<Arc<Mutex<dyn DatabaseConnection>>, SystemError>;
+    async fn close(&self) -> Result<(), SystemError>;
+    async fn connect(&self) -> Result<Arc<dyn DatabaseConnection>, SystemError>;
 }
 
 #[async_trait(?Send)]
 pub trait DatabaseConnection: std::fmt::Debug {
-    async fn close(&mut self) -> Result<(), SystemError>;
-    async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError>;
+    async fn close(&self) -> Result<(), SystemError>;
+    async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError>;
 }

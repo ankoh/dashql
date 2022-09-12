@@ -478,7 +478,7 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), SystemError> {
         let settings = Arc::new(ProgramAnalysisSettings::default());
         let runtime = runtime::create();
-        let database: Arc<Mutex<dyn Database>> = Arc::new(Mutex::new(NativeDatabase::open_in_memory().await?));
+        let database: Arc<dyn Database> = Arc::new(NativeDatabase::open_in_memory().await?);
 
         // Instantiate previous program
         let prev_arena = bumpalo::Bump::new();

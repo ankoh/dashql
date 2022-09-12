@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use super::super::database_trait::{Database, DatabaseConnection};
 use crate::{error::SystemError, external::QueryResultBuffer, utils::arrow_ipc::read_arrow_ipc_buffer};
@@ -18,13 +18,13 @@ impl NativeDatabase {
 
 #[async_trait(?Send)]
 impl Database for NativeDatabase {
-    async fn close(&mut self) -> Result<(), SystemError> {
+    async fn close(&self) -> Result<(), SystemError> {
         self.inner.close();
         Ok(())
     }
-    async fn connect(&mut self) -> Result<Arc<Mutex<dyn DatabaseConnection>>, SystemError> {
+    async fn connect(&self) -> Result<Arc<dyn DatabaseConnection>, SystemError> {
         let conn = self.inner.connect().map_err(|err| SystemError::Generic(err))?;
-        Ok(Arc::new(Mutex::new(NativeDatabaseConnection { inner: conn })))
+        Ok(Arc::new(NativeDatabaseConnection { inner: conn }))
     }
 }
 
@@ -46,11 +46,11 @@ pub struct NativeDatabaseConnection {
 
 #[async_trait(?Send)]
 impl DatabaseConnection for NativeDatabaseConnection {
-    async fn close(&mut self) -> Result<(), SystemError> {
+    async fn close(&self) -> Result<(), SystemError> {
         self.inner.close();
         Ok(())
     }
-    async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
+    async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let buffer = self.inner.run_query(text)?;
         Ok(Arc::new(NativeQueryResultBuffer { buffer }))
     }

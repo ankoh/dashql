@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_planner::TaskGraph;
@@ -12,7 +12,7 @@ use async_trait::async_trait;
 
 pub struct DuckDBCreateTableTaskOperator<'ast> {
     statement: Statement<'ast>,
-    connection: Option<Arc<Mutex<dyn DatabaseConnection>>>,
+    connection: Option<Arc<dyn DatabaseConnection>>,
 }
 
 impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
@@ -43,13 +43,13 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
 #[async_trait(?Send)]
 impl<'ast> TaskOperator<'ast> for DuckDBCreateTableTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        self.connection = Some(ctx.base.database.lock().unwrap().connect().await?);
+        self.connection = Some(ctx.base.database.connect().await?);
         Ok(())
     }
     async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let connection = self.connection.as_ref().unwrap();
         let script = print_ast_as_script_with_defaults(&self.statement);
-        connection.lock().unwrap().run_query(&script).await?;
+        connection.run_query(&script).await?;
         Ok(())
     }
 }

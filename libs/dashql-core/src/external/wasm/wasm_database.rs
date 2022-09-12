@@ -40,13 +40,13 @@ impl WasmDatabase {
 
 #[async_trait(?Send)]
 impl Database for WasmDatabase {
-    async fn close(&mut self) -> Result<(), SystemError> {
+    async fn close(&self) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn connect(&mut self) -> Result<Arc<Mutex<dyn DatabaseConnection>>, SystemError> {
+    async fn connect(&self) -> Result<Arc<dyn DatabaseConnection>, SystemError> {
         let conn = map_result(self.db.connect().await)?;
         let conn = Arc::new(conn);
-        Ok(Arc::new(Mutex::new(WasmDatabaseConnection { conn })))
+        Ok(Arc::new(WasmDatabaseConnection { conn }))
     }
 }
 
@@ -62,10 +62,10 @@ pub struct WasmDatabaseConnection {
 
 #[async_trait(?Send)]
 impl DatabaseConnection for WasmDatabaseConnection {
-    async fn close(&mut self) -> Result<(), SystemError> {
+    async fn close(&self) -> Result<(), SystemError> {
         map_result(self.conn.disconnect().await)
     }
-    async fn run_query(&mut self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
+    async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         let buffer = map_result(self.conn.run_query(text).await)?;
         Ok(Arc::new(WasmQueryResultBuffer { buffer }))
     }

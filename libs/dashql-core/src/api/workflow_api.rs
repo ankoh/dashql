@@ -28,7 +28,7 @@ where
 {
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
-    default_database: Arc<Mutex<dyn Database>>,
+    default_database: Arc<dyn Database>,
     next_session_id: u32,
     pub sessions: HashMap<WorkflowSessionId, Arc<WorkflowSession<WF>>>,
 }
@@ -42,7 +42,7 @@ where
         Ok(WorkflowAPI {
             settings: Arc::new(ProgramAnalysisSettings::default()),
             runtime: external::runtime::create(),
-            default_database: Arc::new(Mutex::new(database)),
+            default_database: Arc::new(database),
             next_session_id: 1,
             sessions: HashMap::new(),
         })
@@ -51,7 +51,7 @@ where
     pub async fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, SystemError> {
         let session_id = self.next_session_id;
         self.next_session_id += 1;
-        let connection = self.default_database.lock().unwrap().connect().await?;
+        let connection = self.default_database.connect().await?;
         let session = Arc::new(WorkflowSession {
             settings: self.settings.clone(),
             runtime: self.runtime.clone(),
@@ -109,8 +109,8 @@ where
     session_id: WorkflowSessionId,
     pub frontend: Arc<WF>,
     #[allow(dead_code)]
-    database: Arc<Mutex<dyn Database>>,
-    database_connection: Arc<Mutex<dyn DatabaseConnection>>,
+    database: Arc<dyn Database>,
+    database_connection: Arc<dyn DatabaseConnection>,
     scheduler_executing: AtomicBool,
     latest_parsed: Mutex<Option<Arc<ProgramContainer>>>,
     latest_instance: Mutex<Option<ProgramInstanceContainer>>,
@@ -269,8 +269,7 @@ where
     }
 
     pub async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
-        let mut conn = self.database_connection.lock().unwrap();
-        conn.run_query(text).await
+        self.database_connection.run_query(text).await
     }
 }
 
