@@ -157,7 +157,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 s.statusByTask = s.statusByTask.set(taskId, newStatus);
 
                 if (newStatus == TaskStatusCode.Failed) {
-                    console.warn(`[task ${taskId}] Failed with error: \`${error}\``);
+                    console.warn(`[task ${taskId}] failed with error: \`${error}\``);
                 }
 
                 // Update the statement status (if any)
