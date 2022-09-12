@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { RefreshingLogViewer } from './log_viewer';
 import { useAppConfig } from '../model/app_config';
 
 import styles from './systembar.module.css';
@@ -59,7 +60,7 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
                 preferredHeight="400px"
                 preferredWidth="500px"
             >
-                <div />
+                <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
             {appConfig?.value?.features?.systemInfo && (
                 <SystemPanel

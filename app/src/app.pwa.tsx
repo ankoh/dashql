@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { LogProvider } from './model/log';
 import { Explorer } from './pages/explorer';
 import { Examples } from './pages/examples';
 import { NotFound } from './pages/not_found';
@@ -30,23 +31,25 @@ const ExamplesPage = withNavBar(Examples);
 ReactDOM.render(
     <React.StrictMode>
         <AppConfigResolver>
-            <WasmBackendProvider>
-                <AppLauncher>
-                    <WorkflowSessionProvider>
-                        <WorkflowDriver>
-                            <Router>
-                                <Routes>
-                                    <Route path="/explorer/*" element={<ExplorerPage />} />
-                                    <Route path="/examples/*" element={<ExamplesPage />} />
-                                    <Route path="/404" element={<NotFound />} />
-                                    <Route path="/" element={<Navigate to="/explorer" />} />
-                                    <Route path="*" element={<Navigate to="/404" />} />
-                                </Routes>
-                            </Router>
-                        </WorkflowDriver>
-                    </WorkflowSessionProvider>
-                </AppLauncher>
-            </WasmBackendProvider>
+            <LogProvider>
+                <WasmBackendProvider>
+                    <AppLauncher>
+                        <WorkflowSessionProvider>
+                            <WorkflowDriver>
+                                <Router>
+                                    <Routes>
+                                        <Route path="/explorer/*" element={<ExplorerPage />} />
+                                        <Route path="/examples/*" element={<ExamplesPage />} />
+                                        <Route path="/404" element={<NotFound />} />
+                                        <Route path="/" element={<Navigate to="/explorer" />} />
+                                        <Route path="*" element={<Navigate to="/404" />} />
+                                    </Routes>
+                                </Router>
+                            </WorkflowDriver>
+                        </WorkflowSessionProvider>
+                    </AppLauncher>
+                </WasmBackendProvider>
+            </LogProvider>
         </AppConfigResolver>
     </React.StrictMode>,
     document.getElementById('root'),

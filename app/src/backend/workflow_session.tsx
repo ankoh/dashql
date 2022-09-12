@@ -4,7 +4,14 @@ import * as model from '../model';
 import { TaskStatusCode } from '../model/task_status';
 import { SessionId, StateId, WorkflowBackend, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
-import { deriveStatementStatusCode, EditOperationVariant, Program, StatementStatus, TaskGraph } from '../model';
+import {
+    deriveStatementStatusCode,
+    EditOperationVariant,
+    Program,
+    StatementStatus,
+    TaskGraph,
+    useLogger,
+} from '../model';
 
 export type TaskId = number;
 export interface WorkflowSessionState {
@@ -80,6 +87,7 @@ type WorkflowSessionProviderProps = {
 export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
     props: WorkflowSessionProviderProps,
 ) => {
+    const logger = useLogger();
     const backend = useBackend();
     const resolveBackend = useBackendResolver();
     const [sessionId, setSessionId] = React.useState<number | null>(null);
@@ -200,6 +208,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
         })();
     }, [backend, frontend]);
 
+    // Create api
     const session = React.useMemo(() => {
         if (backend.value == null || sessionId == null) {
             return null;
