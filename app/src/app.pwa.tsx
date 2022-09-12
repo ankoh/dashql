@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { LogProvider } from './model/log';
 import { Explorer } from './pages/explorer';
 import { Examples } from './pages/examples';
@@ -28,7 +28,8 @@ const Router = isElectron ? HashRouter : BrowserRouter;
 const ExplorerPage = withNavBar(Explorer);
 const ExamplesPage = withNavBar(Examples);
 
-ReactDOM.render(
+const root = createRoot(document.getElementById('root'));
+root.render(
     <React.StrictMode>
         <AppConfigResolver>
             <LogProvider>
@@ -52,5 +53,4 @@ ReactDOM.render(
             </LogProvider>
         </AppConfigResolver>
     </React.StrictMode>,
-    document.getElementById('root'),
 );

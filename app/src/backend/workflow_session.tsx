@@ -98,15 +98,16 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
     const sessionCreation = React.useRef<Promise<void | null> | null>(null);
 
     // Track workflow data with an uncommitted ref and a committed react state
-    const uncommittedState = React.useRef<WorkflowSessionState>(initSessionState());
-    const [committedState, setCommittedState] = React.useState<WorkflowSessionState>(initSessionState());
+    const uncommittedState = React.useRef<WorkflowSessionState>(null);
+    const [committedState, setCommittedState] = React.useState<WorkflowSessionState>(() => initSessionState());
 
     // Resolve backend (if necessary)
     React.useEffect(() => {
+        uncommittedState.current = initSessionState();
         if (!backend.resolving()) {
             resolveBackend();
         }
-    });
+    }, []);
 
     // Build the frontend
     const frontend: WorkflowFrontend = React.useMemo(() => {
@@ -122,7 +123,6 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateProgram: (sessionId: SessionId, programId: number, text: Uint8Array, ast: Uint8Array) => {
                 const s = getSessionState(sessionId);
                 s.program = new Program(programId, text, ast);
-                console.log(s.program.text);
             },
             updateProgramAnalysis: (session: SessionId, analysisJSON: string) => {
                 const s = getSessionState(session);
@@ -209,12 +209,14 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             return;
         }
         sessionCreation.current = (async () => {
-            const prev = sessionId;
-            if (prev != null) {
+            if (sessionId != null) {
                 setSessionId(null);
-                await backend.value.workflow.closeSession(prev);
+                await backend.value.workflow.closeSession(sessionId);
             }
             const next = await backend.value.workflow.createSession(frontend);
+            if (uncommittedState.current) {
+                initSessionState(uncommittedState.current, next);
+            }
             setSessionId(next);
             sessionCreation.current = null;
         })();
@@ -222,12 +224,11 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
 
     // Create api
     const session = React.useMemo(() => {
-        if (backend.value == null || sessionId == null) {
+        if (uncommittedState.current == null || backend.value == null || sessionId == null) {
             return null;
-        } else {
-            return new WorkflowSession(uncommittedState.current, backend.value.workflow, sessionId);
         }
-    }, [backend.value, sessionId]);
+        return new WorkflowSession(uncommittedState.current, backend.value.workflow, sessionId);
+    }, [backend.value, uncommittedState.current, sessionId]);
 
     return (
         <WORKFLOW_SESSION_CONTEXT.Provider value={session}>

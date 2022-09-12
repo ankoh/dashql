@@ -58,7 +58,7 @@ type Props = {
 export const Editor: React.FC<Props> = (props: Props) => {
     const session = useWorkflowSession();
     const sessionState = useWorkflowSessionState();
-    const sessionRef = React.useRef<WorkflowSession | null>(session);
+    const sessionRef = React.useRef<WorkflowSession | null>(null);
 
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
@@ -148,6 +148,13 @@ export const Editor: React.FC<Props> = (props: Props) => {
         return () => e.dispose();
     }, [monacoContainer]);
 
+    // Update text whenever the programs are committed
+    React.useEffect(() => {
+        if (editor && session && editor.getModel().getValue() !== sessionState.programText) {
+            editor.setValue(sessionState.programText);
+        }
+    }, [editor, sessionState.programText]);
+
     // Update markers whenever the program updates
     React.useEffect(() => {
         const data = editor?.getModel();
@@ -206,7 +213,6 @@ export const Editor: React.FC<Props> = (props: Props) => {
             prevDecoration.current.statementStatus == sessionState.statusByStatement &&
             !mouseMoveAffectsDecorations(program, programAnalysis, prevDecoration.current.mouseOffset, mouseOffset)
         ) {
-            console.log('SKIP DECO UPDATE');
             return;
         }
 
