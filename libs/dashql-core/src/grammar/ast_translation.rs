@@ -11,12 +11,16 @@ use dashql_proto as proto;
 use dashql_proto::ExpressionOperator;
 use dashql_proto::GroupByItemType;
 use proto::AttributeKey as Key;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
 
 #[inline(never)]
 #[cold]
 fn oom() -> ! {
     panic!("out of memory")
 }
+
+static NEXT_PROGRAM_ID: AtomicU32 = AtomicU32::new(0);
 
 pub fn deserialize_ast<'a>(
     arena: &'a bumpalo::Bump,
@@ -1411,7 +1415,9 @@ pub fn deserialize_ast<'a>(
         };
         stmts.push(stmt);
     }
+    let program_id = NEXT_PROGRAM_ID.fetch_add(1, Ordering::SeqCst);
     Ok(Program {
+        program_id,
         ast_data,
         ast_flat,
         ast_translated: nodes,

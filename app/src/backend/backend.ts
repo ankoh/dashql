@@ -4,6 +4,7 @@ import { TaskStatusCode } from '../model/task_status';
 export type DatabaseId = number;
 export type ConnectionId = number;
 export type SessionId = number;
+export type ProgramId = number;
 export type StateId = number;
 export type TaskId = number;
 
@@ -19,7 +20,7 @@ export interface WorkflowBackend {
 
 export interface WorkflowFrontend {
     flushUpdates(session: SessionId): void;
-    updateProgram(session: SessionId, text: Uint8Array, program: Uint8Array): void;
+    updateProgram(sessionId: SessionId, programId: ProgramId, text: Uint8Array, program: Uint8Array): void;
     updateProgramAnalysis(session: SessionId, analysis: string): void;
     updateTaskGraph(session: SessionId, graph: string): void;
     updateTaskStatus(session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any): void;

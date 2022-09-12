@@ -7,10 +7,11 @@ use serde::Serialize;
 use std::sync::{atomic::AtomicU8, Arc};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
-use crate::{error::SystemError, external::console, grammar::Statement, utils::topological_sort::TopologicalSort};
+use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub struct TaskGraph {
+    pub instance_id: u32,
     pub next_state_id: usize,
     pub tasks: Vec<Task>,
     pub task_by_statement: Vec<usize>,
@@ -114,6 +115,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
     }
 
     ctx.next_task_graph = Some(TaskGraph {
+        instance_id: ctx.next_program.instance_id,
         next_state_id,
         tasks,
         task_by_statement: tasks_by_statement,
@@ -549,6 +551,7 @@ IMPORT a FROM 'https://some/remote'
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 1,
                     tasks: vec![Task {
                         task_type: TaskType::Import,
@@ -576,6 +579,7 @@ LOAD b FROM a USING PARQUET;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 2,
                     tasks: vec![
                         Task {
@@ -614,6 +618,7 @@ CREATE TABLE c AS SELECT * FROM b
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 3,
                     tasks: vec![
                         Task {
@@ -661,6 +666,7 @@ VIZ c USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 4,
                     tasks: vec![
                         Task {
@@ -713,6 +719,7 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 2,
                     tasks: vec![
                         Task {
@@ -742,6 +749,7 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
+                    instance_id: 0,
                     next_state_id: 4,
                     tasks: vec![
                         Task {

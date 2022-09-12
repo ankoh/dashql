@@ -8,6 +8,8 @@ import { TaskStatusCode } from './task_status';
 const decoder = new TextDecoder();
 
 export class Program {
+    /// The program id
+    public readonly programId: number;
     /// The encoded text buffer as utf8
     public readonly textBuffer: Uint8Array;
     /// The decoded text
@@ -20,7 +22,9 @@ export class Program {
     public readonly ast: proto.Program;
 
     /// Constructor
-    public constructor(text: Uint8Array, program: Uint8Array) {
+    public constructor(programId: number, text: Uint8Array, program: Uint8Array) {
+        this.programId = programId;
+
         // Read text
         this.textBuffer = text;
         this.text = decoder.decode(text);

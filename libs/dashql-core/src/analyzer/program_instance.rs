@@ -117,6 +117,7 @@ impl<'a> Serialize for ProgramInstance<'a> {
 
         let mut ana = s.serialize_struct("ProgramAnalysis", 10)?;
         ana.serialize_field("instance_id", &self.instance_id)?;
+        ana.serialize_field("program_id", &self.program.program_id)?;
         ana.serialize_field("statement_dependencies", &deps)?;
         ana.serialize_field("statement_names", &self.statement_names)?;
         ana.serialize_field("statement_liveness", &self.statement_liveness)?;

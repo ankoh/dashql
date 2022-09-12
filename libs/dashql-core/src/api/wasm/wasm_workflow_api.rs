@@ -16,7 +16,7 @@ extern "C" {
     #[wasm_bindgen(structural, method, js_name = "flushUpdates")]
     fn flush_updates(this: &JsWorkflowFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
-    fn update_program(this: &JsWorkflowFrontend, session_id: u32, text: Uint8Array, ast: Uint8Array);
+    fn update_program(this: &JsWorkflowFrontend, session_id: u32, program_id: u32, text: Uint8Array, ast: Uint8Array);
     #[wasm_bindgen(structural, method, js_name = "updateProgramAnalysis")]
     fn update_program_analysis(this: &JsWorkflowFrontend, session_id: u32, analysis: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskGraph")]
@@ -56,7 +56,8 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         let ast_ipc = ast.get_program().ast_data;
         let ast_array = Uint8Array::new_with_length(ast_ipc.len() as u32);
         ast_array.copy_from(&ast_ipc);
-        self.inner.update_program(session_id, text_array, ast_array);
+        self.inner
+            .update_program(session_id, ast.get_program().program_id, text_array, ast_array);
         Ok(())
     }
     fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {

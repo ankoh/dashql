@@ -209,19 +209,11 @@ export const Editor: React.FC<Props> = (props: Props) => {
             console.log('SKIP DECO UPDATE');
             return;
         }
-        console.log('DECO UPDATE');
-        console.log(prevDecoration.current?.program != program);
-        console.log(prevDecoration.current?.statementStatus != sessionState.statusByStatement);
-        console.log(
-            mouseMoveAffectsDecorations(
-                program,
-                programAnalysis,
-                prevDecoration.current?.mouseOffset ?? 0,
-                mouseOffset,
-            ),
-        );
-        console.log(prevDecoration.current?.program);
-        console.log(program);
+
+        // Task Graph in Sync
+        const showAnalysis = sessionState.programAnalysis?.program_id == sessionState.program?.programId;
+        const showTasks =
+            sessionState.programTasks?.instance_id == sessionState.programAnalysis?.instance_id && showAnalysis;
 
         // Get the state
         const tmpNode = new model.Node(program);
@@ -242,95 +234,99 @@ export const Editor: React.FC<Props> = (props: Props) => {
             return [nextBreak + 1, column]; // Lines are 1 indexed
         };
 
-        // Draw glyphs
-        console.log([...sessionState.statusByStatement.entries()]);
-        program.iterateStatements((idx: number, stmt: model.Statement) => {
-            const root = stmt.root_node(tmpNode);
-            const loc = root.buffer.location(tmpLoc)!;
-            const ofsBegin = loc!.offset();
-            const ofsEnd = loc!.offset() + loc!.length();
-            const firstPos = getLineFromOffset(ofsBegin);
-            const lastPos = getLineFromOffset(ofsEnd);
+        // Draw analysis glyphs
+        if (showAnalysis) {
+            for (const dep of programAnalysis.statement_dependencies) {
+                const targetLoc = getLoc(program.getNode(dep.target_node, tmpNode));
+                const targetBegin = getLineFromOffset(targetLoc[0]);
+                const targetEnd = getLineFromOffset(targetLoc[0] + targetLoc[1]);
+                const targetRange = new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]);
+                if (mouseOffset && targetLoc[0] <= mouseOffset && mouseOffset <= targetLoc[0] + targetLoc[1]) {
+                    const sourceStmtId = dep.source_stmt;
+                    const sourceStmt = program.getStatement(sourceStmtId);
+                    const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
+                    const sourceBegin = getLineFromOffset(sourceLoc[0]);
+                    const sourceEnd = getLineFromOffset(sourceLoc[0] + sourceLoc[1]);
+                    const sourceRange = new monaco.Range(sourceBegin[0], sourceBegin[1], sourceEnd[0], sourceEnd[1]);
 
-            // Add statement decoration
-            dec.push({
-                range: new monaco.Range(firstPos[0], 1, lastPos[0], 1),
-                options: {
-                    isWholeLine: true,
-                    className: styles.deco_statement,
-                },
-            });
-
-            // Add status decoration
-            const stmtStatus = sessionState.statusByStatement.get(stmt.statementId);
-            if (stmtStatus) {
-                let glyphClass = styles.deco_glyph_status_none;
-                switch (stmtStatus.status) {
-                    case TaskStatusCode.Skipped:
-                    case TaskStatusCode.Blocked:
-                        glyphClass = styles.deco_glyph_status_blocked;
-                        break;
-                    case TaskStatusCode.Completed:
-                        glyphClass = styles.deco_glyph_status_completed;
-                        break;
-                    case TaskStatusCode.Failed:
-                        glyphClass = styles.deco_glyph_status_failed;
-                        break;
-                    case TaskStatusCode.Pending:
-                        glyphClass = styles.deco_glyph_status_none;
-                        break;
-                    case TaskStatusCode.Preparing:
-                    case TaskStatusCode.Prepared:
-                    case TaskStatusCode.Executing:
-                        glyphClass = styles.deco_glyph_status_running;
-                        break;
+                    dec.push({
+                        range: targetRange,
+                        options: {
+                            className: styles.dep_target_focused,
+                        },
+                    });
+                    dec.push({
+                        range: sourceRange,
+                        options: {
+                            isWholeLine: true,
+                            className: styles.dep_source_focused,
+                        },
+                    });
+                } else {
+                    dec.push({
+                        range: targetRange,
+                        options: {
+                            className: styles.dep_target,
+                        },
+                    });
                 }
-                dec.push({
-                    range: new monaco.Range(firstPos[0], 1, firstPos[0], 1),
-                    options: {
-                        isWholeLine: true,
-                        glyphMarginClassName: classNames(styles.deco_glyph_status, glyphClass),
-                    },
-                });
-            }
-        });
-
-        // Highlight ranges
-        for (const dep of programAnalysis.statement_dependencies) {
-            const targetLoc = getLoc(program.getNode(dep.target_node, tmpNode));
-            const targetBegin = getLineFromOffset(targetLoc[0]);
-            const targetEnd = getLineFromOffset(targetLoc[0] + targetLoc[1]);
-            const targetRange = new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]);
-            if (mouseOffset && targetLoc[0] <= mouseOffset && mouseOffset <= targetLoc[0] + targetLoc[1]) {
-                const sourceStmtId = dep.source_stmt;
-                const sourceStmt = program.getStatement(sourceStmtId);
-                const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
-                const sourceBegin = getLineFromOffset(sourceLoc[0]);
-                const sourceEnd = getLineFromOffset(sourceLoc[0] + sourceLoc[1]);
-                const sourceRange = new monaco.Range(sourceBegin[0], sourceBegin[1], sourceEnd[0], sourceEnd[1]);
-
-                dec.push({
-                    range: targetRange,
-                    options: {
-                        className: styles.dep_target_focused,
-                    },
-                });
-                dec.push({
-                    range: sourceRange,
-                    options: {
-                        isWholeLine: true,
-                        className: styles.dep_source_focused,
-                    },
-                });
-            } else {
-                dec.push({
-                    range: targetRange,
-                    options: {
-                        className: styles.dep_target,
-                    },
-                });
             }
         }
+
+        // Draw task glyphs
+        if (showTasks) {
+            program.iterateStatements((idx: number, stmt: model.Statement) => {
+                const root = stmt.root_node(tmpNode);
+                const loc = root.buffer.location(tmpLoc)!;
+                const ofsBegin = loc!.offset();
+                const ofsEnd = loc!.offset() + loc!.length();
+                const firstPos = getLineFromOffset(ofsBegin);
+                const lastPos = getLineFromOffset(ofsEnd);
+
+                // Add statement decoration
+                dec.push({
+                    range: new monaco.Range(firstPos[0], 1, lastPos[0], 1),
+                    options: {
+                        isWholeLine: true,
+                        className: styles.deco_statement,
+                    },
+                });
+
+                // Add status decoration
+                const stmtStatus = sessionState.statusByStatement.get(stmt.statementId);
+                if (stmtStatus) {
+                    let glyphClass = styles.deco_glyph_status_none;
+                    switch (stmtStatus.status) {
+                        case TaskStatusCode.Skipped:
+                        case TaskStatusCode.Blocked:
+                            glyphClass = styles.deco_glyph_status_blocked;
+                            break;
+                        case TaskStatusCode.Completed:
+                            glyphClass = styles.deco_glyph_status_completed;
+                            break;
+                        case TaskStatusCode.Failed:
+                            glyphClass = styles.deco_glyph_status_failed;
+                            break;
+                        case TaskStatusCode.Pending:
+                            glyphClass = styles.deco_glyph_status_none;
+                            break;
+                        case TaskStatusCode.Preparing:
+                        case TaskStatusCode.Prepared:
+                        case TaskStatusCode.Executing:
+                            glyphClass = styles.deco_glyph_status_running;
+                            break;
+                    }
+                    dec.push({
+                        range: new monaco.Range(firstPos[0], 1, firstPos[0], 1),
+                        options: {
+                            isWholeLine: true,
+                            glyphMarginClassName: classNames(styles.deco_glyph_status, glyphClass),
+                        },
+                    });
+                }
+            });
+        }
+
         prevDecoration.current = {
             program: program,
             statementStatus: sessionState.statusByStatement,

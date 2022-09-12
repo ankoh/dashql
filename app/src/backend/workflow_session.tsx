@@ -104,9 +104,9 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 const pending = getSessionState(session);
                 setCommittedState({ ...pending });
             },
-            updateProgram: (session: SessionId, text: Uint8Array, ast: Uint8Array) => {
-                const s = getSessionState(session);
-                s.program = new Program(text, ast);
+            updateProgram: (sessionId: SessionId, programId: number, text: Uint8Array, ast: Uint8Array) => {
+                const s = getSessionState(sessionId);
+                s.program = new Program(programId, text, ast);
                 console.log(s.program.text);
             },
             updateProgramAnalysis: (session: SessionId, analysisJSON: string) => {

@@ -1,6 +1,6 @@
 import { TaskGraph } from 'src/model/task_graph';
 import { TaskStatusCode } from 'src/model/task_status';
-import { SessionId, StateId, TaskId, WorkflowFrontend } from './backend';
+import { ProgramId, SessionId, StateId, TaskId, WorkflowFrontend } from './backend';
 
 export type DatabaseID = number;
 export type ConnectionID = number;
@@ -43,7 +43,8 @@ interface FlushUpdatesMsg {
 }
 
 interface UpdateProgramMsg {
-    session: SessionId;
+    sessionId: SessionId;
+    programId: ProgramId;
     text: Uint8Array;
     program: Uint8Array;
 }
@@ -101,8 +102,11 @@ export function createIPCWorkflowFrontendBridge(
     return {
         flushUpdates: (session: SessionId) =>
             send(session, { type: IPCFrontendMessageType.FLUSH_UPDATES, data: { session } }),
-        updateProgram: (session: SessionId, text: Uint8Array, program: Uint8Array) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM, data: { session, text, program } }),
+        updateProgram: (sessionId: SessionId, programId: ProgramId, text: Uint8Array, program: Uint8Array) =>
+            send(sessionId, {
+                type: IPCFrontendMessageType.UPDATE_PROGRAM,
+                data: { sessionId, programId, text, program },
+            }),
         updateProgramAnalysis: (session: SessionId, analysis: string) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, data: { session, analysis } }),
         updateTaskGraph: (session: SessionId, graph: string) =>
@@ -137,7 +141,12 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
         case IPCFrontendMessageType.FLUSH_UPDATES:
             return frontend.flushUpdates(message.data.session);
         case IPCFrontendMessageType.UPDATE_PROGRAM:
-            return frontend.updateProgram(message.data.session, message.data.text, message.data.program);
+            return frontend.updateProgram(
+                message.data.sessionId,
+                message.data.programId,
+                message.data.text,
+                message.data.program,
+            );
         case IPCFrontendMessageType.UPDATE_TASK_GRAPH:
             return frontend.updateTaskGraph(message.data.session, message.data.graph);
         case IPCFrontendMessageType.UPDATE_TASK_STATUS:

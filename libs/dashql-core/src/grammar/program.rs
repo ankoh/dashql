@@ -22,6 +22,7 @@ pub enum Statement<'arena> {
 
 #[derive(Clone)]
 pub struct Program<'arena> {
+    pub program_id: u32,
     pub ast_data: &'arena [u8],
     pub ast_flat: dashql_proto::Program<'arena>,
     pub ast_translated: Vec<ASTNode<'arena>>,
@@ -54,6 +55,7 @@ impl ProgramContainer {
         let text_static = unsafe { std::mem::transmute::<&str, &'static str>(text) };
         let program_static =
             unsafe { std::mem::transmute::<&Arc<grammar::Program<'_>>, &Arc<grammar::Program<'static>>>(&program) };
+
         Ok(Self {
             arena: Arc::new(arena),
             text: text_static,

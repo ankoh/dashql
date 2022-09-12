@@ -52,6 +52,10 @@ export interface NodeLinterMessage {
 }
 
 export interface ProgramAnalysis {
+    /// The instance id
+    readonly instance_id: number;
+    /// The program id
+    readonly program_id: number;
     /// The dependencies
     readonly statement_dependencies: StatementDependency[];
     /// The statement names

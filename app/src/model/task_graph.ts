@@ -28,6 +28,7 @@ export interface Task {
 }
 
 export interface TaskGraph {
+    instance_id: number;
     next_state_id: number;
     tasks: Task[];
     task_by_statement: number[];
