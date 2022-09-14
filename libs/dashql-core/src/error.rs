@@ -18,6 +18,7 @@ pub enum SystemError {
     ImportURIUnsupported(Option<usize>, String),
     InsufficientArguments,
     InternalError(&'static str),
+    InvalidDataType(String),
     InvalidGroupByItem(Option<usize>),
     InvalidStatementRoot(usize, usize),
     InvalidStatementType(String),
@@ -45,6 +46,7 @@ impl SystemError {
             SystemError::InsufficientArguments => "insufficient arguments",
             SystemError::ImportNotRegistered(_, _) => "import was not registered",
             SystemError::ImportURIUnsupported(_, _) => "import uri is unsupported",
+            SystemError::InvalidDataType(_) => "invalid data type",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
             SystemError::InvalidStatementRoot(_, _) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
@@ -89,6 +91,7 @@ impl<'a> fmt::Display for SystemError {
             SystemError::ImportURIUnsupported(_node, uri) => write!(f, "import has an unsupported URI: {}", uri),
             SystemError::ImportNotRegistered(_node, name) => write!(f, "import not registered: {}", name),
             SystemError::InvalidGroupByItem(_node) => write!(f, "invalid group by item"),
+            SystemError::InvalidDataType(_node) => write!(f, "invalid data type"),
             SystemError::InvalidStatementRoot(stmt_id, node_id) => {
                 write!(f, "invalid statement root for statement: {} -> {}", stmt_id, node_id)
             }

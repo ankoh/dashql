@@ -5,14 +5,12 @@ use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::external::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 use async_trait::async_trait;
 
 pub struct DuckDBCreateTableTaskOperator<'ast> {
     statement: Statement<'ast>,
-    connection: Option<Arc<dyn DatabaseConnection>>,
 }
 
 impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
@@ -33,21 +31,17 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
                 )))
             }
         };
-        Ok(Self {
-            statement: stmt,
-            connection: None,
-        })
+        Ok(Self { statement: stmt })
     }
 }
 
 #[async_trait(?Send)]
 impl<'ast> TaskOperator<'ast> for DuckDBCreateTableTaskOperator<'ast> {
-    async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        self.connection = Some(ctx.base.database.connect().await?);
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        let connection = self.connection.as_ref().unwrap();
+    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+        let connection = ctx.base.database_connection.as_ref();
         let script = print_ast_as_script_with_defaults(&self.statement);
         connection.run_query(&script).await?;
         Ok(())

@@ -4,14 +4,15 @@ use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import_info::{FileImportInfo, HttpImportInfo, ImportInfo, TestImportInfo};
 use crate::execution::task::TaskOperator;
+use crate::execution::task_state::{FileDataRef, HttpDataRef, TaskState, TestDataRef};
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{ImportStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 
 pub struct ImportTask<'ast> {
+    pub state_id: usize,
     pub statement: &'ast ImportStatement<'ast>,
 }
 
@@ -38,7 +39,10 @@ impl<'ast> ImportTask<'ast> {
             Statement::Import(i) => i,
             _ => return Err(SystemError::InvalidStatementType("expected import".to_string())),
         };
-        Ok(Self { statement: stmt })
+        Ok(Self {
+            state_id: task.state_id,
+            statement: stmt,
+        })
     }
 }
 
@@ -76,15 +80,17 @@ impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
         // Register import
         type ImportMethod = proto::ImportMethodType;
         let import = match method {
-            ImportMethod::FILE => ImportInfo::File(FileImportInfo { name: name_string, url }),
-            ImportMethod::HTTP => ImportInfo::Http(HttpImportInfo { name: name_string, url }),
+            ImportMethod::FILE => TaskState::FileDataRef(FileDataRef { name: name_string, url }),
+            ImportMethod::HTTP => TaskState::HttpDataRef(HttpDataRef { name: name_string, url }),
             ImportMethod::TEST => {
                 let url = ctx.base.runtime.resolve_test_data(&url).await?;
-                ImportInfo::Test(TestImportInfo { name: name_string, url })
+                TaskState::TestDataRef(TestDataRef { name: name_string, url })
             }
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        ctx.local_state.imports_by_name.insert(name, import);
+        let import = Arc::new(import);
+        ctx.local_state.state_by_name.insert(name, import.clone());
+        ctx.local_state.state_by_id.insert(self.state_id, import);
         Ok(())
     }
 }

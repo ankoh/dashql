@@ -221,6 +221,7 @@ where
             self.settings.clone(),
             self.runtime.clone(),
             self.database.clone(),
+            self.database_connection.clone(),
             program.get_arena(),
         );
         let input = HashMap::new();
@@ -257,6 +258,7 @@ where
             self.settings.clone(),
             self.runtime.clone(),
             self.database.clone(),
+            self.database_connection.clone(),
             program.get_arena(),
         );
         let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)

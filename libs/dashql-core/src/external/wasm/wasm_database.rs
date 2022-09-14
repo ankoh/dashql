@@ -6,7 +6,7 @@ use crate::utils::arrow_ipc::read_arrow_ipc_buffer;
 use async_trait::async_trait;
 use js_sys::Uint8Array;
 use std::cell::RefCell;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 
 thread_local! {

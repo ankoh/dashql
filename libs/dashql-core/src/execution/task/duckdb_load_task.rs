@@ -1,23 +1,20 @@
-use std::ops::DerefMut;
-use std::sync::{Arc, Mutex};
-
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
-use crate::execution::import_info::ImportInfo;
-use crate::execution::load_info::{CsvLoadInfo, JsonLoadInfo, LoadInfo, ParquetLoadInfo};
 use crate::execution::task::TaskOperator;
+use crate::execution::task_state::{TableRef, TaskState, ViewRef};
 use crate::external::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 use proto::LoadMethodType;
+use std::sync::Arc;
 
 pub struct DuckDBLoadTaskOperator<'ast> {
+    state_id: usize,
     statement: &'ast LoadStatement<'ast>,
-    connection: Option<Arc<dyn DatabaseConnection>>,
 }
 
 impl<'ast> DuckDBLoadTaskOperator<'ast> {
@@ -33,68 +30,79 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected load".to_string())),
         };
         Ok(Self {
+            state_id: task.state_id,
             statement: stmt,
-            connection: None,
         })
     }
 
-    async fn try_create_view(&self, conn: &dyn DatabaseConnection, import: &ImportInfo) -> Result<bool, SystemError> {
+    async fn try_load_with_duckdb<'snap>(
+        &self,
+        ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        state: &TaskState,
+    ) -> Result<bool, SystemError> {
         if self.statement.method.get() == proto::LoadMethodType::JSON {
             return Ok(false);
         }
         match self.statement.method.get() {
-            LoadMethodType::CSV => self.create_csv_table(conn, import).await?,
-            LoadMethodType::PARQUET => self.create_parquet_view(conn, import).await?,
+            LoadMethodType::CSV => self.create_csv_table(ctx, state).await?,
+            LoadMethodType::PARQUET => self.create_parquet_view(ctx, state).await?,
             _ => return Ok(false),
         }
         return Ok(true);
     }
 
-    async fn create_parquet_view(&self, conn: &dyn DatabaseConnection, import: &ImportInfo) -> Result<(), SystemError> {
+    async fn create_parquet_view<'snap>(
+        &self,
+        ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        state: &TaskState,
+    ) -> Result<(), SystemError> {
+        let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        let url = match import {
-            ImportInfo::File(file) => &file.url,
-            ImportInfo::Http(http) => &http.url,
-            ImportInfo::Test(test) => &test.url,
-        };
+        let url = resolve_source_url(state)?;
         let script = format!(
             "create view {} as select * from parquet_scan(\'{}\')",
-            &name_string, url
+            &name_string, &url
         );
         conn.run_query(&script).await?;
+        let view = Arc::new(TaskState::ViewRef(ViewRef { name: name_string }));
+        ctx.local_state.state_by_id.insert(self.state_id, view.clone());
+        ctx.local_state.state_by_name.insert(name, view.clone());
         Ok(())
     }
 
-    async fn create_csv_table(&self, conn: &dyn DatabaseConnection, import: &ImportInfo) -> Result<(), SystemError> {
+    async fn create_csv_table<'snap>(
+        &self,
+        ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        state: &TaskState,
+    ) -> Result<(), SystemError> {
+        let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        let url = match import {
-            ImportInfo::File(file) => &file.url,
-            ImportInfo::Http(http) => &http.url,
-            ImportInfo::Test(test) => &test.url,
-        };
+        let url = resolve_source_url(state)?;
         let script = format!(
             "create table {} as select * from read_csv_auto(\'{}\')",
-            &name_string, url
+            &name_string, &url
         );
         conn.run_query(&script).await?;
+        let table = Arc::new(TaskState::TableRef(TableRef { name: name_string }));
+        ctx.local_state.state_by_id.insert(self.state_id, table.clone());
+        ctx.local_state.state_by_name.insert(name, table.clone());
         Ok(())
     }
 }
 
 #[async_trait(?Send)]
 impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
-    async fn prepare<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
-        self.connection = Some(ctx.base.database.connect().await?);
+    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let source = self.statement.source.get();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        let import = match ctx.global_state.imports_by_name.get(source) {
-            Some(import) => import,
+        let state = match ctx.global_state.state_by_name.get(source) {
+            Some(state) => state.clone(),
             None => {
                 return Err(SystemError::ImportNotRegistered(
                     self.statement.name.get_node_id(),
@@ -102,17 +110,26 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
                 ))
             }
         };
-        let connection = self.connection.as_ref().unwrap();
-        if !self.try_create_view(connection.as_ref(), &import).await? {
-            let hdl = ctx.base.runtime.import_data(&ctx, &import).await?;
-            let info = match self.statement.method.get() {
-                LoadMethodType::CSV => LoadInfo::Csv(CsvLoadInfo { name: name_string }),
-                LoadMethodType::PARQUET => LoadInfo::Parquet(ParquetLoadInfo { name: name_string }),
-                LoadMethodType::JSON => LoadInfo::Json(JsonLoadInfo { name: name_string }),
+        if !self.try_load_with_duckdb(ctx, &state).await? {
+            let hdl = ctx.base.runtime.import_data(&ctx, &state).await?;
+            let state = match self.statement.method.get() {
+                LoadMethodType::CSV => TaskState::TableRef(TableRef { name: name_string }),
+                LoadMethodType::PARQUET => TaskState::ViewRef(ViewRef { name: name_string }),
+                LoadMethodType::JSON => TaskState::TableRef(TableRef { name: name_string }),
                 _ => return Err(SystemError::NotImplemented("load method".to_string())),
             };
-            ctx.base.runtime.load_data(&ctx, hdl, &info).await?;
+            ctx.base.runtime.load_data(&ctx, hdl, &state).await?;
         }
         Ok(())
     }
+}
+
+fn resolve_source_url(state: &TaskState) -> Result<&String, SystemError> {
+    let url = match state {
+        TaskState::FileDataRef(file) => &file.url,
+        TaskState::HttpDataRef(http) => &http.url,
+        TaskState::TestDataRef(test) => &test.url,
+        _ => return Err(SystemError::InvalidDataType(format!("{:?}", state))),
+    };
+    return Ok(url);
 }
