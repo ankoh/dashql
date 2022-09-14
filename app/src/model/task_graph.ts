@@ -24,12 +24,12 @@ export interface Task {
     depends_on: number[];
     required_for: number[];
     origin_statement: number | undefined;
-    state_id: number;
+    data_id: number;
 }
 
 export interface TaskGraph {
     instance_id: number;
-    next_state_id: number;
+    next_data_id: number;
     tasks: Task[];
     task_by_statement: number[];
 }

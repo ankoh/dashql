@@ -40,7 +40,7 @@ impl<'ast> ImportTask<'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected import".to_string())),
         };
         Ok(Self {
-            state_id: task.state_id,
+            state_id: task.data_id,
             statement: stmt,
         })
     }

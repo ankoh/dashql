@@ -14,13 +14,13 @@ use crate::{
 #[derive(Debug, Clone, Serialize)]
 pub struct TaskGraph {
     pub instance_id: u32,
-    pub next_state_id: usize,
+    pub next_data_id: usize,
     pub tasks: Vec<Task>,
     pub task_by_statement: Vec<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct TaskGraphState {
+pub struct TaskGraphExecutionState {
     pub task_status: Vec<TaskStatusCode>,
     pub data_by_id: Vec<Arc<TaskData>>,
 }
@@ -53,7 +53,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
     let mut next_state_id = ctx
         .prev_program
         .clone()
-        .map(|(_, t)| t.next_state_id)
+        .map(|(_, t)| t.next_data_id)
         .unwrap_or_default();
 
     let mut tasks: Vec<Task> = Vec::with_capacity(next.program.statements.len());
@@ -71,7 +71,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
             depends_on: Vec::new(),
             required_for: Vec::new(),
             origin_statement: Some(stmt_id),
-            state_id: next_state_id,
+            data_id: next_state_id,
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(_c) => Task {
@@ -124,7 +124,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
 
     ctx.next_task_graph = Some(TaskGraph {
         instance_id: ctx.next_program.instance_id,
-        next_state_id,
+        next_data_id: next_state_id,
         tasks,
         task_by_statement: tasks_by_statement,
     });
@@ -368,7 +368,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             next_task
                 .task_status
                 .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
-            next_task.state_id = prev_task.state_id;
+            next_task.data_id = prev_task.data_id;
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
@@ -389,7 +389,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             let next_task_id = next_tasks.task_by_statement[next_stmt_id];
             let next_task = &mut next_tasks.tasks[next_task_id];
             next_task.task_type = update_task;
-            next_task.state_id = prev_task.state_id;
+            next_task.data_id = prev_task.data_id;
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
@@ -406,7 +406,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
                 depends_on: prev_task.depends_on.clone(),
                 required_for: prev_task.required_for.clone(),
                 origin_statement: None,
-                state_id: prev_task.state_id,
+                data_id: prev_task.data_id,
             });
             ctx.reverse_task_mapping.push(Some(prev_task_id));
             forward_task_mapping[prev_task_id] = Some(next_task_id);
@@ -520,7 +520,7 @@ mod test {
             prev_tasks = Some(Arc::new(plan_tasks(prev_instance.clone().unwrap(), None)?));
             let have = prev_tasks.as_ref().unwrap();
             let expected = &test.prev.as_ref().unwrap().tasks;
-            assert_eq!(have.next_state_id, expected.next_state_id);
+            assert_eq!(have.next_data_id, expected.next_data_id);
             assert_eq!(have.tasks, expected.tasks);
             assert_eq!(have.task_by_statement, expected.task_by_statement);
         };
@@ -555,7 +555,7 @@ mod test {
         let expected = &test.next.tasks;
         assert_eq!(have.tasks, expected.tasks);
         assert_eq!(have.task_by_statement, expected.task_by_statement);
-        assert_eq!(have.next_state_id, expected.next_state_id);
+        assert_eq!(have.next_data_id, expected.next_data_id);
         Ok(())
     }
 
@@ -570,14 +570,14 @@ IMPORT a FROM 'https://some/remote'
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 1,
+                    next_data_id: 1,
                     tasks: vec![Task {
                         task_type: TaskType::Import,
                         task_status: AtomicU8::new(TaskStatusCode::Skipped as u8),
                         depends_on: vec![],
                         required_for: vec![],
                         origin_statement: Some(0),
-                        state_id: 0,
+                        data_id: 0,
                     }],
                     task_by_statement: vec![0],
                 },
@@ -598,7 +598,7 @@ LOAD b FROM a USING PARQUET;
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 2,
+                    next_data_id: 2,
                     tasks: vec![
                         Task {
                             task_type: TaskType::Import,
@@ -606,7 +606,7 @@ LOAD b FROM a USING PARQUET;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: Some(0),
-                            state_id: 0,
+                            data_id: 0,
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -614,7 +614,7 @@ LOAD b FROM a USING PARQUET;
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: Some(1),
-                            state_id: 1,
+                            data_id: 1,
                         },
                     ],
                     task_by_statement: vec![0, 1],
@@ -637,7 +637,7 @@ CREATE TABLE c AS SELECT * FROM b
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 3,
+                    next_data_id: 3,
                     tasks: vec![
                         Task {
                             task_type: TaskType::Import,
@@ -645,7 +645,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: Some(0),
-                            state_id: 0,
+                            data_id: 0,
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -653,7 +653,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: Some(1),
-                            state_id: 1,
+                            data_id: 1,
                         },
                         Task {
                             task_type: TaskType::CreateTable,
@@ -661,7 +661,7 @@ CREATE TABLE c AS SELECT * FROM b
                             depends_on: vec![1],
                             required_for: vec![],
                             origin_statement: Some(2),
-                            state_id: 2,
+                            data_id: 2,
                         },
                     ],
                     task_by_statement: vec![0, 1, 2],
@@ -685,7 +685,7 @@ VIZ c USING TABLE;
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 4,
+                    next_data_id: 4,
                     tasks: vec![
                         Task {
                             task_type: TaskType::Import,
@@ -693,7 +693,7 @@ VIZ c USING TABLE;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: Some(0),
-                            state_id: 0,
+                            data_id: 0,
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -701,7 +701,7 @@ VIZ c USING TABLE;
                             depends_on: vec![0],
                             required_for: vec![2],
                             origin_statement: Some(1),
-                            state_id: 1,
+                            data_id: 1,
                         },
                         Task {
                             task_type: TaskType::CreateTable,
@@ -709,7 +709,7 @@ VIZ c USING TABLE;
                             depends_on: vec![1],
                             required_for: vec![3],
                             origin_statement: Some(2),
-                            state_id: 2,
+                            data_id: 2,
                         },
                         Task {
                             task_type: TaskType::CreateViz,
@@ -717,7 +717,7 @@ VIZ c USING TABLE;
                             depends_on: vec![2],
                             required_for: vec![],
                             origin_statement: Some(3),
-                            state_id: 3,
+                            data_id: 3,
                         },
                     ],
                     task_by_statement: vec![0, 1, 2, 3],
@@ -738,7 +738,7 @@ VIZ a USING TABLE;
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 2,
+                    next_data_id: 2,
                     tasks: vec![
                         Task {
                             task_type: TaskType::CreateTable,
@@ -746,7 +746,7 @@ VIZ a USING TABLE;
                             depends_on: vec![],
                             required_for: vec![1],
                             origin_statement: Some(0),
-                            state_id: 0,
+                            data_id: 0,
                         },
                         Task {
                             task_type: TaskType::CreateViz,
@@ -754,7 +754,7 @@ VIZ a USING TABLE;
                             depends_on: vec![0],
                             required_for: vec![],
                             origin_statement: Some(1),
-                            state_id: 1,
+                            data_id: 1,
                         },
                     ],
                     task_by_statement: vec![0, 1],
@@ -768,7 +768,7 @@ VIZ a USING TABLE;
                 input: vec![],
                 tasks: TaskGraph {
                     instance_id: 0,
-                    next_state_id: 4,
+                    next_data_id: 4,
                     tasks: vec![
                         Task {
                             task_type: TaskType::CreateTable,
@@ -776,7 +776,7 @@ VIZ a USING TABLE;
                             depends_on: vec![2],
                             required_for: vec![1],
                             origin_statement: Some(0),
-                            state_id: 2,
+                            data_id: 2,
                         },
                         Task {
                             task_type: TaskType::UpdateViz,
@@ -784,7 +784,7 @@ VIZ a USING TABLE;
                             depends_on: vec![0, 2],
                             required_for: vec![],
                             origin_statement: Some(1),
-                            state_id: 1,
+                            data_id: 1,
                         },
                         Task {
                             task_type: TaskType::DropTable,
@@ -792,7 +792,7 @@ VIZ a USING TABLE;
                             depends_on: vec![],
                             required_for: vec![0, 1],
                             origin_statement: None,
-                            state_id: 0,
+                            data_id: 0,
                         },
                     ],
                     task_by_statement: vec![0, 1],

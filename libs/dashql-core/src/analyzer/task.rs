@@ -61,7 +61,7 @@ pub struct Task {
     pub depends_on: Vec<usize>,
     pub required_for: Vec<usize>,
     pub origin_statement: Option<usize>,
-    pub state_id: usize,
+    pub data_id: usize,
 }
 
 impl PartialEq for Task {
@@ -71,7 +71,7 @@ impl PartialEq for Task {
             && self.depends_on == other.depends_on
             && self.required_for == other.required_for
             && self.origin_statement == other.origin_statement
-            && self.state_id == other.state_id
+            && self.data_id == other.data_id
     }
 }
 
@@ -85,7 +85,7 @@ impl Clone for Task {
             depends_on: self.depends_on.clone(),
             required_for: self.required_for.clone(),
             origin_statement: self.origin_statement.clone(),
-            state_id: self.state_id.clone(),
+            data_id: self.data_id.clone(),
         }
     }
 }

@@ -32,7 +32,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected load".to_string())),
         };
         Ok(Self {
-            state_id: task.state_id,
+            state_id: task.data_id,
             instance: instance.clone(),
             task_graph: task_graph.clone(),
             statement: stmt,

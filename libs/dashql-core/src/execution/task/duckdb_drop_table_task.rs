@@ -19,9 +19,7 @@ impl DuckDBDropTableTaskOperator {
         task_id: usize,
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
-        Ok(Self {
-            state_id: task.state_id,
-        })
+        Ok(Self { state_id: task.data_id })
     }
 }
 
