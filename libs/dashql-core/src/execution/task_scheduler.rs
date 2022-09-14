@@ -21,7 +21,7 @@ use crate::{
     analyzer::{
         program_instance::ProgramInstance,
         task::{TaskStatusCode, TaskType},
-        task_planner::TaskGraph,
+        task_graph::TaskGraph,
     },
     error::SystemError,
     external::console,

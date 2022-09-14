@@ -7,7 +7,7 @@ use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_planner::TaskGraph},
+    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_graph::TaskGraph},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     error::SystemError,
     grammar::ProgramContainer,

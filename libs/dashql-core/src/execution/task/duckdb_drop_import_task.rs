@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::analyzer::task_planner::TaskGraph;
+use crate::analyzer::task_graph::TaskGraph;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::external::console;

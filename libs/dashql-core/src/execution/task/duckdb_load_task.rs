@@ -1,5 +1,5 @@
 use crate::analyzer::program_instance::ProgramInstance;
-use crate::analyzer::task_planner::TaskGraph;
+use crate::analyzer::task_graph::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;

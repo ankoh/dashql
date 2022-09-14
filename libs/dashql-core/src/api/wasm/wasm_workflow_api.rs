@@ -68,7 +68,7 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
     fn update_task_graph(
         self: &Arc<Self>,
         session_id: u32,
-        graph: &crate::analyzer::task_planner::TaskGraph,
+        graph: &crate::analyzer::task_graph::TaskGraph,
     ) -> Result<(), String> {
         let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
         self.inner.update_task_graph(session_id, &graph_json);

@@ -9,7 +9,8 @@ use crate::{
         analysis_settings::ProgramAnalysisSettings,
         program_instance::{analyze_program, ProgramInstance},
         task::TaskStatusCode,
-        task_planner::{plan_tasks, TaskGraph},
+        task_graph::TaskGraph,
+        task_planner::plan_tasks,
     },
     error::SystemError,
     execution::{
