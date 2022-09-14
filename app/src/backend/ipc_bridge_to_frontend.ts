@@ -1,6 +1,6 @@
 import { TaskGraph } from 'src/model/task_graph';
 import { TaskStatusCode } from 'src/model/task_status';
-import { ProgramId, SessionId, StateId, TaskId, WorkflowFrontend } from './backend';
+import { ProgramId, SessionId, DataId, TaskId, WorkflowFrontend } from './backend';
 
 export type DatabaseID = number;
 export type ConnectionID = number;
@@ -12,12 +12,12 @@ export enum IPCFrontendMessageType {
     UPDATE_PROGRAM_TEXT = 'UPDATE_PROGRAM_TEXT',
     UPDATE_TASK_GRAPH = 'UPDATE_TASK_GRAPH',
     UPDATE_TASK_STATUS = 'UPDATE_TASK_STATUS',
-    DELETE_TASK_STATE = 'DELETE_TASK_STATE',
-    UPDATE_INPUT_STATE = 'UPDATE_INPUT_STATE',
-    UPDATE_IMPORT_STATE = 'UPDATE_IMPORT_STATE',
-    UPDATE_LOAD_STATE = 'UPDATE_LOAD_STATE',
-    UPDATE_TABLE_STATE = 'UPDATE_TABLE_STATE',
-    UPDATE_VISUALIZATION_STATE = 'UPDATE_VISUALIZATION_STATE',
+    DELETE_TASK_DATA = 'DELETE_TASK_DATA',
+    UPDATE_INPUT_DATA = 'UPDATE_INPUT_DATA',
+    UPDATE_IMPORT_DATA = 'UPDATE_IMPORT_DATA',
+    UPDATE_LOAD_DATA = 'UPDATE_LOAD_DATA',
+    UPDATE_TABLE_DATA = 'UPDATE_TABLE_DATA',
+    UPDATE_VISUALIZATION_DATA = 'UPDATE_VISUALIZATION_DATA',
 }
 
 export type IPCFrontendMessage<T, P> = {
@@ -31,12 +31,12 @@ export type IPCWorkflowFrontendMessage =
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_PROGRAM_ANALYSIS, UpdateProgramAnalysisMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_GRAPH, UpdateTaskGraphMsg>
     | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TASK_STATUS, UpdateTaskStatusMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.DELETE_TASK_STATE, DeleteTaskMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_INPUT_STATE, UpdateInputMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_IMPORT_STATE, UpdateImportMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_LOAD_STATE, UpdateLoadMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TABLE_STATE, UpdateTableMsg>
-    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_VISUALIZATION_STATE, UpdateVisualizationMsg>;
+    | IPCFrontendMessage<IPCFrontendMessageType.DELETE_TASK_DATA, DeleteTaskMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_INPUT_DATA, UpdateInputMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_IMPORT_DATA, UpdateImportMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_LOAD_DATA, UpdateLoadMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_TABLE_DATA, UpdateTableMsg>
+    | IPCFrontendMessage<IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA, UpdateVisualizationMsg>;
 
 interface FlushUpdatesMsg {
     session: SessionId;
@@ -68,32 +68,32 @@ interface UpdateTaskStatusMsg {
 
 interface DeleteTaskMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 interface UpdateInputMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 interface UpdateImportMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 interface UpdateLoadMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 interface UpdateTableMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 interface UpdateVisualizationMsg {
     session: SessionId;
-    state: StateId;
+    state: DataId;
 }
 
 export function createIPCWorkflowFrontendBridge(
@@ -121,18 +121,18 @@ export function createIPCWorkflowFrontendBridge(
                     error,
                 },
             }),
-        deleteTaskState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.DELETE_TASK_STATE, data: { session, state } }),
-        updateInputState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_INPUT_STATE, data: { session, state } }),
-        updateImportState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_IMPORT_STATE, data: { session, state } }),
-        updateLoadState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_LOAD_STATE, data: { session, state } }),
-        updateTableState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_TABLE_STATE, data: { session, state } }),
-        updateVisualizationState: (session: SessionId, state: StateId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_VISUALIZATION_STATE, data: { session, state } }),
+        deleteTaskData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.DELETE_TASK_DATA, data: { session, state } }),
+        updateInputData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_INPUT_DATA, data: { session, state } }),
+        updateImportData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_IMPORT_DATA, data: { session, state } }),
+        updateLoadData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_LOAD_DATA, data: { session, state } }),
+        updateTableData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_TABLE_DATA, data: { session, state } }),
+        updateVisualizationData: (session: SessionId, state: DataId) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA, data: { session, state } }),
     };
 }
 
@@ -156,18 +156,18 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
                 message.data.status,
                 message.data.error,
             );
-        case IPCFrontendMessageType.DELETE_TASK_STATE:
-            return frontend.deleteTaskState(message.data.session, message.data.state);
-        case IPCFrontendMessageType.UPDATE_INPUT_STATE:
-            return frontend.updateInputState(message.data.session, message.data.state);
-        case IPCFrontendMessageType.UPDATE_IMPORT_STATE:
-            return frontend.updateImportState(message.data.session, message.data.state);
-        case IPCFrontendMessageType.UPDATE_LOAD_STATE:
-            return frontend.updateLoadState(message.data.session, message.data.state);
-        case IPCFrontendMessageType.UPDATE_TABLE_STATE:
-            return frontend.updateTableState(message.data.session, message.data.state);
-        case IPCFrontendMessageType.UPDATE_VISUALIZATION_STATE:
-            return frontend.updateVisualizationState(message.data.session, message.data.state);
+        case IPCFrontendMessageType.DELETE_TASK_DATA:
+            return frontend.deleteTaskData(message.data.session, message.data.state);
+        case IPCFrontendMessageType.UPDATE_INPUT_DATA:
+            return frontend.updateInputData(message.data.session, message.data.state);
+        case IPCFrontendMessageType.UPDATE_IMPORT_DATA:
+            return frontend.updateImportData(message.data.session, message.data.state);
+        case IPCFrontendMessageType.UPDATE_LOAD_DATA:
+            return frontend.updateLoadData(message.data.session, message.data.state);
+        case IPCFrontendMessageType.UPDATE_TABLE_DATA:
+            return frontend.updateTableData(message.data.session, message.data.state);
+        case IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA:
+            return frontend.updateVisualizationData(message.data.session, message.data.state);
         default:
             break;
     }

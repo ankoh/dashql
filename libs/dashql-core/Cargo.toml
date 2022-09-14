@@ -25,7 +25,7 @@ bumpalo = "3.9.1"
 flatbuffers = "2.1.1"
 libc = "0.2.121"
 serde_json = "1.0"
-serde = { version = "1.0.136", features = ['derive'] }
+serde = { version = "1.0.136", features = ['derive', 'rc'] }
 quick-xml = { version = "0.22.0", features = ['serialize'] }
 clap = "2.33.3"
 log = "0.4.0"

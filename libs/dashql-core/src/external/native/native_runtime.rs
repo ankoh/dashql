@@ -1,6 +1,6 @@
 use crate::{
     error::SystemError,
-    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskState},
+    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskData},
 };
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -27,7 +27,7 @@ impl Runtime for NativeRuntime {
     async fn import_data<'ast, 'snap>(
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<RuntimeDataHandle, SystemError> {
         todo!();
     }
@@ -36,7 +36,7 @@ impl Runtime for NativeRuntime {
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
         _data: RuntimeDataHandle,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<(), SystemError> {
         todo!();
     }

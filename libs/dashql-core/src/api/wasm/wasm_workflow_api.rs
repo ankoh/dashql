@@ -23,16 +23,16 @@ extern "C" {
     fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskStatus")]
     fn update_task_status(this: &JsWorkflowFrontend, session_id: u32, task_id: u32, status: u32, error: JsValue);
-    #[wasm_bindgen(structural, method, js_name = "deleteTaskState")]
-    fn delete_task_state(this: &JsWorkflowFrontend, session_id: u32, state_id: u32);
-    #[wasm_bindgen(structural, method, js_name = "updateInputState")]
-    fn update_input_state(this: &JsWorkflowFrontend, session_id: u32, state_id: u32);
-    #[wasm_bindgen(structural, method, js_name = "updateImportState")]
-    fn update_import_state(this: &JsWorkflowFrontend, session_id: u32, state_id: u32);
-    #[wasm_bindgen(structural, method, js_name = "updateTableState")]
-    fn update_table_state(this: &JsWorkflowFrontend, session_id: u32, state_id: u32);
-    #[wasm_bindgen(structural, method, js_name = "updateVisualizationState")]
-    fn update_visualization_state(this: &JsWorkflowFrontend, session_id: u32, state_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "deleteTaskData")]
+    fn delete_task_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "updateInputData")]
+    fn update_input_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "updateImportData")]
+    fn update_import_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "updateTableData")]
+    fn update_table_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    #[wasm_bindgen(structural, method, js_name = "updateVisualizationData")]
+    fn update_visualization_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
 }
 
 struct JsWorkflowFrontendBridge {
@@ -88,24 +88,24 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         self.inner.update_task_status(session_id, task_id, status as u32, err);
         Ok(())
     }
-    fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
-        self.inner.delete_task_state(session_id, state_id);
+    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        self.inner.delete_task_data(session_id, data_id);
         Ok(())
     }
-    fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
-        self.inner.update_input_state(session_id, state_id);
+    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        self.inner.update_input_data(session_id, data_id);
         Ok(())
     }
-    fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
-        self.inner.update_import_state(session_id, state_id);
+    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        self.inner.update_import_data(session_id, data_id);
         Ok(())
     }
-    fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
-        self.inner.update_table_state(session_id, state_id);
+    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        self.inner.update_table_data(session_id, data_id);
         Ok(())
     }
-    fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
-        self.inner.update_visualization_state(session_id, state_id);
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        self.inner.update_visualization_data(session_id, data_id);
         Ok(())
     }
 }

@@ -63,18 +63,18 @@ pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
     let stmts = &prog.statements;
     for (stmt_id, stmt) in stmts.iter().enumerate() {
         let name = match stmt {
-            Statement::CreateAs(create) => Some(normalize_name_clone(ctx, create.name.get())),
-            Statement::Create(create) => Some(normalize_name_clone(ctx, create.name.get())),
-            Statement::CreateView(view) => Some(normalize_name_clone(ctx, view.name.get())),
-            Statement::Import(import) => Some(normalize_name_clone(ctx, import.name.get())),
-            Statement::Load(load) => Some(normalize_name_clone(ctx, load.name.get())),
-            Statement::Declare(input) => Some(normalize_name_clone(ctx, input.name.get())),
-            _ => None,
+            Statement::CreateAs(create) => create.name.get(),
+            Statement::Create(create) => create.name.get(),
+            Statement::CreateView(view) => view.name.get(),
+            Statement::Import(import) => import.name.get(),
+            Statement::Load(load) => load.name.get(),
+            Statement::Declare(input) => input.name.get(),
+            _ => continue,
         };
-        if let Some(name) = name {
-            ctx.statement_names[stmt_id] = Some(name);
-            ctx.statement_by_name.insert(name, stmt_id);
-        }
+        let normalized = normalize_name_clone(ctx, name);
+        ctx.statement_names[stmt_id] = Some(normalized);
+        ctx.statement_by_name.insert(normalized, stmt_id);
+        ctx.statement_by_name.insert(name, stmt_id);
     }
 }
 

@@ -87,11 +87,11 @@ pub trait WorkflowFrontend {
         status: TaskStatusCode,
         error: Option<String>,
     ) -> Result<(), String>;
-    fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
-    fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
-    fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
-    fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
-    fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String>;
+    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
 }
 
 #[derive(Clone)]
@@ -296,11 +296,11 @@ mod test {
         UpdateProgramAnalysis(u32),
         UpdateTaskGraph(u32, TaskGraph),
         UpdateTaskStatus(u32, u32, TaskStatusCode, Option<String>),
-        DeleteTaskState(u32, u32),
-        UpdateInputState(u32, u32),
-        UpdateImportState(u32, u32),
-        UpdateTableState(u32, u32),
-        UpdateVisualizationState(u32, u32),
+        DeleteTaskData(u32, u32),
+        UpdateInputData(u32, u32),
+        UpdateImportData(u32, u32),
+        UpdateTableData(u32, u32),
+        UpdateVisualizationData(u32, u32),
     }
 
     #[derive(Default)]
@@ -351,34 +351,34 @@ mod test {
             ));
             Ok(())
         }
-        fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::DeleteTaskState(session_id, state_id));
+                .push(StubWorkflowFrontendCall::DeleteTaskData(session_id, data_id));
             Ok(())
         }
-        fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateInputState(session_id, state_id));
+                .push(StubWorkflowFrontendCall::UpdateInputData(session_id, data_id));
             Ok(())
         }
-        fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateImportState(session_id, state_id));
+                .push(StubWorkflowFrontendCall::UpdateImportData(session_id, data_id));
             Ok(())
         }
-        fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateTableState(session_id, state_id));
+                .push(StubWorkflowFrontendCall::UpdateTableData(session_id, data_id));
             Ok(())
         }
-        fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+        fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateVisualizationState(session_id, state_id));
+                .push(StubWorkflowFrontendCall::UpdateVisualizationData(session_id, data_id));
             Ok(())
         }
     }

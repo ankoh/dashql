@@ -1,6 +1,6 @@
 use crate::{
     error::SystemError,
-    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskState},
+    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskData},
 };
 use async_trait::async_trait;
 
@@ -18,7 +18,7 @@ impl Runtime for DummyRuntime {
     async fn import_data<'ast, 'snap>(
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<RuntimeDataHandle, SystemError> {
         panic!("importing data not implemented");
     }
@@ -27,7 +27,7 @@ impl Runtime for DummyRuntime {
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
         _data: RuntimeDataHandle,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<(), SystemError> {
         panic!("loading data not implemented");
     }

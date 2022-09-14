@@ -3,7 +3,8 @@ use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::execution::task_state::{TableRef, TaskState, ViewRef};
+use crate::execution::task_state::{TableRef, TaskData, ViewRef};
+use crate::external::console;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
@@ -41,7 +42,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
     async fn try_load_with_duckdb<'snap>(
         &self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        state: &TaskState,
+        state: &TaskData,
     ) -> Result<bool, SystemError> {
         if self.statement.method.get() == proto::LoadMethodType::JSON {
             return Ok(false);
@@ -57,7 +58,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
     async fn create_parquet_view<'snap>(
         &self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        state: &TaskState,
+        state: &TaskData,
     ) -> Result<(), SystemError> {
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
@@ -68,7 +69,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
             &name_string, &url
         );
         conn.run_query(&script).await?;
-        let view = Arc::new(TaskState::ViewRef(ViewRef { name: name_string }));
+        let view = Arc::new(TaskData::ViewRef(ViewRef { name: name_string }));
         ctx.local_state.state_by_id.insert(self.state_id, view.clone());
         Ok(())
     }
@@ -76,7 +77,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
     async fn create_csv_table<'snap>(
         &self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        state: &TaskState,
+        state: &TaskData,
     ) -> Result<(), SystemError> {
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
@@ -87,7 +88,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
             &name_string, &url
         );
         conn.run_query(&script).await?;
-        let table = Arc::new(TaskState::TableRef(TableRef { name: name_string }));
+        let table = Arc::new(TaskData::TableRef(TableRef { name: name_string }));
         ctx.local_state.state_by_id.insert(self.state_id, table.clone());
         Ok(())
     }
@@ -102,6 +103,7 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
         let source = self.statement.source.get();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
+        console::println(&format!("{:?}", &self.instance.statement_by_name));
         let source_stmt_id = match self.instance.statement_by_name.get(source) {
             Some(stmt) => *stmt,
             None => {
@@ -124,9 +126,9 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
         if !self.try_load_with_duckdb(ctx, &state).await? {
             let hdl = ctx.base.runtime.import_data(&ctx, &state).await?;
             let state = match self.statement.method.get() {
-                LoadMethodType::CSV => TaskState::TableRef(TableRef { name: name_string }),
-                LoadMethodType::PARQUET => TaskState::ViewRef(ViewRef { name: name_string }),
-                LoadMethodType::JSON => TaskState::TableRef(TableRef { name: name_string }),
+                LoadMethodType::CSV => TaskData::TableRef(TableRef { name: name_string }),
+                LoadMethodType::PARQUET => TaskData::ViewRef(ViewRef { name: name_string }),
+                LoadMethodType::JSON => TaskData::TableRef(TableRef { name: name_string }),
                 _ => return Err(SystemError::NotImplemented("load method".to_string())),
             };
             ctx.base.runtime.load_data(&ctx, hdl, &state).await?;
@@ -135,11 +137,11 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
     }
 }
 
-fn resolve_source_url(state: &TaskState) -> Result<&String, SystemError> {
+fn resolve_source_url(state: &TaskData) -> Result<&String, SystemError> {
     let url = match state {
-        TaskState::FileDataRef(file) => &file.url,
-        TaskState::HttpDataRef(http) => &http.url,
-        TaskState::TestDataRef(test) => &test.url,
+        TaskData::FileDataRef(file) => &file.url,
+        TaskData::HttpDataRef(http) => &http.url,
+        TaskData::TestDataRef(test) => &test.url,
         _ => return Err(SystemError::InvalidDataType(format!("{:?}", state))),
     };
     return Ok(url);

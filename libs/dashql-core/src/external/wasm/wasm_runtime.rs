@@ -1,6 +1,6 @@
 use crate::{
     error::SystemError,
-    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskState},
+    execution::{execution_context::ExecutionContextSnapshot, task_state::TaskData},
     external::{Runtime, RuntimeDataHandle},
 };
 use async_trait::async_trait;
@@ -26,7 +26,7 @@ impl Runtime for WasmRuntime {
     async fn import_data<'ast, 'snap>(
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<RuntimeDataHandle, SystemError> {
         todo!();
     }
@@ -35,7 +35,7 @@ impl Runtime for WasmRuntime {
         &self,
         _ctx: &ExecutionContextSnapshot<'ast, 'snap>,
         _data: RuntimeDataHandle,
-        _info: &TaskState,
+        _info: &TaskData,
     ) -> Result<(), SystemError> {
         todo!();
     }

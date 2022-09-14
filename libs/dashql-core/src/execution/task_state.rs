@@ -30,7 +30,7 @@ pub struct ViewRef {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "t", content = "v")]
-pub enum TaskState {
+pub enum TaskData {
     FileDataRef(FileDataRef),
     HttpDataRef(HttpDataRef),
     TestDataRef(TestDataRef),

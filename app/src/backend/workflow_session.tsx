@@ -2,7 +2,7 @@ import React, { ReactElement } from 'react';
 import Immutable from 'immutable';
 import * as model from '../model';
 import { TaskStatusCode } from '../model/task_status';
-import { SessionId, StateId, WorkflowBackend, WorkflowFrontend } from './backend';
+import { SessionId, DataId, WorkflowBackend, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
 import {
     deriveStatementStatusCode,
@@ -99,7 +99,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
 
     // Track workflow data with an uncommitted ref and a committed react state
     const uncommittedState = React.useRef<WorkflowSessionState>(null);
-    const [committedState, setCommittedState] = React.useState<WorkflowSessionState>(() => initSessionState());
+    const [committedData, setCommittedState] = React.useState<WorkflowSessionState>(() => initSessionState());
 
     // Resolve backend (if necessary)
     React.useEffect(() => {
@@ -194,12 +194,12 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                     s.statusByStatement = s.statusByStatement.set(stmtId, stmt);
                 }
             },
-            deleteTaskState: (session: SessionId, state: StateId) => {},
-            updateInputState: (session: SessionId, state: StateId) => {},
-            updateImportState: (session: SessionId, state: StateId) => {},
-            updateLoadState: (session: SessionId, state: StateId) => {},
-            updateTableState: (session: SessionId, state: StateId) => {},
-            updateVisualizationState: (session: SessionId, state: StateId) => {},
+            deleteTaskData: (session: SessionId, state: DataId) => {},
+            updateInputData: (session: SessionId, state: DataId) => {},
+            updateImportData: (session: SessionId, state: DataId) => {},
+            updateLoadData: (session: SessionId, state: DataId) => {},
+            updateTableData: (session: SessionId, state: DataId) => {},
+            updateVisualizationData: (session: SessionId, state: DataId) => {},
         };
     }, [setCommittedState]);
 
@@ -232,7 +232,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
 
     return (
         <WORKFLOW_SESSION_CONTEXT.Provider value={session}>
-            <WORKFLOW_SESSION_STATE_CONTEXT.Provider value={committedState}>
+            <WORKFLOW_SESSION_STATE_CONTEXT.Provider value={committedData}>
                 {props.children}
             </WORKFLOW_SESSION_STATE_CONTEXT.Provider>
         </WORKFLOW_SESSION_CONTEXT.Provider>

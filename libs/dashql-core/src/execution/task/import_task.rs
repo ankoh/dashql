@@ -5,7 +5,7 @@ use crate::analyzer::task_planner::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::execution::task_state::{FileDataRef, HttpDataRef, TaskState, TestDataRef};
+use crate::execution::task_state::{FileDataRef, HttpDataRef, TaskData, TestDataRef};
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{ImportStatement, Statement};
 use async_trait::async_trait;
@@ -80,11 +80,11 @@ impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
         // Register import
         type ImportMethod = proto::ImportMethodType;
         let import = match method {
-            ImportMethod::FILE => TaskState::FileDataRef(FileDataRef { name: name_string, url }),
-            ImportMethod::HTTP => TaskState::HttpDataRef(HttpDataRef { name: name_string, url }),
+            ImportMethod::FILE => TaskData::FileDataRef(FileDataRef { name: name_string, url }),
+            ImportMethod::HTTP => TaskData::HttpDataRef(HttpDataRef { name: name_string, url }),
             ImportMethod::TEST => {
                 let url = ctx.base.runtime.resolve_test_data(&url).await?;
-                TaskState::TestDataRef(TestDataRef { name: name_string, url })
+                TaskData::TestDataRef(TestDataRef { name: name_string, url })
             }
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };

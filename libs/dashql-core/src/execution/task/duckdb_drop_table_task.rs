@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::analyzer::task_planner::TaskGraph;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::execution::task_state::TaskState;
+use crate::execution::task_state::TaskData;
 use crate::external::console;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
@@ -40,12 +40,12 @@ impl<'ast> TaskOperator<'ast> for DuckDBDropTableTaskOperator {
         };
         console::println(&format!("DROP TABLE STATE {:?}", &state));
         match state.as_ref() {
-            TaskState::TableRef(t) => {
+            TaskData::TableRef(t) => {
                 connection
                     .run_query(&format!("drop table if exists {}", t.name))
                     .await?;
             }
-            TaskState::ViewRef(v) => {
+            TaskData::ViewRef(v) => {
                 connection.run_query(&format!("drop view if exists {}", v.name)).await?;
             }
             state => {

@@ -109,67 +109,67 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
-    fn delete_task_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "deleteTaskState")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "deleteTaskData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, state_id])?;
+            method.call(&mut cx, this, &[session_id, data_id])?;
             Ok(())
         });
         Ok(())
     }
-    fn update_input_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateInputState")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateInputData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, state_id])?;
+            method.call(&mut cx, this, &[session_id, data_id])?;
             Ok(())
         });
         Ok(())
     }
-    fn update_import_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableState")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, state_id])?;
+            method.call(&mut cx, this, &[session_id, data_id])?;
             Ok(())
         });
         Ok(())
     }
-    fn update_table_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableState")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateTableData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, state_id])?;
+            method.call(&mut cx, this, &[session_id, data_id])?;
             Ok(())
         });
         Ok(())
     }
-    fn update_visualization_state(self: &Arc<Self>, session_id: u32, state_id: u32) -> Result<(), String> {
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
-            let state_id = JsNumber::new(&mut cx, state_id).as_value(&mut cx);
+            let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
-            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateVisualizationState")?;
+            let method: Handle<JsFunction> = frontend.get(&mut cx, "updateVisualizationData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, state_id])?;
+            method.call(&mut cx, this, &[session_id, data_id])?;
             Ok(())
         });
         Ok(())

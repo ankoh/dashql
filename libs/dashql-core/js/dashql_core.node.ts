@@ -24,11 +24,11 @@ declare module '*/dist/node/dashql_core.node' {
         endBatchUpdate(sessionId: number): void;
         updateProgram(sessionId: number, buffer: ArrayBuffer): void;
         updateTaskGraph(sessionId: number, graphJson: string): void;
-        updateTaskStatus(sessionId: number, taskId: number, status: number, error: string | null): void;
-        deleteTaskState(sessionId: number, stateId: number): void;
-        updateInputState(sessionId: number, stateId: number): void;
-        updateTableState(sessionId: number, stateId: number): void;
-        updateVisualizationState(sessionId: number, stateId: number): void;
+        updateTaskData(sessionId: number, taskId: number, status: number, error: string | null): void;
+        deleteTaskData(sessionId: number, stateId: number): void;
+        updateInputData(sessionId: number, stateId: number): void;
+        updateTableData(sessionId: number, stateId: number): void;
+        updateVisualizationData(sessionId: number, stateId: number): void;
     }
 
     function workflow_configure_default(): void;

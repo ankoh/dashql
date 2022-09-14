@@ -5,7 +5,7 @@ export type DatabaseId = number;
 export type ConnectionId = number;
 export type SessionId = number;
 export type ProgramId = number;
-export type StateId = number;
+export type DataId = number;
 export type TaskId = number;
 
 export interface WorkflowBackend {
@@ -24,12 +24,12 @@ export interface WorkflowFrontend {
     updateProgramAnalysis(session: SessionId, analysis: string): void;
     updateTaskGraph(session: SessionId, graph: string): void;
     updateTaskStatus(session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any): void;
-    deleteTaskState(session: SessionId, state: StateId): void;
-    updateInputState(session: SessionId, state: StateId): void;
-    updateImportState(session: SessionId, state: StateId): void;
-    updateLoadState(session: SessionId, state: StateId): void;
-    updateTableState(session: SessionId, state: StateId): void;
-    updateVisualizationState(session: SessionId, state: StateId): void;
+    deleteTaskData(session: SessionId, state: DataId): void;
+    updateInputData(session: SessionId, state: DataId): void;
+    updateImportData(session: SessionId, state: DataId): void;
+    updateLoadData(session: SessionId, state: DataId): void;
+    updateTableData(session: SessionId, state: DataId): void;
+    updateVisualizationData(session: SessionId, state: DataId): void;
 }
 
 export interface Backend {
