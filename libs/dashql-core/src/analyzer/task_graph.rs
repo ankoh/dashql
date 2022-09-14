@@ -1,6 +1,6 @@
 use super::task::{Task, TaskStatusCode};
 use serde::Serialize;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::execution::task_state::TaskData;
 
@@ -15,5 +15,5 @@ pub struct TaskGraph {
 #[derive(Debug, Clone, Serialize)]
 pub struct TaskGraphExecutionState {
     pub task_status: Vec<TaskStatusCode>,
-    pub data_by_id: Vec<Arc<TaskData>>,
+    pub data_by_id: HashMap<usize, Arc<TaskData>>,
 }
