@@ -25,7 +25,7 @@ import { withScriptLoader } from './components/script_loader';
 
 const Router = isElectron ? HashRouter : BrowserRouter;
 
-const ExplorerPage = withNavBar(Explorer);
+const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ExamplesPage = withNavBar(Examples);
 
 const root = createRoot(document.getElementById('root'));

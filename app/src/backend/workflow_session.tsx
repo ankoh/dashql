@@ -78,8 +78,8 @@ export class WorkflowSession {
     }
 }
 
-export const WORKFLOW_SESSION_STATE_CONTEXT = React.createContext<WorkflowSessionState>(null);
-export const WORKFLOW_SESSION_CONTEXT = React.createContext<WorkflowSession>(null);
+const WORKFLOW_SESSION_STATE_CONTEXT = React.createContext<WorkflowSessionState>(null);
+const WORKFLOW_SESSION_CONTEXT = React.createContext<WorkflowSession>(null);
 
 export const useWorkflowSessionState = (): WorkflowSessionState => React.useContext(WORKFLOW_SESSION_STATE_CONTEXT);
 export const useWorkflowSession = (): WorkflowSession => React.useContext(WORKFLOW_SESSION_CONTEXT);
