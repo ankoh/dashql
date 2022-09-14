@@ -389,11 +389,14 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
         // Drop if there's a drop task defined
         if undo_task != TaskType::None {
             let next_task_id = next_tasks.tasks.len();
+            // Create the undo task
+            // NOTE: The undo task is created with the depends_on & required_for lists of the previous task
+            //       These tasks are obviously invalid as they refer to invalid task ids.
             next_tasks.tasks.push(Task {
                 task_type: undo_task,
                 task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
                 depends_on: prev_task.depends_on.clone(),
-                required_for: Vec::new(),
+                required_for: prev_task.required_for.clone(),
                 origin_statement: None,
                 state_id: prev_task.state_id,
             });
@@ -401,8 +404,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             forward_task_mapping[prev_task_id] = Some(next_task_id);
         }
     }
-
-    // Patch dependencies among undos
+    // (!!) Patch (AND FILTER) dependencies of undo tasks
     let patch_ids = |ids: &mut Vec<usize>| {
         let mut writer = 0;
         for i in 0..ids.len() {

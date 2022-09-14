@@ -24,6 +24,7 @@ use crate::{
         task_planner::TaskGraph,
     },
     error::SystemError,
+    external::console,
     utils::topological_sort::TopologicalSort,
 };
 use futures::StreamExt;
@@ -121,6 +122,8 @@ impl<'ast> TaskScheduler<'ast> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut task_ops = Vec::with_capacity(self.task_logic.len());
+        console::println(&format!("CHOOSE NEXT: {:?}", self.task_graph.tasks));
+        console::println(&format!("TOPO: {:?}", self.task_topology));
         while !self.task_topology.is_empty() {
             let (task_id, waiting_for) = self.task_topology.top();
             if *waiting_for > 0 {
@@ -135,6 +138,7 @@ impl<'ast> TaskScheduler<'ast> {
         if task_ids.is_empty() {
             return Ok(false);
         }
+        console::println(&format!("NEXT WORK ON: {:?}", task_ids));
 
         // Merge execution context data
         let merge_into =
