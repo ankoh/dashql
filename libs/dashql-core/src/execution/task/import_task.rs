@@ -62,7 +62,7 @@ impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
             let from_uri = match from_uri_expr.evaluate(ctx)?.map(|v| format!("{}", v)) {
                 Some(uri) => uri,
                 None => {
-                    return Err(SystemError::ImportURIUnsupported(
+                    return Err(SystemError::URIUnsupported(
                         self.statement.from_uri.get_node_id(),
                         format!("{:?}", self.statement),
                     ))
@@ -89,7 +89,6 @@ impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
         let import = Arc::new(import);
-        ctx.local_state.state_by_name.insert(name, import.clone());
         ctx.local_state.state_by_id.insert(self.state_id, import);
         Ok(())
     }

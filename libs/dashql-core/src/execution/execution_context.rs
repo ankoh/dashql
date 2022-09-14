@@ -20,7 +20,6 @@ use std::sync::RwLockWriteGuard;
 pub struct ExecutionState<'ast> {
     pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
-    pub state_by_name: HashMap<NamePath<'ast>, Arc<TaskState>>,
     pub state_by_id: HashMap<usize, Arc<TaskState>>,
 }
 
@@ -31,9 +30,6 @@ impl<'ast> ExecutionState<'ast> {
         }
         for (k, v) in self.cached_values.drain() {
             other.cached_values.insert(k, v);
-        }
-        for (k, v) in self.state_by_name.drain() {
-            other.state_by_name.insert(k, v);
         }
         for (k, v) in self.state_by_id.drain() {
             other.state_by_id.insert(k, v);

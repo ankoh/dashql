@@ -62,7 +62,7 @@ where
             scheduler_executing: AtomicBool::new(false),
             latest_parsed: Mutex::new(None),
             latest_instance: Mutex::new(None),
-            planned_instance: Mutex::new(None),
+            latest_executed: Mutex::new(None),
         });
         self.sessions.insert(session_id, session);
         Ok(session_id)
@@ -114,7 +114,7 @@ where
     scheduler_executing: AtomicBool,
     latest_parsed: Mutex<Option<Arc<ProgramContainer>>>,
     latest_instance: Mutex<Option<ProgramInstanceContainer>>,
-    planned_instance: Mutex<Option<(ProgramInstanceContainer, Arc<TaskGraph>)>>,
+    latest_executed: Mutex<Option<(ProgramInstanceContainer, Arc<TaskGraph>)>>,
 }
 
 impl<WF> WorkflowSession<WF>
@@ -140,7 +140,7 @@ where
             }
         };
         let planned = self
-            .planned_instance
+            .latest_executed
             .lock()
             .unwrap()
             .as_ref()
@@ -166,7 +166,7 @@ where
 
         // Setup a task scheduler
         console::println("SCHEDULE TASK GRAPH");
-        self.planned_instance
+        self.latest_executed
             .lock()
             .unwrap()
             .replace((latest.clone(), plan.clone()));
@@ -412,7 +412,7 @@ mod test {
 
         // Execute the plan
         session.execute_program().await?;
-        let planned_instance = session.planned_instance.lock().unwrap().clone();
+        let planned_instance = session.latest_executed.lock().unwrap().clone();
         assert!(planned_instance.is_some());
         let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 1);
@@ -447,7 +447,7 @@ mod test {
 
         // Execute the plan
         session.execute_program().await?;
-        let planned_instance = session.planned_instance.lock().unwrap().clone();
+        let planned_instance = session.latest_executed.lock().unwrap().clone();
         assert!(planned_instance.is_some());
         let (_, graph) = planned_instance.clone().unwrap();
         assert_eq!(graph.tasks.len(), 2);

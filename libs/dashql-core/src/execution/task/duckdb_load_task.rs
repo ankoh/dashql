@@ -4,7 +4,6 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{TableRef, TaskState, ViewRef};
-use crate::external::DatabaseConnection;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
@@ -14,6 +13,8 @@ use std::sync::Arc;
 
 pub struct DuckDBLoadTaskOperator<'ast> {
     state_id: usize,
+    instance: Arc<ProgramInstance<'ast>>,
+    task_graph: Arc<TaskGraph>,
     statement: &'ast LoadStatement<'ast>,
 }
 
@@ -31,6 +32,8 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         };
         Ok(Self {
             state_id: task.state_id,
+            instance: instance.clone(),
+            task_graph: task_graph.clone(),
             statement: stmt,
         })
     }
@@ -67,7 +70,6 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         conn.run_query(&script).await?;
         let view = Arc::new(TaskState::ViewRef(ViewRef { name: name_string }));
         ctx.local_state.state_by_id.insert(self.state_id, view.clone());
-        ctx.local_state.state_by_name.insert(name, view.clone());
         Ok(())
     }
 
@@ -87,7 +89,6 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
         conn.run_query(&script).await?;
         let table = Arc::new(TaskState::TableRef(TableRef { name: name_string }));
         ctx.local_state.state_by_id.insert(self.state_id, table.clone());
-        ctx.local_state.state_by_name.insert(name, table.clone());
         Ok(())
     }
 }
@@ -101,10 +102,20 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
         let source = self.statement.source.get();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        let state = match ctx.global_state.state_by_name.get(source) {
+        let source_stmt_id = match self.instance.statement_by_name.get(source) {
+            Some(stmt) => *stmt,
+            None => {
+                return Err(SystemError::TargetNotKnown(
+                    self.statement.name.get_node_id(),
+                    print_ast_as_script_with_defaults(&source),
+                ))
+            }
+        };
+        let source_task_id = self.task_graph.task_by_statement[source_stmt_id];
+        let state = match ctx.global_state.state_by_id.get(&source_task_id) {
             Some(state) => state.clone(),
             None => {
-                return Err(SystemError::ImportNotRegistered(
+                return Err(SystemError::TargetNotAvailable(
                     self.statement.name.get_node_id(),
                     print_ast_as_script_with_defaults(&source),
                 ))
