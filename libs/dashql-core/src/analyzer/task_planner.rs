@@ -111,6 +111,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
         next_data_id: next_state_id,
         tasks,
         task_by_statement: tasks_by_statement,
+        ..Default::default()
     });
     Ok(())
 }
@@ -553,7 +554,6 @@ IMPORT a FROM 'https://some/remote'
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 1,
                     tasks: vec![Task {
                         task_type: TaskType::Import,
@@ -564,6 +564,7 @@ IMPORT a FROM 'https://some/remote'
                         data_id: 0,
                     }],
                     task_by_statement: vec![0],
+                    ..Default::default()
                 },
             },
         })
@@ -581,7 +582,6 @@ LOAD b FROM a USING PARQUET;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 2,
                     tasks: vec![
                         Task {
@@ -602,6 +602,7 @@ LOAD b FROM a USING PARQUET;
                         },
                     ],
                     task_by_statement: vec![0, 1],
+                    ..Default::default()
                 },
             },
         })
@@ -620,7 +621,6 @@ CREATE TABLE c AS SELECT * FROM b
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 3,
                     tasks: vec![
                         Task {
@@ -649,6 +649,7 @@ CREATE TABLE c AS SELECT * FROM b
                         },
                     ],
                     task_by_statement: vec![0, 1, 2],
+                    ..Default::default()
                 },
             },
         })
@@ -668,7 +669,6 @@ VIZ c USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 4,
                     tasks: vec![
                         Task {
@@ -705,6 +705,7 @@ VIZ c USING TABLE;
                         },
                     ],
                     task_by_statement: vec![0, 1, 2, 3],
+                    ..Default::default()
                 },
             },
         })
@@ -721,7 +722,6 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 2,
                     tasks: vec![
                         Task {
@@ -742,6 +742,7 @@ VIZ a USING TABLE;
                         },
                     ],
                     task_by_statement: vec![0, 1],
+                    ..Default::default()
                 },
             }),
             next: ExpectedInstance {
@@ -751,7 +752,6 @@ VIZ a USING TABLE;
             "#,
                 input: vec![],
                 tasks: TaskGraph {
-                    instance_id: 0,
                     next_data_id: 4,
                     tasks: vec![
                         Task {
@@ -780,6 +780,7 @@ VIZ a USING TABLE;
                         },
                     ],
                     task_by_statement: vec![0, 1],
+                    ..Default::default()
                 },
             },
         })
