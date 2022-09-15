@@ -73,3 +73,36 @@ impl ProgramContainer {
         unsafe { std::mem::transmute::<&'buffer Arc<Program<'static>>, &'buffer Arc<Program<'buffer>>>(&self.program) }
     }
 }
+
+impl serde::Serialize for ProgramContainer {
+    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        ser.serialize_str(self.text)
+    }
+}
+
+impl Default for ProgramContainer {
+    fn default() -> Self {
+        Self {
+            arena: Arc::new(bumpalo::Bump::new()),
+            text: "",
+            program: Arc::new(Program {
+                program_id: 0,
+                ast_data: &[],
+                ast_flat: dashql_proto::Program {
+                    _tab: flatbuffers::Table { buf: &[], loc: 0 },
+                },
+                ast_translated: Vec::new(),
+                statements: Vec::new(),
+            }),
+        }
+    }
+}
+
+impl std::fmt::Debug for ProgramContainer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProgramContainer").field("text", &self.text).finish()
+    }
+}

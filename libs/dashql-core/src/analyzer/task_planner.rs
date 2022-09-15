@@ -457,7 +457,7 @@ mod test {
     use crate::external::parser::parse_into;
     use crate::external::{runtime, Database};
     use crate::grammar;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     struct ExpectedInstance {
         script: &'static str,

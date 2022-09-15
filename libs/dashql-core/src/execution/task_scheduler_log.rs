@@ -110,7 +110,7 @@ where
                 entry.error.clone().map(|e| e.to_string()),
             ) {
                 Ok(()) => (),
-                Err(e) => {
+                Err(_e) => {
                     // TODO log something to the console
                 }
             }

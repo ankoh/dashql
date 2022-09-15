@@ -8,7 +8,7 @@ use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
 pub struct DuckDBDropImportTaskOperator<'ast> {
-    instance: Arc<ProgramInstance<'ast>>,
+    _instance: Arc<ProgramInstance<'ast>>,
 }
 
 impl<'ast> DuckDBDropImportTaskOperator<'ast> {
@@ -18,7 +18,7 @@ impl<'ast> DuckDBDropImportTaskOperator<'ast> {
         _task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            instance: instance.clone(),
+            _instance: instance.clone(),
         })
     }
 }

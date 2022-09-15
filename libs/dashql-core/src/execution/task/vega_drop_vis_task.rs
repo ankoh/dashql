@@ -7,17 +7,17 @@ use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
 pub struct VegaDropVisTaskOperator<'ast> {
-    instance: Arc<ProgramInstance<'ast>>,
+    _instance: Arc<ProgramInstance<'ast>>,
 }
 
 impl<'ast> VegaDropVisTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
-        task_id: usize,
+        _task_graph: &Arc<TaskGraph>,
+        _task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            instance: instance.clone(),
+            _instance: instance.clone(),
         })
     }
 }

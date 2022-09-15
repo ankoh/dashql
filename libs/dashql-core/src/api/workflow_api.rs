@@ -68,6 +68,7 @@ where
         self.sessions.insert(session_id, session);
         Ok(session_id)
     }
+    #[allow(dead_code)]
     pub fn release_session(&mut self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<WF>>> {
         self.sessions.remove(&session_id)
     }
@@ -97,7 +98,7 @@ pub trait WorkflowFrontend {
 
 #[derive(Clone)]
 pub struct ProgramInstanceContainer {
-    program: Arc<ProgramContainer>,
+    _program: Arc<ProgramContainer>,
     instance: Arc<ProgramInstance<'static>>,
 }
 
@@ -171,7 +172,7 @@ where
             .lock()
             .unwrap()
             .replace((latest.clone(), plan.clone()));
-        let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan.clone()) {
+        let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan) {
             Ok(sched) => sched,
             Err(e) => {
                 external::console::println(&format!("{}", &e));
@@ -231,12 +232,12 @@ where
         {
             Ok(instance) => {
                 self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
-                    program: program.clone(),
+                    _program: program.clone(),
                     instance: unsafe { std::mem::transmute(instance.clone()) },
                 });
                 Some(instance)
             }
-            Err(e) => None,
+            Err(_e) => None,
         };
 
         self.frontend.update_program(self.session_id, text, &program)?;
@@ -247,7 +248,8 @@ where
         Ok(())
     }
 
-    pub async fn update_program_input(&self, input: &str) -> Result<(), SystemError> {
+    #[allow(dead_code)]
+    pub async fn update_program_input(&self, _input: &str) -> Result<(), SystemError> {
         // TODO Deserialize input from json
         let new_input = HashMap::new();
 
@@ -265,7 +267,7 @@ where
         let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)
             .map(|instance| Arc::new(instance))?;
         self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
-            program: program.clone(),
+            _program: program.clone(),
             instance: unsafe { std::mem::transmute(instance.clone()) },
         });
 
@@ -274,10 +276,12 @@ where
         Ok(())
     }
 
-    pub async fn edit_program(&self, edits: &str) -> Result<(), SystemError> {
+    #[allow(dead_code)]
+    pub async fn edit_program(&self, _edits: &str) -> Result<(), SystemError> {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
         self.database_connection.run_query(text).await
     }

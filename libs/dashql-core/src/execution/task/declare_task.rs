@@ -7,7 +7,7 @@ use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
 pub struct DeclareTaskOperator<'ast> {
-    instance: Arc<ProgramInstance<'ast>>,
+    _instance: Arc<ProgramInstance<'ast>>,
 }
 
 impl<'ast> DeclareTaskOperator<'ast> {
@@ -17,7 +17,7 @@ impl<'ast> DeclareTaskOperator<'ast> {
         _task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            instance: instance.clone(),
+            _instance: instance.clone(),
         })
     }
 }

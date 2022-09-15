@@ -7,7 +7,7 @@ use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
 pub struct DropInputTaskOperator<'ast> {
-    instance: Arc<ProgramInstance<'ast>>,
+    _instance: Arc<ProgramInstance<'ast>>,
 }
 
 impl<'ast> DropInputTaskOperator<'ast> {
@@ -17,7 +17,7 @@ impl<'ast> DropInputTaskOperator<'ast> {
         _task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            instance: instance.clone(),
+            _instance: instance.clone(),
         })
     }
 }
