@@ -185,7 +185,7 @@ pub async fn execute_program(session_id: u32) -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen(js_name = "workflowUpdateProgramInput")]
-pub async fn update_program_input(session_id: u32, input: String) -> Result<(), JsValue> {
+pub async fn update_program_input(_session_id: u32, _input: String) -> Result<(), JsValue> {
     Ok(())
 }
 

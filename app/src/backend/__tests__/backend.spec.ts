@@ -24,26 +24,24 @@ describe('Backend', () => {
 
         it('hello frontend', async () => {
             const frontend = {} as any;
-            frontend.beginBatchUpdate = jest.fn();
-            frontend.endBatchUpdate = jest.fn();
             frontend.updateProgram = jest.fn();
             frontend.updateProgramAnalysis = jest.fn();
+            frontend.flushUpdates = jest.fn();
 
             const session = await backend.workflow.createSession(frontend);
             await backend.workflow.updateProgram(session, 'create table foo as select 42');
             await backend.workflow.closeSession(session);
 
-            expect(frontend.beginBatchUpdate).toHaveBeenCalledWith(session);
-            expect(frontend.endBatchUpdate).toHaveBeenCalledWith(session);
             expect(frontend.updateProgram).toHaveBeenCalled();
             expect(frontend.updateProgramAnalysis).toHaveBeenCalled();
+            expect(frontend.flushUpdates).toHaveBeenCalled();
 
             const args = frontend.updateProgram.mock.calls[0];
             expect(args[0]).toEqual(session);
-            expect(args[1].byteLength).toBeGreaterThan(0);
             expect(args[2].byteLength).toBeGreaterThan(0);
+            expect(args[3].byteLength).toBeGreaterThan(0);
 
-            const buffer = new flatbuffers.ByteBuffer(new Uint8Array(args[2]));
+            const buffer = new flatbuffers.ByteBuffer(new Uint8Array(args[3]));
             const program = proto.Program.getRootAsProgram(buffer);
             expect(program.errorsLength()).toEqual(0);
             expect(program.statementsLength()).toEqual(1);

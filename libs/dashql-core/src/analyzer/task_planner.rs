@@ -427,7 +427,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
         task.depends_on.sort_unstable();
         task.depends_on.dedup();
         task.required_for.sort_unstable();
-        task.required_for.dedup();
+        task.required_for.dedup()
     }
     Ok(())
 }

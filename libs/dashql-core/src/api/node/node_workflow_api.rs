@@ -41,8 +41,10 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         let self2 = self.clone();
         let text = text.as_bytes().to_vec();
         let ast_ipc = ast.get_program().ast_data.to_vec();
+        let program_id = ast.get_program().program_id;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
+            let program_id = JsNumber::new(&mut cx, program_id).as_value(&mut cx);
             let mut text_buffer = JsArrayBuffer::new(&mut cx, text.len())?;
             let mut ast_buffer = JsArrayBuffer::new(&mut cx, ast_ipc.len())?;
             text_buffer.as_mut_slice(&mut cx).copy_from_slice(&text);
@@ -52,7 +54,7 @@ impl WorkflowFrontend for JsWorkflowFrontend {
             let frontend = self2.get_inner(&mut cx);
             let method: Handle<JsFunction> = frontend.get(&mut cx, "updateProgram")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, text_buffer, ast_buffer])?;
+            method.call(&mut cx, this, &[session_id, program_id, text_buffer, ast_buffer])?;
             Ok(())
         });
         Ok(())
