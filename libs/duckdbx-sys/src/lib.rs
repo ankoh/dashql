@@ -31,8 +31,8 @@ pub struct DatabasePtr {
 }
 #[derive(Clone)]
 pub struct ConnectionPtr {
-    _database: Arc<FFIUniquePtr>,
     connection: Arc<FFIUniquePtr>,
+    _database: Arc<FFIUniquePtr>,
 }
 #[derive(Clone)]
 pub struct Buffer {
@@ -118,8 +118,8 @@ impl DatabasePtr {
                 deleter: result.data_deleter,
             };
             return Ok(ConnectionPtr {
-                _database: self.database.clone(),
                 connection: Arc::new(ptr),
+                _database: self.database.clone(),
             });
         }
     }

@@ -105,6 +105,10 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
         tasks[*a].depends_on.push(*b);
         tasks[*b].required_for.push(*a);
     }
+    for task in tasks.iter_mut() {
+        task.depends_on.dedup();
+        task.required_for.dedup();
+    }
 
     ctx.next_task_graph = Some(TaskGraph {
         instance_id: ctx.next_program.instance_id,
@@ -407,6 +411,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             }
         }
         ids.truncate(writer);
+        ids.dedup();
     };
     for undo_task_id in undos_begin..next_tasks.tasks.len() {
         patch_ids(&mut next_tasks.tasks[undo_task_id].required_for);
@@ -420,7 +425,9 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
     // Sort all all dependency lists
     for task in next_tasks.tasks.iter_mut() {
         task.depends_on.sort_unstable();
+        task.depends_on.dedup();
         task.required_for.sort_unstable();
+        task.required_for.dedup();
     }
     Ok(())
 }
