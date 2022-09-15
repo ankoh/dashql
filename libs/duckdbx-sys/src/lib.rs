@@ -26,11 +26,11 @@ impl Drop for FFIUniquePtr {
 }
 
 #[derive(Clone)]
-pub struct Database {
+pub struct DatabasePtr {
     database: Arc<FFIUniquePtr>,
 }
 #[derive(Clone)]
-pub struct Connection {
+pub struct ConnectionPtr {
     _database: Arc<FFIUniquePtr>,
     connection: Arc<FFIUniquePtr>,
 }
@@ -39,14 +39,11 @@ pub struct Buffer {
     buffer: Arc<FFIUniquePtr>,
 }
 
-unsafe impl Send for Database {}
-unsafe impl Send for Connection {}
+unsafe impl Send for DatabasePtr {}
+unsafe impl Send for ConnectionPtr {}
 unsafe impl Send for Buffer {}
 
-impl Database {
-    pub fn close(&self) {
-        // TODO
-    }
+impl DatabasePtr {
     pub fn open_in_memory() -> Result<Self, String> {
         let mut result = FFIResult {
             status_code: 0,
@@ -66,7 +63,7 @@ impl Database {
                 ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             };
-            return Ok(Database {
+            return Ok(DatabasePtr {
                 database: Arc::new(ptr),
             });
         }
@@ -91,13 +88,13 @@ impl Database {
                 ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             };
-            return Ok(Database {
+            return Ok(DatabasePtr {
                 database: Arc::new(ptr),
             });
         }
     }
 
-    pub fn connect(&self) -> Result<Connection, String> {
+    pub fn connect(&self) -> Result<ConnectionPtr, String> {
         let ptr = self.database.ptr.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
             return Err("database is closed".to_string());
@@ -120,7 +117,7 @@ impl Database {
                 ptr: AtomicPtr::new(result.data),
                 deleter: result.data_deleter,
             };
-            return Ok(Connection {
+            return Ok(ConnectionPtr {
                 _database: self.database.clone(),
                 connection: Arc::new(ptr),
             });
@@ -144,10 +141,7 @@ impl Buffer {
     }
 }
 
-impl Connection {
-    pub fn close(&self) {
-        // TODO
-    }
+impl ConnectionPtr {
     pub fn run_query(&self, query: &str) -> Result<Buffer, String> {
         let ptr = self.connection.ptr.load(Ordering::SeqCst);
         if ptr == std::ptr::null_mut() {
@@ -175,11 +169,5 @@ impl Connection {
             };
             Ok(Buffer { buffer: Arc::new(ptr) })
         }
-    }
-}
-
-impl Drop for Connection {
-    fn drop(&mut self) {
-        self.close();
     }
 }

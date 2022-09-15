@@ -6,12 +6,12 @@ use async_trait::async_trait;
 use duckdbx_sys;
 
 pub struct NativeDatabase {
-    inner: duckdbx_sys::Database,
+    inner: duckdbx_sys::DatabasePtr,
 }
 
 impl NativeDatabase {
     pub async fn open_in_memory() -> Result<NativeDatabase, SystemError> {
-        let db = duckdbx_sys::Database::open_in_memory().map_err(|err| SystemError::Generic(err))?;
+        let db = duckdbx_sys::DatabasePtr::open_in_memory().map_err(|err| SystemError::Generic(err))?;
         Ok(NativeDatabase { inner: db })
     }
 }
@@ -19,7 +19,6 @@ impl NativeDatabase {
 #[async_trait(?Send)]
 impl Database for NativeDatabase {
     async fn close(&self) -> Result<(), SystemError> {
-        self.inner.close();
         Ok(())
     }
     async fn connect(&self) -> Result<Arc<dyn DatabaseConnection>, SystemError> {
@@ -34,20 +33,13 @@ impl std::fmt::Debug for NativeDatabase {
     }
 }
 
-impl Drop for NativeDatabase {
-    fn drop(&mut self) {
-        self.inner.close();
-    }
-}
-
 pub struct NativeDatabaseConnection {
-    inner: duckdbx_sys::Connection,
+    inner: duckdbx_sys::ConnectionPtr,
 }
 
 #[async_trait(?Send)]
 impl DatabaseConnection for NativeDatabaseConnection {
     async fn close(&self) -> Result<(), SystemError> {
-        self.inner.close();
         Ok(())
     }
     async fn run_query(&self, text: &str) -> Result<Arc<dyn QueryResultBuffer>, SystemError> {
@@ -59,12 +51,6 @@ impl DatabaseConnection for NativeDatabaseConnection {
 impl std::fmt::Debug for NativeDatabaseConnection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DatabaseConnection").finish()
-    }
-}
-
-impl Drop for NativeDatabaseConnection {
-    fn drop(&mut self) {
-        self.inner.close();
     }
 }
 
