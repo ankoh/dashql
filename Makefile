@@ -46,6 +46,10 @@ dump_ast:
 tests_rs:
 	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ cargo test --features native
 
+.PHONY: tests_rs_gdb
+tests_rs_gdb:
+	DASHQL_TEST_DATA=~/Repositories/duckdb-wasm/data/ rust-gdb /home/andre/Repositories/dashql/target/debug/deps/dashql_core-e309f416ba472da1
+
 .PHONY: tests_js
 tests_js:
 	NODE_NO_WARNINGS=1 node --experimental-vm-modules --experimental-wasm-eh --experimental-wasi-unstable-preview1 --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
