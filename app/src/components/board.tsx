@@ -4,6 +4,7 @@ import ReactGrid from 'react-grid-layout';
 import { useWorkflowSession, useWorkflowSessionState } from '../backend/workflow_session';
 
 import './board.module.css';
+import { CardStatus } from './card/card_status';
 
 type Props = {
     className?: string;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 interface LayoutElement {
+    statementId: number;
     card: any; // TODO
     i: string;
     x: number;
@@ -39,6 +41,7 @@ export const Board: React.FC<Props> = (props: Props) => {
         for (const stmtId in cards) {
             const card = cards[stmtId];
             els.push({
+                statementId: parseInt(stmtId),
                 card: card,
                 i: stmtId.toString(),
                 x: card.position.column,
@@ -86,7 +89,8 @@ export const Board: React.FC<Props> = (props: Props) => {
     // Build card renderers
     const els: React.ReactElement[] = [];
     for (let i = 0; i < layout.length; ++i) {
-        els.push(<div key={i.toString()}>TODO CardRenderer</div>);
+        let statementId = layout[i].statementId;
+        els.push(<CardStatus key={statementId.toString()} statementId={statementId} />);
     }
     return (
         <ReactGrid

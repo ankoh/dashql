@@ -26,6 +26,7 @@ export interface WorkflowSessionState {
     programTasks: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
     statusByStatement: Immutable.Map<number, StatementStatus>;
+    statementDependsOn: Map<number, number[]>;
 }
 
 /// Create state in-place
@@ -37,6 +38,7 @@ function initSessionState(state: WorkflowSessionState | null = null, sessionId: 
     state.programTasks = null;
     state.statusByTask = Immutable.Map();
     state.statusByStatement = Immutable.Map();
+    state.statementDependsOn = new Map();
     return state;
 }
 
@@ -125,8 +127,14 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateProgramAnalysis: (session: SessionId, analysisJSON: string) => {
                 const s = getSessionState(session);
                 const analysis = JSON.parse(analysisJSON) as model.ProgramAnalysis;
+                const dependsOn = new Map();
+                for (const dep of analysis.statement_dependencies ?? []) {
+                    let deps = dependsOn.get(dep.target_stmt) ?? [];
+                    deps.push(dep.source_stmt);
+                    dependsOn.set(dep.target_stmt, deps);
+                }
                 s.programAnalysis = analysis;
-                console.log(analysis);
+                s.statementDependsOn = dependsOn;
             },
             updateTaskGraph: (session: SessionId, graphJSON: string) => {
                 const s = getSessionState(session);

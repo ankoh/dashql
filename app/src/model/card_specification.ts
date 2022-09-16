@@ -4,3 +4,7 @@ export interface CardPosition {
     readonly width: number;
     readonly height: number;
 }
+
+export interface CardSpecification {
+    readonly position: CardPosition;
+}
