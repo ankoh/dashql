@@ -5,7 +5,6 @@ import axios from 'axios';
 import example_demo_btw from '../static/examples/demo_btw.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
-import example_demo_halowars from '../static/examples/demo_halowars.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
@@ -109,16 +108,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.DATA_JSON)
             .set(ScriptFeatureTag.JMESPATH),
         url: example_demo_explore_json,
-        enabled: true,
-    },
-    {
-        name: 'demo_halowars',
-        collection: 'Demos',
-        title: 'HaloWars Player',
-        description: 'A script that shows how to query REST APIs',
-        icon: icon_dashboard,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
-        url: example_demo_halowars,
         enabled: true,
     },
     {

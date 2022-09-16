@@ -804,7 +804,7 @@ VIZ a USING TABLE;
                         },
                         Task {
                             task_type: TaskType::DropTable,
-                            task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
+                            task_status: AtomicU8::new(TaskStatusCode::Completed as u8),
                             depends_on: vec![],
                             required_for: vec![0, 1],
                             origin_statement: None,
