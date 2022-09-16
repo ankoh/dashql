@@ -157,10 +157,10 @@ impl<'ast> TaskScheduler<'ast> {
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
-            .map(|(task_op_id, task)| (task_ids[task_op_id], task))
-            .filter(|(task_id, _task)| self.task_graph.tasks[*task_id].is_alive())
-            .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
-            .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
+            .map(|(task_op_id, op)| (task_ids[task_op_id], op))
+            .filter(|(task_id, _op)| self.task_graph.tasks[*task_id].is_alive())
+            .map(|(task_id, op)| (task_id, op, instance.context.snapshot()))
+            .map(|(task_id, op, snap)| TaskScheduler::prepare_task(task_id, op, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
         loop {
@@ -203,10 +203,10 @@ impl<'ast> TaskScheduler<'ast> {
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
-            .map(|(task_op_id, task)| (task_ids[task_op_id], task))
-            .filter(|(task_id, _task)| self.task_graph.tasks[*task_id].is_alive())
-            .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
-            .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
+            .map(|(task_op_id, op)| (task_ids[task_op_id], op))
+            .filter(|(task_id, _op)| self.task_graph.tasks[*task_id].is_alive())
+            .map(|(task_id, op)| (task_id, op, instance.context.snapshot()))
+            .map(|(task_id, op, snap)| TaskScheduler::execute_task(task_id, op, snap))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
         loop {
