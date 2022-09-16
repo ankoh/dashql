@@ -1,6 +1,9 @@
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::RwLock;
 
 use serde::Serialize;
+
+use crate::execution::task_state::TaskData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[repr(u8)]
@@ -62,6 +65,7 @@ pub struct Task {
     pub required_for: Vec<usize>,
     pub origin_statement: Option<usize>,
     pub data_id: usize,
+    pub data: RwLock<Option<TaskData>>,
 }
 
 impl PartialEq for Task {
@@ -72,6 +76,7 @@ impl PartialEq for Task {
             && self.required_for == other.required_for
             && self.origin_statement == other.origin_statement
             && self.data_id == other.data_id
+            && self.data.read().unwrap().eq(&other.data.read().unwrap())
     }
 }
 
@@ -86,6 +91,21 @@ impl Clone for Task {
             required_for: self.required_for.clone(),
             origin_statement: self.origin_statement.clone(),
             data_id: self.data_id.clone(),
+            data: RwLock::new(self.data.read().unwrap().clone()),
+        }
+    }
+}
+
+impl Default for Task {
+    fn default() -> Self {
+        Self {
+            task_type: Default::default(),
+            task_status: Default::default(),
+            depends_on: Default::default(),
+            required_for: Default::default(),
+            origin_statement: Default::default(),
+            data_id: Default::default(),
+            data: Default::default(),
         }
     }
 }

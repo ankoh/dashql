@@ -4,7 +4,7 @@ use super::{
     task::{Task, TaskStatusCode, TaskType},
     task_graph::TaskGraph,
 };
-use std::sync::{atomic::AtomicU8, Arc};
+use std::sync::{atomic::AtomicU8, Arc, RwLock};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
 use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
@@ -56,6 +56,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
             required_for: Vec::new(),
             origin_statement: Some(stmt_id),
             data_id: next_state_id,
+            data: RwLock::new(None),
         };
         let task = match &next.program.statements[stmt_id] {
             Statement::Create(_c) => Task {
@@ -358,6 +359,9 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
                 .task_status
                 .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
             next_task.data_id = prev_task.data_id;
+            let mut next_data = next_task.data.write().unwrap();
+            let prev_data = prev_task.data.write().unwrap().take();
+            *next_data = prev_data;
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
@@ -389,6 +393,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             // Create the undo task
             // NOTE: The undo task is created with the depends_on & required_for lists of the previous task
             //       These tasks are obviously invalid as they refer to invalid task ids.
+            let mut data = prev_task.data.write().unwrap();
             next_tasks.tasks.push(Task {
                 task_type: undo_task,
                 task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
@@ -396,6 +401,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
                 required_for: prev_task.required_for.clone(),
                 origin_statement: None,
                 data_id: prev_task.data_id,
+                data: RwLock::new(data.take()),
             });
             ctx.reverse_task_mapping.push(Some(prev_task_id));
             forward_task_mapping[prev_task_id] = Some(next_task_id);
@@ -568,7 +574,7 @@ IMPORT a FROM 'https://some/remote'
                         depends_on: vec![],
                         required_for: vec![],
                         origin_statement: Some(0),
-                        data_id: 0,
+                        ..Task::default()
                     }],
                     task_by_statement: vec![0],
                     ..Default::default()
@@ -598,6 +604,7 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![1],
                             origin_statement: Some(0),
                             data_id: 0,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -606,6 +613,7 @@ LOAD b FROM a USING PARQUET;
                             required_for: vec![],
                             origin_statement: Some(1),
                             data_id: 1,
+                            ..Task::default()
                         },
                     ],
                     task_by_statement: vec![0, 1],
@@ -637,6 +645,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![1],
                             origin_statement: Some(0),
                             data_id: 0,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -645,6 +654,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![2],
                             origin_statement: Some(1),
                             data_id: 1,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::CreateTable,
@@ -653,6 +663,7 @@ CREATE TABLE c AS SELECT * FROM b
                             required_for: vec![],
                             origin_statement: Some(2),
                             data_id: 2,
+                            ..Task::default()
                         },
                     ],
                     task_by_statement: vec![0, 1, 2],
@@ -685,6 +696,7 @@ VIZ c USING TABLE;
                             required_for: vec![1],
                             origin_statement: Some(0),
                             data_id: 0,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::Load,
@@ -693,6 +705,7 @@ VIZ c USING TABLE;
                             required_for: vec![2],
                             origin_statement: Some(1),
                             data_id: 1,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::CreateTable,
@@ -701,6 +714,7 @@ VIZ c USING TABLE;
                             required_for: vec![3],
                             origin_statement: Some(2),
                             data_id: 2,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::CreateViz,
@@ -709,6 +723,7 @@ VIZ c USING TABLE;
                             required_for: vec![],
                             origin_statement: Some(3),
                             data_id: 3,
+                            ..Task::default()
                         },
                     ],
                     task_by_statement: vec![0, 1, 2, 3],
@@ -738,6 +753,7 @@ VIZ a USING TABLE;
                             required_for: vec![1],
                             origin_statement: Some(0),
                             data_id: 0,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::CreateViz,
@@ -746,6 +762,7 @@ VIZ a USING TABLE;
                             required_for: vec![],
                             origin_statement: Some(1),
                             data_id: 1,
+                            ..Task::default()
                         },
                     ],
                     task_by_statement: vec![0, 1],
@@ -768,6 +785,7 @@ VIZ a USING TABLE;
                             required_for: vec![1],
                             origin_statement: Some(0),
                             data_id: 2,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::UpdateViz,
@@ -776,6 +794,7 @@ VIZ a USING TABLE;
                             required_for: vec![],
                             origin_statement: Some(1),
                             data_id: 1,
+                            ..Task::default()
                         },
                         Task {
                             task_type: TaskType::DropTable,
@@ -784,6 +803,7 @@ VIZ a USING TABLE;
                             required_for: vec![0, 1],
                             origin_statement: None,
                             data_id: 0,
+                            ..Task::default()
                         },
                     ],
                     task_by_statement: vec![0, 1],
