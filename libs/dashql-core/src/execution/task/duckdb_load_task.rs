@@ -4,7 +4,6 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{TableRef, TaskData, ViewRef};
-use crate::external::console;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
@@ -103,7 +102,6 @@ impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
         let source = self.statement.source.get();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
-        console::println(&format!("{:?}", &self.instance.statement_by_name));
         let source_stmt_id = match self.instance.statement_by_name.get(source) {
             Some(stmt) => *stmt,
             None => {

@@ -117,8 +117,6 @@ impl<'ast> TaskScheduler<'ast> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut task_ops = Vec::with_capacity(self.task_logic.len());
-        console::println(&format!("CHOOSE NEXT: {:?}", self.task_graph.tasks));
-        console::println(&format!("TOPO: {:?}", self.task_topology));
         while !self.task_topology.is_empty() {
             let (task_id, waiting_for) = self.task_topology.top();
             if *waiting_for > 0 {
