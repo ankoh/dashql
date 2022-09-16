@@ -359,9 +359,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
                 .task_status
                 .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
             next_task.data_id = prev_task.data_id;
-            let mut next_data = next_task.data.write().unwrap();
-            let prev_data = prev_task.data.write().unwrap().take();
-            *next_data = prev_data;
+            *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
@@ -383,6 +381,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             let next_task = &mut next_tasks.tasks[next_task_id];
             next_task.task_type = update_task;
             next_task.data_id = prev_task.data_id;
+            *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
             forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
@@ -393,7 +392,6 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
             // Create the undo task
             // NOTE: The undo task is created with the depends_on & required_for lists of the previous task
             //       These tasks are obviously invalid as they refer to invalid task ids.
-            let mut data = prev_task.data.write().unwrap();
             next_tasks.tasks.push(Task {
                 task_type: undo_task,
                 task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
@@ -401,7 +399,7 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
                 required_for: prev_task.required_for.clone(),
                 origin_statement: None,
                 data_id: prev_task.data_id,
-                data: RwLock::new(data.take()),
+                data: RwLock::new(prev_task.data.write().unwrap().take()),
             });
             ctx.reverse_task_mapping.push(Some(prev_task_id));
             forward_task_mapping[prev_task_id] = Some(next_task_id);
