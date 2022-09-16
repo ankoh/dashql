@@ -123,6 +123,7 @@ impl<'a> Serialize for ProgramInstance<'a> {
         ana.serialize_field("statement_liveness", &self.statement_liveness)?;
         ana.serialize_field("node_error_messages", &self.node_error_messages)?;
         ana.serialize_field("node_linter_messages", &self.node_linter_messages)?;
+        ana.serialize_field("cards", &self.cards)?;
         ana.end()
     }
 }

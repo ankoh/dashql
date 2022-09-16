@@ -51,6 +51,22 @@ export interface NodeLinterMessage {
     message: string;
 }
 
+export interface BoardCard {
+    /// The position
+    position: BoardPosition;
+}
+
+export interface BoardPosition {
+    /// The row
+    row: number;
+    /// The column
+    column: number;
+    /// The width
+    width: number;
+    /// The height
+    height: number;
+}
+
 export interface ProgramAnalysis {
     /// The instance id
     readonly instance_id: number;
@@ -66,4 +82,6 @@ export interface ProgramAnalysis {
     readonly node_error_messages: NodeError[];
     /// The node linter messages
     readonly node_linter_messages: NodeLinterMessage[];
+    /// The cards
+    readonly cards: { [key: number]: BoardCard };
 }

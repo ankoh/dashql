@@ -31,18 +31,24 @@ export const Board: React.FC<Props> = (props: Props) => {
     // Memoize the grid layout
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
-        sessionState.cards.forEach(card => {
+        const cards = sessionState.programAnalysis?.cards;
+        if (cards === undefined) {
+            return els;
+        }
+        console.log(cards);
+        for (const stmtId in cards) {
+            const card = cards[stmtId];
             els.push({
                 card: card,
-                i: card.objectId.toString(),
+                i: stmtId.toString(),
                 x: card.position.column,
                 y: card.position.row,
-                w: card.position.width || 12,
-                h: card.position.height || 4,
+                w: card.position.width ?? 12,
+                h: card.position.height ?? 4,
             });
-        });
+        }
         return els;
-    }, [sessionState.cards]);
+    }, [sessionState.programAnalysis?.cards]);
 
     const userExpectation = React.useRef<boolean>();
     const onLayoutChanged = React.useCallback(
@@ -79,8 +85,8 @@ export const Board: React.FC<Props> = (props: Props) => {
 
     // Build card renderers
     const els: React.ReactElement[] = [];
-    for (const l of layout) {
-        els.push(<div key={l.card.objectId}>TODO CardRenderer</div>);
+    for (let i = 0; i < layout.length; ++i) {
+        els.push(<div key={i.toString()}>TODO CardRenderer</div>);
     }
     return (
         <ReactGrid

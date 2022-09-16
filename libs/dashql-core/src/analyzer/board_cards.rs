@@ -155,7 +155,7 @@ pub fn collect_cards<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), Syste
                     _ => "".to_string(),
                 };
             }
-            _ => {}
+            _ => continue,
         }
         inst.cards.insert(stmt_id, card);
     }

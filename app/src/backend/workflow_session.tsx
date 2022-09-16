@@ -26,7 +26,6 @@ export interface WorkflowSessionState {
     programTasks: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
     statusByStatement: Immutable.Map<number, StatementStatus>;
-    cards: Immutable.List<any>; // TODO
 }
 
 /// Create state in-place
@@ -38,7 +37,6 @@ function initSessionState(state: WorkflowSessionState | null = null, sessionId: 
     state.programTasks = null;
     state.statusByTask = Immutable.Map();
     state.statusByStatement = Immutable.Map();
-    state.cards = Immutable.List();
     return state;
 }
 
@@ -128,6 +126,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 const s = getSessionState(session);
                 const analysis = JSON.parse(analysisJSON) as model.ProgramAnalysis;
                 s.programAnalysis = analysis;
+                console.log(analysis);
             },
             updateTaskGraph: (session: SessionId, graphJSON: string) => {
                 const s = getSessionState(session);

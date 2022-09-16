@@ -15,6 +15,26 @@ pub struct BoardPosition {
     pub height: usize,
 }
 
+impl PartialOrd for BoardPosition {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.row.partial_cmp(&other.row) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.column.partial_cmp(&other.column)
+    }
+}
+
+impl Ord for BoardPosition {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.row.cmp(&other.row) {
+            std::cmp::Ordering::Less => std::cmp::Ordering::Less,
+            std::cmp::Ordering::Equal => self.column.cmp(&other.column),
+            std::cmp::Ordering::Greater => std::cmp::Ordering::Greater,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct BoardSpace {
     /// The cell bitmask. 1 = occupied, 0 = free.
