@@ -35,7 +35,6 @@ const rebuild = (originId: number, sessionState: WorkflowSessionState | null): N
         const top = depDFS.pop()!;
         const deps = dependsOn.get(top) ?? [];
         if (!deps) continue;
-        console.log(deps);
         for (const dep of deps) {
             if (!focus.isSet(dep)) {
                 focus.set(dep);
@@ -53,11 +52,6 @@ const rebuild = (originId: number, sessionState: WorkflowSessionState | null): N
             statementType: stmt.statement_type,
             taskStatus: sessionState.statusByStatement.get(idx)?.status ?? TaskStatusCode.Pending,
         });
-    });
-    console.log({
-        originId: originId,
-        dependsOn: dependsOn,
-        nodes: nodes,
     });
     return nodes;
 };

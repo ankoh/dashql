@@ -37,7 +37,6 @@ export const Board: React.FC<Props> = (props: Props) => {
         if (cards === undefined) {
             return els;
         }
-        console.log(cards);
         for (const stmtId in cards) {
             const card = cards[stmtId];
             els.push({
