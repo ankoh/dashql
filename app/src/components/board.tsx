@@ -88,9 +88,12 @@ export const Board: React.FC<Props> = (props: Props) => {
 
     // Build card renderers
     const els: React.ReactElement[] = [];
-    for (let i = 0; i < layout.length; ++i) {
-        let statementId = layout[i].statementId;
-        els.push(<CardStatus key={statementId.toString()} statementId={statementId} />);
+    for (const l of layout) {
+        els.push(
+            <div key={l.i}>
+                <CardStatus statementId={l.statementId} />
+            </div>,
+        );
     }
     return (
         <ReactGrid
