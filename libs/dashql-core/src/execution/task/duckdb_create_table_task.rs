@@ -5,12 +5,15 @@ use crate::analyzer::task_graph::TaskGraph;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
+use crate::execution::task_state::{TableRef, TaskData, ViewRef};
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 use async_trait::async_trait;
 
 pub struct DuckDBCreateTableTaskOperator<'ast> {
     statement: Statement<'ast>,
+    task_graph: Arc<TaskGraph>,
+    task_id: usize,
 }
 
 impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
@@ -31,7 +34,11 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
                 )))
             }
         };
-        Ok(Self { statement: stmt })
+        Ok(Self {
+            statement: stmt,
+            task_graph: task_graph.clone(),
+            task_id,
+        })
     }
 }
 
@@ -41,9 +48,28 @@ impl<'ast> TaskOperator<'ast> for DuckDBCreateTableTaskOperator<'ast> {
         Ok(())
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+        let task = &self.task_graph.tasks[self.task_id];
         let connection = ctx.base.database_connection.as_ref();
         let script = print_ast_as_script_with_defaults(&self.statement);
         connection.run_query(&script).await?;
+        match self.statement {
+            Statement::Create(c) => {
+                *task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                    name: print_ast_as_script_with_defaults(&c.name.get()),
+                }));
+            }
+            Statement::CreateAs(c) => {
+                *task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                    name: print_ast_as_script_with_defaults(&c.name.get()),
+                }));
+            }
+            Statement::CreateView(v) => {
+                *task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef {
+                    name: print_ast_as_script_with_defaults(&v.name.get()),
+                }));
+            }
+            _ => return Err(SystemError::NotImplemented("table statement type".to_string())),
+        }
         Ok(())
     }
 }

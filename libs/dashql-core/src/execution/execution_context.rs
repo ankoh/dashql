@@ -1,5 +1,4 @@
 use super::scalar_value::ScalarValue;
-use super::task_state::TaskData;
 use crate::analyzer::analysis_settings::ProgramAnalysisSettings;
 use crate::error::SystemError;
 use crate::external;
@@ -20,7 +19,6 @@ use std::sync::RwLockWriteGuard;
 pub struct ExecutionState<'ast> {
     pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
-    pub state_by_id: HashMap<usize, Arc<TaskData>>,
 }
 
 impl<'ast> ExecutionState<'ast> {
@@ -30,9 +28,6 @@ impl<'ast> ExecutionState<'ast> {
         }
         for (k, v) in self.cached_values.drain() {
             other.cached_values.insert(k, v);
-        }
-        for (k, v) in self.state_by_id.drain() {
-            other.state_by_id.insert(k, v);
         }
     }
 }

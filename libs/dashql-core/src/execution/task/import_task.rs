@@ -12,7 +12,8 @@ use async_trait::async_trait;
 use dashql_proto as proto;
 
 pub struct ImportTask<'ast> {
-    pub state_id: usize,
+    pub task_graph: Arc<TaskGraph>,
+    pub task_id: usize,
     pub statement: &'ast ImportStatement<'ast>,
 }
 
@@ -40,7 +41,8 @@ impl<'ast> ImportTask<'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected import".to_string())),
         };
         Ok(Self {
-            state_id: task.data_id,
+            task_id: task_id,
+            task_graph: task_graph.clone(),
             statement: stmt,
         })
     }
@@ -88,8 +90,7 @@ impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
             }
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        let import = Arc::new(import);
-        ctx.local_state.state_by_id.insert(self.state_id, import);
+        *self.task_graph.tasks[self.task_id].data.write().unwrap() = Some(import);
         Ok(())
     }
 }

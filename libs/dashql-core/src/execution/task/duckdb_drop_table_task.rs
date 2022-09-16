@@ -9,7 +9,8 @@ use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
 pub struct DuckDBDropTableTaskOperator {
-    state_id: usize,
+    task_graph: Arc<TaskGraph>,
+    task_id: usize,
 }
 
 impl DuckDBDropTableTaskOperator {
@@ -18,8 +19,10 @@ impl DuckDBDropTableTaskOperator {
         task_graph: &Arc<TaskGraph>,
         task_id: usize,
     ) -> Result<Self, SystemError> {
-        let task = &task_graph.tasks[task_id];
-        Ok(Self { state_id: task.data_id })
+        Ok(Self {
+            task_graph: task_graph.clone(),
+            task_id: task_id,
+        })
     }
 }
 
@@ -30,14 +33,16 @@ impl<'ast> TaskOperator<'ast> for DuckDBDropTableTaskOperator {
     }
     async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         let connection = ctx.base.database_connection.as_ref();
-        console::println(&format!("DROP TABLE STATE_ID {:?}", self.state_id));
-        console::println(&format!("{:?}", &ctx.global_state));
-        let state = match ctx.global_state.state_by_id.get(&self.state_id) {
-            Some(state) => state,
-            None => return Ok(()),
+        let data_lock = self.task_graph.tasks[self.task_id].data.read().unwrap();
+        let data = match data_lock.as_ref() {
+            Some(data) => data,
+            None => {
+                console::println("DROP TABLE NOT NECESSARY");
+                return Ok(());
+            }
         };
-        console::println(&format!("DROP TABLE STATE {:?}", &state));
-        match state.as_ref() {
+        console::println(&format!("DROP TABLE STATE {:?}", &data));
+        match data {
             TaskData::TableRef(t) => {
                 connection
                     .run_query(&format!("drop table if exists {}", t.name))
@@ -46,8 +51,8 @@ impl<'ast> TaskOperator<'ast> for DuckDBDropTableTaskOperator {
             TaskData::ViewRef(v) => {
                 connection.run_query(&format!("drop view if exists {}", v.name)).await?;
             }
-            state => {
-                console::println(&format!("cannot drop {:?}", &state));
+            data => {
+                console::println(&format!("cannot drop {:?}", &data));
             }
         }
         Ok(())
