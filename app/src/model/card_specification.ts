@@ -10,8 +10,7 @@ import { ExprRef } from 'vega-lite/build/src/expr.js';
 export enum CardRendererType {
     Table = 0,
     Vega = 1,
-    InputCalendar = 101,
-    InputText = 102,
+    InputText = 100,
     HexDump = 200,
     JsonInspector = 201,
 }
