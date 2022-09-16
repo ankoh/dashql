@@ -68,6 +68,13 @@ pub struct Task {
     pub data: RwLock<Option<TaskData>>,
 }
 
+impl Task {
+    pub fn is_alive(&self) -> bool {
+        let status = self.task_status.load(std::sync::atomic::Ordering::SeqCst);
+        status != (TaskStatusCode::Failed as u8) && status != (TaskStatusCode::Skipped as u8)
+    }
+}
+
 impl PartialEq for Task {
     fn eq(&self, other: &Self) -> bool {
         self.task_type == other.task_type

@@ -36,8 +36,6 @@ pub struct TaskScheduler<'ast> {
     task_graph: Arc<TaskGraph>,
     /// The derived task logic
     task_logic: Vec<Option<Box<dyn TaskOperator<'ast> + 'ast>>>,
-    /// The task alive
-    task_alive: Vec<bool>,
     /// The task topology
     task_topology: TopologicalSort<usize>,
     /// The dependencies
@@ -76,19 +74,16 @@ impl<'ast> TaskScheduler<'ast> {
         let n = task_graph.tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
-        let mut alive = Vec::with_capacity(n);
         let mut required_for = Vec::with_capacity(n);
         for (task_id, task) in task_graph.tasks.iter().enumerate() {
             topo.push((task_id, task.depends_on.len()));
             logic.push(create_task_operator(&instance, &task_graph, task_id)?);
-            alive.push(task.task_status.load(std::sync::atomic::Ordering::SeqCst) == TaskStatusCode::Pending as u8);
             required_for.push(task.required_for.clone());
         }
         Ok(Self {
             instance,
             task_graph,
             task_logic: logic,
-            task_alive: alive,
             task_topology: TopologicalSort::new(topo),
             task_required_for: required_for,
         })
@@ -129,7 +124,7 @@ impl<'ast> TaskScheduler<'ast> {
             if *waiting_for > 0 {
                 break;
             }
-            if self.task_alive[*task_id] {
+            if self.task_graph.tasks[*task_id].is_alive() {
                 task_ids.push(*task_id);
                 task_ops.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
             }
@@ -163,7 +158,7 @@ impl<'ast> TaskScheduler<'ast> {
             .iter_mut()
             .enumerate()
             .map(|(task_op_id, task)| (task_ids[task_op_id], task))
-            .filter(|(task_id, _task)| self.task_alive[*task_id])
+            .filter(|(task_id, _task)| self.task_graph.tasks[*task_id].is_alive())
             .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::prepare_task(task_id, task, snap))
             .collect();
@@ -182,7 +177,6 @@ impl<'ast> TaskScheduler<'ast> {
                     log.task_updated(task_id, TaskStatusCode::Prepared);
                 }
                 Err(e) => {
-                    self.task_alive[task_id] = false;
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
@@ -198,9 +192,9 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Execute all tasks
         for task_id in task_ids.iter() {
-            if self.task_alive[*task_id] {
-                self.task_graph.tasks[*task_id]
-                    .task_status
+            let task = &self.task_graph.tasks[*task_id];
+            if task.is_alive() {
+                task.task_status
                     .store(TaskStatusCode::Executing as u8, std::sync::atomic::Ordering::SeqCst);
                 log.task_updated(*task_id, TaskStatusCode::Executing);
             }
@@ -210,7 +204,7 @@ impl<'ast> TaskScheduler<'ast> {
             .iter_mut()
             .enumerate()
             .map(|(task_op_id, task)| (task_ids[task_op_id], task))
-            .filter(|(task_id, _task)| self.task_alive[*task_id])
+            .filter(|(task_id, _task)| self.task_graph.tasks[*task_id].is_alive())
             .map(|(task_id, task)| (task_id, task, instance.context.snapshot()))
             .map(|(task_id, task, snap)| TaskScheduler::execute_task(task_id, task, snap))
             .collect();
@@ -229,7 +223,6 @@ impl<'ast> TaskScheduler<'ast> {
                     log.task_updated(task_id, TaskStatusCode::Completed);
                 }
                 Err(e) => {
-                    self.task_alive[task_id] = false;
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
@@ -242,7 +235,8 @@ impl<'ast> TaskScheduler<'ast> {
 
         // Update topology
         for task_id in task_ids.iter() {
-            if self.task_alive[*task_id] {
+            let task = &self.task_graph.tasks[*task_id];
+            if task.is_alive() {
                 for req_for in self.task_required_for[*task_id].iter() {
                     self.task_topology.decrement_key(req_for);
                 }
