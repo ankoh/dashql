@@ -18,7 +18,6 @@ type Props = {
 
 interface LayoutElement {
     statementId: number;
-    card: any; // TODO
     i: string;
     x: number;
     y: number;
@@ -30,7 +29,6 @@ export const Board: React.FC<Props> = (props: Props) => {
     const session = useWorkflowSession();
     const sessionState = useWorkflowSessionState();
 
-    // Memoize the grid layout
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
         const cards = sessionState.programAnalysis?.cards;
@@ -41,7 +39,6 @@ export const Board: React.FC<Props> = (props: Props) => {
             const card = cards[stmtId];
             els.push({
                 statementId: parseInt(stmtId),
-                card: card,
                 i: stmtId.toString(),
                 x: card.position.column,
                 y: card.position.row,
@@ -64,9 +61,9 @@ export const Board: React.FC<Props> = (props: Props) => {
             layout.forEach(l => mapping.set(l.i, l));
 
             // Build card updates
-            const updates: model.EditOperationVariant[] = newLayout.map(l => {
+            const edits: model.EditOperationVariant[] = newLayout.map(l => {
                 return {
-                    statementID: mapping.get(l.i).card.statementID,
+                    statementID: mapping.get(l.i).statementId,
                     type: model.EditOperationType.UPDATE_CARD_POSITION,
                     data: {
                         position: {
@@ -78,14 +75,11 @@ export const Board: React.FC<Props> = (props: Props) => {
                     },
                 };
             });
-
-            // Edit program
-            session.editProgram(updates);
+            session.editProgram(edits);
         },
         [session],
     );
 
-    // Build card renderers
     const els: React.ReactElement[] = [];
     for (const l of layout) {
         els.push(
