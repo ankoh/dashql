@@ -43,8 +43,10 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
         console::println(&format!("{}", extra.to_string()));
 
         if let Some(component_type) = self.statement.component_type.get() {
-            let mut columns = Vec::new();
-            let mut required = Vec::new();
+            let mut encodings = Vec::new();
+            let mut required_encodings = Vec::new();
+            encodings.reserve(8);
+            required_encodings.reserve(8);
             match component_type {
                 VizComponentType::TABLE => (),
                 VizComponentType::HEX => (),
@@ -53,16 +55,16 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 VizComponentType::SPEC => (),
 
                 VizComponentType::AREA | VizComponentType::BAR => {
-                    columns.extend_from_slice(&["x", "x2", "y", "y2", "color", "shape", "size"]);
-                    required.extend_from_slice(&["x", "y"]);
+                    encodings.extend_from_slice(&["x", "x2", "y", "y2", "color", "shape", "size"]);
+                    required_encodings.extend_from_slice(&["x", "y"]);
                 }
-                VizComponentType::LINE | VizComponentType::SCATTER | VizComponentType::BOX => {
-                    columns.extend_from_slice(&["x", "y", "color", "shape", "size"]);
-                    required.extend_from_slice(&["x", "y"]);
+                VizComponentType::LINE | VizComponentType::SCATTER => {
+                    encodings.extend_from_slice(&["x", "y", "color", "shape", "size"]);
+                    required_encodings.extend_from_slice(&["x", "y"]);
                 }
                 VizComponentType::PIE => {
-                    columns.extend_from_slice(&["theta", "radius", "shape", "size"]);
-                    required.extend_from_slice(&["theta", "radius"]);
+                    encodings.extend_from_slice(&["theta", "radius", "shape", "size"]);
+                    required_encodings.extend_from_slice(&["theta", "radius"]);
                 }
 
                 _ => {
@@ -71,6 +73,14 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                     ))
                 }
             }
+            let _mark = match component_type {
+                VizComponentType::AREA => "area",
+                VizComponentType::BAR => "bar",
+                VizComponentType::SCATTER => "point",
+                VizComponentType::LINE => "line",
+                VizComponentType::PIE => "arc",
+                _ => "",
+            };
         } else {
         }
         Ok(())
