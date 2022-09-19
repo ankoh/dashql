@@ -16,8 +16,7 @@ pub struct TableRenderer {
 #[derive(Debug, Clone, Serialize)]
 pub struct VegaLiteRenderer {
     table_name: String,
-    am4_config: Option<AM4Config>,
-    sample_size: Option<u32>,
+    sampling: Option<SamplingMethod>,
 }
 
 #[derive(Debug, Clone, Serialize)]

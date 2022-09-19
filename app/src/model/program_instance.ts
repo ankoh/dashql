@@ -1,4 +1,4 @@
-import { CardSpecification } from './card_specification';
+import { Card } from './card';
 
 export type IndirectionName = {
     type: 'Name';
@@ -69,5 +69,5 @@ export interface ProgramAnalysis {
     /// The node linter messages
     readonly node_linter_messages: NodeLinterMessage[];
     /// The cards
-    readonly cards: { [key: number]: CardSpecification };
+    readonly cards: { [key: number]: Card };
 }

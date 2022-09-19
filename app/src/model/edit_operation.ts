@@ -1,4 +1,4 @@
-import { CardPosition } from './card_specification';
+import { CardPosition } from './card';
 
 export type EditOperation<T, P> = {
     readonly statementID: number;
