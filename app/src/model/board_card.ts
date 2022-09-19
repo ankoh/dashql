@@ -1,5 +1,3 @@
-import { CardRenderer } from './card_renderer';
-
 export interface CardPosition {
     row: number;
     column: number;
@@ -10,5 +8,4 @@ export interface CardPosition {
 export interface Card {
     title: string;
     position: CardPosition;
-    renderer?: CardRenderer;
 }

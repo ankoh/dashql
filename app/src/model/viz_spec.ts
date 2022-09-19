@@ -1,5 +1,9 @@
 import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
 
+export interface VizSpec {
+    readonly renderer: CardRenderer;
+}
+
 export type CardRenderer = TableRenderer | VegaLiteRenderer;
 
 export interface TableRenderer {

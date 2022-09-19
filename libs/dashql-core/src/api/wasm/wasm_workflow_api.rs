@@ -4,7 +4,7 @@ use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    analyzer::program_instance::ProgramInstance,
+    analyzer::{program_instance::ProgramInstance, viz_spec::VizSpec},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     error::SystemError,
 };
@@ -32,7 +32,7 @@ extern "C" {
     #[wasm_bindgen(structural, method, js_name = "updateTableData")]
     fn update_table_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateVisualizationData")]
-    fn update_visualization_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    fn update_visualization_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32, viz: &str);
 }
 
 struct JsWorkflowFrontendBridge {
@@ -104,8 +104,9 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
         self.inner.update_table_data(session_id, data_id);
         Ok(())
     }
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
-        self.inner.update_visualization_data(session_id, data_id);
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
+        let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
+        self.inner.update_visualization_data(session_id, data_id, &viz_json);
         Ok(())
     }
 }

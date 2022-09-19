@@ -1,6 +1,5 @@
 pub mod analysis_settings;
 pub mod board_card;
-pub mod board_card_renderer;
 pub mod board_space;
 pub mod liveness;
 pub mod name_resolution;
@@ -10,3 +9,4 @@ pub mod program_instance;
 pub mod task;
 pub mod task_graph;
 pub mod task_planner;
+pub mod viz_spec;

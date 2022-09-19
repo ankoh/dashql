@@ -1,4 +1,4 @@
-import { EditOperationVariant } from '../model';
+import { EditOperationVariant, VizSpec } from '../model';
 import { TaskStatusCode } from '../model/task_status';
 
 export type DatabaseId = number;
@@ -29,7 +29,7 @@ export interface WorkflowFrontend {
     updateImportData(session: SessionId, state: DataId): void;
     updateLoadData(session: SessionId, state: DataId): void;
     updateTableData(session: SessionId, state: DataId): void;
-    updateVisualizationData(session: SessionId, state: DataId): void;
+    updateVisualizationData(session: SessionId, state: DataId, viz: VizSpec): void;
 }
 
 export interface Backend {

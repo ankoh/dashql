@@ -1,4 +1,4 @@
-import { Card } from './card';
+import { Card } from './board_card';
 
 export type IndirectionName = {
     type: 'Name';

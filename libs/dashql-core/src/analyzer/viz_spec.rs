@@ -1,8 +1,13 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
+pub struct VizSpec {
+    renderer: VizRenderer,
+}
+
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "t", content = "v")]
-pub enum CardRenderer {
+pub enum VizRenderer {
     Table(TableRenderer),
     VegaLite(VegaLiteRenderer),
 }
@@ -42,9 +47,9 @@ pub struct AM4Config {
     domain_x: Vec<DomainValue>,
 }
 
-impl Default for CardRenderer {
+impl Default for VizRenderer {
     fn default() -> Self {
-        CardRenderer::Table(TableRenderer {
+        VizRenderer::Table(TableRenderer {
             table_name: "".to_string(),
             row_count: None,
         })

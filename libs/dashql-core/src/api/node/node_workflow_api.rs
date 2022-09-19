@@ -7,7 +7,7 @@ use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_graph::TaskGraph},
+    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec},
     api::workflow_api::{WorkflowAPI, WorkflowFrontend},
     error::SystemError,
     grammar::ProgramContainer,
@@ -163,15 +163,17 @@ impl WorkflowFrontend for JsWorkflowFrontend {
         });
         Ok(())
     }
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
         let self2 = self.clone();
+        let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
+            let viz_json = JsString::new(&mut cx, &viz_json).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
             let method: Handle<JsFunction> = frontend.get(&mut cx, "updateVisualizationData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, data_id])?;
+            method.call(&mut cx, this, &[session_id, data_id, viz_json])?;
             Ok(())
         });
         Ok(())

@@ -4,7 +4,6 @@ use crate::execution::scalar_value::LogicalType;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{Statement, TableRef};
 
-use super::board_card_renderer::CardRenderer;
 use super::board_space::{BoardPosition, BoardSpace};
 use super::program_instance::{NodeError, NodeErrorCode, ProgramInstance};
 use crate::grammar::dson::{DsonAccess, DsonValue};
@@ -21,7 +20,6 @@ const DEFAULT_VIZ_CARD_HEIGHT: usize = 4;
 pub struct Card {
     pub title: String,
     pub position: BoardPosition,
-    pub renderer: CardRenderer,
 }
 
 impl Default for Card {
@@ -29,7 +27,6 @@ impl Default for Card {
         Self {
             title: Default::default(),
             position: Default::default(),
-            renderer: Default::default(),
         }
     }
 }

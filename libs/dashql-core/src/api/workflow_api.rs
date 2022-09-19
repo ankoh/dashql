@@ -11,6 +11,7 @@ use crate::{
         task::TaskStatusCode,
         task_graph::TaskGraph,
         task_planner::plan_tasks,
+        viz_spec::VizSpec,
     },
     error::SystemError,
     execution::{
@@ -93,7 +94,7 @@ pub trait WorkflowFrontend {
     fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
     fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
     fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String>;
 }
 
 #[derive(Clone)]
@@ -305,7 +306,7 @@ mod test {
         UpdateInputData(u32, u32),
         UpdateImportData(u32, u32),
         UpdateTableData(u32, u32),
-        UpdateVisualizationData(u32, u32),
+        UpdateVisualizationData(u32, u32, VizSpec),
     }
 
     #[derive(Default)]
@@ -380,10 +381,19 @@ mod test {
                 .push(StubWorkflowFrontendCall::UpdateTableData(session_id, data_id));
             Ok(())
         }
-        fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        fn update_visualization_data(
+            self: &Arc<Self>,
+            session_id: u32,
+            data_id: u32,
+            viz: &VizSpec,
+        ) -> Result<(), String> {
             self.calls
                 .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateVisualizationData(session_id, data_id));
+                .push(StubWorkflowFrontendCall::UpdateVisualizationData(
+                    session_id,
+                    data_id,
+                    viz.clone(),
+                ));
             Ok(())
         }
     }

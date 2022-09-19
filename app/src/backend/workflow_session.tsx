@@ -15,6 +15,7 @@ import {
     StatementStatus,
     TaskGraph,
     useLogger,
+    VizSpec,
 } from '../model';
 
 export type TaskId = number;
@@ -206,7 +207,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateImportData: (session: SessionId, state: DataId) => {},
             updateLoadData: (session: SessionId, state: DataId) => {},
             updateTableData: (session: SessionId, state: DataId) => {},
-            updateVisualizationData: (session: SessionId, state: DataId) => {},
+            updateVisualizationData: (session: SessionId, state: DataId, viz: VizSpec) => {},
         };
     }, [setCommittedState]);
 

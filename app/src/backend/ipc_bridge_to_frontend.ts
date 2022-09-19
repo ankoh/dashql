@@ -1,4 +1,4 @@
-import { TaskGraph } from 'src/model/task_graph';
+import { VizSpec } from 'src/model';
 import { TaskStatusCode } from 'src/model/task_status';
 import { ProgramId, SessionId, DataId, TaskId, WorkflowFrontend } from './backend';
 
@@ -94,6 +94,7 @@ interface UpdateTableMsg {
 interface UpdateVisualizationMsg {
     session: SessionId;
     state: DataId;
+    spec: VizSpec;
 }
 
 export function createIPCWorkflowFrontendBridge(
@@ -131,8 +132,8 @@ export function createIPCWorkflowFrontendBridge(
             send(session, { type: IPCFrontendMessageType.UPDATE_LOAD_DATA, data: { session, state } }),
         updateTableData: (session: SessionId, state: DataId) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_TABLE_DATA, data: { session, state } }),
-        updateVisualizationData: (session: SessionId, state: DataId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA, data: { session, state } }),
+        updateVisualizationData: (session: SessionId, state: DataId, spec: VizSpec) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA, data: { session, state, spec } }),
     };
 }
 
@@ -167,7 +168,7 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
         case IPCFrontendMessageType.UPDATE_TABLE_DATA:
             return frontend.updateTableData(message.data.session, message.data.state);
         case IPCFrontendMessageType.UPDATE_VISUALIZATION_DATA:
-            return frontend.updateVisualizationData(message.data.session, message.data.state);
+            return frontend.updateVisualizationData(message.data.session, message.data.state, message.data.spec);
         default:
             break;
     }
