@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
+use crate::analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec};
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
@@ -40,6 +41,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
             Some(extra) => extra.as_json(ctx),
             None => Ok(serde_json::Value::Object(serde_json::Map::new())),
         }?;
+        let mut out = VizSpec::default();
         console::println(&format!("{}", extra.to_string()));
 
         if let Some(component_type) = self.statement.component_type.get() {
@@ -48,12 +50,24 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
             encodings.reserve(8);
             required_encodings.reserve(8);
             match component_type {
-                VizComponentType::TABLE => (),
-                VizComponentType::HEX => (),
-                VizComponentType::JSON => (),
-
-                VizComponentType::SPEC => (),
-
+                VizComponentType::TABLE => {
+                    out.renderer = VizRenderer::Table(TableRenderer {
+                        table_name: "".to_string(),
+                        row_count: None,
+                    });
+                }
+                VizComponentType::HEX => {
+                    out.renderer = VizRenderer::Hex(HexRenderer { source_data_id: 0 });
+                }
+                VizComponentType::JSON => {
+                    out.renderer = VizRenderer::Json(JsonRenderer { source_data_id: 0 });
+                }
+                VizComponentType::SPEC => {
+                    out.renderer = VizRenderer::VegaLite(VegaLiteRenderer {
+                        table_name: "".to_string(),
+                        sampling: None,
+                    });
+                }
                 VizComponentType::AREA | VizComponentType::BAR => {
                     encodings.extend_from_slice(&["x", "x2", "y", "y2", "color", "shape", "size"]);
                     required_encodings.extend_from_slice(&["x", "y"]);
@@ -66,7 +80,6 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                     encodings.extend_from_slice(&["theta", "radius", "shape", "size"]);
                     required_encodings.extend_from_slice(&["theta", "radius"]);
                 }
-
                 _ => {
                     return Err(SystemError::NotImplemented(
                         "visualization component type is not implemented".to_string(),

@@ -1,8 +1,8 @@
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Default, Debug, Clone, Serialize)]
 pub struct VizSpec {
-    renderer: VizRenderer,
+    pub renderer: VizRenderer,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -10,18 +10,30 @@ pub struct VizSpec {
 pub enum VizRenderer {
     Table(TableRenderer),
     VegaLite(VegaLiteRenderer),
+    Json(JsonRenderer),
+    Hex(HexRenderer),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TableRenderer {
-    table_name: String,
-    row_count: Option<u32>,
+    pub table_name: String,
+    pub row_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VegaLiteRenderer {
-    table_name: String,
-    sampling: Option<SamplingMethod>,
+    pub table_name: String,
+    pub sampling: Option<SamplingMethod>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct JsonRenderer {
+    pub source_data_id: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HexRenderer {
+    pub source_data_id: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -42,9 +54,9 @@ pub enum DomainValue {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AM4Config {
-    attribute_x: String,
-    attribute_y: String,
-    domain_x: Vec<DomainValue>,
+    pub attribute_x: String,
+    pub attribute_y: String,
+    pub domain_x: Vec<DomainValue>,
 }
 
 impl Default for VizRenderer {
