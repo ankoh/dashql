@@ -1,7 +1,7 @@
 use super::super::grammar::*;
-use super::board_cards::allocate_card_positions;
-use super::board_cards::collect_cards;
-use super::board_cards::Card;
+use super::board_card::allocate_card_positions;
+use super::board_card::collect_cards;
+use super::board_card::Card;
 use super::board_space::BoardPosition;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContext;
