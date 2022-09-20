@@ -21,6 +21,7 @@ pub enum SystemError {
     InternalError(&'static str),
     InvalidDataType(String),
     InvalidGroupByItem(Option<usize>),
+    InvalidSpecification(String),
     InvalidStatementRoot(usize, usize),
     InvalidStatementType(String),
     InvalidTableRef(Option<usize>),
@@ -50,6 +51,7 @@ impl SystemError {
             SystemError::URIUnsupported(_, _) => "uri is unsupported",
             SystemError::InvalidDataType(_) => "invalid data type",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
+            SystemError::InvalidSpecification(_) => "invalid specification",
             SystemError::InvalidStatementRoot(_, _) => "invalid statement root",
             SystemError::InvalidStatementType(_) => "invalid statement type",
             SystemError::InvalidTableRef(_) => "invalid table reference",
@@ -95,6 +97,7 @@ impl<'a> fmt::Display for SystemError {
             SystemError::SourceNotKnown(_node, name) => write!(f, "source not known: {}", name),
             SystemError::InvalidGroupByItem(_node) => write!(f, "invalid group by item"),
             SystemError::InvalidDataType(_node) => write!(f, "invalid data type"),
+            SystemError::InvalidSpecification(msg) => write!(f, "invalid specification: {}", &msg),
             SystemError::InvalidStatementRoot(stmt_id, node_id) => {
                 write!(f, "invalid statement root for statement: {} -> {}", stmt_id, node_id)
             }

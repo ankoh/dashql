@@ -24,6 +24,7 @@ pub struct TableRenderer {
 pub struct VegaLiteRenderer {
     pub table_name: String,
     pub sampling: Option<SamplingMethod>,
+    pub spec: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
