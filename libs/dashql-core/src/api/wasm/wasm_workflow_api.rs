@@ -39,13 +39,13 @@ struct JsFrontendBridge {
     inner: JsFrontend,
 }
 
-impl Frontend for JsFrontendBridge {
-    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+impl Frontend for Arc<JsFrontendBridge> {
+    fn flush_updates(&self, session_id: u32) -> Result<(), String> {
         self.inner.flush_updates(session_id);
         Ok(())
     }
     fn update_program(
-        self: &Arc<Self>,
+        &self,
         session_id: u32,
         text: &str,
         ast: &crate::grammar::ProgramContainer,
@@ -60,22 +60,18 @@ impl Frontend for JsFrontendBridge {
             .update_program(session_id, ast.get_program().program_id, text_array, ast_array);
         Ok(())
     }
-    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
+    fn update_program_analysis(&self, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
         let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
         self.inner.update_program_analysis(session_id, &analysis);
         Ok(())
     }
-    fn update_task_graph(
-        self: &Arc<Self>,
-        session_id: u32,
-        graph: &crate::analyzer::task_graph::TaskGraph,
-    ) -> Result<(), String> {
+    fn update_task_graph(&self, session_id: u32, graph: &crate::analyzer::task_graph::TaskGraph) -> Result<(), String> {
         let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
         self.inner.update_task_graph(session_id, &graph_json);
         Ok(())
     }
     fn update_task_status(
-        self: &Arc<Self>,
+        &self,
         session_id: u32,
         task_id: u32,
         status: crate::analyzer::task::TaskStatusCode,
@@ -88,23 +84,23 @@ impl Frontend for JsFrontendBridge {
         self.inner.update_task_status(session_id, task_id, status as u32, err);
         Ok(())
     }
-    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn delete_task_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         self.inner.delete_task_data(session_id, data_id);
         Ok(())
     }
-    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         self.inner.update_input_data(session_id, data_id);
         Ok(())
     }
-    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         self.inner.update_import_data(session_id, data_id);
         Ok(())
     }
-    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_table_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         self.inner.update_table_data(session_id, data_id);
         Ok(())
     }
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
+    fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
         let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
         self.inner.update_visualization_data(session_id, data_id, &viz_json);
         Ok(())

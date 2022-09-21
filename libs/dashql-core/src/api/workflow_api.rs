@@ -24,20 +24,20 @@ use super::frontend::Frontend;
 
 pub type WorkflowSessionId = u32;
 
-pub struct WorkflowAPI<WF>
+pub struct WorkflowAPI<F>
 where
-    WF: Frontend,
+    Arc<F>: Frontend,
 {
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
     default_database: Arc<dyn Database>,
     next_session_id: u32,
-    pub sessions: HashMap<WorkflowSessionId, Arc<WorkflowSession<WF>>>,
+    pub sessions: HashMap<WorkflowSessionId, Arc<WorkflowSession<F>>>,
 }
 
-impl<WF> WorkflowAPI<WF>
+impl<F> WorkflowAPI<F>
 where
-    WF: Frontend,
+    Arc<F>: Frontend,
 {
     pub async fn new() -> Result<Self, SystemError> {
         let database = open_in_memory().await?;
@@ -50,7 +50,7 @@ where
         })
     }
 
-    pub async fn create_session(&mut self, frontend: Arc<WF>) -> Result<WorkflowSessionId, SystemError> {
+    pub async fn create_session(&mut self, frontend: Arc<F>) -> Result<WorkflowSessionId, SystemError> {
         let session_id = self.next_session_id;
         self.next_session_id += 1;
         let connection = self.default_database.connect().await?;
@@ -70,10 +70,10 @@ where
         Ok(session_id)
     }
     #[allow(dead_code)]
-    pub fn release_session(&mut self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<WF>>> {
+    pub fn release_session(&mut self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<F>>> {
         self.sessions.remove(&session_id)
     }
-    pub fn get_session(&self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<WF>>> {
+    pub fn get_session(&self, session_id: WorkflowSessionId) -> Option<Arc<WorkflowSession<F>>> {
         self.sessions.get(&session_id).map(|s| s.clone())
     }
 }
@@ -84,14 +84,14 @@ pub struct ProgramInstanceContainer {
     instance: Arc<ProgramInstance<'static>>,
 }
 
-pub struct WorkflowSession<WF>
+pub struct WorkflowSession<F>
 where
-    WF: Frontend,
+    Arc<F>: Frontend,
 {
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
     session_id: WorkflowSessionId,
-    pub frontend: Arc<WF>,
+    pub frontend: Arc<F>,
     #[allow(dead_code)]
     database: Arc<dyn Database>,
     database_connection: Arc<dyn DatabaseConnection>,
@@ -101,9 +101,9 @@ where
     latest_executed: Mutex<Option<(ProgramInstanceContainer, Arc<TaskGraph>)>>,
 }
 
-impl<WF> WorkflowSession<WF>
+impl<F> WorkflowSession<F>
 where
-    WF: Frontend,
+    Arc<F>: Frontend,
 {
     pub async fn execute_program(&self) -> Result<(), SystemError> {
         if self
@@ -145,8 +145,8 @@ where
 
         // Notify the frontend about the plan
         console::println("UPDATE TASK GRAPH");
-        self.frontend.update_task_graph(self.session_id, &plan)?;
-        self.frontend.flush_updates(self.session_id)?;
+        self.frontend.clone().update_task_graph(self.session_id, &plan)?;
+        self.frontend.clone().flush_updates(self.session_id)?;
 
         // Setup a task scheduler
         console::println("SCHEDULE TASK GRAPH");
@@ -222,11 +222,13 @@ where
             Err(_e) => None,
         };
 
-        self.frontend.update_program(self.session_id, text, &program)?;
+        self.frontend.clone().update_program(self.session_id, text, &program)?;
         if let Some(instance) = &instance {
-            self.frontend.update_program_analysis(self.session_id, &instance)?;
+            self.frontend
+                .clone()
+                .update_program_analysis(self.session_id, &instance)?;
         }
-        self.frontend.flush_updates(self.session_id)?;
+        self.frontend.clone().flush_updates(self.session_id)?;
         Ok(())
     }
 
@@ -253,8 +255,10 @@ where
             instance: unsafe { std::mem::transmute(instance.clone()) },
         });
 
-        self.frontend.update_program_analysis(self.session_id, &instance)?;
-        self.frontend.flush_updates(self.session_id)?;
+        self.frontend
+            .clone()
+            .update_program_analysis(self.session_id, &instance)?;
+        self.frontend.clone().flush_updates(self.session_id)?;
         Ok(())
     }
 
@@ -298,14 +302,14 @@ mod test {
         calls: RefCell<Vec<StubWorkflowFrontendCall>>,
     }
 
-    impl Frontend for StubWorkflowFrontend {
-        fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+    impl Frontend for Arc<StubWorkflowFrontend> {
+        fn flush_updates(&self, session_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::FlushUpdates(session_id));
             Ok(())
         }
-        fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
+        fn update_program(&self, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
             self.calls.borrow_mut().push(StubWorkflowFrontendCall::UpdateProgram(
                 session_id,
                 text.to_string(),
@@ -313,24 +317,20 @@ mod test {
             ));
             Ok(())
         }
-        fn update_program_analysis(
-            self: &Arc<Self>,
-            session_id: u32,
-            _analysis: &ProgramInstance,
-        ) -> Result<(), String> {
+        fn update_program_analysis(&self, session_id: u32, _analysis: &ProgramInstance) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateProgramAnalysis(session_id));
             Ok(())
         }
-        fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
+        fn update_task_graph(&self, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateTaskGraph(session_id, graph.clone()));
             Ok(())
         }
         fn update_task_status(
-            self: &Arc<Self>,
+            &self,
             session_id: u32,
             task_id: u32,
             status: TaskStatusCode,
@@ -341,36 +341,31 @@ mod test {
             ));
             Ok(())
         }
-        fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        fn delete_task_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::DeleteTaskData(session_id, data_id));
             Ok(())
         }
-        fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateInputData(session_id, data_id));
             Ok(())
         }
-        fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateImportData(session_id, data_id));
             Ok(())
         }
-        fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+        fn update_table_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateTableData(session_id, data_id));
             Ok(())
         }
-        fn update_visualization_data(
-            self: &Arc<Self>,
-            session_id: u32,
-            data_id: u32,
-            viz: &VizSpec,
-        ) -> Result<(), String> {
+        fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
             self.calls
                 .borrow_mut()
                 .push(StubWorkflowFrontendCall::UpdateVisualizationData(

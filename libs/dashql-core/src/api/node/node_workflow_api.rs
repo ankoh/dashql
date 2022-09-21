@@ -24,8 +24,8 @@ impl JsFrontend {
     }
 }
 
-impl Frontend for JsFrontend {
-    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
+impl Frontend for Arc<JsFrontend> {
+    fn flush_updates(&self, session_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
@@ -37,7 +37,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
+    fn update_program(&self, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
         let self2 = self.clone();
         let text = text.as_bytes().to_vec();
         let ast_ipc = ast.get_program().ast_data.to_vec();
@@ -59,7 +59,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
+    fn update_program_analysis(&self, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
         let self2 = self.clone();
         let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
@@ -73,7 +73,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_task_graph<'a>(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
+    fn update_task_graph<'a>(&self, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
         let self2 = self.clone();
         let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
@@ -88,7 +88,7 @@ impl Frontend for JsFrontend {
         Ok(())
     }
     fn update_task_status(
-        self: &Arc<Self>,
+        &self,
         session_id: u32,
         task_id: u32,
         status: TaskStatusCode,
@@ -111,7 +111,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn delete_task_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
@@ -124,7 +124,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
@@ -137,7 +137,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
@@ -150,7 +150,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_table_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
@@ -163,7 +163,7 @@ impl Frontend for JsFrontend {
         });
         Ok(())
     }
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
+    fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
         let self2 = self.clone();
         let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
