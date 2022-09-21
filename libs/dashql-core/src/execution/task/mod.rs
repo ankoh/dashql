@@ -10,6 +10,6 @@ pub mod set_task;
 pub mod task;
 pub mod unset_task;
 pub mod vega_drop_vis_task;
-pub mod vis_task;
+pub mod viz_task;
 
 pub use task::*;

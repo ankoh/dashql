@@ -7,7 +7,7 @@ use super::{
         db_drop_table_task::DBDropTableTaskOperator, db_load_task::DBLoadTaskOperator,
         db_update_table_task::DBUpdateTableTaskOperator, declare_task::DeclareTaskOperator,
         drop_input_task::DropInputTaskOperator, import_task::ImportTask, set_task::SetTaskOperator,
-        unset_task::UnsetTaskOperator, vega_drop_vis_task::VegaDropVisTaskOperator, vis_task::VegaVisTaskOperator,
+        unset_task::UnsetTaskOperator, vega_drop_vis_task::VegaDropVisTaskOperator, viz_task::VegaVisTaskOperator,
         TaskOperator,
     },
     task_scheduler_log::TaskSchedulerLog,
