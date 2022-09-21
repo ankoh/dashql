@@ -4,8 +4,8 @@ use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec};
 use crate::error::SystemError;
-use crate::execution::duckdb_table_metadata::{resolve_table_metadata, TableMetadata};
 use crate::execution::execution_context::ExecutionContextSnapshot;
+use crate::execution::table_metadata::{resolve_table_metadata, TableMetadata};
 use crate::execution::task::TaskOperator;
 use crate::external::console;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
@@ -71,52 +71,61 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
             }
         };
         let table_metadata = resolve_table_metadata(ctx, &table_name).await?;
+        let mut assigned_columns: Vec<bool> = Vec::new();
+        assigned_columns.resize(table_metadata.column_names.len(), false);
 
-        let resolve_inner_encoding = |root: &sj::Map<String, sj::Value>, table: &TableMetadata, name: &str| {
-            if let Some(field) = root.get(name) {
-                match field {
-                    sj::Value::Null => return Ok(None),
-                    sj::Value::Bool(_) | sj::Value::Array(_) => {
-                        return Err(SystemError::InvalidSpecification(format!(
-                            "invalid encoding: {}",
-                            field,
-                        )));
-                    }
-                    sj::Value::Number(idx) => {
-                        let idx = idx.as_f64().unwrap_or_default() as usize;
-                        if idx > table.column_names.len() {
+        let resolve_inner_encoding =
+            |root: &sj::Map<String, sj::Value>, table: &TableMetadata, name: &str, assigned: &mut Vec<bool>| {
+                if let Some(field) = root.get(name) {
+                    match field {
+                        sj::Value::Null => return Ok(None),
+                        sj::Value::Bool(_) | sj::Value::Array(_) => {
                             return Err(SystemError::InvalidSpecification(format!(
-                                "column index out of bounds: {}/{}",
-                                idx,
-                                table.column_names.len(),
+                                "invalid encoding: {}",
+                                field,
                             )));
                         }
-                        let mut map = sj::Map::new();
-                        map.insert("field".to_string(), sj::Value::String(table.column_names[idx].clone()));
-                        return Ok(Some(map));
-                    }
-                    sj::Value::String(field) => {
-                        let mut map = sj::Map::new();
-                        map.insert("field".to_string(), sj::Value::String(field.clone()));
-                        return Ok(Some(map));
-                    }
-                    sj::Value::Object(o) => {
-                        return Ok(Some(o.clone()));
+                        sj::Value::Number(idx) => {
+                            let idx = idx.as_f64().unwrap_or_default() as usize;
+                            if idx > table.column_names.len() {
+                                return Err(SystemError::InvalidSpecification(format!(
+                                    "column index out of bounds: {}/{}",
+                                    idx,
+                                    table.column_names.len(),
+                                )));
+                            }
+                            let mut map = sj::Map::new();
+                            map.insert("field".to_string(), sj::Value::String(table.column_names[idx].clone()));
+                            assigned[idx] = true;
+                            return Ok(Some(map));
+                        }
+                        sj::Value::String(field) => {
+                            let mut map = sj::Map::new();
+                            map.insert("field".to_string(), sj::Value::String(field.clone()));
+                            if let Some(idx) = table.column_name_mapping.get(field) {
+                                assigned[*idx] = true;
+                            }
+                            return Ok(Some(map));
+                        }
+                        sj::Value::Object(o) => {
+                            return Ok(Some(o.clone()));
+                        }
                     }
                 }
-            }
-            return Ok(None);
-        };
-        let resolve_encoding =
-            |table: &TableMetadata, name: &str| -> Result<Option<sj::Map<String, sj::Value>>, SystemError> {
-                if let Some(field) = resolve_inner_encoding(&extra, table, name)? {
-                    return Ok(Some(field));
-                }
-                if let Some(field) = resolve_inner_encoding(&extra_encoding, table, name)? {
-                    return Ok(Some(field));
-                }
-                Ok(None)
+                return Ok(None);
             };
+        let resolve_encoding = |table: &TableMetadata,
+                                name: &str,
+                                assigned: &mut Vec<bool>|
+         -> Result<Option<sj::Map<String, sj::Value>>, SystemError> {
+            if let Some(field) = resolve_inner_encoding(&extra, table, name, assigned)? {
+                return Ok(Some(field));
+            }
+            if let Some(field) = resolve_inner_encoding(&extra_encoding, table, name, assigned)? {
+                return Ok(Some(field));
+            }
+            Ok(None)
+        };
 
         if let Some(component_type) = self.statement.component_type.get() {
             let mut required_encodings = Vec::new();
@@ -160,7 +169,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                     match component_type {
                         VizComponentType::AREA | VizComponentType::BAR => {
                             for field in &["x", "x2", "y", "y2", "color", "shape", "size"] {
-                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field, &mut assigned_columns)? {
                                     vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                                 }
                             }
@@ -168,7 +177,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                         }
                         VizComponentType::LINE | VizComponentType::SCATTER => {
                             for field in &["x", "y", "color", "shape", "size"] {
-                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field, &mut assigned_columns)? {
                                     vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                                 }
                             }
@@ -176,7 +185,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                         }
                         VizComponentType::PIE => {
                             for field in &["theta", "radius", "shape", "size"] {
-                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field, &mut assigned_columns)? {
                                     vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                                 }
                             }

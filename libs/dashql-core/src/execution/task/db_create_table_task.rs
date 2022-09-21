@@ -10,13 +10,13 @@ use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 use async_trait::async_trait;
 
-pub struct DuckDBCreateTableTaskOperator<'ast> {
+pub struct DBCreateTableTaskOperator<'ast> {
     statement: Statement<'ast>,
     task_graph: Arc<TaskGraph>,
     task_id: usize,
 }
 
-impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
+impl<'ast> DBCreateTableTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
         task_graph: &Arc<TaskGraph>,
@@ -43,7 +43,7 @@ impl<'ast> DuckDBCreateTableTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DuckDBCreateTableTaskOperator<'ast> {
+impl<'ast> TaskOperator<'ast> for DBCreateTableTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

@@ -11,14 +11,14 @@ use dashql_proto as proto;
 use proto::LoadMethodType;
 use std::sync::Arc;
 
-pub struct DuckDBLoadTaskOperator<'ast> {
+pub struct DBLoadTaskOperator<'ast> {
     instance: Arc<ProgramInstance<'ast>>,
     task_graph: Arc<TaskGraph>,
     task_id: usize,
     statement: &'ast LoadStatement<'ast>,
 }
 
-impl<'ast> DuckDBLoadTaskOperator<'ast> {
+impl<'ast> DBLoadTaskOperator<'ast> {
     pub fn create(
         instance: &Arc<ProgramInstance<'ast>>,
         task_graph: &Arc<TaskGraph>,
@@ -94,7 +94,7 @@ impl<'ast> DuckDBLoadTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DuckDBLoadTaskOperator<'ast> {
+impl<'ast> TaskOperator<'ast> for DBLoadTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

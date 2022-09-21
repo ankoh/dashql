@@ -8,12 +8,12 @@ use crate::external::console;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
-pub struct DuckDBDropTableTaskOperator {
+pub struct DBDropTableTaskOperator {
     task_graph: Arc<TaskGraph>,
     task_id: usize,
 }
 
-impl DuckDBDropTableTaskOperator {
+impl DBDropTableTaskOperator {
     pub fn create<'ast>(
         _instance: &Arc<ProgramInstance<'ast>>,
         task_graph: &Arc<TaskGraph>,
@@ -27,7 +27,7 @@ impl DuckDBDropTableTaskOperator {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DuckDBDropTableTaskOperator {
+impl<'ast> TaskOperator<'ast> for DBDropTableTaskOperator {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

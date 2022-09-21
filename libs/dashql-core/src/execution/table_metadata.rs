@@ -85,7 +85,7 @@ pub(crate) async fn resolve_table_metadata<'ast, 'snap>(
 mod test {
     use std::error::Error;
 
-    use crate::execution::{duckdb_table_metadata::resolve_table_metadata, execution_context::ExecutionContext};
+    use crate::execution::{execution_context::ExecutionContext, table_metadata::resolve_table_metadata};
 
     async fn test_simple(
         script: &'static str,
