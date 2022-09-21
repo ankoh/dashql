@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
-use crate::analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VizRenderer, VizSpec};
+use crate::analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec};
 use crate::error::SystemError;
 use crate::execution::duckdb_table_metadata::{resolve_table_metadata, TableMetadata};
 use crate::execution::execution_context::ExecutionContextSnapshot;
@@ -118,9 +118,6 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 Ok(None)
             };
 
-        let _vl: sj::Map<String, sj::Value> = sj::Map::new();
-        let mut vl_encoding: sj::Map<String, sj::Value> = sj::Map::new();
-
         if let Some(component_type) = self.statement.component_type.get() {
             let mut required_encodings = Vec::new();
             required_encodings.reserve(8);
@@ -137,30 +134,56 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 VizComponentType::JSON => {
                     out.renderer = VizRenderer::Json(JsonRenderer { source_data_id: 0 });
                 }
-                VizComponentType::SPEC => {}
-                VizComponentType::AREA | VizComponentType::BAR => {
-                    for field in &["x", "x2", "y", "y2", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
-                        }
-                    }
-                    required_encodings.extend_from_slice(&["x", "y"]);
+                VizComponentType::SPEC => {
+                    out.renderer = VizRenderer::VegaLite(VegaLiteRenderer {
+                        table_name: table_name.clone(),
+                        sampling: None,
+                        spec: extra.clone(),
+                    })
                 }
-                VizComponentType::LINE | VizComponentType::SCATTER => {
-                    for field in &["x", "y", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
+                VizComponentType::AREA
+                | VizComponentType::BAR
+                | VizComponentType::LINE
+                | VizComponentType::SCATTER
+                | VizComponentType::PIE => {
+                    let _vl: sj::Map<String, sj::Value> = sj::Map::new();
+                    let mut vl_encoding: sj::Map<String, sj::Value> = sj::Map::new();
+
+                    let _mark = match component_type {
+                        VizComponentType::AREA => "area",
+                        VizComponentType::BAR => "bar",
+                        VizComponentType::LINE => "line",
+                        VizComponentType::PIE => "arc",
+                        VizComponentType::SCATTER => "point",
+                        _ => "",
+                    };
+                    match component_type {
+                        VizComponentType::AREA | VizComponentType::BAR => {
+                            for field in &["x", "x2", "y", "y2", "color", "shape", "size"] {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                    vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
+                                }
+                            }
+                            required_encodings.extend_from_slice(&["x", "y"]);
                         }
-                    }
-                    required_encodings.extend_from_slice(&["x", "y"]);
-                }
-                VizComponentType::PIE => {
-                    for field in &["theta", "radius", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
+                        VizComponentType::LINE | VizComponentType::SCATTER => {
+                            for field in &["x", "y", "color", "shape", "size"] {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                    vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
+                                }
+                            }
+                            required_encodings.extend_from_slice(&["x", "y"]);
                         }
+                        VizComponentType::PIE => {
+                            for field in &["theta", "radius", "shape", "size"] {
+                                if let Some(enc) = resolve_encoding(&table_metadata, field)? {
+                                    vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
+                                }
+                            }
+                            required_encodings.extend_from_slice(&["theta", "radius"]);
+                        }
+                        _ => {}
                     }
-                    required_encodings.extend_from_slice(&["theta", "radius"]);
                 }
                 _ => {
                     return Err(SystemError::NotImplemented(
@@ -168,14 +191,6 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                     ))
                 }
             }
-            let _mark = match component_type {
-                VizComponentType::AREA => "area",
-                VizComponentType::BAR => "bar",
-                VizComponentType::SCATTER => "point",
-                VizComponentType::LINE => "line",
-                VizComponentType::PIE => "arc",
-                _ => "",
-            };
         } else {
         }
         Ok(())
