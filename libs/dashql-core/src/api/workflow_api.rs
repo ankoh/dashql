@@ -8,10 +8,8 @@ use crate::{
     analyzer::{
         analysis_settings::ProgramAnalysisSettings,
         program_instance::{analyze_program, ProgramInstance},
-        task::TaskStatusCode,
         task_graph::TaskGraph,
         task_planner::plan_tasks,
-        viz_spec::VizSpec,
     },
     error::SystemError,
     execution::{
@@ -22,11 +20,13 @@ use crate::{
     grammar::ProgramContainer,
 };
 
+use super::frontend::Frontend;
+
 pub type WorkflowSessionId = u32;
 
 pub struct WorkflowAPI<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
@@ -37,7 +37,7 @@ where
 
 impl<WF> WorkflowAPI<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     pub async fn new() -> Result<Self, SystemError> {
         let database = open_in_memory().await?;
@@ -78,25 +78,6 @@ where
     }
 }
 
-pub trait WorkflowFrontend {
-    fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String>;
-    fn update_program(self: &Arc<Self>, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String>;
-    fn update_program_analysis(self: &Arc<Self>, session_id: u32, analysis: &ProgramInstance) -> Result<(), String>;
-    fn update_task_graph(self: &Arc<Self>, session_id: u32, graph: &TaskGraph) -> Result<(), String>;
-    fn update_task_status(
-        self: &Arc<Self>,
-        session_id: u32,
-        task_id: u32,
-        status: TaskStatusCode,
-        error: Option<String>,
-    ) -> Result<(), String>;
-    fn delete_task_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_input_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_import_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_table_data(self: &Arc<Self>, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_visualization_data(self: &Arc<Self>, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String>;
-}
-
 #[derive(Clone)]
 pub struct ProgramInstanceContainer {
     _program: Arc<ProgramContainer>,
@@ -105,7 +86,7 @@ pub struct ProgramInstanceContainer {
 
 pub struct WorkflowSession<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
@@ -122,7 +103,7 @@ where
 
 impl<WF> WorkflowSession<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     pub async fn execute_program(&self) -> Result<(), SystemError> {
         if self
@@ -292,7 +273,10 @@ where
 mod test {
     use std::{cell::RefCell, error::Error};
 
-    use crate::analyzer::task::TaskType;
+    use crate::analyzer::{
+        task::{TaskStatusCode, TaskType},
+        viz_spec::VizSpec,
+    };
 
     use super::*;
 
@@ -314,7 +298,7 @@ mod test {
         calls: RefCell<Vec<StubWorkflowFrontendCall>>,
     }
 
-    impl WorkflowFrontend for StubWorkflowFrontend {
+    impl Frontend for StubWorkflowFrontend {
         fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
             self.calls
                 .borrow_mut()

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::api::workflow_api::WorkflowFrontend;
+use crate::api::frontend::Frontend;
 use crate::{analyzer::task::TaskStatusCode, error::SystemError};
 
 #[derive(Debug, Default)]
@@ -56,7 +56,7 @@ impl TaskSchedulerLog for SimpleTaskSchedulerLog {
 }
 
 #[derive(Debug, Default)]
-pub struct FrontendTaskSchedulerLog<WF: WorkflowFrontend> {
+pub struct FrontendTaskSchedulerLog<WF: Frontend> {
     /// The session id
     pub session_id: u32,
     /// The frontend
@@ -69,7 +69,7 @@ pub struct FrontendTaskSchedulerLog<WF: WorkflowFrontend> {
 
 impl<WF> FrontendTaskSchedulerLog<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     pub fn create(session_id: u32, frontend: Arc<WF>) -> Self {
         Self {
@@ -83,7 +83,7 @@ where
 
 impl<WF> TaskSchedulerLog for FrontendTaskSchedulerLog<WF>
 where
-    WF: WorkflowFrontend,
+    WF: Frontend,
 {
     fn task_updated(&mut self, task_id: usize, status: TaskStatusCode) {
         self.entries.push(TaskSchedulerLogEntry {

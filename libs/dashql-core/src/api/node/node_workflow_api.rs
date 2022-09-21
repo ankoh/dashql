@@ -8,23 +8,23 @@ use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
     analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec},
-    api::workflow_api::{WorkflowAPI, WorkflowFrontend},
+    api::{frontend::Frontend, workflow_api::WorkflowAPI},
     error::SystemError,
     grammar::ProgramContainer,
 };
 
-struct JsWorkflowFrontend {
+struct JsFrontend {
     inner: Arc<Root<JsObject>>,
     channel: Channel,
 }
 
-impl JsWorkflowFrontend {
+impl JsFrontend {
     fn get_inner<'a>(&self, ctx: &mut impl Context<'a>) -> Handle<'a, JsObject> {
         self.inner.to_inner(ctx)
     }
 }
 
-impl WorkflowFrontend for JsWorkflowFrontend {
+impl Frontend for JsFrontend {
     fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
         let self2 = self.clone();
         self.channel.send(move |mut cx| {
@@ -181,10 +181,10 @@ impl WorkflowFrontend for JsWorkflowFrontend {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsWorkflowFrontend>>>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsFrontend>>>>>  = RefCell::new(None);
 }
 
-fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsWorkflowFrontend>>>, SystemError> {
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsFrontend>>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
@@ -202,7 +202,7 @@ pub fn configure_default<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefine
 }
 
 pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
-    let frontend: Arc<JsWorkflowFrontend> = Arc::new(JsWorkflowFrontend {
+    let frontend: Arc<JsFrontend> = Arc::new(JsFrontend {
         inner: Arc::new(cx.argument::<JsObject>(0)?.root(&mut cx)),
         channel: cx.channel(),
     });

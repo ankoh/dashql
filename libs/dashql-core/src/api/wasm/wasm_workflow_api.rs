@@ -5,41 +5,41 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     analyzer::{program_instance::ProgramInstance, viz_spec::VizSpec},
-    api::workflow_api::{WorkflowAPI, WorkflowFrontend},
+    api::{frontend::Frontend, workflow_api::WorkflowAPI},
     error::SystemError,
 };
 
 #[wasm_bindgen]
 extern "C" {
-    pub type JsWorkflowFrontend;
+    pub type JsFrontend;
 
     #[wasm_bindgen(structural, method, js_name = "flushUpdates")]
-    fn flush_updates(this: &JsWorkflowFrontend, session_id: u32);
+    fn flush_updates(this: &JsFrontend, session_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateProgram")]
-    fn update_program(this: &JsWorkflowFrontend, session_id: u32, program_id: u32, text: Uint8Array, ast: Uint8Array);
+    fn update_program(this: &JsFrontend, session_id: u32, program_id: u32, text: Uint8Array, ast: Uint8Array);
     #[wasm_bindgen(structural, method, js_name = "updateProgramAnalysis")]
-    fn update_program_analysis(this: &JsWorkflowFrontend, session_id: u32, analysis: &str);
+    fn update_program_analysis(this: &JsFrontend, session_id: u32, analysis: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskGraph")]
-    fn update_task_graph(this: &JsWorkflowFrontend, session_id: u32, graph: &str);
+    fn update_task_graph(this: &JsFrontend, session_id: u32, graph: &str);
     #[wasm_bindgen(structural, method, js_name = "updateTaskStatus")]
-    fn update_task_status(this: &JsWorkflowFrontend, session_id: u32, task_id: u32, status: u32, error: JsValue);
+    fn update_task_status(this: &JsFrontend, session_id: u32, task_id: u32, status: u32, error: JsValue);
     #[wasm_bindgen(structural, method, js_name = "deleteTaskData")]
-    fn delete_task_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    fn delete_task_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateInputData")]
-    fn update_input_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    fn update_input_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateImportData")]
-    fn update_import_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    fn update_import_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateTableData")]
-    fn update_table_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32);
+    fn update_table_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateVisualizationData")]
-    fn update_visualization_data(this: &JsWorkflowFrontend, session_id: u32, data_id: u32, viz: &str);
+    fn update_visualization_data(this: &JsFrontend, session_id: u32, data_id: u32, viz: &str);
 }
 
-struct JsWorkflowFrontendBridge {
-    inner: JsWorkflowFrontend,
+struct JsFrontendBridge {
+    inner: JsFrontend,
 }
 
-impl WorkflowFrontend for JsWorkflowFrontendBridge {
+impl Frontend for JsFrontendBridge {
     fn flush_updates(self: &Arc<Self>, session_id: u32) -> Result<(), String> {
         self.inner.flush_updates(session_id);
         Ok(())
@@ -112,10 +112,10 @@ impl WorkflowFrontend for JsWorkflowFrontendBridge {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsWorkflowFrontendBridge>>>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsFrontendBridge>>>>>  = RefCell::new(None);
 }
 
-fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsWorkflowFrontendBridge>>>, SystemError> {
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsFrontendBridge>>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
@@ -136,8 +136,8 @@ pub async fn configure_default() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen(js_name = "workflowCreateSession")]
-pub async fn create_session(frontend: JsWorkflowFrontend) -> Result<u32, JsValue> {
-    let frontend = Arc::new(JsWorkflowFrontendBridge { inner: frontend });
+pub async fn create_session(frontend: JsFrontend) -> Result<u32, JsValue> {
+    let frontend = Arc::new(JsFrontendBridge { inner: frontend });
     let api = get_api().map_err(|e| e.to_string())?;
     let session = api
         .lock()
