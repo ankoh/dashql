@@ -56,22 +56,22 @@ impl TaskSchedulerLog for SimpleTaskSchedulerLog {
 }
 
 #[derive(Debug, Default)]
-pub struct FrontendTaskSchedulerLog<WF: Frontend> {
+pub struct FrontendTaskSchedulerLog<F: Frontend> {
     /// The session id
     pub session_id: u32,
     /// The frontend
-    pub frontend: Arc<WF>,
+    pub frontend: Arc<F>,
     /// The updates
     pub entries: Vec<TaskSchedulerLogEntry>,
     /// Any failed?
     pub any_failed: bool,
 }
 
-impl<WF> FrontendTaskSchedulerLog<WF>
+impl<F> FrontendTaskSchedulerLog<F>
 where
-    WF: Frontend,
+    F: Frontend,
 {
-    pub fn create(session_id: u32, frontend: Arc<WF>) -> Self {
+    pub fn create(session_id: u32, frontend: Arc<F>) -> Self {
         Self {
             session_id,
             frontend,
@@ -81,9 +81,9 @@ where
     }
 }
 
-impl<WF> TaskSchedulerLog for FrontendTaskSchedulerLog<WF>
+impl<F> TaskSchedulerLog for FrontendTaskSchedulerLog<F>
 where
-    WF: Frontend,
+    F: Frontend,
 {
     fn task_updated(&mut self, task_id: usize, status: TaskStatusCode) {
         self.entries.push(TaskSchedulerLogEntry {
