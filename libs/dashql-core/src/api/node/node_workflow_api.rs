@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    mem::transmute,
     sync::{Arc, Mutex},
 };
 
@@ -181,10 +182,10 @@ impl Frontend for Arc<JsFrontend> {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsFrontend>>>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI>>>>  = RefCell::new(None);
 }
 
-fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsFrontend>>>, SystemError> {
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
@@ -202,10 +203,10 @@ pub fn configure_default<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefine
 }
 
 pub fn create_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsNumber> {
-    let frontend: Arc<JsFrontend> = Arc::new(JsFrontend {
+    let frontend = Arc::new(Arc::new(JsFrontend {
         inner: Arc::new(cx.argument::<JsObject>(0)?.root(&mut cx)),
         channel: cx.channel(),
-    });
+    }));
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     let session = block_on(api.lock().unwrap().create_session(frontend)).or_else(|e| cx.throw_error(e.to_string()))?;
     Ok(JsNumber::new(&mut cx, session))
@@ -216,7 +217,8 @@ pub fn close_session<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
     let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
     if let Some(session) = api.lock().unwrap().release_session(session_id as u32) {
-        session.frontend.channel.send(|mut cx| {
+        let frontend: &Arc<JsFrontend> = unsafe { transmute(&session.frontend) };
+        frontend.channel.send(|mut cx| {
             let callback = callback.into_inner(&mut cx);
             let this = cx.undefined();
             callback.call(&mut cx, this, &[])?;
@@ -236,7 +238,8 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.update_program(&text)).or_else(|e| cx.throw_error(e.to_string()))?;
-    session.frontend.channel.send(|mut cx| {
+    let frontend: &Arc<JsFrontend> = unsafe { transmute(&session.frontend) };
+    frontend.channel.send(|mut cx| {
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
         callback.call(&mut cx, this, &[])?;
@@ -254,7 +257,8 @@ pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined>
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.execute_program()).or_else(|e| cx.throw_error(e.to_string()))?;
-    session.frontend.channel.send(|mut cx| {
+    let frontend: &Arc<JsFrontend> = unsafe { transmute(&session.frontend) };
+    frontend.channel.send(|mut cx| {
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
         callback.call(&mut cx, this, &[])?;
@@ -277,7 +281,8 @@ pub fn edit_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
         None => cx.throw_error(format!("unknown session id: {}", session_id))?,
     };
     block_on(session.edit_program(&edits)).or_else(|e| cx.throw_error(e.to_string()))?;
-    session.frontend.channel.send(|mut cx| {
+    let frontend: &Arc<JsFrontend> = unsafe { transmute(&session.frontend) };
+    frontend.channel.send(|mut cx| {
         let callback = callback.into_inner(&mut cx);
         let this = cx.undefined();
         callback.call(&mut cx, this, &[])?;

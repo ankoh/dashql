@@ -39,7 +39,7 @@ struct JsFrontendBridge {
     inner: JsFrontend,
 }
 
-impl Frontend for Arc<JsFrontendBridge> {
+impl Frontend for JsFrontendBridge {
     fn flush_updates(&self, session_id: u32) -> Result<(), String> {
         self.inner.flush_updates(session_id);
         Ok(())
@@ -108,10 +108,10 @@ impl Frontend for Arc<JsFrontendBridge> {
 }
 
 thread_local! {
-    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI<JsFrontendBridge>>>>>  = RefCell::new(None);
+    static WORKFLOW_API: RefCell<Option<Arc<Mutex<WorkflowAPI>>>>  = RefCell::new(None);
 }
 
-fn get_api() -> Result<Arc<Mutex<WorkflowAPI<JsFrontendBridge>>>, SystemError> {
+fn get_api() -> Result<Arc<Mutex<WorkflowAPI>>, SystemError> {
     WORKFLOW_API.with(|api_cell| {
         let mut api_opt = api_cell.borrow_mut();
         let api = match api_opt.as_mut() {
