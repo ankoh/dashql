@@ -1,4 +1,5 @@
 pub mod constant_folding;
+pub mod duckdb_table_metadata;
 pub mod execution_context;
 pub mod expression_evaluator;
 pub mod function;

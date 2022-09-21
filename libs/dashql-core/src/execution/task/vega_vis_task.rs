@@ -4,10 +4,12 @@ use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VizRenderer, VizSpec};
 use crate::error::SystemError;
+use crate::execution::duckdb_table_metadata::{resolve_table_metadata, TableMetadata};
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::external::console;
-use crate::grammar::{Statement, VizStatement};
+use crate::grammar::script_writer::print_ast_as_script_with_defaults;
+use crate::grammar::{Statement, TableRef, VizStatement};
 use async_trait::async_trait;
 use dashql_proto::VizComponentType;
 use serde_json as sj;
@@ -50,7 +52,27 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
         let mut out = VizSpec::default();
         console::println(&format!("{:?}", extra));
 
-        let resolve_inner_encoding = |root: &sj::Map<String, sj::Value>, column_names: &[String], name: &str| {
+        let table_name: String = match self.statement.target.get() {
+            TableRef::Relation(rel) => print_ast_as_script_with_defaults(&rel.name.get()),
+            TableRef::Select(_) => {
+                return Err(SystemError::NotImplemented(
+                    "viz statements with embedded select clause".to_string(),
+                ))
+            }
+            TableRef::Function(_) => {
+                return Err(SystemError::NotImplemented(
+                    "viz statements with embedded function call".to_string(),
+                ))
+            }
+            TableRef::Join(_) => {
+                return Err(SystemError::NotImplemented(
+                    "viz statements with embedded top-level join".to_string(),
+                ))
+            }
+        };
+        let table_metadata = resolve_table_metadata(ctx, &table_name).await?;
+
+        let resolve_inner_encoding = |root: &sj::Map<String, sj::Value>, table: &TableMetadata, name: &str| {
             if let Some(field) = root.get(name) {
                 match field {
                     sj::Value::Null => return Ok(None),
@@ -62,15 +84,15 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                     }
                     sj::Value::Number(idx) => {
                         let idx = idx.as_f64().unwrap_or_default() as usize;
-                        if idx > column_names.len() {
+                        if idx > table.column_names.len() {
                             return Err(SystemError::InvalidSpecification(format!(
                                 "column index out of bounds: {}/{}",
                                 idx,
-                                column_names.len(),
+                                table.column_names.len(),
                             )));
                         }
                         let mut map = sj::Map::new();
-                        map.insert("field".to_string(), sj::Value::String(column_names[idx].clone()));
+                        map.insert("field".to_string(), sj::Value::String(table.column_names[idx].clone()));
                         return Ok(Some(map));
                     }
                     sj::Value::String(field) => {
@@ -86,19 +108,18 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
             return Ok(None);
         };
         let resolve_encoding =
-            |column_names: &[String], name: &str| -> Result<Option<sj::Map<String, sj::Value>>, SystemError> {
-                if let Some(field) = resolve_inner_encoding(&extra, column_names, name)? {
+            |table: &TableMetadata, name: &str| -> Result<Option<sj::Map<String, sj::Value>>, SystemError> {
+                if let Some(field) = resolve_inner_encoding(&extra, table, name)? {
                     return Ok(Some(field));
                 }
-                if let Some(field) = resolve_inner_encoding(&extra_encoding, column_names, name)? {
+                if let Some(field) = resolve_inner_encoding(&extra_encoding, table, name)? {
                     return Ok(Some(field));
                 }
                 Ok(None)
             };
 
-        let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
+        let _vl: sj::Map<String, sj::Value> = sj::Map::new();
         let mut vl_encoding: sj::Map<String, sj::Value> = sj::Map::new();
-        let mut column_names = Vec::new();
 
         if let Some(component_type) = self.statement.component_type.get() {
             let mut required_encodings = Vec::new();
@@ -106,8 +127,8 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
             match component_type {
                 VizComponentType::TABLE => {
                     out.renderer = VizRenderer::Table(TableRenderer {
-                        table_name: "".to_string(),
-                        row_count: None,
+                        table_name: table_name.clone(),
+                        row_count: table_metadata.row_count.map(|c| c as u32),
                     });
                 }
                 VizComponentType::HEX => {
@@ -119,7 +140,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 VizComponentType::SPEC => {}
                 VizComponentType::AREA | VizComponentType::BAR => {
                     for field in &["x", "x2", "y", "y2", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&column_names, field)? {
+                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
                             vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                         }
                     }
@@ -127,7 +148,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 }
                 VizComponentType::LINE | VizComponentType::SCATTER => {
                     for field in &["x", "y", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&column_names, field)? {
+                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
                             vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                         }
                     }
@@ -135,7 +156,7 @@ impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
                 }
                 VizComponentType::PIE => {
                     for field in &["theta", "radius", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&column_names, field)? {
+                        if let Some(enc) = resolve_encoding(&table_metadata, field)? {
                             vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
                         }
                     }
