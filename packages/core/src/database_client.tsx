@@ -120,7 +120,7 @@ export class DatabaseClient {
         const columnNameMapping: Map<string, number> = new Map();
         const columnTypes: arrowtype.DataType[] = [];
         const describe = await conn.query<{ Field: arrowtype.Utf8; Type: arrowtype.Utf8 }>(
-            `DESCRIBE ${info.nameQualified}`,
+            `describe ${info.nameQualified}`,
         );
         let column = 0;
         for (const row of describe) {
