@@ -161,12 +161,14 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use crate::{
         analyzer::{
             program_instance::analyze_program,
             task::TaskStatusCode,
             task_planner::plan_tasks,
-            viz_spec::{TableRenderer, VizRenderer, VizSpec},
+            viz_spec::{TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec},
         },
         api::workflow_frontend::{run_task_status_updates, WorkflowFrontend},
         execution::{
@@ -177,6 +179,13 @@ mod test {
         grammar::ProgramContainer,
     };
     use std::{collections::HashMap, error::Error, sync::Arc};
+
+    fn unpack_map(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+        match v {
+            serde_json::Value::Object(m) => m,
+            _ => serde_json::Map::new(),
+        }
+    }
 
     async fn test_data(script: &'static str, data: Vec<TaskData>) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Plan the program
@@ -227,6 +236,69 @@ mod test {
                         renderer: VizRenderer::Table(TableRenderer {
                             table_name: "foo".to_string(),
                             row_count: Some(1),
+                        }),
+                    }),
+                }),
+            ],
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_viz_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_data(
+            r#"
+        create table foo as select 42;
+        visualize foo using (
+            title = 'Covid Total Doses',
+            position = (row = 0, column = 0, width = 12, height = 4),
+            mark = 'area',
+            encoding = (
+                x = (
+                    title = 'Time',
+                    field = 'date',
+                    type = 'temporal',
+                ),
+                y = (
+                    title = 'Doses',
+                    field = 'dosen_kumulativ',
+                    type = 'quantitative',
+                ),
+            )
+        );
+            "#,
+            vec![
+                TaskData::TableRef(TableRef {
+                    name: "foo".to_string(),
+                }),
+                TaskData::VizData(VizData {
+                    spec: Arc::new(VizSpec {
+                        renderer: VizRenderer::VegaLite(VegaLiteRenderer {
+                            table_name: "foo".to_string(),
+                            sampling: None,
+                            spec: unpack_map(json!({
+                                "position": {
+                                    "row": "0",
+                                    "column": "0",
+                                    "width": "12",
+                                    "height": "4",
+                                },
+                                "title": "Covid Total Doses",
+                                "encoding": {
+                                    "x": {
+                                        "title": "Time",
+                                        "field": "date",
+                                        "type": "temporal",
+                                    },
+                                    "y": {
+                                        "title": "Doses",
+                                        "field": "dosen_kumulativ",
+                                        "type": "quantitative",
+                                    }
+                                },
+                                "mark": "area"
+                            })),
                         }),
                     }),
                 }),
