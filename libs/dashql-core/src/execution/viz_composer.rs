@@ -158,3 +158,81 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     }
     Ok(Arc::new(out))
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        analyzer::{
+            program_instance::analyze_program,
+            task::TaskStatusCode,
+            task_planner::plan_tasks,
+            viz_spec::{TableRenderer, VizRenderer, VizSpec},
+        },
+        api::workflow_frontend::{run_task_status_updates, WorkflowFrontend},
+        execution::{
+            execution_context::ExecutionContext,
+            task_scheduler::TaskScheduler,
+            task_state::{TableRef, TaskData, VizData},
+        },
+        grammar::ProgramContainer,
+    };
+    use std::{collections::HashMap, error::Error, sync::Arc};
+
+    async fn test_data(script: &'static str, data: Vec<TaskData>) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // Plan the program
+        let program = ProgramContainer::parse(&script).await?;
+        let context = ExecutionContext::create_simple(program.get_arena()).await?;
+        let instance = analyze_program(context, script, program.get_program().clone(), HashMap::new())?;
+        let task_graph = plan_tasks(&instance, None)?;
+
+        // Run the scheduler
+        let mut task_scheduler = TaskScheduler::schedule(&instance, &task_graph)?;
+        let mut frontend = WorkflowFrontend::default();
+        loop {
+            let work_left = task_scheduler.next(&mut frontend).await?;
+            if !work_left {
+                break;
+            }
+        }
+        let updates = frontend.flush_updates_manually();
+        let task_status = run_task_status_updates(&updates);
+        let failed: Vec<_> = task_status
+            .iter()
+            .filter(|(status, _)| *status == TaskStatusCode::Failed)
+            .collect();
+        assert!(failed.is_empty(), "{:?}", failed);
+
+        // Test task data
+        for (task_id, task_data) in data.iter().enumerate() {
+            assert!(task_id < task_graph.tasks.len(), "[{}] {:?}", task_id, task_graph.tasks);
+            let data = task_graph.tasks[task_id].data.read().unwrap();
+            assert_eq!(data.as_ref().unwrap(), task_data);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_viz_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_data(
+            r#"
+        create table foo as select 42;
+        visualize foo using table;
+            "#,
+            vec![
+                TaskData::TableRef(TableRef {
+                    name: "foo".to_string(),
+                }),
+                TaskData::VizData(VizData {
+                    spec: Arc::new(VizSpec {
+                        renderer: VizRenderer::Table(TableRenderer {
+                            table_name: "foo".to_string(),
+                            row_count: Some(1),
+                        }),
+                    }),
+                }),
+            ],
+        )
+        .await?;
+        Ok(())
+    }
+}

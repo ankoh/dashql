@@ -182,8 +182,6 @@ mod test {
     use super::*;
     use crate::analyzer::program_instance::analyze_program;
     use crate::execution::scalar_value::ScalarValue;
-    use crate::external::parser::parse_into;
-    use crate::grammar;
     use dashql_proto as proto;
     use std::collections::HashMap;
     use std::error::Error;
@@ -208,9 +206,8 @@ mod test {
     async fn test_planner(test: &TaskPlannerTest) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
-        let (ast, ast_data) = parse_into(&arena, test.script).await?;
-        let prog = Arc::new(grammar::deserialize_ast(&arena, test.script, ast, ast_data).unwrap());
-        let inst = analyze_program(context, test.script, prog, test.input.clone())?;
+        let program = ProgramContainer::parse(&test.script).await?;
+        let inst = analyze_program(context, test.script, program.get_program().clone(), test.input.clone())?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());
         for i in 0..inst.node_error_messages.len() {
