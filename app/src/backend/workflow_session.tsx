@@ -205,15 +205,18 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                     s.statusByStatement = s.statusByStatement.set(stmtId, stmt);
                 }
             },
-            deleteTaskData: (session: SessionId, state: DataId) => {},
+            deleteTaskData: (session: SessionId, dataId: DataId) => {
+                const s = getSessionState(session);
+                s.dataById = s.dataById.delete(dataId);
+            },
             updateInputData: (session: SessionId, state: DataId) => {},
             updateImportData: (session: SessionId, state: DataId) => {},
             updateLoadData: (session: SessionId, state: DataId) => {},
             updateTableData: (session: SessionId, state: DataId) => {},
-            updateVisualizationData: (session: SessionId, data: DataId, viz: VizSpec) => {
+            updateVisualizationData: (session: SessionId, dataId: DataId, viz: VizSpec) => {
                 console.log(viz);
                 const s = getSessionState(session);
-                s.dataById = s.dataById.set(data, {
+                s.dataById = s.dataById.set(dataId, {
                     t: 'VizData',
                     v: viz,
                 });
