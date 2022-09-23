@@ -5,6 +5,7 @@ use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
+use crate::execution::task_state::{TaskData, VizData};
 use crate::execution::viz_composer::compose_viz_spec;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{Statement, TableRef, VizStatement};
@@ -75,6 +76,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'exec, 'ast>
         };
         let component = self.statement.component_type.get().unwrap_or(VizComponentType::TABLE);
         let spec = compose_viz_spec(ctx, table_name, component, extra).await?;
+        *self.task.data.write().unwrap() = Some(TaskData::VizData(VizData { spec: spec.clone() }));
         frontend.update_visualization_data(self.task.data_id as u32, spec);
         Ok(())
     }
