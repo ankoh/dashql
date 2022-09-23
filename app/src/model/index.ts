@@ -7,6 +7,7 @@ export * from './program';
 export * from './program_instance';
 export * from './resolvable_status';
 export * from './script';
+export * from './workflow_data';
 export * from './task_graph';
 export * from './script_registry';
 export * from './action';

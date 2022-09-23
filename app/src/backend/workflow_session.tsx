@@ -16,6 +16,7 @@ import {
     TaskGraph,
     useLogger,
     VizSpec,
+    WorkflowData,
 } from '../model';
 
 export type TaskId = number;
@@ -27,6 +28,7 @@ export interface WorkflowSessionState {
     programTasks: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
     statusByStatement: Immutable.Map<number, StatementStatus>;
+    dataById: Immutable.Map<number, WorkflowData>;
     statementDependsOn: Map<number, number[]>;
 }
 
@@ -39,6 +41,7 @@ function initSessionState(state: WorkflowSessionState | null = null, sessionId: 
     state.programTasks = null;
     state.statusByTask = Immutable.Map();
     state.statusByStatement = Immutable.Map();
+    state.dataById = Immutable.Map();
     state.statementDependsOn = new Map();
     return state;
 }
@@ -207,8 +210,13 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateImportData: (session: SessionId, state: DataId) => {},
             updateLoadData: (session: SessionId, state: DataId) => {},
             updateTableData: (session: SessionId, state: DataId) => {},
-            updateVisualizationData: (session: SessionId, state: DataId, viz: VizSpec) => {
+            updateVisualizationData: (session: SessionId, data: DataId, viz: VizSpec) => {
                 console.log(viz);
+                const s = getSessionState(session);
+                s.dataById = s.dataById.set(data, {
+                    t: 'VizData',
+                    v: viz,
+                });
             },
         };
     }, [setCommittedState]);
