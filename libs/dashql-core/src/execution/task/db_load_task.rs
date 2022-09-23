@@ -1,4 +1,5 @@
 use crate::analyzer::program_instance::ProgramInstance;
+use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
@@ -14,7 +15,7 @@ use proto::LoadMethodType;
 pub struct DBLoadTaskOperator<'exec, 'ast> {
     instance: &'exec ProgramInstance<'ast>,
     task_graph: &'exec TaskGraph,
-    task_id: usize,
+    task: &'exec Task,
     statement: &'ast LoadStatement<'ast>,
 }
 
@@ -32,8 +33,8 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
         };
         Ok(Self {
             instance: instance.clone(),
-            task_graph: task_graph,
-            task_id: task_id,
+            task_graph,
+            task,
             statement: stmt,
         })
     }
@@ -59,7 +60,6 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         source: &TaskData,
     ) -> Result<(), SystemError> {
-        let task = &self.task_graph.tasks[self.task_id];
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
@@ -69,7 +69,7 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
             &name_string, &url
         );
         conn.run_query(&script).await?;
-        *task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef { name: name_string }));
+        *self.task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef { name: name_string }));
         Ok(())
     }
 
@@ -78,7 +78,6 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         source: &TaskData,
     ) -> Result<(), SystemError> {
-        let task = &self.task_graph.tasks[self.task_id];
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
@@ -88,7 +87,7 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
             &name_string, &url
         );
         conn.run_query(&script).await?;
-        *task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name: name_string }));
+        *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name: name_string }));
         Ok(())
     }
 }

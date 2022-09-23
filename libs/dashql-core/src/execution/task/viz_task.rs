@@ -1,4 +1,5 @@
 use crate::analyzer::program_instance::ProgramInstance;
+use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
@@ -11,12 +12,13 @@ use async_trait::async_trait;
 use dashql_proto::VizComponentType;
 use serde_json as sj;
 
-pub struct VegaVisTaskOperator<'ast> {
+pub struct VegaVisTaskOperator<'exec, 'ast> {
+    task: &'exec Task,
     statement: &'ast VizStatement<'ast>,
 }
 
-impl<'ast> VegaVisTaskOperator<'ast> {
-    pub fn create<'exec>(
+impl<'exec, 'ast> VegaVisTaskOperator<'exec, 'ast> {
+    pub fn create(
         instance: &'exec ProgramInstance<'ast>,
         task_graph: &'exec TaskGraph,
         task_id: usize,
@@ -27,12 +29,15 @@ impl<'ast> VegaVisTaskOperator<'ast> {
             Statement::Viz(v) => v,
             _ => return Err(SystemError::InvalidStatementType("expected viz".to_string())),
         };
-        Ok(Self { statement: stmt })
+        Ok(Self {
+            task: task,
+            statement: stmt,
+        })
     }
 }
 
 #[async_trait(?Send)]
-impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'ast> {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'exec, 'ast> {
     async fn prepare<'snap>(
         &mut self,
         _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
@@ -43,7 +48,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'ast> {
     async fn execute<'snap>(
         &mut self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        _frontend: &WorkflowFrontend,
+        frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
         let extra = match self.statement.extra.get().map(|e| e.as_json(ctx)) {
             Some(Ok(sj::Value::Object(extra))) => extra,
@@ -69,7 +74,8 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'ast> {
             }
         };
         let component = self.statement.component_type.get().unwrap_or(VizComponentType::TABLE);
-        let _spec = compose_viz_spec(ctx, table_name, component, extra).await?;
+        let spec = compose_viz_spec(ctx, table_name, component, extra).await?;
+        frontend.update_visualization_data(self.task.data_id as u32, spec);
         Ok(())
     }
 }

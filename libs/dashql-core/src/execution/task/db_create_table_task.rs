@@ -1,4 +1,5 @@
 use crate::analyzer::program_instance::ProgramInstance;
+use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
@@ -11,8 +12,7 @@ use async_trait::async_trait;
 
 pub struct DBCreateTableTaskOperator<'exec, 'ast> {
     statement: Statement<'ast>,
-    task_graph: &'exec TaskGraph,
-    task_id: usize,
+    task: &'exec Task,
 }
 
 impl<'exec, 'ast> DBCreateTableTaskOperator<'exec, 'ast> {
@@ -33,11 +33,7 @@ impl<'exec, 'ast> DBCreateTableTaskOperator<'exec, 'ast> {
                 )))
             }
         };
-        Ok(Self {
-            statement: stmt,
-            task_graph: task_graph,
-            task_id,
-        })
+        Ok(Self { statement: stmt, task })
     }
 }
 
@@ -55,23 +51,22 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBCreateTableTaskOperator<'exec,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         _frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
-        let task = &self.task_graph.tasks[self.task_id];
         let connection = ctx.base.database_connection.as_ref();
         let script = print_ast_as_script_with_defaults(&self.statement);
         connection.run_query(&script).await?;
         match self.statement {
             Statement::Create(c) => {
-                *task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
                     name: print_ast_as_script_with_defaults(&c.name.get()),
                 }));
             }
             Statement::CreateAs(c) => {
-                *task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
                     name: print_ast_as_script_with_defaults(&c.name.get()),
                 }));
             }
             Statement::CreateView(v) => {
-                *task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef {
+                *self.task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef {
                     name: print_ast_as_script_with_defaults(&v.name.get()),
                 }));
             }

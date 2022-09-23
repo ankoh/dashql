@@ -1,4 +1,5 @@
 use crate::analyzer::program_instance::ProgramInstance;
+use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
@@ -11,8 +12,7 @@ use async_trait::async_trait;
 use dashql_proto as proto;
 
 pub struct ImportTask<'exec, 'ast> {
-    pub task_graph: &'exec TaskGraph,
-    pub task_id: usize,
+    pub task: &'exec Task,
     pub statement: &'ast ImportStatement<'ast>,
 }
 
@@ -39,11 +39,7 @@ impl<'exec, 'ast> ImportTask<'exec, 'ast> {
             Statement::Import(i) => i,
             _ => return Err(SystemError::InvalidStatementType("expected import".to_string())),
         };
-        Ok(Self {
-            task_id: task_id,
-            task_graph: task_graph,
-            statement: stmt,
-        })
+        Ok(Self { task, statement: stmt })
     }
 }
 
@@ -97,7 +93,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for ImportTask<'exec, 'ast> {
             }
             _ => return Err(SystemError::NotImplemented(format!("import {:?}", method))),
         };
-        *self.task_graph.tasks[self.task_id].data.write().unwrap() = Some(import);
+        *self.task.data.write().unwrap() = Some(import);
         Ok(())
     }
 }
