@@ -207,7 +207,9 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateImportData: (session: SessionId, state: DataId) => {},
             updateLoadData: (session: SessionId, state: DataId) => {},
             updateTableData: (session: SessionId, state: DataId) => {},
-            updateVisualizationData: (session: SessionId, state: DataId, viz: VizSpec) => {},
+            updateVisualizationData: (session: SessionId, state: DataId, viz: VizSpec) => {
+                console.log(viz);
+            },
         };
     }, [setCommittedState]);
 
