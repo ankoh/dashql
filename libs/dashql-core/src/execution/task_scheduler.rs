@@ -84,8 +84,9 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
         task_id: usize,
         task: &'task mut Box<dyn TaskOperator<'exec, 'ast> + 'exec>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
+        frontend: &WorkflowFrontend,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
-        match task.prepare(&mut snapshot).await {
+        match task.prepare(&mut snapshot, frontend).await {
             Ok(()) => (task_id, Ok(snapshot)),
             Err(e) => (task_id, Err(e)),
         }
@@ -96,8 +97,9 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
         task_id: usize,
         task: &'task mut Box<dyn TaskOperator<'exec, 'ast> + 'exec>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
+        frontend: &WorkflowFrontend,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
-        match task.execute(&mut snapshot).await {
+        match task.execute(&mut snapshot, frontend).await {
             Ok(()) => (task_id, Ok(snapshot)),
             Err(e) => (task_id, Err(e)),
         }
@@ -148,7 +150,7 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
             .map(|(task_op_id, op)| (task_ids[task_op_id], op))
             .filter(|(task_id, _op)| self.task_graph.tasks[*task_id].is_alive())
             .map(|(task_id, op)| (task_id, op, instance.context.snapshot()))
-            .map(|(task_id, op, snap)| TaskScheduler::prepare_task(task_id, op, snap))
+            .map(|(task_id, op, snap)| TaskScheduler::prepare_task(task_id, op, snap, frontend))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
         loop {
@@ -194,7 +196,7 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
             .map(|(task_op_id, op)| (task_ids[task_op_id], op))
             .filter(|(task_id, _op)| self.task_graph.tasks[*task_id].is_alive())
             .map(|(task_id, op)| (task_id, op, instance.context.snapshot()))
-            .map(|(task_id, op, snap)| TaskScheduler::execute_task(task_id, op, snap))
+            .map(|(task_id, op, snap)| TaskScheduler::execute_task(task_id, op, snap, frontend))
             .collect();
         let mut snapshots = Vec::with_capacity(task_futures.len());
         loop {

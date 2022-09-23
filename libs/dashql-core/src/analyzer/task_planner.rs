@@ -9,12 +9,13 @@ use std::{collections::HashSet, sync::atomic::Ordering};
 
 use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
 
+// 'ast: 'planning = 'ast lives at least as long as 'planning
 #[derive(Debug)]
-struct TaskPlannerContext<'a, 'b> {
+struct TaskPlannerContext<'planning, 'ast: 'planning> {
     /// The next program
-    pub next_program: &'b ProgramInstance<'a>,
+    pub next_program: &'planning ProgramInstance<'ast>,
     /// The previous program
-    pub prev_program: Option<(&'b ProgramInstance<'a>, &'b TaskGraph)>,
+    pub prev_program: Option<(&'planning ProgramInstance<'ast>, &'planning TaskGraph)>,
     /// The diff between the programs
     pub diff: Vec<DiffOp>,
     /// The reverse task mapping.

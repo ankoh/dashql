@@ -1,4 +1,5 @@
 use crate::analyzer::task_graph::TaskGraph;
+use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::TaskData;
@@ -26,10 +27,18 @@ impl<'exec> DBDropTableTaskOperator<'exec> {
 
 #[async_trait(?Send)]
 impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
-    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(
+        &mut self,
+        _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(
+        &mut self,
+        ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         let connection = ctx.base.database_connection.as_ref();
         let data_lock = self.task_graph.tasks[self.task_id].data.read().unwrap();
         let data = match data_lock.as_ref() {

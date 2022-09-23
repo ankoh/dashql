@@ -1,5 +1,6 @@
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
+use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
@@ -48,10 +49,18 @@ impl<'exec, 'ast> ImportTask<'exec, 'ast> {
 
 #[async_trait(?Send)]
 impl<'exec, 'ast> TaskOperator<'exec, 'ast> for ImportTask<'exec, 'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(
+        &mut self,
+        _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(
+        &mut self,
+        ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         let name = self.statement.name.get();
         let name_string = print_ast_as_script_with_defaults(&name);
         let mut method = self.statement.method.get();

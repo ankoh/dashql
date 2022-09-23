@@ -1,4 +1,5 @@
 use crate::analyzer::task_graph::TaskGraph;
+use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
@@ -20,10 +21,18 @@ impl<'exec, 'ast> DropInputTaskOperator<'exec, 'ast> {
 
 #[async_trait(?Send)]
 impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DropInputTaskOperator<'exec, 'ast> {
-    async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn prepare<'snap>(
+        &mut self,
+        _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         Ok(())
     }
-    async fn execute<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
+    async fn execute<'snap>(
+        &mut self,
+        _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+        _frontend: &WorkflowFrontend,
+    ) -> Result<(), SystemError> {
         Ok(())
     }
 }
