@@ -25,7 +25,7 @@ pub type NodeID = usize;
 
 static NEXT_INSTANCE_ID: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProgramInstance<'a> {
     pub instance_id: u32,
 
@@ -52,6 +52,12 @@ pub struct ProgramInstance<'a> {
     // Cached properties during analysis
     pub(super) cached_subtree_sizes: RefCell<Vec<usize>>,
     pub(super) cached_default_schema: RefCell<Option<&'a str>>,
+}
+
+#[derive(Debug)]
+pub struct ProgramInstanceContainer {
+    pub instance: ProgramInstance<'static>,
+    pub program: Arc<ProgramContainer>,
 }
 
 unsafe impl<'a> Send for ProgramInstance<'a> {}
@@ -91,6 +97,13 @@ impl<'a> ProgramInstance<'a> {
             ctx.statement_by_root.insert(stmt.root_node() as usize, stmt_id);
         }
         ctx
+    }
+
+    pub fn wire(self, program: Arc<ProgramContainer>) -> ProgramInstanceContainer {
+        ProgramInstanceContainer {
+            instance: unsafe { std::mem::transmute(self) },
+            program: program.clone(),
+        }
     }
 }
 

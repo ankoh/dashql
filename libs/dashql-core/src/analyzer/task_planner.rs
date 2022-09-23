@@ -4,17 +4,17 @@ use super::{
     task::{Task, TaskStatusCode, TaskType},
     task_graph::TaskGraph,
 };
-use std::sync::{atomic::AtomicU8, Arc, RwLock};
+use std::sync::{atomic::AtomicU8, RwLock};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
 use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 #[derive(Debug)]
-struct TaskPlannerContext<'a> {
+struct TaskPlannerContext<'a, 'b> {
     /// The next program
-    pub next_program: Arc<ProgramInstance<'a>>,
+    pub next_program: &'b ProgramInstance<'a>,
     /// The previous program
-    pub prev_program: Option<(Arc<ProgramInstance<'a>>, Arc<TaskGraph>)>,
+    pub prev_program: Option<(&'b ProgramInstance<'a>, &'b TaskGraph)>,
     /// The diff between the programs
     pub diff: Vec<DiffOp>,
     /// The reverse task mapping.
@@ -32,7 +32,7 @@ struct TaskPlannerContext<'a> {
     pub next_task_graph: Option<TaskGraph>,
 }
 
-fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
+fn translate_statements<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
     let next = ctx.next_program.clone();
     let mut next_state_id = ctx
         .prev_program
@@ -121,7 +121,7 @@ fn translate_statements<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), Syst
     Ok(())
 }
 
-fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
+fn diff_programs<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
     // Compute the diff
     let (prev_prog, _) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
@@ -144,8 +144,8 @@ fn diff_programs<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError
     Ok(())
 }
 
-fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
-    let (prev_program, prev_tasks) = match ctx.prev_program.clone() {
+fn identify_applicable_tasks<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
+    let (prev_program, prev_tasks) = match ctx.prev_program {
         Some((prev_program, prev_tasks)) => (prev_program, prev_tasks),
         None => return Ok(()),
     };
@@ -155,7 +155,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     // If a task is invalidated, we might have to propagate the invalidation to the tasks before us.
     // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
     // (Except for the cases where it's trivial to see that nobody else is affected)
-    let invalidate = |ctx: &mut TaskPlannerContext<'a>, task_id: usize| {
+    let invalidate = |ctx: &mut TaskPlannerContext<'a, 'b>, task_id: usize| {
         let mut visited = HashSet::new();
         let mut pending = Vec::new();
         pending.push(task_id);
@@ -296,7 +296,7 @@ fn identify_applicable_tasks<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(),
     Ok(())
 }
 
-fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), SystemError> {
+fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
     let (_, prev_tasks) = match &mut ctx.prev_program {
         Some((prog, task)) => (prog, task),
         None => return Ok(()),
@@ -444,9 +444,9 @@ fn migrate_task_graph<'a>(ctx: &mut TaskPlannerContext<'a>) -> Result<(), System
     Ok(())
 }
 
-pub fn plan_tasks<'a>(
-    next_program: Arc<ProgramInstance<'a>>,
-    prev_program: Option<(Arc<ProgramInstance<'a>>, Arc<TaskGraph>)>,
+pub fn plan_tasks<'a, 'b>(
+    next_program: &'b ProgramInstance<'a>,
+    prev_program: Option<(&'b ProgramInstance<'a>, &'b TaskGraph)>,
 ) -> Result<TaskGraph, SystemError> {
     let mut ctx = TaskPlannerContext {
         next_program,
@@ -515,13 +515,13 @@ mod test {
             );
             let prev_prog =
                 Arc::new(grammar::deserialize_ast(&prev_arena, prev.script, prev_ast, prev_ast_data).unwrap());
-            prev_instance = Some(Arc::new(analyze_program(
+            prev_instance = Some(analyze_program(
                 prev_context,
                 prev.script,
                 prev_prog,
                 prev.input.iter().cloned().collect(),
-            )?));
-            prev_tasks = Some(Arc::new(plan_tasks(prev_instance.clone().unwrap(), None)?));
+            )?);
+            prev_tasks = Some(Arc::new(plan_tasks(prev_instance.as_ref().unwrap(), None)?));
             let have = prev_tasks.as_ref().unwrap();
             let expected = &test.prev.as_ref().unwrap().tasks;
             assert_eq!(have.next_data_id, expected.next_data_id);
@@ -542,20 +542,20 @@ mod test {
             );
             let next_prog =
                 Arc::new(grammar::deserialize_ast(&next_arena, test.next.script, next_ast, next_ast_data).unwrap());
-            Arc::new(analyze_program(
+            analyze_program(
                 next_context,
                 test.next.script,
                 next_prog,
                 test.next.input.iter().cloned().collect(),
-            )?)
+            )?
         };
 
         // Plan next tasks
-        let prev_state = match (prev_instance.clone(), prev_tasks.clone()) {
-            (Some(prev_instance), Some(prev_tasks)) => Some((prev_instance, prev_tasks)),
+        let prev_state = match (&prev_instance, &prev_tasks) {
+            (Some(prev_instance), Some(prev_tasks)) => Some((prev_instance, prev_tasks.as_ref())),
             (_, _) => None,
         };
-        let have = plan_tasks(next_instance, prev_state)?;
+        let have = plan_tasks(&next_instance, prev_state)?;
         let expected = &test.next.tasks;
         assert_eq!(have.tasks, expected.tasks);
         assert_eq!(have.task_by_statement, expected.task_by_statement);

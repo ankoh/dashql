@@ -6,6 +6,5 @@ pub mod scalar_value;
 pub mod table_metadata;
 pub mod task;
 pub mod task_scheduler;
-pub mod task_scheduler_log;
 pub mod task_state;
 pub mod viz_composer;

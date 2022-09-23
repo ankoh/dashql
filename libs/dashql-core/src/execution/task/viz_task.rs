@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::error::SystemError;
@@ -17,9 +15,9 @@ pub struct VegaVisTaskOperator<'ast> {
 }
 
 impl<'ast> VegaVisTaskOperator<'ast> {
-    pub fn create(
-        instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
+    pub fn create<'exec>(
+        instance: &'exec ProgramInstance<'ast>,
+        task_graph: &'exec TaskGraph,
         task_id: usize,
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
@@ -33,7 +31,7 @@ impl<'ast> VegaVisTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for VegaVisTaskOperator<'ast> {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

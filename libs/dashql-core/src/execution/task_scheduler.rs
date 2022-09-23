@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
@@ -10,7 +8,6 @@ use super::{
         unset_task::UnsetTaskOperator, vega_drop_vis_task::VegaDropVisTaskOperator, viz_task::VegaVisTaskOperator,
         TaskOperator,
     },
-    task_scheduler_log::TaskSchedulerLog,
 };
 use crate::{
     analyzer::{
@@ -18,34 +15,33 @@ use crate::{
         task::{TaskStatusCode, TaskType},
         task_graph::TaskGraph,
     },
+    api::workflow_frontend::WorkflowFrontend,
     error::SystemError,
     external::console,
     utils::topological_sort::TopologicalSort,
 };
 use futures::StreamExt;
 
-pub struct TaskScheduler<'ast> {
+pub struct TaskScheduler<'exec, 'ast> {
     /// The program
-    instance: Arc<ProgramInstance<'ast>>,
+    instance: &'exec ProgramInstance<'ast>,
     /// The graph
-    task_graph: Arc<TaskGraph>,
+    task_graph: &'exec TaskGraph,
     /// The derived task logic
-    task_logic: Vec<Option<Box<dyn TaskOperator<'ast> + 'ast>>>,
+    task_logic: Vec<Option<Box<dyn TaskOperator<'exec, 'ast> + 'exec>>>,
     /// The task topology
     task_topology: TopologicalSort<usize>,
     /// The dependencies
     task_required_for: Vec<Vec<usize>>,
 }
 
-unsafe impl<'ast> Sync for TaskScheduler<'ast> {}
-
-fn create_task_operator<'ast>(
-    instance: &Arc<ProgramInstance<'ast>>,
-    task_graph: &Arc<TaskGraph>,
+fn create_task_operator<'exec, 'ast>(
+    instance: &'exec ProgramInstance<'ast>,
+    task_graph: &'exec TaskGraph,
     task_id: usize,
-) -> Result<Option<Box<dyn TaskOperator<'ast> + 'ast>>, SystemError> {
+) -> Result<Option<Box<dyn TaskOperator<'exec, 'ast> + 'exec>>, SystemError> {
     let task = &task_graph.tasks[task_id];
-    let op: Box<dyn TaskOperator<'ast> + 'ast> = match task.task_type {
+    let op: Box<dyn TaskOperator<'exec, 'ast> + 'exec> = match task.task_type {
         TaskType::None => return Ok(None),
         TaskType::DropImport => Box::new(DBDropImportTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::DropInput => Box::new(DropInputTaskOperator::create(instance, task_graph, task_id)?),
@@ -64,8 +60,8 @@ fn create_task_operator<'ast>(
     Ok(Some(op))
 }
 
-impl<'ast> TaskScheduler<'ast> {
-    pub fn schedule(instance: Arc<ProgramInstance<'ast>>, task_graph: Arc<TaskGraph>) -> Result<Self, SystemError> {
+impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
+    pub fn schedule(instance: &'exec ProgramInstance<'ast>, task_graph: &'exec TaskGraph) -> Result<Self, SystemError> {
         let n = task_graph.tasks.len();
         let mut logic = Vec::with_capacity(n);
         let mut topo = Vec::with_capacity(n);
@@ -87,7 +83,7 @@ impl<'ast> TaskScheduler<'ast> {
     /// Prepare a task
     async fn prepare_task<'snap, 'task: 'snap>(
         task_id: usize,
-        task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
+        task: &'task mut Box<dyn TaskOperator<'exec, 'ast> + 'exec>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
         match task.prepare(&mut snapshot).await {
@@ -99,7 +95,7 @@ impl<'ast> TaskScheduler<'ast> {
     /// Execute a task
     async fn execute_task<'snap, 'task: 'snap>(
         task_id: usize,
-        task: &'task mut Box<dyn TaskOperator<'ast> + 'ast>,
+        task: &'task mut Box<dyn TaskOperator<'exec, 'ast> + 'exec>,
         mut snapshot: ExecutionContextSnapshot<'ast, 'snap>,
     ) -> (usize, Result<ExecutionContextSnapshot<'ast, 'snap>, SystemError>) {
         match task.execute(&mut snapshot).await {
@@ -108,10 +104,10 @@ impl<'ast> TaskScheduler<'ast> {
         }
     }
 
-    pub async fn next(&mut self, log: &mut dyn TaskSchedulerLog) -> Result<bool, SystemError> {
+    pub async fn next(&mut self, frontend: &WorkflowFrontend) -> Result<bool, SystemError> {
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
-        let mut task_ops = Vec::with_capacity(self.task_logic.len());
+        let mut task_ops: Vec<Box<dyn TaskOperator<'exec, 'ast> + 'exec>> = Vec::with_capacity(self.task_logic.len());
         while !self.task_topology.is_empty() {
             let (task_id, waiting_for) = self.task_topology.top();
             if *waiting_for > 0 {
@@ -143,9 +139,9 @@ impl<'ast> TaskScheduler<'ast> {
             self.task_graph.tasks[*task_id]
                 .task_status
                 .store(TaskStatusCode::Preparing as u8, std::sync::atomic::Ordering::SeqCst);
-            log.task_updated(*task_id, TaskStatusCode::Preparing);
+            frontend.update_task_status(*task_id as u32, TaskStatusCode::Preparing, None);
         }
-        log.flush();
+        frontend.flush_updates();
         let instance = self.instance.clone();
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
@@ -167,16 +163,16 @@ impl<'ast> TaskScheduler<'ast> {
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Prepared as u8, std::sync::atomic::Ordering::SeqCst);
-                    log.task_updated(task_id, TaskStatusCode::Prepared);
+                    frontend.update_task_status(task_id as u32, TaskStatusCode::Prepared, None);
                 }
                 Err(e) => {
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
-                    log.task_failed(task_id, e);
+                    frontend.update_task_status(task_id as u32, TaskStatusCode::Failed, Some(e.to_string()));
                 }
             };
-            log.flush();
+            frontend.flush_updates();
         }
         drop(task_futures);
         merge_into(snapshots, &self.instance.context)?;
@@ -189,10 +185,10 @@ impl<'ast> TaskScheduler<'ast> {
             if task.is_alive() {
                 task.task_status
                     .store(TaskStatusCode::Executing as u8, std::sync::atomic::Ordering::SeqCst);
-                log.task_updated(*task_id, TaskStatusCode::Executing);
+                frontend.update_task_status(*task_id as u32, TaskStatusCode::Executing, None);
             }
         }
-        log.flush();
+        frontend.flush_updates();
         let mut task_futures: futures::stream::FuturesUnordered<_> = task_ops
             .iter_mut()
             .enumerate()
@@ -213,16 +209,16 @@ impl<'ast> TaskScheduler<'ast> {
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Completed as u8, std::sync::atomic::Ordering::SeqCst);
-                    log.task_updated(task_id, TaskStatusCode::Completed);
+                    frontend.update_task_status(task_id as u32, TaskStatusCode::Completed, None);
                 }
                 Err(e) => {
                     self.task_graph.tasks[task_id]
                         .task_status
                         .store(TaskStatusCode::Failed as u8, std::sync::atomic::Ordering::SeqCst);
-                    log.task_failed(task_id, e);
+                    frontend.update_task_status(task_id as u32, TaskStatusCode::Failed, Some(e.to_string()));
                 }
             };
-            log.flush();
+            frontend.flush_updates();
         }
         merge_into(snapshots, &self.instance.context)?;
 
@@ -245,7 +241,7 @@ impl<'ast> TaskScheduler<'ast> {
 mod test {
     use crate::{
         analyzer::{program_instance::analyze_program, task_planner::plan_tasks},
-        execution::task_scheduler_log::SimpleTaskSchedulerLog,
+        api::workflow_frontend::run_task_status_updates,
         external::parser::parse_into,
         grammar,
     };
@@ -274,18 +270,24 @@ mod test {
         let (program_ast, program_data) = parse_into(&arena, script).await?;
         let program = Arc::new(grammar::deserialize_ast(&arena, script, program_ast, program_data).unwrap());
         let instance = Arc::new(analyze_program(context, script, program, HashMap::new())?);
-        let task_graph = Arc::new(plan_tasks(instance.clone(), None)?);
+        let task_graph = Arc::new(plan_tasks(&instance, None)?);
 
         // Run the scheduler
-        let mut task_scheduler = TaskScheduler::schedule(instance.clone(), task_graph)?;
-        let mut scheduler_log = SimpleTaskSchedulerLog::create();
+        let mut task_scheduler = TaskScheduler::schedule(&instance, &task_graph)?;
+        let mut frontend = WorkflowFrontend::default();
         loop {
-            let work_left = task_scheduler.next(&mut scheduler_log).await?;
+            let work_left = task_scheduler.next(&mut frontend).await?;
             if !work_left {
                 break;
             }
         }
-        assert!(!scheduler_log.any_failed, "{:?}", scheduler_log.entries);
+        let updates = frontend.flush_updates_manually();
+        let task_status = run_task_status_updates(&updates);
+        let failed: Vec<_> = task_status
+            .iter()
+            .filter(|(status, _)| *status == TaskStatusCode::Failed)
+            .collect();
+        assert!(failed.is_empty(), "{:?}", failed);
 
         // Test all queries
         let connection = instance.context.database.connect().await?;

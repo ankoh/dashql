@@ -8,8 +8,10 @@ use futures::executor::block_on;
 use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
-    analyzer::{program_instance::ProgramInstance, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec},
-    api::{frontend::Frontend, workflow_api::WorkflowAPI},
+    analyzer::{
+        program_instance::ProgramInstanceContainer, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec,
+    },
+    api::{workflow_api::WorkflowAPI, workflow_frontend::Frontend},
     error::SystemError,
     grammar::ProgramContainer,
 };
@@ -38,11 +40,11 @@ impl Frontend for Arc<JsFrontend> {
         });
         Ok(())
     }
-    fn update_program(&self, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
+    fn update_program(&self, session_id: u32, program: Arc<ProgramContainer>) -> Result<(), String> {
         let self2 = self.clone();
-        let text = text.as_bytes().to_vec();
-        let ast_ipc = ast.get_program().ast_data.to_vec();
-        let program_id = ast.get_program().program_id;
+        let text = program.get_text().as_bytes().to_vec();
+        let program_id = program.get_program().program_id;
+        let ast_ipc = program.get_program().ast_data.to_vec();
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let program_id = JsNumber::new(&mut cx, program_id).as_value(&mut cx);
@@ -60,9 +62,9 @@ impl Frontend for Arc<JsFrontend> {
         });
         Ok(())
     }
-    fn update_program_analysis(&self, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
+    fn update_program_analysis(&self, session_id: u32, analysis: Arc<ProgramInstanceContainer>) -> Result<(), String> {
         let self2 = self.clone();
-        let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
+        let analysis = serde_json::to_string(&analysis.instance).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let analysis = JsString::new(&mut cx, analysis).as_value(&mut cx);
@@ -74,9 +76,9 @@ impl Frontend for Arc<JsFrontend> {
         });
         Ok(())
     }
-    fn update_task_graph<'a>(&self, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
+    fn update_task_graph<'a>(&self, session_id: u32, graph: Arc<TaskGraph>) -> Result<(), String> {
         let self2 = self.clone();
-        let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
+        let graph_json = serde_json::to_string(&graph).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let graph_json = JsString::new(&mut cx, &graph_json).as_value(&mut cx);
@@ -164,9 +166,9 @@ impl Frontend for Arc<JsFrontend> {
         });
         Ok(())
     }
-    fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
+    fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: Arc<VizSpec>) -> Result<(), String> {
         let self2 = self.clone();
-        let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
+        let viz_json = serde_json::to_string(&viz).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);

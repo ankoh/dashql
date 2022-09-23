@@ -7,20 +7,17 @@ use std::{
 use crate::{
     analyzer::{
         analysis_settings::ProgramAnalysisSettings,
-        program_instance::{analyze_program, ProgramInstance},
+        program_instance::{analyze_program, ProgramInstanceContainer},
         task_graph::TaskGraph,
         task_planner::plan_tasks,
     },
     error::SystemError,
-    execution::{
-        execution_context::ExecutionContext, task_scheduler::TaskScheduler,
-        task_scheduler_log::FrontendTaskSchedulerLog,
-    },
+    execution::{execution_context::ExecutionContext, task_scheduler::TaskScheduler},
     external::{self, console, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::ProgramContainer,
 };
 
-use super::frontend::Frontend;
+use super::workflow_frontend::{Frontend, WorkflowFrontend};
 
 pub type WorkflowSessionId = u32;
 
@@ -48,10 +45,11 @@ impl WorkflowAPI {
         let session_id = self.next_session_id;
         self.next_session_id += 1;
         let connection = self.default_database.connect().await?;
+        let frontend = Arc::new(WorkflowFrontend::create(session_id, frontend.clone()));
         let session = Arc::new(WorkflowSession {
+            _session_id: session_id,
             settings: self.settings.clone(),
             runtime: self.runtime.clone(),
-            session_id,
             frontend,
             database: self.default_database.clone(),
             database_connection: connection,
@@ -72,24 +70,18 @@ impl WorkflowAPI {
     }
 }
 
-#[derive(Clone)]
-pub struct ProgramInstanceContainer {
-    _program: Arc<ProgramContainer>,
-    instance: Arc<ProgramInstance<'static>>,
-}
-
 pub struct WorkflowSession {
+    _session_id: WorkflowSessionId,
     settings: Arc<ProgramAnalysisSettings>,
     runtime: Arc<dyn external::Runtime>,
-    session_id: WorkflowSessionId,
-    pub frontend: Arc<dyn Frontend>,
+    pub frontend: Arc<WorkflowFrontend>,
     #[allow(dead_code)]
     database: Arc<dyn Database>,
     database_connection: Arc<dyn DatabaseConnection>,
     scheduler_executing: AtomicBool,
     latest_parsed: Mutex<Option<Arc<ProgramContainer>>>,
-    latest_instance: Mutex<Option<ProgramInstanceContainer>>,
-    latest_executed: Mutex<Option<(ProgramInstanceContainer, Arc<TaskGraph>)>>,
+    latest_instance: Mutex<Option<Arc<ProgramInstanceContainer>>>,
+    latest_executed: Mutex<Option<(Arc<ProgramInstanceContainer>, Arc<TaskGraph>)>>,
 }
 
 impl WorkflowSession {
@@ -111,16 +103,12 @@ impl WorkflowSession {
                 return Ok(());
             }
         };
-        let planned = self
-            .latest_executed
-            .lock()
-            .unwrap()
-            .as_ref()
-            .map(|(ic, g)| (ic.instance.clone(), g.clone()));
+        let planned = self.latest_executed.lock().unwrap().clone();
+        let planned_ref = planned.as_ref().map(|(ic, g)| (&ic.instance, g.as_ref()));
 
         console::println("PLAN TASKS");
         // Plan the latest program instance
-        let plan = Arc::new(match plan_tasks(latest.instance.clone(), planned) {
+        let plan = Arc::new(match plan_tasks(&latest.instance, planned_ref) {
             Ok(plan) => plan,
             Err(_e) => {
                 console::println("ERROR: planning failed");
@@ -133,8 +121,8 @@ impl WorkflowSession {
 
         // Notify the frontend about the plan
         console::println("UPDATE TASK GRAPH");
-        self.frontend.update_task_graph(self.session_id, &plan)?;
-        self.frontend.flush_updates(self.session_id)?;
+        self.frontend.update_task_graph(plan.clone());
+        self.frontend.flush_updates();
 
         // Setup a task scheduler
         console::println("SCHEDULE TASK GRAPH");
@@ -142,7 +130,7 @@ impl WorkflowSession {
             .lock()
             .unwrap()
             .replace((latest.clone(), plan.clone()));
-        let mut scheduler = match TaskScheduler::schedule(latest.instance.clone(), plan) {
+        let mut scheduler = match TaskScheduler::schedule(&latest.instance, &plan) {
             Ok(sched) => sched,
             Err(e) => {
                 external::console::println(&format!("{}", &e));
@@ -153,10 +141,9 @@ impl WorkflowSession {
         };
 
         // Perform scheduler work until done
-        let mut scheduler_log = FrontendTaskSchedulerLog::create(self.session_id, self.frontend.clone());
         loop {
             console::println("NEXT SCHEDULER TASKS");
-            match scheduler.next(&mut scheduler_log).await {
+            match scheduler.next(&self.frontend).await {
                 Ok(true) => {}
                 Ok(false) => break,
                 Err(e) => {
@@ -187,6 +174,7 @@ impl WorkflowSession {
         // Parse the program
         let program = Arc::new(ProgramContainer::parse(&text).await.map_err(|e| e.to_string())?);
         self.latest_parsed.lock().unwrap().replace(program.clone());
+        self.frontend.update_program(program.clone());
 
         // Create an execution context for the instantiation
         let context = ExecutionContext::create(
@@ -197,26 +185,16 @@ impl WorkflowSession {
             program.get_arena(),
         );
         let input = HashMap::new();
-        let instance = match analyze_program(context, program.get_text(), program.get_program().clone(), input)
-            .map(|instance| Arc::new(instance))
-        {
+        match analyze_program(context, program.get_text(), program.get_program().clone(), input) {
             Ok(instance) => {
-                self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
-                    _program: program.clone(),
-                    instance: unsafe { std::mem::transmute(instance.clone()) },
-                });
+                let instance = Arc::new(instance.wire(program.clone()));
+                self.latest_instance.lock().unwrap().replace(instance.clone());
+                self.frontend.update_program_analysis(instance.clone());
                 Some(instance)
             }
             Err(_e) => None,
         };
-
-        self.frontend.update_program(self.session_id, text, &program)?;
-        if let Some(instance) = &instance {
-            self.frontend
-                .clone()
-                .update_program_analysis(self.session_id, &instance)?;
-        }
-        self.frontend.flush_updates(self.session_id)?;
+        self.frontend.flush_updates();
         Ok(())
     }
 
@@ -236,15 +214,16 @@ impl WorkflowSession {
             self.database_connection.clone(),
             program.get_arena(),
         );
-        let instance = analyze_program(context, program.get_text(), program.get_program().clone(), new_input)
-            .map(|instance| Arc::new(instance))?;
-        self.latest_instance.lock().unwrap().replace(ProgramInstanceContainer {
-            _program: program.clone(),
-            instance: unsafe { std::mem::transmute(instance.clone()) },
-        });
-
-        self.frontend.update_program_analysis(self.session_id, &instance)?;
-        self.frontend.flush_updates(self.session_id)?;
+        match analyze_program(context, program.get_text(), program.get_program().clone(), new_input) {
+            Ok(instance) => {
+                let instance = Arc::new(instance.wire(program.clone()));
+                self.latest_instance.lock().unwrap().replace(instance.clone());
+                self.frontend.update_program_analysis(instance.clone());
+                Some(instance)
+            }
+            Err(_e) => None,
+        };
+        self.frontend.flush_updates();
         Ok(())
     }
 
@@ -261,124 +240,31 @@ impl WorkflowSession {
 
 #[cfg(test)]
 mod test {
-    use std::{cell::RefCell, error::Error};
+    use std::error::Error;
 
-    use crate::analyzer::{
-        task::{TaskStatusCode, TaskType},
-        viz_spec::VizSpec,
+    use crate::{
+        analyzer::task::{TaskStatusCode, TaskType},
+        api::workflow_frontend::FrontendBuffer,
     };
 
     use super::*;
 
-    enum StubWorkflowFrontendCall {
-        FlushUpdates(u32),
-        UpdateProgram(u32, String, ProgramContainer),
-        UpdateProgramAnalysis(u32),
-        UpdateTaskGraph(u32, TaskGraph),
-        UpdateTaskStatus(u32, u32, TaskStatusCode, Option<String>),
-        DeleteTaskData(u32, u32),
-        UpdateInputData(u32, u32),
-        UpdateImportData(u32, u32),
-        UpdateTableData(u32, u32),
-        UpdateVisualizationData(u32, u32, VizSpec),
-    }
-
-    #[derive(Default)]
-    struct StubWorkflowFrontend {
-        calls: RefCell<Vec<StubWorkflowFrontendCall>>,
-    }
-
-    impl Frontend for StubWorkflowFrontend {
-        fn flush_updates(&self, session_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::FlushUpdates(session_id));
-            Ok(())
-        }
-        fn update_program(&self, session_id: u32, text: &str, ast: &ProgramContainer) -> Result<(), String> {
-            self.calls.borrow_mut().push(StubWorkflowFrontendCall::UpdateProgram(
-                session_id,
-                text.to_string(),
-                ast.clone(),
-            ));
-            Ok(())
-        }
-        fn update_program_analysis(&self, session_id: u32, _analysis: &ProgramInstance) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateProgramAnalysis(session_id));
-            Ok(())
-        }
-        fn update_task_graph(&self, session_id: u32, graph: &TaskGraph) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateTaskGraph(session_id, graph.clone()));
-            Ok(())
-        }
-        fn update_task_status(
-            &self,
-            session_id: u32,
-            task_id: u32,
-            status: TaskStatusCode,
-            error: Option<String>,
-        ) -> Result<(), String> {
-            self.calls.borrow_mut().push(StubWorkflowFrontendCall::UpdateTaskStatus(
-                session_id, task_id, status, error,
-            ));
-            Ok(())
-        }
-        fn delete_task_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::DeleteTaskData(session_id, data_id));
-            Ok(())
-        }
-        fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateInputData(session_id, data_id));
-            Ok(())
-        }
-        fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateImportData(session_id, data_id));
-            Ok(())
-        }
-        fn update_table_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateTableData(session_id, data_id));
-            Ok(())
-        }
-        fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
-            self.calls
-                .borrow_mut()
-                .push(StubWorkflowFrontendCall::UpdateVisualizationData(
-                    session_id,
-                    data_id,
-                    viz.clone(),
-                ));
-            Ok(())
-        }
-    }
-
     #[tokio::test]
     async fn test_hello_workflow() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let frontend = Arc::new(FrontendBuffer::default());
         let mut api: WorkflowAPI = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend.clone()).await?;
         let session = api.get_session(session_id).unwrap();
         session.update_program("SELECT 42").await?;
 
-        let frontend_calls = frontend.calls.borrow();
-        assert_eq!(frontend_calls.len(), 3);
+        let frontend_updates = frontend.flush_updates_manually();
+        assert_eq!(frontend_updates.len(), 2, "{:?}", &frontend_updates);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_skipped() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let frontend = Arc::new(FrontendBuffer::default());
         let mut api: WorkflowAPI = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend).await?;
         let session = api.get_session(session_id).unwrap();
@@ -406,7 +292,7 @@ mod test {
 
     #[tokio::test]
     async fn test_visualize_table() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let frontend = Arc::new(StubWorkflowFrontend::default());
+        let frontend = Arc::new(FrontendBuffer::default());
         let mut api: WorkflowAPI = WorkflowAPI::new().await?;
         let session_id = api.create_session(frontend.clone()).await?;
         let session = api.get_session(session_id).unwrap();

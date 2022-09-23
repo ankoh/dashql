@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::error::SystemError;
@@ -11,8 +9,8 @@ use crate::grammar::{ImportStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 
-pub struct ImportTask<'ast> {
-    pub task_graph: Arc<TaskGraph>,
+pub struct ImportTask<'exec, 'ast> {
+    pub task_graph: &'exec TaskGraph,
     pub task_id: usize,
     pub statement: &'ast ImportStatement<'ast>,
 }
@@ -28,10 +26,10 @@ fn infer_import_method_from_url(url: &str) -> proto::ImportMethodType {
     return proto::ImportMethodType::NONE;
 }
 
-impl<'ast> ImportTask<'ast> {
+impl<'exec, 'ast> ImportTask<'exec, 'ast> {
     pub fn create(
-        instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
+        instance: &'exec ProgramInstance<'ast>,
+        task_graph: &'exec TaskGraph,
         task_id: usize,
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
@@ -42,14 +40,14 @@ impl<'ast> ImportTask<'ast> {
         };
         Ok(Self {
             task_id: task_id,
-            task_graph: task_graph.clone(),
+            task_graph: task_graph,
             statement: stmt,
         })
     }
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for ImportTask<'ast> {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for ImportTask<'exec, 'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

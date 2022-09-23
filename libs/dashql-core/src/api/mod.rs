@@ -1,5 +1,5 @@
-pub(crate) mod frontend;
 pub(crate) mod workflow_api;
+pub(crate) mod workflow_frontend;
 
 #[cfg(feature = "node")]
 mod node;

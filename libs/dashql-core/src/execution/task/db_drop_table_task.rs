@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::analyzer::task_graph::TaskGraph;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
@@ -8,26 +6,26 @@ use crate::external::console;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
-pub struct DBDropTableTaskOperator {
-    task_graph: Arc<TaskGraph>,
+pub struct DBDropTableTaskOperator<'exec> {
+    task_graph: &'exec TaskGraph,
     task_id: usize,
 }
 
-impl DBDropTableTaskOperator {
+impl<'exec> DBDropTableTaskOperator<'exec> {
     pub fn create<'ast>(
-        _instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
+        _instance: &'exec ProgramInstance<'ast>,
+        task_graph: &'exec TaskGraph,
         task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            task_graph: task_graph.clone(),
+            task_graph,
             task_id: task_id,
         })
     }
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DBDropTableTaskOperator {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

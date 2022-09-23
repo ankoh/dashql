@@ -4,9 +4,10 @@ use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    analyzer::{program_instance::ProgramInstance, viz_spec::VizSpec},
-    api::{frontend::Frontend, workflow_api::WorkflowAPI},
+    analyzer::{program_instance::ProgramInstanceContainer, task_graph::TaskGraph, viz_spec::VizSpec},
+    api::{workflow_api::WorkflowAPI, workflow_frontend::Frontend},
     error::SystemError,
+    grammar::ProgramContainer,
 };
 
 #[wasm_bindgen]
@@ -44,30 +45,26 @@ impl Frontend for JsFrontendBridge {
         self.inner.flush_updates(session_id);
         Ok(())
     }
-    fn update_program(
-        &self,
-        session_id: u32,
-        text: &str,
-        ast: &crate::grammar::ProgramContainer,
-    ) -> Result<(), String> {
+    fn update_program(&self, session_id: u32, program: Arc<ProgramContainer>) -> Result<(), String> {
+        let program_id = program.get_program().program_id;
+        let text = program.get_text();
         let text_bytes = text.as_bytes();
         let text_array = Uint8Array::new_with_length(text_bytes.len() as u32);
         text_array.copy_from(text_bytes);
-        let ast_ipc = ast.get_program().ast_data;
+        let ast_ipc = program.get_program().ast_data;
         let ast_array = Uint8Array::new_with_length(ast_ipc.len() as u32);
         ast_array.copy_from(&ast_ipc);
-        self.inner
-            .update_program(session_id, ast.get_program().program_id, text_array, ast_array);
+        self.inner.update_program(session_id, program_id, text_array, ast_array);
         Ok(())
     }
-    fn update_program_analysis(&self, session_id: u32, analysis: &ProgramInstance) -> Result<(), String> {
-        let analysis = serde_json::to_string(analysis).map_err(|e| e.to_string())?;
-        self.inner.update_program_analysis(session_id, &analysis);
+    fn update_program_analysis(&self, session_id: u32, analysis: Arc<ProgramInstanceContainer>) -> Result<(), String> {
+        let json = serde_json::to_string(&analysis.instance).map_err(|e| e.to_string())?;
+        self.inner.update_program_analysis(session_id, &json);
         Ok(())
     }
-    fn update_task_graph(&self, session_id: u32, graph: &crate::analyzer::task_graph::TaskGraph) -> Result<(), String> {
-        let graph_json = serde_json::to_string(graph).map_err(|e| e.to_string())?;
-        self.inner.update_task_graph(session_id, &graph_json);
+    fn update_task_graph(&self, session_id: u32, graph: Arc<TaskGraph>) -> Result<(), String> {
+        let json = serde_json::to_string(&graph).map_err(|e| e.to_string())?;
+        self.inner.update_task_graph(session_id, &json);
         Ok(())
     }
     fn update_task_status(
@@ -100,9 +97,9 @@ impl Frontend for JsFrontendBridge {
         self.inner.update_table_data(session_id, data_id);
         Ok(())
     }
-    fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: &VizSpec) -> Result<(), String> {
-        let viz_json = serde_json::to_string(viz).map_err(|e| e.to_string())?;
-        self.inner.update_visualization_data(session_id, data_id, &viz_json);
+    fn update_visualization_data(&self, session_id: u32, data_id: u32, spec: Arc<VizSpec>) -> Result<(), String> {
+        let json = serde_json::to_string(&spec).map_err(|e| e.to_string())?;
+        self.inner.update_visualization_data(session_id, data_id, &json);
         Ok(())
     }
 }

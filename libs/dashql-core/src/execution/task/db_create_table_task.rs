@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::analyzer::program_instance::ProgramInstance;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::error::SystemError;
@@ -10,16 +8,16 @@ use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 use async_trait::async_trait;
 
-pub struct DBCreateTableTaskOperator<'ast> {
+pub struct DBCreateTableTaskOperator<'exec, 'ast> {
     statement: Statement<'ast>,
-    task_graph: Arc<TaskGraph>,
+    task_graph: &'exec TaskGraph,
     task_id: usize,
 }
 
-impl<'ast> DBCreateTableTaskOperator<'ast> {
+impl<'exec, 'ast> DBCreateTableTaskOperator<'exec, 'ast> {
     pub fn create(
-        instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
+        instance: &'exec ProgramInstance<'ast>,
+        task_graph: &'exec TaskGraph,
         task_id: usize,
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
@@ -36,14 +34,14 @@ impl<'ast> DBCreateTableTaskOperator<'ast> {
         };
         Ok(Self {
             statement: stmt,
-            task_graph: task_graph.clone(),
+            task_graph: task_graph,
             task_id,
         })
     }
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DBCreateTableTaskOperator<'ast> {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBCreateTableTaskOperator<'exec, 'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }

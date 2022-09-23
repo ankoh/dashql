@@ -9,19 +9,18 @@ use crate::grammar::{LoadStatement, Statement};
 use async_trait::async_trait;
 use dashql_proto as proto;
 use proto::LoadMethodType;
-use std::sync::Arc;
 
-pub struct DBLoadTaskOperator<'ast> {
-    instance: Arc<ProgramInstance<'ast>>,
-    task_graph: Arc<TaskGraph>,
+pub struct DBLoadTaskOperator<'exec, 'ast> {
+    instance: &'exec ProgramInstance<'ast>,
+    task_graph: &'exec TaskGraph,
     task_id: usize,
     statement: &'ast LoadStatement<'ast>,
 }
 
-impl<'ast> DBLoadTaskOperator<'ast> {
+impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
     pub fn create(
-        instance: &Arc<ProgramInstance<'ast>>,
-        task_graph: &Arc<TaskGraph>,
+        instance: &'exec ProgramInstance<'ast>,
+        task_graph: &'exec TaskGraph,
         task_id: usize,
     ) -> Result<Self, SystemError> {
         let task = &task_graph.tasks[task_id];
@@ -32,7 +31,7 @@ impl<'ast> DBLoadTaskOperator<'ast> {
         };
         Ok(Self {
             instance: instance.clone(),
-            task_graph: task_graph.clone(),
+            task_graph: task_graph,
             task_id: task_id,
             statement: stmt,
         })
@@ -94,7 +93,7 @@ impl<'ast> DBLoadTaskOperator<'ast> {
 }
 
 #[async_trait(?Send)]
-impl<'ast> TaskOperator<'ast> for DBLoadTaskOperator<'ast> {
+impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBLoadTaskOperator<'exec, 'ast> {
     async fn prepare<'snap>(&mut self, _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>) -> Result<(), SystemError> {
         Ok(())
     }
