@@ -4,9 +4,8 @@ use super::{
         db_create_table_task::DBCreateTableTaskOperator, db_drop_import_task::DBDropImportTaskOperator,
         db_drop_table_task::DBDropTableTaskOperator, db_load_task::DBLoadTaskOperator,
         db_update_table_task::DBUpdateTableTaskOperator, declare_task::DeclareTaskOperator,
-        drop_input_task::DropInputTaskOperator, import_task::ImportTask, set_task::SetTaskOperator,
-        unset_task::UnsetTaskOperator, vega_drop_vis_task::VegaDropVisTaskOperator, viz_task::VegaVisTaskOperator,
-        TaskOperator,
+        drop_input_task::DropInputTaskOperator, drop_vis_task::DropVisTaskOperator, import_task::ImportTask,
+        set_task::SetTaskOperator, unset_task::UnsetTaskOperator, viz_task::VegaVisTaskOperator, TaskOperator,
     },
 };
 use crate::{
@@ -46,7 +45,7 @@ fn create_task_operator<'exec, 'ast>(
         TaskType::DropImport => Box::new(DBDropImportTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::DropInput => Box::new(DropInputTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::DropTable => Box::new(DBDropTableTaskOperator::create(instance, task_graph, task_id)?),
-        TaskType::DropViz => Box::new(VegaDropVisTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::DropViz => Box::new(DropVisTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Unset => Box::new(UnsetTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::CreateTable => Box::new(DBCreateTableTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::CreateViz => Box::new(VegaVisTaskOperator::create(instance, task_graph, task_id)?),
