@@ -180,7 +180,7 @@ mod test {
     };
     use std::{collections::HashMap, error::Error, sync::Arc};
 
-    fn unpack_map(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+    fn unpack_object(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
         match v {
             serde_json::Value::Object(m) => m,
             _ => serde_json::Map::new(),
@@ -277,7 +277,7 @@ mod test {
                         renderer: VizRenderer::VegaLite(VegaLiteRenderer {
                             table_name: "foo".to_string(),
                             sampling: None,
-                            spec: unpack_map(json!({
+                            spec: unpack_object(json!({
                                 "position": {
                                     "row": "0",
                                     "column": "0",
