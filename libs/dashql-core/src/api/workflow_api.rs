@@ -106,7 +106,6 @@ impl WorkflowSession {
         let planned = self.latest_executed.lock().unwrap().clone();
         let planned_ref = planned.as_ref().map(|(ic, g)| (&ic.instance, g.as_ref()));
 
-        console::println("PLAN TASKS");
         // Plan the latest program instance
         let plan = Arc::new(match plan_tasks(&latest.instance, planned_ref) {
             Ok(plan) => plan,
@@ -117,15 +116,12 @@ impl WorkflowSession {
                 return Ok(());
             }
         });
-        console::println(&format!("{:?}", &plan.tasks));
 
         // Notify the frontend about the plan
-        console::println("UPDATE TASK GRAPH");
         self.frontend.update_task_graph(plan.clone());
         self.frontend.flush_updates();
 
         // Setup a task scheduler
-        console::println("SCHEDULE TASK GRAPH");
         self.latest_executed
             .lock()
             .unwrap()
@@ -142,7 +138,6 @@ impl WorkflowSession {
 
         // Perform scheduler work until done
         loop {
-            console::println("NEXT SCHEDULER TASKS");
             match scheduler.next(&self.frontend).await {
                 Ok(true) => {}
                 Ok(false) => break,
@@ -153,7 +148,6 @@ impl WorkflowSession {
                 }
             }
         }
-        console::println("SCHEDULER DONE");
         self.scheduler_executing.store(false, Ordering::SeqCst);
         Ok(())
     }

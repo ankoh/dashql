@@ -123,7 +123,7 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
         if task_ids.is_empty() {
             return Ok(false);
         }
-        console::println(&format!("NEXT WORK ON: {:?}", task_ids));
+        // console::println(&format!("NEXT WORK ON: {:?}", task_ids));
 
         // Merge execution context data
         let merge_into =
