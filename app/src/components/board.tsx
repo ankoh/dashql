@@ -4,7 +4,7 @@ import ReactGrid from 'react-grid-layout';
 import { useWorkflowSession, useWorkflowSessionState } from '../backend/workflow_session';
 
 import './board.module.css';
-import { CardStatus } from './card/card_status';
+import { CardRenderer } from './card';
 
 type Props = {
     className?: string;
@@ -84,7 +84,7 @@ export const Board: React.FC<Props> = (props: Props) => {
     for (const l of layout) {
         els.push(
             <div key={l.i}>
-                <CardStatus statementId={l.statementId} />
+                <CardRenderer statementId={l.statementId} />
             </div>,
         );
     }

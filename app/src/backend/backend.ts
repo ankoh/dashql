@@ -29,7 +29,7 @@ export interface WorkflowFrontend {
     updateImportData(session: SessionId, state: DataId): void;
     updateLoadData(session: SessionId, state: DataId): void;
     updateTableData(session: SessionId, state: DataId): void;
-    updateVisualizationData(session: SessionId, state: DataId, viz: VizSpec): void;
+    updateVisualizationData(session: SessionId, state: DataId, viz: string): void;
 }
 
 export interface Backend {
