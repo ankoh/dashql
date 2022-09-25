@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Table } from 'apache-arrow/table';
-import { QueryProvider, Query } from './query_provider';
+import { QueryProvider } from './query_provider';
 import { TableMetadata } from '../model/table_metadata';
 import { SQLValue } from '../model/sql_value';
 
@@ -19,12 +18,8 @@ interface Props {
     /// The width of the container
     width: number;
 
-    /// The error component
-    errorComponent?: ((error: string) => React.ReactElement) | null;
-    /// The in-flight component
-    inFlightComponent?: ((query: Query) => React.ReactElement) | null;
     /// The children
-    children: (result: Table) => React.ReactElement;
+    children?: React.ReactElement | React.ReactElement[];
 }
 
 export const AM4Provider: React.FC<Props> = (props: Props) => {
@@ -92,5 +87,5 @@ ${aggs}
     `;
     const after = `DROP TABLE IF EXISTS ${table_name}`;
 
-    return <QueryProvider query={{ before, data, after }}>{result => props.children(result)}</QueryProvider>;
+    return <QueryProvider query={{ before, data, after }}>{props.children}</QueryProvider>;
 };

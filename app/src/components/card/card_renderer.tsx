@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useWorkflowSessionState } from '../../backend/workflow_session';
 import { CardStatus } from './card_status';
 import { TableCardRenderer } from './table_card_renderer';
+import { VegaCardRenderer } from './vega_card_renderer';
 
 interface Props {
     statementId: number;
@@ -35,7 +36,7 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
         case 'Table':
             return <TableCardRenderer data={rendererData} />;
         case 'VegaLite':
-            return <div>Vega Lite</div>;
+            return <VegaCardRenderer data={rendererData} />;
         default:
             return <div />;
     }

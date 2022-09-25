@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dashql_proto::VizComponentType;
-use serde_json as sj;
+use serde_json::{self as sj, json};
 
 use crate::{
     analyzer::viz_spec::{
@@ -11,6 +11,13 @@ use crate::{
 };
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
+
+fn unpack_object(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+    match v {
+        serde_json::Value::Object(m) => m,
+        _ => serde_json::Map::new(),
+    }
+}
 
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
@@ -103,11 +110,27 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         }
         VizComponentType::SPEC => {
             let table_metadata = assume_data_is_table(data)?;
+            let mut layer = extra.clone();
+            layer.remove(&"position".to_string());
+            layer.remove(&"title".to_string());
             out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
                 table: table_metadata.clone(),
                 sampling: None,
-                spec: extra.clone(),
-            })
+                spec: unpack_object(json!({
+                    "autosize": {
+                        "type": "fit",
+                        "contains": "padding",
+                        "resize": true,
+                    },
+                    "background": "transparent",
+                    "padding": 8,
+                    "width": "container",
+                    "height": "container",
+                    "layer": [
+                        layer
+                    ],
+                })),
+            });
         }
         VizComponentType::AREA
         | VizComponentType::BAR
@@ -172,6 +195,7 @@ mod test {
     use arrow::datatypes::DataType;
     use serde_json::json;
 
+    use super::*;
     use crate::{
         analyzer::{
             program_instance::analyze_program,
@@ -189,13 +213,6 @@ mod test {
         grammar::ProgramContainer,
     };
     use std::{collections::HashMap, error::Error, sync::Arc};
-
-    fn unpack_object(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
-        match v {
-            serde_json::Value::Object(m) => m,
-            _ => serde_json::Map::new(),
-        }
-    }
 
     async fn test_data(script: &'static str, data: Vec<TaskData>) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Plan the program
@@ -305,26 +322,30 @@ mod test {
                             table: metadata.clone(),
                             sampling: None,
                             spec: unpack_object(json!({
-                                "position": {
-                                    "row": "0",
-                                    "column": "0",
-                                    "width": "12",
-                                    "height": "4",
+                                "autosize": {
+                                    "type": "fit",
+                                    "contains": "padding",
+                                    "resize": true,
                                 },
-                                "title": "Covid Total Doses",
-                                "encoding": {
-                                    "x": {
-                                        "title": "Time",
-                                        "field": "date",
-                                        "type": "temporal",
+                                "background": "transparent",
+                                "padding": 8,
+                                "width": "container",
+                                "height": "container",
+                                "layer": [{
+                                    "encoding": {
+                                        "x": {
+                                            "title": "Time",
+                                            "field": "date",
+                                            "type": "temporal",
+                                        },
+                                        "y": {
+                                            "title": "Doses",
+                                            "field": "dosen_kumulativ",
+                                            "type": "quantitative",
+                                        }
                                     },
-                                    "y": {
-                                        "title": "Doses",
-                                        "field": "dosen_kumulativ",
-                                        "type": "quantitative",
-                                    }
-                                },
-                                "mark": "area"
+                                    "mark": "area"
+                                }]
                             })),
                         }),
                     }),

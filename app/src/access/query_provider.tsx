@@ -1,6 +1,9 @@
 import * as React from 'react';
-import { Table } from 'apache-arrow/table';
+import * as arrow from 'apache-arrow';
 import { useWorkflowSession } from '../backend/workflow_session';
+
+export const QUERY_RESULT_PROVIDER = React.createContext<arrow.Table>(null);
+export const useQueryResult = (): arrow.Table | null => React.useContext(QUERY_RESULT_PROVIDER);
 
 export interface Query {
     before?: string;
@@ -11,13 +14,8 @@ export interface Query {
 interface Props {
     /// The query
     query: Query;
-
-    /// The error component
-    errorComponent?: ((error: string) => React.ReactElement) | null;
-    /// The in-flight component
-    inFlightComponent?: ((query: Query) => React.ReactElement) | null;
     /// The children
-    children: (result: Table) => React.ReactElement;
+    children?: React.ReactElement[] | React.ReactElement;
 }
 
 interface QueryState {
@@ -26,7 +24,7 @@ interface QueryState {
     /// The result query
     resultQuery: Query | null;
     /// The result data
-    resultData: Table | null;
+    resultData: arrow.Table | null;
     /// The error
     error: string | null;
 }
@@ -80,7 +78,7 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
             queryInFlight: query,
         });
         promise
-            .then((result: Table): void => {
+            .then((result: arrow.Table): void => {
                 setQueryState({
                     queryInFlight: null,
                     resultQuery: query,
@@ -98,17 +96,7 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
             });
     }, [props.query, queryState.queryInFlight]);
 
-    // Query in flight?
-    if (queryState.queryInFlight && props.inFlightComponent) {
-        return props.inFlightComponent(queryState.queryInFlight);
-    }
-    // Query failed?
-    if (queryState.error && props.errorComponent) {
-        return props.errorComponent(queryState.error);
-    }
-    // Query OK?
-    if (queryState.resultData) {
-        return props.children(queryState.resultData);
-    }
-    return <div />;
+    return (
+        <QUERY_RESULT_PROVIDER.Provider value={queryState.resultData}>{props.children}</QUERY_RESULT_PROVIDER.Provider>
+    );
 };
