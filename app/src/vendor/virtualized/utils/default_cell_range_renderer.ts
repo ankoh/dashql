@@ -1,6 +1,6 @@
 /** @flow */
 
-import type { CellRangeRendererParams } from '../types';
+import type { GridCellRangeProps } from '../types';
 import React from 'react';
 
 /**
@@ -8,7 +8,7 @@ import React from 'react';
  * This renderer supports cell-caching while the user is scrolling.
  */
 
-export default function defaultCellRangeRenderer({
+export default function defaultGridCellRangeRenderer({
     cellCache,
     cellRenderer,
     columnSizeAndPositionManager,
@@ -26,7 +26,7 @@ export default function defaultCellRangeRenderer({
     verticalOffsetAdjustment,
     visibleColumnIndices,
     visibleRowIndices,
-}: CellRangeRendererParams) {
+}: GridCellRangeProps) {
     const renderedCells = [];
 
     // Browsers have native size limits for elements (eg Chrome 33M pixels, IE 1.5M pixes).

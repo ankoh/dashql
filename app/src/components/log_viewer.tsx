@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { observeSize } from '../utils/size_observer';
-import { List, RowRendererParams } from '../vendor/virtualized';
+import { List, ListRowRendererParams } from '../vendor/virtualized';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import styles from './log_viewer.module.css';
@@ -47,7 +47,7 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
         setFocused((focused != entry ? parseInt(entry) : null) ?? null);
     };
 
-    const renderRow = (rowProps: RowRendererParams) => {
+    const renderRow = (rowProps: ListRowRendererParams) => {
         const logEntry = log.entries.get(rowProps.index);
         if (!logEntry) return <div style={rowProps.style} />;
         const tsNow = props.currentTime;

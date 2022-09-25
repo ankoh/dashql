@@ -1,44 +1,45 @@
 import * as React from 'react';
 import { Grid } from './grid';
 import { List } from './list';
+
 import ScalingCellSizeAndPositionManager from './utils/scaling_cellsize_and_position_manager';
 
-export type CellPosition = { columnIndex: number; rowIndex: number };
-export type CellRendererParams = {
+export type GridCellPosition = { columnIndex: number; rowIndex: number };
+export type GridCellProps = {
     columnIndex: number;
     isScrolling: boolean;
     isVisible: boolean;
     key: string;
-    parent: object;
+    parent: any;
     rowIndex: number;
     style: any;
 };
-export type CellRenderer = (props: CellRendererParams) => React.ReactElement | null;
-export type CellCache = { [key: string]: React.ReactElement };
-export type StyleCache = { [key: string]: object };
+export type GridCellRenderer = (props: GridCellProps) => React.ReactElement | null;
+export type GridCellCache = { [key: string]: React.ReactElement };
+export type StyleCache = { [key: string]: any };
 
 export type VisibileIndices = { start?: number; stop?: number };
 
-export type IndexParam = {
+export type Index = {
     index: number;
 };
 
-export type CellMeasurerCache = {
+export type GridCellMeasurerCache = {
     has(rowIndex: number, columnIndex: number): boolean;
     getWidth(rowIndex: number, columnIndex: number): number;
     getHeight(rowIndex: number, columnIndex: number): number;
     hasFixedHeight(): boolean;
     hasFixedWidth(): boolean;
-    rowHeight(index: IndexParam): boolean;
+    rowHeight(index: Index): boolean;
 };
 
-export type CellRangeRendererParams = {
-    cellCache: CellCache;
-    cellRenderer: CellRenderer;
+export type GridCellRangeProps = {
+    cellCache: GridCellCache;
+    cellRenderer: GridCellRenderer;
     columnSizeAndPositionManager: ScalingCellSizeAndPositionManager;
     columnStartIndex: number;
     columnStopIndex: number;
-    deferredMeasurementCache?: CellMeasurerCache;
+    deferredMeasurementCache?: GridCellMeasurerCache;
     horizontalOffsetAdjustment: number;
     isScrolling: boolean;
     isScrollingOptOut: boolean;
@@ -54,11 +55,11 @@ export type CellRangeRendererParams = {
     visibleRowIndices: VisibileIndices;
 };
 
-export type CellRangeRenderer = (params: CellRangeRendererParams) => React.ReactElement[];
+export type GridCellRangeRenderer = (params: GridCellRangeProps) => React.ReactElement[];
 
-export type CellSizeGetter = (params: { index: number }) => number;
+export type GridCellSizeGetter = (params: { index: number }) => number;
 
-export type CellSize = CellSizeGetter | number;
+export type GridCellSize = GridCellSizeGetter | number;
 
 export type NoContentRenderer = () => React.ReactElement | null;
 
@@ -83,7 +84,7 @@ export type ScrollbarPresenceChange = {
     size: number;
 };
 
-export type RenderedSection = {
+export type GridRenderedSection = {
     columnOverscanStartIndex: number;
     columnOverscanStopIndex: number;
     columnStartIndex: number;
@@ -95,22 +96,11 @@ export type RenderedSection = {
 };
 
 export type OverscanIndicesGetterParams = {
-    // One of SCROLL_DIRECTION_HORIZONTAL or SCROLL_DIRECTION_VERTICAL
     direction: 'horizontal' | 'vertical';
-
-    // One of SCROLL_DIRECTION_BACKWARD or SCROLL_DIRECTION_FORWARD
     scrollDirection: -1 | 1;
-
-    // Number of rows or columns in the current axis
     cellCount: number;
-
-    // Maximum number of cells to over-render in either direction
     overscanCellsCount: number;
-
-    // Begin of range of visible cells
     startIndex: number;
-
-    // End of range of visible cells
     stopIndex: number;
 };
 
@@ -128,18 +118,18 @@ export type VisibleCellRange = {
     stop?: number;
 };
 
-export type RowRendererParams = {
+export type ListRowRendererParams = {
     index: number;
     isScrolling: boolean;
     isVisible: boolean;
     key: string;
-    parent: object;
-    style: object;
+    parent: any;
+    style: any;
 };
 
-export type RowRenderer = (params: RowRendererParams) => React.ReactElement;
+export type ListRowRenderer = (params: ListRowRendererParams) => React.ReactElement;
 
-export type RenderedRows = {
+export type ListRenderedRows = {
     overscanStartIndex: number;
     overscanStopIndex: number;
     startIndex: number;

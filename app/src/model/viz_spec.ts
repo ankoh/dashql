@@ -1,12 +1,12 @@
 import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
 
 export interface VizSpec {
-    readonly renderer: CardRenderer;
+    readonly renderer: CardRendererData;
 }
 
-export type CardRenderer = TableRenderer | VegaLiteRenderer;
+export type CardRendererData = TableRendererData | VegaLiteRendererData;
 
-export interface TableRenderer {
+export interface TableRendererData {
     readonly t: 'Table';
     readonly v: {
         table_name: string;
@@ -14,7 +14,7 @@ export interface TableRenderer {
     };
 }
 
-export interface VegaLiteRenderer {
+export interface VegaLiteRendererData {
     readonly t: 'VegaLite';
     readonly v: {
         table_name: string;

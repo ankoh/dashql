@@ -1,14 +1,14 @@
 import {
     NoContentRenderer,
     Alignment,
-    CellSize,
-    CellPosition,
+    GridCellSize,
+    GridCellPosition,
     OverscanIndicesGetter,
-    RenderedSection,
-    CellRendererParams,
+    GridRenderedSection,
+    GridCellProps,
     GridScroll,
 } from './types';
-import { RowRenderer, RenderedRows, ListScroll } from './types';
+import { ListRowRenderer, ListRenderedRows, ListScroll } from './types';
 
 import accessibilityOverscanIndicesGetter from './utils/accessibility_overscan_indices_getter';
 import Grid from './grid';
@@ -43,7 +43,7 @@ type Props = {
     /** Optional renderer to be used in place of rows when rowCount is 0 */
     noRowsRenderer?: NoContentRenderer;
     /** Callback invoked with information about the slice of rows that were just rendered.  */
-    onRowsRendered?: (params: RenderedRows) => void;
+    onRowsRendered?: (params: ListRenderedRows) => void;
     /**
      * Callback invoked whenever the scroll offset changes within the inner scrollable region.
      * This callback can be used to sync scrolling between lists, tables, or grids.
@@ -57,9 +57,9 @@ type Props = {
      */
     overscanRowCount?: number;
     /** Either a fixed row height (number) or a function that returns the height of a row given its index.  */
-    rowHeight: CellSize;
+    rowHeight: GridCellSize;
     /** Responsible for rendering a row given an index; ({ index: number }): node */
-    rowRenderer: RowRenderer;
+    rowRenderer: ListRowRenderer;
     /** Number of rows in list. */
     rowCount: number;
     /** See Grid#scrollToAlignment */
@@ -122,7 +122,7 @@ export class List extends React.PureComponent<Props> {
     }
 
     /** CellMeasurer compatibility */
-    invalidateCellSizeAfterRender({ columnIndex, rowIndex }: CellPosition) {
+    invalidateCellSizeAfterRender({ columnIndex, rowIndex }: GridCellPosition) {
         if (this.Grid) {
             this.Grid.invalidateCellSizeAfterRender({
                 rowIndex,
@@ -139,7 +139,7 @@ export class List extends React.PureComponent<Props> {
     }
 
     /** CellMeasurer compatibility */
-    recomputeGridSize(pos: CellPosition = { columnIndex: 0, rowIndex: 0 }) {
+    recomputeGridSize(pos: GridCellPosition = { columnIndex: 0, rowIndex: 0 }) {
         if (this.Grid) {
             this.Grid.recomputeGridSize({
                 rowIndex: pos.rowIndex,
@@ -197,7 +197,7 @@ export class List extends React.PureComponent<Props> {
         );
     }
 
-    _cellRenderer = ({ parent, rowIndex, style, isScrolling, isVisible, key }: CellRendererParams) => {
+    _cellRenderer = ({ parent, rowIndex, style, isScrolling, isVisible, key }: GridCellProps) => {
         const { rowRenderer } = this.props;
 
         // TRICKY The style object is sometimes cached by Grid.
@@ -237,7 +237,7 @@ export class List extends React.PureComponent<Props> {
         rowOverscanStopIndex,
         rowStartIndex,
         rowStopIndex,
-    }: RenderedSection) => {
+    }: GridRenderedSection) => {
         const { onRowsRendered } = this.props;
 
         onRowsRendered({

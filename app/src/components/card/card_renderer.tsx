@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useWorkflowSessionState } from '../../backend/workflow_session';
 import { CardStatus } from './card_status';
+import { TableCardRenderer } from './table_card_renderer';
 
 interface Props {
     statementId: number;
@@ -29,11 +30,14 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
         return <CardStatus statementId={props.statementId} />;
     }
 
-    console.log(data.v);
-    const renderer = data.v.renderer;
-    switch (renderer.t) {
+    const rendererData = data.v.renderer;
+    switch (rendererData.t) {
         case 'Table':
-            return <div>Table Renderer</div>;
+            return (
+                <div style={{ width: '100%', height: '100%' }}>
+                    <TableCardRenderer data={rendererData} />
+                </div>
+            );
         case 'VegaLite':
             return <div>Vega Lite</div>;
         default:

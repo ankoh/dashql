@@ -1,18 +1,18 @@
 import {
-    CellRenderer,
-    CellRangeRenderer,
-    CellPosition,
-    CellSize,
-    CellSizeGetter,
-    NoContentRenderer,
-    GridScroll,
-    ScrollbarPresenceChange,
-    RenderedSection,
-    OverscanIndicesGetter,
     Alignment,
-    CellCache,
+    GridCellCache,
+    GridCellMeasurerCache,
+    GridCellPosition,
+    GridCellRangeRenderer,
+    GridCellRenderer,
+    GridCellSize,
+    GridCellSizeGetter,
+    GridRenderedSection,
+    GridScroll,
+    NoContentRenderer,
+    OverscanIndicesGetter,
+    ScrollbarPresenceChange,
     StyleCache,
-    CellMeasurerCache,
 } from './types';
 import type { AnimationTimeoutId } from './utils/request_animation_timeout';
 
@@ -29,6 +29,9 @@ import defaultCellRangeRenderer from './utils/default_cell_range_renderer';
 import scrollbarSize from 'dom-helpers/scrollbarSize';
 import { requestAnimationTimeout, cancelAnimationTimeout } from './utils/request_animation_timeout';
 import classNames from 'classnames';
+
+export const defaultGridCellRangeRenderer = defaultCellRangeRenderer;
+export { SizeAndPositionData } from './utils/cellsize_and_position_manager';
 
 /**
  * Specifies the number of milliseconds during which to disable pointer events while a scroll is in progress.
@@ -71,15 +74,15 @@ type Props = {
      */
     autoWidth?: boolean;
     /** Responsible for rendering a cell given an row and column index.    */
-    cellRenderer: CellRenderer;
+    cellRenderer: GridCellRenderer;
     /** Responsible for rendering a group of cells given their index ranges.    */
-    cellRangeRenderer?: CellRangeRenderer;
+    cellRangeRenderer?: GridCellRangeRenderer;
     /** Optional custom CSS class name to attach to root Grid element.    */
     className?: string;
     /** Number of columns in grid.    */
     columnCount: number;
     /** Either a fixed column width (number) or a function that returns the width of a column given its index.    */
-    columnWidth: CellSize;
+    columnWidth: GridCellSize;
 
     /** Unfiltered props for the Grid container. */
     containerProps?: object;
@@ -91,7 +94,7 @@ type Props = {
      * If CellMeasurer is used to measure this Grid's children, this should be a pointer to its CellMeasurerCache.
      * A shared CellMeasurerCache reference enables Grid and CellMeasurer to share measurement data.
      */
-    deferredMeasurementCache?: CellMeasurerCache;
+    deferredMeasurementCache?: GridCellMeasurerCache;
     /**
      * Used to estimate the total width of a Grid before all of its columns have actually been measured.
      * The estimated total width is adjusted as columns are rendered.
@@ -133,7 +136,7 @@ type Props = {
      */
     onScrollbarPresenceChange?: (params: ScrollbarPresenceChange) => void;
     /** Callback invoked with information about the section of the Grid that was just rendered.    */
-    onSectionRendered?: (params: RenderedSection) => void;
+    onSectionRendered?: (params: GridRenderedSection) => void;
     /**
      * Number of columns to render before/after the visible section of the grid.
      * These columns can help for smoother scrolling on touch devices or browsers that send scroll events infrequently.
@@ -156,7 +159,7 @@ type Props = {
      * Either a fixed row height (number) or a function that returns the height of a row given its index.
      * Should implement the following interface: ({ index: number }): number
      */
-    rowHeight: CellSize;
+    rowHeight: GridCellSize;
     /** Number of rows in grid.    */
     rowCount: number;
     /** Wait this amount of time after the last scroll event before resetting Grid `pointer-events`. */
@@ -193,8 +196,8 @@ type Props = {
 };
 
 type InstanceProps = {
-    prevColumnWidth: CellSize;
-    prevRowHeight: CellSize;
+    prevColumnWidth: GridCellSize;
+    prevRowHeight: GridCellSize;
 
     prevColumnCount: number;
     prevRowCount: number;
@@ -231,7 +234,7 @@ export class Grid extends React.PureComponent<Props, State> {
         autoContainerWidth: false,
         autoHeight: false,
         autoWidth: false,
-        cellRangeRenderer: defaultCellRangeRenderer,
+        cellRangeRenderer: defaultGridCellRangeRenderer,
         containerRole: 'row',
         containerStyle: {},
         estimatedColumnSize: 100,
@@ -285,7 +288,7 @@ export class Grid extends React.PureComponent<Props, State> {
     _disablePointerEventsTimeoutId?: AnimationTimeoutId;
 
     _styleCache: StyleCache = {};
-    _cellCache: CellCache = {};
+    _cellCache: GridCellCache = {};
 
     constructor(props: Props) {
         super(props);
@@ -454,7 +457,7 @@ export class Grid extends React.PureComponent<Props, State> {
      * This method is intended for advanced use-cases like CellMeasurer.
      */
     // @TODO (bvaughn) Add automated test coverage for this.
-    invalidateCellSizeAfterRender({ columnIndex, rowIndex }: CellPosition) {
+    invalidateCellSizeAfterRender({ columnIndex, rowIndex }: GridCellPosition) {
         this._deferredInvalidateColumnIndex =
             typeof this._deferredInvalidateColumnIndex === 'number'
                 ? Math.min(this._deferredInvalidateColumnIndex, columnIndex)
@@ -482,7 +485,7 @@ export class Grid extends React.PureComponent<Props, State> {
      * This function should be called if dynamic column or row sizes have changed but nothing else has.
      * Since Grid only receives :columnCount and :rowCount it has no way of detecting when the underlying data changes.
      */
-    recomputeGridSize(idx: CellPosition = { columnIndex: 0, rowIndex: 0 }) {
+    recomputeGridSize(idx: GridCellPosition = { columnIndex: 0, rowIndex: 0 }) {
         const { columnIndex, rowIndex } = idx;
         const { scrollToColumn, scrollToRow } = this.props;
         const { instanceProps } = this.state;
@@ -515,7 +518,7 @@ export class Grid extends React.PureComponent<Props, State> {
     /**
      * Ensure column and row are visible.
      */
-    scrollToCell({ columnIndex, rowIndex }: CellPosition) {
+    scrollToCell({ columnIndex, rowIndex }: GridCellPosition) {
         const { columnCount } = this.props;
 
         const props = this.props;
@@ -1287,7 +1290,7 @@ export class Grid extends React.PureComponent<Props, State> {
         }
     }
 
-    static _wrapSizeGetter(value: CellSize): CellSizeGetter {
+    static _wrapSizeGetter(value: GridCellSize): GridCellSizeGetter {
         return typeof value === 'function' ? value : () => value;
     }
 

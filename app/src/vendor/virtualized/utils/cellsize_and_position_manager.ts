@@ -1,15 +1,15 @@
-import type { Alignment, CellSizeGetter, VisibleCellRange } from '../types';
+import type { Alignment, GridCellSizeGetter, VisibleCellRange } from '../types';
 
 type CellSizeAndPositionManagerParams = {
     cellCount: number;
-    cellSizeGetter: CellSizeGetter;
+    cellSizeGetter: GridCellSizeGetter;
     estimatedCellSize: number;
 };
 
 type ConfigureParams = {
     cellCount: number;
     estimatedCellSize: number;
-    cellSizeGetter: CellSizeGetter;
+    cellSizeGetter: GridCellSizeGetter;
 };
 
 type GetUpdatedOffsetForIndex = {
@@ -24,7 +24,7 @@ type GetVisibleCellRangeParams = {
     offset: number;
 };
 
-type SizeAndPositionData = {
+export type SizeAndPositionData = {
     offset: number;
     size: number;
 };
@@ -45,7 +45,7 @@ export default class CellSizeAndPositionManager {
     _lastBatchedIndex = -1;
 
     _cellCount: number;
-    _cellSizeGetter: CellSizeGetter;
+    _cellSizeGetter: GridCellSizeGetter;
     _estimatedCellSize: number;
 
     constructor({ cellCount, cellSizeGetter, estimatedCellSize }: CellSizeAndPositionManagerParams) {

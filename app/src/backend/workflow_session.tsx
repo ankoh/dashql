@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react';
 import Immutable from 'immutable';
 import * as model from '../model';
+import * as arrow from 'apache-arrow';
 import { TaskStatusCode } from '../model/task_status';
 import { SessionId, DataId, WorkflowBackend, WorkflowFrontend } from './backend';
 import { useBackend, useBackendResolver } from './backend_provider';
@@ -77,8 +78,15 @@ export class WorkflowSession {
             this._state.programText = this._state.program.text;
         }
     }
-    public async runQuery(text: string): Promise<Uint8Array> {
+    public async runQueryRaw(text: string): Promise<Uint8Array> {
         return await this._backend.runQuery(this._sessionId, text);
+    }
+    public async runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): Promise<arrow.Table<T>> {
+        const buffer = await this.runQueryRaw(text);
+        const reader = arrow.RecordBatchReader.from<T>(buffer);
+        console.assert(reader.isSync());
+        console.assert(reader.isFile());
+        return new arrow.Table(reader as arrow.RecordBatchFileReader);
     }
 }
 
@@ -216,7 +224,6 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateVisualizationData: (sessionId: SessionId, dataId: DataId, viz: string) => {
                 const s = getSessionState(sessionId);
                 const spec = JSON.parse(viz) as VizSpec;
-                console.log(spec);
                 s.dataById = s.dataById.set(dataId, {
                     t: 'VizData',
                     v: spec,
