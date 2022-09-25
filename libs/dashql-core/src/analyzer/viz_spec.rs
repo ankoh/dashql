@@ -1,39 +1,44 @@
+use std::sync::Arc;
+
 use serde::Serialize;
+
+use crate::execution::table_metadata::TableMetadata;
 
 #[derive(Default, Debug, Clone, Serialize, PartialEq)]
 pub struct VizSpec {
-    pub renderer: VizRenderer,
+    pub renderer: VizRendererData,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "t", content = "v")]
-pub enum VizRenderer {
-    Table(TableRenderer),
-    VegaLite(VegaLiteRenderer),
-    Json(JsonRenderer),
-    Hex(HexRenderer),
+pub enum VizRendererData {
+    Table(TableRendererData),
+    VegaLite(VegaLiteRendererData),
+    Json(JsonRendererData),
+    Hex(HexRendererData),
+}
+
+#[derive(Default, Debug, Clone, Serialize, PartialEq)]
+pub struct TableRendererData {
+    pub table_name: String,
+    pub table_metadata: Arc<TableMetadata>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct TableRenderer {
+pub struct VegaLiteRendererData {
     pub table_name: String,
-    pub row_count: u32,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct VegaLiteRenderer {
-    pub table_name: String,
+    pub table_metadata: Arc<TableMetadata>,
     pub sampling: Option<SamplingMethod>,
     pub spec: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct JsonRenderer {
+pub struct JsonRendererData {
     pub source_data_id: u32,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct HexRenderer {
+pub struct HexRendererData {
     pub source_data_id: u32,
 }
 
@@ -60,11 +65,8 @@ pub struct AM4Config {
     pub domain_x: Vec<DomainValue>,
 }
 
-impl Default for VizRenderer {
+impl Default for VizRendererData {
     fn default() -> Self {
-        VizRenderer::Table(TableRenderer {
-            table_name: "".to_string(),
-            row_count: 0,
-        })
+        VizRendererData::Table(TableRendererData::default())
     }
 }

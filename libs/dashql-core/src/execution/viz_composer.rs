@@ -4,19 +4,17 @@ use dashql_proto::VizComponentType;
 use serde_json as sj;
 
 use crate::{
-    analyzer::viz_spec::{HexRenderer, JsonRenderer, TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec},
+    analyzer::viz_spec::{
+        HexRendererData, JsonRendererData, TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec,
+    },
     error::SystemError,
-    external::console,
 };
 
-use super::{
-    execution_context::ExecutionContextSnapshot,
-    table_metadata::{resolve_table_metadata, TableMetadata},
-};
+use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
 
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
-    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-    target: String,
+    _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    data: &TaskData,
     component: VizComponentType,
     extra: sj::Map<String, sj::Value>,
 ) -> Result<Arc<VizSpec>, SystemError> {
@@ -25,11 +23,15 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         _ => sj::Map::new(),
     };
     let mut out = VizSpec::default();
-    console::println(&format!("{:?}", extra));
 
-    let table_metadata = resolve_table_metadata(ctx, &target).await?;
-    let mut assigned_columns: Vec<bool> = Vec::new();
-    assigned_columns.resize(table_metadata.column_names.len(), false);
+    let assume_data_is_table = |data: &TaskData| match data {
+        TaskData::TableRef(t) => Ok((t.name.to_owned(), t.metadata.clone())),
+        _ => {
+            return Err(SystemError::Generic(
+                "expected visualization data to be a table".to_string(),
+            ))
+        }
+    };
 
     let resolve_inner_encoding =
         |root: &sj::Map<String, sj::Value>, table: &TableMetadata, name: &str, assigned: &mut Vec<bool>| {
@@ -88,20 +90,23 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     required_encodings.reserve(8);
     match component {
         VizComponentType::TABLE => {
-            out.renderer = VizRenderer::Table(TableRenderer {
-                table_name: target.clone(),
-                row_count: table_metadata.row_count as u32,
+            let (table_name, table_metadata) = assume_data_is_table(data)?;
+            out.renderer = VizRendererData::Table(TableRendererData {
+                table_name: table_name.clone(),
+                table_metadata: table_metadata.clone(),
             });
         }
         VizComponentType::HEX => {
-            out.renderer = VizRenderer::Hex(HexRenderer { source_data_id: 0 });
+            out.renderer = VizRendererData::Hex(HexRendererData { source_data_id: 0 });
         }
         VizComponentType::JSON => {
-            out.renderer = VizRenderer::Json(JsonRenderer { source_data_id: 0 });
+            out.renderer = VizRendererData::Json(JsonRendererData { source_data_id: 0 });
         }
         VizComponentType::SPEC => {
-            out.renderer = VizRenderer::VegaLite(VegaLiteRenderer {
-                table_name: target.clone(),
+            let (table_name, table_metadata) = assume_data_is_table(data)?;
+            out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
+                table_name: table_name.clone(),
+                table_metadata: table_metadata.clone(),
                 sampling: None,
                 spec: extra.clone(),
             })
@@ -111,8 +116,13 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         | VizComponentType::LINE
         | VizComponentType::SCATTER
         | VizComponentType::PIE => {
+            let (_table_name, table_metadata) = assume_data_is_table(data)?;
+
             let _vl: sj::Map<String, sj::Value> = sj::Map::new();
             let mut vl_encoding: sj::Map<String, sj::Value> = sj::Map::new();
+
+            let mut assigned_columns: Vec<bool> = Vec::new();
+            assigned_columns.resize(table_metadata.column_names.len(), false);
 
             let _mark = match component {
                 VizComponentType::AREA => "area",
@@ -169,7 +179,7 @@ mod test {
             program_instance::analyze_program,
             task::TaskStatusCode,
             task_planner::plan_tasks,
-            viz_spec::{TableRenderer, VegaLiteRenderer, VizRenderer, VizSpec},
+            viz_spec::{TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec},
         },
         api::workflow_frontend::{run_task_status_updates, WorkflowFrontend},
         execution::{
@@ -224,6 +234,12 @@ mod test {
 
     #[tokio::test]
     async fn test_viz_1() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let metadata = Arc::new(TableMetadata {
+            column_names: vec!["a".to_string()],
+            column_types: vec![DataType::Int32],
+            column_name_mapping: HashMap::from([("a".to_string(), 0)]),
+            row_count: 1,
+        });
         test_data(
             r#"
         create table foo as select 42 as a;
@@ -232,18 +248,14 @@ mod test {
             vec![
                 TaskData::TableRef(TableRef {
                     name: "foo".to_string(),
-                    metadata: Arc::new(TableMetadata {
-                        column_names: vec!["a".to_string()],
-                        column_types: vec![DataType::Int32],
-                        column_name_mapping: HashMap::from([("a".to_string(), 0)]),
-                        row_count: 1,
-                    }),
+                    metadata: metadata.clone(),
+                    is_view: false,
                 }),
                 TaskData::VizData(VizData {
                     spec: Arc::new(VizSpec {
-                        renderer: VizRenderer::Table(TableRenderer {
+                        renderer: VizRendererData::Table(TableRendererData {
                             table_name: "foo".to_string(),
-                            row_count: 1,
+                            table_metadata: metadata.clone(),
                         }),
                     }),
                 }),
@@ -255,6 +267,12 @@ mod test {
 
     #[tokio::test]
     async fn test_viz_2() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let metadata = Arc::new(TableMetadata {
+            column_names: vec!["a".to_string()],
+            column_types: vec![DataType::Int32],
+            column_name_mapping: HashMap::from([("a".to_string(), 0)]),
+            row_count: 1,
+        });
         test_data(
             r#"
         create table foo as select 42 as a;
@@ -279,17 +297,14 @@ mod test {
             vec![
                 TaskData::TableRef(TableRef {
                     name: "foo".to_string(),
-                    metadata: Arc::new(TableMetadata {
-                        column_names: vec!["a".to_string()],
-                        column_types: vec![DataType::Int32],
-                        column_name_mapping: HashMap::from([("a".to_string(), 0)]),
-                        row_count: 1,
-                    }),
+                    metadata: metadata.clone(),
+                    is_view: false,
                 }),
                 TaskData::VizData(VizData {
                     spec: Arc::new(VizSpec {
-                        renderer: VizRenderer::VegaLite(VegaLiteRenderer {
+                        renderer: VizRendererData::VegaLite(VegaLiteRendererData {
                             table_name: "foo".to_string(),
+                            table_metadata: metadata.clone(),
                             sampling: None,
                             spec: unpack_object(json!({
                                 "position": {

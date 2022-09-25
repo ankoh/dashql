@@ -6,7 +6,7 @@ use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::table_metadata::resolve_table_metadata;
 use crate::execution::task::TaskOperator;
-use crate::execution::task_state::{TableRef, TaskData, ViewRef};
+use crate::execution::task_state::{TableRef, TaskData};
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::Statement;
 use async_trait::async_trait;
@@ -60,17 +60,29 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBCreateTableTaskOperator<'exec,
             Statement::Create(c) => {
                 let name = print_ast_as_script_with_defaults(&c.name.get());
                 let metadata = resolve_table_metadata(ctx, &name).await?;
-                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name, metadata }));
+                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                    name,
+                    metadata,
+                    is_view: false,
+                }));
             }
             Statement::CreateAs(c) => {
                 let name = print_ast_as_script_with_defaults(&c.name.get());
                 let metadata = resolve_table_metadata(ctx, &name).await?;
-                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name, metadata }));
+                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                    name,
+                    metadata,
+                    is_view: false,
+                }));
             }
             Statement::CreateView(v) => {
                 let name = print_ast_as_script_with_defaults(&v.name.get());
                 let metadata = resolve_table_metadata(ctx, &name).await?;
-                *self.task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef { name, metadata }));
+                *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef {
+                    name,
+                    metadata,
+                    is_view: true,
+                }));
             }
             _ => return Err(SystemError::NotImplemented("table statement type".to_string())),
         }

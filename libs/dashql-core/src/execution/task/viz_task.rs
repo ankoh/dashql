@@ -12,8 +12,11 @@ use crate::grammar::{Statement, TableRef, VizStatement};
 use async_trait::async_trait;
 use dashql_proto::VizComponentType;
 use serde_json as sj;
+use std::sync::RwLockReadGuard;
 
 pub struct VegaVisTaskOperator<'exec, 'ast> {
+    instance: &'exec ProgramInstance<'ast>,
+    task_graph: &'exec TaskGraph,
     task: &'exec Task,
     statement: &'ast VizStatement<'ast>,
 }
@@ -31,6 +34,8 @@ impl<'exec, 'ast> VegaVisTaskOperator<'exec, 'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected viz".to_string())),
         };
         Ok(Self {
+            instance,
+            task_graph: task_graph,
             task: task,
             statement: stmt,
         })
@@ -56,8 +61,19 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'exec, 'ast>
             Some(Err(e)) => return Err(e),
             _ => sj::Map::new(),
         };
-        let table_name: String = match self.statement.target.get() {
-            TableRef::Relation(rel) => print_ast_as_script_with_defaults(&rel.name.get()),
+        let data_lock: RwLockReadGuard<Option<TaskData>> = match self.statement.target.get() {
+            TableRef::Relation(rel) => {
+                let src = match self.instance.statement_by_name.get(rel.name.get()) {
+                    Some(src) => *src,
+                    None => {
+                        let src_string = print_ast_as_script_with_defaults(&rel.name.get());
+                        return Err(SystemError::Generic(src_string));
+                    }
+                };
+                let src_task_id = self.task_graph.task_by_statement[src];
+                let src_task = &self.task_graph.tasks[src_task_id];
+                src_task.data.read().unwrap()
+            }
             TableRef::Select(_) => {
                 return Err(SystemError::NotImplemented(
                     "viz statements with embedded select clause".to_string(),
@@ -74,8 +90,12 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'exec, 'ast>
                 ))
             }
         };
+        let data = match data_lock.as_ref() {
+            Some(data) => data,
+            None => return Err(SystemError::Generic("missing input data for visualization".to_string())),
+        };
         let component = self.statement.component_type.get().unwrap_or(VizComponentType::TABLE);
-        let spec = compose_viz_spec(ctx, table_name, component, extra).await?;
+        let spec = compose_viz_spec(ctx, data, component, extra).await?;
         *self.task.data.write().unwrap() = Some(TaskData::VizData(VizData { spec: spec.clone() }));
         frontend.update_visualization_data(self.task.data_id as u32, spec);
         Ok(())

@@ -27,12 +27,7 @@ pub struct TestDataRef {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct TableRef {
     pub name: String,
-    pub metadata: Arc<TableMetadata>,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct ViewRef {
-    pub name: String,
+    pub is_view: bool,
     pub metadata: Arc<TableMetadata>,
 }
 
@@ -48,6 +43,5 @@ pub enum TaskData {
     HttpDataRef(HttpDataRef),
     TestDataRef(TestDataRef),
     TableRef(TableRef),
-    ViewRef(ViewRef),
     VizData(VizData),
 }
