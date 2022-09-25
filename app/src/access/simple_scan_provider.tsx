@@ -8,8 +8,8 @@ import {
     ScanResult,
     useTableDataEpoch,
 } from './scan_provider';
-import { useWorkflowSession } from '../../backend/workflow_session';
-import { TableMetadata } from '../../model/table_metadata';
+import { useWorkflowSession } from '../backend/workflow_session';
+import { TableMetadata } from '../model/table_metadata';
 
 interface Props {
     /// The table

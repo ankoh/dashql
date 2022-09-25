@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as scan from './scan_provider';
+import * as scan from '../../access/scan_provider';
 import {
     Grid,
     GridCellProps,
@@ -8,10 +8,10 @@ import {
     SizeAndPositionData,
     Index as ColumnIndex,
 } from '../../vendor/virtualized';
-import { ScanRequest } from './scan_provider';
+import { ScanRequest } from '../../access/scan_provider';
 import { VirtualScrollbars, PositionValues } from './virtual_scrollbars';
 import { ColumnRenderer, deriveColumnRenderers } from './data_grid_column';
-import { SCAN_REQUESTER, SCAN_RESULT } from './scan_provider';
+import { SCAN_REQUESTER, SCAN_RESULT } from '../../access/scan_provider';
 import { SizeObserver, useObservedSize } from '../../utils';
 import { TableMetadata } from '../../model/table_metadata';
 

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import DataGrid from './data_grid';
 import { TableMetadata } from '../../model/table_metadata';
-import { SimpleScanProvider } from './simple_scan_provider';
-import { ScanRequest, OrderSpecification, SCAN_RESULT, SCAN_STATISTICS } from './scan_provider';
+import { SimpleScanProvider } from '../../access/simple_scan_provider';
+import { ScanRequest, OrderSpecification, SCAN_RESULT, SCAN_STATISTICS } from '../../access/scan_provider';
 import { formatBytes, formatThousands } from './format';
 
 import styles from './table_viewer.module.css';

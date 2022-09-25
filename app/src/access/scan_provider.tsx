@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { TableMetadata } from '../../model/table_metadata';
+import { TableMetadata } from '../model/table_metadata';
 
 export type RequestScanFn = (request: ScanRequest) => void;
 

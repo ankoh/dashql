@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as scan from './scan_provider';
+import * as scan from '../../access/scan_provider';
 import classNames from 'classnames';
 import React from 'react';
 import { TableMetadata } from '../../model/table_metadata';
