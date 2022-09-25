@@ -16,7 +16,6 @@ use crate::{
     },
     api::workflow_frontend::WorkflowFrontend,
     error::SystemError,
-    external::console,
     utils::topological_sort::TopologicalSort,
 };
 use futures::StreamExt;

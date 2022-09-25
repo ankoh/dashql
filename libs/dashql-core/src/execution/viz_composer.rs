@@ -90,7 +90,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         VizComponentType::TABLE => {
             out.renderer = VizRenderer::Table(TableRenderer {
                 table_name: target.clone(),
-                row_count: table_metadata.row_count.map(|c| c as u32),
+                row_count: table_metadata.row_count as u32,
             });
         }
         VizComponentType::HEX => {
@@ -161,6 +161,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
 
 #[cfg(test)]
 mod test {
+    use arrow::datatypes::DataType;
     use serde_json::json;
 
     use crate::{
@@ -173,6 +174,7 @@ mod test {
         api::workflow_frontend::{run_task_status_updates, WorkflowFrontend},
         execution::{
             execution_context::ExecutionContext,
+            table_metadata::TableMetadata,
             task_scheduler::TaskScheduler,
             task_state::{TableRef, TaskData, VizData},
         },
@@ -224,18 +226,24 @@ mod test {
     async fn test_viz_1() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_data(
             r#"
-        create table foo as select 42;
+        create table foo as select 42 as a;
         visualize foo using table;
             "#,
             vec![
                 TaskData::TableRef(TableRef {
                     name: "foo".to_string(),
+                    metadata: Arc::new(TableMetadata {
+                        column_names: vec!["a".to_string()],
+                        column_types: vec![DataType::Int32],
+                        column_name_mapping: HashMap::from([("a".to_string(), 0)]),
+                        row_count: 1,
+                    }),
                 }),
                 TaskData::VizData(VizData {
                     spec: Arc::new(VizSpec {
                         renderer: VizRenderer::Table(TableRenderer {
                             table_name: "foo".to_string(),
-                            row_count: Some(1),
+                            row_count: 1,
                         }),
                     }),
                 }),
@@ -249,7 +257,7 @@ mod test {
     async fn test_viz_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         test_data(
             r#"
-        create table foo as select 42;
+        create table foo as select 42 as a;
         visualize foo using (
             title = 'Covid Total Doses',
             position = (row = 0, column = 0, width = 12, height = 4),
@@ -271,6 +279,12 @@ mod test {
             vec![
                 TaskData::TableRef(TableRef {
                     name: "foo".to_string(),
+                    metadata: Arc::new(TableMetadata {
+                        column_names: vec!["a".to_string()],
+                        column_types: vec![DataType::Int32],
+                        column_name_mapping: HashMap::from([("a".to_string(), 0)]),
+                        row_count: 1,
+                    }),
                 }),
                 TaskData::VizData(VizData {
                     spec: Arc::new(VizSpec {

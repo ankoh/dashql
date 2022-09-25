@@ -4,6 +4,7 @@ use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::error::SystemError;
 use crate::execution::execution_context::ExecutionContextSnapshot;
+use crate::execution::table_metadata::resolve_table_metadata;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{TableRef, TaskData, ViewRef};
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
@@ -62,14 +63,12 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
     ) -> Result<(), SystemError> {
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
-        let name_string = print_ast_as_script_with_defaults(&name);
+        let name = print_ast_as_script_with_defaults(&name);
         let url = resolve_source_url(source)?;
-        let script = format!(
-            "create view {} as select * from parquet_scan(\'{}\')",
-            &name_string, &url
-        );
+        let script = format!("create view {} as select * from parquet_scan(\'{}\')", &name, &url);
         conn.run_query(&script).await?;
-        *self.task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef { name: name_string }));
+        let metadata = resolve_table_metadata(ctx, &name).await?;
+        *self.task.data.write().unwrap() = Some(TaskData::ViewRef(ViewRef { name, metadata }));
         Ok(())
     }
 
@@ -80,14 +79,12 @@ impl<'exec, 'ast> DBLoadTaskOperator<'exec, 'ast> {
     ) -> Result<(), SystemError> {
         let conn = ctx.base.database_connection.as_ref();
         let name = self.statement.name.get();
-        let name_string = print_ast_as_script_with_defaults(&name);
+        let name = print_ast_as_script_with_defaults(&name);
         let url = resolve_source_url(source)?;
-        let script = format!(
-            "create table {} as select * from read_csv_auto(\'{}\')",
-            &name_string, &url
-        );
+        let script = format!("create table {} as select * from read_csv_auto(\'{}\')", &name, &url);
         conn.run_query(&script).await?;
-        *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name: name_string }));
+        let metadata = resolve_table_metadata(ctx, &name).await?;
+        *self.task.data.write().unwrap() = Some(TaskData::TableRef(TableRef { name, metadata }));
         Ok(())
     }
 }
@@ -108,7 +105,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBLoadTaskOperator<'exec, 'ast> 
     ) -> Result<(), SystemError> {
         let source = self.statement.source.get();
         let name = self.statement.name.get();
-        let name_string = print_ast_as_script_with_defaults(&name);
+        let name = print_ast_as_script_with_defaults(&name);
         let source_stmt_id = match self.instance.statement_by_name.get(source) {
             Some(stmt) => *stmt,
             None => {
@@ -131,10 +128,11 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBLoadTaskOperator<'exec, 'ast> 
         };
         if !self.try_load_with_duckdb(ctx, source_data_ref).await? {
             let hdl = ctx.base.runtime.import_data(&ctx, source_data_ref).await?;
+            let metadata = resolve_table_metadata(ctx, &name).await?;
             let state = match self.statement.method.get() {
-                LoadMethodType::CSV => TaskData::TableRef(TableRef { name: name_string }),
-                LoadMethodType::PARQUET => TaskData::ViewRef(ViewRef { name: name_string }),
-                LoadMethodType::JSON => TaskData::TableRef(TableRef { name: name_string }),
+                LoadMethodType::CSV => TaskData::TableRef(TableRef { name, metadata }),
+                LoadMethodType::PARQUET => TaskData::ViewRef(ViewRef { name, metadata }),
+                LoadMethodType::JSON => TaskData::TableRef(TableRef { name, metadata }),
                 _ => return Err(SystemError::NotImplemented("load method".to_string())),
             };
             ctx.base.runtime.load_data(&ctx, hdl, &state).await?;

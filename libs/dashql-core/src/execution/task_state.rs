@@ -4,6 +4,8 @@ use serde::Serialize;
 
 use crate::analyzer::viz_spec::VizSpec;
 
+use super::table_metadata::TableMetadata;
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct FileDataRef {
     pub name: String,
@@ -25,11 +27,13 @@ pub struct TestDataRef {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct TableRef {
     pub name: String,
+    pub metadata: Arc<TableMetadata>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ViewRef {
     pub name: String,
+    pub metadata: Arc<TableMetadata>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]

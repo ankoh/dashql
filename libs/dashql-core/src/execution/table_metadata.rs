@@ -4,18 +4,18 @@ use arrow::{
     array::{Int32Array, StringArray},
     datatypes::DataType,
 };
+use serde::Serialize;
 
 use crate::error::SystemError;
 
 use super::execution_context::ExecutionContextSnapshot;
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq, Serialize)]
 pub struct TableMetadata {
-    pub table_name: String,
     pub column_names: Vec<String>,
     pub column_name_mapping: HashMap<String, usize>,
     pub column_types: Vec<arrow::datatypes::DataType>,
-    pub row_count: Option<u64>,
+    pub row_count: u64,
 }
 
 pub(crate) async fn resolve_table_metadata<'ast, 'snap>(
@@ -25,7 +25,6 @@ pub(crate) async fn resolve_table_metadata<'ast, 'snap>(
     let mut metadata = TableMetadata::default();
     let conn = &ctx.base.database_connection;
     let result = conn.run_query(&format!("DESCRIBE {}", &table_name)).await?;
-    metadata.table_name = table_name.to_string();
     let batches = result.read_arrow_batches()?;
     for batch in batches.iter() {
         let column_names = batch
@@ -77,7 +76,7 @@ pub(crate) async fn resolve_table_metadata<'ast, 'snap>(
         .as_any()
         .downcast_ref::<Int32Array>()
         .ok_or(SystemError::InternalError("couldn't get row count column of table"))?;
-    metadata.row_count = Some(column.value(0) as u64);
+    metadata.row_count = column.value(0) as u64;
     return Ok(Arc::new(metadata));
 }
 
@@ -101,10 +100,9 @@ mod test {
         ctx_snap.base.database_connection.run_query(script).await?;
 
         let table = resolve_table_metadata(&mut ctx_snap, table_name).await?;
-        assert_eq!(table.table_name, table_name);
         assert_eq!(table.column_names, column_names);
         assert_eq!(table.column_types, column_types);
-        assert_eq!(table.row_count, Some(row_count));
+        assert_eq!(table.row_count, row_count);
 
         ctx_snap
             .base

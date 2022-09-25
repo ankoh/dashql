@@ -17,7 +17,7 @@ pub enum VizRenderer {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct TableRenderer {
     pub table_name: String,
-    pub row_count: Option<u32>,
+    pub row_count: u32,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -64,7 +64,7 @@ impl Default for VizRenderer {
     fn default() -> Self {
         VizRenderer::Table(TableRenderer {
             table_name: "".to_string(),
-            row_count: None,
+            row_count: 0,
         })
     }
 }
