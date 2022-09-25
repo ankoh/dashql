@@ -167,10 +167,8 @@ export const SimpleScanProvider: React.FC<Props> = (props: Props) => {
     }, [state.queryInFlightPromise]);
 
     if (!state.availableResult) {
-        console.log('no scan result');
         return <div />;
     }
-    console.log(state.availableResult);
     return (
         <SCAN_REQUESTER.Provider value={requestScan}>
             <TABLE_METADATA.Provider value={state.availableResult.table}>

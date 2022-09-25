@@ -48,7 +48,6 @@ export const TableSchemaProvider: React.FC<Props> = (props: Props) => {
                 tableSchema: schema,
                 tableName: name,
             });
-            console.log(metadata);
             inFlight.current = false;
             setState({
                 schema,
@@ -60,6 +59,5 @@ export const TableSchemaProvider: React.FC<Props> = (props: Props) => {
         resolve(props.schema || 'main', props.name, epoch).catch(e => console.error(e));
     }, [session, props.schema, props.name, epoch]);
 
-    console.log(state.metadata);
     return <TABLE_METADATA.Provider value={state.metadata}>{props.children}</TABLE_METADATA.Provider>;
 };

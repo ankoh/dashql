@@ -33,11 +33,7 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
     const rendererData = data.v.renderer;
     switch (rendererData.t) {
         case 'Table':
-            return (
-                <div style={{ width: '100%', height: '100%' }}>
-                    <TableCardRenderer data={rendererData} />
-                </div>
-            );
+            return <TableCardRenderer data={rendererData} />;
         case 'VegaLite':
             return <div>Vega Lite</div>;
         default:

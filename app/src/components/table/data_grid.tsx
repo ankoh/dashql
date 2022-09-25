@@ -176,7 +176,7 @@ const renderAvailableDataCellRange = (
 };
 
 export const DataGrid: React.FC<Props> = (props: Props) => {
-    const observedSize = useObservedSize();
+    const observedSize = useObservedSize() ?? { width: 0, height: 0 };
     const table = useTableSchema();
     const data = React.useContext(SCAN_RESULT);
     const requestData = React.useContext(SCAN_REQUESTER);
@@ -420,7 +420,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
                 style={{
                     position: 'absolute',
                     left: offset,
-                    top: HEADER_ROW_HEIGHT,
+                    top: 0,
                     height: HEADER_ROW_HEIGHT,
                     width: width,
                 }}
@@ -430,7 +430,11 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
         );
         offset += width;
     }
-    headerRows.push(<div className={styles.header_row}>{headerRow}</div>);
+    headerRows.push(
+        <div key={headerRows.length} className={styles.header_row}>
+            {headerRow}
+        </div>,
+    );
 
     // Render the table
     const bodyHeight = observedSize.height - state.columnHeaderHeight;

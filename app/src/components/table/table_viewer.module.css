@@ -1,22 +1,21 @@
 .container {
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-template-columns: 100%;
-    grid-template-rows: auto 24px;
+    display: flex;
+    flex-direction: column;
 }
 
 .table {
+    flex: 1;
 }
 
 .statsbar {
+    height: 24px;
     border-top: var(--datagrid_cell_headers_border);
-    background-color: black;
-    color: white;
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .bean {

@@ -12,6 +12,8 @@ import { useTableSchema } from './table_schema_provider';
 interface Props {
     /// The table schema
     table: TableSchema | null;
+    /// Show statistics?
+    stats?: boolean;
 }
 
 export const TableViewer: React.FC<Props> = (props: Props) => {
@@ -26,13 +28,15 @@ export const TableViewer: React.FC<Props> = (props: Props) => {
             <div className={styles.table}>
                 <DataGrid />
             </div>
-            <div className={styles.statsbar}>
-                <div className={styles.bean}>
-                    Scans: &sum; {formatThousands(stats!.resultRows)} rows, &sum; {formatBytes(stats!.resultBytes)},
-                    &#8709; {Math.round((stats!.queryExecutionTotalMs / stats!.queryCount) * 100) / 100} ms
+            {props.stats && (
+                <div className={styles.statsbar}>
+                    <div className={styles.bean}>
+                        Scans: &sum; {formatThousands(stats!.resultRows)} rows, &sum; {formatBytes(stats!.resultBytes)},
+                        &#8709; {Math.round((stats!.queryExecutionTotalMs / stats!.queryCount) * 100) / 100} ms
+                    </div>
+                    <div className={styles.bean}>Table: {formatThousands(cardinality || 0)} rows</div>
                 </div>
-                <div className={styles.bean}>Table: {formatThousands(cardinality || 0)} rows</div>
-            </div>
+            )}
         </div>
     );
 };
@@ -45,10 +49,8 @@ interface WiredProps {
 export const WiredTableViewer: React.FC<WiredProps> = (props: WiredProps) => {
     const table = useTableSchema();
     if (props == null || table == null) {
-        console.log('table null');
         return <div />;
     }
-    console.log('render wired');
     return (
         <TableCardinalityProvider table={table}>
             <SimpleScanProvider

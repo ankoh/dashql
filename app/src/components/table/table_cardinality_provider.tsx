@@ -22,22 +22,15 @@ interface State {
 export const TableCardinalityProvider: React.FC<Props> = (props: Props) => {
     const session = useWorkflowSession();
     const [state, setState] = React.useState<State>({
-        ownEpoch: null,
+        ownEpoch: -1,
         cardinality: null,
     });
     const dataEpoch = useTableDataEpoch();
     const inFlight = React.useRef<boolean>(false);
 
-    const isMounted = React.useRef(true);
-    React.useEffect(() => {
-        return () => void (isMounted.current = false);
-    }, []);
-
     const updateCardinality = async (e: number | null) => {
         const result = await session!.runQuery(`SELECT COUNT(*)::INTEGER FROM ${getQualifiedName(props.table)}`);
         const cardinality = result.getChildAt(0)?.get(0) || null;
-        if (!isMounted.current) return;
-
         inFlight.current = false;
         setState({
             ownEpoch: e,
@@ -49,7 +42,7 @@ export const TableCardinalityProvider: React.FC<Props> = (props: Props) => {
         if (!session || inFlight.current) {
             return;
         }
-        if (state.ownEpoch != dataEpoch) {
+        if (state.ownEpoch !== dataEpoch) {
             inFlight.current = true;
             updateCardinality(dataEpoch).catch(e => console.error(e));
         }

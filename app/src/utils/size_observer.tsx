@@ -1,5 +1,4 @@
 import * as React from 'react';
-import useResizeObserver from 'use-resize-observer';
 
 export interface ObservedSize {
     width: number;
