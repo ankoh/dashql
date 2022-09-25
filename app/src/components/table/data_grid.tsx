@@ -12,9 +12,8 @@ import { ScanRequest } from './scan_provider';
 import { VirtualScrollbars, PositionValues } from './virtual_scrollbars';
 import { ColumnRenderer, deriveColumnRenderers } from './data_grid_column';
 import { SCAN_REQUESTER, SCAN_RESULT } from './scan_provider';
-import { TABLE_CARDINALITY } from './table_cardinality_provider';
-import { useTableSchema } from './table_schema_provider';
 import { SizeObserver, useObservedSize } from '../../utils';
+import { TableMetadata } from '../../model/table_metadata';
 
 import styles from './data_grid.module.css';
 
@@ -27,7 +26,9 @@ const MAX_VALUE_STRETCH = 5;
 const MIN_COLUMN_WIDTH = 30;
 const RECOMPUTATION_THRESHOLD = 0.2;
 
-type Props = {};
+type Props = {
+    table: TableMetadata;
+};
 
 type State = {
     data: scan.ScanResult | null;
@@ -177,10 +178,8 @@ const renderAvailableDataCellRange = (
 
 export const DataGrid: React.FC<Props> = (props: Props) => {
     const observedSize = useObservedSize() ?? { width: 0, height: 0 };
-    const table = useTableSchema();
     const data = React.useContext(SCAN_RESULT);
     const requestData = React.useContext(SCAN_REQUESTER);
-    const rowCount = React.useContext(TABLE_CARDINALITY) || 0;
     const tableHeader = React.useRef<Grid>(null);
     const tableBody = React.useRef<Grid>(null);
 
@@ -215,9 +214,9 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
         (pos: PositionValues): void => {
             const firstVisibleRow = Math.min(
                 Math.trunc((pos.scrollTop * pos.verticalScaling) / state.rowHeight),
-                rowCount,
+                props.table.row_count,
             );
-            const maxVisibleRows = rowCount - firstVisibleRow;
+            const maxVisibleRows = props.table.row_count - firstVisibleRow;
             const visibleRows = Math.min(Math.trunc(pos.clientHeight / state.rowHeight), maxVisibleRows);
             setState(s => ({
                 ...s,
@@ -235,7 +234,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
         if (requestData == null) return;
         const ofs = state.firstVisibleRow;
         const count = state.visibleRows;
-        const end = Math.min(ofs + count, rowCount);
+        const end = Math.min(ofs + count, props.table.row_count);
         requestData(
             new ScanRequest().withRange(ofs, end - ofs, 128).withOrdering(state.data?.request.ordering || null),
         );
@@ -249,7 +248,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
 
             // No data provided?
             // Render as missing.
-            if (!state.data || !table) {
+            if (!state.data || !props.table) {
                 return defaultGridCellRangeRenderer(range);
             }
 
@@ -264,8 +263,8 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
                 return defaultGridCellRangeRenderer(range);
             }
 
-            const dataBegin = Math.min(req.begin, rowCount);
-            const dataEnd = Math.min(req.end, rowCount);
+            const dataBegin = Math.min(req.begin, props.table.row_count);
+            const dataEnd = Math.min(req.end, props.table.row_count);
             const prevRowStart = range.rowStartIndex;
             const prevRowStop = range.rowStopIndex + 1;
 
@@ -317,12 +316,12 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
         }
 
         // No data available?
-        if (!data || !table) {
+        if (!data || !props.table) {
             setState(s => ({
                 ...s,
 
                 data: null,
-                rowCount: rowCount,
+                rowCount: props.table.row_count,
                 columnRenderers: [],
 
                 width: observedSize.width,
@@ -339,7 +338,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
         // Derive the column renderers if the data changed
         let columnRenderers = [...state.columnRenderers];
         if (data !== state.data) {
-            columnRenderers = deriveColumnRenderers(table, data!);
+            columnRenderers = deriveColumnRenderers(props.table, data!);
         }
 
         // Compute the column widths
@@ -383,7 +382,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
             ...s,
 
             data,
-            rowCount,
+            rowCount: props.table.row_count,
             columnRenderers,
 
             width: observedSize.width,
@@ -399,10 +398,10 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
             tableHeader.current?.recomputeGridSize();
             tableBody.current?.recomputeGridSize();
         }
-    }, [table, data, rowCount, ...Object.values(props)]);
+    }, [props.table, data, ...Object.values(props)]);
 
     // Data is missing?
-    if (table == null || data == null || requestData == null || rowCount == null) {
+    if (props.table == null || data == null || requestData == null) {
         return <div />;
     }
 
@@ -454,7 +453,7 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
                 width={bodyWidth - 2}
                 height={bodyHeight - 2}
                 columnWidth={getColumnWidth}
-                columnCount={table.columnNames.length}
+                columnCount={props.table.column_names.length}
                 rowHeight={state.rowHeight}
                 rowCount={state.rowCount || 0}
                 scrollTop={state.scrollTop}

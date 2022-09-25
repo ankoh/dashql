@@ -1,13 +1,19 @@
 import * as React from 'react';
-import { SCAN_REQUESTER, SCAN_RESULT, SCAN_STATISTICS, ScanRequest, ScanStatistics, ScanResult } from './scan_provider';
-import { TABLE_METADATA } from './table_schema_provider';
-import { TableSchema, getQualifiedName } from './table_schema';
-import { useTableDataEpoch } from './epoch_contexts';
+import {
+    SCAN_REQUESTER,
+    SCAN_RESULT,
+    SCAN_STATISTICS,
+    ScanRequest,
+    ScanStatistics,
+    ScanResult,
+    useTableDataEpoch,
+} from './scan_provider';
 import { useWorkflowSession } from '../../backend/workflow_session';
+import { TableMetadata } from '../../model/table_metadata';
 
 interface Props {
     /// The table
-    table: TableSchema;
+    table: TableMetadata;
     /// The request
     request: ScanRequest;
     /// The children
@@ -91,10 +97,10 @@ export const SimpleScanProvider: React.FC<Props> = (props: Props) => {
             const offset = request.begin;
             const limit = request.end - offset;
             const ordering = request.ordering ?? props.request.ordering;
-            let query = `SELECT * FROM ${getQualifiedName(props.table)}`;
+            let query = `SELECT * FROM ${props.table.table_name}`;
             if (ordering != null && ordering.length > 0) {
                 const clauses = ordering.map(o => {
-                    let buffer = props.table.columnNames[o.columnIndex];
+                    let buffer = props.table.column_names[o.columnIndex];
                     if (o.descending) {
                         buffer += ' DESC';
                     }
@@ -171,11 +177,9 @@ export const SimpleScanProvider: React.FC<Props> = (props: Props) => {
     }
     return (
         <SCAN_REQUESTER.Provider value={requestScan}>
-            <TABLE_METADATA.Provider value={state.availableResult.table}>
-                <SCAN_RESULT.Provider value={state.availableResult}>
-                    <SCAN_STATISTICS.Provider value={state.statistics}>{props.children}</SCAN_STATISTICS.Provider>
-                </SCAN_RESULT.Provider>
-            </TABLE_METADATA.Provider>
+            <SCAN_RESULT.Provider value={state.availableResult}>
+                <SCAN_STATISTICS.Provider value={state.statistics}>{props.children}</SCAN_STATISTICS.Provider>
+            </SCAN_RESULT.Provider>
         </SCAN_REQUESTER.Provider>
     );
 };

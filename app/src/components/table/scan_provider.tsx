@@ -1,8 +1,11 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { TableSchema } from './table_schema';
+import { TableMetadata } from '../../model/table_metadata';
 
 export type RequestScanFn = (request: ScanRequest) => void;
+
+export const TABLE_DATA_EPOCH = React.createContext<number | null>(null);
+export const useTableDataEpoch = (): number | null => React.useContext(TABLE_DATA_EPOCH);
 
 export const SCAN_RESULT = React.createContext<ScanResult | null>(null);
 export const SCAN_STATISTICS = React.createContext<ScanStatistics | null>(null);
@@ -11,8 +14,8 @@ export const SCAN_REQUESTER = React.createContext<RequestScanFn | null>(null);
 export interface ScanResult {
     /// The scan request
     request: ScanRequest;
-    /// The schema
-    table: TableSchema;
+    /// The table
+    table: TableMetadata;
     /// The query result buffer
     result: arrow.Table;
 }

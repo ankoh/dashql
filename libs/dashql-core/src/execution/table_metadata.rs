@@ -12,6 +12,7 @@ use super::execution_context::ExecutionContextSnapshot;
 
 #[derive(Debug, Default, PartialEq, Serialize)]
 pub struct TableMetadata {
+    pub table_name: String,
     pub column_names: Vec<String>,
     pub column_name_mapping: HashMap<String, usize>,
     pub column_types: Vec<arrow::datatypes::DataType>,
@@ -23,6 +24,7 @@ pub(crate) async fn resolve_table_metadata<'ast, 'snap>(
     table_name: &str,
 ) -> Result<Arc<TableMetadata>, SystemError> {
     let mut metadata = TableMetadata::default();
+    metadata.table_name = table_name.to_string();
     let conn = &ctx.base.database_connection;
     let result = conn.run_query(&format!("DESCRIBE {}", &table_name)).await?;
     let batches = result.read_arrow_batches()?;

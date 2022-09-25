@@ -1,32 +1,29 @@
 import * as React from 'react';
 import DataGrid from './data_grid';
-import { TableSchema } from './table_schema';
-import { TableCardinalityProvider, TABLE_CARDINALITY } from './table_cardinality_provider';
+import { TableMetadata } from '../../model/table_metadata';
 import { SimpleScanProvider } from './simple_scan_provider';
 import { ScanRequest, OrderSpecification, SCAN_RESULT, SCAN_STATISTICS } from './scan_provider';
 import { formatBytes, formatThousands } from './format';
 
 import styles from './table_viewer.module.css';
-import { useTableSchema } from './table_schema_provider';
 
 interface Props {
-    /// The table schema
-    table: TableSchema | null;
+    /// The table
+    table: TableMetadata | null;
     /// Show statistics?
     stats?: boolean;
 }
 
 export const TableViewer: React.FC<Props> = (props: Props) => {
-    const cardinality = React.useContext(TABLE_CARDINALITY);
     const data = React.useContext(SCAN_RESULT);
     const stats = React.useContext(SCAN_STATISTICS);
-    if (props.table == null || data == null || cardinality == null) {
+    if (props.table == null || data == null) {
         return <div />;
     }
     return (
         <div className={styles.container}>
             <div className={styles.table}>
-                <DataGrid />
+                <DataGrid table={props.table} />
             </div>
             {props.stats && (
                 <div className={styles.statsbar}>
@@ -34,7 +31,7 @@ export const TableViewer: React.FC<Props> = (props: Props) => {
                         Scans: &sum; {formatThousands(stats!.resultRows)} rows, &sum; {formatBytes(stats!.resultBytes)},
                         &#8709; {Math.round((stats!.queryExecutionTotalMs / stats!.queryCount) * 100) / 100} ms
                     </div>
-                    <div className={styles.bean}>Table: {formatThousands(cardinality || 0)} rows</div>
+                    <div className={styles.bean}>Table: {formatThousands(props.table.row_count || 0)} rows</div>
                 </div>
             )}
         </div>
@@ -42,23 +39,24 @@ export const TableViewer: React.FC<Props> = (props: Props) => {
 };
 
 interface WiredProps {
+    /// The table
+    table: TableMetadata | null;
+    /// Show statistics?
+    stats?: boolean;
     /// The ordering (if any)
     ordering?: OrderSpecification[];
 }
 
-export const WiredTableViewer: React.FC<WiredProps> = (props: WiredProps) => {
-    const table = useTableSchema();
-    if (props == null || table == null) {
+export const ScanningTableViewer: React.FC<WiredProps> = (props: WiredProps) => {
+    if (props == null || props.table == null) {
         return <div />;
     }
     return (
-        <TableCardinalityProvider table={table}>
-            <SimpleScanProvider
-                table={table}
-                request={new ScanRequest().withRange(0, 128).withOrdering(props.ordering ?? null)}
-            >
-                <TableViewer table={table} />
-            </SimpleScanProvider>
-        </TableCardinalityProvider>
+        <SimpleScanProvider
+            table={props.table}
+            request={new ScanRequest().withRange(0, 128).withOrdering(props.ordering ?? null)}
+        >
+            <TableViewer table={props.table} stats={props.stats} />
+        </SimpleScanProvider>
     );
 };

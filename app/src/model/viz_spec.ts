@@ -1,4 +1,5 @@
 import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
+import { TableMetadata } from './table_metadata';
 
 export interface VizSpec {
     readonly renderer: CardRendererData;
@@ -9,15 +10,14 @@ export type CardRendererData = TableRendererData | VegaLiteRendererData;
 export interface TableRendererData {
     readonly t: 'Table';
     readonly v: {
-        table_name: string;
-        row_count?: number;
+        table: TableMetadata;
     };
 }
 
 export interface VegaLiteRendererData {
     readonly t: 'VegaLite';
     readonly v: {
-        table_name: string;
+        table: TableMetadata;
         sampling?: SamplingMethod;
         spec: TopLevelSpec;
     };

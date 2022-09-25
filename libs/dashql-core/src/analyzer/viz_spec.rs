@@ -20,14 +20,12 @@ pub enum VizRendererData {
 
 #[derive(Default, Debug, Clone, Serialize, PartialEq)]
 pub struct TableRendererData {
-    pub table_name: String,
-    pub table_metadata: Arc<TableMetadata>,
+    pub table: Arc<TableMetadata>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct VegaLiteRendererData {
-    pub table_name: String,
-    pub table_metadata: Arc<TableMetadata>,
+    pub table: Arc<TableMetadata>,
     pub sampling: Option<SamplingMethod>,
     pub spec: serde_json::Map<String, serde_json::Value>,
 }

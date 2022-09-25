@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import * as scan from './scan_provider';
-import { TableSchema } from './table_schema';
 import classNames from 'classnames';
 import React from 'react';
+import { TableMetadata } from '../../model/table_metadata';
 
 import styles from './data_grid_column.module.css';
 
@@ -39,9 +39,9 @@ export class TextColumnRenderer implements ColumnRenderer {
         this.valueAvgLength = valueAvgLength;
     }
 
-    public static ReadFrom(table: TableSchema, data: arrow.Table, index: number): TextColumnRenderer {
+    public static ReadFrom(table: TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
         const column = data.getChildAt(index)!;
-        const columnAlias = table.columnLabels[index] ?? data.schema.fields[index].name;
+        const columnAlias = table.column_names[index] ?? data.schema.fields[index].name;
         let valueClassName = styles.data_value_text;
         let printer = (v: any): string | null => v?.toString() || null;
 
@@ -156,9 +156,9 @@ export class TextColumnRenderer implements ColumnRenderer {
     }
 }
 
-export function deriveColumnRenderers(table: TableSchema, data: scan.ScanResult): ColumnRenderer[] {
+export function deriveColumnRenderers(table: TableMetadata, data: scan.ScanResult): ColumnRenderer[] {
     const columns = [];
-    for (let i = 0; i < table.columnNames.length; ++i) {
+    for (let i = 0; i < table.column_names.length; ++i) {
         const renderer = TextColumnRenderer.ReadFrom(table, data.result, i);
         columns.push(renderer);
     }
