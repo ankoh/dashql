@@ -12,13 +12,6 @@ use crate::{
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
 
-fn unpack_object(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
-    match v {
-        serde_json::Value::Object(m) => m,
-        _ => serde_json::Map::new(),
-    }
-}
-
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
@@ -116,7 +109,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
                 table: table_metadata.clone(),
                 sampling: None,
-                spec: unpack_object(json!({
+                spec: json!({
                     "autosize": {
                         "type": "fit",
                         "contains": "padding",
@@ -129,7 +122,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
                     "layer": [
                         layer
                     ],
-                })),
+                }),
             });
         }
         VizComponentType::AREA
@@ -195,7 +188,6 @@ mod test {
     use arrow::datatypes::DataType;
     use serde_json::json;
 
-    use super::*;
     use crate::{
         analyzer::{
             program_instance::analyze_program,
@@ -321,7 +313,7 @@ mod test {
                         renderer: VizRendererData::VegaLite(VegaLiteRendererData {
                             table: metadata.clone(),
                             sampling: None,
-                            spec: unpack_object(json!({
+                            spec: json!({
                                 "autosize": {
                                     "type": "fit",
                                     "contains": "padding",
@@ -346,7 +338,7 @@ mod test {
                                     },
                                     "mark": "area"
                                 }]
-                            })),
+                            }),
                         }),
                     }),
                 }),

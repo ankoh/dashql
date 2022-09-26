@@ -309,8 +309,8 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
 
     // Remember where undo tasks begin
     let undos_begin = next_tasks.tasks.len();
-    let mut forward_task_mapping = Vec::new();
-    forward_task_mapping.resize(prev_tasks.tasks.len(), None);
+    let mut forward_undo_mapping = Vec::new();
+    forward_undo_mapping.resize(prev_tasks.tasks.len(), None);
 
     // We know for every previous task whether it is applicable.
     // Emit setup tasks that drop previous state and update the new program tasks.
@@ -328,21 +328,21 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
         let diff_op = &ctx.diff[prev_stmt_id];
 
         // Find the task translation
-        let (undo_task, update_task) = match prev_task.task_type {
-            TaskType::None => (TaskType::None, TaskType::None),
-            TaskType::CreateTable => (TaskType::DropTable, TaskType::None),
-            TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz),
-            TaskType::Declare => (TaskType::DropInput, TaskType::None),
-            TaskType::DropImport => (TaskType::DropImport, TaskType::None),
-            TaskType::DropInput => (TaskType::DropInput, TaskType::None),
-            TaskType::DropTable => (TaskType::DropTable, TaskType::None),
-            TaskType::DropViz => (TaskType::DropViz, TaskType::None),
-            TaskType::Import => (TaskType::DropImport, TaskType::None),
-            TaskType::Load => (TaskType::DropTable, TaskType::None),
-            TaskType::UpdateTable => (TaskType::DropTable, TaskType::None),
-            TaskType::Set => (TaskType::Unset, TaskType::None),
-            TaskType::Unset => (TaskType::Unset, TaskType::None),
-            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz),
+        let (undo_task, update_task, first_undo) = match prev_task.task_type {
+            TaskType::None => (TaskType::None, TaskType::None, true),
+            TaskType::CreateTable => (TaskType::DropTable, TaskType::None, true),
+            TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz, true),
+            TaskType::Declare => (TaskType::DropInput, TaskType::None, true),
+            TaskType::DropImport => (TaskType::DropImport, TaskType::None, false),
+            TaskType::DropInput => (TaskType::DropInput, TaskType::None, false),
+            TaskType::DropTable => (TaskType::DropTable, TaskType::None, false),
+            TaskType::DropViz => (TaskType::DropViz, TaskType::None, false),
+            TaskType::Import => (TaskType::DropImport, TaskType::None, true),
+            TaskType::Load => (TaskType::DropTable, TaskType::None, true),
+            TaskType::UpdateTable => (TaskType::DropTable, TaskType::None, true),
+            TaskType::Set => (TaskType::Unset, TaskType::None, true),
+            TaskType::Unset => (TaskType::Unset, TaskType::None, false),
+            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz, true),
         };
 
         // Is applicable?
@@ -361,7 +361,6 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
                 .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
             next_task.data_id = prev_task.data_id;
             *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
-            forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
 
@@ -383,7 +382,6 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
             next_task.task_type = update_task;
             next_task.data_id = prev_task.data_id;
             *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
-            forward_task_mapping[prev_task_id] = Some(next_task_id);
             continue;
         }
 
@@ -391,9 +389,17 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
         if undo_task != TaskType::None {
             let prev_status = prev_task.task_status.load(std::sync::atomic::Ordering::SeqCst);
             let next_task_id = next_tasks.tasks.len();
+            // Invert the dependencies of undo tasks.
+            // This is crucial for not breaking existing visualiziations.
+            // (e.g. we want to drop the visualization before the create table statement)
+            let (undo_depends_on, undo_required_for) = if first_undo {
+                (prev_task.required_for.clone(), prev_task.depends_on.clone())
+            } else {
+                (prev_task.depends_on.clone(), prev_task.required_for.clone())
+            };
             // Create the undo task
             // NOTE: The undo task is created with the depends_on & required_for lists of the previous task
-            //       These tasks are obviously invalid as they refer to invalid task ids.
+            //       These task ids are obviously invalid as they refer to invalid task ids.
             next_tasks.tasks.push(Task {
                 task_type: undo_task,
                 task_status: AtomicU8::new(
@@ -404,21 +410,22 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
                         TaskStatusCode::Pending as u8
                     },
                 ),
-                depends_on: prev_task.depends_on.clone(),
-                required_for: prev_task.required_for.clone(),
+                depends_on: undo_depends_on,
+                required_for: undo_required_for,
                 origin_statement: None,
                 data_id: prev_task.data_id,
                 data: RwLock::new(prev_task.data.write().unwrap().take()),
             });
             ctx.reverse_task_mapping.push(Some(prev_task_id));
-            forward_task_mapping[prev_task_id] = Some(next_task_id);
+            forward_undo_mapping[prev_task_id] = Some(next_task_id);
         }
     }
+
     // (!!) Patch (AND FILTER) dependencies of undo tasks
-    let patch_ids = |ids: &mut Vec<usize>| {
+    let patch_ids_with = |ids: &mut Vec<usize>, mapping: &[Option<usize>]| {
         let mut writer = 0;
         for i in 0..ids.len() {
-            if let Some(mapped) = forward_task_mapping[ids[i]] {
+            if let Some(mapped) = mapping[ids[i]] {
                 ids[writer] = mapped;
                 writer += 1;
             }
@@ -427,11 +434,14 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
         ids.dedup();
     };
     for undo_task_id in undos_begin..next_tasks.tasks.len() {
-        patch_ids(&mut next_tasks.tasks[undo_task_id].required_for);
-        patch_ids(&mut next_tasks.tasks[undo_task_id].depends_on);
-        for new_task_id in 0..undos_begin {
-            next_tasks.tasks[undo_task_id].required_for.push(new_task_id);
-            next_tasks.tasks[new_task_id].depends_on.push(undo_task_id);
+        patch_ids_with(&mut next_tasks.tasks[undo_task_id].required_for, &forward_undo_mapping);
+        patch_ids_with(&mut next_tasks.tasks[undo_task_id].depends_on, &forward_undo_mapping);
+
+        // Let all normal tasks depend on all undo tasks
+        // This ensures that all undo tasks are executed before any normal task
+        for normal_task_id in 0..undos_begin {
+            next_tasks.tasks[normal_task_id].depends_on.push(undo_task_id);
+            next_tasks.tasks[undo_task_id].required_for.push(normal_task_id);
         }
     }
 
@@ -814,6 +824,85 @@ VIZ a USING TABLE;
                         },
                     ],
                     task_by_statement: vec![0, 1],
+                    ..Default::default()
+                },
+            },
+        })
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_6() -> Result<(), SystemError> {
+        test_planner(&TaskPlannerTest {
+            prev: Some(ExpectedInstance {
+                script: r#"
+CREATE TABLE a AS SELECT 2;
+VIZ a USING TABLE;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_data_id: 2,
+                    tasks: vec![
+                        Task {
+                            task_type: TaskType::CreateTable,
+                            task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
+                            depends_on: vec![],
+                            required_for: vec![1],
+                            origin_statement: Some(0),
+                            data_id: 0,
+                            ..Task::default()
+                        },
+                        Task {
+                            task_type: TaskType::CreateViz,
+                            task_status: AtomicU8::new(TaskStatusCode::Pending as u8),
+                            depends_on: vec![0],
+                            required_for: vec![],
+                            origin_statement: Some(1),
+                            data_id: 1,
+                            ..Task::default()
+                        },
+                    ],
+                    task_by_statement: vec![0, 1],
+                    ..Default::default()
+                },
+            }),
+            next: ExpectedInstance {
+                script: r#"
+CREATE TABLE a AS SELECT 1;
+            "#,
+                input: vec![],
+                tasks: TaskGraph {
+                    next_data_id: 3,
+                    tasks: vec![
+                        Task {
+                            task_type: TaskType::CreateTable,
+                            task_status: AtomicU8::new(TaskStatusCode::Skipped as u8),
+                            depends_on: vec![1, 2],
+                            required_for: vec![],
+                            origin_statement: Some(0),
+                            data_id: 2,
+                            ..Task::default()
+                        },
+                        Task {
+                            task_type: TaskType::DropTable,
+                            task_status: AtomicU8::new(TaskStatusCode::Completed as u8),
+                            depends_on: vec![2],
+                            required_for: vec![0],
+                            origin_statement: None,
+                            data_id: 0,
+                            ..Task::default()
+                        },
+                        Task {
+                            task_type: TaskType::DropViz,
+                            task_status: AtomicU8::new(TaskStatusCode::Completed as u8),
+                            depends_on: vec![],
+                            required_for: vec![0, 1],
+                            origin_statement: None,
+                            data_id: 1,
+                            ..Task::default()
+                        },
+                    ],
+                    task_by_statement: vec![0],
                     ..Default::default()
                 },
             },

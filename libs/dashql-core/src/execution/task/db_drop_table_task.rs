@@ -36,7 +36,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
     async fn execute<'snap>(
         &mut self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        _frontend: &WorkflowFrontend,
+        frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
         let connection = ctx.base.database_connection.as_ref();
         let data_lock = self.task.data.read().unwrap();
@@ -58,6 +58,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
                 console::println(&format!("cannot drop {:?}", &data));
             }
         }
+        frontend.delete_task_data(self.task.data_id as u32);
         Ok(())
     }
 }

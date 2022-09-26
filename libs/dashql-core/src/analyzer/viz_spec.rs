@@ -27,7 +27,7 @@ pub struct TableRendererData {
 pub struct VegaLiteRendererData {
     pub table: Arc<TableMetadata>,
     pub sampling: Option<SamplingMethod>,
-    pub spec: serde_json::Map<String, serde_json::Value>,
+    pub spec: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
