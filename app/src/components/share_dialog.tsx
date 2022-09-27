@@ -27,14 +27,17 @@ const buildLinks = (text: string, metadata: ScriptMetadata | null = null, inline
     const baseURL = process.env.DASHQL_APP_URL;
     const viewerURL = new URL(`${baseURL}/viewer`);
     const explorerURL = new URL(`${baseURL}/explorer`);
+    const originType = metadata?.origin.originType ?? ScriptOriginType.LOCAL;
 
     // Inline script text?
-    if (inline || metadata.origin.originType == ScriptOriginType.LOCAL) {
+    if (inline || originType == ScriptOriginType.LOCAL) {
         const t = LZString.compressToBase64(text);
-        viewerURL.searchParams.set('name', encodeURIComponent(metadata.origin.fileName));
         viewerURL.searchParams.set('text', t);
-        explorerURL.searchParams.set('name', encodeURIComponent(metadata.origin.fileName));
         explorerURL.searchParams.set('text', t);
+        if (metadata?.origin.fileName) {
+            viewerURL.searchParams.set('name', encodeURIComponent(metadata.origin.fileName));
+            explorerURL.searchParams.set('name', encodeURIComponent(metadata.origin.fileName));
+        }
         return {
             viewerURL: viewerURL.toString(),
             viewerURLCopied: false,
@@ -44,7 +47,7 @@ const buildLinks = (text: string, metadata: ScriptMetadata | null = null, inline
         };
     }
 
-    switch (metadata.origin.originType) {
+    switch (originType) {
         case ScriptOriginType.HTTP:
         case ScriptOriginType.HTTPS: {
             const encoded = encodeURIComponent(metadata.origin.httpURL.toString());

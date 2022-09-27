@@ -17,6 +17,7 @@ import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { OverlayProvider } from './components/overlay';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';
 import { WorkflowSessionProvider } from './backend/workflow_session';
@@ -37,15 +38,17 @@ root.render(
                     <AppLauncher>
                         <WorkflowSessionProvider>
                             <WorkflowDriver>
-                                <Router>
-                                    <Routes>
-                                        <Route path="/explorer/*" element={<ExplorerPage />} />
-                                        <Route path="/examples/*" element={<ExamplesPage />} />
-                                        <Route path="/404" element={<NotFound />} />
-                                        <Route path="/" element={<Navigate to="/explorer" />} />
-                                        <Route path="*" element={<Navigate to="/404" />} />
-                                    </Routes>
-                                </Router>
+                                <OverlayProvider>
+                                    <Router>
+                                        <Routes>
+                                            <Route path="/explorer/*" element={<ExplorerPage />} />
+                                            <Route path="/examples/*" element={<ExamplesPage />} />
+                                            <Route path="/404" element={<NotFound />} />
+                                            <Route path="/" element={<Navigate to="/explorer" />} />
+                                            <Route path="*" element={<Navigate to="/404" />} />
+                                        </Routes>
+                                    </Router>
+                                </OverlayProvider>
                             </WorkflowDriver>
                         </WorkflowSessionProvider>
                     </AppLauncher>

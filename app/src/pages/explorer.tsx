@@ -31,7 +31,6 @@ type Props = {
 };
 
 export const Explorer: React.FC<Props> = (props: Props) => {
-    const appConfig = useAppConfig();
     const editorReadOnly = false;
     const setOverlay = useOverlaySetter();
 
