@@ -2,11 +2,12 @@ import * as React from 'react';
 import cn from 'classnames';
 import { AnimatePresence } from 'framer-motion';
 import { Route, Routes } from 'react-router-dom';
-import { useAppConfig } from '../model';
-import { useWorkflowSessionState } from '../backend/workflow_session';
-import { OverlayContainer } from '../components/overlay';
+import { ScriptOriginType, useAppConfig } from '../model';
+import { OverlayContainer, useOverlaySetter } from '../components/overlay';
 import { LazyLoader } from '../components/lazy_loader';
 import { BoardEditor } from '../components/board_editor';
+import { Button, LinkButton } from '../components/button';
+import { ShareDialog } from '../components/share_dialog';
 
 import styles from './explorer.module.css';
 import styles_cmd from '../components/button.module.css';
@@ -32,6 +33,37 @@ type Props = {
 export const Explorer: React.FC<Props> = (props: Props) => {
     const appConfig = useAppConfig();
     const editorReadOnly = false;
+    const setOverlay = useOverlaySetter();
+
+    const showShareDialog = React.useCallback(() => {
+        const share: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
+        setOverlay({
+            id: SYM_SHARE_OVERLAY,
+            renderer: share,
+        });
+    }, [setOverlay]);
+
+    const BoardCommandBar = () => (
+        <div className={styles.board_cmdbar}>
+            <div />
+            <div className={styles_cmd.buttonset}>
+                <Button
+                    className={styles.board_cmd}
+                    width={CMD_ICON_SIZE}
+                    height={CMD_ICON_SIZE}
+                    icon={icon_share}
+                    onClick={showShareDialog}
+                />
+                <LinkButton
+                    className={styles.board_cmd}
+                    to="/viewer"
+                    width={CMD_ICON_SIZE}
+                    height={CMD_ICON_SIZE}
+                    icon={icon_eye}
+                />
+            </div>
+        </div>
+    );
 
     return (
         <div className={styles.explorer}>
@@ -57,6 +89,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         element={
                             <>
                                 <div key="board" className={styles.board}>
+                                    <BoardCommandBar />
                                     <OverlayContainer id={SYM_SHARE_OVERLAY}>
                                         <BoardEditor
                                             immutable={false}

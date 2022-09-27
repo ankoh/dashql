@@ -13,6 +13,7 @@ import {
     LogOrigin,
     LogTopic,
     Program,
+    ScriptMetadata,
     StatementStatus,
     TaskGraph,
     useLogger,
@@ -23,6 +24,7 @@ import {
 export type TaskId = number;
 export interface WorkflowSessionState {
     sessionId: number | null;
+    scriptMetadata: ScriptMetadata | null;
     programText: string | null;
     program: model.Program | null;
     programAnalysis: model.ProgramAnalysis | null;
@@ -37,6 +39,7 @@ export interface WorkflowSessionState {
 function initSessionState(state: WorkflowSessionState | null = null, sessionId: number | null = null) {
     state = state ?? ({} as WorkflowSessionState);
     state.sessionId = sessionId;
+    state.scriptMetadata = null;
     state.programText = null;
     state.program = null;
     state.programTasks = null;
@@ -60,10 +63,11 @@ export class WorkflowSession {
     public async close(): Promise<void> {
         await this._backend.closeSession(this._sessionId);
     }
-    public async updateProgram(text: string): Promise<void> {
+    public async updateProgram(text: string, metadata: ScriptMetadata | null = null): Promise<void> {
         if (text == this._state.programText) {
             return;
         }
+        this._state.scriptMetadata = metadata;
         this._state.programText = text;
         await this._backend.updateProgram(this._sessionId, text);
     }

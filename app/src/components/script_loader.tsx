@@ -162,7 +162,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 if (state.loadedScript) {
                     async () => {
                         try {
-                            await workflowSession.updateProgram(state.loadedScript.text);
+                            await workflowSession.updateProgram(state.loadedScript.text, state.loadedScript.metadata);
                             lock.current = false;
                             setState(s => ({
                                 ...s,
