@@ -65,43 +65,43 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     );
 
     return (
-        <div className={styles.explorer}>
-            <AnimatePresence>
-                <div key="program_page" className={styles.program_page}>
-                    <div className={styles.program_info_and_actions}></div>
-                    <Routes>
-                        <Route
-                            path="/"
-                            element={
-                                <OverlayContainer id={SYM_FORK_OVERLAY} className={styles.program_editor}>
-                                    <LazyLoader>
-                                        <LazyEditor readOnly={editorReadOnly} />
-                                    </LazyLoader>
-                                </OverlayContainer>
-                            }
-                        />
-                    </Routes>
+        <OverlayContainer id={SYM_FORK_OVERLAY}>
+            <OverlayContainer id={SYM_SHARE_OVERLAY}>
+                <div className={styles.explorer}>
+                    <AnimatePresence>
+                        <div key="program_page" className={styles.program_page}>
+                            <div className={styles.program_info_and_actions}></div>
+                            <Routes>
+                                <Route
+                                    path="/"
+                                    element={
+                                        <LazyLoader>
+                                            <LazyEditor readOnly={editorReadOnly} />
+                                        </LazyLoader>
+                                    }
+                                />
+                            </Routes>
+                        </div>
+                        <Routes>
+                            <Route
+                                path="/"
+                                element={
+                                    <>
+                                        <div key="board" className={styles.board}>
+                                            <BoardCommandBar />
+                                            <BoardEditor
+                                                immutable={false}
+                                                scaleFactor={1.0}
+                                                className={styles.board_editor}
+                                            />
+                                        </div>
+                                    </>
+                                }
+                            />
+                        </Routes>
+                    </AnimatePresence>
                 </div>
-                <Routes>
-                    <Route
-                        path="/"
-                        element={
-                            <>
-                                <div key="board" className={styles.board}>
-                                    <BoardCommandBar />
-                                    <OverlayContainer id={SYM_SHARE_OVERLAY}>
-                                        <BoardEditor
-                                            immutable={false}
-                                            scaleFactor={1.0}
-                                            className={styles.board_editor}
-                                        />
-                                    </OverlayContainer>
-                                </div>
-                            </>
-                        }
-                    />
-                </Routes>
-            </AnimatePresence>
-        </div>
+            </OverlayContainer>
+        </OverlayContainer>
     );
 };

@@ -45,44 +45,45 @@ export const Viewer: React.FC<Props> = () => {
         return <ScriptNotFound />;
     }
     return (
-        <div className={styles.container}>
-            <div className={styles.header_anchor}>
-                <div className={styles.header}>
-                    <ProgramHeader script={scriptMetadata} />
-                </div>
-                <div className={styles.cmdbar}>
-                    {scriptMetadata.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                        <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
+        <OverlayContainer id={shareOverlay} className={styles.overlay}>
+            <div className={styles.container}>
+                <div className={styles.header_anchor}>
+                    <div className={styles.header}>
+                        <ProgramHeader script={scriptMetadata} />
+                    </div>
+                    <div className={styles.cmdbar}>
+                        {scriptMetadata.origin.originType == ScriptOriginType.GITHUB_GIST && (
+                            <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
+                                <svg width="20px" height="20px">
+                                    <use xlinkHref={`${icon_star_outline}#sym`} />
+                                </svg>
+                            </div>
+                        )}
+                        <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)} onClick={showShareDialog}>
                             <svg width="20px" height="20px">
-                                <use xlinkHref={`${icon_star_outline}#sym`} />
+                                <use xlinkHref={`${icon_share}#sym`} />
                             </svg>
                         </div>
-                    )}
-                    <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)} onClick={showShareDialog}>
-                        <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_share}#sym`} />
-                        </svg>
+                        <Link to="/explorer" className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_code}#sym`} />
+                            </svg>
+                        </Link>
                     </div>
-                    <Link to="/explorer" className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
-                        <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_code}#sym`} />
-                        </svg>
-                    </Link>
+                </div>
+                <div ref={boardElement} className={styles.board}>
+                    {boardSize && (
+                        <Board
+                            className={styles.board_layout}
+                            width={boardSize.width}
+                            rowHeight={rowHeight}
+                            columnCount={columnCount}
+                            containerPadding={padding}
+                            elementMargin={margin}
+                        />
+                    )}
                 </div>
             </div>
-            <div ref={boardElement} className={styles.board}>
-                {boardSize && (
-                    <Board
-                        className={styles.board_layout}
-                        width={boardSize.width}
-                        rowHeight={rowHeight}
-                        columnCount={columnCount}
-                        containerPadding={padding}
-                        elementMargin={margin}
-                    />
-                )}
-            </div>
-            <OverlayContainer id={shareOverlay} className={styles.overlay} />
-        </div>
+        </OverlayContainer>
     );
 };

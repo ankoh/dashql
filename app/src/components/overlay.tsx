@@ -15,7 +15,7 @@ type OverlayState = {
 type OverlayContainerProps = {
     id: symbol;
     className?: string;
-    children?: React.ReactElement;
+    children?: React.ReactElement | React.ReactElement[];
 };
 
 type OverlayContentProps = {

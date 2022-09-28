@@ -46,19 +46,6 @@
     grid-template-rows: 100%;
 }
 
-.program_editor {
-    flex: 1;
-    position: relative;
-}
-
-.program_editor_overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-}
-
 .board {
     grid-column: 2;
     display: flex;
