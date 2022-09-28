@@ -41,7 +41,7 @@
 .ruler_left {
     grid-row: 1;
     grid-column: 1;
-    background-color: var(--board_ruler_bg);
+    background-color: hsl(210deg 12% 96%);
     position: relative;
     border-right: 1px solid rgb(200, 200, 200);
 }
