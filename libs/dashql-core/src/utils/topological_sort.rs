@@ -48,16 +48,15 @@ where
             let r = 2 * i + 2;
             let prev = i;
             if l < self.entries.len() && self.entries[l].1 < self.entries[i].1 {
-                self.swap_at(l, i);
                 i = l;
             }
             if r < self.entries.len() && self.entries[r].1 < self.entries[i].1 {
-                self.swap_at(r, i);
                 i = r;
             }
             if prev == i {
                 break;
             }
+            self.swap_at(prev, i);
         }
     }
     /// Heap length

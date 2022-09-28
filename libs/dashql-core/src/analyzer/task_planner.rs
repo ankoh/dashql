@@ -328,22 +328,30 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
         let diff_op = &ctx.diff[prev_stmt_id];
 
         // Find the task translation
-        let (undo_task, update_task, first_undo) = match prev_task.task_type {
-            TaskType::None => (TaskType::None, TaskType::None, true),
-            TaskType::CreateTable => (TaskType::DropTable, TaskType::None, true),
-            TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz, true),
-            TaskType::Declare => (TaskType::DropInput, TaskType::None, true),
-            TaskType::DropImport => (TaskType::DropImport, TaskType::None, false),
-            TaskType::DropInput => (TaskType::DropInput, TaskType::None, false),
-            TaskType::DropTable => (TaskType::DropTable, TaskType::None, false),
-            TaskType::DropViz => (TaskType::DropViz, TaskType::None, false),
-            TaskType::Import => (TaskType::DropImport, TaskType::None, true),
-            TaskType::Load => (TaskType::DropTable, TaskType::None, true),
-            TaskType::UpdateTable => (TaskType::DropTable, TaskType::None, true),
-            TaskType::Set => (TaskType::Unset, TaskType::None, true),
-            TaskType::Unset => (TaskType::Unset, TaskType::None, false),
-            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz, true),
+        let (undo_task, update_task, is_undo) = match prev_task.task_type {
+            TaskType::None => (TaskType::None, TaskType::None, false),
+            TaskType::CreateTable => (TaskType::DropTable, TaskType::None, false),
+            TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz, false),
+            TaskType::Declare => (TaskType::DropInput, TaskType::None, false),
+            TaskType::DropImport => (TaskType::DropImport, TaskType::None, true),
+            TaskType::DropInput => (TaskType::DropInput, TaskType::None, true),
+            TaskType::DropTable => (TaskType::DropTable, TaskType::None, true),
+            TaskType::DropViz => (TaskType::DropViz, TaskType::None, true),
+            TaskType::Import => (TaskType::DropImport, TaskType::None, false),
+            TaskType::Load => (TaskType::DropTable, TaskType::None, false),
+            TaskType::UpdateTable => (TaskType::DropTable, TaskType::None, false),
+            TaskType::Set => (TaskType::Unset, TaskType::None, false),
+            TaskType::Unset => (TaskType::Unset, TaskType::None, true),
+            TaskType::UpdateViz => (TaskType::DropViz, TaskType::UpdateViz, false),
         };
+
+        // Skip undo tasks that were sucessfully executed or skipped
+        let prev_status = prev_task.task_status.load(Ordering::SeqCst);
+        if is_undo {
+            if prev_status == (TaskStatusCode::Skipped as u8) || prev_status == (TaskStatusCode::Completed as u8) {
+                continue;
+            }
+        }
 
         // Is applicable?
         if ctx.task_applicability[prev_task_id] {
@@ -387,12 +395,11 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
 
         // Drop if there's a drop task defined
         if undo_task != TaskType::None {
-            let prev_status = prev_task.task_status.load(std::sync::atomic::Ordering::SeqCst);
             let next_task_id = next_tasks.tasks.len();
             // Invert the dependencies of undo tasks.
             // This is crucial for not breaking existing visualiziations.
             // (e.g. we want to drop the visualization before the create table statement)
-            let (undo_depends_on, undo_required_for) = if first_undo {
+            let (undo_depends_on, undo_required_for) = if !is_undo {
                 (prev_task.required_for.clone(), prev_task.depends_on.clone())
             } else {
                 (prev_task.depends_on.clone(), prev_task.required_for.clone())

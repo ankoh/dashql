@@ -47,7 +47,6 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
                 return Ok(());
             }
         };
-        console::println(&format!("DROP TABLE STATE {:?}", &data));
         match data {
             TaskData::TableRef(t) => {
                 if t.is_view {

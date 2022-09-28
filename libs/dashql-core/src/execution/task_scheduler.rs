@@ -105,6 +105,8 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
     }
 
     pub async fn next(&mut self, frontend: &WorkflowFrontend) -> Result<bool, SystemError> {
+        // console::println(&format!("TOPOLOGY: {:?}", self.task_topology));
+
         // Collect all tasks that can be scheduled
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut task_ops: Vec<Box<dyn TaskOperator<'exec, 'ast> + 'exec>> = Vec::with_capacity(self.task_logic.len());
