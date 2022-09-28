@@ -17,6 +17,7 @@ import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+
 import { OverlayProvider } from './components/overlay';
 import { withNavBar } from './components/navbar';
 import { WasmBackendProvider } from './backend/wasm_backend_provider';

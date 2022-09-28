@@ -205,7 +205,6 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                                     return;
                                 }
                                 const text = resp.data as string;
-                                await workflowSession.updateProgram(text);
                                 const script: model.Script = {
                                     metadata: {
                                         origin: {
@@ -219,6 +218,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                                     textBytes: utils.estimateUTF16Length(text),
                                     modified: false,
                                 };
+                                await workflowSession.updateProgram(text, script.metadata);
                                 lock.current = false;
                                 setState(s => ({
                                     ...s,
@@ -242,7 +242,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                         (async () => {
                             try {
                                 const script = await examples.getScript(example);
-                                await workflowSession.updateProgram(script.text);
+                                await workflowSession.updateProgram(script.text, script.metadata);
                                 lock.current = false;
                                 setState(s => ({
                                     ...s,
