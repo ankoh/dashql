@@ -43,7 +43,6 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
         let data = match data_lock.as_ref() {
             Some(data) => data,
             None => {
-                console::println("DROP TABLE NOT NECESSARY");
                 return Ok(());
             }
         };

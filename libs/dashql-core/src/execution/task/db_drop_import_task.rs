@@ -2,7 +2,6 @@ use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::external::console;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
@@ -29,7 +28,6 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropImportTaskOperator<'exec, 
         _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         _frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
-        console::println("DROP IMPORT: PREPARE");
         Ok(())
     }
     async fn execute<'snap>(
@@ -37,7 +35,6 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropImportTaskOperator<'exec, 
         _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         _frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
-        console::println("DROP IMPORT: EXECUTE");
         Ok(())
     }
 }
