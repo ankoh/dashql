@@ -6,7 +6,6 @@ import { observeSize } from '../utils/size_observer';
 import { Board } from '../components/board';
 import { OverlayContainer, useOverlaySetter } from '../components/overlay';
 import { ShareDialog } from '../components/share_dialog';
-import { ScriptNotFound } from '../components/script_not_found';
 import { ProgramHeader } from '../components/program_header';
 import { Link } from 'react-router-dom';
 import { useWorkflowSessionState } from '../backend/workflow_session';
@@ -41,9 +40,6 @@ export const Viewer: React.FC<Props> = () => {
     const boardSize = observeSize(boardElement);
 
     let scriptMetadata = sessionState.scriptMetadata;
-    if (!scriptMetadata) {
-        return <ScriptNotFound />;
-    }
     return (
         <OverlayContainer id={shareOverlay} className={styles.overlay}>
             <div className={styles.container}>

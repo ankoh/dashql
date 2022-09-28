@@ -25,8 +25,8 @@ import {
 export type TaskId = number;
 export interface WorkflowSessionState {
     sessionId: number | null;
-    scriptMetadata: ScriptMetadata | null;
-    programText: string | null;
+    scriptMetadata: ScriptMetadata;
+    programText: string;
     program: model.Program | null;
     programAnalysis: model.ProgramAnalysis | null;
     programTasks: model.TaskGraph | null;
@@ -36,14 +36,18 @@ export interface WorkflowSessionState {
     statementDependsOn: Map<number, number[]>;
 }
 
-let NEXT_SCRIPT_ID = 1;
-
 /// Create state in-place
 function initSessionState(state: WorkflowSessionState | null = null, sessionId: number | null = null) {
     state = state ?? ({} as WorkflowSessionState);
     state.sessionId = sessionId;
-    state.scriptMetadata = null;
-    state.programText = null;
+    state.scriptMetadata = {
+        origin: {
+            originType: ScriptOriginType.LOCAL,
+            fileName: `helloworld.dashql`,
+        },
+        description: '',
+    };
+    state.programText = '';
     state.program = null;
     state.programTasks = null;
     state.statusByTask = Immutable.Map();
@@ -70,13 +74,11 @@ export class WorkflowSession {
         if (text == this._state.programText) {
             return;
         }
-        this._state.scriptMetadata = metadata ?? {
-            origin: {
-                originType: ScriptOriginType.LOCAL,
-                fileName: `local${NEXT_SCRIPT_ID}.dashql`,
-            },
-            description: '',
-        };
+        if (metadata !== null) {
+            this._state.scriptMetadata = metadata;
+        } else {
+            this._state.scriptMetadata.modified = true;
+        }
         this._state.programText = text;
         await this._backend.updateProgram(this._sessionId, text);
     }

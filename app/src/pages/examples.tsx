@@ -82,7 +82,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
             const key = (elem.currentTarget as any).dataset.key;
             const nextScript = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
 
-            session.updateProgram(nextScript.text);
+            session.updateProgram(nextScript.text, nextScript.metadata);
             navigate('/explorer');
         },
         [session],

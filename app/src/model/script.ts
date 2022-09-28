@@ -37,6 +37,8 @@ export interface ScriptMetadata {
     origin: ScriptOrigin;
     /// The description
     description: string;
+    /// Is modified?
+    modified?: boolean;
 }
 
 export function getScriptNamespace(script: ScriptMetadata): string | null {

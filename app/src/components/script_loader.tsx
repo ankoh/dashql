@@ -11,7 +11,7 @@ import { useWorkflowSession } from '../backend/workflow_session';
 
 import styles from './script_loader.module.css';
 
-const DEFAULT_EXAMPLE = 'demo_btw';
+const DEFAULT_EXAMPLE = 'hello_world';
 
 interface Props {
     errorComponent?: (error: string) => React.ReactElement;
@@ -58,7 +58,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         // State machine
         switch (state.status) {
             case ScriptLoaderStatus.INIT: {
-                if (workflowSession.uncommittedState.programText == null) {
+                if (workflowSession.uncommittedState.programText == '') {
                     setState({
                         status: ScriptLoaderStatus.RESOLVING,
                         location: null,

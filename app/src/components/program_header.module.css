@@ -1,6 +1,6 @@
 .container {
     display: grid;
-    grid-template-rows: max-content max-content max-content;
+    grid-template-rows: max-content auto max-content;
     grid-template-columns: 64px max-content;
     grid-column-gap: 8px;
 }

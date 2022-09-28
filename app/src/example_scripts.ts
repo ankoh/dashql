@@ -2,7 +2,7 @@ import * as utils from './utils';
 import * as model from './model';
 import axios from 'axios';
 
-import example_demo_btw from '../static/examples/demo_btw.dashql';
+import example_demo_helloworld from '../static/examples/hello_world.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
@@ -69,13 +69,13 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        name: 'demo_btw',
+        name: 'hello_world',
         collection: 'Demos',
-        title: 'BTW 2023',
-        description: 'A script for the BTW publication',
+        title: 'Hello World',
+        description: 'Demonstrates DashQL with official COVID data of Germany',
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_demo_btw,
+        url: example_demo_helloworld,
         enabled: true,
     },
     {
