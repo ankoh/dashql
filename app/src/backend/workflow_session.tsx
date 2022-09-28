@@ -71,7 +71,7 @@ export class WorkflowSession {
         await this._backend.closeSession(this._sessionId);
     }
     public async updateProgram(text: string, metadata: ScriptMetadata | null = null): Promise<void> {
-        if (text == this._state.programText) {
+        if (text == this._state.programText && (metadata == null || metadata == this._state.scriptMetadata)) {
             return;
         }
         if (metadata !== null) {
