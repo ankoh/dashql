@@ -59,7 +59,11 @@ export const BoardEditor: React.FC<IBoardEditorProps> = (props: IBoardEditorProp
                                 {leftRulerSize && (
                                     <Ruler
                                         width={rulerThickness}
-                                        height={containerSize.height}
+                                        height={
+                                            containerSize.height -
+                                            rulerThickness -
+                                            0 /* increasing this remove a the weird scrolling */
+                                        }
                                         orientation={RulerOrientation.Vertical}
                                         scaleFactor={props.scaleFactor}
                                         stepLength={rowHeight}
