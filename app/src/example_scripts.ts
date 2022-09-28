@@ -9,8 +9,7 @@ import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_load_json_jmespath from '../static/examples/load_json_jmespath.dashql';
-import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
-import example_fetch_http_static from '../static/examples/fetch_http_static.dashql';
+import example_import_http_static from '../static/examples/import_http_static.dashql';
 import example_sql_approxmedian from '../static/examples/sql_approxmedian.dashql';
 import example_sql_complexjoins from '../static/examples/sql_complexjoins.dashql';
 import example_sql_explicitgrouping from '../static/examples/sql_explicitgrouping.dashql';
@@ -22,7 +21,6 @@ import example_viz_area_charts from '../static/examples/viz_area_charts.dashql';
 import example_viz_bar_charts from '../static/examples/viz_bar_charts.dashql';
 import example_viz_heatmaps from '../static/examples/viz_heatmaps.dashql';
 import example_viz_histograms from '../static/examples/viz_histograms.dashql';
-import example_viz_interaction from '../static/examples/viz_interaction.dashql';
 import example_viz_line_charts from '../static/examples/viz_line_charts.dashql';
 import example_viz_pie_charts from '../static/examples/viz_pie_charts.dashql';
 import example_viz_scatter_charts from '../static/examples/viz_scatter_charts.dashql';
@@ -37,22 +35,18 @@ import icon_arcchart from '../static/svg/icons/arc_chart.svg';
 import icon_scatterchart from '../static/svg/icons/scatter_chart.svg';
 import icon_streamgraph from '../static/svg/icons/streamgraph.svg';
 import icon_heatmapchart from '../static/svg/icons/heatmap_chart.svg';
-import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 import icon_database_import from '../static/svg/icons/database_import.svg';
 import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
 import icon_shape from '../static/svg/icons/shape.svg';
 
 export enum ScriptFeatureTag {
-    FETCH_HTTP,
-    FETCH_ARCHIVE_ZIP,
+    IMPORT_HTTP,
+    IMPORT_ARCHIVE_ZIP,
     JMESPATH,
     DATA_CSV,
     DATA_JSON,
     DATA_PARQUET,
-    DYNAMIC_LOAD,
-    DYNAMIC_SQL,
-    DYNAMIC_VIZ,
     _COUNT_,
 }
 
@@ -191,33 +185,13 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_interaction',
-        collection: 'Visualize',
-        title: 'Interactivity',
-        description: 'FOOOOO',
-        icon: icon_gesture_tap_hold,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_viz_interaction,
-        enabled: false,
-    },
-    {
-        name: 'fetch_http_static',
-        collection: 'Fetch',
+        name: 'import_http_static',
+        collection: 'Import',
         title: 'Static HTTP',
         description: 'FOOOOO',
         icon: icon_package_down,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_fetch_http_static,
-        enabled: false,
-    },
-    {
-        name: 'fetch_http_dynamic',
-        collection: 'Fetch',
-        title: 'Dynamic HTTP',
-        description: 'FOOOOO',
-        icon: icon_package_down,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_fetch_http_dynamic,
+        url: example_import_http_static,
         enabled: false,
     },
     {

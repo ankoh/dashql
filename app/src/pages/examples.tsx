@@ -11,9 +11,9 @@ import { useWorkflowSession } from '../backend/workflow_session';
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
-        case ScriptFeatureTag.FETCH_HTTP:
+        case ScriptFeatureTag.IMPORT_HTTP:
             return 'HTTP';
-        case ScriptFeatureTag.FETCH_ARCHIVE_ZIP:
+        case ScriptFeatureTag.IMPORT_ARCHIVE_ZIP:
             return 'ZIP ARCHIVE';
         case ScriptFeatureTag.JMESPATH:
             return 'JMESPATH';
@@ -23,12 +23,6 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
             return 'JSON';
         case ScriptFeatureTag.DATA_PARQUET:
             return 'PARQUET';
-        case ScriptFeatureTag.DYNAMIC_LOAD:
-            return 'DYNAMIC LOAD';
-        case ScriptFeatureTag.DYNAMIC_SQL:
-            return 'DYNAMIC SQL';
-        case ScriptFeatureTag.DYNAMIC_VIZ:
-            return 'DYNAMIC VIZ';
         default:
             return '?';
     }
@@ -138,7 +132,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
             <div className={styles.gallery_body}>
                 <LayoutGroup id="examples">
                     {renderCollection(collections, 'Demos')}
-                    {renderCollection(collections, 'Fetch')}
+                    {renderCollection(collections, 'Import')}
                     {renderCollection(collections, 'Transform')}
                     {renderCollection(collections, 'Load')}
                     {renderCollection(collections, 'SQL')}
