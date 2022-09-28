@@ -26,7 +26,7 @@ import { WorkflowSessionProvider } from './backend/workflow_session';
 import { WorkflowDriver } from './backend/workflow_driver';
 import { withScriptLoader } from './components/script_loader';
 
-const Router = isElectron ? HashRouter : BrowserRouter;
+const Router = isElectron() ? HashRouter : BrowserRouter;
 
 const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ViewerPage = withNavBar(withScriptLoader(Viewer));
