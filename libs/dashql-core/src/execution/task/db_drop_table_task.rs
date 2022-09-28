@@ -50,9 +50,13 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropTableTaskOperator<'exec> {
         console::println(&format!("DROP TABLE STATE {:?}", &data));
         match data {
             TaskData::TableRef(t) => {
-                connection
-                    .run_query(&format!("drop table if exists {}", t.name))
-                    .await?;
+                if t.is_view {
+                    connection.run_query(&format!("drop view if exists {}", t.name)).await?;
+                } else {
+                    connection
+                        .run_query(&format!("drop table if exists {}", t.name))
+                        .await?;
+                }
             }
             data => {
                 console::println(&format!("cannot drop {:?}", &data));
