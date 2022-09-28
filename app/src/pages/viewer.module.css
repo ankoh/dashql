@@ -1,0 +1,127 @@
+@media only screen and (max-width: 600px) {
+    .container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: max-content max-content;
+        justify-content: center;
+        align-items: center;
+        overflow-y: auto;
+        background-color: var(--body_bg);
+    }
+
+    .header_anchor {
+        margin-top: 16px;
+    }
+
+    .header {
+        background-color: transparent;
+        border: 1px solid transparent;
+        padding: 0px 20px;
+    }
+
+    .cmdbar {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        margin-top: 8px;
+        background-color: hsl(210deg, 12%, 16%);
+        border-radius: var(--border_radius);
+        border: 1px solid hsl(210deg, 12%, 10%);
+
+        display: flex;
+        flex-direction: column;
+        z-index: 1000;
+    }
+
+    .cmdbutton {
+        height: 40px;
+        width: 48px;
+    }
+
+    .board {
+        grid-row: 2;
+        grid-column: 1 / span 2;
+        margin-top: 4px;
+        height: 100%;
+        width: 100%;
+        max-width: 1000px;
+    }
+}
+
+@media only screen and (min-width: 600px) {
+    .container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: minmax(max-content, 1000px);
+        grid-template-rows: max-content max-content;
+        justify-content: center;
+        align-items: center;
+        overflow-y: auto;
+        background-color: var(--body_bg);
+    }
+
+    .header_anchor {
+        display: grid;
+        grid-template-columns: 1fr max-content;
+        margin-top: 16px;
+    }
+
+    .header {
+        grid-row: 1;
+        grid-column: 1;
+        box-sizing: border-box;
+        background-color: transparent;
+        border: 1px solid transparent;
+        padding: 0 20px 0 28px;
+    }
+
+    .cmdbar {
+        grid-row: 1;
+        grid-column: 2;
+        align-self: start;
+        margin-top: 4px;
+        margin-right: 32px;
+
+        color: white;
+        background-color: hsl(210deg, 12%, 16%);
+        border-radius: var(--border_radius);
+        border: 1px solid hsl(210deg, 12%, 10%);
+
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: end;
+    }
+
+    .cmdbutton {
+        width: 48px;
+        height: 36px;
+    }
+
+    .board {
+        grid-row: 2;
+        grid-column: 1 / span 2;
+        margin-top: 16px;
+        height: 100%;
+        width: 100%;
+        max-width: 1000px;
+    }
+}
+
+.board_layout {
+    min-height: 100%;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}

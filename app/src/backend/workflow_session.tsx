@@ -14,6 +14,7 @@ import {
     LogTopic,
     Program,
     ScriptMetadata,
+    ScriptOriginType,
     StatementStatus,
     TaskGraph,
     useLogger,
@@ -34,6 +35,8 @@ export interface WorkflowSessionState {
     dataById: Immutable.Map<number, WorkflowData>;
     statementDependsOn: Map<number, number[]>;
 }
+
+let NEXT_SCRIPT_ID = 1;
 
 /// Create state in-place
 function initSessionState(state: WorkflowSessionState | null = null, sessionId: number | null = null) {
@@ -67,7 +70,13 @@ export class WorkflowSession {
         if (text == this._state.programText) {
             return;
         }
-        this._state.scriptMetadata = metadata;
+        this._state.scriptMetadata = metadata ?? {
+            origin: {
+                originType: ScriptOriginType.LOCAL,
+                fileName: `local${NEXT_SCRIPT_ID}.dashql`,
+            },
+            description: '',
+        };
         this._state.programText = text;
         await this._backend.updateProgram(this._sessionId, text);
     }

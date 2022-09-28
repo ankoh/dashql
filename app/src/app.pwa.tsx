@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { LogProvider } from './model/log';
+import { Viewer } from './pages/viewer';
 import { Explorer } from './pages/explorer';
 import { Examples } from './pages/examples';
 import { NotFound } from './pages/not_found';
@@ -28,6 +29,7 @@ import { withScriptLoader } from './components/script_loader';
 const Router = isElectron ? HashRouter : BrowserRouter;
 
 const ExplorerPage = withNavBar(withScriptLoader(Explorer));
+const ViewerPage = withNavBar(withScriptLoader(Viewer));
 const ExamplesPage = withNavBar(Examples);
 
 const root = createRoot(document.getElementById('root'));
@@ -44,6 +46,7 @@ root.render(
                                         <Routes>
                                             <Route path="/explorer/*" element={<ExplorerPage />} />
                                             <Route path="/examples/*" element={<ExamplesPage />} />
+                                            <Route path="/viewer/*" element={<ViewerPage />} />
                                             <Route path="/404" element={<NotFound />} />
                                             <Route path="/" element={<Navigate to="/explorer" />} />
                                             <Route path="*" element={<Navigate to="/404" />} />

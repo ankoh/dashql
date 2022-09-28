@@ -6,8 +6,6 @@
 
 .button {
     position: relative;
-    height: 100%;
-    width: 48px;
 
     display: grid;
     justify-content: center;
@@ -29,9 +27,6 @@
 }
 
 .button_inverted {
-    height: 100%;
-    width: 48px;
-
     display: grid;
     justify-content: center;
     align-items: center;
