@@ -21,18 +21,20 @@ export const ProgramHeader: React.FC<Props> = (props: Props) => {
                     </svg>
                 </div>
             </div>
-            <div className={styles.title}>
-                <span className={styles.title_namespace}>{getScriptNamespace(props.script)}</span>/
-                <span className={styles.title_name}>{getScriptName(props.script)}</span>
+            <div className={styles.title_and_beans}>
+                <div className={styles.title}>
+                    <span className={styles.title_namespace}>{getScriptNamespace(props.script)}</span>/
+                    <span className={styles.title_name}>{getScriptName(props.script)}</span>
+                </div>
+                <div className={styles.beans}>
+                    {getScriptBeans(props.script).map(b => (
+                        <div key={b} className={styles.bean}>
+                            {b}
+                        </div>
+                    ))}
+                </div>
             </div>
             <div className={styles.description}>{props.script.description}</div>
-            <div className={styles.beans}>
-                {getScriptBeans(props.script).map(b => (
-                    <div key={b} className={styles.bean}>
-                        {b}
-                    </div>
-                ))}
-            </div>
         </div>
     );
 };

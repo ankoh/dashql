@@ -29,12 +29,15 @@
     justify-content: center;
 }
 
-.title {
+.title_and_beans {
     grid-row: 1;
     grid-column: 2;
 
-    margin-top: 4px;
+    display: flex;
+    flex-direction: row;
+}
 
+.title {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -61,13 +64,10 @@
 }
 
 .beans {
-    grid-row: 1;
-    grid-column: 3;
-
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-top: 2px;
+    margin-left: 12px;
 }
 
 .bean {
@@ -78,5 +78,5 @@
     border-radius: 8px;
     border: 1px solid rgb(200, 200, 200);
     padding: 0px 4px;
-    margin-left: 4px;
+    margin-left: 8px;
 }
