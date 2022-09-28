@@ -81,6 +81,8 @@ export const Ruler: React.FC<RulerProps> = (props: RulerProps) => {
 
         // Prepare the 2D context
         const context = canvas.getContext('2d')!;
+        context.fillStyle = `rgb(255, 255, 255)`;
+        context.fill();
         context.strokeStyle = TICK_COLOR;
         context.lineWidth = TICK_WIDTH;
         context.fillStyle = CORNER_COLOR;
