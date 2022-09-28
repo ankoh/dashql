@@ -13,8 +13,6 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
         case ScriptFeatureTag.IMPORT_HTTP:
             return 'HTTP';
-        case ScriptFeatureTag.IMPORT_ARCHIVE_ZIP:
-            return 'ZIP ARCHIVE';
         case ScriptFeatureTag.JMESPATH:
             return 'JMESPATH';
         case ScriptFeatureTag.DATA_CSV:

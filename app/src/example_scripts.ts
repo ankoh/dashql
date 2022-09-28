@@ -42,7 +42,6 @@ import icon_shape from '../static/svg/icons/shape.svg';
 
 export enum ScriptFeatureTag {
     IMPORT_HTTP,
-    IMPORT_ARCHIVE_ZIP,
     JMESPATH,
     DATA_CSV,
     DATA_JSON,
