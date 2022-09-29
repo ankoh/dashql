@@ -125,16 +125,16 @@ async fn optimize_vl_spec<'ast, 'snap>(
             | DataType::Interval(_) => VLFieldType::TEMPORAL,
             _ => continue,
         };
-        encoding_refs.push((key, column_id, encoding, field_name, field_type));
+        encoding_refs.push((key.clone(), column_id, field_name.clone(), field_type));
     }
 
     // Resolve minmax domains
     let mut minmax_domains: Vec<_> = encoding_refs
         .iter()
-        .filter(|(_, column_id, _, _, field_type)| {
+        .filter(|(_, column_id, _, field_type)| {
             *field_type == VLFieldType::QUANTITATIVE || *field_type == VLFieldType::TEMPORAL
         })
-        .map(|(_, column_id, _, _, field_type)| *column_id)
+        .map(|(_, column_id, _, field_type)| *column_id)
         .collect();
     minmax_domains.sort_unstable();
     minmax_domains.dedup();
