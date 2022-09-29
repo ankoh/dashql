@@ -41,7 +41,8 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         | VizComponentType::LINE
         | VizComponentType::SCATTER
         | VizComponentType::PIE => {
-            VizRendererData::VegaLite(generate_vl_spec(ctx, data, component, modifiers, extra).await?)
+            let vl = generate_vl_spec(ctx, data, component, modifiers, extra).await?;
+            VizRendererData::VegaLite(complete_vl_spec(ctx, data, component, modifiers, vl).await?)
         }
         _ => {
             return Err(SystemError::NotImplemented(
@@ -91,7 +92,7 @@ async fn generate_vl_spec<'ast, 'snap>(
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
     extra: sj::Map<String, sj::Value>,
-) -> Result<VegaLiteRendererData, SystemError> {
+) -> Result<sj::Map<String, sj::Value>, SystemError> {
     // Get encoding from extras
     let extra_encoding = match extra.get("encoding") {
         Some(sj::Value::Object(enc)) => enc.clone(),
@@ -255,7 +256,7 @@ async fn generate_vl_spec<'ast, 'snap>(
             let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
             vl.insert("mark".to_string(), sj::Value::String(mark.to_string()));
             vl.insert("encodings".to_string(), sj::Value::Object(encodings));
-            complete_vl_spec(ctx, data, component, modifiers, vl).await
+            Ok(vl)
         }
         _ => {
             return Err(SystemError::NotImplemented(format!(
