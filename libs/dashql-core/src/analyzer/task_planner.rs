@@ -7,7 +7,7 @@ use super::{
 use std::sync::{atomic::AtomicU8, RwLock};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
-use crate::{error::SystemError, external::console, grammar::Statement, utils::topological_sort::TopologicalSort};
+use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 // 'ast: 'planning = 'ast lives at least as long as 'planning
 #[derive(Debug)]

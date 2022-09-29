@@ -86,8 +86,8 @@ fn pack_vl_renderer(table: Arc<TableMetadata>, spec: sj::Map<String, sj::Value>)
 async fn optimize_vl_spec<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     table: &Arc<TableMetadata>,
-    component: VizComponentType,
-    modifiers: &HashSet<VizComponentTypeModifier>,
+    _component: VizComponentType,
+    _modifiers: &HashSet<VizComponentTypeModifier>,
     spec: &mut sj::Map<String, sj::Value>,
 ) -> Result<(), SystemError> {
     let mut tmp = sj::Map::new();
@@ -157,10 +157,10 @@ async fn optimize_vl_spec<'ast, 'snap>(
     // Resolve minmax domains
     let mut minmax_domains: Vec<_> = field_defs
         .iter()
-        .filter(|(_, column_id, _, field_type)| {
+        .filter(|(_, _column_id, _, field_type)| {
             *field_type == VLFieldType::QUANTITATIVE || *field_type == VLFieldType::TEMPORAL
         })
-        .map(|(_, column_id, _, field_type)| *column_id)
+        .map(|(_, column_id, _, _field_type)| *column_id)
         .collect();
     minmax_domains.sort_unstable();
     minmax_domains.dedup();
@@ -206,7 +206,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         Some(sj::Value::Object(ref mut enc)) => enc,
         _ => &mut tmp,
     };
-    for (i, (key, column_id, field_name, field_type)) in field_defs.iter().enumerate() {
+    for (i, (key, column_id, _field_name, field_type)) in field_defs.iter().enumerate() {
         let encoding = encodings.get_mut(key).unwrap().as_object_mut().unwrap();
         if !encoding.contains_key(&key_type) {
             encoding.insert(
@@ -267,7 +267,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
 }
 
 async fn generate_vl_spec<'ast, 'snap>(
-    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
