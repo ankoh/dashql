@@ -13,6 +13,7 @@ use crate::{
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum VLFieldType {
     QUANTITATIVE,
     NOMINAL,
@@ -60,7 +61,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
 }
 
 async fn optimize_vl_spec<'ast, 'snap>(
-    _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     table: &Arc<TableMetadata>,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
@@ -69,11 +70,12 @@ async fn optimize_vl_spec<'ast, 'snap>(
     let mut tmp = sj::Map::new();
     let field_key = "field".to_string();
 
-    // Check all encodings
+    // Resolve encodings that can be optimized
     let encodings = match spec.get("encoding") {
         Some(sj::Value::Object(ref enc)) => enc,
         _ => &mut tmp,
     };
+    let mut encoding_refs = Vec::new();
     for (key, value) in encodings.iter() {
         // Unpack encoding object
         let encoding = match value {
@@ -81,7 +83,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
             _ => continue,
         };
         // Is field def?
-        let field = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
+        let field_name = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
             value
         } else {
             // TODO warning
@@ -89,13 +91,13 @@ async fn optimize_vl_spec<'ast, 'snap>(
         };
         // Refers to a column name?
         // Will likely throw a database error later if not known here...
-        let column_id = if let Some(column_id) = table.column_name_mapping.get(field) {
+        let column_id = if let Some(column_id) = table.column_name_mapping.get(field_name) {
             *column_id
         } else {
             // TODO warning
             continue;
         };
-        // Resolve vega-lite field type
+        // Resolve VL field type
         let column_type = &table.column_types[column_id];
         let field_type = match column_type {
             DataType::Boolean
@@ -120,6 +122,34 @@ async fn optimize_vl_spec<'ast, 'snap>(
             | DataType::Interval(_) => VLFieldType::TEMPORAL,
             _ => continue,
         };
+        encoding_refs.push((key, column_id, encoding, field_name, field_type));
+    }
+
+    // Resolve minmax domains
+    let mut minmax_domains: Vec<_> = encoding_refs
+        .iter()
+        .filter(|(_, column_id, _, _, field_type)| {
+            *field_type == VLFieldType::QUANTITATIVE || *field_type == VLFieldType::TEMPORAL
+        })
+        .map(|(_, column_id, _, _, field_type)| *column_id)
+        .collect();
+    minmax_domains.sort_unstable();
+    minmax_domains.dedup();
+    if minmax_domains.len() > 0 {
+        // Run SQL query
+        let select_cols = minmax_domains
+            .iter()
+            .enumerate()
+            .map(|(i, col)| (i, &table.column_names[*col]))
+            .fold(String::new(), |mut buffer, (i, name)| {
+                if i > 0 {
+                    buffer.push_str(", ");
+                }
+                buffer.push_str(&format!("min({}), max({})", name, name));
+                buffer
+            });
+        let query = format!("select {} from {}", select_cols, table.table_name);
+        let result = ctx.base.database_connection.run_query(&query).await?;
     }
 
     let spec = spec;
