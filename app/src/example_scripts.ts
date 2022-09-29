@@ -79,7 +79,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_unischema,
-        enabled: true,
+        enabled: false,
     },
     {
         name: 'demo_vaccination_germany',
@@ -101,7 +101,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.DATA_JSON)
             .set(ScriptFeatureTag.JMESPATH),
         url: example_demo_explore_json,
-        enabled: true,
+        enabled: false,
     },
     {
         name: 'viz_line',
@@ -221,7 +221,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_shape,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.JMESPATH),
         url: example_load_json_jmespath,
-        enabled: true,
+        enabled: false,
     },
     {
         name: 'sql_complex_joins',
