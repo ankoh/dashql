@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
-use arrow::datatypes::DataType;
+use arrow::{datatypes::DataType, util::display::array_value_to_string};
 use dashql_proto::{VizComponentType, VizComponentTypeModifier};
 use serde_json::{self as sj, json};
 
@@ -82,6 +82,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
             sj::Value::Object(fields) => fields,
             _ => continue,
         };
+
         // Is field def?
         let field_name = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
             value
@@ -89,6 +90,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
             // TODO warning
             continue;
         };
+
         // Refers to a column name?
         // Will likely throw a database error later if not known here...
         let column_id = if let Some(column_id) = table.column_name_mapping.get(field_name) {
@@ -97,6 +99,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
             // TODO warning
             continue;
         };
+
         // Resolve VL field type
         let column_type = &table.column_types[column_id];
         let field_type = match column_type {
@@ -135,7 +138,8 @@ async fn optimize_vl_spec<'ast, 'snap>(
         .collect();
     minmax_domains.sort_unstable();
     minmax_domains.dedup();
-    if minmax_domains.len() > 0 {
+    let mut minmax_domain_values = Vec::with_capacity(minmax_domains.len() * 2);
+    if !minmax_domains.is_empty() {
         // Run SQL query
         let select_cols = minmax_domains
             .iter()
@@ -145,11 +149,29 @@ async fn optimize_vl_spec<'ast, 'snap>(
                 if i > 0 {
                     buffer.push_str(", ");
                 }
-                buffer.push_str(&format!("min({}), max({})", name, name));
+                buffer.push_str(&format!("min({}) lb_{}_1, max({}) ub_{}_2", name, i, name, i));
                 buffer
             });
         let query = format!("select {} from {}", select_cols, table.table_name);
         let result = ctx.base.database_connection.run_query(&query).await?;
+        let batches = result.read_arrow_batches()?;
+
+        // Query result ok?
+        if batches.is_empty() || batches[0].num_rows() != 1 || batches[0].num_columns() != (minmax_domains.len() * 2) {
+            return Err(SystemError::Generic("failed to resolve minmax domains".to_string()));
+        }
+
+        // Extract the domain values
+        let batch = &batches[0];
+        for domain in 0..minmax_domains.len() {
+            let col0 = 2 * domain + 0;
+            let col1 = 2 * domain + 1;
+            let printed0 =
+                array_value_to_string(batch.column(col0), 0).map_err(|e| SystemError::Generic(e.to_string()))?;
+            let printed1 =
+                array_value_to_string(batch.column(col1), 0).map_err(|e| SystemError::Generic(e.to_string()))?;
+            minmax_domain_values.push((printed0, printed1));
+        }
     }
 
     let spec = spec;
