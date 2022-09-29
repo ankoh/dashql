@@ -494,8 +494,6 @@ pub fn plan_tasks<'a, 'b>(
     translate_statements(&mut ctx)?;
     diff_programs(&mut ctx)?;
     identify_applicable_tasks(&mut ctx)?;
-    console::println(&format!("{:?}", &ctx.diff));
-    console::println(&format!("{:?}", &ctx.task_applicability));
     migrate_task_graph(&mut ctx)?;
     Ok(ctx.next_task_graph.unwrap())
 }
