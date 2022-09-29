@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
-use dashql_proto::VizComponentType;
+use dashql_proto::{VizComponentType, VizComponentTypeModifier};
 use serde_json::{self as sj, json};
 
 use crate::{
@@ -12,10 +15,39 @@ use crate::{
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
 
-pub(crate) async fn compose_viz_spec<'ast, 'snap>(
+async fn complete_vega_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
     component: VizComponentType,
+    modifiers: &HashSet<VizComponentTypeModifier>,
+    spec: sj::Map<String, sj::Value>,
+) -> Result<VizRendererData, SystemError> {
+    // out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
+    //     table: table_metadata.clone(),
+    //     sampling: None,
+    //     spec: json!({
+    //         "autosize": {
+    //             "type": "fit",
+    //             "contains": "padding",
+    //             "resize": true,
+    //         },
+    //         "background": "transparent",
+    //         "padding": 8,
+    //         "width": "container",
+    //         "height": "container",
+    //         "layer": [
+    //             layer
+    //         ],
+    //     }),
+    // });
+    panic!("not implemented")
+}
+
+pub(crate) async fn compose_viz_spec<'ast, 'snap>(
+    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    data: &TaskData,
+    component: VizComponentType,
+    modifiers: &HashSet<VizComponentTypeModifier>,
     extra: sj::Map<String, sj::Value>,
 ) -> Result<Arc<VizSpec>, SystemError> {
     let extra_encoding = match extra.get("encoding") {
@@ -33,7 +65,8 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         }
     };
 
-    let resolve_inner_encoding =
+    // Find an encoding in the json object
+    let find_encoding_from =
         |root: &sj::Map<String, sj::Value>, table: &TableMetadata, name: &str, assigned: &mut Vec<bool>| {
             if let Some(field) = root.get(name) {
                 match field {
@@ -73,22 +106,47 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             }
             return Ok(None);
         };
-    let resolve_encoding = |table: &TableMetadata,
-                            name: &str,
-                            assigned: &mut Vec<bool>|
+
+    // Try to find an encoding in the user data
+    let find_encoding = |table: &TableMetadata,
+                         name: &str,
+                         assigned: &mut Vec<bool>|
      -> Result<Option<sj::Map<String, sj::Value>>, SystemError> {
-        if let Some(field) = resolve_inner_encoding(&extra, table, name, assigned)? {
+        if let Some(field) = find_encoding_from(&extra, table, name, assigned)? {
             return Ok(Some(field));
         }
-        if let Some(field) = resolve_inner_encoding(&extra_encoding, table, name, assigned)? {
+        if let Some(field) = find_encoding_from(&extra_encoding, table, name, assigned)? {
             return Ok(Some(field));
         }
         Ok(None)
     };
 
-    let mut required_encodings = Vec::new();
-    required_encodings.reserve(8);
-    match component {
+    // Assign an encoding field by force
+    let force_encoding = |enc: Option<sj::Map<String, sj::Value>>,
+                          table: &TableMetadata,
+                          name: &str,
+                          assigned: &mut Vec<bool>|
+     -> Result<sj::Map<String, sj::Value>, SystemError> {
+        if let Some(enc) = enc {
+            return Ok(enc);
+        }
+        for (column_id, used) in assigned.iter_mut().enumerate() {
+            if !*used {
+                *used = true;
+                let name = &table.column_names[column_id];
+                let mut enc = sj::Map::new();
+                enc.insert("field".to_string(), sj::Value::String(name.clone()));
+                return Ok(enc);
+            }
+        }
+        return Err(SystemError::Generic(format!(
+            "could not assign required field: {}",
+            name
+        )));
+    };
+
+    // Differentiate component types
+    let vl = match component {
         VizComponentType::TABLE => {
             let table_metadata = assume_data_is_table(data)?;
             out.renderer = VizRendererData::Table(TableRendererData {
@@ -103,27 +161,10 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         }
         VizComponentType::SPEC => {
             let table_metadata = assume_data_is_table(data)?;
-            let mut layer = extra.clone();
-            layer.remove(&"position".to_string());
-            layer.remove(&"title".to_string());
-            out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
-                table: table_metadata.clone(),
-                sampling: None,
-                spec: json!({
-                    "autosize": {
-                        "type": "fit",
-                        "contains": "padding",
-                        "resize": true,
-                    },
-                    "background": "transparent",
-                    "padding": 8,
-                    "width": "container",
-                    "height": "container",
-                    "layer": [
-                        layer
-                    ],
-                }),
-            });
+            let mut vl = extra.clone();
+            vl.remove(&"position".to_string());
+            vl.remove(&"title".to_string());
+            out.renderer = complete_vega_spec(ctx, data, component, modifiers, vl).await?;
         }
         VizComponentType::AREA
         | VizComponentType::BAR
@@ -131,55 +172,83 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         | VizComponentType::SCATTER
         | VizComponentType::PIE => {
             let table = assume_data_is_table(data)?;
+            let is_stacked = modifiers.contains(&VizComponentTypeModifier::STACKED);
+            let is_multi = modifiers.contains(&VizComponentTypeModifier::MULTI);
 
-            let _vl: sj::Map<String, sj::Value> = sj::Map::new();
-            let mut vl_encoding: sj::Map<String, sj::Value> = sj::Map::new();
+            // Build encodings
+            let mut encodings: sj::Map<String, sj::Value> = Default::default();
+            let mut assigned: Vec<bool> = Vec::new();
+            assigned.resize(table.column_names.len(), false);
+            match component {
+                VizComponentType::AREA | VizComponentType::BAR | VizComponentType::LINE | VizComponentType::SCATTER => {
+                    // Did the user specify anything?
+                    let x = find_encoding(&table, "x", &mut assigned)?;
+                    let y = find_encoding(&table, "y", &mut assigned)?;
+                    let color = if is_stacked || is_multi {
+                        find_encoding(&table, "color", &mut assigned)?
+                    } else {
+                        None
+                    };
 
-            let mut assigned_columns: Vec<bool> = Vec::new();
-            assigned_columns.resize(table.column_names.len(), false);
+                    // Assign encodings by force
+                    let mut x = force_encoding(x, &table, "x", &mut assigned)?;
+                    let y = force_encoding(y, &table, "y", &mut assigned)?;
+                    let color = if is_stacked || is_multi {
+                        Some(force_encoding(color, &table, "color", &mut assigned)?)
+                    } else {
+                        None
+                    };
 
-            let _mark = match component {
+                    // Do we need an xOffset?
+                    let x_offset = if is_multi {
+                        match component {
+                            VizComponentType::BAR => color.clone(),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    };
+
+                    // Are we stacked?
+                    x.insert("stacked".to_string(), sj::Value::Bool(is_stacked));
+
+                    // Assemble encodings
+                    encodings.insert("x".to_string(), sj::Value::Object(x));
+                    encodings.insert("y".to_string(), sj::Value::Object(y));
+                    if let Some(color) = color {
+                        encodings.insert("color".to_string(), sj::Value::Object(color));
+                    }
+                    if let Some(x_offset) = x_offset {
+                        encodings.insert("xOffset".to_string(), sj::Value::Object(x_offset));
+                    }
+                }
+                VizComponentType::PIE => {
+                    // required.extend_from_slice(&["theta", "radius"]);
+                }
+                _ => {}
+            }
+
+            // Get mark
+            let mark = match component {
                 VizComponentType::AREA => "area",
                 VizComponentType::BAR => "bar",
                 VizComponentType::LINE => "line",
                 VizComponentType::PIE => "arc",
                 VizComponentType::SCATTER => "point",
-                _ => "",
+                _ => unreachable!(),
             };
-            match component {
-                VizComponentType::AREA | VizComponentType::BAR => {
-                    for field in &["x", "x2", "y", "y2", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table, field, &mut assigned_columns)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
-                        }
-                    }
-                    required_encodings.extend_from_slice(&["x", "y"]);
-                }
-                VizComponentType::LINE | VizComponentType::SCATTER => {
-                    for field in &["x", "y", "color", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table, field, &mut assigned_columns)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
-                        }
-                    }
-                    required_encodings.extend_from_slice(&["x", "y"]);
-                }
-                VizComponentType::PIE => {
-                    for field in &["theta", "radius", "shape", "size"] {
-                        if let Some(enc) = resolve_encoding(&table, field, &mut assigned_columns)? {
-                            vl_encoding.insert(field.to_string(), sj::Value::Object(enc));
-                        }
-                    }
-                    required_encodings.extend_from_slice(&["theta", "radius"]);
-                }
-                _ => {}
-            }
+
+            let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
+            vl.insert("mark".to_string(), sj::Value::String(mark.to_string()));
+            vl.insert("encodings".to_string(), sj::Value::Object(encodings));
+            out.renderer = complete_vega_spec(ctx, data, component, modifiers, vl).await?;
         }
         _ => {
             return Err(SystemError::NotImplemented(
                 "visualization component type is not implemented".to_string(),
             ))
         }
-    }
+    };
     Ok(Arc::new(out))
 }
 

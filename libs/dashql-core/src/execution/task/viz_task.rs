@@ -10,8 +10,10 @@ use crate::execution::viz_composer::compose_viz_spec;
 use crate::grammar::script_writer::print_ast_as_script_with_defaults;
 use crate::grammar::{Statement, TableRef, VizStatement};
 use async_trait::async_trait;
-use dashql_proto::VizComponentType;
+use dashql_proto::{VizComponentType, VizComponentTypeModifier};
 use serde_json as sj;
+use std::collections::HashSet;
+use std::ops::Shl;
 use std::sync::RwLockReadGuard;
 
 pub struct VegaVisTaskOperator<'exec, 'ast> {
@@ -95,7 +97,14 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for VegaVisTaskOperator<'exec, 'ast>
             None => return Err(SystemError::Generic("missing input data for visualization".to_string())),
         };
         let component = self.statement.component_type.get().unwrap_or(VizComponentType::TABLE);
-        let spec = compose_viz_spec(ctx, data, component, extra).await?;
+        let mut type_modifiers: HashSet<VizComponentTypeModifier> = Vec::new();
+        let type_modifier_bitmap = self.statement.type_modifiers.get();
+        for m in [VizComponentTypeModifier::STACKED, VizComponentTypeModifier::MULTI] {
+            if (type_modifier_bitmap & (1_u32 << m.0)) != 0 {
+                type_modifiers.push(m);
+            }
+        }
+        let spec = compose_viz_spec(ctx, data, component, &type_modifiers, extra).await?;
         *self.task.data.write().unwrap() = Some(TaskData::VizData(VizData { spec: spec.clone() }));
         frontend.update_visualization_data(self.task.data_id as u32, spec);
         Ok(())
