@@ -10,6 +10,46 @@ use crate::{
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
 
+pub(crate) async fn compose_viz_spec<'ast, 'snap>(
+    ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
+    data: &TaskData,
+    component: VizComponentType,
+    modifiers: &HashSet<VizComponentTypeModifier>,
+    extra: sj::Map<String, sj::Value>,
+) -> Result<Arc<VizSpec>, SystemError> {
+    let mut out = VizSpec::default();
+
+    // Differentiate component types
+    out.renderer = match component {
+        VizComponentType::TABLE => {
+            let table_metadata = assume_data_is_table(data)?;
+            VizRendererData::Table(TableRendererData {
+                table: table_metadata.clone(),
+            })
+        }
+        VizComponentType::HEX => VizRendererData::Hex(HexRendererData { source_data_id: 0 }),
+        VizComponentType::JSON => VizRendererData::Json(JsonRendererData { source_data_id: 0 }),
+        VizComponentType::SPEC => {
+            let table_metadata = assume_data_is_table(data)?;
+            let mut vl = extra.clone();
+            vl.remove(&"position".to_string());
+            vl.remove(&"title".to_string());
+            complete_vega_spec(ctx, data, component, modifiers, vl).await?
+        }
+        VizComponentType::AREA
+        | VizComponentType::BAR
+        | VizComponentType::LINE
+        | VizComponentType::SCATTER
+        | VizComponentType::PIE => generate_vega_spec(ctx, data, component, modifiers, extra).await?,
+        _ => {
+            return Err(SystemError::NotImplemented(
+                "visualization component type is not implemented".to_string(),
+            ))
+        }
+    };
+    Ok(Arc::new(out))
+}
+
 async fn complete_vega_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
@@ -17,6 +57,11 @@ async fn complete_vega_spec<'ast, 'snap>(
     modifiers: &HashSet<VizComponentTypeModifier>,
     spec: sj::Map<String, sj::Value>,
 ) -> Result<VizRendererData, SystemError> {
+    let encodings = match spec.get("encoding") {
+        Some(sj::Value::Object(enc)) => enc.clone(),
+        _ => sj::Map::new(),
+    };
+
     // out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
     //     table: table_metadata.clone(),
     //     sampling: None,
@@ -38,14 +83,18 @@ async fn complete_vega_spec<'ast, 'snap>(
     todo!("vega spec completion")
 }
 
-pub(crate) async fn compose_viz_spec<'ast, 'snap>(
+async fn generate_vega_spec<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
     extra: sj::Map<String, sj::Value>,
-) -> Result<Arc<VizSpec>, SystemError> {
-    let mut out = VizSpec::default();
+) -> Result<VizRendererData, SystemError> {
+    // Get encoding from extras
+    let extra_encoding = match extra.get("encoding") {
+        Some(sj::Value::Object(enc)) => enc.clone(),
+        _ => sj::Map::new(),
+    };
 
     // Find an encoding in the json object
     let find_encoding_from =
@@ -89,11 +138,6 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             return Ok(None);
         };
 
-    let extra_encoding = match extra.get("encoding") {
-        Some(sj::Value::Object(enc)) => enc.clone(),
-        _ => sj::Map::new(),
-    };
-
     // Try to find an encoding in the user data
     let find_encoding = |table: &TableMetadata,
                          name: &str,
@@ -132,37 +176,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         )));
     };
 
-    // Assume that a data is a table or throw an error
-    let assume_data_is_table = |data: &TaskData| match data {
-        TaskData::TableRef(t) => Ok(t.metadata.clone()),
-        _ => {
-            return Err(SystemError::Generic(
-                "expected visualization data to be a table".to_string(),
-            ))
-        }
-    };
-
-    // Differentiate component types
     match component {
-        VizComponentType::TABLE => {
-            let table_metadata = assume_data_is_table(data)?;
-            out.renderer = VizRendererData::Table(TableRendererData {
-                table: table_metadata.clone(),
-            });
-        }
-        VizComponentType::HEX => {
-            out.renderer = VizRendererData::Hex(HexRendererData { source_data_id: 0 });
-        }
-        VizComponentType::JSON => {
-            out.renderer = VizRendererData::Json(JsonRendererData { source_data_id: 0 });
-        }
-        VizComponentType::SPEC => {
-            let table_metadata = assume_data_is_table(data)?;
-            let mut vl = extra.clone();
-            vl.remove(&"position".to_string());
-            vl.remove(&"title".to_string());
-            out.renderer = complete_vega_spec(ctx, data, component, modifiers, vl).await?;
-        }
         VizComponentType::AREA
         | VizComponentType::BAR
         | VizComponentType::LINE
@@ -239,15 +253,24 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
             vl.insert("mark".to_string(), sj::Value::String(mark.to_string()));
             vl.insert("encodings".to_string(), sj::Value::Object(encodings));
-            out.renderer = complete_vega_spec(ctx, data, component, modifiers, vl).await?;
+            complete_vega_spec(ctx, data, component, modifiers, vl).await
         }
         _ => {
-            return Err(SystemError::NotImplemented(
-                "visualization component type is not implemented".to_string(),
-            ))
+            return Err(SystemError::NotImplemented(format!(
+                "generating vega spec for component type: {:?}",
+                component
+            )))
         }
-    };
-    Ok(Arc::new(out))
+    }
+}
+
+fn assume_data_is_table(data: &TaskData) -> Result<Arc<TableMetadata>, SystemError> {
+    match data {
+        TaskData::TableRef(t) => Ok(t.metadata.clone()),
+        _ => Err(SystemError::Generic(
+            "expected visualization data to be a table".to_string(),
+        )),
+    }
 }
 
 #[cfg(test)]
