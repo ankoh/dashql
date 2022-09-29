@@ -111,7 +111,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_linechart,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_line_charts,
-        enabled: false,
+        enabled: true,
     },
     {
         name: 'viz_area',
@@ -131,7 +131,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_barchart,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_bar_charts,
-        enabled: false,
+        enabled: true,
     },
     {
         name: 'viz_pie',
@@ -151,7 +151,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_scatterchart,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_scatter_charts,
-        enabled: false,
+        enabled: true,
     },
     {
         name: 'viz_histogram',
