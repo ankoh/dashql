@@ -240,6 +240,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateVisualizationData: (sessionId: SessionId, dataId: DataId, viz: string) => {
                 const s = getSessionState(sessionId);
                 const spec = JSON.parse(viz) as VizSpec;
+                console.log(spec);
                 s.dataById = s.dataById.set(dataId, {
                     t: 'VizData',
                     v: spec,

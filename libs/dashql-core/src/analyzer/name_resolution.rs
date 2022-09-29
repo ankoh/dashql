@@ -11,7 +11,8 @@ where
     for (i, elem) in name.iter().enumerate().take(3) {
         match elem.get() {
             Indirection::Name(s) => {
-                path[i] = s.clone();
+                let is_quote = |c| c == ' ' || c == '\"' || c == '\'';
+                path[i] = s.trim_end_matches(is_quote).trim_start_matches(is_quote);
                 path_length += 1;
             }
             _ => break,

@@ -91,13 +91,15 @@ async fn optimize_vl_spec<'ast, 'snap>(
     spec: &mut sj::Map<String, sj::Value>,
 ) -> Result<(), SystemError> {
     let mut tmp = sj::Map::new();
+
+    let key_encoding = "encoding".to_string();
     let key_field = "field".to_string();
     let key_type = "type".to_string();
     let key_scale = "scale".to_string();
     let key_domain = "domain".to_string();
 
     // Resolve encodings that can be optimized
-    let encodings = match spec.get("encoding") {
+    let encodings = match spec.get(&key_encoding) {
         Some(sj::Value::Object(ref enc)) => enc,
         _ => &mut tmp,
     };
@@ -113,7 +115,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         let field_name = if let Some(sj::Value::String(value)) = encoding.get(&key_field) {
             value
         } else {
-            // TODO warning
+            println!("field not found: {}", key_field);
             continue;
         };
 
@@ -122,7 +124,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         let column_id = if let Some(column_id) = table.column_name_mapping.get(field_name) {
             *column_id
         } else {
-            // TODO warning
+            println!("column not found: {}", field_name);
             continue;
         };
 
@@ -549,14 +551,17 @@ mod test {
     async fn test_viz_2() -> Result<(), Box<dyn Error + Send + Sync>> {
         let metadata = Arc::new(TableMetadata {
             table_name: "foo".to_string(),
-            column_names: vec!["a".to_string()],
-            column_types: vec![DataType::Int32],
-            column_name_mapping: HashMap::from([("a".to_string(), 0)]),
+            column_names: vec!["col0".to_string(), "col1".to_string()],
+            column_types: vec![DataType::Int32, DataType::Int32],
+            column_name_mapping: HashMap::from([("col0".to_string(), 0), ("col1".to_string(), 1)]),
             row_count: 1,
         });
         test_data(
             r#"
-        create table foo as select 42 as a;
+        create table foo as 
+            select
+                123 as col0,
+                456 as col1;
         visualize foo using (
             title = 'Covid Total Doses',
             position = (row = 0, column = 0, width = 12, height = 4),
@@ -564,12 +569,12 @@ mod test {
             encoding = (
                 x = (
                     title = 'Time',
-                    field = 'date',
-                    type = 'temporal',
+                    field = 'col0',
+                    type = 'quantitative',
                 ),
                 y = (
                     title = 'Doses',
-                    field = 'dosen_kumulativ',
+                    field = 'col1',
                     type = 'quantitative',
                 ),
             )
@@ -597,19 +602,25 @@ mod test {
                                 "width": "container",
                                 "height": "container",
                                 "layer": [{
+                                    "mark": "area",
                                     "encoding": {
                                         "x": {
                                             "title": "Time",
-                                            "field": "date",
-                                            "type": "temporal",
+                                            "field": "col0",
+                                            "type": "quantitative",
+                                            "scale": {
+                                                "domain": [123.0, 123.0],
+                                            }
                                         },
                                         "y": {
                                             "title": "Doses",
-                                            "field": "dosen_kumulativ",
+                                            "field": "col1",
                                             "type": "quantitative",
+                                            "scale": {
+                                                "domain": [456.0, 456.0],
+                                            }
                                         }
                                     },
-                                    "mark": "area"
                                 }]
                             }),
                         }),
