@@ -4,7 +4,9 @@ use dashql_proto::{VizComponentType, VizComponentTypeModifier};
 use serde_json::{self as sj};
 
 use crate::{
-    analyzer::viz_spec::{HexRendererData, JsonRendererData, TableRendererData, VizRendererData, VizSpec},
+    analyzer::viz_spec::{
+        HexRendererData, JsonRendererData, TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec,
+    },
     error::SystemError,
 };
 
@@ -32,13 +34,15 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             let mut vl = extra.clone();
             vl.remove(&"position".to_string());
             vl.remove(&"title".to_string());
-            complete_vega_spec(ctx, data, component, modifiers, vl).await?
+            VizRendererData::VegaLite(complete_vl_spec(ctx, data, component, modifiers, vl).await?)
         }
         VizComponentType::AREA
         | VizComponentType::BAR
         | VizComponentType::LINE
         | VizComponentType::SCATTER
-        | VizComponentType::PIE => generate_vega_spec(ctx, data, component, modifiers, extra).await?,
+        | VizComponentType::PIE => {
+            VizRendererData::VegaLite(generate_vl_spec(ctx, data, component, modifiers, extra).await?)
+        }
         _ => {
             return Err(SystemError::NotImplemented(
                 "visualization component type is not implemented".to_string(),
@@ -48,13 +52,13 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     Ok(Arc::new(out))
 }
 
-async fn complete_vega_spec<'ast, 'snap>(
+async fn complete_vl_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
     spec: sj::Map<String, sj::Value>,
-) -> Result<VizRendererData, SystemError> {
+) -> Result<VegaLiteRendererData, SystemError> {
     let encodings = match spec.get("encoding") {
         Some(sj::Value::Object(enc)) => enc.clone(),
         _ => sj::Map::new(),
@@ -81,13 +85,13 @@ async fn complete_vega_spec<'ast, 'snap>(
     todo!("vega spec completion")
 }
 
-async fn generate_vega_spec<'ast, 'snap>(
+async fn generate_vl_spec<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     data: &TaskData,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
     extra: sj::Map<String, sj::Value>,
-) -> Result<VizRendererData, SystemError> {
+) -> Result<VegaLiteRendererData, SystemError> {
     // Get encoding from extras
     let extra_encoding = match extra.get("encoding") {
         Some(sj::Value::Object(enc)) => enc.clone(),
@@ -251,7 +255,7 @@ async fn generate_vega_spec<'ast, 'snap>(
             let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
             vl.insert("mark".to_string(), sj::Value::String(mark.to_string()));
             vl.insert("encodings".to_string(), sj::Value::Object(encodings));
-            complete_vega_spec(ctx, data, component, modifiers, vl).await
+            complete_vl_spec(ctx, data, component, modifiers, vl).await
         }
         _ => {
             return Err(SystemError::NotImplemented(format!(
