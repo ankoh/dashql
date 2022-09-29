@@ -39,7 +39,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             let mut vl = extra.clone();
             vl.remove(&"position".to_string());
             vl.remove(&"title".to_string());
-            VizRendererData::VegaLite(complete_vl_spec(ctx, &table, component, modifiers, vl).await?)
+            VizRendererData::VegaLite(optimize_vl_spec(ctx, &table, component, modifiers, vl).await?)
         }
         VizComponentType::AREA
         | VizComponentType::BAR
@@ -48,7 +48,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         | VizComponentType::PIE => {
             let table = assume_data_is_table(data)?;
             let vl = generate_vl_spec(ctx, data, component, modifiers, extra).await?;
-            VizRendererData::VegaLite(complete_vl_spec(ctx, &table, component, modifiers, vl).await?)
+            VizRendererData::VegaLite(optimize_vl_spec(ctx, &table, component, modifiers, vl).await?)
         }
         _ => {
             return Err(SystemError::NotImplemented(
@@ -59,7 +59,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     Ok(Arc::new(out))
 }
 
-async fn complete_vl_spec<'ast, 'snap>(
+async fn optimize_vl_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     table: &Arc<TableMetadata>,
     component: VizComponentType,
@@ -67,28 +67,35 @@ async fn complete_vl_spec<'ast, 'snap>(
     spec: sj::Map<String, sj::Value>,
 ) -> Result<VegaLiteRendererData, SystemError> {
     let mut tmp = sj::Map::new();
+    let field_key = "field".to_string();
+
+    // Check all encodings
     let encodings = match spec.get("encoding") {
         Some(sj::Value::Object(ref enc)) => enc,
         _ => &mut tmp,
     };
-    let field_key = "field".to_string();
     for (key, value) in encodings.iter() {
+        // Unpack encoding object
         let encoding = match value {
             sj::Value::Object(fields) => fields,
             _ => continue,
         };
+        // Is field def?
         let field = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
             value
         } else {
             // TODO warning
             continue;
         };
+        // Refers to a column name?
+        // Will likely throw a database error later if not known here...
         let column_id = if let Some(column_id) = table.column_name_mapping.get(field) {
             *column_id
         } else {
             // TODO warning
             continue;
         };
+        // Resolve vega-lite field type
         let column_type = &table.column_types[column_id];
         let field_type = match column_type {
             DataType::Boolean
