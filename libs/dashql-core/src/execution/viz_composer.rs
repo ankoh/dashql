@@ -40,7 +40,7 @@ async fn complete_vega_spec<'ast, 'snap>(
     //         ],
     //     }),
     // });
-    panic!("not implemented")
+    todo!("vega spec completion")
 }
 
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
@@ -224,6 +224,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
                 }
                 VizComponentType::PIE => {
                     // required.extend_from_slice(&["theta", "radius"]);
+                    todo!("pie chart")
                 }
                 _ => {}
             }
