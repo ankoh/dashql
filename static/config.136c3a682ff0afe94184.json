@@ -1,0 +1,11 @@
+{
+    "features": {
+        "scriptBeans": false,
+        "scriptStatistics": false,
+        "cloudService": false,
+        "userAccount": false,
+        "editorControls": false,
+        "exampleCatalog": false,
+        "systemInfo": false
+    }
+}

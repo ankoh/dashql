@@ -1,0 +1,30 @@
+-- Fetch the raw covid data
+FETCH covid_raw
+FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
+
+-- Extract the history data using JMESPath.
+TRANSFORM covid_raw INTO covid_history_json USING JMESPATH (
+    expression = 'history'
+);
+
+-- Load the transformed JSON document into DuckDB
+LOAD covid_history FROM covid_history_json USING JSON;
+
+-- Display infections as line chart
+VIZ covid_history USING (
+    title = 'Covid Total Positive',
+    position = (row = 0, column = 0, width = 12, height = 4),
+    mark = 'line',
+    encoding = (
+        x = (
+            title = 'Time',
+            field = 'date',
+            type = 'temporal',
+        ),
+        y = (
+            title = 'Infections',
+            field = 'positive',
+            type = 'quantitative',
+        ),
+    )
+);

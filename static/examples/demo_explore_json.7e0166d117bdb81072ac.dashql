@@ -1,0 +1,46 @@
+-- Fetch the raw covid data
+FETCH covid_raw
+FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
+
+-- Quickly verify that the data is JSON using a hex dump
+VIZ covid_raw USING HEX (
+    position = (row = 0, column = 0, width = 12, height = 3),
+);
+
+-- Display the JSON document.
+-- The document cannot be loaded into the database yet.
+VIZ covid_raw USING JSON (
+    position = (row = 3, column = 0, width = 6, height = 3),
+);
+
+-- Extract the history data using JMESPath.
+TRANSFORM covid_raw INTO covid_history_json USING JMESPATH (
+    expression = 'history'
+);
+
+-- Display the transformed JSON document.
+VIZ covid_history_json USING JSON (
+    position = (row = 3, column = 6, width = 6, height = 3),
+);
+
+-- Load the transformed JSON document into DuckDB
+LOAD covid_history FROM covid_history_json USING JSON;
+
+-- Display infections as line chart
+VIZ covid_history USING (
+    title = 'Covid Total Positive',
+    position = (row = 6, column = 0, width = 12, height = 4),
+    mark = 'line',
+    encoding = (
+        x = (
+            title = 'Time',
+            field = 'date',
+            type = 'temporal',
+        ),
+        y = (
+            title = 'Infections',
+            field = 'positive',
+            type = 'quantitative',
+        ),
+    )
+);

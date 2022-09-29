@@ -1,0 +1,39 @@
+-- Input the relevant number of days
+INPUT days TYPE INTEGER;
+
+-- Fetch vaccination data
+FETCH csv_vacc_total FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';
+FETCH csv_vacc_state FROM 'https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv';
+FETCH csv_deliveries FROM 'https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv';
+
+-- Load data into DuckDB
+LOAD vaccinations FROM csv_vacc_total USING CSV;
+
+-- Run arbitrary SQL
+CREATE VIEW vaccinations_desc AS (
+    SELECT * FROM vaccinations ORDER BY "date" DESC
+);
+
+-- Visualize vaccination data
+VIZ vaccinations_desc USING (
+    title = 'Covid Total Doses',
+    position = (row = 0, column = 0, width = 12, height = 4),
+    mark = 'area',
+    encoding = (
+        x = (
+            title = 'Time',
+            field = 'date',
+            type = 'temporal',
+        ),
+        y = (
+            title = 'Doses',
+            field = 'dosen_kumulativ',
+            type = 'quantitative',
+        ),
+    )
+);
+
+-- Raw data table
+VIZ vaccinations_desc USING TABLE (
+    position = (row = 4, column = 0, width = 12, height = 4),
+)

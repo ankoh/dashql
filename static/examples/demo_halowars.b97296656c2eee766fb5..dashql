@@ -1,0 +1,26 @@
+FETCH json_stats FROM HTTP (
+    url = 'https://www.haloapi.com/stats/hw2/players/Scootman2/stats',
+    headers = (
+        'Ocp-Apim-Subscription-Key' = 'cf4bf3e7f37f41e3a8bdf7349c29b0c7'
+    )
+);
+
+VIZ json_stats USING JSON;
+
+TRANSFORM json_stats INTO json_stats_mm USING JMESPATH (
+    expression = 'MatchmakingSummary.RankedPlaylistStats[*].{
+        playlist_id: @.PlaylistId,
+        units_built: @.TotalUnitsBuilt,
+        time_played: @.TotalTimePlayed,
+        matches_started: @.TotalMatchesStarted,
+        matches_completed: @.TotalMatchesCompleted,
+        matches_won: @.TotalMatchesWon,
+        matches_lost: @.TotalMatchesLost,
+        units_built: @.TotalUnitsBuilt,
+        units_destroyed: @.TotalUnitsDestroyed
+    }'
+);
+
+LOAD stats_mm FROM json_stats_mm USING JSON;
+
+VIZ stats_mm USING TABLE;
