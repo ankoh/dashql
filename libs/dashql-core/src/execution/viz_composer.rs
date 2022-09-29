@@ -9,6 +9,7 @@ use crate::{
         HexRendererData, JsonRendererData, TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec,
     },
     error::SystemError,
+    external::console,
 };
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
@@ -437,7 +438,7 @@ async fn generate_vl_spec<'ast, 'snap>(
 
             let mut vl: sj::Map<String, sj::Value> = sj::Map::new();
             vl.insert("mark".to_string(), sj::Value::String(mark.to_string()));
-            vl.insert("encodings".to_string(), sj::Value::Object(encodings));
+            vl.insert("encoding".to_string(), sj::Value::Object(encodings));
             Ok(vl)
         }
         _ => {

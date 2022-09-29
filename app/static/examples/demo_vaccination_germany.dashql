@@ -12,25 +12,4 @@ CREATE VIEW vaccinations_desc AS (
 );
 
 -- Visualize vaccination data
-VIZ vaccinations_desc USING (
-    title = 'Covid Total Doses',
-    position = (row = 0, column = 0, width = 12, height = 4),
-    mark = 'area',
-    encoding = (
-        x = (
-            title = 'Time',
-            field = 'date',
-            type = 'temporal',
-        ),
-        y = (
-            title = 'Doses',
-            field = 'dosen_kumulativ',
-            type = 'quantitative',
-        ),
-    )
-);
-
--- Raw data table
-VIZ vaccinations_desc USING TABLE (
-    position = (row = 4, column = 0, width = 12, height = 4),
-)
+VIZ vaccinations_desc USING AREA;
