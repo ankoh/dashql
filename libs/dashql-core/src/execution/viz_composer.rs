@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use dashql_proto::{VizComponentType, VizComponentTypeModifier};
-use serde_json::{self as sj};
+use serde_json::{self as sj, json};
 
 use crate::{
     analyzer::viz_spec::{
@@ -22,27 +22,26 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     let mut out = VizSpec::default();
     out.renderer = match component {
         VizComponentType::TABLE => {
-            let table_metadata = assume_data_is_table(data)?;
-            VizRendererData::Table(TableRendererData {
-                table: table_metadata.clone(),
-            })
+            let table = assume_data_is_table(data)?;
+            VizRendererData::Table(TableRendererData { table: table.clone() })
         }
         VizComponentType::HEX => VizRendererData::Hex(HexRendererData { source_data_id: 0 }),
         VizComponentType::JSON => VizRendererData::Json(JsonRendererData { source_data_id: 0 }),
         VizComponentType::SPEC => {
-            let table_metadata = assume_data_is_table(data)?;
+            let table = assume_data_is_table(data)?;
             let mut vl = extra.clone();
             vl.remove(&"position".to_string());
             vl.remove(&"title".to_string());
-            VizRendererData::VegaLite(complete_vl_spec(ctx, data, component, modifiers, vl).await?)
+            VizRendererData::VegaLite(complete_vl_spec(ctx, &table, component, modifiers, vl).await?)
         }
         VizComponentType::AREA
         | VizComponentType::BAR
         | VizComponentType::LINE
         | VizComponentType::SCATTER
         | VizComponentType::PIE => {
+            let table = assume_data_is_table(data)?;
             let vl = generate_vl_spec(ctx, data, component, modifiers, extra).await?;
-            VizRendererData::VegaLite(complete_vl_spec(ctx, data, component, modifiers, vl).await?)
+            VizRendererData::VegaLite(complete_vl_spec(ctx, &table, component, modifiers, vl).await?)
         }
         _ => {
             return Err(SystemError::NotImplemented(
@@ -55,7 +54,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
 
 async fn complete_vl_spec<'ast, 'snap>(
     _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-    data: &TaskData,
+    table: &Arc<TableMetadata>,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
     spec: sj::Map<String, sj::Value>,
@@ -65,25 +64,26 @@ async fn complete_vl_spec<'ast, 'snap>(
         _ => sj::Map::new(),
     };
 
-    // out.renderer = VizRendererData::VegaLite(VegaLiteRendererData {
-    //     table: table_metadata.clone(),
-    //     sampling: None,
-    //     spec: json!({
-    //         "autosize": {
-    //             "type": "fit",
-    //             "contains": "padding",
-    //             "resize": true,
-    //         },
-    //         "background": "transparent",
-    //         "padding": 8,
-    //         "width": "container",
-    //         "height": "container",
-    //         "layer": [
-    //             layer
-    //         ],
-    //     }),
-    // });
-    todo!("vega spec completion")
+    let spec = spec;
+
+    Ok(VegaLiteRendererData {
+        table: table.clone(),
+        sampling: None,
+        spec: json!({
+            "autosize": {
+                "type": "fit",
+                "contains": "padding",
+                "resize": true,
+            },
+            "background": "transparent",
+            "padding": 8,
+            "width": "container",
+            "height": "container",
+            "layer": [
+                spec
+            ],
+        }),
+    })
 }
 
 async fn generate_vl_spec<'ast, 'snap>(
