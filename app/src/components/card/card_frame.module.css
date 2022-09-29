@@ -8,6 +8,7 @@
     font-size: 0.8rem;
     background-color: rgb(255, 255, 255);
     display: grid;
+    grid-template-columns: 100%;
     grid-template-rows: 32px calc(100% - 32px);
 }
 

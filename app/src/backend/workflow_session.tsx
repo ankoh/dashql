@@ -146,6 +146,9 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateProgram: (sessionId: SessionId, programId: number, text: Uint8Array, ast: Uint8Array) => {
                 const s = getSessionState(sessionId);
                 s.program = new Program(programId, text, ast);
+                if (s.programText !== s.program.text) {
+                    s.programText = s.program.text;
+                }
             },
             updateProgramAnalysis: (session: SessionId, analysisJSON: string) => {
                 const s = getSessionState(session);
@@ -163,6 +166,8 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 const s = getSessionState(session);
                 const graph = JSON.parse(graphJSON) as TaskGraph;
                 s.programTasks = graph;
+
+                console.log(graph);
 
                 // Collect status mappings to later construct an immutable map
                 const statusByStatement = new Map();
@@ -235,6 +240,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateVisualizationData: (sessionId: SessionId, dataId: DataId, viz: string) => {
                 const s = getSessionState(sessionId);
                 const spec = JSON.parse(viz) as VizSpec;
+                console.log(spec);
                 s.dataById = s.dataById.set(dataId, {
                     t: 'VizData',
                     v: spec,

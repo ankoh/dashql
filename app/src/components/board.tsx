@@ -46,6 +46,7 @@ export const Board: React.FC<Props> = (props: Props) => {
                 h: card.position.height ?? 4,
             });
         }
+        console.log(els);
         return els;
     }, [sessionState.programAnalysis?.cards]);
 

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import useResizeObserver from '@react-hook/resize-observer';
 
 export interface ObservedSize {
     width: number;
@@ -18,6 +19,7 @@ export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize 
             },
         );
     }, [target]);
+    useResizeObserver(target, (entry: ResizeObserverEntry) => setSize(entry.contentRect));
     return size;
 };
 

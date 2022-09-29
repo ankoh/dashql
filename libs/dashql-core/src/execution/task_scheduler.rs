@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use super::{
     execution_context::{ExecutionContext, ExecutionContextSnapshot, ExecutionState},
     task::{
@@ -111,15 +113,26 @@ impl<'exec, 'ast> TaskScheduler<'exec, 'ast> {
         let mut task_ids = Vec::with_capacity(self.task_logic.len());
         let mut task_ops: Vec<Box<dyn TaskOperator<'exec, 'ast> + 'exec>> = Vec::with_capacity(self.task_logic.len());
         while !self.task_topology.is_empty() {
-            let (task_id, waiting_for) = self.task_topology.top();
-            if *waiting_for > 0 {
+            // Get next task in topology
+            let (task_id, waiting_for) = self.task_topology.top().clone();
+            if waiting_for > 0 {
                 break;
             }
-            if self.task_graph.tasks[*task_id].is_alive() {
-                task_ids.push(*task_id);
-                task_ops.push(std::mem::replace(&mut self.task_logic[*task_id], None).unwrap());
-            }
             self.task_topology.pop();
+
+            // Nothing to do?
+            let status = self.task_graph.tasks[task_id].task_status.load(Ordering::SeqCst);
+            if status == (TaskStatusCode::Skipped as u8) || status == (TaskStatusCode::Completed as u8) {
+                for req_for in self.task_required_for[task_id].iter() {
+                    self.task_topology.decrement_key(req_for);
+                }
+                continue;
+            }
+            // Register for execution if alive
+            if self.task_graph.tasks[task_id].is_alive() {
+                task_ids.push(task_id);
+                task_ops.push(std::mem::replace(&mut self.task_logic[task_id], None).unwrap());
+            }
         }
         if task_ids.is_empty() {
             return Ok(false);
