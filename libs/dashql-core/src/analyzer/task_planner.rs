@@ -7,7 +7,7 @@ use super::{
 use std::sync::{atomic::AtomicU8, RwLock};
 use std::{collections::HashSet, sync::atomic::Ordering};
 
-use crate::{error::SystemError, grammar::Statement, utils::topological_sort::TopologicalSort};
+use crate::{error::SystemError, external::console, grammar::Statement, utils::topological_sort::TopologicalSort};
 
 // 'ast: 'planning = 'ast lives at least as long as 'planning
 #[derive(Debug)]
@@ -152,6 +152,18 @@ fn identify_applicable_tasks<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Re
     };
     ctx.task_applicability.resize(prev_tasks.tasks.len(), false);
 
+    // Make all undo tasks are applicable since normal tasks depend on all undos
+    let mut undo_task_ids = HashSet::new();
+    for (i, task) in prev_tasks.tasks.iter().enumerate() {
+        match task.task_type {
+            TaskType::DropImport | TaskType::DropInput | TaskType::DropTable | TaskType::DropViz | TaskType::Unset => {
+                ctx.task_applicability[i] = true;
+                undo_task_ids.insert(i);
+            }
+            _ => (),
+        }
+    }
+
     // Invalidate a task.
     // If a task is invalidated, we might have to propagate the invalidation to the tasks before us.
     // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
@@ -241,7 +253,12 @@ fn identify_applicable_tasks<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Re
                 // based on the location within the script later.
                 //
                 // E.g. INSERT or UPDATE statements.
-                let mut prev_deps = a.depends_on.clone();
+                let mut prev_deps: Vec<_> = a
+                    .depends_on
+                    .iter()
+                    .filter(|dep| !undo_task_ids.contains(dep))
+                    .cloned()
+                    .collect();
                 let mut next_deps = next_task_graph.tasks[next_task_id].depends_on.clone();
                 let mut deps_mapped = true;
                 for dep in next_deps.iter_mut() {
@@ -477,6 +494,8 @@ pub fn plan_tasks<'a, 'b>(
     translate_statements(&mut ctx)?;
     diff_programs(&mut ctx)?;
     identify_applicable_tasks(&mut ctx)?;
+    console::println(&format!("{:?}", &ctx.diff));
+    console::println(&format!("{:?}", &ctx.task_applicability));
     migrate_task_graph(&mut ctx)?;
     Ok(ctx.next_task_graph.unwrap())
 }

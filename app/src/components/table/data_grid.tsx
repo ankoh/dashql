@@ -183,8 +183,6 @@ export const DataGrid: React.FC<Props> = (props: Props) => {
     const tableHeader = React.useRef<Grid>(null);
     const tableBody = React.useRef<Grid>(null);
 
-    console.log(observedSize);
-
     const columnHeaderRows = 1;
     const columnHeaderHeight = columnHeaderRows * HEADER_ROW_HEIGHT;
 
