@@ -9,7 +9,6 @@ use crate::{
         HexRendererData, JsonRendererData, TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec,
     },
     error::SystemError,
-    external::console,
 };
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};

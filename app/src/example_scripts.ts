@@ -121,7 +121,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_areachart,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_area_charts,
-        enabled: false,
+        enabled: true,
     },
     {
         name: 'viz_bar',
