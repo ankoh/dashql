@@ -1,16 +1,14 @@
 .container {
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
 }
 
 .table {
-    flex: 1;
+    width: 100%;
+    height: 100%;
 }
 
 .statsbar {
-    height: 24px;
     border-top: var(--datagrid_cell_headers_border);
     display: flex;
     flex-direction: row;

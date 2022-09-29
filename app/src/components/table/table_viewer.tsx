@@ -21,7 +21,7 @@ export const TableViewer: React.FC<Props> = (props: Props) => {
         return <div />;
     }
     return (
-        <div className={styles.container}>
+        <div className={styles.container} style={{ gridTemplateRows: props.stats ? 'calc(100% - 24px) 24px' : '100%' }}>
             <div className={styles.table}>
                 <DataGrid table={props.table} />
             </div>
