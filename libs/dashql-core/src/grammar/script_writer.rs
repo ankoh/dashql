@@ -1,5 +1,7 @@
 use std::cell::Cell;
 
+use super::Program;
+
 #[derive(Debug, Clone)]
 pub enum ScriptTextElement<'writer> {
     Void,
@@ -422,4 +424,38 @@ pub fn print_ast_as_script_with_defaults<'ast, V: ToSQL<'ast> + ?Sized>(v: &V) -
     let writer = ScriptWriter::new();
     let text: ScriptText<'_> = v.to_sql(&writer);
     print_script(&text, &config)
+}
+
+pub fn rewrite_statements<'ast>(program: &Program<'ast>, program_text: &'ast str, stmts: &[usize]) -> String {
+    let config = ScriptTextConfig::default();
+    let proto_nodes = program.ast_flat.nodes().unwrap();
+    let proto_stmt = program.ast_flat.statements().unwrap();
+
+    // Print statements and collect substitutions
+    let mut subs = Vec::new();
+    subs.reserve(stmts.len());
+    for stmt_id in stmts.iter() {
+        let stmt = &program.statements[*stmt_id];
+        let writer = ScriptWriter::new();
+        let write_buffer = stmt.to_sql(&writer);
+        let text = print_script(&write_buffer, &config);
+        let stmt_root = proto_stmt.get(*stmt_id).root_node();
+        let stmt_location = proto_nodes[stmt_root as usize].location();
+        subs.push((*stmt_location, text));
+    }
+
+    // Sort substitutions by offset in the former string
+    subs.sort_unstable_by_key(|(loc, _)| loc.offset());
+
+    // Build a new buffer and apply all subsitutions
+    let mut buffer = String::new();
+    buffer.reserve(program_text.len());
+    let mut reader = 0_usize;
+    for (loc, text) in subs {
+        buffer.push_str(&program_text[reader..(loc.offset() as usize)]);
+        buffer.push_str(&text);
+        reader = (loc.offset() + loc.length()) as usize;
+    }
+    buffer.push_str(&program_text[reader..]);
+    buffer
 }

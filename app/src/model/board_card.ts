@@ -1,4 +1,4 @@
-export interface CardPosition {
+export interface BoardPosition {
     row: number;
     column: number;
     width: number;
@@ -7,5 +7,5 @@ export interface CardPosition {
 
 export interface Card {
     title: string;
-    position: CardPosition;
+    position: BoardPosition;
 }

@@ -7,6 +7,7 @@ use std::{
 use crate::{
     analyzer::{
         analysis_settings::ProgramAnalysisSettings,
+        program_editor::{edit_statements, StatementEditOperation},
         program_instance::{analyze_program, ProgramInstanceContainer},
         task_graph::TaskGraph,
         task_planner::plan_tasks,
@@ -14,7 +15,7 @@ use crate::{
     error::SystemError,
     execution::{execution_context::ExecutionContext, task_scheduler::TaskScheduler},
     external::{self, console, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
-    grammar::ProgramContainer,
+    grammar::{script_writer::rewrite_statements, ProgramContainer},
 };
 
 use super::workflow_frontend::{Frontend, WorkflowFrontend};
@@ -222,8 +223,26 @@ impl WorkflowSession {
     }
 
     #[allow(dead_code)]
-    pub async fn edit_program(&self, _edits: &str) -> Result<(), SystemError> {
-        Ok(())
+    pub async fn edit_program(&self, edits_json: &str) -> Result<(), SystemError> {
+        let mut edits: Vec<StatementEditOperation> =
+            serde_json::from_str(edits_json).map_err(|e| SystemError::InvalidArgument(e.to_string()))?;
+        console::println(&format!("{:?}", &edits));
+
+        // Edit a cloned program
+        let program = match self.latest_parsed.lock().unwrap().clone() {
+            Some(program) => program,
+            None => return Err(SystemError::Generic("program not known".to_string())),
+        };
+        let edited = edit_statements(program.as_ref(), &mut edits)?;
+
+        // Print the updated program
+        let mut stmt_ids: Vec<_> = edits.iter().map(|e| e.statement_id as usize).collect();
+        stmt_ids.sort_unstable();
+        stmt_ids.dedup();
+        let text = rewrite_statements(edited.get_program(), edited.get_text(), &stmt_ids);
+
+        // Update the program
+        self.update_program(&text).await
     }
 
     #[allow(dead_code)]

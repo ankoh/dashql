@@ -1,4 +1,4 @@
-import { EditOperationVariant, VizSpec } from '../model';
+import { StatementEditOperation } from '../model';
 import { TaskStatusCode } from '../model/task_status';
 
 export type DatabaseId = number;
@@ -14,7 +14,7 @@ export interface WorkflowBackend {
     closeSession(session: SessionId): Promise<void>;
     updateProgram(session: SessionId, text: string): Promise<void>;
     executeProgram(session: SessionId): Promise<void>;
-    editProgram(session: SessionId, edits: EditOperationVariant[]): Promise<void>;
+    editProgram(session: SessionId, edits: StatementEditOperation[]): Promise<void>;
     runQuery(session: SessionId, text: string): Promise<Uint8Array>;
 }
 

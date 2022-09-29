@@ -2,7 +2,7 @@ import { IpcRenderer } from 'electron';
 import { Backend, SessionId, WorkflowFrontend } from './backend';
 import { invokeIPCWorkflowFrontend, createIPCWorkflowFrontendBridge } from './ipc_bridge_to_frontend';
 import { IpcMain, WebContents } from 'electron';
-import { EditOperationVariant } from '../model';
+import { StatementEditOperation } from '../model';
 
 export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
     return {
@@ -27,7 +27,7 @@ export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
             updateProgram: async (session: SessionId, text: string): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.updateProgram', session, text);
             },
-            editProgram: async (session: SessionId, edits: EditOperationVariant[]): Promise<void> => {
+            editProgram: async (session: SessionId, edits: StatementEditOperation[]): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.editProgram', session, edits);
             },
             runQuery: async (session: SessionId, text: string): Promise<Uint8Array> => {

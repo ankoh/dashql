@@ -1,17 +1,13 @@
-import { CardPosition } from './board_card';
+import { BoardPosition } from './board_card';
 
-export type EditOperation<T, P> = {
-    readonly statementID: number;
-    readonly type: T;
-    readonly data: P;
+export type StatementEditOperation = {
+    readonly statement_id: number;
+    readonly operation: EditOperation;
 };
 
-export enum EditOperationType {
-    UPDATE_CARD_POSITION = 'UPDATE_CARD_POSITION',
-}
+export type EditOperation = SetBoardPosition;
 
-export interface CardPositionUpdate {
-    position: CardPosition;
+export interface SetBoardPosition {
+    t: 'SetBoardPosition';
+    v: BoardPosition;
 }
-
-export type EditOperationVariant = EditOperation<EditOperationType.UPDATE_CARD_POSITION, CardPositionUpdate>;

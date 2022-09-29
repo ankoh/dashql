@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 const CELL_MASK_SHIFT: usize = 3;
 const COLUMNS_PER_ROW: usize = 12;
@@ -7,7 +7,7 @@ const MAX_HEIGHT: usize = 40;
 const DEFAULT_WIDTH: usize = 12;
 const DEFAULT_HEIGHT: usize = 4;
 
-#[derive(Default, Debug, Clone, Serialize, Eq, PartialEq)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
 pub struct BoardPosition {
     pub row: usize,
     pub column: usize,

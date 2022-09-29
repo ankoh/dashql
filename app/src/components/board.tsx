@@ -61,12 +61,12 @@ export const Board: React.FC<Props> = (props: Props) => {
             layout.forEach(l => mapping.set(l.i, l));
 
             // Build card updates
-            const edits: model.EditOperationVariant[] = newLayout.map(l => {
+            const edits: model.StatementEditOperation[] = newLayout.map(l => {
                 return {
-                    statementID: mapping.get(l.i).statementId,
-                    type: model.EditOperationType.UPDATE_CARD_POSITION,
-                    data: {
-                        position: {
+                    statement_id: mapping.get(l.i).statementId,
+                    operation: {
+                        t: 'SetBoardPosition',
+                        v: {
                             row: l.y,
                             column: l.x,
                             width: l.w,

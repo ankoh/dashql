@@ -63,6 +63,25 @@ impl ProgramContainer {
         })
     }
 
+    pub fn clone(&self) -> Self {
+        // Deserialize the ast into a separate bump allocator
+        let arena = bumpalo::Bump::new();
+        let text = arena.alloc_str(self.text);
+        let (ast, ast_data) = (self.program.ast_flat.clone(), self.program.ast_data.clone());
+        let program = Arc::new(grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap());
+
+        // Now transmute the lifetimes
+        let text_static = unsafe { std::mem::transmute::<&str, &'static str>(text) };
+        let program_static =
+            unsafe { std::mem::transmute::<&Arc<grammar::Program<'_>>, &Arc<grammar::Program<'static>>>(&program) };
+
+        Self {
+            arena: Arc::new(arena),
+            text: text_static,
+            program: program_static.clone(),
+        }
+    }
+
     pub fn get_arena<'buffer>(&'buffer self) -> &'buffer bumpalo::Bump {
         &self.arena
     }

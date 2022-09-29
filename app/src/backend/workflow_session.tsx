@@ -7,7 +7,7 @@ import { SessionId, DataId, WorkflowBackend, WorkflowFrontend } from './backend'
 import { useBackend, useBackendResolver } from './backend_provider';
 import {
     deriveStatementStatusCode,
-    EditOperationVariant,
+    StatementEditOperation,
     LogEvent,
     LogLevel,
     LogOrigin,
@@ -85,13 +85,9 @@ export class WorkflowSession {
     public async executeProgram(): Promise<void> {
         await this._backend.executeProgram(this._sessionId);
     }
-    public async editProgram(edits: EditOperationVariant[]): Promise<void> {
+    public async editProgram(edits: StatementEditOperation[]): Promise<void> {
         const prev = this._state.programText;
         await this._backend.editProgram(this._sessionId, edits);
-        // Cmpxchg the program text after editing
-        if (this._state.programText == prev) {
-            this._state.programText = this._state.program.text;
-        }
     }
     public async runQueryRaw(text: string): Promise<Uint8Array> {
         return await this._backend.runQuery(this._sessionId, text);

@@ -1,18 +1,54 @@
-use super::board_space::BoardPosition;
-use crate::grammar::dson::{DsonField, DsonKey, DsonValue};
-use crate::grammar::{Expression, VizStatement};
-use dashql_proto as proto;
-use serde::Serialize;
+use std::sync::Arc;
 
-#[derive(Debug, Clone, Serialize)]
+use super::board_space::BoardPosition;
+use crate::error::SystemError;
+use crate::grammar::dson::{DsonField, DsonKey, DsonValue};
+use crate::grammar::{Expression, ProgramContainer, Statement, VizStatement};
+use dashql_proto as proto;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StatementEditOperation {
     pub statement_id: u32,
-    pub variant: EditOperation,
+    pub operation: EditOperation,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "t", content = "v")]
 pub enum EditOperation {
     SetBoardPosition(BoardPosition),
+}
+
+//
+pub fn edit_statements(
+    container: &ProgramContainer,
+    edits: &mut [StatementEditOperation],
+) -> Result<Arc<ProgramContainer>, SystemError> {
+    // Clone the ast.
+    // This will not re-parse the string but deserialize nodes into a separate bump allocator.
+    let container = Arc::new(container.clone());
+    let arena = container.get_arena();
+    let program = container.get_program();
+
+    // Sort edit operations by statement id
+    edits.sort_unstable_by_key(|e| e.statement_id);
+    let mut reader = 0;
+    while reader < edits.len() {
+        let stmt_id = edits[reader].statement_id;
+        let n = edits[reader..].partition_point(|x| x.statement_id <= stmt_id);
+        let edits: Vec<_> = edits[reader..(reader + n)]
+            .iter()
+            .map(|e| e.operation.clone())
+            .collect();
+        reader += n;
+
+        let stmt = &program.statements[stmt_id as usize];
+        match stmt {
+            Statement::Viz(v) => edit_viz_statement(arena, v, &edits),
+            _ => (),
+        }
+    }
+    Ok(container)
 }
 
 pub fn edit_viz_statement<'arena, 'edit>(
@@ -20,12 +56,11 @@ pub fn edit_viz_statement<'arena, 'edit>(
     stmt: &'arena VizStatement<'arena>,
     edits: &[EditOperation],
 ) {
-    // Clone all components
+    // Collect extra data
     let mut extras: Vec<DsonField<'arena>> = Vec::new();
     if let Some(extra) = stmt.extra.get() {
         extras = extra.as_object().iter().map(|field| field.clone()).collect();
     }
-
     // Apply all edit operations
     for op in edits.iter() {
         match &op {
