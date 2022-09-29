@@ -1,15 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
 
 use dashql_proto::{VizComponentType, VizComponentTypeModifier};
-use serde_json::{self as sj, json};
+use serde_json::{self as sj};
 
 use crate::{
-    analyzer::viz_spec::{
-        HexRendererData, JsonRendererData, TableRendererData, VegaLiteRendererData, VizRendererData, VizSpec,
-    },
+    analyzer::viz_spec::{HexRendererData, JsonRendererData, TableRendererData, VizRendererData, VizSpec},
     error::SystemError,
 };
 
@@ -50,20 +45,7 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     modifiers: &HashSet<VizComponentTypeModifier>,
     extra: sj::Map<String, sj::Value>,
 ) -> Result<Arc<VizSpec>, SystemError> {
-    let extra_encoding = match extra.get("encoding") {
-        Some(sj::Value::Object(enc)) => enc.clone(),
-        _ => sj::Map::new(),
-    };
     let mut out = VizSpec::default();
-
-    let assume_data_is_table = |data: &TaskData| match data {
-        TaskData::TableRef(t) => Ok(t.metadata.clone()),
-        _ => {
-            return Err(SystemError::Generic(
-                "expected visualization data to be a table".to_string(),
-            ))
-        }
-    };
 
     // Find an encoding in the json object
     let find_encoding_from =
@@ -107,6 +89,11 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             return Ok(None);
         };
 
+    let extra_encoding = match extra.get("encoding") {
+        Some(sj::Value::Object(enc)) => enc.clone(),
+        _ => sj::Map::new(),
+    };
+
     // Try to find an encoding in the user data
     let find_encoding = |table: &TableMetadata,
                          name: &str,
@@ -145,8 +132,18 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         )));
     };
 
+    // Assume that a data is a table or throw an error
+    let assume_data_is_table = |data: &TaskData| match data {
+        TaskData::TableRef(t) => Ok(t.metadata.clone()),
+        _ => {
+            return Err(SystemError::Generic(
+                "expected visualization data to be a table".to_string(),
+            ))
+        }
+    };
+
     // Differentiate component types
-    let vl = match component {
+    match component {
         VizComponentType::TABLE => {
             let table_metadata = assume_data_is_table(data)?;
             out.renderer = VizRendererData::Table(TableRendererData {
