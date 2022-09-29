@@ -1,5 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
+use arrow::datatypes::DataType;
 use dashql_proto::{VizComponentType, VizComponentTypeModifier};
 use serde_json::{self as sj, json};
 
@@ -11,6 +12,12 @@ use crate::{
 };
 
 use super::{execution_context::ExecutionContextSnapshot, table_metadata::TableMetadata, task_state::TaskData};
+
+enum VLFieldType {
+    QUANTITATIVE,
+    NOMINAL,
+    TEMPORAL,
+}
 
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
@@ -59,10 +66,54 @@ async fn complete_vl_spec<'ast, 'snap>(
     modifiers: &HashSet<VizComponentTypeModifier>,
     spec: sj::Map<String, sj::Value>,
 ) -> Result<VegaLiteRendererData, SystemError> {
+    let mut tmp = sj::Map::new();
     let encodings = match spec.get("encoding") {
-        Some(sj::Value::Object(enc)) => enc.clone(),
-        _ => sj::Map::new(),
+        Some(sj::Value::Object(ref enc)) => enc,
+        _ => &mut tmp,
     };
+    let field_key = "field".to_string();
+    for (key, value) in encodings.iter() {
+        let encoding = match value {
+            sj::Value::Object(fields) => fields,
+            _ => continue,
+        };
+        let field = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
+            value
+        } else {
+            // TODO warning
+            continue;
+        };
+        let column_id = if let Some(column_id) = table.column_name_mapping.get(field) {
+            *column_id
+        } else {
+            // TODO warning
+            continue;
+        };
+        let column_type = &table.column_types[column_id];
+        let field_type = match column_type {
+            DataType::Boolean
+            | DataType::Int8
+            | DataType::Int16
+            | DataType::Int32
+            | DataType::Int64
+            | DataType::UInt8
+            | DataType::UInt16
+            | DataType::UInt32
+            | DataType::UInt64
+            | DataType::Float16
+            | DataType::Float32
+            | DataType::Float64 => VLFieldType::QUANTITATIVE,
+            DataType::Utf8 | DataType::LargeUtf8 => VLFieldType::NOMINAL,
+            DataType::Timestamp(_, _)
+            | DataType::Date32
+            | DataType::Date64
+            | DataType::Time32(_)
+            | DataType::Time64(_)
+            | DataType::Duration(_)
+            | DataType::Interval(_) => VLFieldType::TEMPORAL,
+            _ => continue,
+        };
+    }
 
     let spec = spec;
 
