@@ -40,7 +40,8 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
             let mut vl = extra.clone();
             vl.remove(&"position".to_string());
             vl.remove(&"title".to_string());
-            VizRendererData::VegaLite(optimize_vl_spec(ctx, &table, component, modifiers, vl).await?)
+            optimize_vl_spec(ctx, &table, component, modifiers, &mut vl).await?;
+            VizRendererData::VegaLite(pack_vl_renderer(table, vl))
         }
         VizComponentType::AREA
         | VizComponentType::BAR
@@ -48,8 +49,9 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
         | VizComponentType::SCATTER
         | VizComponentType::PIE => {
             let table = assume_data_is_table(data)?;
-            let vl = generate_vl_spec(ctx, data, component, modifiers, extra).await?;
-            VizRendererData::VegaLite(optimize_vl_spec(ctx, &table, component, modifiers, vl).await?)
+            let mut vl = generate_vl_spec(ctx, data, component, modifiers, extra).await?;
+            optimize_vl_spec(ctx, &table, component, modifiers, &mut vl).await?;
+            VizRendererData::VegaLite(pack_vl_renderer(table.clone(), vl))
         }
         _ => {
             return Err(SystemError::NotImplemented(
@@ -60,22 +62,46 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     Ok(Arc::new(out))
 }
 
+fn pack_vl_renderer(table: Arc<TableMetadata>, spec: sj::Map<String, sj::Value>) -> VegaLiteRendererData {
+    VegaLiteRendererData {
+        table: table,
+        sampling: None,
+        spec: json!({
+            "autosize": {
+                "type": "fit",
+                "contains": "padding",
+                "resize": true,
+            },
+            "background": "transparent",
+            "padding": 8,
+            "width": "container",
+            "height": "container",
+            "layer": [
+                spec
+            ],
+        }),
+    }
+}
+
 async fn optimize_vl_spec<'ast, 'snap>(
     ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
     table: &Arc<TableMetadata>,
     component: VizComponentType,
     modifiers: &HashSet<VizComponentTypeModifier>,
-    spec: sj::Map<String, sj::Value>,
-) -> Result<VegaLiteRendererData, SystemError> {
+    spec: &mut sj::Map<String, sj::Value>,
+) -> Result<(), SystemError> {
     let mut tmp = sj::Map::new();
-    let field_key = "field".to_string();
+    let key_field = "field".to_string();
+    let key_type = "type".to_string();
+    let key_scale = "scale".to_string();
+    let key_domain = "domain".to_string();
 
     // Resolve encodings that can be optimized
     let encodings = match spec.get("encoding") {
         Some(sj::Value::Object(ref enc)) => enc,
         _ => &mut tmp,
     };
-    let mut encoding_refs = Vec::new();
+    let mut field_defs = Vec::new();
     for (key, value) in encodings.iter() {
         // Unpack encoding object
         let encoding = match value {
@@ -84,7 +110,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         };
 
         // Is field def?
-        let field_name = if let Some(sj::Value::String(value)) = encoding.get(&field_key) {
+        let field_name = if let Some(sj::Value::String(value)) = encoding.get(&key_field) {
             value
         } else {
             // TODO warning
@@ -125,11 +151,11 @@ async fn optimize_vl_spec<'ast, 'snap>(
             | DataType::Interval(_) => VLFieldType::TEMPORAL,
             _ => continue,
         };
-        encoding_refs.push((key.clone(), column_id, field_name.clone(), field_type));
+        field_defs.push((key.clone(), column_id, field_name.clone(), field_type));
     }
 
     // Resolve minmax domains
-    let mut minmax_domains: Vec<_> = encoding_refs
+    let mut minmax_domains: Vec<_> = field_defs
         .iter()
         .filter(|(_, column_id, _, field_type)| {
             *field_type == VLFieldType::QUANTITATIVE || *field_type == VLFieldType::TEMPORAL
@@ -139,6 +165,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
     minmax_domains.sort_unstable();
     minmax_domains.dedup();
     let mut minmax_domain_values = Vec::with_capacity(minmax_domains.len() * 2);
+
     if !minmax_domains.is_empty() {
         // Run SQL query
         let select_cols = minmax_domains
@@ -174,26 +201,69 @@ async fn optimize_vl_spec<'ast, 'snap>(
         }
     }
 
-    let spec = spec;
+    // Get encoding
+    let encodings = match spec.get_mut("encoding") {
+        Some(sj::Value::Object(ref mut enc)) => enc,
+        _ => &mut tmp,
+    };
+    for (i, (key, column_id, field_name, field_type)) in field_defs.iter().enumerate() {
+        let encoding = encodings.get_mut(key).unwrap().as_object_mut().unwrap();
+        if !encoding.contains_key(&key_type) {
+            encoding.insert(
+                key_type.clone(),
+                sj::Value::String(
+                    match field_type {
+                        VLFieldType::QUANTITATIVE => "quantitative",
+                        VLFieldType::NOMINAL => "nominal",
+                        VLFieldType::TEMPORAL => "temporal",
+                    }
+                    .to_string(),
+                ),
+            );
+        }
+        if !encoding.contains_key(&key_scale) {
+            encoding.insert(key_scale.clone(), sj::Value::Object(sj::Map::new()));
+        }
+        let scale = encoding.get_mut(&key_scale).unwrap();
+        if !scale.is_object() {
+            // XXX could ignore the column earlier
+            continue;
+        }
+        let scale = scale.as_object_mut().unwrap();
+        let (lb, ub) = match table.column_types[*column_id] {
+            DataType::Int8
+            | DataType::Int16
+            | DataType::Int32
+            | DataType::Int64
+            | DataType::UInt8
+            | DataType::UInt16
+            | DataType::UInt32
+            | DataType::UInt64
+            | DataType::Float16
+            | DataType::Float32
+            | DataType::Float64 => {
+                let lb: f64 = minmax_domain_values[i].0.parse().unwrap_or_default();
+                let ub: f64 = minmax_domain_values[i].1.parse().unwrap_or_default();
+                (
+                    sj::Number::from_f64(lb)
+                        .map(|v| sj::Value::Number(v))
+                        .unwrap_or_default(),
+                    sj::Number::from_f64(ub)
+                        .map(|v| sj::Value::Number(v))
+                        .unwrap_or_default(),
+                )
+            }
+            _ => {
+                let lb = minmax_domain_values[i].0.clone();
+                let ub = minmax_domain_values[i].1.clone();
+                (sj::Value::String(lb), sj::Value::String(ub))
+            }
+        };
+        scale.insert(key_domain.clone(), sj::Value::Array(vec![lb, ub]));
+    }
 
-    Ok(VegaLiteRendererData {
-        table: table.clone(),
-        sampling: None,
-        spec: json!({
-            "autosize": {
-                "type": "fit",
-                "contains": "padding",
-                "resize": true,
-            },
-            "background": "transparent",
-            "padding": 8,
-            "width": "container",
-            "height": "container",
-            "layer": [
-                spec
-            ],
-        }),
-    })
+    // Store field types and domain values
+    Ok(())
 }
 
 async fn generate_vl_spec<'ast, 'snap>(
