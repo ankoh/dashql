@@ -18,8 +18,6 @@ pub(crate) async fn compose_viz_spec<'ast, 'snap>(
     extra: sj::Map<String, sj::Value>,
 ) -> Result<Arc<VizSpec>, SystemError> {
     let mut out = VizSpec::default();
-
-    // Differentiate component types
     out.renderer = match component {
         VizComponentType::TABLE => {
             let table_metadata = assume_data_is_table(data)?;
