@@ -5,9 +5,14 @@ export type StatementEditOperation = {
     readonly operation: EditOperation;
 };
 
-export type EditOperation = SetBoardPosition;
+export type EditOperation = SetBoardPosition | SetVegaSpec;
 
 export interface SetBoardPosition {
     t: 'SetBoardPosition';
     v: BoardPosition;
+}
+
+export interface SetVegaSpec {
+    t: 'SetVegaSpec';
+    v: string;
 }

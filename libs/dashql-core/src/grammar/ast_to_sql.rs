@@ -12,7 +12,6 @@ use dashql_proto::KeyActionCommand;
 use dashql_proto::KeyActionTrigger;
 use dashql_proto::KeyMatch;
 use dashql_proto::VizComponentTypeModifier;
-use serde_json as sj;
 
 impl<'ast> ToSQL<'ast> for Program<'ast> {
     fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
@@ -142,47 +141,6 @@ impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
                 w.square_brackets(a.finish())
             }
             DsonValue::Expression(e) => e.to_sql(w),
-        }
-    }
-}
-
-impl<'ast> ToSQL<'ast> for sj::Value {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
-    where
-        'ast: 'writer,
-    {
-        match self {
-            sj::Value::Null => w.str_const("null"),
-            sj::Value::Bool(v) => w.str(w.arena.alloc_str(&v.to_string())),
-            sj::Value::Number(v) => w.str(w.arena.alloc_str(&v.to_string())),
-            sj::Value::String(v) => w.single_quotes(w.str(w.arena.alloc_str(&v))),
-            sj::Value::Array(vs) => {
-                let mut a = ScriptTextArray::with_capacity(w, vs.len());
-                for (i, v) in vs.iter().enumerate() {
-                    let mut elem = ScriptTextArray::with_capacity(w, 4);
-                    if i > 0 {
-                        elem.push(w.str_const(",").pad_right());
-                    }
-                    elem.push(v.to_sql(w).breakpoint_before());
-                    a.push(w.float(elem.finish()))
-                }
-                w.square_brackets(a.finish())
-            }
-            sj::Value::Object(fields) => {
-                let mut entries = ScriptTextArray::with_capacity(w, fields.len());
-                for (i, (key, value)) in fields.iter().enumerate() {
-                    let mut kv = ScriptTextArray::with_capacity(w, 4);
-                    if i > 0 {
-                        kv.push(w.str_const(",").pad_right());
-                    }
-                    let key = w.arena.alloc_str(key);
-                    kv.push(w.str(key).breakpoint_before());
-                    kv.push(w.str_const("=").pad_left());
-                    kv.push(value.to_sql(w).pad_left());
-                    entries.push(w.float(kv.finish()))
-                }
-                w.round_brackets(entries.finish())
-            }
         }
     }
 }
@@ -1133,12 +1091,8 @@ impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
     }
 }
 
-impl<'ast> VizStatement<'ast> {
-    fn to_sql_with_extra<'writer, X: ToSQL<'ast>>(
-        &self,
-        w: &'writer ScriptWriter,
-        extra: &Option<X>,
-    ) -> ScriptText<'writer>
+impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1190,20 +1144,10 @@ impl<'ast> VizStatement<'ast> {
                 );
             }
         }
-        if let Some(extra) = extra {
+        if let Some(extra) = self.extra.get() {
             a.push(extra.to_sql(w).pad_left());
         }
         w.float(a.finish())
-    }
-}
-
-impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
-    where
-        'ast: 'writer,
-    {
-        let extra = self.extra.get();
-        self.to_sql_with_extra(w, &extra)
     }
 }
 
@@ -1468,7 +1412,7 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
             },
             Expression::ParameterRef(_) => todo!(),
             Expression::SelectStatement(_) => todo!(),
-            Expression::StringRef(s) => w.str(s.clone()),
+            Expression::StringRef(s) => w.single_quotes(w.str(s.clone())),
             Expression::Subquery(_) => todo!(),
             Expression::TypeCast(_) => todo!(),
             Expression::TypeTest(_) => todo!(),

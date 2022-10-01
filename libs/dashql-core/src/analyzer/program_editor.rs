@@ -5,6 +5,7 @@ use crate::error::SystemError;
 use crate::grammar::dson::{DsonField, DsonKey, DsonValue};
 use crate::grammar::{Expression, ProgramContainer, Statement, VizStatement};
 use dashql_proto as proto;
+use proto::VizComponentType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -17,9 +18,9 @@ pub struct StatementEditOperation {
 #[serde(tag = "t", content = "v")]
 pub enum EditOperation {
     SetBoardPosition(BoardPosition),
+    SetVizSpec(String),
 }
 
-//
 pub fn edit_statements(
     container: &ProgramContainer,
     edits: &mut [StatementEditOperation],
@@ -44,7 +45,7 @@ pub fn edit_statements(
 
         let stmt = &program.statements[stmt_id as usize];
         match stmt {
-            Statement::Viz(v) => edit_viz_statement(arena, v, &edits),
+            Statement::Viz(v) => edit_viz_statement(arena, v, &edits)?,
             _ => (),
         }
     }
@@ -55,16 +56,17 @@ pub fn edit_viz_statement<'arena, 'edit>(
     arena: &'arena bumpalo::Bump,
     stmt: &'arena VizStatement<'arena>,
     edits: &[EditOperation],
-) {
-    // Collect extra data
-    let mut extras: Vec<DsonField<'arena>> = Vec::new();
-    if let Some(extra) = stmt.extra.get() {
-        extras = extra.as_object().iter().map(|field| field.clone()).collect();
-    }
+) -> Result<(), SystemError> {
     // Apply all edit operations
     for op in edits.iter() {
         match &op {
             EditOperation::SetBoardPosition(pos) => {
+                // Collect extra data
+                let mut extras: Vec<DsonField<'arena>> = Vec::new();
+                if let Some(extra) = stmt.extra.get() {
+                    extras = extra.as_object().iter().map(|field| field.clone()).collect();
+                }
+                // Remove position attribute
                 extras.retain(|field| match field.key {
                     DsonKey::Known(proto::AttributeKey::DSON_POSITION) => false,
                     _ => true,
@@ -87,22 +89,31 @@ pub fn edit_viz_statement<'arena, 'edit>(
                         value: DsonValue::Expression(Expression::Uint32(pos.height as u32)),
                     },
                 ]));
+                // Set position attribute
                 extras.push(DsonField {
                     key: DsonKey::Known(proto::AttributeKey::DSON_POSITION),
                     value: fields,
                 });
+                stmt.extra
+                    .set(Some(DsonValue::Object(arena.alloc_slice_clone(&extras))));
+            }
+            EditOperation::SetVizSpec(spec) => {
+                let spec: serde_json::Value =
+                    serde_json::from_str(&spec).map_err(|e| SystemError::InvalidSpecification(e.to_string()))?;
+                let value = DsonValue::from_json(&arena, &spec);
+                stmt.component_type.set(Some(VizComponentType::SPEC));
+                stmt.type_modifiers.set(0);
+                stmt.extra.set(Some(value));
             }
         }
     }
-    // Allocate all extras and store them in the clones
-    if !extras.is_empty() {
-        stmt.extra
-            .set(Some(DsonValue::Object(arena.alloc_slice_clone(&extras))));
-    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use super::*;
     use crate::external::parser::parse_into;
     use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
@@ -126,7 +137,7 @@ mod test {
         assert!(viz.is_some());
 
         let viz = viz.unwrap();
-        edit_viz_statement(&arena, viz, edits);
+        edit_viz_statement(&arena, viz, edits)?;
 
         let writer = ScriptWriter::new();
         let script_text = viz.to_sql(&writer);
@@ -157,6 +168,37 @@ mod test {
                 width: 12,
                 height: 4,
             })],
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_vega_spec() -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_viz_edits(
+            "viz foo using table",
+            r#"viz foo using (
+    mark = 'scatter',
+    encoding = (
+        x = (field = 'foo'),
+        y = (field = 'bar'),
+    )
+)
+            "#,
+            &[EditOperation::SetVizSpec(
+                json!({
+                    "mark": "scatter",
+                    "encoding": {
+                        "x": {
+                            "field": "foo"
+                        },
+                        "y": {
+                            "field": "bar"
+                        }
+                    }
+                })
+                .to_string(),
+            )],
         )
         .await?;
         Ok(())
