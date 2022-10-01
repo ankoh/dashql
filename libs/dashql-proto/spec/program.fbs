@@ -9,11 +9,19 @@ struct Location { offset: uint32; length: uint32; }
 enum NodeType: uint16 {
     NONE = 0,
 
+    IDENTIFIER,
     BOOL,
     UI32,
     UI32_BITMAP,
-    STRING_REF,
     ARRAY,
+
+    LITERAL_NULL,
+    LITERAL_INTEGER,
+    LITERAL_FLOAT,
+    LITERAL_STRING,
+    LITERAL_BITSTRING,
+    LITERAL_INTERVAL,
+    LITERAL_FUNCTION,
 
     ENUM_KEYS_,
 

@@ -16,7 +16,8 @@ proto::Node QualifiedName(ParserDriver& driver, proto::Location loc, std::vector
         if (nodes[i].node_type() == proto::NodeType::OBJECT_SQL_INDIRECTION_INDEX) {
             first_indirection = i;
             break;
-        } else if (nodes[i].node_type() == proto::NodeType::STRING_REF) {
+        } else if (nodes[i].node_type() == proto::NodeType::IDENTIFIER ||
+                   nodes[i].node_type() == proto::NodeType::LITERAL_STRING) {
             ++name_length;
             continue;
         }

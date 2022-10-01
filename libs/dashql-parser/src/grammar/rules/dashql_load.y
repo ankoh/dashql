@@ -10,7 +10,7 @@ dashql_load_statement:
     ;
 
 opt_dashql_load_method:
-    USING dashql_load_method_type    { $$ = $2; }
+    USING dashql_load_method_type       { $$ = $2; }
   | %empty                              { $$ = Null(); }
 
 dashql_load_method_type:

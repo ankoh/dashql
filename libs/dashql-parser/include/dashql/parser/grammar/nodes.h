@@ -64,8 +64,8 @@ inline NodeVector Concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, Node
 /// Create a null node
 inline proto::Node Null() { return proto::Node(proto::Location(), proto::NodeType::NONE, 0, NO_PARENT, 0, 0); }
 /// Create a string node
-inline proto::Node String(proto::Location loc) {
-    return proto::Node(loc, proto::NodeType::STRING_REF, 0, NO_PARENT, 0, 0);
+inline proto::Node Ident(proto::Location loc) {
+    return proto::Node(loc, proto::NodeType::IDENTIFIER, 0, NO_PARENT, 0, 0);
 }
 /// Create a ui32 node
 inline proto::Node UI32(proto::Location loc, uint32_t value) {
@@ -81,8 +81,25 @@ inline proto::Node Bool(proto::Location loc, bool v) {
 }
 
 /// Create a constant inline
-inline proto::Node Const(ParserDriver& driver, proto::Location loc, proto::AConstType /*type*/) {
-    return proto::Node(loc, proto::NodeType::STRING_REF, 0, NO_PARENT, 0, 0);
+inline proto::Node Const(proto::Location loc, proto::AConstType type) {
+    switch (type) {
+        case proto::AConstType::NONE:
+        case proto::AConstType::NULL_:
+            return proto::Node(loc, proto::NodeType::LITERAL_NULL, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::INTEGER:
+            return proto::Node(loc, proto::NodeType::LITERAL_INTEGER, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::FLOAT:
+            return proto::Node(loc, proto::NodeType::LITERAL_FLOAT, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::STRING:
+            return proto::Node(loc, proto::NodeType::LITERAL_STRING, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::BITSTRING:
+            return proto::Node(loc, proto::NodeType::LITERAL_BITSTRING, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::INTERVAL:
+            return proto::Node(loc, proto::NodeType::LITERAL_INTERVAL, 0, NO_PARENT, 0, 0);
+        case proto::AConstType::FUNCTION:
+            return proto::Node(loc, proto::NodeType::LITERAL_FUNCTION, 0, NO_PARENT, 0, 0);
+    }
+    return proto::Node(loc, proto::NodeType::LITERAL_NULL, 0, NO_PARENT, 0, 0);
 }
 
 /// Create indirection

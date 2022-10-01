@@ -55,7 +55,7 @@ sql_table_element:
 sql_column_def:
     sql_col_id sql_typename sql_create_generic_options sql_col_qual_list {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_DEF, {
-            Attr(Key::SQL_COLUMN_DEF_NAME, String(@1)),
+            Attr(Key::SQL_COLUMN_DEF_NAME, Ident(@1)),
             Attr(Key::SQL_COLUMN_DEF_TYPE, std::move($2)),
             Attr(Key::SQL_COLUMN_DEF_OPTIONS, std::move($3)),
             Attr(Key::SQL_COLUMN_DEF_CONSTRAINTS, ctx.Add(@4, std::move($4)))
@@ -70,14 +70,14 @@ sql_col_qual_list:
 
 sql_col_constraint:
     CONSTRAINT sql_name sql_col_constraint_elem {
-        $3.push_back(Attr(Key::SQL_COLUMN_CONSTRAINT_NAME, String(@2)));
+        $3.push_back(Attr(Key::SQL_COLUMN_CONSTRAINT_NAME, Ident(@2)));
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($3));
     }
   | sql_col_constraint_elem { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($1)); }
   | sql_col_constraint_attr { $$ = std::move($1); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, proto::ColumnConstraint::COLLATE)),
-        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, String(@2)),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@2, std::move($2))),
     });
   }
     ;
@@ -104,7 +104,7 @@ sql_def_list:
 sql_def_elem:
     sql_col_label '=' sql_def_arg {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_DEF_ARG, {
-            Attr(Key::SQL_DEFINITION_ARG_KEY, std::move(String(@1))),
+            Attr(Key::SQL_DEFINITION_ARG_KEY, std::move(Ident(@1))),
             Attr(Key::SQL_DEFINITION_ARG_VALUE, std::move(std::move($3))),
         });
     }
@@ -112,24 +112,24 @@ sql_def_elem:
 
 sql_def_arg:
     sql_func_type           { $$ = std::move($1); }
-  | sql_reserved_keywords   { $$ = String(@1); }
+  | sql_reserved_keywords   { $$ = Ident(@1); }
   | sql_qual_all_op         { $$ = std::move($1); }
   | sql_numeric_only        { $$ = std::move($1); }
-  | SCONST                  { $$ = String(@1); }
+  | SCONST                  { $$ = Const(@1, proto::AConstType::STRING); }
   | NONE                    { $$ = {}; }
     ;
 
 sql_numeric_only:
-    FCONST              { $$ = Const(ctx, @$, proto::AConstType::FLOAT); }
-  | '+' FCONST          { $$ = Const(ctx, @$, proto::AConstType::FLOAT); }
-  | '-' FCONST          { $$ = Const(ctx, @$, proto::AConstType::FLOAT); }
+    FCONST              { $$ = Const(@$, proto::AConstType::FLOAT); }
+  | '+' FCONST          { $$ = Const(@$, proto::AConstType::FLOAT); }
+  | '-' FCONST          { $$ = Const(@$, proto::AConstType::FLOAT); }
   | sql_signed_iconst   { $$ = std::move($1); }
     ;
 
 sql_signed_iconst:
-    ICONST      { $$ = Const(ctx, @$, proto::AConstType::INTEGER); }
-  | '+' ICONST  { $$ = Const(ctx, @$, proto::AConstType::INTEGER); }
-  | '-' ICONST  { $$ = Const(ctx, @$, proto::AConstType::INTEGER); }
+    ICONST      { $$ = Const(@$, proto::AConstType::INTEGER); }
+  | '+' ICONST  { $$ = Const(@$, proto::AConstType::INTEGER); }
+  | '-' ICONST  { $$ = Const(@$, proto::AConstType::INTEGER); }
     ;
 
 // XXX omitted SETOF
@@ -182,8 +182,8 @@ sql_generic_option_list:
 sql_generic_option_elem:
     sql_col_label SCONST {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_GENERIC_OPTION, {
-            Attr(Key::SQL_GENERIC_OPTION_KEY, String(@1)),
-            Attr(Key::SQL_GENERIC_OPTION_VALUE, String(@2)),
+            Attr(Key::SQL_GENERIC_OPTION_KEY, Ident(@1)),
+            Attr(Key::SQL_GENERIC_OPTION_VALUE, Const(@2, sx::AConstType::STRING)),
         });
     }
     ;
@@ -193,8 +193,8 @@ sql_opt_column_list:
   | %empty                  { $$ = {}; }
 
 sql_column_list:
-    sql_column_elem                     { $$ = { String(@1) }; }
-  | sql_column_list ',' sql_column_elem { $1.push_back(String(@3)); $$ = move($1); }
+    sql_column_elem                     { $$ = { Ident(@1) }; }
+  | sql_column_list ',' sql_column_elem { $1.push_back(Ident(@3)); $$ = move($1); }
     ;
 
 sql_column_elem: sql_col_id;
@@ -230,7 +230,7 @@ sql_opt_with:
 
 sql_table_constraint:
     CONSTRAINT sql_name sql_table_constraint_elem {
-        $3.push_back(Attr(Key::SQL_TABLE_CONSTRAINT_NAME, String(@2)));
+        $3.push_back(Attr(Key::SQL_TABLE_CONSTRAINT_NAME, Ident(@2)));
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TABLE_CONSTRAINT, std::move($3));
     }
   | sql_table_constraint_elem {
@@ -239,7 +239,7 @@ sql_table_constraint:
     ;
 
 sql_existing_index:
-    USING INDEX sql_col_id  { $$ = String(@3); }
+    USING INDEX sql_col_id  { $$ = Ident(@3); }
     ;
 
 sql_table_constraint_elem:
@@ -249,7 +249,7 @@ sql_table_constraint_elem:
     }; }
   | UNIQUE sql_existing_index sql_opt_definition sql_table_constraint_attr_list { $$ = {
         Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, proto::TableConstraint::UNIQUE)),
-        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, String(@2)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, $2),
         Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@3, std::move($3))),
         Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@4, std::move($4))),
     }; }
@@ -261,7 +261,7 @@ sql_table_constraint_elem:
     }; }
   | PRIMARY KEY sql_existing_index sql_opt_definition sql_table_constraint_attr_list { $$ = {
         Attr(Key::SQL_TABLE_CONSTRAINT_TYPE, Enum(@$, proto::TableConstraint::UNIQUE)),
-        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, String(@3)),
+        Attr(Key::SQL_TABLE_CONSTRAINT_INDEX, $3),
         Attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.Add(@4, std::move($4))),
         Attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.Add(@5, std::move($5))),
     }; }

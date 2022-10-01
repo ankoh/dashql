@@ -77,6 +77,9 @@
 %type <proto::Node> sql_case_default;
 %type <proto::Node> sql_case_expr;
 %type <proto::Node> sql_character;
+%type <proto::Node> sql_col_id;
+%type <proto::Node> sql_type_function_name;
+%type <proto::Node> sql_col_id_or_string;
 %type <proto::Node> sql_columnref;
 %type <proto::Node> sql_common_table_expr;
 %type <proto::Node> sql_const_bit;
@@ -97,9 +100,11 @@
 %type <proto::Node> sql_generic_type;
 %type <proto::Node> sql_group_by_item;
 %type <proto::Node> sql_having_clause;
+%type <proto::Node> sql_i_or_f_const;
 %type <proto::Node> sql_in_expr;
 %type <proto::Node> sql_indirection_el;
 %type <proto::Node> sql_interval_second;
+%type <proto::Node> sql_col_label_or_string;
 %type <proto::Node> sql_into_clause;
 %type <proto::Node> sql_math_op;
 %type <proto::Node> sql_numeric;

@@ -11,5 +11,5 @@ dashql_import_statement:
 dashql_import_method:
     HTTP    { $$ = Attr(Key::DASHQL_IMPORT_METHOD, Enum(@$, proto::ImportMethodType::HTTP)); }
   | FILE    { $$ = Attr(Key::DASHQL_IMPORT_METHOD, Enum(@$, proto::ImportMethodType::FILE)); }
-  | SCONST  { $$ = Attr(Key::DASHQL_IMPORT_FROM_URI, String(@1)); }
+  | SCONST  { $$ = Attr(Key::DASHQL_IMPORT_FROM_URI, Const(@1, proto::AConstType::STRING)); }
     ;
