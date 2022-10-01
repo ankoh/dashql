@@ -74,19 +74,25 @@ pub fn edit_viz_statement<'arena, 'edit>(
                 let fields = DsonValue::Object(arena.alloc_slice_clone(&[
                     DsonField {
                         key: DsonKey::Known(proto::AttributeKey::DSON_ROW),
-                        value: DsonValue::Expression(Expression::Uint32(pos.row as u32)),
+                        value: DsonValue::Expression(Expression::LiteralInteger(arena.alloc_str(&pos.row.to_string()))),
                     },
                     DsonField {
                         key: DsonKey::Known(proto::AttributeKey::DSON_COLUMN),
-                        value: DsonValue::Expression(Expression::Uint32(pos.column as u32)),
+                        value: DsonValue::Expression(Expression::LiteralInteger(
+                            arena.alloc_str(&pos.column.to_string()),
+                        )),
                     },
                     DsonField {
                         key: DsonKey::Known(proto::AttributeKey::DSON_WIDTH),
-                        value: DsonValue::Expression(Expression::Uint32(pos.width as u32)),
+                        value: DsonValue::Expression(Expression::LiteralInteger(
+                            arena.alloc_str(&pos.width.to_string()),
+                        )),
                     },
                     DsonField {
                         key: DsonKey::Known(proto::AttributeKey::DSON_HEIGHT),
-                        value: DsonValue::Expression(Expression::Uint32(pos.height as u32)),
+                        value: DsonValue::Expression(Expression::LiteralInteger(
+                            arena.alloc_str(&pos.height.to_string()),
+                        )),
                     },
                 ]));
                 // Set position attribute
@@ -179,12 +185,8 @@ mod test {
             "viz foo using table",
             r#"viz foo using (
     mark = 'scatter',
-    encoding = (
-        x = (field = 'foo'),
-        y = (field = 'bar'),
-    )
-)
-            "#,
+    encoding = (x = (field = 'foo'), y = (field = 'bar'))
+)"#,
             &[EditOperation::SetVizSpec(
                 json!({
                     "mark": "scatter",

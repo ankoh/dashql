@@ -717,11 +717,11 @@ impl<'arena> DsonValue<'arena> {
             sj::Value::Bool(v) => DsonValue::Expression(Expression::Boolean(*v)),
             sj::Value::Number(v) => {
                 let v = arena.alloc_str(&v.to_string());
-                DsonValue::Expression(Expression::StringRef(v))
+                DsonValue::Expression(Expression::LiteralFloat(v))
             }
             sj::Value::String(v) => {
                 let v = arena.alloc_str(&v);
-                DsonValue::Expression(Expression::StringRef(v))
+                DsonValue::Expression(Expression::LiteralString(v))
             }
             sj::Value::Array(vs) => {
                 let vs: Vec<_> = vs.iter().map(|v| DsonValue::from_json(arena, v)).collect();
@@ -820,7 +820,7 @@ mod test {
             _ => panic!("unexpected statement: {:?}", &prog.statements[0]),
         };
         match stmt.fields.get().get("key") {
-            Some(DsonValue::Expression(Expression::StringRef(s))) => {
+            Some(DsonValue::Expression(Expression::LiteralInteger(s))) => {
                 assert_eq!(s.clone(), "42");
             }
             _ => panic!("unexpected dson value: {:?}", stmt.fields),
@@ -861,10 +861,16 @@ mod test {
         let arena = bumpalo::Bump::new();
         test_json(&arena, DsonValue::Expression(Expression::Boolean(true)), "true").await?;
         test_json(&arena, DsonValue::Expression(Expression::Boolean(false)), "false").await?;
-        test_json(&arena, DsonValue::Expression(Expression::StringRef("foo")), "\"foo\"").await?;
-        test_json(&arena, DsonValue::Expression(Expression::StringRef("")), "\"\"").await?;
-        test_json(&arena, DsonValue::Expression(Expression::Uint32(0)), "0").await?;
-        test_json(&arena, DsonValue::Expression(Expression::Uint32(42)), "42").await?;
+        test_json(
+            &arena,
+            DsonValue::Expression(Expression::LiteralString("foo")),
+            "\"foo\"",
+        )
+        .await?;
+        test_json(&arena, DsonValue::Expression(Expression::LiteralString("")), "\"\"").await?;
+        test_json(&arena, DsonValue::Expression(Expression::LiteralInteger("0")), "0").await?;
+        test_json(&arena, DsonValue::Expression(Expression::LiteralInteger("42")), "42").await?;
+        test_json(&arena, DsonValue::Expression(Expression::LiteralFloat("42")), "42").await?;
         test_json(
             &arena,
             DsonValue::Array(&[
@@ -892,7 +898,7 @@ mod test {
                 },
                 DsonField {
                     key: DsonKey::Unknown("foo"),
-                    value: DsonValue::Expression(Expression::StringRef("bar")),
+                    value: DsonValue::Expression(Expression::LiteralString("bar")),
                 },
             ]),
             r#"{"fill":true,"foo":"bar"}"#,
@@ -945,11 +951,11 @@ mod test {
                 args: ASTCell::with_value(&[
                     ASTCell::with_value(&FunctionArgument {
                         name: None.into(),
-                        value: Expression::StringRef(r#"{}"#).into(),
+                        value: Expression::LiteralString(r#"{}"#).into(),
                     }),
                     ASTCell::with_value(&FunctionArgument {
                         name: None.into(),
-                        value: Expression::Uint32(42).into(),
+                        value: Expression::LiteralInteger("42").into(),
                     }),
                 ]),
                 ..FunctionExpression::default()
@@ -966,11 +972,11 @@ mod test {
                     args: ASTCell::with_value(&[
                         ASTCell::with_value(&FunctionArgument {
                             name: None.into(),
-                            value: Expression::StringRef(r#"{}"#).into(),
+                            value: Expression::LiteralString(r#"{}"#).into(),
                         }),
                         ASTCell::with_value(&FunctionArgument {
                             name: None.into(),
-                            value: Expression::Uint32(42).into(),
+                            value: Expression::LiteralInteger("42").into(),
                         }),
                     ]),
                     ..FunctionExpression::default()

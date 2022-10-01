@@ -67,10 +67,6 @@ inline proto::Node Null() { return proto::Node(proto::Location(), proto::NodeTyp
 inline proto::Node Ident(proto::Location loc) {
     return proto::Node(loc, proto::NodeType::IDENTIFIER, 0, NO_PARENT, 0, 0);
 }
-/// Create a ui32 node
-inline proto::Node UI32(proto::Location loc, uint32_t value) {
-    return proto::Node(loc, proto::NodeType::UI32, 0, NO_PARENT, value, 0);
-}
 /// Create a ui32 bitmap node
 inline proto::Node UI32Bitmap(proto::Location loc, uint32_t value) {
     return proto::Node(loc, proto::NodeType::UI32_BITMAP, 0, NO_PARENT, value, 0);
@@ -83,23 +79,16 @@ inline proto::Node Bool(proto::Location loc, bool v) {
 /// Create a constant inline
 inline proto::Node Const(proto::Location loc, proto::AConstType type) {
     switch (type) {
-        case proto::AConstType::NONE:
-        case proto::AConstType::NULL_:
-            return proto::Node(loc, proto::NodeType::LITERAL_NULL, 0, NO_PARENT, 0, 0);
         case proto::AConstType::INTEGER:
             return proto::Node(loc, proto::NodeType::LITERAL_INTEGER, 0, NO_PARENT, 0, 0);
         case proto::AConstType::FLOAT:
             return proto::Node(loc, proto::NodeType::LITERAL_FLOAT, 0, NO_PARENT, 0, 0);
         case proto::AConstType::STRING:
             return proto::Node(loc, proto::NodeType::LITERAL_STRING, 0, NO_PARENT, 0, 0);
-        case proto::AConstType::BITSTRING:
-            return proto::Node(loc, proto::NodeType::LITERAL_BITSTRING, 0, NO_PARENT, 0, 0);
         case proto::AConstType::INTERVAL:
             return proto::Node(loc, proto::NodeType::LITERAL_INTERVAL, 0, NO_PARENT, 0, 0);
-        case proto::AConstType::FUNCTION:
-            return proto::Node(loc, proto::NodeType::LITERAL_FUNCTION, 0, NO_PARENT, 0, 0);
     }
-    return proto::Node(loc, proto::NodeType::LITERAL_NULL, 0, NO_PARENT, 0, 0);
+    return Null();
 }
 
 /// Create indirection

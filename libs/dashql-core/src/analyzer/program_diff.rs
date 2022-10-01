@@ -235,10 +235,13 @@ fn compute_similarity(
         // Enum of literal
         let is_match = match source.node_type() {
             proto::NodeType::NONE => true,
-            proto::NodeType::BOOL | proto::NodeType::UI32 | proto::NodeType::UI32_BITMAP => {
+            proto::NodeType::BOOL | proto::NodeType::UI32_BITMAP => {
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
-            proto::NodeType::STRING_REF => {
+            proto::NodeType::IDENTIFIER
+            | proto::NodeType::LITERAL_FLOAT
+            | proto::NodeType::LITERAL_INTEGER
+            | proto::NodeType::LITERAL_STRING => {
                 text_at(source_ctx.script_text, *source.location())
                     == text_at(target_ctx.script_text, *target.location())
             }
@@ -364,10 +367,13 @@ fn check_deep_equality(source: (&ProgramInstance<'_>, usize), target: (&ProgramI
         // Enum or literal
         let is_equal = match source.node_type() {
             proto::NodeType::NONE => true,
-            proto::NodeType::BOOL | proto::NodeType::UI32 | proto::NodeType::UI32_BITMAP => {
+            proto::NodeType::BOOL | proto::NodeType::UI32_BITMAP => {
                 source.children_begin_or_value() == target.children_begin_or_value()
             }
-            proto::NodeType::STRING_REF => {
+            proto::NodeType::IDENTIFIER
+            | proto::NodeType::LITERAL_FLOAT
+            | proto::NodeType::LITERAL_INTEGER
+            | proto::NodeType::LITERAL_STRING => {
                 text_at(source_ctx.script_text, *source.location())
                     == text_at(target_ctx.script_text, *target.location())
             }

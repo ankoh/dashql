@@ -6,13 +6,13 @@
                 <statement type="CREATE_TABLE_AS">
                     <node type="OBJECT_SQL_CREATE_AS" loc="0..28" text="create tab..s select 1">
                         <node key="SQL_CREATE_AS_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="20..28" text="select 1">
                             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="27..28" text="1">
-                                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="27..28" text="1"/>
+                                    <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="27..28" text="1"/>
                                 </node>
                             </node>
                         </node>
@@ -45,7 +45,7 @@
                             distinct: None,
                             targets: [
                                 Value {
-                                    value: StringRef(
+                                    value: LiteralInteger(
                                         &quot;1&quot;,
                                     ),
                                     alias: None,
@@ -86,14 +86,14 @@
                     <node type="OBJECT_SQL_CREATE" loc="0..28" text="create tab..a integer)">
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -152,22 +152,22 @@
                     <node type="OBJECT_SQL_CREATE" loc="0..39" text="create tab..b tinyint)">
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b tinyint">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="29..30" text="b"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="tinyint">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="31..38" text="tinyint">
-                                        <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="31..38" text="tinyint"/>
+                                        <node key="SQL_GENERIC_TYPE_NAME" type="IDENTIFIER" loc="31..38" text="tinyint"/>
                                     </node>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -242,13 +242,13 @@
                     <node type="OBJECT_SQL_CREATE" loc="0..39" text="create tab..b varchar)">
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="29..30" text="b"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="31..38" text="varchar">
                                         <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
@@ -257,7 +257,7 @@
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -348,13 +348,13 @@
                     <node type="OBJECT_SQL_CREATE" loc="0..39" text="create tab..b varchar)">
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..27" text="a integer">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="29..38" text="b varchar">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="29..30" text="b"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="29..30" text="b"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="31..38" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="31..38" text="varchar">
                                         <node key="SQL_CHARACTER_TYPE" type="ENUM_SQL_CHARACTER_TYPE" value="VARCHAR"/>
@@ -363,7 +363,7 @@
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -441,14 +441,14 @@
                                 <node key="SQL_COLUMN_DEF_CONSTRAINTS" type="ARRAY">
                                     <node type="ENUM_SQL_CONSTRAINT_ATTRIBUTE" value="DEFERRABLE"/>
                                 </node>
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -514,17 +514,19 @@
                                 <node key="SQL_COLUMN_DEF_CONSTRAINTS" type="ARRAY">
                                     <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="28..43" text="collate &quot;de_DE&quot;">
                                         <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="COLLATE"/>
-                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" type="STRING_REF" loc="36..43" text="&quot;de_DE&quot;"/>
+                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" type="ARRAY">
+                                            <node type="IDENTIFIER" loc="36..43" text="&quot;de_DE&quot;"/>
+                                        </node>
                                     </node>
                                 </node>
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -564,8 +566,12 @@
                                 ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: COLLATE,
-                                    value: StringRef(
-                                        &quot;\&quot;de_DE\&quot;&quot;,
+                                    value: Array(
+                                        [
+                                            LiteralString(
+                                                &quot;de_DE&quot;,
+                                            ),
+                                        ],
                                     ),
                                     definition: [],
                                     no_inherit: false,
@@ -595,14 +601,14 @@
                     <node type="OBJECT_SQL_CREATE" loc="0..38" text="create tem..a integer)">
                         <node key="SQL_CREATE_TABLE_ELEMENTS" type="ARRAY">
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="28..37" text="a integer">
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="28..29" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="28..29" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="30..37" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="23..26" text="foo"/>
+                            <node type="IDENTIFIER" loc="23..26" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="LOCAL"/>
@@ -679,18 +685,18 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..49" text="a integer ..a not null">
                                 <node key="SQL_COLUMN_DEF_CONSTRAINTS" type="ARRAY">
                                     <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="28..49" text="constraint..a not null">
-                                        <node key="SQL_COLUMN_CONSTRAINT_NAME" type="STRING_REF" loc="39..40" text="a"/>
+                                        <node key="SQL_COLUMN_CONSTRAINT_NAME" type="IDENTIFIER" loc="39..40" text="a"/>
                                         <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="NOT_NULL"/>
                                     </node>
                                 </node>
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -766,14 +772,14 @@
                                         <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="PRIMARY_KEY"/>
                                     </node>
                                 </node>
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -848,17 +854,17 @@
                                     </node>
                                     <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..47" text="default 42">
                                         <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="DEFAULT"/>
-                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" type="STRING_REF" loc="45..47" text="42"/>
+                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" type="LITERAL_INTEGER" loc="45..47" text="42"/>
                                     </node>
                                 </node>
-                                <node key="SQL_COLUMN_DEF_NAME" type="STRING_REF" loc="18..19" text="a"/>
+                                <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="20..27" text="integer">
                                     <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="13..16" text="foo"/>
+                            <node type="IDENTIFIER" loc="13..16" text="foo"/>
                         </node>
                         <node key="SQL_CREATE_TABLE_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_TABLE_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
@@ -907,7 +913,7 @@
                                 ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: DEFAULT,
-                                    value: StringRef(
+                                    value: LiteralInteger(
                                         &quot;42&quot;,
                                     ),
                                     definition: [],

@@ -119,7 +119,7 @@ pub struct CaseExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ParameterRef<'a> {
-    pub prefix: ASTCell<&'a str>,
+    pub prefix: ASTCell<bool>,
     pub name: ASTCell<NamePath<'a>>,
 }
 
@@ -143,14 +143,16 @@ pub enum Expression<'a> {
     Exists(&'a ExistsExpression<'a>),
     FunctionCall(&'a FunctionExpression<'a>),
     Indirection(&'a IndirectionExpression<'a>),
+    LiteralFloat(&'a str),
+    LiteralInteger(&'a str),
+    LiteralString(&'a str),
+    LiteralInterval(&'a str),
     Nary(&'a NaryExpression<'a>),
     ParameterRef(&'a ParameterRef<'a>),
     SelectStatement(&'a SelectStatementExpression<'a>),
-    StringRef(&'a str),
     Subquery(&'a SubqueryExpression<'a>),
     TypeCast(&'a TypeCastExpression<'a>),
     TypeTest(&'a TypeTestExpression<'a>),
-    Uint32(u32),
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

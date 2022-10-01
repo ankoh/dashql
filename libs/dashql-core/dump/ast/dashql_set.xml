@@ -6,7 +6,7 @@
                 <statement type="SET">
                     <node type="OBJECT_DASHQL_SET" loc="0..17" text="SET title = &apos;foo&apos;">
                         <node key="DASHQL_SET_FIELDS" type="OBJECT_DSON" loc="4..17" text="title = &apos;foo&apos;">
-                            <node key="DSON_TITLE" type="STRING_REF" loc="12..17" text="&apos;foo&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="12..17" text="&apos;foo&apos;"/>
                         </node>
                     </node>
                 </statement>
@@ -27,8 +27,8 @@
                                 DSON_TITLE,
                             ),
                             value: Expression(
-                                StringRef(
-                                    &quot;&apos;foo&apos;&quot;,
+                                LiteralString(
+                                    &quot;foo&quot;,
                                 ),
                             ),
                         },
@@ -47,7 +47,7 @@
                     <node type="OBJECT_DASHQL_SET" loc="0..24" text="SET dashql..le = &apos;foo&apos;">
                         <node key="DASHQL_SET_FIELDS" type="OBJECT_DSON" loc="4..24" text="dashql.tit..le = &apos;foo&apos;">
                             <node key="DSON_DASHQL" type="OBJECT_DSON" loc="4..24" text="dashql.tit..le = &apos;foo&apos;">
-                                <node key="DSON_TITLE" type="STRING_REF" loc="19..24" text="&apos;foo&apos;"/>
+                                <node key="DSON_TITLE" type="LITERAL_STRING" loc="19..24" text="&apos;foo&apos;"/>
                             </node>
                         </node>
                     </node>
@@ -75,8 +75,8 @@
                                             DSON_TITLE,
                                         ),
                                         value: Expression(
-                                            StringRef(
-                                                &quot;&apos;foo&apos;&quot;,
+                                            LiteralString(
+                                                &quot;foo&quot;,
                                             ),
                                         ),
                                     },
@@ -97,7 +97,7 @@
                 <statement type="SET">
                     <node type="OBJECT_DASHQL_SET" loc="0..23" text="SET descri..on = &apos;bar&apos;">
                         <node key="DASHQL_SET_FIELDS" type="OBJECT_DSON" loc="4..23" text="description = &apos;bar&apos;">
-                            <node key="DSON_DESCRIPTION" type="STRING_REF" loc="18..23" text="&apos;bar&apos;"/>
+                            <node key="DSON_DESCRIPTION" type="LITERAL_STRING" loc="18..23" text="&apos;bar&apos;"/>
                         </node>
                     </node>
                 </statement>
@@ -118,8 +118,8 @@
                                 DSON_DESCRIPTION,
                             ),
                             value: Expression(
-                                StringRef(
-                                    &quot;&apos;bar&apos;&quot;,
+                                LiteralString(
+                                    &quot;bar&quot;,
                                 ),
                             ),
                         },

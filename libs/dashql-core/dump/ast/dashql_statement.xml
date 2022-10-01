@@ -24,11 +24,11 @@
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="0..94" text="IMPORT wea..         )">
                         <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="29..94" text="(\n        ..         )">
-                            <node key="DSON_URL" type="STRING_REF" loc="53..80" text="&apos;https://l..t/astdump&apos;"/>
+                            <node key="DSON_URL" type="LITERAL_STRING" loc="53..80" text="&apos;https://l..t/astdump&apos;"/>
                         </node>
                         <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="7..18" text="weather_csv"/>
+                            <node type="IDENTIFIER" loc="7..18" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
@@ -60,8 +60,8 @@
                                     DSON_URL,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;https://localhost/astdump&apos;&quot;,
+                                    LiteralString(
+                                        &quot;https://localhost/astdump&quot;,
                                     ),
                                 ),
                             },
@@ -85,23 +85,23 @@
                             <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="53..115" text="format(&apos;ht..n.country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="60..100" text="&apos;https://c..eather/%s&apos;">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="60..100" text="&apos;https://c..eather/%s&apos;"/>
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="60..100" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="102..114" text="main.country">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="102..114" text="main.country">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="102..106" text="main"/>
-                                                <node type="STRING_REF" loc="107..114" text="country"/>
+                                                <node type="IDENTIFIER" loc="102..106" text="main"/>
+                                                <node type="IDENTIFIER" loc="107..114" text="country"/>
                                             </node>
                                         </node>
                                     </node>
                                 </node>
-                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="53..59" text="format"/>
+                                <node key="SQL_FUNCTION_NAME" type="IDENTIFIER" loc="53..59" text="format"/>
                             </node>
                         </node>
                         <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="7..18" text="weather_csv"/>
+                            <node type="IDENTIFIER" loc="7..18" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
@@ -141,8 +141,8 @@
                                             args: [
                                                 FunctionArgument {
                                                     name: None,
-                                                    value: StringRef(
-                                                        &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
+                                                    value: LiteralString(
+                                                        &quot;https://cdn.dashql.com/demo/weather/%s&quot;,
                                                     ),
                                                 },
                                                 FunctionArgument {
@@ -194,17 +194,17 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..213" text="VIZ weathe..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..213" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="56..199" text="(\n        ..         )">
-                                <node key="DSON_ROW" type="STRING_REF" loc="84..85" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="116..117" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="147..148" text="4"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="179..181" text="15"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="84..85" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="116..117" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="147..148" text="4"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="179..181" text="15"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="4..15" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="4..15" text="weather_avg"/>
                             </node>
                         </node>
                     </node>
@@ -256,7 +256,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -266,7 +266,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -276,7 +276,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -286,7 +286,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;15&quot;,
                                                 ),
                                             ),
@@ -312,17 +312,17 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..94" text="VIZ weathe..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="27..94" text="(\n        ..         )">
                             <node key="DSON_KEYS[4]" type="OBJECT_DSON" loc="51..80" text="(r = 0, c ..4, h = 15)">
-                                <node key="DSON_KEYS[0]" type="STRING_REF" loc="56..57" text="0"/>
-                                <node key="DSON_KEYS[1]" type="STRING_REF" loc="63..64" text="0"/>
-                                <node key="DSON_KEYS[2]" type="STRING_REF" loc="70..71" text="4"/>
-                                <node key="DSON_KEYS[3]" type="STRING_REF" loc="77..79" text="15"/>
+                                <node key="DSON_KEYS[0]" type="LITERAL_INTEGER" loc="56..57" text="0"/>
+                                <node key="DSON_KEYS[1]" type="LITERAL_INTEGER" loc="63..64" text="0"/>
+                                <node key="DSON_KEYS[2]" type="LITERAL_INTEGER" loc="70..71" text="4"/>
+                                <node key="DSON_KEYS[3]" type="LITERAL_INTEGER" loc="77..79" text="15"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..15" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="4..15" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="4..15" text="weather_avg"/>
                             </node>
                         </node>
                     </node>
@@ -375,7 +375,7 @@
                                                 &quot;r&quot;,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -385,7 +385,7 @@
                                                 &quot;c&quot;,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -395,7 +395,7 @@
                                                 &quot;w&quot;,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -405,7 +405,7 @@
                                                 &quot;h&quot;,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;15&quot;,
                                                 ),
                                             ),
@@ -431,11 +431,11 @@
                         <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
                         <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..19" text="DATE">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
-                                <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
+                                <node key="SQL_GENERIC_TYPE_NAME" type="IDENTIFIER" loc="15..19" text="DATE"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="8..11" text="foo"/>
+                            <node type="IDENTIFIER" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -448,7 +448,7 @@
                                     <node type="OBJECT_SQL_RESULT_TARGET" loc="60..63" text="foo">
                                         <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="60..63" text="foo">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="60..63" text="foo"/>
+                                                <node type="IDENTIFIER" loc="60..63" text="foo"/>
                                             </node>
                                         </node>
                                     </node>
@@ -552,14 +552,14 @@
                         <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
                         <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
                             <node key="SQL_TYPENAME_ARRAY" type="ARRAY">
-                                <node type="STRING_REF" loc="20..21" text="2"/>
+                                <node type="LITERAL_INTEGER" loc="20..21" text="2"/>
                             </node>
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
-                                <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
+                                <node key="SQL_GENERIC_TYPE_NAME" type="IDENTIFIER" loc="15..19" text="DATE"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="8..11" text="foo"/>
+                            <node type="IDENTIFIER" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -572,9 +572,9 @@
                                     <node type="OBJECT_SQL_RESULT_TARGET" loc="63..69" text="foo[0]">
                                         <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="63..69" text="foo[0]">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="63..66" text="foo"/>
+                                                <node type="IDENTIFIER" loc="63..66" text="foo"/>
                                                 <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="66..69" text="[0]">
-                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="67..68" text="0"/>
+                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_INTEGER" loc="67..68" text="0"/>
                                                 </node>
                                             </node>
                                         </node>
@@ -582,9 +582,9 @@
                                     <node type="OBJECT_SQL_RESULT_TARGET" loc="71..77" text="foo[1]">
                                         <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="71..77" text="foo[1]">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="71..74" text="foo"/>
+                                                <node type="IDENTIFIER" loc="71..74" text="foo"/>
                                                 <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="74..77" text="[1]">
-                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="75..76" text="1"/>
+                                                    <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_INTEGER" loc="75..76" text="1"/>
                                                 </node>
                                             </node>
                                         </node>
@@ -651,7 +651,7 @@
                                                     ),
                                                     Index(
                                                         IndirectionIndex {
-                                                            value: StringRef(
+                                                            value: LiteralInteger(
                                                                 &quot;0&quot;,
                                                             ),
                                                         },
@@ -668,7 +668,7 @@
                                                     ),
                                                     Index(
                                                         IndirectionIndex {
-                                                            value: StringRef(
+                                                            value: LiteralInteger(
                                                                 &quot;1&quot;,
                                                             ),
                                                         },

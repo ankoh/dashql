@@ -24,8 +24,9 @@ impl<'a> Expression<'a> {
         let value = match self {
             Expression::Null => None,
             Expression::Boolean(v) => Some(Rc::new(ScalarValue::Boolean(*v))),
-            Expression::Uint32(v) => Some(Rc::new(ScalarValue::Int64(*v as i64))),
-            Expression::StringRef(s) => Some(Rc::new(ScalarValue::Varchar(
+            Expression::LiteralInteger(v) => Some(Rc::new(ScalarValue::Int64(v.parse().unwrap_or_default()))),
+            Expression::LiteralFloat(v) => Some(Rc::new(ScalarValue::Float64(v.parse().unwrap_or_default()))),
+            Expression::LiteralString(s) => Some(Rc::new(ScalarValue::Varchar(
                 s.trim_matches(STRING_REF_TRIMMING).to_string(),
             ))),
             Expression::ColumnRef(name) => ctx

@@ -14,7 +14,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="8..11" text="foo"/>
+                            <node type="IDENTIFIER" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -27,7 +27,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="44..47" text="foo"/>
+                            <node type="IDENTIFIER" loc="44..47" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -35,7 +35,7 @@
                     <node type="OBJECT_DASHQL_DECLARE" loc="83..132" text="DECLARE fo..l = &apos;Foo&apos;)">
                         <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="TEXT"/>
                         <node key="DASHQL_DECLARE_EXTRA" type="OBJECT_DSON" loc="117..132" text="(label = &apos;Foo&apos;)">
-                            <node key="DSON_LABEL" type="STRING_REF" loc="126..131" text="&apos;Foo&apos;"/>
+                            <node key="DSON_LABEL" type="LITERAL_STRING" loc="126..131" text="&apos;Foo&apos;"/>
                         </node>
                         <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="98..105" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="98..105" text="VARCHAR">
@@ -43,7 +43,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="91..94" text="foo"/>
+                            <node type="IDENTIFIER" loc="91..94" text="foo"/>
                         </node>
                     </node>
                 </statement>
@@ -132,8 +132,8 @@
                                     DSON_LABEL,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Foo&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Foo&quot;,
                                     ),
                                 ),
                             },
@@ -154,14 +154,14 @@
                         <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="CALENDAR"/>
                         <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="15..22" text="DATE[2]">
                             <node key="SQL_TYPENAME_ARRAY" type="ARRAY">
-                                <node type="STRING_REF" loc="20..21" text="2"/>
+                                <node type="LITERAL_INTEGER" loc="20..21" text="2"/>
                             </node>
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="15..19" text="DATE">
-                                <node key="SQL_GENERIC_TYPE_NAME" type="STRING_REF" loc="15..19" text="DATE"/>
+                                <node key="SQL_GENERIC_TYPE_NAME" type="IDENTIFIER" loc="15..19" text="DATE"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="8..11" text="foo"/>
+                            <node type="IDENTIFIER" loc="8..11" text="foo"/>
                         </node>
                     </node>
                 </statement>

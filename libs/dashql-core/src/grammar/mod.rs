@@ -13,6 +13,7 @@ pub mod enums;
 pub mod enums_serde;
 pub mod program;
 pub mod script_writer;
+pub mod string;
 
 pub use ast_cell::*;
 pub use ast_node::*;

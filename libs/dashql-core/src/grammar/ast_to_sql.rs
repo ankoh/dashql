@@ -1222,7 +1222,6 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
         let op_prec = w.operator_precedence.get();
         let text = match self {
             Expression::Null => w.str_const("null"),
-            Expression::Uint32(v) => w.str(w.arena.alloc_str(&v.to_string())),
             Expression::Boolean(b) => {
                 if *b {
                     w.str_const("true")
@@ -1412,7 +1411,10 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
             },
             Expression::ParameterRef(_) => todo!(),
             Expression::SelectStatement(_) => todo!(),
-            Expression::StringRef(s) => w.single_quotes(w.str(s.clone())),
+            Expression::LiteralString(s) => w.single_quotes(w.str(s.clone())),
+            Expression::LiteralInteger(s) | Expression::LiteralFloat(s) | Expression::LiteralInterval(s) => {
+                w.str(s.clone())
+            }
             Expression::Subquery(_) => todo!(),
             Expression::TypeCast(_) => todo!(),
             Expression::TypeTest(_) => todo!(),

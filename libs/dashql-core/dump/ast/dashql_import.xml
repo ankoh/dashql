@@ -7,25 +7,25 @@ load assistenten from uni[&apos;assistenten.parquet&apos;] using parquet;</input
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="0..76" text="import uni../all.zip&apos;)">
                         <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="21..76" text="(url = &apos;ht../all.zip&apos;)">
-                            <node key="DSON_URL" type="STRING_REF" loc="28..75" text="&apos;https://s..e/all.zip&apos;"/>
+                            <node key="DSON_URL" type="LITERAL_STRING" loc="28..75" text="&apos;https://s..e/all.zip&apos;"/>
                         </node>
                         <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="7..10" text="uni"/>
+                            <node type="IDENTIFIER" loc="7..10" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="78..140" text="load assis..ng parquet">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="100..103" text="uni"/>
+                            <node type="IDENTIFIER" loc="100..103" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="103..126" text="[&apos;assisten...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="104..125" text="&apos;assistent..n.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="104..125" text="&apos;assistent..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="83..94" text="assistenten"/>
+                            <node type="IDENTIFIER" loc="83..94" text="assistenten"/>
                         </node>
                     </node>
                 </statement>
@@ -56,8 +56,8 @@ load assistenten from uni[&apos;assistenten.parquet&apos;] using parquet;</input
                                     DSON_URL,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;https://static.dashql.com/data/uni/de/all.zip&apos;&quot;,
+                                    LiteralString(
+                                        &quot;https://static.dashql.com/data/uni/de/all.zip&quot;,
                                     ),
                                 ),
                             },
@@ -79,8 +79,8 @@ load assistenten from uni[&apos;assistenten.parquet&apos;] using parquet;</input
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;assistenten.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;assistenten.parquet&quot;,
                             ),
                         },
                     ),
@@ -101,49 +101,49 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
             <statements>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="0..63" text="import uni..e/all.zip&apos;">
-                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="16..63" text="&apos;https://s..e/all.zip&apos;"/>
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="16..63" text="&apos;https://s..e/all.zip&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="7..10" text="uni"/>
+                            <node type="IDENTIFIER" loc="7..10" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="65..127" text="load vorle..ng parquet">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="87..90" text="uni"/>
+                            <node type="IDENTIFIER" loc="87..90" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="90..113" text="[&apos;vorlesun...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="91..112" text="&apos;vorlesung..n.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="91..112" text="&apos;vorlesung..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="PARQUET"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="70..81" text="vorlesungen"/>
+                            <node type="IDENTIFIER" loc="70..81" text="vorlesungen"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="129..167" text="load hoere...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="146..149" text="uni"/>
+                            <node type="IDENTIFIER" loc="146..149" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="149..167" text="[&apos;hoeren.parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="150..166" text="&apos;hoeren.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="150..166" text="&apos;hoeren.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="134..140" text="hoeren"/>
+                            <node type="IDENTIFIER" loc="134..140" text="hoeren"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="169..213" text="load stude...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="189..192" text="uni"/>
+                            <node type="IDENTIFIER" loc="189..192" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="192..213" text="[&apos;studente...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="193..212" text="&apos;studenten.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="193..212" text="&apos;studenten.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="174..183" text="studenten"/>
+                            <node type="IDENTIFIER" loc="174..183" text="studenten"/>
                         </node>
                     </node>
                 </statement>
@@ -168,8 +168,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                 ],
                 method: NONE,
                 from_uri: Some(
-                    StringRef(
-                        &quot;&apos;https://static.dashql.com/data/uni/de/all.zip&apos;&quot;,
+                    LiteralString(
+                        &quot;https://static.dashql.com/data/uni/de/all.zip&quot;,
                     ),
                 ),
                 extra: None,
@@ -188,8 +188,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;vorlesungen.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;vorlesungen.parquet&quot;,
                             ),
                         },
                     ),
@@ -211,8 +211,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;hoeren.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;hoeren.parquet&quot;,
                             ),
                         },
                     ),
@@ -234,8 +234,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;studenten.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;studenten.parquet&quot;,
                             ),
                         },
                     ),
@@ -257,14 +257,14 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="0..163" text="import jso..omekey&apos;)\n)">
                         <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="28..163" text="(\n    url ..omekey&apos;)\n)">
-                            <node key="DSON_URL" type="STRING_REF" loc="40..102" text="&apos;https://w..tag/stats&apos;"/>
+                            <node key="DSON_URL" type="LITERAL_STRING" loc="40..102" text="&apos;https://w..tag/stats&apos;"/>
                             <node key="DSON_KEYS[1]" type="OBJECT_DSON" loc="120..161" text="(&apos;Ocp-Apim..&apos;somekey&apos;)">
-                                <node key="DSON_KEYS[0]" type="STRING_REF" loc="151..160" text="&apos;somekey&apos;"/>
+                                <node key="DSON_KEYS[0]" type="LITERAL_STRING" loc="151..160" text="&apos;somekey&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="7..17" text="json_stats"/>
+                            <node type="IDENTIFIER" loc="7..17" text="json_stats"/>
                         </node>
                     </node>
                 </statement>
@@ -300,8 +300,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                                     DSON_URL,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&apos;&quot;,
+                                    LiteralString(
+                                        &quot;https://www.haloapi.com/stats/hw2/players/somegamertag/stats&quot;,
                                     ),
                                 ),
                             },
@@ -316,8 +316,8 @@ load studenten from uni[&apos;studenten.parquet&apos;];</input>
                                                 &quot;Ocp-Apim-Subscription-Key&quot;,
                                             ),
                                             value: Expression(
-                                                StringRef(
-                                                    &quot;&apos;somekey&apos;&quot;,
+                                                LiteralString(
+                                                    &quot;somekey&quot;,
                                                 ),
                                             ),
                                         },

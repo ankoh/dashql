@@ -7,6 +7,7 @@ use super::dson::*;
 use super::program::*;
 use crate::error::SystemError;
 use crate::grammar::ast_nodes_sql::ConstraintAttribute;
+use crate::grammar::string::trim_quotes;
 use dashql_proto as proto;
 use dashql_proto::ExpressionOperator;
 use dashql_proto::GroupByItemType;
@@ -114,9 +115,24 @@ pub fn deserialize_ast<'a>(
         let translated = match node_type {
             proto::NodeType::NONE => ASTNode::Null,
             proto::NodeType::BOOL => ASTNode::Boolean((node.children_begin_or_value() != 0).into()),
-            proto::NodeType::UI32 => ASTNode::UInt32(node.children_begin_or_value()),
             proto::NodeType::UI32_BITMAP => ASTNode::UInt32Bitmap(node.children_begin_or_value()),
-            proto::NodeType::STRING_REF => ASTNode::StringRef(
+            proto::NodeType::IDENTIFIER => ASTNode::Identifier(trim_quotes(
+                &text[(node.location().offset() as usize)
+                    ..((node.location().offset() + node.location().length()) as usize)],
+            )),
+            proto::NodeType::LITERAL_FLOAT => ASTNode::LiteralFloat(
+                &text[(node.location().offset() as usize)
+                    ..((node.location().offset() + node.location().length()) as usize)],
+            ),
+            proto::NodeType::LITERAL_INTEGER => ASTNode::LiteralInteger(
+                &text[(node.location().offset() as usize)
+                    ..((node.location().offset() + node.location().length()) as usize)],
+            ),
+            proto::NodeType::LITERAL_STRING => ASTNode::LiteralString(trim_quotes(
+                &text[(node.location().offset() as usize)
+                    ..((node.location().offset() + node.location().length()) as usize)],
+            )),
+            proto::NodeType::LITERAL_INTERVAL => ASTNode::LiteralInterval(
                 &text[(node.location().offset() as usize)
                     ..((node.location().offset() + node.location().length()) as usize)],
             ),
@@ -206,7 +222,7 @@ pub fn deserialize_ast<'a>(
                 let mut name = ASTCell::default();
                 let mut modifiers: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_GENERIC_TYPE_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_GENERIC_TYPE_NAME, ASTNode::Identifier(s), ci) => name = ASTCell::with_node(Some(s.clone()), ci),
                     (Key::SQL_GENERIC_TYPE_MODIFIERS, ASTNode::Array(a, ni), ci) => modifiers = ASTCell::with_node(read_exprs(arena, a, *ni), ci)
                 }
                 ASTNode::GenericTypeSpec(arena.alloc(GenericType {
@@ -234,7 +250,7 @@ pub fn deserialize_ast<'a>(
                 let mut precision = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t), ci) => ty = ASTCell::with_node(Some(t.clone()), ci),
-                    (Key::SQL_INTERVAL_PRECISION, ASTNode::StringRef(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci)
+                    (Key::SQL_INTERVAL_PRECISION, ASTNode::LiteralInteger(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci)
                 }
                 ASTNode::IntervalSpecification(arena.alloc(IntervalSpecification {
                     interval_type: ty,
@@ -248,7 +264,7 @@ pub fn deserialize_ast<'a>(
                 read_attributes! {
                     (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(b), _) => star = *b,
                     (Key::SQL_RESULT_TARGET_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci),
-                    (Key::SQL_RESULT_TARGET_NAME, ASTNode::StringRef(s), ci) => alias = ASTCell::with_node(Some(s.clone()), ci)
+                    (Key::SQL_RESULT_TARGET_NAME, ASTNode::Identifier(s), ci) => alias = ASTCell::with_node(Some(s.clone()), ci)
                 }
                 ASTNode::ResultTarget(arena.alloc(if star {
                     ResultTarget::Star
@@ -260,10 +276,10 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             proto::NodeType::OBJECT_SQL_PARAMETER_REF => {
-                let mut prefix = ASTCell::with_value("");
+                let prefix = ASTCell::with_value(false);
                 let mut name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
-                    (Key::SQL_PARAMETER_PREFIX, ASTNode::StringRef(p), ci) => prefix = ASTCell::with_node(p, ci),
+                    (Key::SQL_PARAMETER_PREFIX, ASTNode::Boolean(true), _) => prefix.set(true),
                     (Key::SQL_PARAMETER_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci)
                 }
                 ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
@@ -363,7 +379,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_TABLEREF_TABLE, ASTNode::JoinedTable(t), ci) => joined = ASTCell::with_node(Some(*t), ci),
                     (Key::SQL_TABLEREF_TABLE, ASTNode::FunctionTable(t), ci) => func = ASTCell::with_node(Some(*t), ci),
                     (Key::SQL_TABLEREF_ALIAS, ASTNode::Alias(a), ci) => alias = ASTCell::with_node(Some(*a), ci),
-                    (Key::SQL_TABLEREF_ALIAS, ASTNode::StringRef(s), ci) => {
+                    (Key::SQL_TABLEREF_ALIAS, ASTNode::Identifier(s), ci) => {
                         alias = ASTCell::with_node(Some(arena.alloc(Alias {
                             name: ASTCell::with_node(*s, ci),
                             column_names: ASTCell::with_value(&[]),
@@ -409,10 +425,10 @@ pub fn deserialize_ast<'a>(
                 let mut repeat = ASTCell::default();
                 let mut seed = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(s), ci) => function = ASTCell::with_node(Some(s.clone()), ci),
-                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(s), ci) => repeat = ASTCell::with_node(Some(s.clone()), ci),
-                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(s), ci) => seed = ASTCell::with_node(Some(s.clone()), ci),
-                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(v), ci) => count = ASTCell::with_node(Some(v.clone()), ci),
+                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::Identifier(s), ci) => function = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_REPEAT, ASTNode::LiteralInteger(s), ci) => repeat = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_SEED, ASTNode::LiteralInteger(s), ci) => seed = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::LiteralInteger(v), ci) => count = ASTCell::with_node(Some(v.clone()), ci),
                     (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), ci) => count_unit = ASTCell::with_node(Some(u.clone()), ci)
                 }
                 ASTNode::TableSample(arena.alloc(TableSample {
@@ -428,7 +444,7 @@ pub fn deserialize_ast<'a>(
                 let mut value = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s), ci) => sql_type = ASTCell::with_node(Some(*s), ci),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
                 }
                 let cast = arena.alloc(ConstTypeCastExpression {
                     sql_type: sql_type.unwrap(),
@@ -441,7 +457,7 @@ pub fn deserialize_ast<'a>(
                 let mut value = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t), ci) => interval = ASTCell::with_node(Some(*t), ci),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
                 }
                 let cast = arena.alloc(ConstIntervalCastExpression {
                     value: value.unwrap_or_default(),
@@ -455,7 +471,7 @@ pub fn deserialize_ast<'a>(
                 let mut func_arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::StringRef(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci),
                     (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n, ni), ci) => func_name = ASTCell::with_node(Some(read_name(arena, n, *ni)), ci),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes, ni), ci) => func_args = ASTCell::with_node(unpack_nodes!(nodes, ni, FunctionArgument), ci),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes, ni), ci) => func_arg_ordering = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci)
@@ -473,8 +489,8 @@ pub fn deserialize_ast<'a>(
                 let mut column_names: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut column_definitions: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_ALIAS_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(s, ci),
-                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes, ni), ci) => column_names = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_ALIAS_NAME, ASTNode::Identifier(s), ci) => name = ASTCell::with_node(s, ci),
+                    (Key::SQL_ALIAS_COLUMN_NAMES, ASTNode::Array(nodes, ni), ci) => column_names = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci),
                     (Key::SQL_ALIAS_COLUMN_DEFS, ASTNode::Array(nodes, ni), ci) => column_definitions = ASTCell::with_node(unpack_nodes!(nodes, ni, ColumnDefinition), ci)
                 }
                 ASTNode::Alias(arena.alloc(Alias {
@@ -527,7 +543,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_JOIN_TYPE, ASTNode::JoinType(t), ci) => join = ASTCell::with_node(t.clone(), ci),
                     (Key::SQL_JOIN_ON, n, ci) => qualifier = ASTCell::with_node(Some(JoinQualifier::On(read_expr!(n))), ci),
                     (Key::SQL_JOIN_USING, ASTNode::Array(nodes, ni), ci) => {
-                        let using = unpack_strings!(nodes, ni, StringRef);
+                        let using = unpack_strings!(nodes, ni, Identifier);
                         qualifier = ASTCell::with_node(Some(JoinQualifier::Using(using)), ci);
                     },
                     (Key::SQL_JOIN_INPUT, ASTNode::Array(nodes, ni), ci) => input = ASTCell::with_node(unpack_nodes!(nodes, ni, TableRef), ci)
@@ -572,7 +588,7 @@ pub fn deserialize_ast<'a>(
                 let mut name = ASTCell::default();
                 let mut value = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_FUNCTION_NAME, ASTNode::Identifier(s), ci) => name = ASTCell::with_node(Some(s.clone()), ci),
                     (Key::SQL_FUNCTION_ARG_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 ASTNode::FunctionArgument(arena.alloc(FunctionArgument {
@@ -614,8 +630,8 @@ pub fn deserialize_ast<'a>(
                 let mut key = ASTCell::with_value("");
                 let mut value = ASTCell::with_value("");
                 read_attributes! {
-                    (Key::SQL_GENERIC_OPTION_KEY, ASTNode::StringRef(k), ci) => key = ASTCell::with_node(k, ci),
-                    (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::StringRef(v), ci) => value = ASTCell::with_node(v, ci)
+                    (Key::SQL_GENERIC_OPTION_KEY, ASTNode::Identifier(k), ci) => key = ASTCell::with_node(k, ci),
+                    (Key::SQL_GENERIC_OPTION_VALUE, ASTNode::LiteralString(v), ci) => value = ASTCell::with_node(v, ci)
                 }
                 ASTNode::GenericOption(arena.alloc(GenericOption { key, value }))
             }
@@ -653,7 +669,7 @@ pub fn deserialize_ast<'a>(
                 let mut target = ASTCell::with_value(ExtractFunctionTarget::Known(proto::ExtractTarget::SECOND));
                 let mut input = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::StringRef(s), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Unknown(s), ci),
+                    (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::Identifier(s), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Unknown(s), ci),
                     (Key::SQL_FUNCTION_EXTRACT_TARGET, ASTNode::ExtractTarget(t), ci) => target = ASTCell::with_node(ExtractFunctionTarget::Known(*t), ci),
                     (Key::SQL_FUNCTION_EXTRACT_INPUT, n, ci) => input = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
@@ -701,7 +717,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_FUNCTION_VARIADIC, ASTNode::FunctionArgument(arg), ci) => variadic = ASTCell::with_node(Some(*arg), ci),
                     (Key::SQL_FUNCTION_ALL, ASTNode::Boolean(b), ci) => all = ASTCell::with_node(*b, ci),
                     (Key::SQL_FUNCTION_DISTINCT, ASTNode::Boolean(b), ci) => distinct = ASTCell::with_node(*b, ci),
-                    (Key::SQL_FUNCTION_NAME, ASTNode::StringRef(s), ci) => func_name = ASTCell::with_node(FunctionName::Unknown(s), ci),
+                    (Key::SQL_FUNCTION_NAME, ASTNode::Identifier(s), ci) => func_name = ASTCell::with_node(FunctionName::Unknown(s), ci),
                     (Key::SQL_FUNCTION_NAME, ASTNode::KnownFunction(f), ci) => func_name = ASTCell::with_node(FunctionName::Known(f.clone()), ci),
                     (Key::SQL_FUNCTION_ORDER, ASTNode::Array(nodes, ni), ci) => arg_ordering = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
                     (Key::SQL_FUNCTION_WITHIN_GROUP, ASTNode::Array(nodes, ni), ci) => within_group = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
@@ -804,7 +820,7 @@ pub fn deserialize_ast<'a>(
                 let mut precision = ASTCell::default();
                 let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::LiteralInteger(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), ci) => with_timezone = ASTCell::with_node(*tz, ci)
                 }
                 ASTNode::TimestampTypeSpec(arena.alloc(TimestampType {
@@ -816,7 +832,7 @@ pub fn deserialize_ast<'a>(
                 let mut precision = ASTCell::default();
                 let mut with_timezone = ASTCell::with_value(false);
                 read_attributes! {
-                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::StringRef(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
+                    (Key::SQL_TIME_TYPE_PRECISION, ASTNode::LiteralInteger(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci),
                     (Key::SQL_TIME_TYPE_WITH_TIMEZONE, ASTNode::Boolean(tz), ci) => with_timezone = ASTCell::with_node(*tz, ci)
                 }
                 ASTNode::TimeTypeSpec(arena.alloc(TimeType {
@@ -944,7 +960,7 @@ pub fn deserialize_ast<'a>(
                 let mut key = ASTCell::with_value("");
                 let mut value = ASTCell::with_value(Expression::Null);
                 read_attributes! {
-                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::StringRef(n), ci) => key = ASTCell::with_node(n, ci),
+                    (Key::SQL_DEFINITION_ARG_KEY, ASTNode::Identifier(n), ci) => key = ASTCell::with_node(n, ci),
                     (Key::SQL_DEFINITION_ARG_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci)
                 }
                 ASTNode::GenericDefinition(arena.alloc(GenericDefinition { key, value }))
@@ -957,7 +973,7 @@ pub fn deserialize_ast<'a>(
                 let mut no_inherit = ASTCell::with_value(false);
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = ASTCell::with_node(c.clone(), ci),
-                    (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::Identifier(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => definition = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), ci) => no_inherit = ASTCell::with_node(*b, ci)
@@ -1003,13 +1019,13 @@ pub fn deserialize_ast<'a>(
                         }
                         attributes = ASTCell::with_node(constraints, ci);
                     },
-                    (Key::SQL_TABLE_CONSTRAINT_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci),
                     (Key::SQL_TABLE_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => definition = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
-                    (Key::SQL_TABLE_CONSTRAINT_INDEX, ASTNode::StringRef(s), ci) => using_index = ASTCell::with_node(Some(*s), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_INDEX, ASTNode::Identifier(s), ci) => using_index = ASTCell::with_node(Some(*s), ci),
                     (Key::SQL_TABLE_CONSTRAINT_KEY_ACTIONS, ASTNode::Array(nodes, ni), ci) => key_actions = ASTCell::with_node(unpack_nodes!(nodes, ni, KeyAction), ci),
                     (Key::SQL_TABLE_CONSTRAINT_KEY_MATCH, ASTNode::KeyMatch(m), ci) => key_match = ASTCell::with_node(Some(*m), ci),
-                    (Key::SQL_TABLE_CONSTRAINT_NAME, ASTNode::StringRef(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
-                    (Key::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS, ASTNode::Array(nodes, ni), ci) => ref_columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_NAME, ASTNode::Identifier(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS, ASTNode::Array(nodes, ni), ci) => ref_columns = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci),
                     (Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME, ASTNode::Array(name, ni), ci) => ref_name = ASTCell::with_node(read_name(arena, name, *ni), ci),
                     (Key::SQL_TABLE_CONSTRAINT_TYPE, ASTNode::TableConstraint(c), ci) => constraint_type = ASTCell::with_node(c.clone(), ci)
                 }
@@ -1060,11 +1076,11 @@ pub fn deserialize_ast<'a>(
                 let mut count_value = None;
                 let mut count_unit = ASTCell::with_value(proto::SampleCountUnit::ROWS);
                 read_attributes! {
-                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::StringRef(f), ci) => function = ASTCell::with_node(f, ci),
-                    (Key::SQL_SAMPLE_REPEAT, ASTNode::StringRef(v), ci) => repeat = ASTCell::with_node(Some(v.clone()), ci),
-                    (Key::SQL_SAMPLE_SEED, ASTNode::StringRef(v), ci) => seed = ASTCell::with_node(Some(v.clone()), ci),
+                    (Key::SQL_SAMPLE_FUNCTION, ASTNode::Identifier(f), ci) => function = ASTCell::with_node(f, ci),
+                    (Key::SQL_SAMPLE_REPEAT, ASTNode::LiteralInteger(v), ci) => repeat = ASTCell::with_node(Some(v.clone()), ci),
+                    (Key::SQL_SAMPLE_SEED, ASTNode::LiteralInteger(v), ci) => seed = ASTCell::with_node(Some(v.clone()), ci),
                     (Key::SQL_SAMPLE_COUNT_UNIT, ASTNode::SampleCountUnit(u), ci) => count_unit = ASTCell::with_node(u.clone(), ci),
-                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::StringRef(s), ci) => count_value = Some(ASTCell::with_node(*s, ci))
+                    (Key::SQL_SAMPLE_COUNT_VALUE, ASTNode::LiteralInteger(s), ci) => count_value = Some(ASTCell::with_node(*s, ci))
                 }
                 ASTNode::Sample(arena.alloc(Sample {
                     function,
@@ -1114,9 +1130,9 @@ pub fn deserialize_ast<'a>(
                 let mut options: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut constraints: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(n, ci),
+                    (Key::SQL_COLUMN_DEF_NAME, ASTNode::Identifier(n), ci) => name = ASTCell::with_node(n, ci),
                     (Key::SQL_COLUMN_DEF_TYPE, ASTNode::SQLType(t), ci) => sql_type = ASTCell::with_node(Some(*t), ci),
-                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes, ni), ci) => collate = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_COLUMN_DEF_COLLATE, ASTNode::Array(nodes, ni), ci) => collate = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci),
                     (Key::SQL_COLUMN_DEF_OPTIONS, ASTNode::Array(nodes, ni), ci) => options = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericOption), ci),
                     (Key::SQL_COLUMN_DEF_CONSTRAINTS, ASTNode::Array(nodes, ni), ci) => {
                         let cs = arena.alloc_slice_fill_default(nodes.len());
@@ -1153,7 +1169,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_CREATE_AS_IF_NOT_EXISTS, ASTNode::Boolean(b), ci) => if_not_exists = ASTCell::with_node(*b, ci),
                     (Key::SQL_CREATE_AS_TEMP, ASTNode::TempType(t), ci) => temp = ASTCell::with_node(Some(t.clone()), ci),
                     (Key::SQL_CREATE_AS_ON_COMMIT, ASTNode::OnCommitOption(o), ci) => on_commit = ASTCell::with_node(Some(o.clone()), ci),
-                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci)
+                    (Key::SQL_CREATE_AS_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci)
                 }
                 ASTNode::CreateAs(arena.alloc(CreateAsStatement {
                     name,
@@ -1174,7 +1190,7 @@ pub fn deserialize_ast<'a>(
                     (Key::SQL_VIEW_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
                     (Key::SQL_VIEW_STATEMENT, ASTNode::SelectStatement(s), ci) => select = ASTCell::with_node(Some(*s), ci),
                     (Key::SQL_VIEW_TEMP, ASTNode::TempType(t), ci) => temp = ASTCell::with_node(Some(t.clone()), ci),
-                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols, ni), ci) => columns = ASTCell::with_node(unpack_strings!(cols, ni, StringRef), ci)
+                    (Key::SQL_VIEW_COLUMNS, ASTNode::Array(cols, ni), ci) => columns = ASTCell::with_node(unpack_strings!(cols, ni, Identifier), ci)
                 }
                 ASTNode::CreateView(arena.alloc(CreateViewStatement {
                     name,
@@ -1188,8 +1204,8 @@ pub fn deserialize_ast<'a>(
                 let mut columns: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut stmt = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_CTE_NAME, ASTNode::StringRef(s), ci) => name = ASTCell::with_node(s, ci),
-                    (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, StringRef), ci),
+                    (Key::SQL_CTE_NAME, ASTNode::Identifier(s), ci) => name = ASTCell::with_node(s, ci),
+                    (Key::SQL_CTE_COLUMNS, ASTNode::Array(nodes, ni), ci) => columns = ASTCell::with_node(unpack_strings!(nodes, ni, Identifier), ci),
                     (Key::SQL_CTE_STATEMENT, ASTNode::SelectStatement(s), ci) => stmt = ASTCell::with_node(Some(*s), ci)
                 }
                 ASTNode::CommonTableExpression(arena.alloc(CommonTableExpression {
@@ -1216,7 +1232,7 @@ pub fn deserialize_ast<'a>(
                 let mut frame_mode = ASTCell::default();
                 let mut frame_bounds: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
-                    (Key::SQL_WINDOW_FRAME_NAME, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_WINDOW_FRAME_NAME, ASTNode::Identifier(n), ci) => name = ASTCell::with_node(Some(n.clone()), ci),
                     (Key::SQL_WINDOW_FRAME_PARTITION, ASTNode::Array(nodes, ni), ci) => partition_by = ASTCell::with_node(read_exprs(arena, nodes, *ni), ci),
                     (Key::SQL_WINDOW_FRAME_ORDER, ASTNode::Array(nodes, ni), ci) => order_by = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci),
                     (Key::SQL_WINDOW_FRAME_MODE, ASTNode::WindowRangeMode(m), ci) => frame_mode = ASTCell::with_node(Some(*m), ci),
@@ -1234,7 +1250,7 @@ pub fn deserialize_ast<'a>(
                 let mut name = ASTCell::default();
                 let mut frame = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_WINDOW_DEF_NAME, ASTNode::StringRef(n), ci) => name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_WINDOW_DEF_NAME, ASTNode::Identifier(n), ci) => name = ASTCell::with_node(Some(n.clone()), ci),
                     (Key::SQL_WINDOW_DEF_FRAME, ASTNode::WindowFrame(f), ci) => frame = ASTCell::with_node(Some(*f), ci)
                 }
                 ASTNode::WindowDefinition(arena.alloc(WindowDefinition {
@@ -1438,7 +1454,11 @@ fn read_expr<'a, 'b>(arena: &'a bumpalo::Bump, node: &ASTNode<'a>) -> Expression
         ASTNode::IndirectionExpression(c) => Expression::Indirection(c),
         ASTNode::ParameterRef(p) => Expression::ParameterRef(p),
         ASTNode::SelectStatementExpression(s) => Expression::SelectStatement(s),
-        ASTNode::StringRef(s) => Expression::StringRef(s.clone()),
+        ASTNode::LiteralFloat(s) => Expression::LiteralFloat(s.clone()),
+        ASTNode::LiteralInteger(s) => Expression::LiteralInteger(s.clone()),
+        ASTNode::LiteralInterval(s) => Expression::LiteralInterval(s.clone()),
+        ASTNode::LiteralString(s) => Expression::LiteralString(s.clone()),
+        ASTNode::Identifier(s) => Expression::LiteralString(s.clone()),
         ASTNode::SubqueryExpression(e) => Expression::Subquery(e),
         ASTNode::TypeCastExpression(c) => Expression::TypeCast(c),
         ASTNode::TypeTestExpression(t) => Expression::TypeTest(t),
@@ -1462,7 +1482,9 @@ fn read_name<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>], ni: usize) -> 
     let path = alloc.alloc_slice_fill_default(nodes.len());
     for (i, n) in nodes.iter().enumerate() {
         path[i] = match n {
-            ASTNode::StringRef(s) => ASTCell::with_node(Indirection::Name(s.trim_matches(NAME_TRIMMING)), ni + i),
+            ASTNode::Identifier(s) | ASTNode::LiteralString(s) => {
+                ASTCell::with_node(Indirection::Name(s.trim_matches(NAME_TRIMMING)), ni + i)
+            }
             ASTNode::Indirection(indirection) => ASTCell::with_node(indirection.clone(), ni + i),
             _ => {
                 log::warn!("invalid name element: {:?}", n);
@@ -1481,7 +1503,8 @@ fn read_expression_operator<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) ->
             for (i, n) in elems.iter().enumerate() {
                 path[i] = ASTCell::with_node(
                     match n {
-                        ASTNode::StringRef(s) => *s,
+                        ASTNode::Identifier(s) => *s,
+                        ASTNode::LiteralString(s) => *s,
                         ASTNode::ExpressionOperator(op) => op.variant_name().unwrap_or_default(),
                         _ => {
                             log::warn!("invalid expression operator name: {:?}", n);
@@ -1505,7 +1528,7 @@ fn read_array_bounds<'a>(alloc: &'a bumpalo::Bump, nodes: &[ASTNode<'a>]) -> &'a
     for (i, n) in nodes.iter().enumerate() {
         bounds[i] = match n {
             ASTNode::Null => ArrayBound::Empty,
-            ASTNode::StringRef(s) => ArrayBound::Index(s),
+            ASTNode::LiteralInteger(s) => ArrayBound::Index(s),
             _ => {
                 log::warn!("invalid name element: {:?}", n);
                 ArrayBound::Empty
@@ -1526,7 +1549,10 @@ fn read_dson<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) -> DsonValue<'a> 
             DsonValue::Array(elements)
         }
         ASTNode::Expression(e) => DsonValue::Expression(e.clone()),
-        ASTNode::StringRef(s) => DsonValue::Expression(Expression::StringRef(s)),
+        ASTNode::LiteralFloat(s) => DsonValue::Expression(Expression::LiteralFloat(s)),
+        ASTNode::LiteralInteger(s) => DsonValue::Expression(Expression::LiteralInteger(s)),
+        ASTNode::LiteralInterval(s) => DsonValue::Expression(Expression::LiteralInterval(s)),
+        ASTNode::LiteralString(s) => DsonValue::Expression(Expression::LiteralString(s)),
         ASTNode::FunctionExpression(f) => DsonValue::Expression(Expression::FunctionCall(f)),
         e => DsonValue::Expression(read_expr(alloc, e)),
     }

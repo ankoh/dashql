@@ -346,7 +346,7 @@ sql_limit_clause:
     }
   | FETCH sql_first_or_next sql_row_or_rows ONLY {
         $$ = {
-            Attr(Key::SQL_SELECT_LIMIT, UI32(@3, 1)),
+            Attr(Key::SQL_SELECT_LIMIT, Bool(@3, true)),
         };
     }
     ;
@@ -2191,8 +2191,8 @@ sql_a_expr_const:
     ICONST  { $$ = Const(@1, proto::AConstType::INTEGER); }
   | FCONST  { $$ = Const(@1, proto::AConstType::FLOAT); }
   | SCONST  { $$ = Const(@1, proto::AConstType::STRING); }
-  | BCONST  { $$ = Const(@1, proto::AConstType::BITSTRING); }
-  | XCONST  { $$ = Const(@1, proto::AConstType::BITSTRING); }
+  | BCONST  { $$ = Const(@1, proto::AConstType::STRING); }
+  | XCONST  { $$ = Const(@1, proto::AConstType::STRING); }
   | sql_const_typename SCONST {
         auto t = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, std::move($1))

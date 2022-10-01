@@ -18,8 +18,10 @@ pub fn is_constant_expression<'ast, 'snap>(
         let can_eval = match top {
             Expression::Null => true,
             Expression::Boolean(_) => true,
-            Expression::Uint32(_) => true,
-            Expression::StringRef(_) => true,
+            Expression::LiteralFloat(_) => true,
+            Expression::LiteralInteger(_) => true,
+            Expression::LiteralInterval(_) => true,
+            Expression::LiteralString(_) => true,
             Expression::ColumnRef(name) => {
                 ctx.local_state.named_values.contains_key(&name) || ctx.global_state.named_values.contains_key(&name)
             }

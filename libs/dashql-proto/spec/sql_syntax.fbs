@@ -79,14 +79,10 @@ enum CombineOperation: uint8 {
 }
 
 enum AConstType: uint8 {
-    NONE = 0,
     INTEGER = 1,
     FLOAT = 2,
     STRING = 3,
-    BITSTRING = 4,
     INTERVAL = 5,
-    FUNCTION = 6,
-    NULL_ = 7,
 }
 
 enum TempType: uint8 {

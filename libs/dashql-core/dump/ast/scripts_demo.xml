@@ -34,12 +34,12 @@
                         <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="TEXT"/>
                         <node key="DASHQL_DECLARE_EXTRA" type="OBJECT_DSON" loc="323..445" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="387..431" text="(row = 0, ..eight = 1)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="394..395" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="406..407" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="417..418" text="3"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="429..430" text="1"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="394..395" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="406..407" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="417..418" text="3"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="429..430" text="1"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="349..358" text="&apos;Country&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="349..358" text="&apos;Country&apos;"/>
                         </node>
                         <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="304..311" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="304..311" text="VARCHAR">
@@ -47,7 +47,7 @@
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="293..300" text="country"/>
+                            <node type="IDENTIFIER" loc="293..300" text="country"/>
                         </node>
                     </node>
                 </statement>
@@ -57,34 +57,34 @@
                             <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="640..702" text="format(&apos;ht..n.country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="647..687" text="&apos;https://c..eather/%s&apos;">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="STRING_REF" loc="647..687" text="&apos;https://c..eather/%s&apos;"/>
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="647..687" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="689..701" text="main.country">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="689..701" text="main.country">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="STRING_REF" loc="689..693" text="main"/>
-                                                <node type="STRING_REF" loc="694..701" text="country"/>
+                                                <node type="IDENTIFIER" loc="689..693" text="main"/>
+                                                <node type="IDENTIFIER" loc="694..701" text="country"/>
                                             </node>
                                         </node>
                                     </node>
                                 </node>
-                                <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="640..646" text="format"/>
+                                <node key="SQL_FUNCTION_NAME" type="IDENTIFIER" loc="640..646" text="format"/>
                             </node>
                         </node>
                         <node key="DASHQL_IMPORT_METHOD" type="ENUM_DASHQL_IMPORT_METHOD_TYPE" value="HTTP"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="594..605" text="weather_csv"/>
+                            <node type="IDENTIFIER" loc="594..605" text="weather_csv"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="836..875" text="LOAD weath.. USING CSV">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="854..865" text="weather_csv"/>
+                            <node type="IDENTIFIER" loc="854..865" text="weather_csv"/>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="CSV"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="841..848" text="weather"/>
+                            <node type="IDENTIFIER" loc="841..848" text="weather"/>
                         </node>
                     </node>
                 </statement>
@@ -94,19 +94,19 @@
                             <node type="OBJECT_SQL_TABLEREF" loc="1033..1040" text="weather">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="STRING_REF" loc="1033..1040" text="weather"/>
+                                    <node type="IDENTIFIER" loc="1033..1040" text="weather"/>
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="1016..1027" text="weather_avg">
                             <node key="SQL_TEMP_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1016..1027" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="1016..1027" text="weather_avg"/>
                             </node>
                             <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="1009..1010" text="1">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="1009..1010" text="1"/>
+                                <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="1009..1010" text="1"/>
                             </node>
                         </node>
                     </node>
@@ -117,7 +117,7 @@
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1158..1169" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1158..1169" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="1158..1169" text="weather_avg"/>
                             </node>
                         </node>
                     </node>
@@ -204,7 +204,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -214,7 +214,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -224,7 +224,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;3&quot;,
                                                 ),
                                             ),
@@ -234,7 +234,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;1&quot;,
                                                 ),
                                             ),
@@ -247,8 +247,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Country&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Country&quot;,
                                     ),
                                 ),
                             },
@@ -282,8 +282,8 @@
                                             args: [
                                                 FunctionArgument {
                                                     name: None,
-                                                    value: StringRef(
-                                                        &quot;&apos;https://cdn.dashql.com/demo/weather/%s&apos;&quot;,
+                                                    value: LiteralString(
+                                                        &quot;https://cdn.dashql.com/demo/weather/%s&quot;,
                                                     ),
                                                 },
                                                 FunctionArgument {
@@ -343,7 +343,7 @@
                         distinct: None,
                         targets: [
                             Value {
-                                value: StringRef(
+                                value: LiteralInteger(
                                     &quot;1&quot;,
                                 ),
                                 alias: None,
@@ -424,33 +424,33 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="0..347" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="14..347" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="81..125" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="88..89" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="100..101" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="111..112" text="6"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="123..124" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="88..89" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="100..101" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="111..112" text="6"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="123..124" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="40..52" text="&apos;Line Chart&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="40..52" text="&apos;Line Chart&apos;"/>
                             <node key="DSON_ENCODING" type="OBJECT_DSON" loc="185..333" text="(\n        ..         )">
                                 <node key="DSON_X" type="OBJECT_DSON" loc="211..250" text="(field = &apos;..unt = 10))">
                                     <node key="DSON_AXIS" type="OBJECT_DSON" loc="232..249" text="(tick_count = 10)">
-                                        <node key="DSON_TICK_COUNT" type="STRING_REF" loc="246..248" text="10"/>
+                                        <node key="DSON_TICK_COUNT" type="LITERAL_INTEGER" loc="246..248" text="10"/>
                                     </node>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="220..223" text="&apos;x&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="220..223" text="&apos;x&apos;"/>
                                 </node>
                                 <node key="DSON_Y" type="OBJECT_DSON" loc="276..315" text="(field = &apos;..unt = 10))">
                                     <node key="DSON_AXIS" type="OBJECT_DSON" loc="297..314" text="(tick_count = 10)">
-                                        <node key="DSON_TICK_COUNT" type="STRING_REF" loc="311..313" text="10"/>
+                                        <node key="DSON_TICK_COUNT" type="LITERAL_INTEGER" loc="311..313" text="10"/>
                                     </node>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="285..288" text="&apos;y&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="285..288" text="&apos;y&apos;"/>
                                 </node>
                             </node>
-                            <node key="DSON_MARK" type="STRING_REF" loc="150..156" text="&apos;line&apos;"/>
+                            <node key="DSON_MARK" type="LITERAL_STRING" loc="150..156" text="&apos;line&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="4..7" text="foo">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="4..7" text="foo"/>
+                                <node type="IDENTIFIER" loc="4..7" text="foo"/>
                             </node>
                         </node>
                     </node>
@@ -503,7 +503,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -513,7 +513,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -523,7 +523,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;6&quot;,
                                                 ),
                                             ),
@@ -533,7 +533,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -546,8 +546,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Line Chart&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Line Chart&quot;,
                                     ),
                                 ),
                             },
@@ -574,7 +574,7 @@
                                                                         DSON_TICK_COUNT,
                                                                     ),
                                                                     value: Expression(
-                                                                        StringRef(
+                                                                        LiteralInteger(
                                                                             &quot;10&quot;,
                                                                         ),
                                                                     ),
@@ -587,8 +587,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;x&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;x&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -612,7 +612,7 @@
                                                                         DSON_TICK_COUNT,
                                                                     ),
                                                                     value: Expression(
-                                                                        StringRef(
+                                                                        LiteralInteger(
                                                                             &quot;10&quot;,
                                                                         ),
                                                                     ),
@@ -625,8 +625,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;y&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;y&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -641,8 +641,8 @@
                                     DSON_MARK,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;line&apos;&quot;,
+                                    LiteralString(
+                                        &quot;line&quot;,
                                     ),
                                 ),
                             },
@@ -732,55 +732,55 @@
             <statements>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="51..132" text="IMPORT uni..e/all.zip&apos;">
-                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="67..132" text="&apos;https://d..e/all.zip&apos;"/>
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="67..132" text="&apos;https://d..e/all.zip&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="58..61" text="uni"/>
+                            <node type="IDENTIFIER" loc="58..61" text="uni"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="204..252" text="LOAD vorle...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="226..229" text="uni"/>
+                            <node type="IDENTIFIER" loc="226..229" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="229..252" text="[&apos;vorlesun...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="230..251" text="&apos;vorlesung..n.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="230..251" text="&apos;vorlesung..n.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="209..220" text="vorlesungen"/>
+                            <node type="IDENTIFIER" loc="209..220" text="vorlesungen"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="266..304" text="LOAD hoere...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="283..286" text="uni"/>
+                            <node type="IDENTIFIER" loc="283..286" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="286..304" text="[&apos;hoeren.parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="287..303" text="&apos;hoeren.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="287..303" text="&apos;hoeren.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="271..277" text="hoeren"/>
+                            <node type="IDENTIFIER" loc="271..277" text="hoeren"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="318..362" text="LOAD stude...parquet&apos;]">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="338..341" text="uni"/>
+                            <node type="IDENTIFIER" loc="338..341" text="uni"/>
                             <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="341..362" text="[&apos;studente...parquet&apos;]">
-                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="STRING_REF" loc="342..361" text="&apos;studenten.parquet&apos;"/>
+                                <node key="SQL_INDIRECTION_INDEX_VALUE" type="LITERAL_STRING" loc="342..361" text="&apos;studenten.parquet&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="323..332" text="studenten"/>
+                            <node type="IDENTIFIER" loc="323..332" text="studenten"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="CREATE_TABLE_AS">
                     <node type="OBJECT_SQL_CREATE_AS" loc="410..657" text="CREATE TAB..gen.VorlNr">
                         <node key="SQL_CREATE_AS_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="423..433" text="Enrolments"/>
+                            <node type="IDENTIFIER" loc="423..433" text="Enrolments"/>
                         </node>
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="453..657" text="SELECT stu..gen.VorlNr">
@@ -788,19 +788,19 @@
                                 <node type="OBJECT_SQL_TABLEREF" loc="517..526" text="studenten">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="517..526" text="studenten"/>
+                                        <node type="IDENTIFIER" loc="517..526" text="studenten"/>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_TABLEREF" loc="528..534" text="hoeren">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="528..534" text="hoeren"/>
+                                        <node type="IDENTIFIER" loc="528..534" text="hoeren"/>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_TABLEREF" loc="536..547" text="vorlesungen">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="536..547" text="vorlesungen"/>
+                                        <node type="IDENTIFIER" loc="536..547" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
@@ -808,16 +808,16 @@
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="460..476" text="studenten.MatrNr">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="460..476" text="studenten.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="460..469" text="studenten"/>
-                                            <node type="STRING_REF" loc="470..476" text="MatrNr"/>
+                                            <node type="IDENTIFIER" loc="460..469" text="studenten"/>
+                                            <node type="IDENTIFIER" loc="470..476" text="MatrNr"/>
                                         </node>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="478..495" text="vorlesungen.Titel">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="478..495" text="vorlesungen.Titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="478..489" text="vorlesungen"/>
-                                            <node type="STRING_REF" loc="490..495" text="Titel"/>
+                                            <node type="IDENTIFIER" loc="478..489" text="vorlesungen"/>
+                                            <node type="IDENTIFIER" loc="490..495" text="Titel"/>
                                         </node>
                                     </node>
                                 </node>
@@ -826,14 +826,14 @@
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="570..602" text="studenten...ren.MatrNr">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="570..586" text="studenten.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="570..579" text="studenten"/>
-                                            <node type="STRING_REF" loc="580..586" text="MatrNr"/>
+                                            <node type="IDENTIFIER" loc="570..579" text="studenten"/>
+                                            <node type="IDENTIFIER" loc="580..586" text="MatrNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="589..602" text="hoeren.MatrNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="589..595" text="hoeren"/>
-                                            <node type="STRING_REF" loc="596..602" text="MatrNr"/>
+                                            <node type="IDENTIFIER" loc="589..595" text="hoeren"/>
+                                            <node type="IDENTIFIER" loc="596..602" text="MatrNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -841,14 +841,14 @@
                                 <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="623..657" text="hoeren.Vor..gen.VorlNr">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="623..636" text="hoeren.VorlNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="623..629" text="hoeren"/>
-                                            <node type="STRING_REF" loc="630..636" text="VorlNr"/>
+                                            <node type="IDENTIFIER" loc="623..629" text="hoeren"/>
+                                            <node type="IDENTIFIER" loc="630..636" text="VorlNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="639..657" text="vorlesungen.VorlNr">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="639..650" text="vorlesungen"/>
-                                            <node type="STRING_REF" loc="651..657" text="VorlNr"/>
+                                            <node type="IDENTIFIER" loc="639..650" text="vorlesungen"/>
+                                            <node type="IDENTIFIER" loc="651..657" text="VorlNr"/>
                                         </node>
                                     </node>
                                     <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -863,23 +863,23 @@
                 <statement type="CREATE_TABLE_AS">
                     <node type="OBJECT_SQL_CREATE_AS" loc="707..920" text="CREATE TAB..BY v.titel">
                         <node key="SQL_CREATE_AS_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="720..734" text="StudentsCounts"/>
+                            <node type="IDENTIFIER" loc="720..734" text="StudentsCounts"/>
                         </node>
                         <node key="SQL_CREATE_AS_ON_COMMIT" type="ENUM_SQL_ON_COMMIT_OPTION" value="NOOP"/>
                         <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="754..920" text="SELECT v.t..BY v.titel">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
                                 <node type="OBJECT_SQL_TABLEREF" loc="822..830" text="hoeren h">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="829..830" text="h"/>
+                                    <node key="SQL_TABLEREF_ALIAS" type="IDENTIFIER" loc="829..830" text="h"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="822..828" text="hoeren"/>
+                                        <node type="IDENTIFIER" loc="822..828" text="hoeren"/>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_TABLEREF" loc="832..845" text="vorlesungen v">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="844..845" text="v"/>
+                                    <node key="SQL_TABLEREF_ALIAS" type="IDENTIFIER" loc="844..845" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="832..843" text="vorlesungen"/>
+                                        <node type="IDENTIFIER" loc="832..843" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
@@ -887,8 +887,8 @@
                                 <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="913..920" text="v.titel">
                                     <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="913..920" text="v.titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="913..914" text="v"/>
-                                            <node type="STRING_REF" loc="915..920" text="titel"/>
+                                            <node type="IDENTIFIER" loc="913..914" text="v"/>
+                                            <node type="IDENTIFIER" loc="915..920" text="titel"/>
                                         </node>
                                     </node>
                                     <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
@@ -898,22 +898,22 @@
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="761..768" text="v.titel">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="761..768" text="v.titel">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="761..762" text="v"/>
-                                            <node type="STRING_REF" loc="763..768" text="titel"/>
+                                            <node type="IDENTIFIER" loc="761..762" text="v"/>
+                                            <node type="IDENTIFIER" loc="763..768" text="titel"/>
                                         </node>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="770..800" text="count(*)::.. studenten">
-                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="791..800" text="studenten"/>
+                                    <node key="SQL_RESULT_TARGET_NAME" type="IDENTIFIER" loc="791..800" text="studenten"/>
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="770..787" text="count(*)::INTEGER">
                                         <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="780..787" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                         <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="770..778" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                <node type="STRING_REF" loc="776..777" text="*"/>
+                                                <node type="IDENTIFIER" loc="776..777" text="*"/>
                                             </node>
-                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="770..775" text="count"/>
+                                            <node key="SQL_FUNCTION_NAME" type="IDENTIFIER" loc="770..775" text="count"/>
                                         </node>
                                     </node>
                                 </node>
@@ -921,14 +921,14 @@
                             <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="868..887" text="h.vorlnr = v.vorlnr">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="868..876" text="h.vorlnr">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="868..869" text="h"/>
-                                        <node type="STRING_REF" loc="870..876" text="vorlnr"/>
+                                        <node type="IDENTIFIER" loc="868..869" text="h"/>
+                                        <node type="IDENTIFIER" loc="870..876" text="vorlnr"/>
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="879..887" text="v.vorlnr">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="STRING_REF" loc="879..880" text="v"/>
-                                        <node type="STRING_REF" loc="881..887" text="vorlnr"/>
+                                        <node type="IDENTIFIER" loc="879..880" text="v"/>
+                                        <node type="IDENTIFIER" loc="881..887" text="vorlnr"/>
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -941,15 +941,15 @@
                 <statement type="CREATE_VIEW">
                     <node type="OBJECT_SQL_VIEW" loc="977..1122" text="CREATE VIE..P BY v.sws">
                         <node key="SQL_VIEW_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="989..998" text="SWSCounts"/>
+                            <node type="IDENTIFIER" loc="989..998" text="SWSCounts"/>
                         </node>
                         <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="1018..1122" text="SELECT v.s..P BY v.sws">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
                                 <node type="OBJECT_SQL_TABLEREF" loc="1078..1091" text="vorlesungen v">
-                                    <node key="SQL_TABLEREF_ALIAS" type="STRING_REF" loc="1090..1091" text="v"/>
+                                    <node key="SQL_TABLEREF_ALIAS" type="IDENTIFIER" loc="1090..1091" text="v"/>
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="1078..1089" text="vorlesungen"/>
+                                        <node type="IDENTIFIER" loc="1078..1089" text="vorlesungen"/>
                                     </node>
                                 </node>
                             </node>
@@ -957,8 +957,8 @@
                                 <node type="OBJECT_SQL_GROUP_BY_ITEM" loc="1117..1122" text="v.sws">
                                     <node key="SQL_GROUP_BY_ITEM_ARG" type="OBJECT_SQL_COLUMN_REF" loc="1117..1122" text="v.sws">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="1117..1118" text="v"/>
-                                            <node type="STRING_REF" loc="1119..1122" text="sws"/>
+                                            <node type="IDENTIFIER" loc="1117..1118" text="v"/>
+                                            <node type="IDENTIFIER" loc="1119..1122" text="sws"/>
                                         </node>
                                     </node>
                                     <node key="SQL_GROUP_BY_ITEM_TYPE" type="ENUM_SQL_GROUP_BY_ITEM_TYPE" value="EXPRESSION"/>
@@ -968,22 +968,22 @@
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="1025..1030" text="v.sws">
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="1025..1030" text="v.sws">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="1025..1026" text="v"/>
-                                            <node type="STRING_REF" loc="1027..1030" text="sws"/>
+                                            <node type="IDENTIFIER" loc="1025..1026" text="v"/>
+                                            <node type="IDENTIFIER" loc="1027..1030" text="sws"/>
                                         </node>
                                     </node>
                                 </node>
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="1032..1056" text="count(*)::..GER as cnt">
-                                    <node key="SQL_RESULT_TARGET_NAME" type="STRING_REF" loc="1053..1056" text="cnt"/>
+                                    <node key="SQL_RESULT_TARGET_NAME" type="IDENTIFIER" loc="1053..1056" text="cnt"/>
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_TYPECAST_EXPRESSION" loc="1032..1049" text="count(*)::INTEGER">
                                         <node key="SQL_TYPECAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="1042..1049" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
                                         </node>
                                         <node key="SQL_TYPECAST_VALUE" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1032..1040" text="count(*)">
                                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
-                                                <node type="STRING_REF" loc="1038..1039" text="*"/>
+                                                <node type="IDENTIFIER" loc="1038..1039" text="*"/>
                                             </node>
-                                            <node key="SQL_FUNCTION_NAME" type="STRING_REF" loc="1032..1037" text="count"/>
+                                            <node key="SQL_FUNCTION_NAME" type="IDENTIFIER" loc="1032..1037" text="count"/>
                                         </node>
                                     </node>
                                 </node>
@@ -996,18 +996,18 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1193..1352" text="VIZ Enrolm..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1220..1352" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="1292..1337" text="(row = 3, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="1299..1300" text="3"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="1311..1312" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="1322..1324" text="12"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1335..1336" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="1299..1300" text="3"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="1311..1312" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="1322..1324" text="12"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="1335..1336" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="1246..1263" text="&apos;Einschreibungen&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="1246..1263" text="&apos;Einschreibungen&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1197..1207" text="Enrolments">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1197..1207" text="Enrolments"/>
+                                <node type="IDENTIFIER" loc="1197..1207" text="Enrolments"/>
                             </node>
                         </node>
                     </node>
@@ -1016,37 +1016,37 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1401..2083" text="VIZ Studen..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1425..2083" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="1492..1536" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="1499..1500" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="1511..1512" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="1522..1523" text="6"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1534..1535" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="1499..1500" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="1511..1512" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="1522..1523" text="6"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="1534..1535" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="1451..1463" text="&apos;Auslastung&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="1451..1463" text="&apos;Auslastung&apos;"/>
                             <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1595..2069" text="(\n        ..         )">
                                 <node key="DSON_X" type="OBJECT_DSON" loc="1800..2050" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="1834..1845" text="&apos;Studenten&apos;"/>
+                                    <node key="DSON_TITLE" type="LITERAL_STRING" loc="1834..1845" text="&apos;Studenten&apos;"/>
                                     <node key="DSON_AXIS" type="OBJECT_DSON" loc="2005..2027" text="axis.tick_..n_step = 1">
-                                        <node key="DSON_TICK_MIN_STEP" type="STRING_REF" loc="2026..2027" text="1"/>
+                                        <node key="DSON_TICK_MIN_STEP" type="LITERAL_INTEGER" loc="2026..2027" text="1"/>
                                     </node>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="1879..1890" text="&apos;studenten&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="1879..1890" text="&apos;studenten&apos;"/>
                                     <node key="DSON_SCALE" type="OBJECT_DSON" loc="1962..1979" text="scale.zero = true">
                                         <node key="DSON_ZERO" type="BOOL" value="true"/>
                                     </node>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1922..1936" text="&apos;quantitative&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="1922..1936" text="&apos;quantitative&apos;"/>
                                 </node>
                                 <node key="DSON_Y" type="OBJECT_DSON" loc="1621..1774" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="1655..1668" text="&apos;Vorlesungen&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="1702..1709" text="&apos;Titel&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1742..1751" text="&apos;nominal&apos;"/>
+                                    <node key="DSON_TITLE" type="LITERAL_STRING" loc="1655..1668" text="&apos;Vorlesungen&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="1702..1709" text="&apos;Titel&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="1742..1751" text="&apos;nominal&apos;"/>
                                 </node>
                             </node>
-                            <node key="DSON_MARK" type="STRING_REF" loc="1561..1566" text="&apos;bar&apos;"/>
+                            <node key="DSON_MARK" type="LITERAL_STRING" loc="1561..1566" text="&apos;bar&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1405..1418" text="StudentCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1405..1418" text="StudentCounts"/>
+                                <node type="IDENTIFIER" loc="1405..1418" text="StudentCounts"/>
                             </node>
                         </node>
                     </node>
@@ -1055,36 +1055,36 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="2134..2748" text="VIZ SWSCou..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="2154..2748" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="2224..2268" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="2231..2232" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="2243..2244" text="6"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="2254..2255" text="6"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="2266..2267" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="2231..2232" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="2243..2244" text="6"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="2254..2255" text="6"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="2266..2267" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="2180..2195" text="&apos;Wochenstunden&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="2180..2195" text="&apos;Wochenstunden&apos;"/>
                             <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2352..2734" text="(\n        ..         )">
                                 <node key="DSON_COLOR" type="OBJECT_DSON" loc="2382..2486" text="(\n        ..         )">
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="2416..2421" text="&apos;SWS&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="2454..2463" text="&apos;ordinal&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="2416..2421" text="&apos;SWS&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="2454..2463" text="&apos;ordinal&apos;"/>
                                 </node>
                                 <node key="DSON_THETA" type="OBJECT_DSON" loc="2516..2715" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="2550..2563" text="&apos;Vorlesungen&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="2597..2602" text="&apos;cnt&apos;"/>
+                                    <node key="DSON_TITLE" type="LITERAL_STRING" loc="2550..2563" text="&apos;Vorlesungen&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="2597..2602" text="&apos;cnt&apos;"/>
                                     <node key="DSON_SCALE" type="OBJECT_DSON" loc="2675..2692" text="scale.zero = true">
                                         <node key="DSON_ZERO" type="BOOL" value="true"/>
                                     </node>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="2635..2649" text="&apos;quantitative&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="2635..2649" text="&apos;quantitative&apos;"/>
                                 </node>
                             </node>
                             <node key="DSON_MARK" type="OBJECT_DSON" loc="2293..2323" text="(type= &apos;ar..radius=50)">
-                                <node key="DSON_INNER_RADIUS" type="STRING_REF" loc="2320..2322" text="50"/>
-                                <node key="DSON_TYPE" type="STRING_REF" loc="2300..2305" text="&apos;arc&apos;"/>
+                                <node key="DSON_INNER_RADIUS" type="LITERAL_INTEGER" loc="2320..2322" text="50"/>
+                                <node key="DSON_TYPE" type="LITERAL_STRING" loc="2300..2305" text="&apos;arc&apos;"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="2138..2147" text="SWSCounts">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="2138..2147" text="SWSCounts"/>
+                                <node type="IDENTIFIER" loc="2138..2147" text="SWSCounts"/>
                             </node>
                         </node>
                     </node>
@@ -1188,8 +1188,8 @@
                 ],
                 method: NONE,
                 from_uri: Some(
-                    StringRef(
-                        &quot;&apos;https://dashql.blob.core.windows.net/static/data/uni/de/all.zip&apos;&quot;,
+                    LiteralString(
+                        &quot;https://dashql.blob.core.windows.net/static/data/uni/de/all.zip&quot;,
                     ),
                 ),
                 extra: None,
@@ -1208,8 +1208,8 @@
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;vorlesungen.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;vorlesungen.parquet&quot;,
                             ),
                         },
                     ),
@@ -1231,8 +1231,8 @@
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;hoeren.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;hoeren.parquet&quot;,
                             ),
                         },
                     ),
@@ -1254,8 +1254,8 @@
                     ),
                     Index(
                         IndirectionIndex {
-                            value: StringRef(
-                                &quot;&apos;studenten.parquet&apos;&quot;,
+                            value: LiteralString(
+                                &quot;studenten.parquet&quot;,
                             ),
                         },
                     ),
@@ -1468,7 +1468,7 @@
                                                     args: [
                                                         FunctionArgument {
                                                             name: None,
-                                                            value: StringRef(
+                                                            value: LiteralString(
                                                                 &quot;*&quot;,
                                                             ),
                                                         },
@@ -1641,7 +1641,7 @@
                                                     args: [
                                                         FunctionArgument {
                                                             name: None,
-                                                            value: StringRef(
+                                                            value: LiteralString(
                                                                 &quot;*&quot;,
                                                             ),
                                                         },
@@ -1754,7 +1754,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;3&quot;,
                                                 ),
                                             ),
@@ -1764,7 +1764,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -1774,7 +1774,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;12&quot;,
                                                 ),
                                             ),
@@ -1784,7 +1784,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -1797,8 +1797,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Einschreibungen&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Einschreibungen&quot;,
                                     ),
                                 ),
                             },
@@ -1838,7 +1838,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -1848,7 +1848,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -1858,7 +1858,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;6&quot;,
                                                 ),
                                             ),
@@ -1868,7 +1868,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -1881,8 +1881,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Auslastung&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Auslastung&quot;,
                                     ),
                                 ),
                             },
@@ -1903,8 +1903,8 @@
                                                             DSON_TITLE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Studenten&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Studenten&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -1919,7 +1919,7 @@
                                                                         DSON_TICK_MIN_STEP,
                                                                     ),
                                                                     value: Expression(
-                                                                        StringRef(
+                                                                        LiteralInteger(
                                                                             &quot;1&quot;,
                                                                         ),
                                                                     ),
@@ -1932,8 +1932,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;studenten&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;studenten&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -1961,8 +1961,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;quantitative&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;quantitative&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -1980,8 +1980,8 @@
                                                             DSON_TITLE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Vorlesungen&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Vorlesungen&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -1990,8 +1990,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Titel&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Titel&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2000,8 +2000,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;nominal&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;nominal&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2016,8 +2016,8 @@
                                     DSON_MARK,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;bar&apos;&quot;,
+                                    LiteralString(
+                                        &quot;bar&quot;,
                                     ),
                                 ),
                             },
@@ -2057,7 +2057,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -2067,7 +2067,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;6&quot;,
                                                 ),
                                             ),
@@ -2077,7 +2077,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;6&quot;,
                                                 ),
                                             ),
@@ -2087,7 +2087,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -2100,8 +2100,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Wochenstunden&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Wochenstunden&quot;,
                                     ),
                                 ),
                             },
@@ -2122,8 +2122,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;SWS&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;SWS&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2132,8 +2132,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;ordinal&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;ordinal&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2151,8 +2151,8 @@
                                                             DSON_TITLE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Vorlesungen&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Vorlesungen&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2161,8 +2161,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;cnt&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;cnt&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2190,8 +2190,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;quantitative&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;quantitative&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2212,7 +2212,7 @@
                                                 DSON_INNER_RADIUS,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;50&quot;,
                                                 ),
                                             ),
@@ -2222,8 +2222,8 @@
                                                 DSON_TYPE,
                                             ),
                                             value: Expression(
-                                                StringRef(
-                                                    &quot;&apos;arc&apos;&quot;,
+                                                LiteralString(
+                                                    &quot;arc&quot;,
                                                 ),
                                             ),
                                         },
@@ -2279,50 +2279,50 @@
             <statements>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="38..142" text="IMPORT csv..es_v2.tsv&apos;">
-                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="65..142" text="&apos;https://i..es_v2.tsv&apos;"/>
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="65..142" text="&apos;https://i..es_v2.tsv&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="45..59" text="csv_vacc_total"/>
+                            <node type="IDENTIFIER" loc="45..59" text="csv_vacc_total"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="156..255" text="IMPORT csv..state.tsv&apos;">
-                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="183..255" text="&apos;https://i..state.tsv&apos;"/>
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="183..255" text="&apos;https://i..state.tsv&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="163..177" text="csv_vacc_state"/>
+                            <node type="IDENTIFIER" loc="163..177" text="csv_vacc_state"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="IMPORT">
                     <node type="OBJECT_DASHQL_IMPORT" loc="269..371" text="IMPORT csv..es_v2.tsv&apos;">
-                        <node key="DASHQL_IMPORT_FROM_URI" type="STRING_REF" loc="296..371" text="&apos;https://i..es_v2.tsv&apos;"/>
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="296..371" text="&apos;https://i..es_v2.tsv&apos;"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="276..290" text="csv_deliveries"/>
+                            <node type="IDENTIFIER" loc="276..290" text="csv_deliveries"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="LOAD">
                     <node type="OBJECT_DASHQL_LOAD" loc="423..470" text="LOAD vacci.. USING CSV">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="STRING_REF" loc="446..460" text="csv_vacc_total"/>
+                            <node type="IDENTIFIER" loc="446..460" text="csv_vacc_total"/>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="CSV"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="428..440" text="vaccinations"/>
+                            <node type="IDENTIFIER" loc="428..440" text="vaccinations"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="CREATE_VIEW">
                     <node type="OBJECT_SQL_VIEW" loc="518..630" text="CREATE VIE..         )">
                         <node key="SQL_VIEW_NAME" type="ARRAY">
-                            <node type="STRING_REF" loc="530..547" text="vaccinations_desc"/>
+                            <node type="IDENTIFIER" loc="530..547" text="vaccinations_desc"/>
                         </node>
                         <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="551..630" text="(\n        ..         )">
                             <node key="SQL_SELECT_FROM" type="ARRAY">
                                 <node type="OBJECT_SQL_TABLEREF" loc="583..595" text="vaccinations">
                                     <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                     <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                        <node type="STRING_REF" loc="583..595" text="vaccinations"/>
+                                        <node type="IDENTIFIER" loc="583..595" text="vaccinations"/>
                                     </node>
                                 </node>
                             </node>
@@ -2331,7 +2331,7 @@
                                     <node key="SQL_ORDER_DIRECTION" type="ENUM_SQL_ORDER_DIRECTION" value="DESCENDING"/>
                                     <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="605..611" text="&quot;date&quot;">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                            <node type="STRING_REF" loc="605..611" text="&quot;date&quot;"/>
+                                            <node type="IDENTIFIER" loc="605..611" text="&quot;date&quot;"/>
                                         </node>
                                     </node>
                                 </node>
@@ -2349,31 +2349,31 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="687..1287" text="VIZ vaccin..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="715..1287" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="789..834" text="(row = 0, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="796..797" text="0"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="808..809" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="819..821" text="12"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="832..833" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="796..797" text="0"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="808..809" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="819..821" text="12"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="832..833" text="4"/>
                             </node>
-                            <node key="DSON_TITLE" type="STRING_REF" loc="741..760" text="&apos;Covid Total Doses&apos;"/>
+                            <node key="DSON_TITLE" type="LITERAL_STRING" loc="741..760" text="&apos;Covid Total Doses&apos;"/>
                             <node key="DSON_ENCODING" type="OBJECT_DSON" loc="894..1273" text="(\n        ..         )">
                                 <node key="DSON_X" type="OBJECT_DSON" loc="920..1066" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="954..960" text="&apos;Time&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="994..1000" text="&apos;date&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1033..1043" text="&apos;temporal&apos;"/>
+                                    <node key="DSON_TITLE" type="LITERAL_STRING" loc="954..960" text="&apos;Time&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="994..1000" text="&apos;date&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="1033..1043" text="&apos;temporal&apos;"/>
                                 </node>
                                 <node key="DSON_Y" type="OBJECT_DSON" loc="1092..1254" text="(\n        ..         )">
-                                    <node key="DSON_TITLE" type="STRING_REF" loc="1126..1133" text="&apos;Doses&apos;"/>
-                                    <node key="DSON_FIELD" type="STRING_REF" loc="1167..1184" text="&apos;dosen_kumulativ&apos;"/>
-                                    <node key="DSON_TYPE" type="STRING_REF" loc="1217..1231" text="&apos;quantitative&apos;"/>
+                                    <node key="DSON_TITLE" type="LITERAL_STRING" loc="1126..1133" text="&apos;Doses&apos;"/>
+                                    <node key="DSON_FIELD" type="LITERAL_STRING" loc="1167..1184" text="&apos;dosen_kumulativ&apos;"/>
+                                    <node key="DSON_TYPE" type="LITERAL_STRING" loc="1217..1231" text="&apos;quantitative&apos;"/>
                                 </node>
                             </node>
-                            <node key="DSON_MARK" type="STRING_REF" loc="859..865" text="&apos;area&apos;"/>
+                            <node key="DSON_MARK" type="LITERAL_STRING" loc="859..865" text="&apos;area&apos;"/>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="SPEC"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="691..708" text="vaccinations_desc">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="691..708" text="vaccinations_desc"/>
+                                <node type="IDENTIFIER" loc="691..708" text="vaccinations_desc"/>
                             </node>
                         </node>
                     </node>
@@ -2382,17 +2382,17 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1332..1455" text="VIZ vaccin..         )">
                         <node key="DASHQL_VIZ_COMPONENT_EXTRA" type="OBJECT_DSON" loc="1366..1455" text="(\n        ..         )">
                             <node key="DSON_POSITION" type="OBJECT_DSON" loc="1395..1440" text="(row = 4, ..eight = 4)">
-                                <node key="DSON_ROW" type="STRING_REF" loc="1402..1403" text="4"/>
-                                <node key="DSON_COLUMN" type="STRING_REF" loc="1414..1415" text="0"/>
-                                <node key="DSON_WIDTH" type="STRING_REF" loc="1425..1427" text="12"/>
-                                <node key="DSON_HEIGHT" type="STRING_REF" loc="1438..1439" text="4"/>
+                                <node key="DSON_ROW" type="LITERAL_INTEGER" loc="1402..1403" text="4"/>
+                                <node key="DSON_COLUMN" type="LITERAL_INTEGER" loc="1414..1415" text="0"/>
+                                <node key="DSON_WIDTH" type="LITERAL_INTEGER" loc="1425..1427" text="12"/>
+                                <node key="DSON_HEIGHT" type="LITERAL_INTEGER" loc="1438..1439" text="4"/>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1336..1353" text="vaccinations_desc">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="STRING_REF" loc="1336..1353" text="vaccinations_desc"/>
+                                <node type="IDENTIFIER" loc="1336..1353" text="vaccinations_desc"/>
                             </node>
                         </node>
                     </node>
@@ -2456,8 +2456,8 @@
                 ],
                 method: NONE,
                 from_uri: Some(
-                    StringRef(
-                        &quot;&apos;https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv&apos;&quot;,
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv&quot;,
                     ),
                 ),
                 extra: None,
@@ -2472,8 +2472,8 @@
                 ],
                 method: NONE,
                 from_uri: Some(
-                    StringRef(
-                        &quot;&apos;https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv&apos;&quot;,
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv&quot;,
                     ),
                 ),
                 extra: None,
@@ -2488,8 +2488,8 @@
                 ],
                 method: NONE,
                 from_uri: Some(
-                    StringRef(
-                        &quot;&apos;https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv&apos;&quot;,
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv&quot;,
                     ),
                 ),
                 extra: None,
@@ -2605,7 +2605,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -2615,7 +2615,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -2625,7 +2625,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;12&quot;,
                                                 ),
                                             ),
@@ -2635,7 +2635,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -2648,8 +2648,8 @@
                                     DSON_TITLE,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;Covid Total Doses&apos;&quot;,
+                                    LiteralString(
+                                        &quot;Covid Total Doses&quot;,
                                     ),
                                 ),
                             },
@@ -2670,8 +2670,8 @@
                                                             DSON_TITLE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Time&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Time&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2680,8 +2680,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;date&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;date&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2690,8 +2690,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;temporal&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;temporal&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2709,8 +2709,8 @@
                                                             DSON_TITLE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;Doses&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;Doses&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2719,8 +2719,8 @@
                                                             DSON_FIELD,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;dosen_kumulativ&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;dosen_kumulativ&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2729,8 +2729,8 @@
                                                             DSON_TYPE,
                                                         ),
                                                         value: Expression(
-                                                            StringRef(
-                                                                &quot;&apos;quantitative&apos;&quot;,
+                                                            LiteralString(
+                                                                &quot;quantitative&quot;,
                                                             ),
                                                         ),
                                                     },
@@ -2745,8 +2745,8 @@
                                     DSON_MARK,
                                 ),
                                 value: Expression(
-                                    StringRef(
-                                        &quot;&apos;area&apos;&quot;,
+                                    LiteralString(
+                                        &quot;area&quot;,
                                     ),
                                 ),
                             },
@@ -2786,7 +2786,7 @@
                                                 DSON_ROW,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),
@@ -2796,7 +2796,7 @@
                                                 DSON_COLUMN,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;0&quot;,
                                                 ),
                                             ),
@@ -2806,7 +2806,7 @@
                                                 DSON_WIDTH,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;12&quot;,
                                                 ),
                                             ),
@@ -2816,7 +2816,7 @@
                                                 DSON_HEIGHT,
                                             ),
                                             value: Expression(
-                                                StringRef(
+                                                LiteralInteger(
                                                     &quot;4&quot;,
                                                 ),
                                             ),

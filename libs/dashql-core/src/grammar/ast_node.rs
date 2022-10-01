@@ -10,8 +10,14 @@ pub enum ASTNode<'a> {
     Boolean(bool),
     UInt32(u32),
     UInt32Bitmap(u32),
-    StringRef(&'a str),
     Array(&'a [ASTNode<'a>], usize),
+
+    Identifier(&'a str),
+    LiteralFloat(&'a str),
+    LiteralInteger(&'a str),
+    LiteralNull(&'a str),
+    LiteralString(&'a str),
+    LiteralInterval(&'a str),
 
     CharacterType(proto::CharacterType),
     ColumnConstraint(proto::ColumnConstraint),

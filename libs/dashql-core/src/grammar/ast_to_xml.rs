@@ -59,12 +59,15 @@ where
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
-                    proto::NodeType::UI32_BITMAP | proto::NodeType::UI32 => {
+                    proto::NodeType::UI32_BITMAP => {
                         node.push_attribute(("value", format!("{}", n.children_begin_or_value()).as_str()));
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
                     }
-                    proto::NodeType::STRING_REF => {
+                    proto::NodeType::IDENTIFIER
+                    | proto::NodeType::LITERAL_FLOAT
+                    | proto::NodeType::LITERAL_INTEGER
+                    | proto::NodeType::LITERAL_STRING => {
                         encode_location(&mut node, *n.location(), text);
                         writer.write_event(Event::Empty(node))?;
                         pending.pop();
