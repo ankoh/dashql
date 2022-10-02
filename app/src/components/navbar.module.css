@@ -143,18 +143,6 @@
     height: 100%;
 }
 
-.tab_button {
-    width: 100%;
-    height: 100%;
-    display: grid !important;
-    align-items: center;
-    justify-content: center;
-}
-
-.tab_icon {
-    color: white;
-}
-
 .tab:hover {
     background-color: var(--nav_tab_bg_active);
     color: var(--nav_tab_fg_active);

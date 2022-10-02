@@ -1,10 +1,10 @@
 import * as React from 'react';
-import Button from 'react-bootstrap/Button';
 import classNames from 'classnames';
 import { SystemBar } from './systembar';
 import { Link, useLocation } from 'react-router-dom';
 import { useActiveGitHubProfile } from '../github';
 import { useAppConfig } from '../model/app_config';
+import { HoverMode, LinkButton } from './button';
 
 import styles from './navbar.module.css';
 
@@ -21,13 +21,15 @@ const Tab = (props: { route: string; alt?: string; location: string; icon: strin
             [styles.active]: props.location == props.route || props.location == props.alt,
         })}
     >
-        <Link to={props.route} className={styles.tab_link}>
-            <Button variant="link" className={styles.tab_button}>
-                <svg className={styles.tab_icon} width="20px" height="20px">
-                    <use xlinkHref={`${props.icon}#sym`} />
-                </svg>
-            </Button>
-        </Link>
+        <LinkButton
+            className={styles.tab_link}
+            to={props.route}
+            width="20px"
+            height="20px"
+            icon={props.icon}
+            invert
+            hover={HoverMode.Lighten}
+        />
     </div>
 );
 
