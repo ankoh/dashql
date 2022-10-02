@@ -73,7 +73,7 @@ fn translate_statements<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<
                 ..mixin
             },
             Statement::Declare(_i) => Task {
-                task_type: TaskType::Declare,
+                task_type: TaskType::Input,
                 ..mixin
             },
             Statement::Import(_f) => Task {
@@ -280,7 +280,7 @@ fn identify_applicable_tasks<'a, 'b: 'a>(ctx: &mut TaskPlannerContext<'a, 'b>) -
                 // Declare task?
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
-                if a.task_type == TaskType::Declare {
+                if a.task_type == TaskType::Input {
                     let prev_stmt_id = diff_op.source.unwrap_or_default();
                     let next_stmt_id = diff_op.target.unwrap_or_default();
                     let prev_param = prev_program.input.get(&prev_stmt_id);
@@ -349,7 +349,7 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
             TaskType::None => (TaskType::None, TaskType::None, false),
             TaskType::CreateTable => (TaskType::DropTable, TaskType::None, false),
             TaskType::CreateViz => (TaskType::DropViz, TaskType::UpdateViz, false),
-            TaskType::Declare => (TaskType::DropInput, TaskType::None, false),
+            TaskType::Input => (TaskType::DropInput, TaskType::None, false),
             TaskType::DropImport => (TaskType::DropImport, TaskType::None, true),
             TaskType::DropInput => (TaskType::DropInput, TaskType::None, true),
             TaskType::DropTable => (TaskType::DropTable, TaskType::None, true),

@@ -37,16 +37,16 @@ pub enum TaskType {
     None,
     CreateTable,
     CreateViz,
-    Declare,
     DropImport,
     DropInput,
     DropTable,
     DropViz,
     Import,
+    Input,
     Load,
-    UpdateTable,
     Set,
     Unset,
+    UpdateTable,
     UpdateViz,
 }
 

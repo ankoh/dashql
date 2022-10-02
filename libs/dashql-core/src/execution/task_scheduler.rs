@@ -5,8 +5,8 @@ use super::{
     task::{
         db_create_table_task::DBCreateTableTaskOperator, db_drop_import_task::DBDropImportTaskOperator,
         db_drop_table_task::DBDropTableTaskOperator, db_load_task::DBLoadTaskOperator,
-        db_update_table_task::DBUpdateTableTaskOperator, declare_task::DeclareTaskOperator,
-        drop_input_task::DropInputTaskOperator, drop_vis_task::DropVisTaskOperator, import_task::ImportTask,
+        db_update_table_task::DBUpdateTableTaskOperator, drop_input_task::DropInputTaskOperator,
+        drop_vis_task::DropVisTaskOperator, import_task::ImportTask, input_task::InputTaskOperator,
         set_task::SetTaskOperator, unset_task::UnsetTaskOperator, viz_task::VegaVisTaskOperator, TaskOperator,
     },
 };
@@ -51,7 +51,7 @@ fn create_task_operator<'exec, 'ast>(
         TaskType::CreateTable => Box::new(DBCreateTableTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::CreateViz => Box::new(VegaVisTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Import => Box::new(ImportTask::create(instance, task_graph, task_id)?),
-        TaskType::Declare => Box::new(DeclareTaskOperator::create(instance, task_graph, task_id)?),
+        TaskType::Input => Box::new(InputTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Load => Box::new(DBLoadTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::UpdateTable => Box::new(DBUpdateTableTaskOperator::create(instance, task_graph, task_id)?),
         TaskType::Set => Box::new(SetTaskOperator::create(instance, task_graph, task_id)?),
