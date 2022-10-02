@@ -137,7 +137,10 @@ export class Node {
     public getNumber(): number | null {
         const t = this.buffer.nodeType();
         switch (t) {
-            case proto.NodeType.UI32:
+            case proto.NodeType.LITERAL_FLOAT:
+                return parseFloat(this.getText());
+            case proto.NodeType.LITERAL_INTEGER:
+                return parseInt(this.getText());
             case proto.NodeType.UI32_BITMAP:
                 return this.buffer.childrenBeginOrValue();
             default:
@@ -148,9 +151,9 @@ export class Node {
         }
     }
     /// Get a string
-    public getString(obj: proto.Location = new proto.Location()): string | null {
+    public getText(obj: proto.Location = new proto.Location()): string | null {
         const loc = this.buffer.location(obj)!;
-        return this.buffer.nodeType() != proto.NodeType.STRING_REF ? null : this.program.textAt(loc);
+        return this.program.textAt(loc);
     }
 
     /// Find an attribute

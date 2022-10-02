@@ -2238,7 +2238,7 @@
     ],
 }</translated>
     </astdump>
-    <astdump name="demo_btw">
+    <astdump name="demo_hello_world">
         <input>-- Fetch vaccination data
             IMPORT csv_vacc_total FROM &apos;https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv&apos;;
             IMPORT csv_vacc_state FROM &apos;https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv&apos;;

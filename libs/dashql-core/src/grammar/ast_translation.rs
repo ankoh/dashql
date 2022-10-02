@@ -265,6 +265,7 @@ pub fn deserialize_ast<'a>(
                 read_attributes! {
                     (Key::SQL_RESULT_TARGET_STAR, ASTNode::Boolean(b), _) => star = *b,
                     (Key::SQL_RESULT_TARGET_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci),
+                    (Key::SQL_RESULT_TARGET_NAME, ASTNode::LiteralString(s), ci) => alias = ASTCell::with_node(Some(s.clone()), ci),
                     (Key::SQL_RESULT_TARGET_NAME, ASTNode::Identifier(s), ci) => alias = ASTCell::with_node(Some(s.clone()), ci)
                 }
                 ASTNode::ResultTarget(arena.alloc(if star {
