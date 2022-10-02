@@ -2,9 +2,14 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::analyzer::viz_spec::VizSpec;
+use crate::analyzer::{input_spec::InputSpec, viz_spec::VizSpec};
 
 use super::table_metadata::TableMetadata;
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct InputData {
+    pub spec: Arc<InputSpec>,
+}
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct FileDataRef {
@@ -39,6 +44,7 @@ pub struct VizData {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "t", content = "v")]
 pub enum TaskData {
+    InputData(InputData),
     FileDataRef(FileDataRef),
     HttpDataRef(HttpDataRef),
     TestDataRef(TestDataRef),
