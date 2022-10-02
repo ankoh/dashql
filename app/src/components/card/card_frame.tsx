@@ -61,7 +61,9 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     {...ctrlPopper.attributes.popper}
                 >
                     <div className={styles.popper_commands}>
-                        <div className={styles.popper_command}>Expand Spec</div>
+                        <Button className={styles.popper_command} hover={HoverMode.Lighten} invert>
+                            <div>Expand Statement</div>
+                        </Button>
                     </div>
                     <div ref={setCtrlPopperArrowElem} className={styles.popper_arrow} style={ctrlPopper.styles.arrow} />
                 </div>

@@ -26,7 +26,7 @@
     color: var(--button_hover_fg);
 }
 .button.hover_lighten:hover:not(.disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
     color: var(--button_fg);
 }
 .button.hover_darken:hover:not(.disabled) {
@@ -54,7 +54,7 @@
     color: var(--button_hover_fg_inverted);
 }
 .button_inverted.hover_lighten:hover:not(.disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
     color: var(--button_fg_inverted);
 }
 .button_inverted.hover_darken:hover:not(.disabled) {

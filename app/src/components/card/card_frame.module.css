@@ -55,7 +55,6 @@
 .popper {
     background-color: black;
     color: white;
-    padding: 4px 8px;
     border-radius: var(--border_radius);
 }
 
@@ -96,5 +95,5 @@
 }
 
 .popper_command {
-    padding: 2px 4px;
+    padding: 4px 8px;
 }
