@@ -21,7 +21,7 @@
 }
 
 .button.active,
-.button:hover:not(.disabled) {
+.button:hover:not(.disabled):not(.nohover) {
     background-color: var(--button_hover_bg);
     color: var(--button_hover_fg);
 }
@@ -41,7 +41,7 @@
 }
 
 .button_inverted.active,
-.button_inverted:hover:not(.disabled) {
+.button_inverted:hover:not(.disabled):not(.nohover) {
     background-color: var(--button_hover_bg_inverted);
     color: var(--button_hover_fg_inverted);
 }

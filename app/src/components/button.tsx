@@ -10,13 +10,15 @@ type ButtonProps = {
     height: string;
     icon: string;
     disabled?: boolean;
-    onClick?: () => void;
+    nohover?: boolean;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
     <div
         className={cn(styles.button, props.className, {
             [styles.disabled]: props.disabled,
+            [styles.nohover]: props.nohover,
         })}
         onClick={props.onClick}
     >

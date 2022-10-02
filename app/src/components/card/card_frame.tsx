@@ -1,9 +1,8 @@
 import * as React from 'react';
-import cn from 'classnames';
 import { usePopper } from 'react-popper';
 
 import styles from './card_frame.module.css';
-import Button from 'react-bootstrap/Button';
+import { Button } from '../button';
 
 import icon_settings from '../../../static/svg/icons/settings.svg';
 
@@ -21,17 +20,27 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
     const ctrlPopper = usePopper(ctrlRefElem, ctrlPopperElem, {
         modifiers: [{ name: 'arrow', options: { element: ctrlPopperArrowElem } }],
     });
+    const [ctrlOpen, setCtrlOpen] = React.useState(false);
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.title}>{props.title}</div>
                 {props.controls && (
-                    <Button ref={setCtrlRefElem} className={styles.settings} size="sm" variant="link">
-                        <svg width="14px" height="14px">
-                            <use xlinkHref={`${icon_settings}#sym`} />
-                        </svg>
-                    </Button>
+                    <div ref={setCtrlRefElem} className={styles.settings}>
+                        <Button
+                            className={styles.settings_button}
+                            width="14px"
+                            height="14px"
+                            icon={icon_settings}
+                            nohover
+                            onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setCtrlOpen(open => !open);
+                            }}
+                        />
+                    </div>
                 )}
             </div>
             <div
@@ -43,15 +52,17 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
             >
                 {props.children}
             </div>
-            <div
-                ref={setCtrlPopperElem}
-                className={styles.popper}
-                style={ctrlPopper.styles.popper}
-                {...ctrlPopper.attributes.popper}
-            >
-                Popper element
-                <div ref={setCtrlPopperArrowElem} className={styles.popper_arrow} style={ctrlPopper.styles.arrow} />
-            </div>
+            {ctrlOpen && (
+                <div
+                    ref={setCtrlPopperElem}
+                    className={styles.popper}
+                    style={ctrlPopper.styles.popper}
+                    {...ctrlPopper.attributes.popper}
+                >
+                    Popper element
+                    <div ref={setCtrlPopperArrowElem} className={styles.popper_arrow} style={ctrlPopper.styles.arrow} />
+                </div>
+            )}
         </div>
     );
 };
