@@ -1,9 +1,10 @@
 import * as React from 'react';
 import * as access from '../../access';
 import * as vl from 'vega-lite';
+import { useWorkflowSession, useWorkflowSessionState } from '../../backend/workflow_session';
 import { SizeObserver, useObservedSize } from '../../utils/size_observer';
 import { Vega } from 'react-vega';
-import { CardFrame } from './card_frame';
+import { CardFrame, CardFrameCommand } from './card_frame';
 import { VegaLiteRendererData as VegaRendererData } from '../../model';
 import { useQueryResult } from '../../access';
 
@@ -74,14 +75,45 @@ const VegaSpecRenderer: React.FC<InnerVegaRendererProps> = (props: InnerVegaRend
 };
 
 interface VegaCardRendererProps {
+    statementId: number;
     data: VegaRendererData;
     editable?: boolean;
 }
 export const VegaCardRenderer: React.FC<VegaCardRendererProps> = (props: VegaCardRendererProps) => {
+    const session = useWorkflowSession();
+    const sessionState = useWorkflowSessionState();
+    const commands = React.useMemo(() => {
+        let cmds: CardFrameCommand[] = [];
+        if (!props.editable) {
+            return cmds;
+        }
+        cmds.push({
+            title: 'Expand Statement',
+            action: () => {
+                const card = sessionState.programAnalysis.cards[props.statementId];
+                const full = props.data.v.spec as any;
+                const reduced = {
+                    title: card.title,
+                    position: card.position,
+                    ...full.layer[0],
+                } as any;
+                session.editProgram([
+                    {
+                        statement_id: props.statementId,
+                        operation: {
+                            t: 'SetVizSpec',
+                            v: JSON.stringify(reduced),
+                        },
+                    },
+                ]);
+            },
+        });
+        return cmds;
+    }, [props.statementId, props.data, props.editable, sessionState]);
     return (
-        <CardFrame title={props.data.v.table.table_name} controls={props.editable}>
+        <CardFrame title={props.data.v.table.table_name} commands={commands}>
             <SizeObserver>
-                <SamplingVegaRenderer data={props.data} />
+                <SamplingVegaRenderer statementId={props.statementId} data={props.data} />
             </SizeObserver>
         </CardFrame>
     );

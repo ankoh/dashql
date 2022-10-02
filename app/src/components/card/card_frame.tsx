@@ -6,11 +6,16 @@ import { Button, HoverMode } from '../button';
 
 import icon_settings from '../../../static/svg/icons/settings.svg';
 
+export interface CardFrameCommand {
+    title: string;
+    action: () => void;
+}
+
 interface Props {
     children?: JSX.Element[] | JSX.Element;
     className?: string;
     title?: string;
-    controls?: boolean;
+    commands?: CardFrameCommand[];
 }
 
 export const CardFrame: React.FC<Props> = (props: Props) => {
@@ -26,7 +31,7 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.title}>{props.title}</div>
-                {props.controls && (
+                {props.commands?.length > 0 && (
                     <div ref={setCtrlRefElem} className={styles.settings}>
                         <Button
                             className={styles.settings_button}
@@ -53,7 +58,7 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
             >
                 {props.children}
             </div>
-            {ctrlOpen && (
+            {ctrlOpen && props.commands?.length > 0 && (
                 <div
                     ref={setCtrlPopperElem}
                     className={styles.popper}
@@ -61,9 +66,16 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     {...ctrlPopper.attributes.popper}
                 >
                     <div className={styles.popper_commands}>
-                        <Button className={styles.popper_command} hover={HoverMode.Lighten} invert>
-                            <div>Expand Statement</div>
-                        </Button>
+                        {props.commands?.map(c => (
+                            <Button
+                                className={styles.popper_command}
+                                hover={HoverMode.Lighten}
+                                invert
+                                onClick={() => c.action()}
+                            >
+                                <div>{c.title}</div>
+                            </Button>
+                        ))}
                     </div>
                     <div ref={setCtrlPopperArrowElem} className={styles.popper_arrow} style={ctrlPopper.styles.arrow} />
                 </div>

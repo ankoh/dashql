@@ -4,6 +4,7 @@ import { ScanningTableViewer } from '../table/table_viewer';
 import { CardFrame } from './card_frame';
 
 interface Props {
+    statementId: number;
     data: TableRendererData;
     editable?: boolean;
 }
@@ -11,7 +12,7 @@ interface Props {
 export const TableCardRenderer: React.FunctionComponent<Props> = (props: Props) => {
     const table = props.data.v.table;
     return (
-        <CardFrame title={table.table_name} controls={props.editable}>
+        <CardFrame title={table.table_name}>
             <ScanningTableViewer table={table} />
         </CardFrame>
     );
