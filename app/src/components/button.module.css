@@ -47,7 +47,13 @@
 }
 
 .button_inverted.active,
-.button_inverted:hover:not(.disabled):not(.nohover) {
+.button_inverted.hover_invert:hover:not(.disabled) {
     background-color: var(--button_hover_bg_inverted);
     color: var(--button_hover_fg_inverted);
+}
+.button.hover_lighten:hover:not(.disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.button.hover_darken:hover:not(.disabled) {
+    background-color: rgba(0, 0, 0, 0.1);
 }
