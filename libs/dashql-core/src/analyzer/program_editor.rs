@@ -203,6 +203,39 @@ mod test {
             )],
         )
         .await?;
+        test_viz_edits(
+            "viz foo using table",
+            r#"viz foo using (
+    mark = 'scatter',
+    encoding = (
+        x = (field = 'foo', type = 'quantitative', scale = (domain = [1, 2])),
+        y = (field = 'bar', type = 'quantitative', scale = (domain = [1, 2]))
+    )
+)"#,
+            &[EditOperation::SetVizSpec(
+                json!({
+                    "mark": "scatter",
+                    "encoding": {
+                        "x": {
+                            "field": "foo",
+                            "type": "quantitative",
+                            "scale": {
+                                "domain": [1, 2]
+                            }
+                        },
+                        "y": {
+                            "field": "bar",
+                            "type": "quantitative",
+                            "scale": {
+                                "domain": [1, 2]
+                            }
+                        }
+                    }
+                })
+                .to_string(),
+            )],
+        )
+        .await?;
         Ok(())
     }
 }
