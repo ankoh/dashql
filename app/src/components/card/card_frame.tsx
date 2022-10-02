@@ -15,7 +15,7 @@ export const CardFrame: React.FC<Props> = (props: Props) => (
     <div className={styles.container}>
         <div className={styles.header}>
             <div className={styles.title}>{props.title}</div>
-            {false && (
+            {props.controls && (
                 <Button size="sm" variant="link" className={styles.settings}>
                     <svg width="14px" height="14px">
                         <use xlinkHref={`${icon_settings}#sym`} />

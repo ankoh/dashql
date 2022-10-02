@@ -84,7 +84,7 @@ export const Board: React.FC<Props> = (props: Props) => {
     for (const l of layout) {
         els.push(
             <div key={l.i}>
-                <CardRenderer statementId={l.statementId} />
+                <CardRenderer statementId={l.statementId} editable={props.editable} />
             </div>,
         );
     }

@@ -38,9 +38,9 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
             const rendererData = taskData.v.renderer;
             switch (rendererData.t) {
                 case 'Table':
-                    return <TableCardRenderer data={rendererData} />;
+                    return <TableCardRenderer data={rendererData} editable={props.editable} />;
                 case 'VegaLite':
-                    return <VegaCardRenderer data={rendererData} />;
+                    return <VegaCardRenderer data={rendererData} editable={props.editable} />;
                 default:
                     return <div />;
             }
