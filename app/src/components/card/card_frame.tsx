@@ -2,7 +2,7 @@ import * as React from 'react';
 import { usePopper } from 'react-popper';
 
 import styles from './card_frame.module.css';
-import { Button } from '../button';
+import { Button, HoverMode } from '../button';
 
 import icon_settings from '../../../static/svg/icons/settings.svg';
 
@@ -33,7 +33,7 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                             width="14px"
                             height="14px"
                             icon={icon_settings}
-                            nohover
+                            hover={HoverMode.Darken}
                             onClick={e => {
                                 e.preventDefault();
                                 e.stopPropagation();

@@ -4,13 +4,19 @@ import cn from 'classnames';
 
 import styles from './button.module.css';
 
+export enum HoverMode {
+    Invert,
+    Darken,
+    Lighten,
+}
+
 type ButtonProps = {
     className?: string;
     width: string;
     height: string;
     icon: string;
     disabled?: boolean;
-    nohover?: boolean;
+    hover?: HoverMode;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
@@ -18,7 +24,9 @@ export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
     <div
         className={cn(styles.button, props.className, {
             [styles.disabled]: props.disabled,
-            [styles.nohover]: props.nohover,
+            [styles.hover_invert]: props.hover === undefined || props.hover === HoverMode.Invert,
+            [styles.hover_lighten]: props.hover === HoverMode.Lighten,
+            [styles.hover_darken]: props.hover === HoverMode.Darken,
         })}
         onClick={props.onClick}
     >
@@ -34,10 +42,18 @@ type LinkProps = {
     height: string;
     icon: string;
     to: string;
+    hover?: HoverMode;
 };
 
 export const LinkButton: React.FC<LinkProps> = (props: LinkProps) => (
-    <Link className={cn(styles.button, props.className)} to={props.to}>
+    <Link
+        className={cn(styles.button, props.className, {
+            [styles.hover_invert]: props.hover === undefined || props.hover === HoverMode.Invert,
+            [styles.hover_lighten]: props.hover === HoverMode.Lighten,
+            [styles.hover_darken]: props.hover === HoverMode.Darken,
+        })}
+        to={props.to}
+    >
         <svg width={props.width} height={props.height}>
             <use xlinkHref={`${props.icon}#sym`} />
         </svg>
