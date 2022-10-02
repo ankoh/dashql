@@ -246,6 +246,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
             | DataType::Float64 => {
                 let lb: f64 = minmax_domain_values[i].0.parse().unwrap_or_default();
                 let ub: f64 = minmax_domain_values[i].1.parse().unwrap_or_default();
+                let (lb, ub) = if lb < ub { (0_f64, ub) } else { (lb, ub) };
                 (
                     sj::Number::from_f64(lb)
                         .map(|v| sj::Value::Number(v))
