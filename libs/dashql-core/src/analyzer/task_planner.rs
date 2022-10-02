@@ -145,7 +145,7 @@ fn diff_programs<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), Sys
     Ok(())
 }
 
-fn identify_applicable_tasks<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
+fn identify_applicable_tasks<'a, 'b: 'a>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<(), SystemError> {
     let (prev_program, prev_tasks) = match ctx.prev_program {
         Some((prev_program, prev_tasks)) => (prev_program, prev_tasks),
         None => return Ok(()),

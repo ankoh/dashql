@@ -4,7 +4,9 @@ use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    analyzer::{program_instance::ProgramInstanceContainer, task_graph::TaskGraph, viz_spec::VizSpec},
+    analyzer::{
+        input_spec::InputSpec, program_instance::ProgramInstanceContainer, task_graph::TaskGraph, viz_spec::VizSpec,
+    },
     api::{workflow_api::WorkflowAPI, workflow_frontend::Frontend},
     error::SystemError,
     grammar::ProgramContainer,
@@ -27,7 +29,7 @@ extern "C" {
     #[wasm_bindgen(structural, method, js_name = "deleteTaskData")]
     fn delete_task_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateInputData")]
-    fn update_input_data(this: &JsFrontend, session_id: u32, data_id: u32);
+    fn update_input_data(this: &JsFrontend, session_id: u32, data_id: u32, input: &str);
     #[wasm_bindgen(structural, method, js_name = "updateImportData")]
     fn update_import_data(this: &JsFrontend, session_id: u32, data_id: u32);
     #[wasm_bindgen(structural, method, js_name = "updateTableData")]
@@ -85,8 +87,9 @@ impl Frontend for JsFrontendBridge {
         self.inner.delete_task_data(session_id, data_id);
         Ok(())
     }
-    fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
-        self.inner.update_input_data(session_id, data_id);
+    fn update_input_data(&self, session_id: u32, data_id: u32, input: Arc<InputSpec>) -> Result<(), String> {
+        let json = serde_json::to_string(&input).map_err(|e| e.to_string())?;
+        self.inner.update_input_data(session_id, data_id, &json);
         Ok(())
     }
     fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {

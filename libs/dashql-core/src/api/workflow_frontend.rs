@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     analyzer::{
-        program_instance::ProgramInstanceContainer, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec,
+        input_spec::InputSpec, program_instance::ProgramInstanceContainer, task::TaskStatusCode, task_graph::TaskGraph,
+        viz_spec::VizSpec,
     },
     external::console,
     grammar::ProgramContainer,
@@ -21,7 +22,7 @@ pub trait Frontend {
         error: Option<String>,
     ) -> Result<(), String>;
     fn delete_task_data(&self, session_id: u32, data_id: u32) -> Result<(), String>;
-    fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String>;
+    fn update_input_data(&self, session_id: u32, data_id: u32, input: Arc<InputSpec>) -> Result<(), String>;
     fn update_import_data(&self, session_id: u32, data_id: u32) -> Result<(), String>;
     fn update_table_data(&self, session_id: u32, data_id: u32) -> Result<(), String>;
     fn update_visualization_data(&self, session_id: u32, data_id: u32, viz: Arc<VizSpec>) -> Result<(), String>;
@@ -34,7 +35,7 @@ pub enum FrontendUpdate {
     UpdateTaskGraph(u32, Arc<TaskGraph>),
     UpdateTaskStatus(u32, u32, TaskStatusCode, Option<String>),
     DeleteTaskData(u32, u32),
-    UpdateInputData(u32, u32),
+    UpdateInputData(u32, u32, Arc<InputSpec>),
     UpdateImportData(u32, u32),
     UpdateTableData(u32, u32),
     UpdateVisualizationData(u32, u32, Arc<VizSpec>),
@@ -78,7 +79,7 @@ impl Frontend for FrontendBuffer {
                     frontend.update_task_status(sid, task_id, status, error)
                 }
                 FrontendUpdate::DeleteTaskData(sid, data_id) => frontend.delete_task_data(sid, data_id),
-                FrontendUpdate::UpdateInputData(sid, data_id) => frontend.update_input_data(sid, data_id),
+                FrontendUpdate::UpdateInputData(sid, data_id, input) => frontend.update_input_data(sid, data_id, input),
                 FrontendUpdate::UpdateImportData(sid, data_id) => frontend.update_import_data(sid, data_id),
                 FrontendUpdate::UpdateTableData(sid, data_id) => frontend.update_table_data(sid, data_id),
                 FrontendUpdate::UpdateVisualizationData(sid, data_id, spec) => {
@@ -120,9 +121,9 @@ impl Frontend for FrontendBuffer {
         buffer.push(FrontendUpdate::DeleteTaskData(sid, data_id));
         Ok(())
     }
-    fn update_input_data(&self, sid: u32, data_id: u32) -> Result<(), String> {
+    fn update_input_data(&self, sid: u32, data_id: u32, input: Arc<InputSpec>) -> Result<(), String> {
         let mut buffer = self.updates.lock().unwrap();
-        buffer.push(FrontendUpdate::UpdateInputData(sid, data_id));
+        buffer.push(FrontendUpdate::UpdateInputData(sid, data_id, input));
         Ok(())
     }
     fn update_import_data(&self, sid: u32, data_id: u32) -> Result<(), String> {
@@ -181,8 +182,8 @@ impl WorkflowFrontend {
     pub fn delete_task_data(&self, data_id: u32) {
         self.buffer.delete_task_data(self.session_id, data_id).unwrap()
     }
-    pub fn update_input_data(&self, data_id: u32) {
-        self.buffer.update_input_data(self.session_id, data_id).unwrap()
+    pub fn update_input_data(&self, data_id: u32, input: Arc<InputSpec>) {
+        self.buffer.update_input_data(self.session_id, data_id, input).unwrap()
     }
     pub fn update_import_data(&self, data_id: u32) {
         self.buffer.update_import_data(self.session_id, data_id).unwrap()

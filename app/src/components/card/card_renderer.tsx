@@ -34,6 +34,9 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
     }
 
     switch (taskData.t) {
+        case 'InputData': {
+            return <div />;
+        }
         case 'VizData': {
             const rendererData = taskData.v.renderer;
             switch (rendererData.t) {

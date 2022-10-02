@@ -1,6 +1,7 @@
 pub mod analysis_settings;
 pub mod board_card;
 pub mod board_space;
+pub mod input_spec;
 pub mod liveness;
 pub mod name_resolution;
 pub mod program_diff;

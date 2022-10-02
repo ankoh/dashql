@@ -25,7 +25,7 @@ export interface WorkflowFrontend {
     updateTaskGraph(session: SessionId, graph: string): void;
     updateTaskStatus(session: SessionId, taskId: TaskId, status: TaskStatusCode, error?: any): void;
     deleteTaskData(session: SessionId, state: DataId): void;
-    updateInputData(session: SessionId, state: DataId): void;
+    updateInputData(session: SessionId, state: DataId, input: string): void;
     updateImportData(session: SessionId, state: DataId): void;
     updateLoadData(session: SessionId, state: DataId): void;
     updateTableData(session: SessionId, state: DataId): void;

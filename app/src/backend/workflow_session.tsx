@@ -19,6 +19,7 @@ import {
     TaskGraph,
     useLogger,
     VizSpec,
+    InputSpec,
     WorkflowData,
 } from '../model';
 
@@ -86,7 +87,6 @@ export class WorkflowSession {
         await this._backend.executeProgram(this._sessionId);
     }
     public async editProgram(edits: StatementEditOperation[]): Promise<void> {
-        const prev = this._state.programText;
         await this._backend.editProgram(this._sessionId, edits);
     }
     public async runQueryRaw(text: string): Promise<Uint8Array> {
@@ -231,7 +231,14 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 const s = getSessionState(session);
                 s.dataById = s.dataById.delete(dataId);
             },
-            updateInputData: (session: SessionId, state: DataId) => {},
+            updateInputData: (sessionId: SessionId, dataId: DataId, input: string) => {
+                const s = getSessionState(sessionId);
+                const spec = JSON.parse(input) as InputSpec;
+                s.dataById = s.dataById.set(dataId, {
+                    t: 'InputData',
+                    v: spec,
+                });
+            },
             updateImportData: (session: SessionId, state: DataId) => {},
             updateLoadData: (session: SessionId, state: DataId) => {},
             updateTableData: (session: SessionId, state: DataId) => {},

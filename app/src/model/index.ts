@@ -2,6 +2,7 @@ export * from './action';
 export * from './app_config';
 export * from './board_card';
 export * from './edit_operation';
+export * from './input_spec';
 export * from './log';
 export * from './program';
 export * from './program_instance';

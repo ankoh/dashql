@@ -1,4 +1,3 @@
-import { VizSpec } from 'src/model';
 import { TaskStatusCode } from 'src/model/task_status';
 import { ProgramId, SessionId, DataId, TaskId, WorkflowFrontend } from './backend';
 
@@ -74,6 +73,7 @@ interface DeleteTaskMsg {
 interface UpdateInputMsg {
     session: SessionId;
     state: DataId;
+    input: string;
 }
 
 interface UpdateImportMsg {
@@ -124,8 +124,8 @@ export function createIPCWorkflowFrontendBridge(
             }),
         deleteTaskData: (session: SessionId, state: DataId) =>
             send(session, { type: IPCFrontendMessageType.DELETE_TASK_DATA, data: { session, state } }),
-        updateInputData: (session: SessionId, state: DataId) =>
-            send(session, { type: IPCFrontendMessageType.UPDATE_INPUT_DATA, data: { session, state } }),
+        updateInputData: (session: SessionId, state: DataId, input: string) =>
+            send(session, { type: IPCFrontendMessageType.UPDATE_INPUT_DATA, data: { session, state, input } }),
         updateImportData: (session: SessionId, state: DataId) =>
             send(session, { type: IPCFrontendMessageType.UPDATE_IMPORT_DATA, data: { session, state } }),
         updateLoadData: (session: SessionId, state: DataId) =>
@@ -160,7 +160,7 @@ export function invokeIPCWorkflowFrontend(frontend: WorkflowFrontend, message: I
         case IPCFrontendMessageType.DELETE_TASK_DATA:
             return frontend.deleteTaskData(message.data.session, message.data.state);
         case IPCFrontendMessageType.UPDATE_INPUT_DATA:
-            return frontend.updateInputData(message.data.session, message.data.state);
+            return frontend.updateInputData(message.data.session, message.data.state, message.data.input);
         case IPCFrontendMessageType.UPDATE_IMPORT_DATA:
             return frontend.updateImportData(message.data.session, message.data.state);
         case IPCFrontendMessageType.UPDATE_LOAD_DATA:

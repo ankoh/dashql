@@ -9,7 +9,8 @@ use neon::{prelude::*, types::buffer::TypedArray};
 
 use crate::{
     analyzer::{
-        program_instance::ProgramInstanceContainer, task::TaskStatusCode, task_graph::TaskGraph, viz_spec::VizSpec,
+        input_spec::InputSpec, program_instance::ProgramInstanceContainer, task::TaskStatusCode, task_graph::TaskGraph,
+        viz_spec::VizSpec,
     },
     api::{workflow_api::WorkflowAPI, workflow_frontend::Frontend},
     error::SystemError,
@@ -127,15 +128,17 @@ impl Frontend for Arc<JsFrontend> {
         });
         Ok(())
     }
-    fn update_input_data(&self, session_id: u32, data_id: u32) -> Result<(), String> {
+    fn update_input_data(&self, session_id: u32, data_id: u32, input: Arc<InputSpec>) -> Result<(), String> {
         let self2 = self.clone();
+        let input_json = serde_json::to_string(&input).map_err(|e| e.to_string())?;
         self.channel.send(move |mut cx| {
             let session_id = JsNumber::new(&mut cx, session_id).as_value(&mut cx);
             let data_id = JsNumber::new(&mut cx, data_id).as_value(&mut cx);
+            let input_json = JsString::new(&mut cx, &input_json).as_value(&mut cx);
             let frontend = self2.get_inner(&mut cx);
             let method: Handle<JsFunction> = frontend.get(&mut cx, "updateInputData")?;
             let this = frontend.as_value(&mut cx);
-            method.call(&mut cx, this, &[session_id, data_id])?;
+            method.call(&mut cx, this, &[session_id, data_id, input_json])?;
             Ok(())
         });
         Ok(())
