@@ -209,7 +209,7 @@ mod test {
     mark = 'scatter',
     encoding = (
         x = (field = 'foo', type = 'quantitative', scale = (domain = [1, 2])),
-        y = (field = 'bar', type = 'quantitative', scale = (domain = [1, 2]))
+        y = (field = 'bar', type = 'quantitative', scale = (domain = [5, 6]))
     )
 )"#,
             &[EditOperation::SetVizSpec(
@@ -227,7 +227,47 @@ mod test {
                             "field": "bar",
                             "type": "quantitative",
                             "scale": {
+                                "domain": [5, 6]
+                            }
+                        }
+                    }
+                })
+                .to_string(),
+            )],
+        )
+        .await?;
+        test_viz_edits(
+            "viz foo using table",
+            r#"viz foo using (
+    position = (row = 0, column = 0, width = 12, height = 4),
+    mark = 'scatter',
+    encoding = (
+        x = (field = 'foo', type = 'quantitative', scale = (domain = [1, 2])),
+        y = (field = 'bar', type = 'quantitative', scale = (domain = [5, 6]))
+    )
+)"#,
+            &[EditOperation::SetVizSpec(
+                json!({
+                    "position": {
+                        "row": 0,
+                        "column": 0,
+                        "width": 12,
+                        "height": 4,
+                    },
+                    "mark": "scatter",
+                    "encoding": {
+                        "x": {
+                            "field": "foo",
+                            "type": "quantitative",
+                            "scale": {
                                 "domain": [1, 2]
+                            }
+                        },
+                        "y": {
+                            "field": "bar",
+                            "type": "quantitative",
+                            "scale": {
+                                "domain": [5, 6]
                             }
                         }
                     }
