@@ -577,6 +577,7 @@ enum AttributeKey: uint16 {
     DSON_SIZE,
     DSON_SPACING,
     DSON_STACK,
+    DSON_STACKED,
     DSON_START,
     DSON_STEPS,
     DSON_STEP_MAJOR,
