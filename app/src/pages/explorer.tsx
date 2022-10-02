@@ -50,20 +50,16 @@ export const Explorer: React.FC<Props> = (props: Props) => {
         <div className={styles.board_cmdbar}>
             <div />
             <div className={styles_cmd.buttonset}>
-                <Button
-                    className={styles.board_cmd}
-                    width={CMD_ICON_SIZE}
-                    height={CMD_ICON_SIZE}
-                    icon={icon_share}
-                    onClick={showShareDialog}
-                />
-                <LinkButton
-                    className={styles.board_cmd}
-                    to="/viewer"
-                    width={CMD_ICON_SIZE}
-                    height={CMD_ICON_SIZE}
-                    icon={icon_eye}
-                />
+                <Button className={styles.board_cmd} onClick={showShareDialog}>
+                    <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                        <use xlinkHref={`${icon_share}#sym`} />
+                    </svg>
+                </Button>
+                <LinkButton className={styles.board_cmd} to="/viewer">
+                    <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                        <use xlinkHref={`${icon_eye}#sym`} />
+                    </svg>
+                </LinkButton>
             </div>
         </div>
     );
@@ -88,27 +84,23 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                 <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
                                     {false && (
                                         <>
-                                            <Button
-                                                className={styles.program_action}
-                                                width={CMD_ICON_SIZE}
-                                                height={CMD_ICON_SIZE}
-                                                icon={icon_edit}
-                                            />
-                                            <Button
-                                                className={styles.program_action}
-                                                width={CMD_ICON_SIZE}
-                                                height={CMD_ICON_SIZE}
-                                                icon={icon_cloud_upload}
-                                            />
+                                            <Button className={styles.program_action}>
+                                                <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                                    <use xlinkHref={`${icon_edit}#sym`} />
+                                                </svg>
+                                            </Button>
+                                            <Button className={styles.program_action}>
+                                                <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                                    <use xlinkHref={`${icon_cloud_upload}#sym`} />
+                                                </svg>
+                                            </Button>
                                         </>
                                     )}
-                                    <Button
-                                        className={styles.program_action}
-                                        width={CMD_ICON_SIZE}
-                                        height={CMD_ICON_SIZE}
-                                        icon={icon_blank}
-                                        onClick={createBlankScript}
-                                    />
+                                    <Button className={styles.program_action} onClick={createBlankScript}>
+                                        <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                            <use xlinkHref={`${icon_blank}#sym`} />
+                                        </svg>
+                                    </Button>
                                 </div>
                             </div>
                             <Routes>

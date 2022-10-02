@@ -89,3 +89,12 @@
 .popper[data-popper-placement^='right'] > .popper_arrow {
     left: -4px;
 }
+
+.popper_commands {
+    display: flex;
+    flex-direction: column;
+}
+
+.popper_command {
+    padding: 2px 4px;
+}

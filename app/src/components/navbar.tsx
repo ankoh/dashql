@@ -21,15 +21,11 @@ const Tab = (props: { route: string; alt?: string; location: string; icon: strin
             [styles.active]: props.location == props.route || props.location == props.alt,
         })}
     >
-        <LinkButton
-            className={styles.tab_link}
-            to={props.route}
-            width="20px"
-            height="20px"
-            icon={props.icon}
-            invert
-            hover={HoverMode.Lighten}
-        />
+        <LinkButton className={styles.tab_link} to={props.route} invert hover={HoverMode.Lighten}>
+            <svg width="20px" height="20px">
+                <use xlinkHref={`${props.icon}#sym`} />
+            </svg>
+        </LinkButton>
     </div>
 );
 

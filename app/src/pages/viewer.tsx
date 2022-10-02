@@ -48,33 +48,22 @@ export const Viewer: React.FC<Props> = () => {
                     </div>
                     <div className={styles.cmdbar}>
                         {scriptMetadata.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                            <Button
-                                className={styles.cmdbutton}
-                                width={CMD_ICON_SIZE}
-                                height={CMD_ICON_SIZE}
-                                icon={icon_star_outline}
-                                hover={HoverMode.Lighten}
-                                invert
-                            />
+                            <Button className={styles.cmdbutton} hover={HoverMode.Lighten} invert>
+                                <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                    <use xlinkHref={`${icon_star_outline}#sym`} />
+                                </svg>
+                            </Button>
                         )}
-                        <Button
-                            className={styles.cmdbutton}
-                            width={CMD_ICON_SIZE}
-                            height={CMD_ICON_SIZE}
-                            icon={icon_share}
-                            hover={HoverMode.Lighten}
-                            invert
-                            onClick={showShareDialog}
-                        />
-                        <LinkButton
-                            className={styles.cmdbutton}
-                            width={CMD_ICON_SIZE}
-                            height={CMD_ICON_SIZE}
-                            icon={icon_code}
-                            hover={HoverMode.Lighten}
-                            invert
-                            to="/explorer"
-                        />
+                        <Button className={styles.cmdbutton} hover={HoverMode.Lighten} invert onClick={showShareDialog}>
+                            <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                <use xlinkHref={`${icon_share}#sym`} />
+                            </svg>
+                        </Button>
+                        <LinkButton className={styles.cmdbutton} hover={HoverMode.Lighten} invert to="/explorer">
+                            <svg width={CMD_ICON_SIZE} height={CMD_ICON_SIZE}>
+                                <use xlinkHref={`${icon_code}#sym`} />
+                            </svg>
+                        </LinkButton>
                     </div>
                 </div>
                 <div ref={boardElement} className={styles.board}>

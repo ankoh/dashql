@@ -30,16 +30,17 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     <div ref={setCtrlRefElem} className={styles.settings}>
                         <Button
                             className={styles.settings_button}
-                            width="14px"
-                            height="14px"
-                            icon={icon_settings}
                             hover={HoverMode.Darken}
                             onClick={e => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setCtrlOpen(open => !open);
                             }}
-                        />
+                        >
+                            <svg width="14px" height="14px">
+                                <use xlinkHref={`${icon_settings}#sym`} />
+                            </svg>
+                        </Button>
                     </div>
                 )}
             </div>
@@ -59,7 +60,9 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     style={ctrlPopper.styles.popper}
                     {...ctrlPopper.attributes.popper}
                 >
-                    Popper element
+                    <div className={styles.popper_commands}>
+                        <div className={styles.popper_command}>Expand Spec</div>
+                    </div>
                     <div ref={setCtrlPopperArrowElem} className={styles.popper_arrow} style={ctrlPopper.styles.arrow} />
                 </div>
             )}

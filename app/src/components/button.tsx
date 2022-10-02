@@ -12,13 +12,11 @@ export enum HoverMode {
 
 type ButtonProps = {
     className?: string;
-    width: string;
-    height: string;
-    icon: string;
     disabled?: boolean;
     hover?: HoverMode;
     invert?: boolean;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    children?: React.ReactElement;
 };
 
 export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
@@ -33,20 +31,19 @@ export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
         })}
         onClick={props.onClick}
     >
-        <svg width={props.width} height={props.height}>
-            <use xlinkHref={`${props.icon}#sym`} />
-        </svg>
+        {props.children}
     </div>
 );
+// <svg width={props.width} height={props.height}>
+//     <use xlinkHref={`${props.icon}#sym`} />
+// </svg>
 
 type LinkProps = {
     className?: string;
-    width: string;
-    height: string;
-    icon: string;
     to: string;
     hover?: HoverMode;
     invert?: boolean;
+    children?: React.ReactElement;
 };
 
 export const LinkButton: React.FC<LinkProps> = (props: LinkProps) => (
@@ -60,8 +57,6 @@ export const LinkButton: React.FC<LinkProps> = (props: LinkProps) => (
         })}
         to={props.to}
     >
-        <svg width={props.width} height={props.height}>
-            <use xlinkHref={`${props.icon}#sym`} />
-        </svg>
+        {props.children}
     </Link>
 );
