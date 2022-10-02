@@ -97,6 +97,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
     let key_type = "type".to_string();
     let key_scale = "scale".to_string();
     let key_domain = "domain".to_string();
+    let key_zero = "zero".to_string();
 
     // Resolve encodings that can be optimized
     let encodings = match spec.get(&key_encoding) {
@@ -246,7 +247,6 @@ async fn optimize_vl_spec<'ast, 'snap>(
             | DataType::Float64 => {
                 let lb: f64 = minmax_domain_values[i].0.parse().unwrap_or_default();
                 let ub: f64 = minmax_domain_values[i].1.parse().unwrap_or_default();
-                let (lb, ub) = if lb < ub { (0_f64, ub) } else { (lb, ub) };
                 (
                     sj::Number::from_f64(lb)
                         .map(|v| sj::Value::Number(v))
@@ -263,6 +263,24 @@ async fn optimize_vl_spec<'ast, 'snap>(
             }
         };
         scale.insert(key_domain.clone(), sj::Value::Array(vec![lb, ub]));
+
+        // Zero scale?
+        match table.column_types[*column_id] {
+            DataType::Int8
+            | DataType::Int16
+            | DataType::Int32
+            | DataType::Int64
+            | DataType::UInt8
+            | DataType::UInt16
+            | DataType::UInt32
+            | DataType::UInt64
+            | DataType::Float16
+            | DataType::Float32
+            | DataType::Float64 => {
+                scale.insert(key_zero.clone(), sj::Value::Bool(true));
+            }
+            _ => {}
+        }
     }
 
     // Store field types and domain values
