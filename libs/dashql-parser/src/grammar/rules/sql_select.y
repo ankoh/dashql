@@ -2236,7 +2236,7 @@ sql_a_expr_const:
     }
   | TRUE_P    { $$ = Bool(@1, true); }
   | FALSE_P   { $$ = Bool(@1, false); }
-  | NULL_P    { $$ = Ident(@1); }
+  | NULL_P    { $$ = Const(@1, proto::AConstType::NULL_); }
     ;
 
 // Name classification hierarchy.

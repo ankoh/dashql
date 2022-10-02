@@ -1,4 +1,9 @@
 <astdumps>
+    <astdump name="select_null">
+        <input>
+            select null 
+        </input>
+    </astdump>
     <astdump name="select_iconst_1">
         <input>
             select 1

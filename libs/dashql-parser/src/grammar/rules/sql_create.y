@@ -77,7 +77,7 @@ sql_col_constraint:
   | sql_col_constraint_attr { $$ = std::move($1); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
         Attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, Enum(@$, proto::ColumnConstraint::COLLATE)),
-        Attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.Add(@2, std::move($2))),
+        Attr(Key::SQL_COLUMN_CONSTRAINT_COLLATE, ctx.Add(@2, std::move($2))),
     });
   }
     ;

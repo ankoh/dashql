@@ -143,6 +143,7 @@ pub enum Expression<'a> {
     Exists(&'a ExistsExpression<'a>),
     FunctionCall(&'a FunctionExpression<'a>),
     Indirection(&'a IndirectionExpression<'a>),
+    LiteralNull,
     LiteralFloat(&'a str),
     LiteralInteger(&'a str),
     LiteralString(&'a str),
@@ -572,6 +573,7 @@ pub struct ColumnConstraintSpec<'a> {
     #[serde(with = "serde_column_constraint::cell")]
     pub constraint_type: ASTCell<proto::ColumnConstraint>,
     pub value: ASTCell<Expression<'a>>,
+    pub collate: ASTCell<&'a [ASTCell<&'a str>]>,
     pub definition: ASTCell<&'a [ASTCell<&'a GenericDefinition<'a>>]>,
     pub no_inherit: ASTCell<bool>,
 }

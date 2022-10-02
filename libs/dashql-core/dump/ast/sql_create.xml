@@ -513,10 +513,10 @@
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="18..43" text="a integer ..te &quot;de_DE&quot;">
                                 <node key="SQL_COLUMN_DEF_CONSTRAINTS" type="ARRAY">
                                     <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="28..43" text="collate &quot;de_DE&quot;">
-                                        <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="COLLATE"/>
-                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" type="ARRAY">
+                                        <node key="SQL_COLUMN_CONSTRAINT_COLLATE" type="ARRAY">
                                             <node type="IDENTIFIER" loc="36..43" text="&quot;de_DE&quot;"/>
                                         </node>
+                                        <node key="SQL_COLUMN_CONSTRAINT_TYPE" type="ENUM_SQL_COLUMN_CONSTRAINT" value="COLLATE"/>
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" type="IDENTIFIER" loc="18..19" text="a"/>
@@ -566,13 +566,10 @@
                                 ColumnConstraintSpec {
                                     constraint_name: None,
                                     constraint_type: COLLATE,
-                                    value: Array(
-                                        [
-                                            LiteralString(
-                                                &quot;de_DE&quot;,
-                                            ),
-                                        ],
-                                    ),
+                                    value: Null,
+                                    collate: [
+                                        &quot;de_DE&quot;,
+                                    ],
                                     definition: [],
                                     no_inherit: false,
                                 },
@@ -739,6 +736,7 @@
                                     ),
                                     constraint_type: NOT_NULL,
                                     value: Null,
+                                    collate: [],
                                     definition: [],
                                     no_inherit: false,
                                 },
@@ -820,6 +818,7 @@
                                     constraint_name: None,
                                     constraint_type: PRIMARY_KEY,
                                     value: Null,
+                                    collate: [],
                                     definition: [],
                                     no_inherit: false,
                                 },
@@ -905,6 +904,7 @@
                                     constraint_name: None,
                                     constraint_type: NOT_NULL,
                                     value: Null,
+                                    collate: [],
                                     definition: [],
                                     no_inherit: false,
                                 },
@@ -916,6 +916,7 @@
                                     value: LiteralInteger(
                                         &quot;42&quot;,
                                     ),
+                                    collate: [],
                                     definition: [],
                                     no_inherit: false,
                                 },

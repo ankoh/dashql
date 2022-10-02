@@ -120,6 +120,7 @@ pub fn deserialize_ast<'a>(
                 &text[(node.location().offset() as usize)
                     ..((node.location().offset() + node.location().length()) as usize)],
             )),
+            proto::NodeType::LITERAL_NULL => ASTNode::LiteralNull,
             proto::NodeType::LITERAL_FLOAT => ASTNode::LiteralFloat(
                 &text[(node.location().offset() as usize)
                     ..((node.location().offset() + node.location().length()) as usize)],
@@ -971,9 +972,11 @@ pub fn deserialize_ast<'a>(
                 let mut definition: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = ASTCell::default();
                 let mut no_inherit = ASTCell::with_value(false);
+                let mut collate: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 read_attributes! {
                     (Key::SQL_COLUMN_CONSTRAINT_TYPE, ASTNode::ColumnConstraint(c), ci) => constraint_type = ASTCell::with_node(c.clone(), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NAME, ASTNode::Identifier(n), ci) => constraint_name = ASTCell::with_node(Some(n.clone()), ci),
+                    (Key::SQL_COLUMN_CONSTRAINT_COLLATE, ASTNode::Array(n, ni), ci) => collate = ASTCell::with_node(unpack_strings!(n, ni, Identifier), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_VALUE, n, ci) => value = ASTCell::with_node(read_expr!(n), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ASTNode::Array(nodes, ni), ci) => definition = ASTCell::with_node(unpack_nodes!(nodes, ni, GenericDefinition), ci),
                     (Key::SQL_COLUMN_CONSTRAINT_NO_INHERIT, ASTNode::Boolean(b), ci) => no_inherit = ASTCell::with_node(*b, ci)
@@ -984,6 +987,7 @@ pub fn deserialize_ast<'a>(
                     value,
                     definition,
                     no_inherit,
+                    collate,
                 }))
             }
             proto::NodeType::OBJECT_SQL_KEY_ACTION => {
@@ -1454,6 +1458,7 @@ fn read_expr<'a, 'b>(arena: &'a bumpalo::Bump, node: &ASTNode<'a>) -> Expression
         ASTNode::IndirectionExpression(c) => Expression::Indirection(c),
         ASTNode::ParameterRef(p) => Expression::ParameterRef(p),
         ASTNode::SelectStatementExpression(s) => Expression::SelectStatement(s),
+        ASTNode::LiteralNull => Expression::LiteralNull,
         ASTNode::LiteralFloat(s) => Expression::LiteralFloat(s.clone()),
         ASTNode::LiteralInteger(s) => Expression::LiteralInteger(s.clone()),
         ASTNode::LiteralInterval(s) => Expression::LiteralInterval(s.clone()),
@@ -1549,6 +1554,7 @@ fn read_dson<'a>(alloc: &'a bumpalo::Bump, node: &ASTNode<'a>) -> DsonValue<'a> 
             DsonValue::Array(elements)
         }
         ASTNode::Expression(e) => DsonValue::Expression(e.clone()),
+        ASTNode::LiteralNull => DsonValue::Expression(Expression::LiteralNull),
         ASTNode::LiteralFloat(s) => DsonValue::Expression(Expression::LiteralFloat(s)),
         ASTNode::LiteralInteger(s) => DsonValue::Expression(Expression::LiteralInteger(s)),
         ASTNode::LiteralInterval(s) => DsonValue::Expression(Expression::LiteralInterval(s)),

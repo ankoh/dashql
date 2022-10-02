@@ -18,6 +18,7 @@ pub fn is_constant_expression<'ast, 'snap>(
         let can_eval = match top {
             Expression::Null => true,
             Expression::Boolean(_) => true,
+            Expression::LiteralNull => true,
             Expression::LiteralFloat(_) => true,
             Expression::LiteralInteger(_) => true,
             Expression::LiteralInterval(_) => true,

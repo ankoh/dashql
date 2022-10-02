@@ -79,6 +79,8 @@ inline proto::Node Bool(proto::Location loc, bool v) {
 /// Create a constant inline
 inline proto::Node Const(proto::Location loc, proto::AConstType type) {
     switch (type) {
+        case proto::AConstType::NULL_:
+            return proto::Node(loc, proto::NodeType::LITERAL_NULL, 0, NO_PARENT, 0, 0);
         case proto::AConstType::INTEGER:
             return proto::Node(loc, proto::NodeType::LITERAL_INTEGER, 0, NO_PARENT, 0, 0);
         case proto::AConstType::FLOAT:

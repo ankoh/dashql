@@ -870,7 +870,7 @@ mod test {
         test_json(&arena, DsonValue::Expression(Expression::LiteralString("")), "\"\"").await?;
         test_json(&arena, DsonValue::Expression(Expression::LiteralInteger("0")), "0").await?;
         test_json(&arena, DsonValue::Expression(Expression::LiteralInteger("42")), "42").await?;
-        test_json(&arena, DsonValue::Expression(Expression::LiteralFloat("42")), "42").await?;
+        test_json(&arena, DsonValue::Expression(Expression::LiteralFloat("42")), "42.0").await?;
         test_json(
             &arena,
             DsonValue::Array(&[

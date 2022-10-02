@@ -65,6 +65,7 @@ where
                         pending.pop();
                     }
                     proto::NodeType::IDENTIFIER
+                    | proto::NodeType::LITERAL_NULL
                     | proto::NodeType::LITERAL_FLOAT
                     | proto::NodeType::LITERAL_INTEGER
                     | proto::NodeType::LITERAL_STRING => {
@@ -219,7 +220,7 @@ mod test {
         <node type="OBJECT_SQL_SELECT" loc="0..8" text="select 1">
             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                 <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="1">
-                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="7..8" text="1"/>
+                    <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="7..8" text="1"/>
                 </node>
             </node>
         </node>
@@ -247,7 +248,7 @@ mod test {
         <node type="OBJECT_SQL_SELECT" loc="13..21" text="select 1">
             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                 <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="1">
-                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="20..21" text="1"/>
+                    <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="20..21" text="1"/>
                 </node>
             </node>
         </node>
@@ -256,7 +257,7 @@ mod test {
         <node type="OBJECT_SQL_SELECT" loc="35..43" text="select 2">
             <node key="SQL_SELECT_TARGETS" type="ARRAY">
                 <node type="OBJECT_SQL_RESULT_TARGET" loc="42..43" text="2">
-                    <node key="SQL_RESULT_TARGET_VALUE" type="STRING_REF" loc="42..43" text="2"/>
+                    <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="42..43" text="2"/>
                 </node>
             </node>
         </node>

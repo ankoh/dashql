@@ -613,7 +613,9 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             }
             proto::ColumnConstraint::COLLATE => {
                 a.push(w.keyword("collate"));
-                a.push(self.value.get().to_sql(w).pad_left());
+                for c in self.collate.get().iter() {
+                    a.push(w.str(c.get()).pad_left());
+                }
             }
             proto::ColumnConstraint::PRIMARY_KEY => {
                 a.push(w.keyword("primary"));
@@ -1411,6 +1413,7 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
             },
             Expression::ParameterRef(_) => todo!(),
             Expression::SelectStatement(_) => todo!(),
+            Expression::LiteralNull => w.str_const("null"),
             Expression::LiteralString(s) => w.single_quotes(w.str(s.clone())),
             Expression::LiteralInteger(s) | Expression::LiteralFloat(s) | Expression::LiteralInterval(s) => {
                 w.str(s.clone())
@@ -1472,7 +1475,7 @@ mod test {
             ast.errors().unwrap().get(0).message().unwrap_or_default()
         );
         let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
-        assert_eq!(prog.statements.len(), 1);
+        assert_eq!(prog.statements.len(), 1, "{:?} {:?}", text, prog);
 
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);

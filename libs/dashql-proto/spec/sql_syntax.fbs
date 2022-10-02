@@ -79,6 +79,7 @@ enum CombineOperation: uint8 {
 }
 
 enum AConstType: uint8 {
+    NULL_ = 0,
     INTEGER = 1,
     FLOAT = 2,
     STRING = 3,

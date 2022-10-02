@@ -13,9 +13,9 @@ pub enum ASTNode<'a> {
     Array(&'a [ASTNode<'a>], usize),
 
     Identifier(&'a str),
+    LiteralNull,
     LiteralFloat(&'a str),
     LiteralInteger(&'a str),
-    LiteralNull(&'a str),
     LiteralString(&'a str),
     LiteralInterval(&'a str),
 
