@@ -52,3 +52,41 @@
     grid-row: 2;
     position: relative;
 }
+
+.popper {
+    background-color: black;
+    color: white;
+    padding: 4px 8px;
+    border-radius: var(--border_radius);
+}
+
+.popper_arrow,
+.popper_arrow::before {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: inherit;
+}
+
+.popper_arrow {
+    visibility: hidden;
+}
+
+.popper_arrow::before {
+    visibility: visible;
+    content: '';
+    transform: rotate(45deg);
+}
+
+.popper[data-popper-placement^='top'] > .popper_arrow {
+    bottom: -4px;
+}
+.popper[data-popper-placement^='bottom'] > .popper_arrow {
+    top: -4px;
+}
+.popper[data-popper-placement^='left'] > .popper_arrow {
+    right: -4px;
+}
+.popper[data-popper-placement^='right'] > .popper_arrow {
+    left: -4px;
+}
