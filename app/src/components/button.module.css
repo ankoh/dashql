@@ -27,9 +27,11 @@
 }
 .button.hover_lighten:hover:not(.disabled) {
     background-color: rgba(255, 255, 255, 0.1);
+    color: var(--button_hover_fg);
 }
 .button.hover_darken:hover:not(.disabled) {
     background-color: rgba(0, 0, 0, 0.1);
+    color: var(--button_hover_fg);
 }
 
 .button_inverted {
@@ -51,9 +53,11 @@
     background-color: var(--button_hover_bg_inverted);
     color: var(--button_hover_fg_inverted);
 }
-.button.hover_lighten:hover:not(.disabled) {
+.button_inverted.hover_lighten:hover:not(.disabled) {
     background-color: rgba(255, 255, 255, 0.1);
+    color: var(--button_hover_fg_inverted);
 }
-.button.hover_darken:hover:not(.disabled) {
+.button_inverted.hover_darken:hover:not(.disabled) {
     background-color: rgba(0, 0, 0, 0.1);
+    color: var(--button_hover_fg_inverted);
 }

@@ -1,13 +1,11 @@
 import * as React from 'react';
 import styles from './viewer.module.css';
-import styles_cmd from '../components/button.module.css';
-import cn from 'classnames';
+import { Button, HoverMode, LinkButton } from '../components/button';
 import { observeSize } from '../utils/size_observer';
 import { Board } from '../components/board';
 import { OverlayContainer, useOverlaySetter } from '../components/overlay';
 import { ShareDialog } from '../components/share_dialog';
 import { ProgramHeader } from '../components/program_header';
-import { Link } from 'react-router-dom';
 import { useWorkflowSessionState } from '../backend/workflow_session';
 
 import icon_code from '../../static/svg/icons/code.svg';
@@ -15,6 +13,7 @@ import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_share from '../../static/svg/icons/share.svg';
 import { ScriptOriginType } from '../model';
 
+const CMD_ICON_SIZE = '20px';
 const shareOverlay = Symbol();
 
 interface Props {
@@ -49,22 +48,33 @@ export const Viewer: React.FC<Props> = () => {
                     </div>
                     <div className={styles.cmdbar}>
                         {scriptMetadata.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                            <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
-                                <svg width="20px" height="20px">
-                                    <use xlinkHref={`${icon_star_outline}#sym`} />
-                                </svg>
-                            </div>
+                            <Button
+                                className={styles.cmdbutton}
+                                width={CMD_ICON_SIZE}
+                                height={CMD_ICON_SIZE}
+                                icon={icon_star_outline}
+                                hover={HoverMode.Lighten}
+                                invert
+                            />
                         )}
-                        <div className={cn(styles_cmd.button_inverted, styles.cmdbutton)} onClick={showShareDialog}>
-                            <svg width="20px" height="20px">
-                                <use xlinkHref={`${icon_share}#sym`} />
-                            </svg>
-                        </div>
-                        <Link to="/explorer" className={cn(styles_cmd.button_inverted, styles.cmdbutton)}>
-                            <svg width="20px" height="20px">
-                                <use xlinkHref={`${icon_code}#sym`} />
-                            </svg>
-                        </Link>
+                        <Button
+                            className={styles.cmdbutton}
+                            width={CMD_ICON_SIZE}
+                            height={CMD_ICON_SIZE}
+                            icon={icon_share}
+                            hover={HoverMode.Lighten}
+                            invert
+                            onClick={showShareDialog}
+                        />
+                        <LinkButton
+                            className={styles.cmdbutton}
+                            width={CMD_ICON_SIZE}
+                            height={CMD_ICON_SIZE}
+                            icon={icon_code}
+                            hover={HoverMode.Lighten}
+                            invert
+                            to="/explorer"
+                        />
                     </div>
                 </div>
                 <div ref={boardElement} className={styles.board}>
