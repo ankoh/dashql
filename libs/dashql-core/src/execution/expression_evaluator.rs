@@ -35,6 +35,12 @@ impl<'a> Expression<'a> {
                 .get(name)
                 .or(ctx.global_state.named_values.get(name))
                 .cloned(),
+            Expression::ParameterRef(p) => ctx
+                .local_state
+                .named_values
+                .get(p.name.get())
+                .or(ctx.global_state.named_values.get(p.name.get()))
+                .cloned(),
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
                     _ => return Err(SystemError::FunctionNotImplementedButKnown(known)),

@@ -44,6 +44,10 @@ pub fn is_constant_expression<'ast, 'snap>(
                     },
                 }
             }
+            Expression::ParameterRef(p) => {
+                let name = p.name.get();
+                ctx.local_state.named_values.contains_key(&name) || ctx.global_state.named_values.contains_key(&name)
+            }
             Expression::Case(_) => false,
             Expression::Conjunction(_) => false,
             Expression::ConstCast(_) => false,
@@ -51,7 +55,6 @@ pub fn is_constant_expression<'ast, 'snap>(
             Expression::Exists(_) => false,
             Expression::Indirection(_) => false,
             Expression::Nary(_) => false,
-            Expression::ParameterRef(_) => false,
             Expression::SelectStatement(_) => false,
             Expression::Subquery(_) => false,
             Expression::TypeCast(_) => false,
