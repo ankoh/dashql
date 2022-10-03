@@ -136,11 +136,9 @@ pub fn collect_cards<'ast>(inst: &mut ProgramInstance<'ast>) -> Result<(), Syste
         let position = inst.card_positions.get(&stmt_id).cloned().unwrap_or_default();
         let mut card = Card::default();
         match stmt {
-            Statement::Declare(_input) => {
+            Statement::Declare(input) => {
                 card.position = position;
-                if let Some(name) = inst.statement_names[stmt_id] {
-                    card.title = print_ast_as_script_with_defaults(&name);
-                }
+                card.title = print_ast_as_script_with_defaults(&input.name.get());
             }
             Statement::Viz(viz) => {
                 card.position = position;

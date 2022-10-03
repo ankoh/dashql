@@ -4,6 +4,7 @@ import { useWorkflowSessionState } from '../../backend/workflow_session';
 import { CardStatus } from './card_status';
 import { TableCardRenderer } from './table_card_renderer';
 import { VegaCardRenderer } from './vega_card_renderer';
+import { InputTextRenderer } from '../input_text_renderer';
 
 interface Props {
     statementId: number;
@@ -35,7 +36,7 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
 
     switch (taskData.t) {
         case 'InputData': {
-            return <div />;
+            return <InputTextRenderer statementId={props.statementId} data={taskData.v} editable={props.editable} />;
         }
         case 'VizData': {
             const rendererData = taskData.v.renderer;

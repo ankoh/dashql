@@ -6,7 +6,7 @@ import { useWorkflowSessionState } from '../backend/workflow_session';
 
 import { Form, InputGroup, Button } from 'react-bootstrap';
 
-import icon_textbox from '../../../static/svg/icons/form_textbox.svg';
+import icon_textbox from '../../static/svg/icons/form_textbox.svg';
 
 import styles from './input_text_renderer.module.css';
 
@@ -21,7 +21,7 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
     const target = React.useRef(null);
     const size = utils.observeSize(target);
 
-    if (props.data.renderer.t != 'InputTextRendererData') {
+    if (props.data.renderer.t != 'Text') {
         return <div />;
     }
 

@@ -6,7 +6,7 @@ export interface InputSpec {
 export type InputRenderer = InputTextRendererData;
 
 export interface InputTextRendererData {
-    readonly t: 'InputTextRendererData';
+    readonly t: 'Text';
     readonly v: {
         placeholder: string;
     };

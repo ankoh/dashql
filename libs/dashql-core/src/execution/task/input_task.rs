@@ -53,7 +53,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
     async fn execute<'snap>(
         &mut self,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        _frontend: &WorkflowFrontend,
+        frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
         let _extra = match self.statement.extra.get().map(|e| e.as_json(ctx)) {
             Some(Ok(sj::Value::Object(extra))) => extra,
@@ -68,6 +68,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
             }),
         });
         *self.task.data.write().unwrap() = Some(TaskData::InputData(InputData { spec: spec.clone() }));
+        frontend.update_input_data(self.task.data_id as u32, spec);
         Ok(())
     }
 }
