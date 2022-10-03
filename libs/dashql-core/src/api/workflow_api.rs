@@ -92,13 +92,12 @@ impl WorkflowSession {
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |_| Some(true))
             .unwrap_or(true)
         {
-            console::println("ERROR: scheduler locked");
             return Ok(());
         }
         let latest = match self.latest_instance.lock().unwrap().clone() {
             Some(instance) => instance,
             None => {
-                console::println("ERROR: no instance");
+                console::println("WARN: no instance");
                 // TODO: log things
                 self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
@@ -111,7 +110,7 @@ impl WorkflowSession {
         let plan = Arc::new(match plan_tasks(&latest.instance, planned_ref) {
             Ok(plan) => plan,
             Err(_e) => {
-                console::println("ERROR: planning failed");
+                console::println("WARN: planning failed");
                 // TODO: log things
                 self.scheduler_executing.store(false, Ordering::SeqCst);
                 return Ok(());
