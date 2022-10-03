@@ -1,3 +1,4 @@
+use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
@@ -7,16 +8,18 @@ use async_trait::async_trait;
 
 pub struct DBDropImportTaskOperator<'exec, 'ast> {
     _instance: &'exec ProgramInstance<'ast>,
+    task: &'exec Task,
 }
 
 impl<'exec, 'ast> DBDropImportTaskOperator<'exec, 'ast> {
     pub fn create(
         instance: &'exec ProgramInstance<'ast>,
-        _task_graph: &'exec TaskGraph,
-        _task_id: usize,
+        task_graph: &'exec TaskGraph,
+        task_id: usize,
     ) -> Result<Self, SystemError> {
         Ok(Self {
-            _instance: instance.clone(),
+            _instance: instance,
+            task: &task_graph.tasks[task_id],
         })
     }
 }
@@ -33,8 +36,9 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBDropImportTaskOperator<'exec, 
     async fn execute<'snap>(
         &mut self,
         _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
-        _frontend: &WorkflowFrontend,
+        frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
+        frontend.delete_task_data(self.task.data_id as u32);
         Ok(())
     }
 }
