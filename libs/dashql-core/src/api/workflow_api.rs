@@ -226,7 +226,6 @@ impl WorkflowSession {
     pub async fn edit_program(&self, edits_json: &str) -> Result<(), SystemError> {
         let mut edits: Vec<StatementEditOperation> =
             serde_json::from_str(edits_json).map_err(|e| SystemError::InvalidArgument(e.to_string()))?;
-        console::println(&format!("{:?}", &edits));
 
         // Edit a cloned program
         let program = match self.latest_parsed.lock().unwrap().clone() {
