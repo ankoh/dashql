@@ -30,7 +30,7 @@ export interface WorkflowSessionState {
     scriptMetadata: ScriptMetadata;
     programText: string;
     program: model.Program | null;
-    programInput: Immutable.Map<number, ScalarValue>;
+    programInput: Immutable.Map<number, model.ScalarValue>;
     programAnalysis: model.ProgramAnalysis | null;
     programTasks: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
@@ -242,7 +242,6 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateInputData: (sessionId: SessionId, dataId: DataId, input: string) => {
                 const s = getSessionState(sessionId);
                 const spec = JSON.parse(input) as InputSpec;
-                console.log(spec);
                 s.dataById = s.dataById.set(dataId, {
                     t: 'InputData',
                     v: spec,
