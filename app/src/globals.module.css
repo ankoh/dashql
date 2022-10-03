@@ -1,5 +1,5 @@
 :root {
-    --error_fg: #c41a16;
+    --error_fg: black;
     --action_duration_color: rgba(255, 255, 255, 0.6);
     --action_panel_bg: rgb(36, 41, 46);
     --action_panel_border_radius: 8px;

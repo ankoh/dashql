@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="sym" viewBox="0 0 64 48.04">
+        <g id="VL_Black">
+            <polygon points="33 48 17 48 34 0 50 0 33 48" fill="currentColor" />
+            <polygon points="16 0.04 0 0.04 17 48.04 17.02 48.04 23.87 22.34 16 0.04" fill="currentColor" />
+            <polygon points="50 36 50 0.08 37 42.24 37 48 64 48 64 36 50 36" fill="currentColor" />
+        </g>
+    </symbol>
+</svg>

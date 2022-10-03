@@ -9,6 +9,8 @@ import { VegaLiteRendererData as VegaRendererData } from '../../model';
 import { Result, Ok, Err } from '../../utils';
 import { useQueryResult } from '../../access';
 
+import icon_vl from '../../../static/svg/vl_mono.svg';
+
 import styles from './vega_card_renderer.module.css';
 
 const SamplingVegaRenderer: React.FC<VegaCardRendererProps> = (props: VegaCardRendererProps) => {
@@ -28,7 +30,18 @@ const SamplingVegaRenderer: React.FC<VegaCardRendererProps> = (props: VegaCardRe
     }, [props.data]);
 
     if (!compiled.ok) {
-        return <div className={styles.error}>{compiled.value.toString()}</div>;
+        return (
+            <div className={styles.alert_container}>
+                <div className={styles.alert}>
+                    <div className={styles.alert_icon}>
+                        <svg width="32px" height="32px">
+                            <use xlinkHref={`${icon_vl}#sym`} />
+                        </svg>
+                    </div>
+                    <div className={styles.alert_text}>{compiled.value.toString()}</div>
+                </div>
+            </div>
+        );
     }
 
     const table = props.data.v.table;

@@ -1,4 +1,23 @@
-.error {
+.alert_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.alert {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+}
+
+.alert_icon {
+}
+
+.alert_text {
     padding: 8px 16px;
     color: var(--error_fg);
     font-weight: 500;
