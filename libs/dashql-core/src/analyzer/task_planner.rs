@@ -379,13 +379,13 @@ fn migrate_task_graph<'a, 'b>(ctx: &mut TaskPlannerContext<'a, 'b>) -> Result<()
             debug_assert!((diff_op.op_code == DiffOpCode::Keep) || (diff_op.op_code == DiffOpCode::Move));
 
             // Update the target id of the new task and preserve the task status
-            // (either as completed or skipped)
             let next_task = &mut next_tasks.tasks[next_task_id];
-            next_task
-                .task_status
-                .store(prev_task.task_status.load(Ordering::SeqCst) as u8, Ordering::SeqCst);
-            next_task.data_id = prev_task.data_id;
-            *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
+            let prev_status = prev_task.task_status.load(Ordering::SeqCst);
+            if prev_status == (TaskStatusCode::Completed as u8) {
+                next_task.task_status.store(prev_status, Ordering::SeqCst);
+                next_task.data_id = prev_task.data_id;
+                *next_task.data.write().unwrap() = prev_task.data.write().unwrap().take();
+            }
             continue;
         }
 
