@@ -3,7 +3,6 @@ import * as model from './model';
 import axios from 'axios';
 
 import example_demo_helloworld from '../static/examples/hello_world.dashql';
-import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
@@ -42,7 +41,6 @@ import icon_shape from '../static/svg/icons/shape.svg';
 
 export enum ScriptFeatureTag {
     IMPORT_HTTP,
-    JMESPATH,
     DATA_CSV,
     DATA_JSON,
     DATA_PARQUET,
@@ -90,18 +88,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_vaccination_germany,
         enabled: true,
-    },
-    {
-        name: 'demo_explore_json',
-        collection: 'Demos',
-        title: 'Explore JSON',
-        description: 'A example that explores a JSON document',
-        icon: icon_dashboard,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.DATA_JSON)
-            .set(ScriptFeatureTag.JMESPATH),
-        url: example_demo_explore_json,
-        enabled: false,
     },
     {
         name: 'viz_line',
@@ -211,16 +197,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_database_import,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_parquet,
-        enabled: false,
-    },
-    {
-        name: 'load_json_jmespath',
-        collection: 'Load',
-        title: 'JMESPath',
-        description: 'JMESPath Expressions',
-        icon: icon_shape,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.JMESPATH),
-        url: example_load_json_jmespath,
         enabled: false,
     },
     {
