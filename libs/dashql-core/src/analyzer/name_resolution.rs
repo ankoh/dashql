@@ -44,19 +44,13 @@ fn normalize_name_clone<'a>(
     })
 }
 
-fn resolve_statement_id<'a>(ctx: &mut ProgramInstance<'a>, node_id: usize) -> usize {
+fn resolve_statement_id<'a>(ctx: &mut ProgramInstance<'a>, node_id: usize) -> Option<usize> {
     let nodes = ctx.program.ast_flat.nodes().unwrap_or_default();
     let mut cursor = node_id;
     while (nodes[cursor].parent() as usize) != cursor {
         cursor = nodes[cursor].parent() as usize;
     }
-    match ctx.statement_by_root.get(&cursor) {
-        Some(stmt_id) => stmt_id.clone(),
-        None => {
-            debug_assert!(false, "failed to resolve statement id from node: {}", node_id);
-            0_usize
-        }
-    }
+    ctx.statement_by_root.get(&cursor).cloned()
 }
 
 pub fn normalize_statement_names<'a>(ctx: &mut ProgramInstance<'a>) {
@@ -106,15 +100,16 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
                 if let ASTNode::ColumnRef(name) = &node_translated {
                     let target = normalize_name_clone(ctx, name);
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
-                        let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
-                        ctx.statement_required_for.insert(
-                            (stmt, target_stmt_id as usize),
-                            (proto::DependencyType::COLUMN_REF, node_id),
-                        );
-                        ctx.statement_depends_on.insert(
-                            (target_stmt_id as usize, stmt),
-                            (proto::DependencyType::COLUMN_REF, node_id),
-                        );
+                        if let Some(target_stmt_id) = resolve_statement_id(ctx, node_id as usize) {
+                            ctx.statement_required_for.insert(
+                                (stmt, target_stmt_id as usize),
+                                (proto::DependencyType::COLUMN_REF, node_id),
+                            );
+                            ctx.statement_depends_on.insert(
+                                (target_stmt_id as usize, stmt),
+                                (proto::DependencyType::COLUMN_REF, node_id),
+                            );
+                        }
                     }
                 }
             }
@@ -122,15 +117,16 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
                     let target = normalize_name_clone(ctx, rel.name.get());
                     if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
-                        let target_stmt_id = resolve_statement_id(ctx, node_id as usize) as u32;
-                        ctx.statement_required_for.insert(
-                            (stmt, target_stmt_id as usize),
-                            (proto::DependencyType::TABLE_REF, node_id),
-                        );
-                        ctx.statement_depends_on.insert(
-                            (target_stmt_id as usize, stmt),
-                            (proto::DependencyType::TABLE_REF, node_id),
-                        );
+                        if let Some(target_stmt_id) = resolve_statement_id(ctx, node_id as usize) {
+                            ctx.statement_required_for.insert(
+                                (stmt, target_stmt_id as usize),
+                                (proto::DependencyType::TABLE_REF, node_id),
+                            );
+                            ctx.statement_depends_on.insert(
+                                (target_stmt_id as usize, stmt),
+                                (proto::DependencyType::TABLE_REF, node_id),
+                            );
+                        }
                     }
                 }
             }
