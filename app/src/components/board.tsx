@@ -56,14 +56,10 @@ export const Board: React.FC<Props> = (props: Props) => {
             if (!userExpectation.current) return;
             userExpectation.current = false;
 
-            // Build mapping
-            const mapping = new Map<string, LayoutElement>();
-            layout.forEach(l => mapping.set(l.i, l));
-
             // Build card updates
             const edits: model.StatementEditOperation[] = newLayout.map(l => {
                 return {
-                    statement_id: mapping.get(l.i).statementId,
+                    statement_id: parseInt(l.i),
                     operation: {
                         t: 'SetBoardPosition',
                         v: {
