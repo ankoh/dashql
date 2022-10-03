@@ -3,14 +3,14 @@ import * as model from './model';
 import axios from 'axios';
 
 import example_demo_helloworld from '../static/examples/hello_world.dashql';
-import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
+import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
+import example_import_http_static from '../static/examples/import_http_static.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
-import example_load_json_jmespath from '../static/examples/load_json_jmespath.dashql';
-import example_import_http_static from '../static/examples/import_http_static.dashql';
 import example_sql_approxmedian from '../static/examples/sql_approxmedian.dashql';
 import example_sql_complexjoins from '../static/examples/sql_complexjoins.dashql';
+import example_sql_dynamicfilter from '../static/examples/sql_dynamicfilter.dashql';
 import example_sql_explicitgrouping from '../static/examples/sql_explicitgrouping.dashql';
 import example_sql_movingavg from '../static/examples/sql_movingavg.dashql';
 import example_sql_patternmatching from '../static/examples/sql_patternmatching.dashql';
@@ -268,6 +268,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_patternmatching,
         enabled: false,
+    },
+    {
+        name: 'sql_dynamic_filter',
+        collection: 'SQL',
+        title: 'Dynamic Filter',
+        description: 'FOOOOO',
+        icon: icon_database_search,
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        url: example_sql_dynamicfilter,
+        enabled: true,
     },
 ];
 

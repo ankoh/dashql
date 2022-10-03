@@ -11,7 +11,7 @@ import { useWorkflowSession } from '../backend/workflow_session';
 
 import styles from './script_loader.module.css';
 
-const DEFAULT_EXAMPLE = 'hello_world';
+const DEFAULT_EXAMPLE = 'sql_dynamic_filter';
 
 interface Props {
     errorComponent?: (error: string) => React.ReactElement;
