@@ -49,7 +49,7 @@ impl ProgramContainer {
         let arena = bumpalo::Bump::new();
         let text = arena.alloc_str(text);
         let (ast, ast_data) = parse_into(&arena, &text).await?;
-        let program = Arc::new(grammar::deserialize_ast(&arena, &text, ast, ast_data).unwrap());
+        let program = Arc::new(grammar::deserialize_ast(&arena, &text, ast, ast_data)?);
 
         // Now transmute the lifetimes
         let text_static = unsafe { std::mem::transmute::<&str, &'static str>(text) };

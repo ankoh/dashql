@@ -498,6 +498,7 @@ mod test {
         },
         grammar::ProgramContainer,
     };
+    use pretty_assertions::assert_eq;
     use std::{collections::HashMap, error::Error, sync::Arc};
 
     async fn test_data(script: &'static str, data: Vec<TaskData>) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -629,6 +630,7 @@ mod test {
                                             "type": "quantitative",
                                             "scale": {
                                                 "domain": [123.0, 123.0],
+                                                "zero": true,
                                             }
                                         },
                                         "y": {
@@ -637,6 +639,7 @@ mod test {
                                             "type": "quantitative",
                                             "scale": {
                                                 "domain": [456.0, 456.0],
+                                                "zero": true,
                                             }
                                         }
                                     },
