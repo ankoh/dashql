@@ -9,7 +9,7 @@ export * from './program_instance';
 export * from './resolvable_status';
 export * from './script';
 export * from './script_registry';
-export * from './sql_value';
+export * from './scalar_value';
 export * from './task_graph';
 export * from './viz_spec';
 export * from './workflow_data';

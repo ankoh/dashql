@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::num::{ParseFloatError, ParseIntError};
 
@@ -11,8 +12,8 @@ pub enum LogicalType {
     Boolean,
     Int64,
     Float64,
-    Varchar,
-    Struct(Vec<(String, LogicalType)>),
+    Utf8,
+    Struct(HashMap<String, LogicalType>),
     List(Box<LogicalType>),
 }
 
@@ -23,27 +24,27 @@ pub enum ScalarValue {
     Boolean(bool),
     Int64(i64),
     Float64(f64),
-    Varchar(String),
-    Struct(Vec<(String, ScalarValue)>),
+    Utf8(String),
+    Struct(HashMap<String, ScalarValue>),
     List(Vec<ScalarValue>),
 }
 
 impl ScalarValue {
     pub fn cast_as(&self, ty: LogicalType) -> Result<ScalarValue, SystemError> {
         match (&self, ty) {
-            // * -> Varchar
-            (ScalarValue::Boolean(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
-            (ScalarValue::Int64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
-            (ScalarValue::Float64(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.to_string())),
-            (ScalarValue::Varchar(v), LogicalType::Varchar) => Ok(ScalarValue::Varchar(v.clone())),
+            // * -> Utf8
+            (ScalarValue::Boolean(v), LogicalType::Utf8) => Ok(ScalarValue::Utf8(v.to_string())),
+            (ScalarValue::Int64(v), LogicalType::Utf8) => Ok(ScalarValue::Utf8(v.to_string())),
+            (ScalarValue::Float64(v), LogicalType::Utf8) => Ok(ScalarValue::Utf8(v.to_string())),
+            (ScalarValue::Utf8(v), LogicalType::Utf8) => Ok(ScalarValue::Utf8(v.clone())),
 
             // * -> Float64
             (ScalarValue::Boolean(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as i64 as f64)),
             (ScalarValue::Int64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
             (ScalarValue::Float64(v), LogicalType::Float64) => Ok(ScalarValue::Float64(*v as f64)),
-            (ScalarValue::Varchar(v), LogicalType::Float64) => {
+            (ScalarValue::Utf8(v), LogicalType::Float64) => {
                 Ok(ScalarValue::Float64(v.parse().map_err(|_: ParseFloatError| {
-                    SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Float64)
+                    SystemError::CastFailed(None, LogicalType::Utf8, LogicalType::Float64)
                 })?))
             }
 
@@ -51,9 +52,9 @@ impl ScalarValue {
             (ScalarValue::Boolean(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
             (ScalarValue::Int64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
             (ScalarValue::Float64(v), LogicalType::Int64) => Ok(ScalarValue::Int64(*v as i64)),
-            (ScalarValue::Varchar(v), LogicalType::Int64) => {
+            (ScalarValue::Utf8(v), LogicalType::Int64) => {
                 Ok(ScalarValue::Int64(v.parse().map_err(|_: ParseIntError| {
-                    SystemError::CastFailed(None, LogicalType::Varchar, LogicalType::Int64)
+                    SystemError::CastFailed(None, LogicalType::Utf8, LogicalType::Int64)
                 })?))
             }
 
@@ -67,7 +68,7 @@ impl ScalarValue {
             ScalarValue::Boolean(_) => LogicalType::Boolean,
             ScalarValue::Int64(_) => LogicalType::Int64,
             ScalarValue::Float64(_) => LogicalType::Float64,
-            ScalarValue::Varchar(_) => LogicalType::Varchar,
+            ScalarValue::Utf8(_) => LogicalType::Utf8,
             ScalarValue::Struct(fields) => LogicalType::Struct(
                 fields
                     .iter()
@@ -96,7 +97,7 @@ impl fmt::Display for ScalarValue {
             ScalarValue::Boolean(v) => v.fmt(f),
             ScalarValue::Int64(v) => v.fmt(f),
             ScalarValue::Float64(v) => v.fmt(f),
-            ScalarValue::Varchar(v) => v.fmt(f),
+            ScalarValue::Utf8(v) => v.fmt(f),
             ScalarValue::Struct(fields) => {
                 f.write_char('(')?;
                 for (i, (k, v)) in fields.iter().enumerate() {
@@ -130,7 +131,7 @@ pub fn scalar_to_json(scalar: &ScalarValue) -> serde_json::value::Value {
             serde_json::Number::from_f64(*v).unwrap_or(serde_json::Number::from_f64(0.0).unwrap()),
         ),
         ScalarValue::Int64(v) => serde_json::value::Value::Number(serde_json::Number::from(*v)),
-        ScalarValue::Varchar(v) => serde_json::value::Value::String(v.clone()),
+        ScalarValue::Utf8(v) => serde_json::value::Value::String(v.clone()),
         ScalarValue::List(vs) => serde_json::value::Value::Array(vs.iter().map(|v| scalar_to_json(v)).collect()),
         ScalarValue::Struct(fields) => {
             let mut obj = serde_json::Map::with_capacity(fields.len());
@@ -157,9 +158,9 @@ mod test {
 
     #[test]
     pub fn test_foo() -> Result<(), Box<dyn Error + Send + Sync>> {
-        let value = ScalarValue::Varchar("foo".to_string());
+        let value = ScalarValue::Utf8("foo".to_string());
         let vs = serde_json::to_string(&value)?;
-        assert_eq!(vs, r#"{"t":"varchar","v":"foo"}"#);
+        assert_eq!(vs, r#"{"t":"utf8","v":"foo"}"#);
         Ok(())
     }
 }

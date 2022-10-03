@@ -234,6 +234,7 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
             updateInputData: (sessionId: SessionId, dataId: DataId, input: string) => {
                 const s = getSessionState(sessionId);
                 const spec = JSON.parse(input) as InputSpec;
+                console.log(spec);
                 s.dataById = s.dataById.set(dataId, {
                     t: 'InputData',
                     v: spec,

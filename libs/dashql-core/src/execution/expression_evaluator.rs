@@ -26,7 +26,7 @@ impl<'a> Expression<'a> {
             Expression::Boolean(v) => Some(Rc::new(ScalarValue::Boolean(*v))),
             Expression::LiteralInteger(v) => Some(Rc::new(ScalarValue::Int64(v.parse().unwrap_or_default()))),
             Expression::LiteralFloat(v) => Some(Rc::new(ScalarValue::Float64(v.parse().unwrap_or_default()))),
-            Expression::LiteralString(s) => Some(Rc::new(ScalarValue::Varchar(
+            Expression::LiteralString(s) => Some(Rc::new(ScalarValue::Utf8(
                 s.trim_matches(STRING_REF_TRIMMING).to_string(),
             ))),
             Expression::ColumnRef(name) => ctx

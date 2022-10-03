@@ -39,7 +39,7 @@ pub fn evaluate_scalar<'ast, 'snap>(
     // Format string
     let result = dynfmt(&template_str, &args_unnamed, &args_named)
         .map_err(|e| SystemError::FunctionEvaluationFailed(Arc::new(e)))?;
-    Ok(ScalarValue::Varchar(result))
+    Ok(ScalarValue::Utf8(result))
 }
 
 #[cfg(test)]

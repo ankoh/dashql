@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { QueryProvider } from './query_provider';
 import { TableMetadata } from '../model/table_metadata';
-import { SQLValue } from '../model/sql_value';
+import { ScalarValue } from '../model/scalar_value';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
 let NEXT_TMP_ID = 0;
@@ -14,7 +14,7 @@ interface Props {
     /// The y attribute
     y: string;
     /// The domain of x
-    domainX: SQLValue[];
+    domainX: ScalarValue[];
     /// The width of the container
     width: number;
 
