@@ -1,0 +1,6 @@
+.error {
+    padding: 8px 16px;
+    color: var(--error_fg);
+    font-weight: 500;
+    word-wrap: normal;
+}

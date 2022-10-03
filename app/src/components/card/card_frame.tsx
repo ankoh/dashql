@@ -66,8 +66,9 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     {...ctrlPopper.attributes.popper}
                 >
                     <div className={styles.popper_commands}>
-                        {props.commands?.map(c => (
+                        {props.commands?.map((c, i) => (
                             <Button
+                                key={i}
                                 className={styles.popper_command}
                                 hover={HoverMode.Lighten}
                                 invert

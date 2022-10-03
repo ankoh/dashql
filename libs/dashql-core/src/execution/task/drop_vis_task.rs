@@ -3,7 +3,6 @@ use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::task::TaskOperator;
-use crate::external::console::println;
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use async_trait::async_trait;
 
@@ -39,7 +38,6 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DropVisTaskOperator<'exec, 'ast>
         _ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
-        println(&format!("VIZ DROP ID {}", self.task.data_id));
         frontend.delete_task_data(self.task.data_id as u32);
         Ok(())
     }

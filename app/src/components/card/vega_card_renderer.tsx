@@ -6,19 +6,30 @@ import { SizeObserver, useObservedSize } from '../../utils/size_observer';
 import { Vega } from 'react-vega';
 import { CardFrame, CardFrameCommand } from './card_frame';
 import { VegaLiteRendererData as VegaRendererData } from '../../model';
+import { Result, Ok, Err } from '../../utils';
 import { useQueryResult } from '../../access';
+
+import styles from './vega_card_renderer.module.css';
 
 const SamplingVegaRenderer: React.FC<VegaCardRendererProps> = (props: VegaCardRendererProps) => {
     const size = useObservedSize();
-    const [maybeCompiled, setCompiled] = React.useState<any>(null);
+    const [compiled, setCompiled] = React.useState<Result<any, Error>>(Ok(null));
 
     React.useEffect(() => {
         const compile = async () => {
-            const compiled = await vl.compile(props.data.v.spec);
-            setCompiled(compiled.spec);
+            try {
+                const compiled = await vl.compile(props.data.v.spec);
+                setCompiled(Ok(compiled.spec));
+            } catch (e) {
+                setCompiled(Err(e));
+            }
         };
         compile();
     }, [props.data]);
+
+    if (!compiled.ok) {
+        return <div className={styles.error}>{compiled.value.toString()}</div>;
+    }
 
     const table = props.data.v.table;
     const sampling = props.data.v.sampling;
@@ -32,19 +43,19 @@ const SamplingVegaRenderer: React.FC<VegaCardRendererProps> = (props: VegaCardRe
                 domainX={am4.domain_x}
                 width={size?.width ?? 1000}
             >
-                <VegaSpecRenderer vega={maybeCompiled} />
+                <VegaSpecRenderer vega={compiled.value} />
             </access.AM4Provider>
         );
     } else if (sampling?.t === 'Reservoir') {
         return (
             <access.ReservoirProvider table={table} sampleSize={sampling.v}>
-                <VegaSpecRenderer vega={maybeCompiled} />
+                <VegaSpecRenderer vega={compiled.value} />
             </access.ReservoirProvider>
         );
     }
     return (
         <access.QueryProvider query={{ data: `select * from ${table.table_name}` }}>
-            <VegaSpecRenderer vega={maybeCompiled} />
+            <VegaSpecRenderer vega={compiled.value} />
         </access.QueryProvider>
     );
 };

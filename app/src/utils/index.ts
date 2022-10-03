@@ -15,3 +15,4 @@ export * from './sleep';
 export * from './text';
 export * from './time';
 export * from './user_agent';
+export * from './result';
