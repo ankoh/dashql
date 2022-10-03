@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as utils from '../../utils';
 import { usePopper } from 'react-popper';
 
 import styles from './card_frame.module.css';
@@ -30,7 +31,7 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <div className={styles.title}>{props.title}</div>
+                <div className={styles.title}>{utils.formatTitle(props.title)}</div>
                 {props.commands?.length > 0 && (
                     <div ref={setCtrlRefElem} className={styles.settings}>
                         <Button
