@@ -166,6 +166,21 @@ pub async fn update_program(session_id: u32, text: String) -> Result<(), JsValue
     Ok(())
 }
 
+#[wasm_bindgen(js_name = "workflowUpdateProgramInput")]
+pub async fn update_program_input(session_id: u32, values: String) -> Result<(), JsValue> {
+    let session = match get_api()
+        .map_err(|e| e.to_string())?
+        .lock()
+        .unwrap()
+        .get_session(session_id)
+    {
+        Some(session) => session,
+        None => return Err(format!("unknown session id: {}", session_id))?,
+    };
+    session.update_program_input(&values).await.map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[wasm_bindgen(js_name = "workflowExecuteProgram")]
 pub async fn execute_program(session_id: u32) -> Result<(), JsValue> {
     let session = match get_api()
@@ -178,11 +193,6 @@ pub async fn execute_program(session_id: u32) -> Result<(), JsValue> {
         None => return Err(format!("unknown session id: {}", session_id))?,
     };
     session.execute_program().await.map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[wasm_bindgen(js_name = "workflowUpdateProgramInput")]
-pub async fn update_program_input(_session_id: u32, _input: String) -> Result<(), JsValue> {
     Ok(())
 }
 

@@ -253,6 +253,26 @@ pub fn update_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> 
     Ok(cx.undefined())
 }
 
+pub fn update_program_input<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
+    let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
+    let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
+    let values = cx.argument::<JsString>(2)?.value(&mut cx);
+    let api = get_api().or_else(|e| cx.throw_error(e.to_string()))?;
+    let session = match api.lock().unwrap().get_session(session_id as u32) {
+        Some(session) => session,
+        None => cx.throw_error(format!("unknown session id: {}", session_id))?,
+    };
+    block_on(session.update_program_input(&values)).or_else(|e| cx.throw_error(e.to_string()))?;
+    let frontend: &Arc<JsFrontend> = unsafe { transmute(&session.frontend) };
+    frontend.channel.send(|mut cx| {
+        let callback = callback.into_inner(&mut cx);
+        let this = cx.undefined();
+        callback.call(&mut cx, this, &[])?;
+        Ok(())
+    });
+    Ok(cx.undefined())
+}
+
 pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     let callback = cx.argument::<JsFunction>(0)?.root(&mut cx);
     let session_id = cx.argument::<JsNumber>(1)?.value(&mut cx);
@@ -269,10 +289,6 @@ pub fn execute_program<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined>
         callback.call(&mut cx, this, &[])?;
         Ok(())
     });
-    Ok(cx.undefined())
-}
-
-pub fn update_program_input<'a>(mut cx: FunctionContext<'a>) -> JsResult<JsUndefined> {
     Ok(cx.undefined())
 }
 

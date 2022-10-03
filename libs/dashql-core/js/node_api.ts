@@ -23,6 +23,9 @@ export module workflow {
     export function updateProgram(resolve: () => void, sessionId: number, text: string) {
         dashql.workflow_update_program(resolve, sessionId, text);
     }
+    export function updateProgramInput(resolve: () => void, sessionId: number, values: string) {
+        dashql.workflow_update_program_input(resolve, sessionId, values);
+    }
     export function editProgram(resolve: () => void, sessionId: number, edits: string) {
         dashql.workflow_edit_program(resolve, sessionId, edits);
     }

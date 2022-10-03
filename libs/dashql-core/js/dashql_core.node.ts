@@ -35,6 +35,7 @@ declare module '*/dist/node/dashql_core.node' {
     function workflow_create_session(frontend: WorkflowFrontend): number;
     function workflow_close_session(callback: () => void, sessionId: number): void;
     function workflow_update_program(callback: () => void, sessionId: number, text: string): void;
+    function workflow_update_program_input(callback: () => void, sessionId: number, values: string): void;
     function workflow_execute_program(callback: () => void, sessionId: number): void;
     function workflow_edit_program(callback: () => void, sessionId: number, edits: string): void;
     function workflow_run_query(sessionId: number, text: string): Uint8Array;

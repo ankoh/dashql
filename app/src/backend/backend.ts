@@ -1,4 +1,4 @@
-import { StatementEditOperation } from '../model';
+import { ScalarValue, StatementEditOperation } from '../model';
 import { TaskStatusCode } from '../model/task_status';
 
 export type DatabaseId = number;
@@ -13,6 +13,7 @@ export interface WorkflowBackend {
     createSession(frontend: WorkflowFrontend): Promise<SessionId>;
     closeSession(session: SessionId): Promise<void>;
     updateProgram(session: SessionId, text: string): Promise<void>;
+    updateProgramInput(session: SessionId, values: { [key: string]: ScalarValue }): Promise<void>;
     executeProgram(session: SessionId): Promise<void>;
     editProgram(session: SessionId, edits: StatementEditOperation[]): Promise<void>;
     runQuery(session: SessionId, text: string): Promise<Uint8Array>;

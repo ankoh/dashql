@@ -1,8 +1,9 @@
 import * as React from 'react';
+import * as arrow from 'apache-arrow';
 import * as utils from '../utils';
-import { InputSpec } from '../model';
+import { InputSpec, ScalarValue } from '../model';
 import { readCoreArrowType } from '../model/table_metadata';
-import { useWorkflowSessionState } from '../backend/workflow_session';
+import { useWorkflowSession, useWorkflowSessionState } from '../backend/workflow_session';
 
 import { Form, InputGroup, Button } from 'react-bootstrap';
 
@@ -17,9 +18,57 @@ interface Props {
 }
 
 export const InputTextRenderer: React.FC<Props> = (props: Props) => {
+    const session = useWorkflowSession();
     const sessionState = useWorkflowSessionState();
     const target = React.useRef(null);
     const size = utils.observeSize(target);
+
+    const valueType = React.useMemo(() => readCoreArrowType(props.data.value_type), [props.data.value_type]);
+
+    const onChange = React.useCallback(
+        (event: React.FormEvent<HTMLInputElement>) => {
+            if (!session) {
+                return;
+            }
+            const raw = (event.target as any).value;
+            let value: ScalarValue;
+            switch (valueType.typeId) {
+                case arrow.Type.Bool:
+                    value = {
+                        t: 'boolean',
+                        v: raw == 'true' || raw == '1',
+                    };
+                    break;
+                case arrow.Type.Int8:
+                case arrow.Type.Int32:
+                case arrow.Type.Int64:
+                case arrow.Type.Uint8:
+                case arrow.Type.Uint16:
+                case arrow.Type.Uint32:
+                case arrow.Type.Uint64:
+                    value = {
+                        t: 'int64',
+                        v: parseInt(raw),
+                    };
+                    break;
+                case arrow.Type.Float32:
+                case arrow.Type.Float64:
+                    value = {
+                        t: 'float64',
+                        v: parseFloat(raw),
+                    };
+                    break;
+                default:
+                    value = {
+                        t: 'utf8',
+                        v: raw,
+                    };
+                    break;
+            }
+            session.updateProgramInput(props.statementId, value);
+        },
+        [props.statementId, sessionState.programInput, session, valueType],
+    );
 
     if (props.data.renderer.t != 'Text') {
         return <div />;
@@ -27,7 +76,6 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
 
     const card = sessionState.programAnalysis.cards[props.statementId];
     const inputData = props.data.renderer.v;
-    const _valueType = readCoreArrowType(props.data.value_type);
 
     let inner: React.ReactElement;
     if (size == null) {
@@ -53,7 +101,9 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
         } else {
             inner = (
                 <InputGroup className={styles.input_group}>
-                    <InputGroup.Text className={styles.input_title}>{utils.formatTitle(card.title)}</InputGroup.Text>
+                    <InputGroup.Text onChange={onChange} className={styles.input_title}>
+                        {utils.formatTitle(card.title)}
+                    </InputGroup.Text>
                     <Form.Control className={styles.input_text} type="text" placeholder={inputData.placeholder} />
                 </InputGroup>
             );

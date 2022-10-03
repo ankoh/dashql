@@ -2,7 +2,7 @@ import { IpcRenderer } from 'electron';
 import { Backend, SessionId, WorkflowFrontend } from './backend';
 import { invokeIPCWorkflowFrontend, createIPCWorkflowFrontendBridge } from './ipc_bridge_to_frontend';
 import { IpcMain, WebContents } from 'electron';
-import { StatementEditOperation } from '../model';
+import { ScalarValue, StatementEditOperation } from '../model';
 
 export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
     return {
@@ -26,6 +26,9 @@ export function createIPCBackendBridge(ipc: IpcRenderer): Backend {
             },
             updateProgram: async (session: SessionId, text: string): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.updateProgram', session, text);
+            },
+            updateProgramInput: async (session: SessionId, values: { [key: string]: ScalarValue }): Promise<void> => {
+                await ipc.invoke('WorkflowBackend.updateProgramInput', session, values);
             },
             editProgram: async (session: SessionId, edits: StatementEditOperation[]): Promise<void> => {
                 await ipc.invoke('WorkflowBackend.editProgram', session, edits);
@@ -55,6 +58,9 @@ export function registerIPCBackend(backend: Backend, ipc: IpcMain, renderer: Web
     });
     ipc.on('WorkflowBackend.updateProgram', async (_event, session, text) => {
         return await backend.workflow.updateProgram(session, text);
+    });
+    ipc.on('WorkflowBackend.updateProgramInput', async (_event, session, values) => {
+        return await backend.workflow.updateProgramInput(session, values);
     });
     ipc.on('WorkflowBackend.editProgram', async (_event, session, edits) => {
         return await backend.workflow.editProgram(session, edits);
