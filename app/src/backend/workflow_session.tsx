@@ -89,7 +89,8 @@ export class WorkflowSession {
     }
     public async updateProgramInput(statementId: number, value: ScalarValue) {
         const newInput = this._state.programInput.set(statementId, value);
-        await this._backend.updateProgramInput(this._sessionId, newInput.toJSON());
+        const newInputJson = newInput.toJSON();
+        await this._backend.updateProgramInput(this._sessionId, newInputJson);
     }
     public async executeProgram(): Promise<void> {
         await this._backend.executeProgram(this._sessionId);

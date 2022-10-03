@@ -22,6 +22,7 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
     const sessionState = useWorkflowSessionState();
     const target = React.useRef(null);
     const size = utils.observeSize(target);
+    const inputRef = React.useRef<HTMLInputElement>();
 
     const valueType = React.useMemo(() => readCoreArrowType(props.data.value_type), [props.data.value_type]);
 
@@ -31,7 +32,7 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
             if (!session) {
                 return;
             }
-            const raw = (event.target as any).value;
+            let raw = inputRef.current?.value ?? '';
             let value: ScalarValue;
             switch (valueType.typeId) {
                 case arrow.Type.Bool:
@@ -106,7 +107,12 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
                         <InputGroup.Text className={styles.input_title}>
                             {utils.formatTitle(card.title)}
                         </InputGroup.Text>
-                        <Form.Control className={styles.input_text} type="text" placeholder={inputData.placeholder} />
+                        <Form.Control
+                            className={styles.input_text}
+                            type="text"
+                            placeholder={inputData.placeholder}
+                            ref={inputRef}
+                        />
                     </InputGroup>
                 </Form>
             );
