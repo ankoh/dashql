@@ -13,7 +13,7 @@ use crate::{
         task_planner::plan_tasks,
     },
     error::SystemError,
-    execution::{execution_context::ExecutionContext, task_scheduler::TaskScheduler},
+    execution::{execution_context::ExecutionContext, scalar_value::ScalarValue, task_scheduler::TaskScheduler},
     external::{self, console, database::open_in_memory, Database, DatabaseConnection, QueryResultBuffer},
     grammar::{script_writer::rewrite_statements, ProgramContainer},
 };
@@ -193,10 +193,9 @@ impl WorkflowSession {
     }
 
     #[allow(dead_code)]
-    pub async fn update_program_input(&self, _input: &str) -> Result<(), SystemError> {
-        // TODO Deserialize input from json
-        let new_input = HashMap::new();
-
+    pub async fn update_program_input(&self, input_json: &str) -> Result<(), SystemError> {
+        let new_input: HashMap<usize, ScalarValue> =
+            serde_json::from_str(input_json).map_err(|e| SystemError::InvalidArgument(e.to_string()))?;
         let program = match self.latest_parsed.lock().unwrap().clone() {
             Some(program) => program,
             None => return Err(SystemError::Generic("program not known".to_string())),

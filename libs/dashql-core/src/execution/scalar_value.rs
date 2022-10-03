@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::num::{ParseFloatError, ParseIntError};
@@ -17,7 +17,7 @@ pub enum LogicalType {
     List(Box<LogicalType>),
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "t", content = "v")]
 pub enum ScalarValue {

@@ -25,8 +25,9 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
 
     const valueType = React.useMemo(() => readCoreArrowType(props.data.value_type), [props.data.value_type]);
 
-    const onChange = React.useCallback(
-        (event: React.FormEvent<HTMLInputElement>) => {
+    const onSubmit = React.useCallback(
+        (event: any) => {
+            event.preventDefault();
             if (!session) {
                 return;
             }
@@ -100,12 +101,14 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
             );
         } else {
             inner = (
-                <InputGroup className={styles.input_group}>
-                    <InputGroup.Text onChange={onChange} className={styles.input_title}>
-                        {utils.formatTitle(card.title)}
-                    </InputGroup.Text>
-                    <Form.Control className={styles.input_text} type="text" placeholder={inputData.placeholder} />
-                </InputGroup>
+                <Form className={styles.input_group} onSubmit={onSubmit}>
+                    <InputGroup>
+                        <InputGroup.Text className={styles.input_title}>
+                            {utils.formatTitle(card.title)}
+                        </InputGroup.Text>
+                        <Form.Control className={styles.input_text} type="text" placeholder={inputData.placeholder} />
+                    </InputGroup>
+                </Form>
             );
         }
     }
