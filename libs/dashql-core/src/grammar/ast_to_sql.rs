@@ -1411,7 +1411,12 @@ impl<'ast> ToSQL<'ast> for Expression<'ast> {
                 },
                 ExpressionOperatorName::Qualified(_name) => todo!(),
             },
-            Expression::ParameterRef(_) => todo!(),
+            Expression::ParameterRef(p) => {
+                let mut a = ScriptTextArray::with_capacity(w, 2);
+                a.push(w.str_const("$"));
+                a.push(p.name.get().to_sql(w));
+                w.block(a.finish())
+            }
             Expression::SelectStatement(_) => todo!(),
             Expression::LiteralNull => w.str_const("null"),
             Expression::LiteralString(s) => w.single_quotes(w.str(s.clone())),
