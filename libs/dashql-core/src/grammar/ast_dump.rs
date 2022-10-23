@@ -88,6 +88,7 @@ mod test {
     use std::path::PathBuf;
 
     use crate::external::parser::parse_into;
+    use crate::grammar::ast_to_sql::NoopExpressionFilter;
     use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
 
     use super::super::ast_translation::deserialize_ast;
@@ -266,7 +267,8 @@ mod test {
 
                         // Print AST buffer
                         let mut printer = ScriptWriter::new();
-                        let program_text = program.to_sql(&mut printer);
+                        let filter = NoopExpressionFilter::default();
+                        let program_text = program.to_sql(&mut printer, &filter);
                         let program_text_string = print_script(&program_text, &ScriptTextConfig::default());
                         assert_eq!(have_input, program_text_string);
                     } else if awaiting_parsed {

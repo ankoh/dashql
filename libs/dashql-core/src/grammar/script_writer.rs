@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use super::Program;
+use super::{ast_to_sql::NoopExpressionFilter, Expression, Program};
 
 #[derive(Debug, Clone)]
 pub enum ScriptTextElement<'writer> {
@@ -58,21 +58,16 @@ impl<'arena> Default for ScriptText<'arena> {
 
 pub struct ScriptWriter {
     pub arena: bumpalo::Bump,
-    pub operator_precedence: Cell<Option<usize>>,
 }
 
 impl ScriptWriter {
     pub fn new() -> Self {
         Self {
             arena: bumpalo::Bump::new(),
-            operator_precedence: Cell::new(None),
         }
     }
     pub fn with_arena(arena: bumpalo::Bump) -> Self {
-        Self {
-            arena,
-            operator_precedence: Cell::new(None),
-        }
+        Self { arena }
     }
     pub fn alloc_slice<'writer>(&'writer self, elems: &[ScriptText<'writer>]) -> &'writer [ScriptText<'writer>] {
         self.arena.alloc_slice_clone(elems)
@@ -234,8 +229,20 @@ impl<'writer> ScriptTextArray<'writer> {
     }
 }
 
+pub trait ToSQLExpressionFilter {
+    fn write_expression<'writer, 'ast: 'writer>(
+        &self,
+        writer: &'writer ScriptWriter,
+        expr: &Expression<'ast>,
+    ) -> ScriptText<'writer>;
+}
+
 pub trait ToSQL<'ast> {
-    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer, 'filter>(
+        &self,
+        writer: &'writer ScriptWriter,
+        filter: &'filter dyn ToSQLExpressionFilter,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer;
 }
@@ -415,14 +422,16 @@ pub fn print_script<'arena>(root: &'arena ScriptText<'arena>, config: &ScriptTex
 
 pub fn print_ast_as_script<'ast, V: ToSQL<'ast>>(v: &V, config: &ScriptTextConfig) -> String {
     let writer = ScriptWriter::new();
-    let text: ScriptText<'_> = v.to_sql(&writer);
+    let filter = NoopExpressionFilter::default();
+    let text: ScriptText<'_> = v.to_sql(&writer, &filter);
     print_script(&text, config)
 }
 
 pub fn print_ast_as_script_with_defaults<'ast, V: ToSQL<'ast> + ?Sized>(v: &V) -> String {
     let config = ScriptTextConfig::default();
     let writer = ScriptWriter::new();
-    let text: ScriptText<'_> = v.to_sql(&writer);
+    let filter = NoopExpressionFilter::default();
+    let text: ScriptText<'_> = v.to_sql(&writer, &filter);
     print_script(&text, &config)
 }
 
@@ -437,7 +446,8 @@ pub fn rewrite_statements<'ast>(program: &Program<'ast>, program_text: &'ast str
     for stmt_id in stmts.iter() {
         let stmt = &program.statements[*stmt_id];
         let writer = ScriptWriter::new();
-        let write_buffer = stmt.to_sql(&writer);
+        let filter = NoopExpressionFilter::default();
+        let write_buffer = stmt.to_sql(&writer, &filter);
         let text = print_script(&write_buffer, &config);
         let stmt_root = proto_stmt.get(*stmt_id).root_node();
         let stmt_location = proto_nodes[stmt_root as usize].location();

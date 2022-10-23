@@ -7,7 +7,10 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::table_metadata::resolve_table_metadata;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{TableRef, TaskData};
-use crate::grammar::script_writer::print_ast_as_script_with_defaults;
+use crate::grammar::ast_to_sql::NoopExpressionFilter;
+use crate::grammar::script_writer::{
+    print_ast_as_script_with_defaults, print_script, ScriptTextConfig, ScriptWriter, ToSQL,
+};
 use crate::grammar::Statement;
 use async_trait::async_trait;
 
@@ -52,9 +55,14 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBCreateTableTaskOperator<'exec,
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         _frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
+        let script_text_config = ScriptTextConfig::default();
+        let script_writer = ScriptWriter::new();
+        let script_filter = NoopExpressionFilter::default();
+        let script_text = self.statement.to_sql(&script_writer, &script_filter);
+        let script_text_str = print_script(&script_text, &script_text_config);
+
         let connection = ctx.base.database_connection.as_ref();
-        let script = print_ast_as_script_with_defaults(&self.statement);
-        connection.run_query(&script).await?;
+        connection.run_query(&script_text_str).await?;
 
         match self.statement {
             Statement::Create(c) => {

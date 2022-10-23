@@ -122,6 +122,7 @@ mod test {
 
     use super::*;
     use crate::external::parser::parse_into;
+    use crate::grammar::ast_to_sql::NoopExpressionFilter;
     use crate::grammar::script_writer::{print_script, ScriptTextConfig, ScriptWriter, ToSQL};
     use crate::grammar::{self, Statement};
     use std::error::Error;
@@ -146,7 +147,8 @@ mod test {
         edit_viz_statement(&arena, viz, edits)?;
 
         let writer = ScriptWriter::new();
-        let script_text = viz.to_sql(&writer);
+        let filter = NoopExpressionFilter::default();
+        let script_text = viz.to_sql(&writer, &filter);
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
         assert_eq!(&script_string, expected, "{:?}", prog);
         Ok(())

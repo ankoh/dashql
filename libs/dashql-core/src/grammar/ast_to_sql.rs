@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use crate::grammar::SetStatement;
 
 use super::ast_cell::*;
@@ -14,14 +16,14 @@ use dashql_proto::KeyMatch;
 use dashql_proto::VizComponentTypeModifier;
 
 impl<'ast> ToSQL<'ast> for Program<'ast> {
-    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(writer, self.statements.len());
         for stmt in self.statements.iter() {
             let mut inner = ScriptTextArray::with_capacity(writer, 2);
-            inner.push(stmt.to_sql(writer));
+            inner.push(stmt.to_sql(writer, filter));
             inner.push(writer.str_const(";").pad_right());
             a.push(writer.float(inner.finish()));
         }
@@ -30,7 +32,7 @@ impl<'ast> ToSQL<'ast> for Program<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -47,18 +49,18 @@ impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
             a.push(w.round_brackets(cols.finish()).pad_left());
         }
         a.push(w.keyword("as").pad_left().pad_right());
-        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w, filter)).pad_left());
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3);
-        a.push(self.value.get().to_sql(w));
+        a.push(self.value.get().to_sql(w, filter));
         if let Some(dir) = self.direction.get() {
             a.push(
                 match dir {
@@ -82,7 +84,7 @@ impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for Limit<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -90,14 +92,14 @@ impl<'ast> ToSQL<'ast> for Limit<'ast> {
             w.keyword("limit").pad_right(),
             match self {
                 Limit::ALL => w.keyword("all"),
-                Limit::Expression(e) => e.to_sql(w),
+                Limit::Expression(e) => e.to_sql(w, filter),
             },
         ]))
     }
 }
 
 impl<'ast> ToSQL<'ast> for DsonKey<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -109,7 +111,7 @@ impl<'ast> ToSQL<'ast> for DsonKey<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -121,9 +123,9 @@ impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
                     if i > 0 {
                         kv.push(w.str_const(",").pad_right());
                     }
-                    kv.push(field.key.to_sql(w).breakpoint_before());
+                    kv.push(field.key.to_sql(w, filter).breakpoint_before());
                     kv.push(w.str_const("=").pad_left());
-                    kv.push(field.value.to_sql(w).pad_left());
+                    kv.push(field.value.to_sql(w, filter).pad_left());
                     entries.push(w.float(kv.finish()))
                 }
                 w.round_brackets(entries.finish())
@@ -135,18 +137,18 @@ impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
                     if i > 0 {
                         elem.push(w.str_const(",").pad_right());
                     }
-                    elem.push(v.to_sql(w).breakpoint_before());
+                    elem.push(v.to_sql(w, filter).breakpoint_before());
                     a.push(w.float(elem.finish()))
                 }
                 w.square_brackets(a.finish())
             }
-            DsonValue::Expression(e) => e.to_sql(w),
+            DsonValue::Expression(e) => e.to_sql(w, filter),
         }
     }
 }
 
 impl<'ast> ToSQL<'ast> for Alias<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -158,7 +160,7 @@ impl<'ast> ToSQL<'ast> for Alias<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for RelationRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -166,21 +168,21 @@ impl<'ast> ToSQL<'ast> for RelationRef<'ast> {
         if !self.inherit.get() {
             a.push(w.keyword("only").pad_right());
         }
-        a.push(self.name.get().to_sql(w));
+        a.push(self.name.get().to_sql(w, filter));
         if let Some(alias) = self.alias.get() {
-            a.push(alias.to_sql(w).pad_left())
+            a.push(alias.to_sql(w, filter).pad_left())
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 8);
-        a.push(self.input.get()[0].get().to_sql(w));
+        a.push(self.input.get()[0].get().to_sql(w, filter));
         if (self.join.get().0 & proto::JoinType::NATURAL_.0) != 0_u8 {
             a.push(w.keyword("natural").pad_left());
         }
@@ -196,11 +198,11 @@ impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
             a.push(w.keyword("outer").pad_left());
         }
         a.push(w.keyword("join").pad_left());
-        a.push(self.input.get()[1].get().to_sql(w).pad_left());
+        a.push(self.input.get()[1].get().to_sql(w, filter).pad_left());
         match &self.qualifier.get() {
             Some(JoinQualifier::On(expr)) => {
                 a.push(w.keyword("on").pad_left());
-                a.push(expr.to_sql(w).pad_left());
+                a.push(expr.to_sql(w, filter).pad_left());
             }
             Some(JoinQualifier::Using(cols)) => {
                 a.push(w.keyword("using").pad_left());
@@ -220,34 +222,34 @@ impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for JoinedTableRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 2);
-        a.push(self.table.get().to_sql(w));
+        a.push(self.table.get().to_sql(w, filter));
         if let Some(alias) = self.alias.get() {
-            a.push(alias.to_sql(w).pad_left());
+            a.push(alias.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for TableRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match self {
-            TableRef::Relation(rel) => rel.to_sql(w),
-            TableRef::Join(joined) => joined.to_sql(w),
+            TableRef::Relation(rel) => rel.to_sql(w, filter),
+            TableRef::Join(joined) => joined.to_sql(w, filter),
             _ => todo!(),
         }
     }
 }
 
 impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -255,7 +257,7 @@ impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
             ResultTarget::Star => w.str_const("*"),
             ResultTarget::Value { value, alias } => {
                 let mut a = ScriptTextArray::with_capacity(w, 2);
-                a.push(value.get().to_sql(w));
+                a.push(value.get().to_sql(w, filter));
                 if let Some(alias) = alias.get() {
                     a.push(w.str(alias).pad_left());
                 }
@@ -266,7 +268,7 @@ impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -276,7 +278,7 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
             if i > 0 {
                 a.push(w.str_const(","));
             }
-            a.push(target.get().to_sql(w).pad_left());
+            a.push(target.get().to_sql(w, filter).pad_left());
         }
         if !self.from.get().is_empty() {
             a.push(w.keyword("from").pad_left().breakpoint_before());
@@ -284,7 +286,7 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(table.get().to_sql(w).pad_left().breakpoint_before());
+                a.push(table.get().to_sql(w, filter).pad_left().breakpoint_before());
             }
         }
         w.float(a.finish())
@@ -292,13 +294,13 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 4);
         let input = self.input.get();
-        a.push(input[0].get().to_sql(w));
+        a.push(input[0].get().to_sql(w, filter));
         match self.operation.get() {
             proto::CombineOperation::UNION => a.push(w.keyword("union").pad_left()),
             proto::CombineOperation::EXCEPT => a.push(w.keyword("except").pad_left()),
@@ -310,21 +312,21 @@ impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
             proto::CombineModifier::DISTINCT => a.push(w.keyword("distinct").pad_left()),
             _ => (),
         }
-        a.push(input[1].get().to_sql(w).pad_left());
+        a.push(input[1].get().to_sql(w, filter).pad_left());
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.order_by.get().len());
         match &self.data {
-            SelectData::From(from) => a.push(from.to_sql(w)),
-            SelectData::Combine(c) => a.push(c.to_sql(w)),
-            SelectData::Table(t) => a.push(t.get().to_sql(w)),
+            SelectData::From(from) => a.push(from.to_sql(w, filter)),
+            SelectData::Combine(c) => a.push(c.to_sql(w, filter)),
+            SelectData::Table(t) => a.push(t.get().to_sql(w, filter)),
             SelectData::Values(tuples) => {
                 let tuples = tuples.get();
                 let mut va = ScriptTextArray::with_capacity(w, 2 * tuples.len());
@@ -336,7 +338,7 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
                         if i > 0 {
                             ta.push(w.keyword(",").pad_right());
                         }
-                        ta.push(value.get().to_sql(w));
+                        ta.push(value.get().to_sql(w, filter));
                     }
                     if i > 0 {
                         va.push(w.keyword(","));
@@ -353,23 +355,23 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
                 if i > 0 {
                     a.push(w.str_const(","));
                 }
-                a.push(constraint.get().to_sql(w).pad_left());
+                a.push(constraint.get().to_sql(w, filter).pad_left());
             }
         }
         if let Some(limit) = self.limit.get() {
-            a.push(limit.to_sql(w).pad_left());
+            a.push(limit.to_sql(w, filter).pad_left());
         }
         let offset = self.offset.get();
         if offset != Expression::Null {
             a.push(w.keyword("offset").pad_left());
-            a.push(offset.to_sql(w).pad_left());
+            a.push(offset.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -381,7 +383,7 @@ impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SQLType<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -394,7 +396,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                 if i > 0 {
                     m.push(w.keyword(",").pad_right());
                 }
-                m.push(modifier.get().to_sql(w));
+                m.push(modifier.get().to_sql(w, filter));
             }
             out.push(w.round_brackets(m.finish()));
         };
@@ -408,7 +410,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                 }
                 if let Some(length) = t.length.get() {
                     let mut l = ScriptTextArray::with_capacity(w, 1);
-                    l.push(length.to_sql(w));
+                    l.push(length.to_sql(w, filter));
                     a.push(w.round_brackets(l.finish()));
                 }
             }
@@ -439,7 +441,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                 }
                 if let Some(length) = t.length.get() {
                     // XXX lengths are stored as stringref, use const uint in ast
-                    a.push(w.round_brackets_one(length.to_sql(w)));
+                    a.push(w.round_brackets_one(length.to_sql(w, filter)));
                 }
             }
             SQLBaseType::Time(t) => {
@@ -529,7 +531,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for proto::ConstraintAttribute {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -559,20 +561,24 @@ impl<'ast> ToSQL<'ast> for proto::ConstraintAttribute {
 }
 
 impl<'ast> ToSQL<'ast> for GenericDefinition<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 3);
         a.push(w.str(self.key.get()));
         a.push(w.keyword("=").pad_left());
-        a.push(self.value.get().to_sql(w));
+        a.push(self.value.get().to_sql(w, filter));
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer, 'filter>(
+        &self,
+        w: &'writer ScriptWriter,
+        filter: &dyn ToSQLExpressionFilter,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -585,13 +591,13 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             if args.is_empty() {
                 return;
             }
-            let mut defs = ScriptTextArray::with_capacity(w, 2 * args.len());
+            let mut defs: ScriptTextArray<'writer> = ScriptTextArray::with_capacity(w, 2 * args.len());
             for (i, arg) in args.iter().enumerate() {
                 let arg = arg.get();
                 if i > 0 {
                     defs.push(w.keyword(",").pad_right());
                 }
-                defs.push(arg.to_sql(w));
+                defs.push(arg.to_sql(w, filter));
             }
             out.push(w.float(defs.finish()).pad_left());
         };
@@ -605,7 +611,7 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             }
             proto::ColumnConstraint::CHECK => {
                 a.push(w.keyword("check"));
-                a.push(w.round_brackets_one(self.value.get().to_sql(w)).pad_left());
+                a.push(w.round_brackets_one(self.value.get().to_sql(w, filter)).pad_left());
                 if self.no_inherit.get() {
                     a.push(w.keyword("no").pad_left());
                     a.push(w.keyword("inherit").pad_left());
@@ -628,7 +634,7 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             }
             proto::ColumnConstraint::DEFAULT => {
                 a.push(w.keyword("default"));
-                a.push(self.value.get().to_sql(w).pad_left());
+                a.push(self.value.get().to_sql(w, filter).pad_left());
             }
             _ => (),
         }
@@ -637,28 +643,28 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ColumnConstraintVariant<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match &self {
-            ColumnConstraintVariant::Attribute(a) => a.to_sql(w),
-            ColumnConstraintVariant::Constraint(c) => c.to_sql(w),
+            ColumnConstraintVariant::Attribute(a) => a.to_sql(w, filter),
+            ColumnConstraintVariant::Constraint(c) => c.to_sql(w, filter),
         }
     }
 }
 
 impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.str(self.name.get()));
-        a.push(self.sql_type.get().to_sql(w).pad_left());
+        a.push(self.sql_type.get().to_sql(w, filter).pad_left());
         let constraints = self.constraints.get();
         for constraint in constraints.iter() {
-            a.push(constraint.get().to_sql(w).pad_left());
+            a.push(constraint.get().to_sql(w, filter).pad_left());
         }
         let options = self.options.get();
         if !options.is_empty() {
@@ -667,7 +673,7 @@ impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
                 if i > 0 {
                     oa.push(w.keyword(","));
                 }
-                oa.push(option.get().to_sql(w).pad_left());
+                oa.push(option.get().to_sql(w, filter).pad_left());
             }
             a.push(w.round_brackets(oa.finish()));
         }
@@ -676,7 +682,7 @@ impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -699,7 +705,7 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
             _ => {}
         }
         if let Some(expr) = self.argument.get() {
-            a.push(w.round_brackets_one(expr.to_sql(w)).pad_left());
+            a.push(w.round_brackets_one(expr.to_sql(w, filter)).pad_left());
         }
         if let Some(idx) = self.using_index.get() {
             a.push(w.keyword("using").pad_left());
@@ -720,7 +726,7 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
         let ref_name = self.references_name.get();
         if !ref_name.is_empty() {
             a.push(w.keyword("references").pad_left());
-            a.push(ref_name.to_sql(w).pad_left());
+            a.push(ref_name.to_sql(w, filter).pad_left());
             let ref_cols = self.references_columns.get();
             if !ref_cols.is_empty() {
                 let mut txt = ScriptTextArray::with_capacity(w, 2 * ref_cols.len());
@@ -742,7 +748,7 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
                 if i > 0 {
                     def_text.push(w.keyword(",").pad_right());
                 }
-                def_text.push(def.to_sql(w));
+                def_text.push(def.to_sql(w, filter));
             }
             a.push(w.round_brackets(def_text.finish()).pad_left())
         }
@@ -834,7 +840,7 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -855,7 +861,7 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
             None => todo!(),
         }
         a.push(w.keyword("table").pad_left());
-        a.push(self.name.get().to_sql(w).pad_left());
+        a.push(self.name.get().to_sql(w, filter).pad_left());
         let columns = self.columns.get();
         let constraints = self.constraints.get();
         let mut elements = ScriptTextArray::with_capacity(w, 2 * columns.len() + 2 * constraints.len());
@@ -864,14 +870,14 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
             if elements.len() > 0 {
                 elements.push(w.keyword(",").pad_right());
             }
-            elements.push(column.to_sql(w).breakpoint_before());
+            elements.push(column.to_sql(w, filter).breakpoint_before());
         }
         for constraint in constraints.iter() {
             let constraint = constraint.get();
             if elements.len() > 0 {
                 elements.push(w.keyword(",").pad_right());
             }
-            elements.push(constraint.to_sql(w).breakpoint_before());
+            elements.push(constraint.to_sql(w, filter).breakpoint_before());
         }
         a.push(w.round_brackets(elements.finish()).pad_left());
         if let Some(on_commit) = self.on_commit.get() {
@@ -901,7 +907,7 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -927,7 +933,7 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
             a.push(w.keyword("not").pad_left());
             a.push(w.keyword("exists").pad_left());
         }
-        a.push(self.name.get().to_sql(w).pad_left());
+        a.push(self.name.get().to_sql(w, filter).pad_left());
         let cols = self.columns.get();
         if cols.len() > 0 {
             let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
@@ -963,13 +969,13 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
             }
         }
         a.push(w.keyword("as").pad_left());
-        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w, filter)).pad_left());
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -990,7 +996,7 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
             None => todo!(),
         }
         a.push(w.keyword("view").pad_left());
-        a.push(self.name.get().to_sql(w).pad_left());
+        a.push(self.name.get().to_sql(w, filter).pad_left());
         let cols = self.columns.get();
         if cols.len() > 0 {
             let mut c = ScriptTextArray::with_capacity(w, cols.len() + 2);
@@ -1003,13 +1009,13 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
             a.push(w.round_brackets(c.finish()).pad_left());
         }
         a.push(w.keyword("as").pad_left());
-        a.push(w.round_brackets_one(self.statement.get().to_sql(w)).pad_left());
+        a.push(w.round_brackets_one(self.statement.get().to_sql(w, filter)).pad_left());
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
-    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1018,35 +1024,35 @@ impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for Statement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         match &self {
-            Statement::CreateAs(s) => s.to_sql(w),
-            Statement::CreateView(s) => s.to_sql(w),
-            Statement::Create(s) => s.to_sql(w),
-            Statement::Select(s) => s.to_sql(w),
-            Statement::Set(s) => s.to_sql(w),
-            Statement::Import(s) => s.to_sql(w),
-            Statement::Load(s) => s.to_sql(w),
-            Statement::Viz(s) => s.to_sql(w),
+            Statement::CreateAs(s) => s.to_sql(w, filter),
+            Statement::CreateView(s) => s.to_sql(w, filter),
+            Statement::Create(s) => s.to_sql(w, filter),
+            Statement::Select(s) => s.to_sql(w, filter),
+            Statement::Set(s) => s.to_sql(w, filter),
+            Statement::Import(s) => s.to_sql(w, filter),
+            Statement::Load(s) => s.to_sql(w, filter),
+            Statement::Viz(s) => s.to_sql(w, filter),
             _ => todo!(),
         }
     }
 }
 
 impl<'ast> ToSQL<'ast> for ImportStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 5);
         a.push(w.keyword("import"));
-        a.push(self.name.get().to_sql(w).pad_left());
+        a.push(self.name.get().to_sql(w, filter).pad_left());
         a.push(w.keyword("from").pad_left());
         if let Some(uri) = self.from_uri.get() {
-            a.push(uri.to_sql(w).pad_left());
+            a.push(uri.to_sql(w, filter).pad_left());
         } else {
             a.push(
                 w.keyword(match self.method.get() {
@@ -1058,22 +1064,22 @@ impl<'ast> ToSQL<'ast> for ImportStatement<'ast> {
             );
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.to_sql(w).pad_left());
+            a.push(extra.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 7);
         a.push(w.keyword("load"));
-        a.push(self.name.get().to_sql(w).pad_left());
+        a.push(self.name.get().to_sql(w, filter).pad_left());
         a.push(w.keyword("from").pad_left());
-        a.push(self.source.get().to_sql(w).pad_left());
+        a.push(self.source.get().to_sql(w, filter).pad_left());
         if self.method.get() != proto::LoadMethodType::NONE {
             a.push(w.keyword("using").pad_left());
             a.push(
@@ -1087,20 +1093,20 @@ impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
             );
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.to_sql(w).pad_left());
+            a.push(extra.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
         let mut a = ScriptTextArray::with_capacity(w, 6 + 2 * self.type_modifiers.get().count_ones() as usize);
         a.push(w.keyword("viz"));
-        a.push(self.target.get().to_sql(w).pad_left());
+        a.push(self.target.get().to_sql(w, filter).pad_left());
         a.push(w.keyword("using").pad_left().breakpoint_before());
         if let Some(ct) = self.component_type.get() {
             if ct != proto::VizComponentType::SPEC {
@@ -1147,14 +1153,14 @@ impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
             }
         }
         if let Some(extra) = self.extra.get() {
-            a.push(extra.to_sql(w).pad_left());
+            a.push(extra.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
 }
 
 impl<'ast> ToSQL<'ast> for SetStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1163,9 +1169,9 @@ impl<'ast> ToSQL<'ast> for SetStatement<'ast> {
         assert!(fields.len() == 1, "expected exactly one field: {:?}", fields);
         let mut a = ScriptTextArray::with_capacity(w, 4);
         a.push(w.keyword("set"));
-        a.push(fields[0].key.to_sql(w).pad_left());
+        a.push(fields[0].key.to_sql(w, filter).pad_left());
         a.push(w.str_const("=").pad_left());
-        a.push(fields[0].value.to_sql(w).pad_left());
+        a.push(fields[0].value.to_sql(w, filter).pad_left());
         w.float(a.finish())
     }
 }
@@ -1216,224 +1222,8 @@ fn get_operator_precedence(op: ExpressionOperatorName) -> usize {
     }
 }
 
-impl<'ast> ToSQL<'ast> for Expression<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
-    where
-        'ast: 'writer,
-    {
-        let op_prec = w.operator_precedence.get();
-        let text = match self {
-            Expression::Null => w.str_const("null"),
-            Expression::Boolean(b) => {
-                if *b {
-                    w.str_const("true")
-                } else {
-                    w.str_const("false")
-                }
-            }
-            Expression::Array(elems) => {
-                let mut a = ScriptTextArray::with_capacity(w, 3 * elems.len());
-                for (i, e) in elems.iter().enumerate() {
-                    if i > 0 {
-                        a.push(w.str_const(",").pad_right());
-                    }
-                    a.push(e.get().to_sql(w));
-                }
-                w.round_brackets(a.finish())
-            }
-            Expression::Case(c) => {
-                let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
-                f.push(w.keyword("case"));
-                let arg = c.argument.get();
-                if arg != Expression::Null {
-                    f.push(arg.to_sql(w).pad_left());
-                }
-                for case in c.cases.get().iter() {
-                    f.push(w.keyword("when").pad_left());
-                    f.push(case.get().when.get().to_sql(w).pad_left());
-                    f.push(w.keyword("then").pad_left());
-                    f.push(case.get().then.get().to_sql(w).pad_left());
-                }
-                let default = c.default.get();
-                if default != Expression::Null {
-                    f.push(w.keyword("else").pad_left());
-                    f.push(default.to_sql(w).pad_left());
-                }
-                f.push(w.keyword("end").pad_left());
-                w.float(f.finish())
-            }
-            Expression::ColumnRef(name) => name.to_sql(w),
-            Expression::ConstCast(_) => todo!(),
-            Expression::Exists(e) => {
-                let mut t = ScriptTextArray::with_capacity(w, 3);
-                t.push(w.keyword("EXISTS"));
-                t.push(e.statement.get().to_sql(w).pad_left());
-                w.float(t.finish())
-            }
-            Expression::FunctionCall(_) => todo!(),
-            Expression::Indirection(_i) => todo!(),
-            Expression::Conjunction(exprs) => {
-                let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::AND));
-                let prev_prec = w.operator_precedence.replace(Some(own_prec));
-
-                let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
-                let mut iter = exprs.first.get();
-                a.push(iter.value.get().to_sql(w));
-                while let Some(next) = iter.next.get() {
-                    a.push(w.keyword("and").pad_left());
-                    a.push(next.value.get().to_sql(w).pad_left());
-                    iter = next;
-                }
-                if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
-                    w.round_brackets(a.finish())
-                } else {
-                    w.float(a.finish())
-                }
-            }
-            Expression::Disjunction(exprs) => {
-                let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::OR));
-                let prev_prec = w.operator_precedence.replace(Some(own_prec));
-
-                let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
-                let mut iter = exprs.first.get();
-                a.push(iter.value.get().to_sql(w));
-                while let Some(next) = iter.next.get() {
-                    a.push(w.keyword("or").pad_left());
-                    a.push(next.value.get().to_sql(w).pad_left());
-                    iter = next;
-                }
-                if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
-                    w.round_brackets(a.finish())
-                } else {
-                    w.float(a.finish())
-                }
-            }
-            Expression::Nary(nary) => match nary.operator.get() {
-                ExpressionOperatorName::Known(op) => match op {
-                    // Unary operations
-                    ExpressionOperator::NOT => {
-                        let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
-                        let prev_prec = w.operator_precedence.replace(Some(own_prec));
-
-                        let mut a = ScriptTextArray::with_capacity(w, 5);
-                        match op {
-                            ExpressionOperator::NOT => a.push(w.keyword("not")),
-                            _ => todo!(),
-                        }
-                        a.push(nary.args[0].get().to_sql(w).pad_left());
-
-                        if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
-                            w.round_brackets(a.finish())
-                        } else {
-                            w.float(a.finish())
-                        }
-                    }
-
-                    // Binary operations
-                    ExpressionOperator::PLUS
-                    | ExpressionOperator::MINUS
-                    | ExpressionOperator::MULTIPLY
-                    | ExpressionOperator::MODULUS
-                    | ExpressionOperator::XOR
-                    | ExpressionOperator::GLOB
-                    | ExpressionOperator::NOT_GLOB
-                    | ExpressionOperator::LIKE
-                    | ExpressionOperator::ILIKE
-                    | ExpressionOperator::NOT_LIKE
-                    | ExpressionOperator::NOT_ILIKE
-                    | ExpressionOperator::SIMILAR_TO
-                    | ExpressionOperator::NOT_SIMILAR_TO
-                    | ExpressionOperator::DIVIDE
-                    | ExpressionOperator::EQUAL
-                    | ExpressionOperator::GREATER_EQUAL
-                    | ExpressionOperator::GREATER_THAN
-                    | ExpressionOperator::LESS_EQUAL
-                    | ExpressionOperator::LESS_THAN
-                    | ExpressionOperator::IN
-                    | ExpressionOperator::NOT_IN => {
-                        let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
-                        let prev_prec = w.operator_precedence.replace(Some(own_prec));
-
-                        let mut a = ScriptTextArray::with_capacity(w, 5);
-                        a.push(nary.args[0].get().to_sql(w));
-                        match op {
-                            ExpressionOperator::PLUS => a.push(w.keyword("+").pad_left()),
-                            ExpressionOperator::MINUS => a.push(w.keyword("-").pad_left()),
-                            ExpressionOperator::MULTIPLY => a.push(w.keyword("*").pad_left()),
-                            ExpressionOperator::DIVIDE => a.push(w.keyword("/").pad_left()),
-                            ExpressionOperator::MODULUS => a.push(w.keyword("%").pad_left()),
-                            ExpressionOperator::XOR => a.push(w.keyword("^").pad_left()),
-                            ExpressionOperator::GLOB => a.push(w.keyword("glob").pad_left()),
-                            ExpressionOperator::NOT_GLOB => {
-                                a.push(w.keyword("not").pad_left());
-                                a.push(w.keyword("glob").pad_left());
-                            }
-                            ExpressionOperator::LIKE => a.push(w.keyword("like").pad_left()),
-                            ExpressionOperator::ILIKE => a.push(w.keyword("ilike").pad_left()),
-                            ExpressionOperator::SIMILAR_TO => {
-                                a.push(w.keyword("similar").pad_left());
-                                a.push(w.keyword("to").pad_left());
-                            }
-                            ExpressionOperator::NOT_LIKE => {
-                                a.push(w.keyword("not").pad_left());
-                                a.push(w.keyword("like").pad_left());
-                            }
-                            ExpressionOperator::NOT_ILIKE => {
-                                a.push(w.keyword("not").pad_left());
-                                a.push(w.keyword("ilike").pad_left());
-                            }
-                            ExpressionOperator::NOT_SIMILAR_TO => {
-                                a.push(w.keyword("not").pad_left());
-                                a.push(w.keyword("similar").pad_left());
-                                a.push(w.keyword("to").pad_left());
-                            }
-                            ExpressionOperator::EQUAL => a.push(w.keyword("=").pad_left()),
-                            ExpressionOperator::NOT_EQUAL => a.push(w.keyword("!=").pad_left()),
-                            ExpressionOperator::GREATER_THAN => a.push(w.keyword(">").pad_left()),
-                            ExpressionOperator::GREATER_EQUAL => a.push(w.keyword(">=").pad_left()),
-                            ExpressionOperator::LESS_EQUAL => a.push(w.keyword("<=").pad_left()),
-                            ExpressionOperator::LESS_THAN => a.push(w.keyword("<").pad_left()),
-                            ExpressionOperator::IN => a.push(w.keyword("in").pad_left()),
-                            ExpressionOperator::NOT_IN => {
-                                a.push(w.keyword("not").pad_left());
-                                a.push(w.keyword("in").pad_left());
-                            }
-                            _ => todo!(),
-                        }
-                        a.push(nary.args[1].get().to_sql(w).pad_left());
-                        if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
-                            w.round_brackets(a.finish())
-                        } else {
-                            w.float(a.finish())
-                        }
-                    }
-                    _ => todo!("{}", op.variant_name().unwrap_or_default()),
-                },
-                ExpressionOperatorName::Qualified(_name) => todo!(),
-            },
-            Expression::ParameterRef(p) => {
-                let mut a = ScriptTextArray::with_capacity(w, 2);
-                a.push(w.str_const("$"));
-                a.push(p.name.get().to_sql(w));
-                w.block(a.finish())
-            }
-            Expression::SelectStatement(_) => todo!(),
-            Expression::LiteralNull => w.str_const("null"),
-            Expression::LiteralString(s) => w.single_quotes(w.str(s.clone())),
-            Expression::LiteralInteger(s) | Expression::LiteralFloat(s) | Expression::LiteralInterval(s) => {
-                w.str(s.clone())
-            }
-            Expression::Subquery(_) => todo!(),
-            Expression::TypeCast(_) => todo!(),
-            Expression::TypeTest(_) => todo!(),
-        };
-        w.operator_precedence.set(op_prec);
-        text
-    }
-}
-
 impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1448,20 +1238,268 @@ impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
                 }
                 Indirection::Index(idx) => {
                     t.push(w.str_const("["));
-                    t.push(idx.value.get().to_sql(w));
+                    t.push(idx.value.get().to_sql(w, filter));
                     t.push(w.str_const("]"));
                 }
                 Indirection::Bounds(bounds) => {
                     t.push(w.str_const("["));
-                    t.push(bounds.lower_bound.get().to_sql(w));
+                    t.push(bounds.lower_bound.get().to_sql(w, filter));
                     t.push(w.str_const(", "));
-                    t.push(bounds.upper_bound.get().to_sql(w));
+                    t.push(bounds.upper_bound.get().to_sql(w, filter));
                     t.push(w.str_const("]"));
                 }
             }
         }
         w.float(t.finish())
     }
+}
+
+impl<'ast> ToSQL<'ast> for Expression<'ast> {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        filter.write_expression(w, self)
+    }
+}
+
+#[derive(Default)]
+pub struct ExpressionWriteContext {
+    pub precedence: Cell<Option<usize>>,
+}
+
+#[derive(Default)]
+pub struct NoopExpressionFilter {
+    ctx: ExpressionWriteContext,
+}
+
+impl ToSQLExpressionFilter for NoopExpressionFilter {
+    fn write_expression<'writer, 'ast: 'writer>(
+        &self,
+        writer: &'writer ScriptWriter,
+        expr: &Expression<'ast>,
+    ) -> ScriptText<'writer> {
+        expr_to_sql(writer, self, &self.ctx, expr)
+    }
+}
+
+pub fn expr_to_sql<'ast, 'writer>(
+    w: &'writer ScriptWriter,
+    filter: &dyn ToSQLExpressionFilter,
+    ctx: &ExpressionWriteContext,
+    expr: &Expression<'ast>,
+) -> ScriptText<'writer>
+where
+    'ast: 'writer,
+{
+    let op_prec = ctx.precedence.get();
+    let text = match expr {
+        Expression::Null => w.str_const("null"),
+        Expression::Boolean(b) => {
+            if *b {
+                w.str_const("true")
+            } else {
+                w.str_const("false")
+            }
+        }
+        Expression::Array(elems) => {
+            let mut a = ScriptTextArray::with_capacity(w, 3 * elems.len());
+            for (i, e) in elems.iter().enumerate() {
+                if i > 0 {
+                    a.push(w.str_const(",").pad_right());
+                }
+                a.push(e.get().to_sql(w, filter));
+            }
+            w.round_brackets(a.finish())
+        }
+        Expression::Case(c) => {
+            let mut f = ScriptTextArray::with_capacity(w, 5 + 8 * c.cases.get().len());
+            f.push(w.keyword("case"));
+            let arg = c.argument.get();
+            if arg != Expression::Null {
+                f.push(arg.to_sql(w, filter).pad_left());
+            }
+            for case in c.cases.get().iter() {
+                f.push(w.keyword("when").pad_left());
+                f.push(case.get().when.get().to_sql(w, filter).pad_left());
+                f.push(w.keyword("then").pad_left());
+                f.push(case.get().then.get().to_sql(w, filter).pad_left());
+            }
+            let default = c.default.get();
+            if default != Expression::Null {
+                f.push(w.keyword("else").pad_left());
+                f.push(default.to_sql(w, filter).pad_left());
+            }
+            f.push(w.keyword("end").pad_left());
+            w.float(f.finish())
+        }
+        Expression::ColumnRef(name) => name.to_sql(w, filter),
+        Expression::ConstCast(_) => todo!(),
+        Expression::Exists(e) => {
+            let mut t = ScriptTextArray::with_capacity(w, 3);
+            t.push(w.keyword("EXISTS"));
+            t.push(e.statement.get().to_sql(w, filter).pad_left());
+            w.float(t.finish())
+        }
+        Expression::FunctionCall(_) => todo!(),
+        Expression::Indirection(_i) => todo!(),
+        Expression::Conjunction(exprs) => {
+            let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::AND));
+            let prev_prec = ctx.precedence.replace(Some(own_prec));
+
+            let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
+            let mut iter = exprs.first.get();
+            a.push(iter.value.get().to_sql(w, filter));
+            while let Some(next) = iter.next.get() {
+                a.push(w.keyword("and").pad_left());
+                a.push(next.value.get().to_sql(w, filter).pad_left());
+                iter = next;
+            }
+            if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
+                w.round_brackets(a.finish())
+            } else {
+                w.float(a.finish())
+            }
+        }
+        Expression::Disjunction(exprs) => {
+            let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::OR));
+            let prev_prec = ctx.precedence.replace(Some(own_prec));
+
+            let mut a = ScriptTextArray::with_capacity(w, 2 * exprs.length);
+            let mut iter = exprs.first.get();
+            a.push(iter.value.get().to_sql(w, filter));
+            while let Some(next) = iter.next.get() {
+                a.push(w.keyword("or").pad_left());
+                a.push(next.value.get().to_sql(w, filter).pad_left());
+                iter = next;
+            }
+            if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
+                w.round_brackets(a.finish())
+            } else {
+                w.float(a.finish())
+            }
+        }
+        Expression::Nary(nary) => match nary.operator.get() {
+            ExpressionOperatorName::Known(op) => match op {
+                // Unary operations
+                ExpressionOperator::NOT => {
+                    let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
+                    let prev_prec = ctx.precedence.replace(Some(own_prec));
+
+                    let mut a = ScriptTextArray::with_capacity(w, 5);
+                    match op {
+                        ExpressionOperator::NOT => a.push(w.keyword("not")),
+                        _ => todo!(),
+                    }
+                    a.push(nary.args[0].get().to_sql(w, filter).pad_left());
+
+                    if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
+                        w.round_brackets(a.finish())
+                    } else {
+                        w.float(a.finish())
+                    }
+                }
+
+                // Binary operations
+                ExpressionOperator::PLUS
+                | ExpressionOperator::MINUS
+                | ExpressionOperator::MULTIPLY
+                | ExpressionOperator::MODULUS
+                | ExpressionOperator::XOR
+                | ExpressionOperator::GLOB
+                | ExpressionOperator::NOT_GLOB
+                | ExpressionOperator::LIKE
+                | ExpressionOperator::ILIKE
+                | ExpressionOperator::NOT_LIKE
+                | ExpressionOperator::NOT_ILIKE
+                | ExpressionOperator::SIMILAR_TO
+                | ExpressionOperator::NOT_SIMILAR_TO
+                | ExpressionOperator::DIVIDE
+                | ExpressionOperator::EQUAL
+                | ExpressionOperator::GREATER_EQUAL
+                | ExpressionOperator::GREATER_THAN
+                | ExpressionOperator::LESS_EQUAL
+                | ExpressionOperator::LESS_THAN
+                | ExpressionOperator::IN
+                | ExpressionOperator::NOT_IN => {
+                    let own_prec = get_operator_precedence(ExpressionOperatorName::Known(op));
+                    let prev_prec = ctx.precedence.replace(Some(own_prec));
+
+                    let mut a = ScriptTextArray::with_capacity(w, 5);
+                    a.push(nary.args[0].get().to_sql(w, filter));
+                    match op {
+                        ExpressionOperator::PLUS => a.push(w.keyword("+").pad_left()),
+                        ExpressionOperator::MINUS => a.push(w.keyword("-").pad_left()),
+                        ExpressionOperator::MULTIPLY => a.push(w.keyword("*").pad_left()),
+                        ExpressionOperator::DIVIDE => a.push(w.keyword("/").pad_left()),
+                        ExpressionOperator::MODULUS => a.push(w.keyword("%").pad_left()),
+                        ExpressionOperator::XOR => a.push(w.keyword("^").pad_left()),
+                        ExpressionOperator::GLOB => a.push(w.keyword("glob").pad_left()),
+                        ExpressionOperator::NOT_GLOB => {
+                            a.push(w.keyword("not").pad_left());
+                            a.push(w.keyword("glob").pad_left());
+                        }
+                        ExpressionOperator::LIKE => a.push(w.keyword("like").pad_left()),
+                        ExpressionOperator::ILIKE => a.push(w.keyword("ilike").pad_left()),
+                        ExpressionOperator::SIMILAR_TO => {
+                            a.push(w.keyword("similar").pad_left());
+                            a.push(w.keyword("to").pad_left());
+                        }
+                        ExpressionOperator::NOT_LIKE => {
+                            a.push(w.keyword("not").pad_left());
+                            a.push(w.keyword("like").pad_left());
+                        }
+                        ExpressionOperator::NOT_ILIKE => {
+                            a.push(w.keyword("not").pad_left());
+                            a.push(w.keyword("ilike").pad_left());
+                        }
+                        ExpressionOperator::NOT_SIMILAR_TO => {
+                            a.push(w.keyword("not").pad_left());
+                            a.push(w.keyword("similar").pad_left());
+                            a.push(w.keyword("to").pad_left());
+                        }
+                        ExpressionOperator::EQUAL => a.push(w.keyword("=").pad_left()),
+                        ExpressionOperator::NOT_EQUAL => a.push(w.keyword("!=").pad_left()),
+                        ExpressionOperator::GREATER_THAN => a.push(w.keyword(">").pad_left()),
+                        ExpressionOperator::GREATER_EQUAL => a.push(w.keyword(">=").pad_left()),
+                        ExpressionOperator::LESS_EQUAL => a.push(w.keyword("<=").pad_left()),
+                        ExpressionOperator::LESS_THAN => a.push(w.keyword("<").pad_left()),
+                        ExpressionOperator::IN => a.push(w.keyword("in").pad_left()),
+                        ExpressionOperator::NOT_IN => {
+                            a.push(w.keyword("not").pad_left());
+                            a.push(w.keyword("in").pad_left());
+                        }
+                        _ => todo!(),
+                    }
+                    a.push(nary.args[1].get().to_sql(w, filter).pad_left());
+                    if prev_prec.map(|prev_prec| own_prec <= prev_prec).unwrap_or_default() {
+                        w.round_brackets(a.finish())
+                    } else {
+                        w.float(a.finish())
+                    }
+                }
+                _ => todo!("{}", op.variant_name().unwrap_or_default()),
+            },
+            ExpressionOperatorName::Qualified(_name) => todo!(),
+        },
+        Expression::ParameterRef(p) => {
+            let mut a = ScriptTextArray::with_capacity(w, 2);
+            a.push(w.str_const("$"));
+            a.push(p.name.get().to_sql(w, filter));
+            w.block(a.finish())
+        }
+        Expression::SelectStatement(_) => todo!(),
+        Expression::LiteralNull => w.str_const("null"),
+        Expression::LiteralString(s) => w.single_quotes(w.str(s.clone())),
+        Expression::LiteralInteger(s) | Expression::LiteralFloat(s) | Expression::LiteralInterval(s) => {
+            w.str(s.clone())
+        }
+        Expression::Subquery(_) => todo!(),
+        Expression::TypeCast(_) => todo!(),
+        Expression::TypeTest(_) => todo!(),
+    };
+    ctx.precedence.set(op_prec);
+    text
 }
 
 #[cfg(test)]
@@ -1484,7 +1522,8 @@ mod test {
 
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);
-        let script_text = prog.statements[0].to_sql(&writer);
+        let expr_filter = NoopExpressionFilter::default();
+        let script_text = prog.statements[0].to_sql(&writer, &expr_filter);
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(text, &script_string, "{:?}", prog);
