@@ -1513,6 +1513,7 @@ mod test {
         test_pipe(&r#"select a + (b + c)"#).await?;
         test_pipe(&r#"select a + b * c"#).await?;
         test_pipe(&r#"select a + b and b + c and c + d"#).await?;
+        test_pipe(&r#"select $someparam"#).await?;
         Ok(())
     }
 

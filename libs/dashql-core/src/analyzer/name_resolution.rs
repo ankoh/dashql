@@ -96,18 +96,18 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
     for (node_id, node_proto) in ctx.program.ast_flat.nodes().unwrap_or_default().iter().enumerate() {
         let node_translated = ctx.program.ast_translated[node_id];
         match node_proto.node_type() {
-            proto::NodeType::OBJECT_SQL_COLUMN_REF => {
-                if let ASTNode::ColumnRef(name) = &node_translated {
-                    let target = normalize_name_clone(ctx, name);
-                    if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
+            proto::NodeType::OBJECT_SQL_PARAMETER_REF => {
+                if let ASTNode::ParameterRef(param) = &node_translated {
+                    let source_name = normalize_name_clone(ctx, param.name.get());
+                    if let Some(source_stmt_id) = ctx.statement_by_name.get(source_name).cloned() {
                         if let Some(target_stmt_id) = resolve_statement_id(ctx, node_id as usize) {
                             ctx.statement_required_for.insert(
-                                (stmt, target_stmt_id as usize),
-                                (proto::DependencyType::COLUMN_REF, node_id),
+                                (source_stmt_id, target_stmt_id as usize),
+                                (proto::DependencyType::PARAMETER_REF, node_id),
                             );
                             ctx.statement_depends_on.insert(
-                                (target_stmt_id as usize, stmt),
-                                (proto::DependencyType::COLUMN_REF, node_id),
+                                (target_stmt_id as usize, source_stmt_id),
+                                (proto::DependencyType::PARAMETER_REF, node_id),
                             );
                         }
                     }
@@ -115,15 +115,15 @@ pub fn discover_statement_dependencies<'a>(ctx: &mut ProgramInstance<'a>) {
             }
             proto::NodeType::OBJECT_SQL_TABLEREF => {
                 if let ASTNode::TableRef(TableRef::Relation(rel)) = &node_translated {
-                    let target = normalize_name_clone(ctx, rel.name.get());
-                    if let Some(stmt) = ctx.statement_by_name.get(target).cloned() {
+                    let source_name = normalize_name_clone(ctx, rel.name.get());
+                    if let Some(source_stmt_id) = ctx.statement_by_name.get(source_name).cloned() {
                         if let Some(target_stmt_id) = resolve_statement_id(ctx, node_id as usize) {
                             ctx.statement_required_for.insert(
-                                (stmt, target_stmt_id as usize),
+                                (source_stmt_id, target_stmt_id as usize),
                                 (proto::DependencyType::TABLE_REF, node_id),
                             );
                             ctx.statement_depends_on.insert(
-                                (target_stmt_id as usize, stmt),
+                                (target_stmt_id as usize, source_stmt_id),
                                 (proto::DependencyType::TABLE_REF, node_id),
                             );
                         }

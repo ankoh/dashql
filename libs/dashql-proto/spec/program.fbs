@@ -693,7 +693,7 @@ table Statement {
 
 enum DependencyType: uint8 {
     TABLE_REF,
-    COLUMN_REF
+    PARAMETER_REF,
 }
 
 struct Dependency {
