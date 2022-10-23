@@ -1,5 +1,9 @@
 use std::cell::Cell;
+use std::sync::Mutex;
 
+use crate::execution::constant_folding::evaluate_constant_expression;
+use crate::execution::constant_folding::is_constant_expression;
+use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::grammar::SetStatement;
 
 use super::ast_cell::*;
@@ -16,7 +20,11 @@ use dashql_proto::KeyMatch;
 use dashql_proto::VizComponentTypeModifier;
 
 impl<'ast> ToSQL<'ast> for Program<'ast> {
-    fn to_sql<'writer>(&self, writer: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        writer: &'writer ScriptWriter,
+        filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -32,7 +40,7 @@ impl<'ast> ToSQL<'ast> for Program<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -55,7 +63,7 @@ impl<'ast> ToSQL<'ast> for CommonTableExpression<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -84,7 +92,7 @@ impl<'ast> ToSQL<'ast> for OrderSpecification<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for Limit<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -99,7 +107,11 @@ impl<'ast> ToSQL<'ast> for Limit<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for DsonKey<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -111,7 +123,7 @@ impl<'ast> ToSQL<'ast> for DsonKey<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -148,7 +160,11 @@ impl<'ast> ToSQL<'ast> for DsonValue<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for Alias<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -160,7 +176,7 @@ impl<'ast> ToSQL<'ast> for Alias<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for RelationRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -177,7 +193,7 @@ impl<'ast> ToSQL<'ast> for RelationRef<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -222,7 +238,7 @@ impl<'ast> ToSQL<'ast> for JoinedTable<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for JoinedTableRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -236,7 +252,7 @@ impl<'ast> ToSQL<'ast> for JoinedTableRef<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for TableRef<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -249,7 +265,7 @@ impl<'ast> ToSQL<'ast> for TableRef<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -268,7 +284,7 @@ impl<'ast> ToSQL<'ast> for ResultTarget<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -294,7 +310,7 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -318,7 +334,7 @@ impl<'ast> ToSQL<'ast> for CombineOperation<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -371,7 +387,11 @@ impl<'ast> ToSQL<'ast> for SelectStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -383,7 +403,7 @@ impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SQLType<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -531,7 +551,11 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for proto::ConstraintAttribute {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -561,7 +585,7 @@ impl<'ast> ToSQL<'ast> for proto::ConstraintAttribute {
 }
 
 impl<'ast> ToSQL<'ast> for GenericDefinition<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -574,11 +598,7 @@ impl<'ast> ToSQL<'ast> for GenericDefinition<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
-    fn to_sql<'writer, 'filter>(
-        &self,
-        w: &'writer ScriptWriter,
-        filter: &dyn ToSQLExpressionFilter,
-    ) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -587,7 +607,8 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
             a.push(w.keyword("constraint"));
             a.push(w.str(name).pad_left().pad_right());
         }
-        let write_definition = |out: &mut ScriptTextArray<'writer>, args: &'ast [ASTCell<&'ast GenericDefinition>]| {
+        let write_definition = |out: &mut ScriptTextArray<'writer>,
+                                args: &'ast [ASTCell<&'ast GenericDefinition<'ast>>]| {
             if args.is_empty() {
                 return;
             }
@@ -643,7 +664,7 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintSpec<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ColumnConstraintVariant<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -655,7 +676,7 @@ impl<'ast> ToSQL<'ast> for ColumnConstraintVariant<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -682,7 +703,7 @@ impl<'ast> ToSQL<'ast> for ColumnDefinition<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -840,7 +861,7 @@ impl<'ast> ToSQL<'ast> for TableConstraintSpec<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -907,7 +928,7 @@ impl<'ast> ToSQL<'ast> for CreateStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -975,7 +996,7 @@ impl<'ast> ToSQL<'ast> for CreateAsStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1015,7 +1036,11 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
-    fn to_sql<'writer>(&self, _w: &'writer ScriptWriter, _filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(
+        &self,
+        _w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1024,7 +1049,7 @@ impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for Statement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1043,7 +1068,7 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for ImportStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1071,7 +1096,7 @@ impl<'ast> ToSQL<'ast> for ImportStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1100,7 +1125,7 @@ impl<'ast> ToSQL<'ast> for LoadStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1160,7 +1185,7 @@ impl<'ast> ToSQL<'ast> for VizStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for SetStatement<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1223,7 +1248,7 @@ fn get_operator_precedence(op: ExpressionOperatorName) -> usize {
 }
 
 impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1255,7 +1280,7 @@ impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
 }
 
 impl<'ast> ToSQL<'ast> for Expression<'ast> {
-    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
@@ -1273,19 +1298,40 @@ pub struct NoopExpressionFilter {
     ctx: ExpressionWriteContext,
 }
 
-impl ToSQLExpressionFilter for NoopExpressionFilter {
-    fn write_expression<'writer, 'ast: 'writer>(
-        &self,
-        writer: &'writer ScriptWriter,
-        expr: &Expression<'ast>,
-    ) -> ScriptText<'writer> {
+impl<'ast> ToSQLExpressionFilter<'ast> for NoopExpressionFilter {
+    fn write_expression<'writer>(&self, writer: &'writer ScriptWriter, expr: &Expression<'ast>) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        expr_to_sql(writer, self, &self.ctx, expr)
+    }
+}
+
+pub struct EvaluatingExpressionFilter<'ast, 'snap> {
+    ctx: ExpressionWriteContext,
+    snap: Mutex<&'snap mut ExecutionContextSnapshot<'ast, 'snap>>,
+}
+
+impl<'ast, 'snap> ToSQLExpressionFilter<'ast> for EvaluatingExpressionFilter<'ast, 'snap> {
+    fn write_expression<'writer>(&self, writer: &'writer ScriptWriter, expr: &Expression<'ast>) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut snap = self.snap.lock().unwrap();
+        if is_constant_expression(*expr, &snap) {
+            match evaluate_constant_expression(*expr, &mut snap) {
+                Ok(None) => return writer.str_const("null"),
+                Ok(Some(value)) => return value.to_sql(writer, self),
+                Err(_) => (),
+            }
+        }
         expr_to_sql(writer, self, &self.ctx, expr)
     }
 }
 
 pub fn expr_to_sql<'ast, 'writer>(
     w: &'writer ScriptWriter,
-    filter: &dyn ToSQLExpressionFilter,
+    filter: &dyn ToSQLExpressionFilter<'ast>,
     ctx: &ExpressionWriteContext,
     expr: &Expression<'ast>,
 ) -> ScriptText<'writer>

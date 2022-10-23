@@ -4,6 +4,7 @@ use std::fmt::{self, Write};
 use std::num::{ParseFloatError, ParseIntError};
 
 use crate::error::SystemError;
+use crate::grammar::script_writer::{ScriptText, ScriptTextArray, ScriptWriter, ToSQL, ToSQLExpressionFilter};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -119,6 +120,50 @@ impl fmt::Display for ScalarValue {
                     f.write_str(&v.to_string())?;
                 }
                 f.write_char(')')
+            }
+        }
+    }
+}
+
+impl<'ast> ToSQL<'ast> for ScalarValue {
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        match self {
+            ScalarValue::Boolean(b) => {
+                if *b {
+                    w.str_const("true")
+                } else {
+                    w.str_const("false")
+                }
+            }
+            ScalarValue::Int64(v) => w.str(w.arena.alloc_str(&format!("{}", *v))),
+            ScalarValue::Float64(v) => w.str(w.arena.alloc_str(&format!("{}", *v))),
+            ScalarValue::Utf8(v) => w.single_quotes(w.str(w.arena.alloc_str(&v))),
+            ScalarValue::List(vs) => {
+                let mut a = ScriptTextArray::with_capacity(w, 3 * vs.len());
+                for (i, e) in vs.iter().enumerate() {
+                    if i > 0 {
+                        a.push(w.str_const(",").pad_right());
+                    }
+                    a.push(e.to_sql(w, filter));
+                }
+                w.round_brackets(a.finish())
+            }
+            ScalarValue::Struct(fields) => {
+                let mut entries = ScriptTextArray::with_capacity(w, fields.len());
+                for (i, (key, value)) in fields.iter().enumerate() {
+                    let mut kv = ScriptTextArray::with_capacity(w, 4);
+                    if i > 0 {
+                        kv.push(w.str_const(",").pad_right());
+                    }
+                    kv.push(w.str(w.arena.alloc_str(&key)).breakpoint_before());
+                    kv.push(w.str_const("=").pad_left());
+                    kv.push(value.to_sql(w, filter).pad_left());
+                    entries.push(w.float(kv.finish()))
+                }
+                w.round_brackets(entries.finish())
             }
         }
     }

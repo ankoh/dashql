@@ -229,19 +229,17 @@ impl<'writer> ScriptTextArray<'writer> {
     }
 }
 
-pub trait ToSQLExpressionFilter {
-    fn write_expression<'writer, 'ast: 'writer>(
-        &self,
-        writer: &'writer ScriptWriter,
-        expr: &Expression<'ast>,
-    ) -> ScriptText<'writer>;
+pub trait ToSQLExpressionFilter<'ast> {
+    fn write_expression<'writer>(&self, writer: &'writer ScriptWriter, expr: &Expression<'ast>) -> ScriptText<'writer>
+    where
+        'ast: 'writer;
 }
 
 pub trait ToSQL<'ast> {
     fn to_sql<'writer, 'filter>(
         &self,
         writer: &'writer ScriptWriter,
-        filter: &'filter dyn ToSQLExpressionFilter,
+        filter: &'filter dyn ToSQLExpressionFilter<'ast>,
     ) -> ScriptText<'writer>
     where
         'ast: 'writer;
