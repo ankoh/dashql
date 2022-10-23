@@ -160,4 +160,24 @@
             )
         </input>
     </astdump>
+    <astdump name="demo_filter">
+        <input>
+            IMPORT csv_vacc_total FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';
+            IMPORT csv_vacc_state FROM 'https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv';
+            IMPORT csv_deliveries FROM 'https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv';
+
+            DECLARE test AS INTEGER;
+
+            LOAD vaccinations FROM csv_vacc_total USING CSV;
+
+            CREATE VIEW vaccinations_desc AS (
+                SELECT *
+                FROM vaccinations
+                WHERE "date" &lt; (now() - interval $test day)
+                ORDER BY "date" DESC
+            );
+
+            VIZ vaccinations_desc USING TABLE;
+        </input>
+    </astdump>
 </astdumps>

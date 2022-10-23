@@ -4318,7 +4318,9 @@
                                 value: ConstCast(
                                     Function(
                                         ConstFunctionCastExpression {
-                                            value: &quot;foo&quot;,
+                                            value: LiteralString(
+                                                &quot;foo&quot;,
+                                            ),
                                             func_name: Some(
                                                 [
                                                     Name(
@@ -4396,7 +4398,9 @@
                                 value: ConstCast(
                                     Function(
                                         ConstFunctionCastExpression {
-                                            value: &quot;foo&quot;,
+                                            value: LiteralString(
+                                                &quot;foo&quot;,
+                                            ),
                                             func_name: Some(
                                                 [
                                                     Name(
@@ -4476,7 +4480,9 @@
                                 value: ConstCast(
                                     Type(
                                         ConstTypeCastExpression {
-                                            value: &quot;1&quot;,
+                                            value: LiteralString(
+                                                &quot;1&quot;,
+                                            ),
                                             sql_type: SQLType {
                                                 base_type: Numeric(
                                                     NumericType {
@@ -4550,7 +4556,9 @@
                                 value: ConstCast(
                                     Interval(
                                         ConstIntervalCastExpression {
-                                            value: &quot;90&quot;,
+                                            value: LiteralString(
+                                                &quot;90&quot;,
+                                            ),
                                             interval: IntervalSpecification {
                                                 interval_type: Some(
                                                     MINUTE_TO_SECOND,
@@ -4620,7 +4628,9 @@
                                 value: ConstCast(
                                     Interval(
                                         ConstIntervalCastExpression {
-                                            value: &quot;90&quot;,
+                                            value: LiteralString(
+                                                &quot;90&quot;,
+                                            ),
                                             interval: IntervalSpecification {
                                                 interval_type: Some(
                                                     HOUR,
@@ -4690,7 +4700,9 @@
                                 value: ConstCast(
                                     Interval(
                                         ConstIntervalCastExpression {
-                                            value: &quot;1&quot;,
+                                            value: LiteralString(
+                                                &quot;1&quot;,
+                                            ),
                                             interval: IntervalSpecification {
                                                 interval_type: Some(
                                                     HOUR,
@@ -6531,7 +6543,9 @@
                                                     ConstCast(
                                                         Function(
                                                             ConstFunctionCastExpression {
-                                                                value: &quot;2021-01-10&quot;,
+                                                                value: LiteralString(
+                                                                    &quot;2021-01-10&quot;,
+                                                                ),
                                                                 func_name: Some(
                                                                     [
                                                                         Name(
@@ -6547,7 +6561,9 @@
                                                     ConstCast(
                                                         Function(
                                                             ConstFunctionCastExpression {
-                                                                value: &quot;2021-02-01&quot;,
+                                                                value: LiteralString(
+                                                                    &quot;2021-02-01&quot;,
+                                                                ),
                                                                 func_name: Some(
                                                                     [
                                                                         Name(
@@ -6567,7 +6583,9 @@
                                                     ConstCast(
                                                         Function(
                                                             ConstFunctionCastExpression {
-                                                                value: &quot;2021-01-20&quot;,
+                                                                value: LiteralString(
+                                                                    &quot;2021-01-20&quot;,
+                                                                ),
                                                                 func_name: Some(
                                                                     [
                                                                         Name(
@@ -6583,7 +6601,9 @@
                                                     ConstCast(
                                                         Function(
                                                             ConstFunctionCastExpression {
-                                                                value: &quot;2021-02-10&quot;,
+                                                                value: LiteralString(
+                                                                    &quot;2021-02-10&quot;,
+                                                                ),
                                                                 func_name: Some(
                                                                     [
                                                                         Name(
@@ -7181,18 +7201,13 @@
             <statements>
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..15" text="select ? from c">
-                        <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="14..15" text="c">
-                                <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
-                                <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="IDENTIFIER" loc="14..15" text="c"/>
-                                </node>
-                            </node>
-                        </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..8" text="?">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..8" text="?">
-                                    <node key="SQL_PARAMETER_PREFIX" type="BOOL" value="true"/>
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..15" text="? from c">
+                                <node key="SQL_RESULT_TARGET_NAME" type="IDENTIFIER" loc="14..15" text="c"/>
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..13" text="? from">
+                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="9..13" text="from"/>
+                                    </node>
                                 </node>
                             </node>
                         </node>
@@ -7218,27 +7233,20 @@
                             Value {
                                 value: ParameterRef(
                                     ParameterRef {
-                                        prefix: true,
-                                        name: [],
+                                        name: [
+                                            Name(
+                                                &quot;from&quot;,
+                                            ),
+                                        ],
                                     },
                                 ),
-                                alias: None,
+                                alias: Some(
+                                    &quot;c&quot;,
+                                ),
                             },
                         ],
                         into: None,
-                        from: [
-                            Relation(
-                                RelationRef {
-                                    name: [
-                                        Name(
-                                            &quot;c&quot;,
-                                        ),
-                                    ],
-                                    inherit: true,
-                                    alias: None,
-                                },
-                            ),
-                        ],
+                        from: [],
                         where_clause: Null,
                         group_by: [],
                         having: Null,
@@ -7261,18 +7269,13 @@
             <statements>
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="0..16" text="select $1 from c">
-                        <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="15..16" text="c">
-                                <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
-                                <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="IDENTIFIER" loc="15..16" text="c"/>
-                                </node>
-                            </node>
-                        </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..9" text="$1">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..9" text="$1">
-                                    <node key="SQL_PARAMETER_PREFIX" type="BOOL" value="true"/>
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..16" text="$1 from c">
+                                <node key="SQL_RESULT_TARGET_NAME" type="IDENTIFIER" loc="15..16" text="c"/>
+                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..14" text="$1 from">
+                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="10..14" text="from"/>
+                                    </node>
                                 </node>
                             </node>
                         </node>
@@ -7298,27 +7301,20 @@
                             Value {
                                 value: ParameterRef(
                                     ParameterRef {
-                                        prefix: true,
-                                        name: [],
+                                        name: [
+                                            Name(
+                                                &quot;from&quot;,
+                                            ),
+                                        ],
                                     },
                                 ),
-                                alias: None,
+                                alias: Some(
+                                    &quot;c&quot;,
+                                ),
                             },
                         ],
                         into: None,
-                        from: [
-                            Relation(
-                                RelationRef {
-                                    name: [
-                                        Name(
-                                            &quot;c&quot;,
-                                        ),
-                                    ],
-                                    inherit: true,
-                                    alias: None,
-                                },
-                            ),
-                        ],
+                        from: [],
                         where_clause: Null,
                         group_by: [],
                         having: Null,
@@ -7339,87 +7335,16 @@
         <input>select $1.a from c</input>
         <parsed>
             <statements>
-                <statement type="SELECT">
-                    <node type="OBJECT_SQL_SELECT" loc="0..18" text="select $1.a from c">
-                        <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="17..18" text="c">
-                                <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
-                                <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="IDENTIFIER" loc="17..18" text="c"/>
-                                </node>
-                            </node>
-                        </node>
-                        <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="7..11" text="$1.a">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="7..11" text="$1.a">
-                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
-                                        <node type="IDENTIFIER" loc="10..11" text="a"/>
-                                    </node>
-                                    <node key="SQL_PARAMETER_PREFIX" type="BOOL" value="true"/>
-                                </node>
-                            </node>
-                        </node>
-                    </node>
-                </statement>
             </statements>
-            <errors/>
+            <errors>
+                <error message="syntax error, unexpected &apos;.&apos;" loc="9..10" text="."/>
+            </errors>
             <line_breaks/>
             <comments/>
             <dson_keys/>
         </parsed>
         <translated>Program {
-    statements: [
-        Select(
-            SelectStatement {
-                with_ctes: [],
-                with_recursive: false,
-                data: From(
-                    SelectFromStatement {
-                        all: false,
-                        distinct: None,
-                        targets: [
-                            Value {
-                                value: ParameterRef(
-                                    ParameterRef {
-                                        prefix: true,
-                                        name: [
-                                            Name(
-                                                &quot;a&quot;,
-                                            ),
-                                        ],
-                                    },
-                                ),
-                                alias: None,
-                            },
-                        ],
-                        into: None,
-                        from: [
-                            Relation(
-                                RelationRef {
-                                    name: [
-                                        Name(
-                                            &quot;c&quot;,
-                                        ),
-                                    ],
-                                    inherit: true,
-                                    alias: None,
-                                },
-                            ),
-                        ],
-                        where_clause: Null,
-                        group_by: [],
-                        having: Null,
-                        windows: [],
-                        sample: None,
-                    },
-                ),
-                order_by: [],
-                row_locking: [],
-                limit: None,
-                offset: Null,
-            },
-        ),
-    ],
+    statements: [],
 }</translated>
     </astdump>
     <astdump name="select_func_1">

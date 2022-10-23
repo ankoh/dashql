@@ -2832,4 +2832,397 @@
     ],
 }</translated>
     </astdump>
+    <astdump name="demo_filter">
+        <input>IMPORT csv_vacc_total FROM &apos;https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv&apos;;
+            IMPORT csv_vacc_state FROM &apos;https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv&apos;;
+            IMPORT csv_deliveries FROM &apos;https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv&apos;;
+
+            DECLARE test AS INTEGER;
+
+            LOAD vaccinations FROM csv_vacc_total USING CSV;
+
+            CREATE VIEW vaccinations_desc AS (
+                SELECT *
+                FROM vaccinations
+                WHERE &quot;date&quot; &lt; (now() - interval $test day)
+                ORDER BY &quot;date&quot; DESC
+            );
+
+            VIZ vaccinations_desc USING TABLE;</input>
+        <parsed>
+            <statements>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..104" text="IMPORT csv..es_v2.tsv&apos;">
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="27..104" text="&apos;https://i..es_v2.tsv&apos;"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="7..21" text="csv_vacc_total"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="118..217" text="IMPORT csv..state.tsv&apos;">
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="145..217" text="&apos;https://i..state.tsv&apos;"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="125..139" text="csv_vacc_state"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="IMPORT">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="231..333" text="IMPORT csv..es_v2.tsv&apos;">
+                        <node key="DASHQL_IMPORT_FROM_URI" type="LITERAL_STRING" loc="258..333" text="&apos;https://i..es_v2.tsv&apos;"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="238..252" text="csv_deliveries"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="DECLARE">
+                    <node type="OBJECT_DASHQL_DECLARE" loc="348..371" text="DECLARE te..AS INTEGER">
+                        <node key="DASHQL_DECLARE_COMPONENT_TYPE" type="ENUM_DASHQL_DECLARE_COMPONENT_TYPE" value="NONE"/>
+                        <node key="DASHQL_DECLARE_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="364..371" text="INTEGER">
+                            <node key="SQL_TYPENAME_TYPE" type="ENUM_SQL_NUMERIC_TYPE" value="INT4"/>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="356..360" text="test"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="LOAD">
+                    <node type="OBJECT_DASHQL_LOAD" loc="386..433" text="LOAD vacci.. USING CSV">
+                        <node key="DASHQL_DATA_SOURCE" type="ARRAY">
+                            <node type="IDENTIFIER" loc="409..423" text="csv_vacc_total"/>
+                        </node>
+                        <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="CSV"/>
+                        <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="391..403" text="vaccinations"/>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="CREATE_VIEW">
+                    <node type="OBJECT_SQL_VIEW" loc="448..652" text="CREATE VIE..         )">
+                        <node key="SQL_VIEW_NAME" type="ARRAY">
+                            <node type="IDENTIFIER" loc="460..477" text="vaccinations_desc"/>
+                        </node>
+                        <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_SELECT" loc="481..652" text="(\n        ..         )">
+                            <node key="SQL_SELECT_FROM" type="ARRAY">
+                                <node type="OBJECT_SQL_TABLEREF" loc="529..541" text="vaccinations">
+                                    <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                                    <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="529..541" text="vaccinations"/>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_SELECT_ORDER" type="ARRAY">
+                                <node type="OBJECT_SQL_ORDER" loc="627..638" text="&quot;date&quot; DESC">
+                                    <node key="SQL_ORDER_DIRECTION" type="ENUM_SQL_ORDER_DIRECTION" value="DESCENDING"/>
+                                    <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="627..633" text="&quot;date&quot;">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                            <node type="IDENTIFIER" loc="627..633" text="&quot;date&quot;"/>
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_SELECT_TARGETS" type="ARRAY">
+                                <node type="OBJECT_SQL_RESULT_TARGET" loc="506..507" text="*">
+                                    <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true"/>
+                                </node>
+                            </node>
+                            <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="564..601" text="&quot;date&quot; &lt; (..$test day)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="564..570" text="&quot;date&quot;">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="564..570" text="&quot;date&quot;"/>
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="574..600" text="now() - in.. $test day">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="574..579" text="now()">
+                                        <node key="SQL_FUNCTION_NAME" type="IDENTIFIER" loc="574..577" text="now"/>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="582..600" text="interval $test day">
+                                        <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="597..600" text="day">
+                                            <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY"/>
+                                        </node>
+                                        <node key="SQL_CONST_CAST_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="591..596" text="$test">
+                                            <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                                <node type="IDENTIFIER" loc="592..596" text="test"/>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS"/>
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN"/>
+                            </node>
+                        </node>
+                        <node key="SQL_VIEW_TEMP" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="667..700" text="VIZ vaccin..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="TABLE"/>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="671..688" text="vaccinations_desc">
+                            <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
+                            <node key="SQL_TABLEREF_NAME" type="ARRAY">
+                                <node type="IDENTIFIER" loc="671..688" text="vaccinations_desc"/>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors/>
+            <line_breaks>
+                <line_break loc="105..106" text="\n"/>
+                <line_break loc="218..219" text="\n"/>
+                <line_break loc="334..335" text="\n"/>
+                <line_break loc="335..336" text="\n"/>
+                <line_break loc="372..373" text="\n"/>
+                <line_break loc="373..374" text="\n"/>
+                <line_break loc="434..435" text="\n"/>
+                <line_break loc="435..436" text="\n"/>
+                <line_break loc="482..483" text="\n"/>
+                <line_break loc="507..508" text="\n"/>
+                <line_break loc="541..542" text="\n"/>
+                <line_break loc="601..602" text="\n"/>
+                <line_break loc="638..639" text="\n"/>
+                <line_break loc="653..654" text="\n"/>
+                <line_break loc="654..655" text="\n"/>
+            </line_breaks>
+            <comments/>
+            <dson_keys/>
+        </parsed>
+        <translated>Program {
+    statements: [
+        Import(
+            ImportStatement {
+                name: [
+                    Name(
+                        &quot;csv_vacc_total&quot;,
+                    ),
+                ],
+                method: NONE,
+                from_uri: Some(
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv&quot;,
+                    ),
+                ),
+                extra: None,
+            },
+        ),
+        Import(
+            ImportStatement {
+                name: [
+                    Name(
+                        &quot;csv_vacc_state&quot;,
+                    ),
+                ],
+                method: NONE,
+                from_uri: Some(
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv&quot;,
+                    ),
+                ),
+                extra: None,
+            },
+        ),
+        Import(
+            ImportStatement {
+                name: [
+                    Name(
+                        &quot;csv_deliveries&quot;,
+                    ),
+                ],
+                method: NONE,
+                from_uri: Some(
+                    LiteralString(
+                        &quot;https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv&quot;,
+                    ),
+                ),
+                extra: None,
+            },
+        ),
+        Declare(
+            DeclareStatement {
+                name: [
+                    Name(
+                        &quot;test&quot;,
+                    ),
+                ],
+                value_type: SQLType {
+                    base_type: Numeric(
+                        NumericType {
+                            base: INT4,
+                            modifiers: [],
+                        },
+                    ),
+                    array_bounds: [],
+                    set_of: false,
+                },
+                component_type: Some(
+                    NONE,
+                ),
+                extra: None,
+            },
+        ),
+        Load(
+            LoadStatement {
+                name: [
+                    Name(
+                        &quot;vaccinations&quot;,
+                    ),
+                ],
+                source: [
+                    Name(
+                        &quot;csv_vacc_total&quot;,
+                    ),
+                ],
+                method: CSV,
+                extra: None,
+            },
+        ),
+        CreateView(
+            CreateViewStatement {
+                name: [
+                    Name(
+                        &quot;vaccinations_desc&quot;,
+                    ),
+                ],
+                columns: [],
+                statement: SelectStatement {
+                    with_ctes: [],
+                    with_recursive: false,
+                    data: From(
+                        SelectFromStatement {
+                            all: false,
+                            distinct: None,
+                            targets: [
+                                Star,
+                            ],
+                            into: None,
+                            from: [
+                                Relation(
+                                    RelationRef {
+                                        name: [
+                                            Name(
+                                                &quot;vaccinations&quot;,
+                                            ),
+                                        ],
+                                        inherit: true,
+                                        alias: None,
+                                    },
+                                ),
+                            ],
+                            where_clause: Nary(
+                                NaryExpression {
+                                    operator: Known(
+                                        LESS_THAN,
+                                    ),
+                                    args: [
+                                        ColumnRef(
+                                            [
+                                                Name(
+                                                    &quot;date&quot;,
+                                                ),
+                                            ],
+                                        ),
+                                        Nary(
+                                            NaryExpression {
+                                                operator: Known(
+                                                    MINUS,
+                                                ),
+                                                args: [
+                                                    FunctionCall(
+                                                        FunctionExpression {
+                                                            name: Unknown(
+                                                                &quot;now&quot;,
+                                                            ),
+                                                            args: [],
+                                                            args_known: None,
+                                                            arg_ordering: [],
+                                                            variadic: None,
+                                                            within_group: [],
+                                                            filter: Null,
+                                                            all: false,
+                                                            distinct: false,
+                                                            over: None,
+                                                        },
+                                                    ),
+                                                    ConstCast(
+                                                        Interval(
+                                                            ConstIntervalCastExpression {
+                                                                value: ParameterRef(
+                                                                    ParameterRef {
+                                                                        name: [
+                                                                            Name(
+                                                                                &quot;test&quot;,
+                                                                            ),
+                                                                        ],
+                                                                    },
+                                                                ),
+                                                                interval: IntervalSpecification {
+                                                                    interval_type: Some(
+                                                                        DAY,
+                                                                    ),
+                                                                    precision: None,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ),
+                                                ],
+                                                postfix: false,
+                                            },
+                                        ),
+                                    ],
+                                    postfix: false,
+                                },
+                            ),
+                            group_by: [],
+                            having: Null,
+                            windows: [],
+                            sample: None,
+                        },
+                    ),
+                    order_by: [
+                        OrderSpecification {
+                            value: ColumnRef(
+                                [
+                                    Name(
+                                        &quot;date&quot;,
+                                    ),
+                                ],
+                            ),
+                            direction: Some(
+                                DESCENDING,
+                            ),
+                            null_rule: None,
+                        },
+                    ],
+                    row_locking: [],
+                    limit: None,
+                    offset: Null,
+                },
+                temp: Some(
+                    NONE,
+                ),
+            },
+        ),
+        Viz(
+            VizStatement {
+                target: Relation(
+                    RelationRef {
+                        name: [
+                            Name(
+                                &quot;vaccinations_desc&quot;,
+                            ),
+                        ],
+                        inherit: true,
+                        alias: None,
+                    },
+                ),
+                component_type: Some(
+                    TABLE,
+                ),
+                type_modifiers: 0,
+                extra: None,
+            },
+        ),
+    ],
+}</translated>
+    </astdump>
 </astdumps>

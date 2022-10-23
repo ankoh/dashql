@@ -1392,21 +1392,26 @@ sql_b_expr:
 // inside parentheses, such as function arguments; that cannot introduce
 // ambiguity to the b_expr syntax.
 
+sql_param_ref:
+  '$' sql_attr_name {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, {Ident(@2)})),
+      });
+  }
+  | '?' sql_attr_name {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, {Ident(@2)})),
+      });
+  }
+  | PARAM sql_attr_name {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, {Ident(@2)})),
+      });
+  };
+
 sql_c_expr:
     sql_columnref     { $$ = $1; }
   | sql_a_expr_const  { $$ = $1; }
-  | '?' sql_opt_indirection {
-      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
-          Attr(Key::SQL_PARAMETER_PREFIX, Bool(@1, true)),
-          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
-      });
-  }
-  | PARAM sql_opt_indirection {
-      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_PARAMETER_REF, {
-          Attr(Key::SQL_PARAMETER_PREFIX, Bool(@1, true)),
-          Attr(Key::SQL_PARAMETER_NAME, ctx.Add(@2, std::move($2))),
-      });
-  }
   | '(' sql_a_expr ')' sql_opt_indirection {
         if ($4.empty()) {
             $$ = std::move($2);
@@ -2193,6 +2198,7 @@ sql_a_expr_const:
   | SCONST  { $$ = Const(@1, proto::AConstType::STRING); }
   | BCONST  { $$ = Const(@1, proto::AConstType::STRING); }
   | XCONST  { $$ = Const(@1, proto::AConstType::STRING); }
+  | sql_param_ref { $$ = $1; }
   | sql_const_typename SCONST {
         auto t = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
             Attr(Key::SQL_TYPENAME_TYPE, std::move($1))
@@ -2202,10 +2208,25 @@ sql_a_expr_const:
             Attr(Key::SQL_CONST_CAST_VALUE, Const(@2, proto::AConstType::STRING)),
         });
     }
+  | sql_const_typename sql_param_ref {
+        auto t = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TYPENAME, {
+            Attr(Key::SQL_TYPENAME_TYPE, std::move($1))
+        });
+        $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_TYPE_CAST, {
+            Attr(Key::SQL_CONST_CAST_TYPE, t),
+            Attr(Key::SQL_CONST_CAST_VALUE, std::move($2)),
+        });
+    }
   | sql_func_name SCONST {
       $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
         Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
         Attr(Key::SQL_CONST_CAST_VALUE, Const(@2, proto::AConstType::STRING)),
+      });
+  }
+  | sql_func_name sql_param_ref {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_FUNCTION_CAST, {
+        Attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.Add(@1, std::move($1))),
+        Attr(Key::SQL_CONST_CAST_VALUE, std::move($2)),
       });
   }
   | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
@@ -2219,6 +2240,12 @@ sql_a_expr_const:
   | sql_const_interval '(' sql_a_expr ')' SCONST {
       $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
         Attr(Key::SQL_CONST_CAST_VALUE, Const(@5, proto::AConstType::STRING)),
+        Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
+      });
+    }
+  | sql_const_interval sql_param_ref sql_opt_interval {
+      $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
+        Attr(Key::SQL_CONST_CAST_VALUE, std::move($2)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }

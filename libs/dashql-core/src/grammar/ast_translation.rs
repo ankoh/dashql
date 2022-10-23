@@ -278,13 +278,11 @@ pub fn deserialize_ast<'a>(
                 }))
             }
             proto::NodeType::OBJECT_SQL_PARAMETER_REF => {
-                let prefix = ASTCell::with_value(false);
                 let mut name = ASTCell::with_value(NamePath::default());
                 read_attributes! {
-                    (Key::SQL_PARAMETER_PREFIX, ASTNode::Boolean(true), _) => prefix.set(true),
                     (Key::SQL_PARAMETER_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci)
                 }
-                ASTNode::ParameterRef(arena.alloc(ParameterRef { prefix, name }))
+                ASTNode::ParameterRef(arena.alloc(ParameterRef { name }))
             }
             proto::NodeType::OBJECT_SQL_NARY_EXPRESSION => {
                 let mut args: [ASTCell<Expression>; 3] = [
@@ -446,7 +444,7 @@ pub fn deserialize_ast<'a>(
                 let mut value = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CONST_CAST_TYPE, ASTNode::SQLType(s), ci) => sql_type = ASTCell::with_node(Some(*s), ci),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
+                    (Key::SQL_CONST_CAST_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 let cast = arena.alloc(ConstTypeCastExpression {
                     sql_type: sql_type.unwrap(),
@@ -459,7 +457,7 @@ pub fn deserialize_ast<'a>(
                 let mut value = ASTCell::default();
                 read_attributes! {
                     (Key::SQL_CONST_CAST_INTERVAL, ASTNode::IntervalSpecification(t), ci) => interval = ASTCell::with_node(Some(*t), ci),
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci)
+                    (Key::SQL_CONST_CAST_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci)
                 }
                 let cast = arena.alloc(ConstIntervalCastExpression {
                     value: value.unwrap_or_default(),
@@ -473,7 +471,7 @@ pub fn deserialize_ast<'a>(
                 let mut func_arg_ordering: ASTCell<&[_]> = ASTCell::with_value(&[]);
                 let mut value = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_CONST_CAST_VALUE, ASTNode::LiteralString(t), ci) => value = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::SQL_CONST_CAST_VALUE, n, ci) => value = ASTCell::with_node(Some(read_expr!(n)), ci),
                     (Key::SQL_CONST_CAST_FUNC_NAME, ASTNode::Array(n, ni), ci) => func_name = ASTCell::with_node(Some(read_name(arena, n, *ni)), ci),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ASTNode::Array(nodes, ni), ci) => func_args = ASTCell::with_node(unpack_nodes!(nodes, ni, FunctionArgument), ci),
                     (Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, ASTNode::Array(nodes, ni), ci) => func_arg_ordering = ASTCell::with_node(unpack_nodes!(nodes, ni, OrderSpecification), ci)

@@ -54,19 +54,19 @@ pub struct NaryExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstTypeCastExpression<'a> {
-    pub value: ASTCell<&'a str>,
+    pub value: ASTCell<Expression<'a>>,
     pub sql_type: ASTCell<&'a SQLType<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstIntervalCastExpression<'a> {
-    pub value: ASTCell<&'a str>,
+    pub value: ASTCell<Expression<'a>>,
     pub interval: ASTCell<&'a IntervalSpecification<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstFunctionCastExpression<'a> {
-    pub value: ASTCell<&'a str>,
+    pub value: ASTCell<Expression<'a>>,
     pub func_name: ASTCell<Option<NamePath<'a>>>,
     pub func_args: ASTCell<&'a [ASTCell<&'a FunctionArgument<'a>>]>,
     pub func_arg_ordering: ASTCell<&'a [ASTCell<&'a OrderSpecification<'a>>]>,
@@ -119,7 +119,6 @@ pub struct CaseExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ParameterRef<'a> {
-    pub prefix: ASTCell<bool>,
     pub name: ASTCell<NamePath<'a>>,
 }
 

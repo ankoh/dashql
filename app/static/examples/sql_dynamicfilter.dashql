@@ -7,7 +7,11 @@ DECLARE test AS INTEGER;
 LOAD vaccinations FROM csv_vacc_total USING CSV;
 
 CREATE VIEW vaccinations_desc AS (
-    SELECT * FROM vaccinations ORDER BY "date" DESC
+    SELECT *
+    FROM vaccinations
+    WHERE "date" < (now() - interval $test days)
+    ORDER BY "date" DESC
 );
 
 VIZ vaccinations_desc USING TABLE;
+
