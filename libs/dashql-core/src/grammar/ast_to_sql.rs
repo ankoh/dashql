@@ -1,7 +1,6 @@
 use std::cell::Cell;
 use std::sync::Mutex;
 
-use crate::execution::constant_folding::evaluate_constant_expression;
 use crate::execution::constant_folding::is_constant_expression;
 use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::grammar::SetStatement;
@@ -288,7 +287,7 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
     where
         'ast: 'writer,
     {
-        let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.get().len() * 3 + self.from.get().len() * 3);
+        let mut a = ScriptTextArray::with_capacity(w, 3 + self.targets.get().len() * 3 + self.from.get().len() * 3 + 2);
         a.push(w.keyword("select").breakpoint_before());
         for (i, target) in self.targets.get().iter().enumerate() {
             if i > 0 {
@@ -304,6 +303,11 @@ impl<'ast> ToSQL<'ast> for SelectFromStatement<'ast> {
                 }
                 a.push(table.get().to_sql(w, filter).pad_left().breakpoint_before());
             }
+        }
+        let where_clause = self.where_clause.get();
+        if where_clause != Expression::Null {
+            a.push(w.keyword("where").pad_left().breakpoint_before());
+            a.push(where_clause.to_sql(w, filter).pad_left());
         }
         w.float(a.finish())
     }
@@ -1309,7 +1313,16 @@ impl<'ast> ToSQLExpressionFilter<'ast> for NoopExpressionFilter {
 
 pub struct EvaluatingExpressionFilter<'ast, 'snap> {
     ctx: ExpressionWriteContext,
-    snap: Mutex<&'snap mut ExecutionContextSnapshot<'ast, 'snap>>,
+    snap: Mutex<ExecutionContextSnapshot<'ast, 'snap>>,
+}
+
+impl<'ast, 'snap> EvaluatingExpressionFilter<'ast, 'snap> {
+    pub fn from_snapshot(snap: ExecutionContextSnapshot<'ast, 'snap>) -> Self {
+        Self {
+            ctx: ExpressionWriteContext::default(),
+            snap: Mutex::new(snap),
+        }
+    }
 }
 
 impl<'ast, 'snap> ToSQLExpressionFilter<'ast> for EvaluatingExpressionFilter<'ast, 'snap> {
@@ -1319,12 +1332,13 @@ impl<'ast, 'snap> ToSQLExpressionFilter<'ast> for EvaluatingExpressionFilter<'as
     {
         let mut snap = self.snap.lock().unwrap();
         if is_constant_expression(*expr, &snap) {
-            match evaluate_constant_expression(*expr, &mut snap) {
+            match expr.evaluate(&mut snap) {
                 Ok(None) => return writer.str_const("null"),
                 Ok(Some(value)) => return value.to_sql(writer, self),
                 Err(_) => (),
             }
         }
+        drop(snap);
         expr_to_sql(writer, self, &self.ctx, expr)
     }
 }
@@ -1551,11 +1565,22 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::execution::execution_context::ExecutionContext;
+    use crate::execution::scalar_value::ScalarValue;
     use crate::external::parser::parse_into;
     use crate::grammar;
     use std::error::Error;
+    use std::rc::Rc;
 
     async fn test_pipe(text: &'static str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        test_with_input(text, Vec::new(), text).await
+    }
+
+    async fn test_with_input(
+        text: &'static str,
+        input: Vec<(&'static str, Rc<ScalarValue>)>,
+        expected: &'static str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         let (ast, ast_data) = parse_into(&arena, text).await?;
         assert!(
@@ -1566,13 +1591,29 @@ mod test {
         let prog = grammar::deserialize_ast(&arena, text, ast, ast_data).unwrap();
         assert_eq!(prog.statements.len(), 1, "{:?} {:?}", text, prog);
 
+        let ctx = ExecutionContext::create_simple(&arena).await?;
+        {
+            let mut state = ctx.state.write().unwrap();
+            state.named_values = input
+                .iter()
+                .map(|(name, value)| {
+                    let key = ASTCell::with_value(Indirection::Name(arena.alloc_str(&name)));
+                    let key_path: &[ASTCell<Indirection>] = arena.alloc_slice_clone(&[key]);
+                    (key_path, value.clone())
+                })
+                .collect();
+        }
+        let expr_filter: Box<dyn ToSQLExpressionFilter> = if input.is_empty() {
+            Box::new(NoopExpressionFilter::default())
+        } else {
+            Box::new(EvaluatingExpressionFilter::from_snapshot(ctx.snapshot()))
+        };
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);
-        let expr_filter = NoopExpressionFilter::default();
-        let script_text = prog.statements[0].to_sql(&writer, &expr_filter);
+        let script_text = prog.statements[0].to_sql(&writer, expr_filter.as_ref());
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
-        assert_eq!(text, &script_string, "{:?}", prog);
+        assert_eq!(expected, &script_string, "{:?}", prog);
         Ok(())
     }
 
@@ -1665,6 +1706,25 @@ mod test {
         test_pipe("select 1 union distinct select 2").await?;
         test_pipe("select 1 except select 2").await?;
         test_pipe("select 1 intersect select 2").await?;
+
+        test_with_input(
+            "select $test",
+            vec![("test", ScalarValue::Utf8("foo".to_string()).as_rc())],
+            "select 'foo'",
+        )
+        .await?;
+        test_with_input(
+            "select * from A where a = $test",
+            vec![("test", ScalarValue::Int64(42).as_rc())],
+            "select * from A where a = 42",
+        )
+        .await?;
+        test_with_input(
+            "select * from A, B where a = b and c = $test",
+            vec![("test", ScalarValue::Int64(42).as_rc())],
+            "select * from A, B where a = b and c = 42",
+        )
+        .await?;
         Ok(())
     }
 

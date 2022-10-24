@@ -344,14 +344,14 @@ import region_data from 'test://tpch/0_01/parquet/region.parquet';
 load nation from nation_data using parquet;
 load region from region_data using parquet;
 create table joined as
-    select * from nation, region where n_nationkey = r_nationkey;
+    select * from nation n, region r where n.n_regionkey = r.r_regionkey;
 vis joined using table;
             "#,
             vec![QueryTest {
                 query: "select count(*) as a from joined",
                 expected: RecordBatch::try_new(
                     Arc::new(Schema::new(vec![Field::new("a", DataType::Int64, true)])),
-                    vec![Arc::new(Int64Array::from(vec![125]))],
+                    vec![Arc::new(Int64Array::from(vec![25]))],
                 )?,
             }],
         )

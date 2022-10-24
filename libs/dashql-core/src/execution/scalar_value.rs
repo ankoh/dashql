@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{self, Write};
 use std::num::{ParseFloatError, ParseIntError};
+use std::rc::Rc;
 
 use crate::error::SystemError;
 use crate::grammar::script_writer::{ScriptText, ScriptTextArray, ScriptWriter, ToSQL, ToSQLExpressionFilter};
@@ -89,6 +90,10 @@ impl ScalarValue {
             ScalarValue::Float64(v) => *v,
             _ => 0.0,
         }
+    }
+
+    pub fn as_rc(self) -> Rc<Self> {
+        Rc::new(self)
     }
 }
 
