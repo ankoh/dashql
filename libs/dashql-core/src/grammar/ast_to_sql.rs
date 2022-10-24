@@ -1725,6 +1725,24 @@ mod test {
             "select * from A, B where a = b and c = 42",
         )
         .await?;
+        test_with_input(
+            "select * from A where a = $test limit 10",
+            vec![("test", ScalarValue::Int64(42).as_rc())],
+            "select * from A where a = 42 limit 10",
+        )
+        .await?;
+        test_with_input(
+            "select * from A where a = $test order by a limit 10",
+            vec![("test", ScalarValue::Int64(42).as_rc())],
+            "select * from A where a = 42 order by a limit 10",
+        )
+        .await?;
+        test_with_input(
+            "select * from A where a = $test order by a limit 10 offset 10",
+            vec![("test", ScalarValue::Int64(42).as_rc())],
+            "select * from A where a = 42 order by a limit 10 offset 10",
+        )
+        .await?;
         Ok(())
     }
 
