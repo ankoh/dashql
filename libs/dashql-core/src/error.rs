@@ -33,6 +33,7 @@ pub enum SystemError {
     TranslationNotImplemented(Option<usize>, proto::NodeType),
     UnexpectedAttribute(Option<usize>, proto::NodeType, proto::AttributeKey),
     UnexpectedElement(Option<usize>, proto::AttributeKey, proto::NodeType),
+    UnknownInput(String),
 }
 
 impl SystemError {
@@ -41,15 +42,12 @@ impl SystemError {
             SystemError::CastFailed(_, _, _) => "cast failed",
             SystemError::CastNotImplemented(_, _, _) => "cast not implemented",
             SystemError::ExpressionTypeNotImplemented(_) => "expression type not implemented",
-            SystemError::InternalError(err) => err,
             SystemError::FunctionEvaluationFailed(_) => "function evaluation failed",
             SystemError::FunctionNotImplemented(_) => "function not implemented",
             SystemError::FunctionNotImplementedButKnown(_) => "function not implemented",
             SystemError::Generic(_) => "generic",
             SystemError::InsufficientArguments => "insufficient arguments",
-            SystemError::TaskDataNotAvailable(_, _) => "task data not available",
-            SystemError::SourceNotKnown(_, _) => "source not known",
-            SystemError::URIUnsupported(_, _) => "uri is unsupported",
+            SystemError::InternalError(err) => err,
             SystemError::InvalidArgument(_) => "invalid argument",
             SystemError::InvalidDataType(_) => "invalid data type",
             SystemError::InvalidGroupByItem(_) => "invalid group by item",
@@ -58,12 +56,16 @@ impl SystemError {
             SystemError::InvalidStatementType(_) => "invalid statement type",
             SystemError::InvalidTableRef(_) => "invalid table reference",
             SystemError::MissingEnvironmentVariable(_) => "missing environment variable",
-            SystemError::TaskPreparationFailed(_) => "task preparation failed",
+            SystemError::NotImplemented(_) => "not implemented",
+            SystemError::SourceNotKnown(_, _) => "source not known",
+            SystemError::TaskDataNotAvailable(_, _) => "task data not available",
             SystemError::TaskExecutionFailed(_) => "task execution failed",
+            SystemError::TaskPreparationFailed(_) => "task preparation failed",
             SystemError::TranslationNotImplemented(_, _) => "translation not implemented",
+            SystemError::URIUnsupported(_, _) => "uri is unsupported",
             SystemError::UnexpectedAttribute(_, _, _) => "unexpected attribute",
             SystemError::UnexpectedElement(_, _, _) => "unexpected element",
-            SystemError::NotImplemented(_) => "not implemented",
+            SystemError::UnknownInput(_) => "unknown input",
         }
     }
 }
@@ -119,6 +121,7 @@ impl<'a> fmt::Display for SystemError {
                 write!(f, "unexpected element: {:?} -> {:?}", parent_type, child_type)
             }
             SystemError::NotImplemented(msg) => write!(f, "{}", msg),
+            SystemError::UnknownInput(input) => write!(f, "{}", input),
         }
     }
 }

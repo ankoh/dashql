@@ -17,14 +17,14 @@ use std::sync::RwLockWriteGuard;
 
 #[derive(Clone, Debug, Default)]
 pub struct ExecutionState<'ast> {
-    pub named_values: HashMap<NamePath<'ast>, Rc<ScalarValue>>,
+    pub parameters: HashMap<NamePath<'ast>, Option<Rc<ScalarValue>>>,
     pub cached_values: HashMap<Expression<'ast>, Option<Rc<ScalarValue>>>,
 }
 
 impl<'ast> ExecutionState<'ast> {
     pub fn merge_into(mut self, other: &mut ExecutionState<'ast>) {
-        for (k, v) in self.named_values.drain() {
-            other.named_values.insert(k, v);
+        for (k, v) in self.parameters.drain() {
+            other.parameters.insert(k, v);
         }
         for (k, v) in self.cached_values.drain() {
             other.cached_values.insert(k, v);

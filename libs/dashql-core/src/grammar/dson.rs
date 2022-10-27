@@ -847,11 +847,11 @@ mod test {
         arena: &'a bumpalo::Bump,
         dson: DsonValue<'a>,
         json: &'static str,
-        named_values: HashMap<NamePath<'a>, Rc<ScalarValue>>,
+        named_values: HashMap<NamePath<'a>, Option<Rc<ScalarValue>>>,
     ) -> Result<(), SystemError> {
         let ctx = ExecutionContext::create_simple(&arena).await?;
         let mut ctx_snap = ctx.snapshot();
-        ctx_snap.local_state.named_values = named_values;
+        ctx_snap.local_state.parameters = named_values;
         let value = dson.as_json(&mut ctx_snap)?;
         let value_text = value.to_string();
         assert_eq!(value_text, json);
@@ -910,15 +910,17 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_column_ref() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_parameter_ref() -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
         test_json_with_values(
             &arena,
-            DsonValue::Expression(Expression::ColumnRef(&[ASTCell::with_value(Indirection::Name("foo"))])),
+            DsonValue::Expression(Expression::ParameterRef(&ParameterRef {
+                name: ASTCell::with_value(&[ASTCell::with_value(Indirection::Name("foo"))]),
+            })),
             "42",
             HashMap::from([(
                 [ASTCell::with_value(Indirection::Name("foo"))].as_slice(),
-                Rc::new(ScalarValue::Int64(42)),
+                Some(Rc::new(ScalarValue::Int64(42))),
             )]),
         )
         .await?;

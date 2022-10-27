@@ -29,18 +29,16 @@ impl<'a> Expression<'a> {
             Expression::LiteralString(s) => Some(Rc::new(ScalarValue::Utf8(
                 s.trim_matches(STRING_REF_TRIMMING).to_string(),
             ))),
-            Expression::ColumnRef(name) => ctx
+            Expression::ParameterRef(p) => match ctx
                 .local_state
-                .named_values
-                .get(name)
-                .or(ctx.global_state.named_values.get(name))
-                .cloned(),
-            Expression::ParameterRef(p) => ctx
-                .local_state
-                .named_values
+                .parameters
                 .get(p.name.get())
-                .or(ctx.global_state.named_values.get(p.name.get()))
-                .cloned(),
+                .or(ctx.global_state.parameters.get(p.name.get()))
+                .cloned()
+            {
+                Some(v) => v,
+                None => return Err(SystemError::UnknownInput("".to_string())),
+            },
             Expression::FunctionCall(f) => match f.name.get() {
                 FunctionName::Known(known) => match known {
                     _ => return Err(SystemError::FunctionNotImplementedButKnown(known)),

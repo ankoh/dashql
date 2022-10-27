@@ -1578,7 +1578,7 @@ mod test {
 
     async fn test_with_input(
         text: &'static str,
-        input: Vec<(&'static str, Rc<ScalarValue>)>,
+        input: Vec<(&'static str, Option<Rc<ScalarValue>>)>,
         expected: &'static str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let arena = bumpalo::Bump::new();
@@ -1594,7 +1594,7 @@ mod test {
         let ctx = ExecutionContext::create_simple(&arena).await?;
         {
             let mut state = ctx.state.write().unwrap();
-            state.named_values = input
+            state.parameters = input
                 .iter()
                 .map(|(name, value)| {
                     let key = ASTCell::with_value(Indirection::Name(arena.alloc_str(&name)));
@@ -1709,37 +1709,37 @@ mod test {
 
         test_with_input(
             "select $test",
-            vec![("test", ScalarValue::Utf8("foo".to_string()).as_rc())],
+            vec![("test", Some(ScalarValue::Utf8("foo".to_string()).as_rc()))],
             "select 'foo'",
         )
         .await?;
         test_with_input(
             "select * from A where a = $test",
-            vec![("test", ScalarValue::Int64(42).as_rc())],
+            vec![("test", Some(ScalarValue::Int64(42).as_rc()))],
             "select * from A where a = 42",
         )
         .await?;
         test_with_input(
             "select * from A, B where a = b and c = $test",
-            vec![("test", ScalarValue::Int64(42).as_rc())],
+            vec![("test", Some(ScalarValue::Int64(42).as_rc()))],
             "select * from A, B where a = b and c = 42",
         )
         .await?;
         test_with_input(
             "select * from A where a = $test limit 10",
-            vec![("test", ScalarValue::Int64(42).as_rc())],
+            vec![("test", Some(ScalarValue::Int64(42).as_rc()))],
             "select * from A where a = 42 limit 10",
         )
         .await?;
         test_with_input(
             "select * from A where a = $test order by a limit 10",
-            vec![("test", ScalarValue::Int64(42).as_rc())],
+            vec![("test", Some(ScalarValue::Int64(42).as_rc()))],
             "select * from A where a = 42 order by a limit 10",
         )
         .await?;
         test_with_input(
             "select * from A where a = $test order by a limit 10 offset 10",
-            vec![("test", ScalarValue::Int64(42).as_rc())],
+            vec![("test", Some(ScalarValue::Int64(42).as_rc()))],
             "select * from A where a = 42 order by a limit 10 offset 10",
         )
         .await?;

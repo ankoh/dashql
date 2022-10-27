@@ -492,6 +492,7 @@ mod test {
         api::workflow_frontend::{run_task_status_updates, WorkflowFrontend},
         execution::{
             execution_context::ExecutionContext,
+            scalar_value::ScalarValue,
             table_metadata::TableMetadata,
             task_scheduler::TaskScheduler,
             task_state::{TableRef, TaskData, VizData},
@@ -499,13 +500,17 @@ mod test {
         grammar::ProgramContainer,
     };
     use pretty_assertions::assert_eq;
-    use std::{collections::HashMap, error::Error, sync::Arc};
+    use std::{collections::HashMap, error::Error, rc::Rc, sync::Arc};
 
-    async fn test_data(script: &'static str, data: Vec<TaskData>) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn test_data(
+        script: &'static str,
+        data: Vec<TaskData>,
+        params: HashMap<usize, Option<Rc<ScalarValue>>>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         // Plan the program
         let program = ProgramContainer::parse(&script).await?;
         let context = ExecutionContext::create_simple(program.get_arena()).await?;
-        let instance = analyze_program(context, script, program.get_program().clone(), HashMap::new())?;
+        let instance = analyze_program(context, script, program.get_program().clone(), params)?;
         let task_graph = plan_tasks(&instance, None)?;
 
         // Run the scheduler
@@ -562,6 +567,7 @@ mod test {
                     }),
                 }),
             ],
+            HashMap::new(),
         )
         .await?;
         Ok(())
@@ -649,6 +655,7 @@ mod test {
                     }),
                 }),
             ],
+            HashMap::new(),
         )
         .await?;
         Ok(())

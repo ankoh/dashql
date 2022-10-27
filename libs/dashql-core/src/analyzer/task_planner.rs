@@ -283,8 +283,8 @@ fn identify_applicable_tasks<'a, 'b: 'a>(ctx: &mut TaskPlannerContext<'a, 'b>) -
                 if a.task_type == TaskType::Input {
                     let prev_stmt_id = diff_op.source.unwrap_or_default();
                     let next_stmt_id = diff_op.target.unwrap_or_default();
-                    let prev_param = prev_program.input.get(&prev_stmt_id);
-                    let next_param = prev_program.input.get(&next_stmt_id);
+                    let prev_param = prev_program.parameters.get(&prev_stmt_id);
+                    let next_param = prev_program.parameters.get(&next_stmt_id);
                     if prev_param != next_param {
                         invalidate(ctx, prev_task_id);
                         continue;
@@ -511,11 +511,12 @@ mod test {
     use crate::external::parser::parse_into;
     use crate::external::{runtime, Database};
     use crate::grammar;
+    use std::rc::Rc;
     use std::sync::Arc;
 
     struct ExpectedInstance {
         script: &'static str,
-        input: Vec<(usize, ScalarValue)>,
+        parameters: Vec<(usize, Option<Rc<ScalarValue>>)>,
         tasks: TaskGraph,
     }
 
@@ -554,7 +555,7 @@ mod test {
                 prev_context,
                 prev.script,
                 prev_prog,
-                prev.input.iter().cloned().collect(),
+                prev.parameters.iter().cloned().collect(),
             )?);
             prev_tasks = Some(Arc::new(plan_tasks(prev_instance.as_ref().unwrap(), None)?));
             let have = prev_tasks.as_ref().unwrap();
@@ -581,7 +582,7 @@ mod test {
                 next_context,
                 test.next.script,
                 next_prog,
-                test.next.input.iter().cloned().collect(),
+                test.next.parameters.iter().cloned().collect(),
             )?
         };
 
@@ -606,7 +607,7 @@ mod test {
                 script: r#"
 IMPORT a FROM 'https://some/remote'
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 1,
                     tasks: vec![Task {
@@ -634,7 +635,7 @@ IMPORT a FROM 'https://some/remote'
 IMPORT a FROM 'https://some/remote';
 LOAD b FROM a USING PARQUET;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 2,
                     tasks: vec![
@@ -675,7 +676,7 @@ IMPORT a FROM 'https://some/remote';
 LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 3,
                     tasks: vec![
@@ -726,7 +727,7 @@ LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b;
 VIZ c USING TABLE;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 4,
                     tasks: vec![
@@ -783,7 +784,7 @@ VIZ c USING TABLE;
 CREATE TABLE a AS SELECT 2;
 VIZ a USING TABLE;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 2,
                     tasks: vec![
@@ -815,7 +816,7 @@ VIZ a USING TABLE;
 CREATE TABLE a AS SELECT 1;
 VIZ a USING TABLE;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 4,
                     tasks: vec![
@@ -863,7 +864,7 @@ VIZ a USING TABLE;
 CREATE TABLE a AS SELECT 2;
 VIZ a USING TABLE;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 2,
                     tasks: vec![
@@ -894,7 +895,7 @@ VIZ a USING TABLE;
                 script: r#"
 CREATE TABLE a AS SELECT 1;
             "#,
-                input: vec![],
+                parameters: vec![],
                 tasks: TaskGraph {
                     next_data_id: 3,
                     tasks: vec![

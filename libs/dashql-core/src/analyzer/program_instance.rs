@@ -12,6 +12,7 @@ use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -34,8 +35,8 @@ pub struct ProgramInstance<'a> {
     pub script_text: &'a str,
     pub program: Arc<Program<'a>>,
 
-    // The input values
-    pub input: HashMap<usize, ScalarValue>,
+    // The parameters values
+    pub parameters: HashMap<usize, Option<Rc<ScalarValue>>>,
 
     // Analysis state
     pub node_error_messages: Vec<NodeError>,
@@ -67,7 +68,7 @@ impl<'a> ProgramInstance<'a> {
         context: ExecutionContext<'a>,
         text: &'a str,
         program: Arc<Program<'a>>,
-        input: HashMap<usize, ScalarValue>,
+        params: HashMap<usize, Option<Rc<ScalarValue>>>,
     ) -> Self {
         let instance_id = NEXT_INSTANCE_ID.fetch_add(1, Ordering::SeqCst);
         let mut ctx = ProgramInstance {
@@ -75,7 +76,7 @@ impl<'a> ProgramInstance<'a> {
             context,
             script_text: text,
             program: program.clone(),
-            input,
+            parameters: params,
             node_error_messages: Vec::new(),
             node_linter_messages: Vec::new(),
             statement_names: Vec::new(),
@@ -145,9 +146,9 @@ pub fn analyze_program<'arena>(
     context: ExecutionContext<'arena>,
     text: &'arena str,
     program: Arc<Program<'arena>>,
-    input: HashMap<usize, ScalarValue>,
+    params: HashMap<usize, Option<Rc<ScalarValue>>>,
 ) -> Result<ProgramInstance<'arena>, SystemError> {
-    let mut inst = ProgramInstance::new(context, text, program, input);
+    let mut inst = ProgramInstance::new(context, text, program, params);
     normalize_statement_names(&mut inst);
     discover_statement_dependencies(&mut inst);
     determine_statement_liveness(&mut inst);
@@ -199,7 +200,7 @@ mod test {
     #[derive(Debug)]
     struct TaskPlannerTest {
         script: &'static str,
-        input: HashMap<usize, ScalarValue>,
+        parameters: HashMap<usize, Option<Rc<ScalarValue>>>,
         expected: ExpectedTaskInstance,
     }
 
@@ -207,7 +208,12 @@ mod test {
         let arena = bumpalo::Bump::new();
         let context = ExecutionContext::create_simple(&arena).await?;
         let program = ProgramContainer::parse(&test.script).await?;
-        let inst = analyze_program(context, test.script, program.get_program().clone(), test.input.clone())?;
+        let inst = analyze_program(
+            context,
+            test.script,
+            program.get_program().clone(),
+            test.parameters.clone(),
+        )?;
 
         assert_eq!(inst.node_error_messages.len(), test.expected.node_errors.len());
         for i in 0..inst.node_error_messages.len() {
@@ -277,7 +283,7 @@ mod test {
             script: r#"
 IMPORT a FROM 'http://remote/data1.parquet';
 "#,
-            input: HashMap::new(),
+            parameters: HashMap::new(),
             expected: ExpectedTaskInstance {
                 node_errors: vec![],
                 linter_messages: vec![],
@@ -298,7 +304,7 @@ IMPORT a FROM 'http://remote/data1.parquet';
 CREATE TABLE a AS SELECT 1;
 CREATE TABLE b AS SELECT 2;
 "#,
-            input: HashMap::new(),
+            parameters: HashMap::new(),
             expected: ExpectedTaskInstance {
                 node_errors: vec![],
                 linter_messages: vec![],
@@ -325,7 +331,7 @@ CREATE TABLE a AS SELECT 1;
 CREATE TABLE b AS SELECT 2;
 VIZ a USING TABLE;
 "#,
-            input: HashMap::new(),
+            parameters: HashMap::new(),
             expected: ExpectedTaskInstance {
                 node_errors: vec![],
                 linter_messages: vec![],
@@ -353,7 +359,7 @@ LOAD b FROM a USING PARQUET;
 CREATE TABLE c AS SELECT * FROM b;
 VIZ c USING TABLE;
 "#,
-            input: HashMap::new(),
+            parameters: HashMap::new(),
             expected: ExpectedTaskInstance {
                 node_errors: vec![],
                 linter_messages: vec![],
@@ -397,7 +403,7 @@ VIZ c USING TABLE;
 VIZ e USING TABLE;
 VIZ f USING TABLE;
 "#,
-            input: HashMap::new(),
+            parameters: HashMap::new(),
             expected: ExpectedTaskInstance {
                 node_errors: vec![],
                 linter_messages: vec![],

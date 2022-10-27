@@ -20,6 +20,22 @@ pub enum Statement<'arena> {
     Set(&'arena SetStatement<'arena>),
 }
 
+impl<'arena> Statement<'arena> {
+    pub fn as_node(&self) -> ASTNode<'arena> {
+        match *self {
+            Statement::Select(s) => ASTNode::SelectStatement(s),
+            Statement::Declare(d) => ASTNode::DeclareStatement(d),
+            Statement::Import(i) => ASTNode::ImportStatement(i),
+            Statement::Load(l) => ASTNode::LoadStatement(l),
+            Statement::Viz(v) => ASTNode::VizStatement(v),
+            Statement::Create(c) => ASTNode::Create(c),
+            Statement::CreateAs(c) => ASTNode::CreateAs(c),
+            Statement::CreateView(c) => ASTNode::CreateView(c),
+            Statement::Set(s) => ASTNode::SetStatement(s),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Program<'arena> {
     pub program_id: u32,

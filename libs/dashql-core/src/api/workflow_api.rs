@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    rc::Rc,
     sync::atomic::{AtomicBool, Ordering},
     sync::{Arc, Mutex},
 };
@@ -194,7 +195,7 @@ impl WorkflowSession {
 
     #[allow(dead_code)]
     pub async fn update_program_input(&self, input_json: &str) -> Result<(), SystemError> {
-        let new_input: HashMap<usize, ScalarValue> =
+        let new_input: HashMap<usize, Option<Rc<ScalarValue>>> =
             serde_json::from_str(input_json).map_err(|e| SystemError::InvalidArgument(e.to_string()))?;
         let program = match self.latest_parsed.lock().unwrap().clone() {
             Some(program) => program,

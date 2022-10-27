@@ -24,7 +24,7 @@ pub fn is_constant_expression<'ast, 'snap>(
             Expression::LiteralInterval(_) => true,
             Expression::LiteralString(_) => true,
             Expression::ColumnRef(name) => {
-                ctx.local_state.named_values.contains_key(&name) || ctx.global_state.named_values.contains_key(&name)
+                ctx.local_state.parameters.contains_key(&name) || ctx.global_state.parameters.contains_key(&name)
             }
             Expression::Array(elems) => {
                 for elem in elems.iter() {
@@ -46,7 +46,7 @@ pub fn is_constant_expression<'ast, 'snap>(
             }
             Expression::ParameterRef(p) => {
                 let name = p.name.get();
-                ctx.local_state.named_values.contains_key(&name) || ctx.global_state.named_values.contains_key(&name)
+                ctx.local_state.parameters.contains_key(&name) || ctx.global_state.parameters.contains_key(&name)
             }
             Expression::Case(_) => false,
             Expression::Conjunction(_) => false,

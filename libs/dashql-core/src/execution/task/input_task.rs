@@ -15,9 +15,10 @@ use dashql_proto::InputComponentType;
 use serde_json as sj;
 
 pub struct InputTaskOperator<'exec, 'ast> {
-    _instance: &'exec ProgramInstance<'ast>,
+    instance: &'exec ProgramInstance<'ast>,
     _task_graph: &'exec TaskGraph,
     task: &'exec Task,
+    statement_id: usize,
     statement: &'ast DeclareStatement<'ast>,
 }
 
@@ -34,9 +35,10 @@ impl<'exec, 'ast> InputTaskOperator<'exec, 'ast> {
             _ => return Err(SystemError::InvalidStatementType("expected input".to_string())),
         };
         Ok(Self {
-            _instance: instance.clone(),
+            instance: instance.clone(),
             _task_graph: task_graph,
             task: task,
+            statement_id: stmt_id,
             statement: stmt,
         })
     }
@@ -56,6 +58,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
         ctx: &mut ExecutionContextSnapshot<'ast, 'snap>,
         frontend: &WorkflowFrontend,
     ) -> Result<(), SystemError> {
+        // Render the input component
         let _extra = match self.statement.extra.get().map(|e| e.as_json(ctx)) {
             Some(Ok(sj::Value::Object(extra))) => extra,
             Some(Err(e)) => return Err(e),
@@ -115,6 +118,12 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
         });
         *self.task.data.write().unwrap() = Some(TaskData::InputData(InputData { spec: spec.clone() }));
         frontend.update_input_data(self.task.data_id as u32, spec);
+
+        // Update parameter in state
+        let name = self.statement.name.get();
+        if let Some(value) = self.instance.parameters.get(&self.statement_id) {
+            ctx.local_state.parameters.insert(name, value.clone());
+        }
         Ok(())
     }
 }
