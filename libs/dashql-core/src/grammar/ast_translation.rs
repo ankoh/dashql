@@ -461,7 +461,7 @@ pub fn deserialize_ast<'a>(
                 }
                 let cast = arena.alloc(ConstIntervalCastExpression {
                     value: value.unwrap_or_default(),
-                    interval: interval.unwrap(),
+                    interval: interval,
                 });
                 ASTNode::ConstCastExpression(ConstCastExpression::Interval(cast))
             }

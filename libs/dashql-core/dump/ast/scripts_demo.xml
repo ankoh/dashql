@@ -3155,12 +3155,14 @@
                                                                         ],
                                                                     },
                                                                 ),
-                                                                interval: IntervalSpecification {
-                                                                    interval_type: Some(
-                                                                        DAY,
-                                                                    ),
-                                                                    precision: None,
-                                                                },
+                                                                interval: Some(
+                                                                    IntervalSpecification {
+                                                                        interval_type: Some(
+                                                                            DAY,
+                                                                        ),
+                                                                        precision: None,
+                                                                    },
+                                                                ),
                                                             },
                                                         ),
                                                     ),

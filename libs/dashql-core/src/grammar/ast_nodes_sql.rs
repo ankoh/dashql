@@ -61,7 +61,7 @@ pub struct ConstTypeCastExpression<'a> {
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstIntervalCastExpression<'a> {
     pub value: ASTCell<Expression<'a>>,
-    pub interval: ASTCell<&'a IntervalSpecification<'a>>,
+    pub interval: ASTCell<Option<&'a IntervalSpecification<'a>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

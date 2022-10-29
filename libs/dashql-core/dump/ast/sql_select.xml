@@ -4559,12 +4559,14 @@
                                             value: LiteralString(
                                                 &quot;90&quot;,
                                             ),
-                                            interval: IntervalSpecification {
-                                                interval_type: Some(
-                                                    MINUTE_TO_SECOND,
-                                                ),
-                                                precision: None,
-                                            },
+                                            interval: Some(
+                                                IntervalSpecification {
+                                                    interval_type: Some(
+                                                        MINUTE_TO_SECOND,
+                                                    ),
+                                                    precision: None,
+                                                },
+                                            ),
                                         },
                                     ),
                                 ),
@@ -4631,12 +4633,14 @@
                                             value: LiteralString(
                                                 &quot;90&quot;,
                                             ),
-                                            interval: IntervalSpecification {
-                                                interval_type: Some(
-                                                    HOUR,
-                                                ),
-                                                precision: None,
-                                            },
+                                            interval: Some(
+                                                IntervalSpecification {
+                                                    interval_type: Some(
+                                                        HOUR,
+                                                    ),
+                                                    precision: None,
+                                                },
+                                            ),
                                         },
                                     ),
                                 ),
@@ -4703,12 +4707,14 @@
                                             value: LiteralString(
                                                 &quot;1&quot;,
                                             ),
-                                            interval: IntervalSpecification {
-                                                interval_type: Some(
-                                                    HOUR,
-                                                ),
-                                                precision: None,
-                                            },
+                                            interval: Some(
+                                                IntervalSpecification {
+                                                    interval_type: Some(
+                                                        HOUR,
+                                                    ),
+                                                    precision: None,
+                                                },
+                                            ),
                                         },
                                     ),
                                 ),

@@ -9,7 +9,7 @@ LOAD vaccinations FROM csv_vacc_total USING CSV;
 CREATE VIEW vaccinations_desc AS (
     SELECT *
     FROM vaccinations
-    WHERE "date" < (now() - interval $test days)
+    WHERE "date" < (now() - interval $test day)
     ORDER BY "date" DESC
 );
 
