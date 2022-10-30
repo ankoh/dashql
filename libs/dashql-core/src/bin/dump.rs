@@ -65,18 +65,13 @@ async fn main_async() -> Result<(), Box<dyn Error + Send + Sync>> {
             let alloc = bumpalo::Bump::new();
             for dump in dump_file.dumps.iter() {
                 let (ast, ast_data) = parse_into(&alloc, &dump.input).await?;
-                let translated = match grammar::deserialize_ast(&arena, &dump.input, ast, ast_data) {
-                    Ok(p) => Some(p),
-                    Err(e) => {
-                        warn!("{}", e);
-                        None
-                    }
+                if let Err(e) = grammar::deserialize_ast(&arena, &dump.input, ast, ast_data) {
+                    warn!("{}", e);
                 };
                 dumps.push(ASTDump {
                     name: dump.name.clone(),
                     input: &dump.input,
                     parsed: Some(ast),
-                    translated,
                 });
             }
             let output_dump = ASTDumpFile { dumps };

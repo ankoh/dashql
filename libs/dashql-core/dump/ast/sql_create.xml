@@ -26,57 +26,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        CreateAs(
-            CreateAsStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [],
-                statement: SelectStatement {
-                    with_ctes: [],
-                    with_recursive: false,
-                    data: From(
-                        SelectFromStatement {
-                            all: false,
-                            distinct: None,
-                            targets: [
-                                Value {
-                                    value: LiteralInteger(
-                                        &quot;1&quot;,
-                                    ),
-                                    alias: None,
-                                },
-                            ],
-                            into: None,
-                            from: [],
-                            where_clause: Null,
-                            group_by: [],
-                            having: Null,
-                            windows: [],
-                            sample: None,
-                        },
-                    ),
-                    order_by: [],
-                    row_locking: [],
-                    limit: None,
-                    offset: Null,
-                },
-                if_not_exists: false,
-                with_data: true,
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_1">
         <input>create table foo (a integer)</input>
@@ -105,44 +54,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_2">
         <input>create table foo (a integer, b tinyint)</input>
@@ -179,60 +90,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                    ColumnDefinition {
-                        name: &quot;b&quot;,
-                        sql_type: SQLType {
-                            base_type: Generic(
-                                GenericType {
-                                    name: &quot;tinyint&quot;,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_3">
         <input>create table foo (a integer, b varchar)</input>
@@ -269,60 +126,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                    ColumnDefinition {
-                        name: &quot;b&quot;,
-                        sql_type: SQLType {
-                            base_type: Character(
-                                CharacterType {
-                                    base: VARCHAR,
-                                    length: None,
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_4">
         <input>create table if not exists foo (a integer, b varchar)</input>
@@ -336,9 +139,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [],
-}</translated>
     </astdump>
     <astdump name="create_table_5">
         <input>create table foo (a integer, b varchar)</input>
@@ -375,60 +175,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                    ColumnDefinition {
-                        name: &quot;b&quot;,
-                        sql_type: SQLType {
-                            base_type: Character(
-                                CharacterType {
-                                    base: VARCHAR,
-                                    length: None,
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_6">
         <input>create table foo (a integer deferrable)</input>
@@ -460,48 +206,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [
-                            Attribute(
-                                DEFERRABLE,
-                            ),
-                        ],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_7">
         <input>create table foo (a integer collate &quot;de_DE&quot;)</input>
@@ -538,57 +242,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [
-                            Constraint(
-                                ColumnConstraintSpec {
-                                    constraint_name: None,
-                                    constraint_type: COLLATE,
-                                    value: Null,
-                                    collate: [
-                                        &quot;de_DE&quot;,
-                                    ],
-                                    definition: [],
-                                    no_inherit: false,
-                                },
-                            ),
-                        ],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_8">
         <input>create temporary table foo (a integer)</input>
@@ -617,44 +270,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    LOCAL,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_9">
         <input>create table foo (a integer options (ident &apos;thing2&apos;)</input>
@@ -668,9 +283,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [],
-}</translated>
     </astdump>
     <astdump name="create_table_10">
         <input>create table foo (a integer constraint a not null)</input>
@@ -705,57 +317,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [
-                            Constraint(
-                                ColumnConstraintSpec {
-                                    constraint_name: Some(
-                                        &quot;a&quot;,
-                                    ),
-                                    constraint_type: NOT_NULL,
-                                    value: Null,
-                                    collate: [],
-                                    definition: [],
-                                    no_inherit: false,
-                                },
-                            ),
-                        ],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_11">
         <input>create table foo (a integer primary key)</input>
@@ -789,55 +350,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [
-                            Constraint(
-                                ColumnConstraintSpec {
-                                    constraint_name: None,
-                                    constraint_type: PRIMARY_KEY,
-                                    value: Null,
-                                    collate: [],
-                                    definition: [],
-                                    no_inherit: false,
-                                },
-                            ),
-                        ],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="create_table_12">
         <input>create table foo (a integer not null default 42)</input>
@@ -875,66 +387,5 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Create(
-            CreateStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [
-                    ColumnDefinition {
-                        name: &quot;a&quot;,
-                        sql_type: SQLType {
-                            base_type: Numeric(
-                                NumericType {
-                                    base: INT4,
-                                    modifiers: [],
-                                },
-                            ),
-                            array_bounds: [],
-                            set_of: false,
-                        },
-                        collate: [],
-                        constraints: [
-                            Constraint(
-                                ColumnConstraintSpec {
-                                    constraint_name: None,
-                                    constraint_type: NOT_NULL,
-                                    value: Null,
-                                    collate: [],
-                                    definition: [],
-                                    no_inherit: false,
-                                },
-                            ),
-                            Constraint(
-                                ColumnConstraintSpec {
-                                    constraint_name: None,
-                                    constraint_type: DEFAULT,
-                                    value: LiteralInteger(
-                                        &quot;42&quot;,
-                                    ),
-                                    collate: [],
-                                    definition: [],
-                                    no_inherit: false,
-                                },
-                            ),
-                        ],
-                        options: [],
-                    },
-                ],
-                constraints: [],
-                temp: Some(
-                    NONE,
-                ),
-                on_commit: Some(
-                    NOOP,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
 </astdumps>

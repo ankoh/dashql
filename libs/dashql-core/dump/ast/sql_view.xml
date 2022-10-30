@@ -24,51 +24,5 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        CreateView(
-            CreateViewStatement {
-                name: [
-                    Name(
-                        &quot;foo&quot;,
-                    ),
-                ],
-                columns: [],
-                statement: SelectStatement {
-                    with_ctes: [],
-                    with_recursive: false,
-                    data: From(
-                        SelectFromStatement {
-                            all: false,
-                            distinct: None,
-                            targets: [
-                                Value {
-                                    value: LiteralInteger(
-                                        &quot;1&quot;,
-                                    ),
-                                    alias: None,
-                                },
-                            ],
-                            into: None,
-                            from: [],
-                            where_clause: Null,
-                            group_by: [],
-                            having: Null,
-                            windows: [],
-                            sample: None,
-                        },
-                    ),
-                    order_by: [],
-                    row_locking: [],
-                    limit: None,
-                    offset: Null,
-                },
-                temp: Some(
-                    NONE,
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
 </astdumps>

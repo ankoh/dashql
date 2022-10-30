@@ -1,5 +1,4 @@
 use super::ast_to_xml::serialize_ast_as_xml;
-use super::program::Program;
 use dashql_proto as proto;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
@@ -48,7 +47,6 @@ pub struct ASTDump<'a> {
     pub name: String,
     pub input: &'a str,
     pub parsed: Option<proto::Program<'a>>,
-    pub translated: Option<Program<'a>>,
 }
 
 impl<'a> ASTDump<'a> {
@@ -66,11 +64,6 @@ impl<'a> ASTDump<'a> {
             writer.write_event(Event::Start(BytesStart::borrowed_name(b"parsed")))?;
             serialize_ast_as_xml(writer, *ast, self.input)?;
             writer.write_event(Event::End(BytesEnd::borrowed(b"parsed")))?;
-        }
-        if let Some(prog) = &self.translated {
-            writer.write_event(Event::Start(BytesStart::borrowed_name(b"translated")))?;
-            writer.write_event(Event::Text(BytesText::from_plain_str(&format!("{:#?}", &prog))))?;
-            writer.write_event(Event::End(BytesEnd::borrowed(b"translated")))?;
         }
         writer.write_event(Event::End(BytesEnd::borrowed(b"astdump")))?;
         Ok(())
@@ -117,12 +110,10 @@ mod test {
         let mut expected_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
 
         let mut script_text: Option<String> = None;
-        let mut ast_buffer = None;
 
         let mut tmp_buffer = Vec::new();
         let mut awaiting_input = false;
         let mut awaiting_parsed = false;
-        let mut awaiting_translated = false;
         loop {
             match xml_reader.read_event(&mut tmp_buffer)? {
                 Event::Start(e) => {
@@ -132,8 +123,6 @@ mod test {
                         script_text = None;
                     } else if name == "parsed" {
                         awaiting_parsed = true;
-                    } else if name == "translated" {
-                        awaiting_translated = true;
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::Start(e))?;
                     }
@@ -142,8 +131,6 @@ mod test {
                     let name = std::str::from_utf8(e.name())?;
                     if name == "input" {
                         awaiting_input = false;
-                    } else if name == "translated" {
-                        awaiting_translated = false;
                     } else if name == "parsed" {
                         awaiting_parsed = false;
 
@@ -153,15 +140,13 @@ mod test {
                         // Parse the input text
                         arena.reset();
                         let have_input = script_text.as_ref().map(String::as_str).unwrap_or_default();
-                        let (have, have_buffer) = parse_into(&arena, have_input).await?;
+                        let (have, _) = parse_into(&arena, have_input).await?;
                         // Print parsed ast
                         let mut have_writer = quick_xml::Writer::new_with_indent(Vec::new(), b' ', 4);
                         crate::grammar::serialize_ast_as_xml(&mut have_writer, have, have_input)?;
                         let have_str = String::from_utf8(have_writer.into_inner())?;
                         // Compare output
                         assert_eq!(have_str, expected_str);
-                        // Remember AST buffer
-                        ast_buffer = Some((have, have_buffer));
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::End(e))?;
                     }
@@ -174,19 +159,6 @@ mod test {
                         }
                     } else if awaiting_parsed {
                         expected_writer.write_event(Event::Text(expected))?;
-                    } else if awaiting_translated {
-                        awaiting_translated = false;
-
-                        // Translate the ast
-                        let unescaped = expected.unescape_and_decode(&xml_reader).unwrap_or_default();
-                        let (ast, ast_data) = ast_buffer.as_ref().expect("expected ast buffer");
-                        let translated = deserialize_ast(
-                            &arena,
-                            script_text.as_ref().expect("expected script text").as_str(),
-                            *ast,
-                            ast_data,
-                        )?;
-                        assert_eq!(&format!("{:#?}", translated), &unescaped);
                     }
                 }
                 Event::Eof => break,

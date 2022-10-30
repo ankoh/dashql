@@ -236,14 +236,12 @@
     </astdump>
     <astdump name="select_column_ref_expr_1">
         <input>
-            input a type integer using text;
             select 1 into b;
             select c from b where c = main.a + 1
         </input>
     </astdump>
     <astdump name="select_column_ref_expr_2">
         <input>
-            input month type integer using text;
             select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = main.month
         </input>
     </astdump>

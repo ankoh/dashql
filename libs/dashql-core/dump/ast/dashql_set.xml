@@ -16,28 +16,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Set(
-            SetStatement {
-                fields: Object(
-                    [
-                        DsonField {
-                            key: Known(
-                                DSON_TITLE,
-                            ),
-                            value: Expression(
-                                LiteralString(
-                                    &quot;foo&quot;,
-                                ),
-                            ),
-                        },
-                    ],
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="dashql_set_qualified_title">
         <input>SET dashql.title = &apos;foo&apos;;</input>
@@ -58,37 +36,6 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Set(
-            SetStatement {
-                fields: Object(
-                    [
-                        DsonField {
-                            key: Known(
-                                DSON_DASHQL,
-                            ),
-                            value: Object(
-                                [
-                                    DsonField {
-                                        key: Known(
-                                            DSON_TITLE,
-                                        ),
-                                        value: Expression(
-                                            LiteralString(
-                                                &quot;foo&quot;,
-                                            ),
-                                        ),
-                                    },
-                                ],
-                            ),
-                        },
-                    ],
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
     <astdump name="dashql_set_description">
         <input>SET description = &apos;bar&apos;;</input>
@@ -107,27 +54,5 @@
             <comments/>
             <dson_keys/>
         </parsed>
-        <translated>Program {
-    statements: [
-        Set(
-            SetStatement {
-                fields: Object(
-                    [
-                        DsonField {
-                            key: Known(
-                                DSON_DESCRIPTION,
-                            ),
-                            value: Expression(
-                                LiteralString(
-                                    &quot;bar&quot;,
-                                ),
-                            ),
-                        },
-                    ],
-                ),
-            },
-        ),
-    ],
-}</translated>
     </astdump>
 </astdumps>
