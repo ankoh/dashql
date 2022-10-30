@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::analyzer::input_spec::{InputRendererData, InputSpec, InputTextRendererData};
@@ -5,6 +6,7 @@ use crate::analyzer::task::Task;
 use crate::analyzer::task_graph::TaskGraph;
 use crate::api::workflow_frontend::WorkflowFrontend;
 use crate::execution::execution_context::ExecutionContextSnapshot;
+use crate::execution::scalar_value::ScalarValue;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{InputData, TaskData};
 use crate::grammar::{DeclareStatement, SQLBaseType, Statement};
@@ -123,7 +125,25 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
         let name = self.statement.name.get();
         if let Some(value) = self.instance.parameters.get(&self.statement_id) {
             ctx.local_state.parameters.insert(name, value.clone());
-        }
+        } else {
+            let value = match value_type {
+                DataType::Null => None,
+                DataType::Boolean => Some(ScalarValue::Boolean(false)),
+                DataType::Int8
+                | DataType::Int16
+                | DataType::Int32
+                | DataType::Int64
+                | DataType::UInt8
+                | DataType::UInt16
+                | DataType::UInt32
+                | DataType::UInt64 => Some(ScalarValue::Int64(0)),
+                DataType::Float16 | DataType::Float32 | DataType::Float64 => Some(ScalarValue::Float64(0.0)),
+                DataType::Utf8 | DataType::LargeUtf8 => Some(ScalarValue::Utf8("".to_string())),
+                _ => None,
+            };
+            let value = value.map(|v| Rc::new(v));
+            ctx.local_state.parameters.insert(name, value);
+        };
         Ok(())
     }
 }

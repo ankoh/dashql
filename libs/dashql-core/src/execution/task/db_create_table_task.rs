@@ -7,7 +7,7 @@ use crate::execution::execution_context::ExecutionContextSnapshot;
 use crate::execution::table_metadata::resolve_table_metadata;
 use crate::execution::task::TaskOperator;
 use crate::execution::task_state::{TableRef, TaskData};
-use crate::grammar::ast_to_sql::NoopExpressionFilter;
+use crate::grammar::ast_to_sql::EvaluatingExpressionFilter;
 use crate::grammar::script_writer::{
     print_ast_as_script_with_defaults, print_script, ScriptTextConfig, ScriptWriter, ToSQL,
 };
@@ -57,7 +57,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for DBCreateTableTaskOperator<'exec,
     ) -> Result<(), SystemError> {
         let script_text_config = ScriptTextConfig::default();
         let script_writer = ScriptWriter::new();
-        let script_filter = NoopExpressionFilter::default();
+        let script_filter = EvaluatingExpressionFilter::from_snapshot(ctx);
         let script_text = self.statement.to_sql(&script_writer, &script_filter);
         let script_text_str = print_script(&script_text, &script_text_config);
 
