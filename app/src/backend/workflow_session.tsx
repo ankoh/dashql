@@ -30,7 +30,6 @@ export interface WorkflowSessionState {
     scriptMetadata: ScriptMetadata;
     programText: string;
     program: model.Program | null;
-    programInput: Immutable.Map<number, model.ScalarValue>;
     programAnalysis: model.ProgramAnalysis | null;
     programTasks: model.TaskGraph | null;
     statusByTask: Immutable.Map<TaskId, TaskStatusCode>;
@@ -52,7 +51,6 @@ function initSessionState(state: WorkflowSessionState | null = null, sessionId: 
     };
     state.programText = '';
     state.program = null;
-    state.programInput = Immutable.Map();
     state.programAnalysis = null;
     state.programTasks = null;
     state.statusByTask = Immutable.Map();
@@ -88,9 +86,11 @@ export class WorkflowSession {
         await this._backend.updateProgram(this._sessionId, text);
     }
     public async updateProgramInput(statementId: number, value: ScalarValue) {
-        const newInput = this._state.programInput.set(statementId, value);
-        const newInputJson = newInput.toJSON();
-        await this._backend.updateProgramInput(this._sessionId, newInputJson);
+        const newInput = {
+            ...this._state.programAnalysis.parameters,
+            [statementId]: value,
+        };
+        await this._backend.updateProgramInput(this._sessionId, newInput);
     }
     public async executeProgram(): Promise<void> {
         await this._backend.executeProgram(this._sessionId);

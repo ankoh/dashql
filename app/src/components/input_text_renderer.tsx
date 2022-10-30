@@ -1,7 +1,6 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import * as utils from '../utils';
-import { InputSpec, ScalarValue } from '../model';
+import { formatScalarValue, InputSpec, parseScalarValue, ScalarValue } from '../model';
 import { readCoreArrowType } from '../model/table_metadata';
 import { useWorkflowSession, useWorkflowSessionState } from '../backend/workflow_session';
 
@@ -17,14 +16,19 @@ interface Props {
     editable?: boolean;
 }
 
+type FormControlElement = HTMLInputElement | HTMLTextAreaElement;
+
 export const InputTextRenderer: React.FC<Props> = (props: Props) => {
     const session = useWorkflowSession();
     const sessionState = useWorkflowSessionState();
     const target = React.useRef(null);
     const size = utils.observeSize(target);
     const inputRef = React.useRef<HTMLInputElement>();
-
+    const parameters = sessionState.programAnalysis.parameters;
     const valueType = React.useMemo(() => readCoreArrowType(props.data.value_type), [props.data.value_type]);
+    const value = parameters[props.statementId] ?? null;
+
+    const [text, setText] = React.useState(value == null ? undefined : formatScalarValue(value));
 
     const onSubmit = React.useCallback(
         (event: any) => {
@@ -33,43 +37,17 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
                 return;
             }
             let raw = inputRef.current?.value ?? '';
-            let value: ScalarValue;
-            switch (valueType.typeId) {
-                case arrow.Type.Bool:
-                    value = {
-                        t: 'boolean',
-                        v: raw == 'true' || raw == '1',
-                    };
-                    break;
-                case arrow.Type.Int8:
-                case arrow.Type.Int32:
-                case arrow.Type.Int64:
-                case arrow.Type.Uint8:
-                case arrow.Type.Uint16:
-                case arrow.Type.Uint32:
-                case arrow.Type.Uint64:
-                    value = {
-                        t: 'int64',
-                        v: parseInt(raw),
-                    };
-                    break;
-                case arrow.Type.Float32:
-                case arrow.Type.Float64:
-                    value = {
-                        t: 'float64',
-                        v: parseFloat(raw),
-                    };
-                    break;
-                default:
-                    value = {
-                        t: 'utf8',
-                        v: raw,
-                    };
-                    break;
-            }
+            let value = parseScalarValue(raw, valueType);
             session.updateProgramInput(props.statementId, value);
         },
-        [props.statementId, sessionState.programInput, session, valueType],
+        [props.statementId, parameters, session, valueType],
+    );
+    const onChange = React.useCallback(
+        (event: React.ChangeEvent<FormControlElement>) => {
+            let value = parseScalarValue(event.target.value, valueType);
+            setText(formatScalarValue(value));
+        },
+        [valueType],
     );
 
     if (props.data.renderer.t != 'Text') {
@@ -109,9 +87,11 @@ export const InputTextRenderer: React.FC<Props> = (props: Props) => {
                         </InputGroup.Text>
                         <Form.Control
                             className={styles.input_text}
+                            ref={inputRef}
                             type="text"
                             placeholder={inputData.placeholder}
-                            ref={inputRef}
+                            value={text}
+                            onChange={onChange}
                         />
                     </InputGroup>
                 </Form>

@@ -1,4 +1,5 @@
 import { Card } from './board_card';
+import { ScalarValue } from './scalar_value';
 
 export type IndirectionName = {
     type: 'Name';
@@ -58,6 +59,8 @@ export interface ProgramAnalysis {
     readonly instance_id: number;
     /// The program id
     readonly program_id: number;
+    /// The parameters
+    readonly parameters: { [key: number]: ScalarValue };
     /// The dependencies
     readonly statement_dependencies: StatementDependency[];
     /// The statement names
