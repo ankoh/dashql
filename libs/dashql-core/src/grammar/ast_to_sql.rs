@@ -1363,13 +1363,13 @@ impl<'ast> ToSQLExpressionFilter<'ast> for NoopExpressionFilter {
     }
 }
 
-pub struct EvaluatingExpressionFilter<'ast, 'snap> {
+pub struct EvaluatingExpressionFilter<'ast, 'snap, 'snapref> {
     ctx: ExpressionWriteContext,
-    snap: Mutex<ExecutionContextSnapshot<'ast, 'snap>>,
+    snap: Mutex<&'snapref mut ExecutionContextSnapshot<'ast, 'snap>>,
 }
 
-impl<'ast, 'snap> EvaluatingExpressionFilter<'ast, 'snap> {
-    pub fn from_snapshot(snap: ExecutionContextSnapshot<'ast, 'snap>) -> Self {
+impl<'ast, 'snap, 'snapref> EvaluatingExpressionFilter<'ast, 'snap, 'snapref> {
+    pub fn from_snapshot(snap: &'snapref mut ExecutionContextSnapshot<'ast, 'snap>) -> Self {
         Self {
             ctx: ExpressionWriteContext::default(),
             snap: Mutex::new(snap),
@@ -1377,20 +1377,20 @@ impl<'ast, 'snap> EvaluatingExpressionFilter<'ast, 'snap> {
     }
 }
 
-impl<'ast, 'snap> ToSQLExpressionFilter<'ast> for EvaluatingExpressionFilter<'ast, 'snap> {
+impl<'ast, 'snap, 'snapref> ToSQLExpressionFilter<'ast> for EvaluatingExpressionFilter<'ast, 'snap, 'snapref> {
     fn write_expression<'writer>(&self, writer: &'writer ScriptWriter, expr: &Expression<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
-        let mut snap = self.snap.lock().unwrap();
-        if is_constant_expression(*expr, &snap) {
-            match expr.evaluate(&mut snap) {
+        let mut snap_ref = self.snap.lock().unwrap();
+        if is_constant_expression(*expr, &snap_ref) {
+            match expr.evaluate(&mut snap_ref) {
                 Ok(None) => return writer.str_const("null"),
                 Ok(Some(value)) => return value.to_sql(writer, self),
                 Err(_) => (),
             }
         }
-        drop(snap);
+        drop(snap_ref);
         expr_to_sql(writer, self, &self.ctx, expr)
     }
 }
@@ -1789,14 +1789,17 @@ mod test {
                 })
                 .collect();
         }
-        let expr_filter: Box<dyn ToSQLExpressionFilter> = if input.is_empty() {
-            Box::new(NoopExpressionFilter::default())
-        } else {
-            Box::new(EvaluatingExpressionFilter::from_snapshot(ctx.snapshot()))
-        };
         let writer_arena = bumpalo::Bump::new();
         let writer = ScriptWriter::with_arena(writer_arena);
-        let script_text = prog.statements[0].to_sql(&writer, expr_filter.as_ref());
+        let script_text = {
+            let mut snap = ctx.snapshot();
+            let expr_filter: Box<dyn ToSQLExpressionFilter> = if input.is_empty() {
+                Box::new(NoopExpressionFilter::default())
+            } else {
+                Box::new(EvaluatingExpressionFilter::from_snapshot(&mut snap))
+            };
+            prog.statements[0].to_sql(&writer, expr_filter.as_ref())
+        };
         let script_string = print_script(&script_text, &ScriptTextConfig::default());
 
         assert_eq!(expected, &script_string, "{:?}", prog);
