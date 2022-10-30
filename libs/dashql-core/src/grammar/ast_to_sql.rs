@@ -1,5 +1,5 @@
 use std::cell::Cell;
-use std::sync::Mutex;
+use std::cell::RefCell;
 
 use crate::execution::constant_folding::is_constant_expression;
 use crate::execution::execution_context::ExecutionContextSnapshot;
@@ -1365,14 +1365,14 @@ impl<'ast> ToSQLExpressionFilter<'ast> for NoopExpressionFilter {
 
 pub struct EvaluatingExpressionFilter<'ast, 'snap, 'snapref> {
     ctx: ExpressionWriteContext,
-    snap: Mutex<&'snapref mut ExecutionContextSnapshot<'ast, 'snap>>,
+    snap: RefCell<&'snapref mut ExecutionContextSnapshot<'ast, 'snap>>,
 }
 
 impl<'ast, 'snap, 'snapref> EvaluatingExpressionFilter<'ast, 'snap, 'snapref> {
     pub fn from_snapshot(snap: &'snapref mut ExecutionContextSnapshot<'ast, 'snap>) -> Self {
         Self {
             ctx: ExpressionWriteContext::default(),
-            snap: Mutex::new(snap),
+            snap: RefCell::new(snap),
         }
     }
 }
@@ -1382,7 +1382,7 @@ impl<'ast, 'snap, 'snapref> ToSQLExpressionFilter<'ast> for EvaluatingExpression
     where
         'ast: 'writer,
     {
-        let mut snap_ref = self.snap.lock().unwrap();
+        let mut snap_ref = self.snap.borrow_mut();
         if is_constant_expression(*expr, &snap_ref) {
             match expr.evaluate(&mut snap_ref) {
                 Ok(None) => return writer.str_const("null"),
