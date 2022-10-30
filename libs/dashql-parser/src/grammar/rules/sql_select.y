@@ -2257,7 +2257,7 @@ sql_a_expr_const:
     }
   | sql_const_interval ICONST sql_opt_interval {
       $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_CONST_INTERVAL_CAST, {
-        Attr(Key::SQL_CONST_CAST_VALUE, Const(@2, proto::AConstType::STRING)),
+        Attr(Key::SQL_CONST_CAST_VALUE, Const(@2, proto::AConstType::INTEGER)),
         Attr(Key::SQL_CONST_CAST_INTERVAL, std::move($3)),
       });
     }

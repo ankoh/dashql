@@ -250,7 +250,7 @@ pub fn deserialize_ast<'a>(
                 let mut ty = ASTCell::default();
                 let mut precision = ASTCell::default();
                 read_attributes! {
-                    (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t), ci) => ty = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::SQL_INTERVAL_TYPE, ASTNode::IntervalType(t), ci) => ty = ASTCell::with_node(t.clone(), ci),
                     (Key::SQL_INTERVAL_PRECISION, ASTNode::LiteralInteger(s), ci) => precision = ASTCell::with_node(Some(s.clone()), ci)
                 }
                 ASTNode::IntervalSpecification(arena.alloc(IntervalSpecification {

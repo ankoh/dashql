@@ -175,8 +175,8 @@ pub enum GroupByItem<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct IntervalSpecification<'a> {
-    #[serde(with = "serde_interval_type::cell_opt")]
-    pub interval_type: ASTCell<Option<proto::IntervalType>>,
+    #[serde(with = "serde_interval_type::cell")]
+    pub interval_type: ASTCell<proto::IntervalType>,
     pub precision: ASTCell<Option<&'a str>>,
 }
 

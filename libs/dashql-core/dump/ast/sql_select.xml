@@ -1847,7 +1847,7 @@
                                     <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="18..22" text="hour">
                                         <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="HOUR"/>
                                     </node>
-                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="16..17" text="1"/>
+                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_INTEGER" loc="16..17" text="1"/>
                                 </node>
                             </node>
                         </node>

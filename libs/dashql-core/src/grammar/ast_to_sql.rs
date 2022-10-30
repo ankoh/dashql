@@ -406,6 +406,73 @@ impl<'ast> ToSQL<'ast> for GenericOption<'ast> {
     }
 }
 
+impl<'ast> ToSQL<'ast> for IntervalSpecification<'ast> {
+    fn to_sql<'writer>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        let mut a = ScriptTextArray::with_capacity(w, 4);
+        match self.interval_type.get() {
+            proto::IntervalType::DAY => a.push(w.keyword("day")),
+            proto::IntervalType::YEAR => a.push(w.keyword("year")),
+            proto::IntervalType::MONTH => a.push(w.keyword("month")),
+            proto::IntervalType::HOUR => a.push(w.keyword("hour")),
+            proto::IntervalType::MINUTE => a.push(w.keyword("minute")),
+            proto::IntervalType::SECOND => {
+                a.push(w.keyword("second"));
+                if let Some(precision) = self.precision.get() {
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+            }
+            proto::IntervalType::YEAR_TO_MONTH => {
+                a.push(w.keyword("year"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("month").pad_left());
+            }
+            proto::IntervalType::DAY_TO_HOUR => {
+                a.push(w.keyword("day"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("hour").pad_left());
+            }
+            proto::IntervalType::DAY_TO_SECOND => {
+                a.push(w.keyword("day"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("second").pad_left());
+                if let Some(precision) = self.precision.get() {
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+            }
+            proto::IntervalType::HOUR_TO_MINUTE => {
+                a.push(w.keyword("hour"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("minute").pad_left());
+            }
+            proto::IntervalType::HOUR_TO_SECOND => {
+                a.push(w.keyword("hour"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("second").pad_left());
+                if let Some(precision) = self.precision.get() {
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+            }
+            proto::IntervalType::MINUTE_TO_SECOND => {
+                a.push(w.keyword("minute"));
+                a.push(w.keyword("to").pad_left());
+                a.push(w.keyword("second").pad_left());
+                if let Some(precision) = self.precision.get() {
+                    a.push(w.round_brackets_one(w.str(precision)));
+                }
+            }
+            _ => {}
+        }
+        w.float(a.finish())
+    }
+}
+
 impl<'ast> ToSQL<'ast> for SQLType<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
@@ -424,7 +491,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
             }
             out.push(w.round_brackets(m.finish()));
         };
-        let mut a = ScriptTextArray::with_capacity(w, 6);
+        let mut a = ScriptTextArray::with_capacity(w, 9);
         match self.base_type.get() {
             SQLBaseType::Invalid => a.push(w.keyword("invalid")),
             SQLBaseType::Bit(t) => {
@@ -493,61 +560,7 @@ impl<'ast> ToSQL<'ast> for SQLType<'ast> {
                 }
             }
             SQLBaseType::Interval(t) => {
-                if let Some(it) = t.interval_type.get() {
-                    match it {
-                        proto::IntervalType::DAY => a.push(w.keyword("day")),
-                        proto::IntervalType::YEAR => a.push(w.keyword("year")),
-                        proto::IntervalType::MONTH => a.push(w.keyword("month")),
-                        proto::IntervalType::HOUR => a.push(w.keyword("hour")),
-                        proto::IntervalType::MINUTE => a.push(w.keyword("minute")),
-                        proto::IntervalType::SECOND => {
-                            a.push(w.keyword("second"));
-                            if let Some(precision) = t.precision.get() {
-                                a.push(w.round_brackets_one(w.str(precision)));
-                            }
-                        }
-                        proto::IntervalType::YEAR_TO_MONTH => {
-                            a.push(w.keyword("year"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("month").pad_left());
-                        }
-                        proto::IntervalType::DAY_TO_HOUR => {
-                            a.push(w.keyword("day"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("hour").pad_left());
-                        }
-                        proto::IntervalType::DAY_TO_SECOND => {
-                            a.push(w.keyword("day"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("second").pad_left());
-                            if let Some(precision) = t.precision.get() {
-                                a.push(w.round_brackets_one(w.str(precision)));
-                            }
-                        }
-                        proto::IntervalType::HOUR_TO_MINUTE => {
-                            a.push(w.keyword("hour"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("minute").pad_left());
-                        }
-                        proto::IntervalType::HOUR_TO_SECOND => {
-                            a.push(w.keyword("hour"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("second").pad_left());
-                            if let Some(precision) = t.precision.get() {
-                                a.push(w.round_brackets_one(w.str(precision)));
-                            }
-                        }
-                        proto::IntervalType::MINUTE_TO_SECOND => {
-                            a.push(w.keyword("minute"));
-                            a.push(w.keyword("to").pad_left());
-                            a.push(w.keyword("second").pad_left());
-                            if let Some(precision) = t.precision.get() {
-                                a.push(w.round_brackets_one(w.str(precision)));
-                            }
-                        }
-                        _ => {}
-                    }
-                }
+                a.push(t.to_sql(w, filter));
             }
         }
         w.float(a.finish())
@@ -1440,12 +1453,20 @@ where
                 cast.push(t.value.get().to_sql(w, filter).pad_left());
                 w.float(cast.finish())
             }
-            ConstCastExpression::Interval(_i) => todo!(),
+            ConstCastExpression::Interval(i) => {
+                let mut int = ScriptTextArray::with_capacity(w, 3);
+                int.push(w.keyword("interval"));
+                int.push(i.value.get().to_sql(w, filter).pad_left());
+                if let Some(detail) = i.interval.get() {
+                    int.push(detail.to_sql(w, filter).pad_left());
+                }
+                w.float(int.finish())
+            }
             ConstCastExpression::Function(_f) => todo!(),
         },
         Expression::Exists(e) => {
             let mut t = ScriptTextArray::with_capacity(w, 3);
-            t.push(w.keyword("EXISTS"));
+            t.push(w.keyword("exists"));
             t.push(e.statement.get().to_sql(w, filter).pad_left());
             w.float(t.finish())
         }
@@ -1881,6 +1902,9 @@ mod test {
         test_pipe("select position('bar' in 'foobar')").await?;
         test_pipe("select overlay('fooooooooo' placing 'bar' from 3)").await?;
         test_pipe("select overlay('fooooooooo' placing 'bar' from 3 for 7)").await?;
+
+        test_pipe("select now() - interval 30 day").await?;
+        test_pipe("select now() - interval $foo day").await?;
 
         test_with_input(
             "select $test",
