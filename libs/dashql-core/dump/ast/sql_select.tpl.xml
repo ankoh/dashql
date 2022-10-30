@@ -653,6 +653,11 @@
             select extract(day from a) from foo;
         </input>
     </astdump>
+    <astdump name="select_knownfunc_28_1">
+        <input>
+            select extract(year from timestamp '2016-12-31 13:30:15');
+        </input>
+    </astdump>
     <astdump name="select_knownfunc_29">
         <input>
             select substring('foobar' from 1 for 2);

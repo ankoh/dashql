@@ -54,8 +54,8 @@ pub struct NaryExpression<'a> {
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
 pub struct ConstTypeCastExpression<'a> {
-    pub value: ASTCell<Expression<'a>>,
     pub sql_type: ASTCell<&'a SQLType<'a>>,
+    pub value: ASTCell<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]

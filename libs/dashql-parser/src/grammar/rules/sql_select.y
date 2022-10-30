@@ -1102,23 +1102,23 @@ sql_const_datetime:
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
             Attr(Key::SQL_TIME_TYPE_PRECISION, Const(@3, proto::AConstType::INTEGER)),
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($5)),
-        });
+        }, false);
     }
   | TIMESTAMP sql_opt_timezone {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($2)),
-        });
+        }, false);
     }
   | TIME '(' ICONST ')' sql_opt_timezone {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIME_TYPE, {
             Attr(Key::SQL_TIME_TYPE_PRECISION, Const(@3, proto::AConstType::INTEGER)),
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($5)),
-        });
+        }, false);
    }
   | TIME sql_opt_timezone {
         $$ = ctx.Add(@$, proto::NodeType::OBJECT_SQL_TIME_TYPE, {
             Attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, std::move($2)),
-        });
+        }, false);
    }
     ;
 

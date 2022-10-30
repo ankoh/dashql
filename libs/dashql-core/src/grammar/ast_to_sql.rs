@@ -1283,6 +1283,45 @@ impl<'ast> ToSQL<'ast> for &[ASTCell<Indirection<'ast>>] {
     }
 }
 
+impl<'ast> ToSQL<'ast> for FunctionName<'ast> {
+    fn to_sql<'writer, 'filter>(
+        &self,
+        w: &'writer ScriptWriter,
+        _filter: &'filter dyn ToSQLExpressionFilter<'ast>,
+    ) -> ScriptText<'writer>
+    where
+        'ast: 'writer,
+    {
+        match self {
+            FunctionName::Unknown(n) => w.str(n),
+            FunctionName::Known(n) => w.str_const(match *n {
+                proto::KnownFunction::COLLATION_FOR => "collation_for",
+                proto::KnownFunction::CURRENT_DATE => "current_date",
+                proto::KnownFunction::CURRENT_TIME => "current_time",
+                proto::KnownFunction::CURRENT_TIMESTAMP => "current_timestamp",
+                proto::KnownFunction::LOCALTIME => "localtime",
+                proto::KnownFunction::LOCALTIMESTAMP => "localtimestamp",
+                proto::KnownFunction::CURRENT_ROLE => "current_rol",
+                proto::KnownFunction::CURRENT_USER => "current_user",
+                proto::KnownFunction::SESSION_USER => "session_user",
+                proto::KnownFunction::USER => "user",
+                proto::KnownFunction::CURRENT_CATALOG => "current_catalog",
+                proto::KnownFunction::CURRENT_SCHEMA => "current_schema",
+                proto::KnownFunction::CAST => "cast",
+                proto::KnownFunction::EXTRACT => "extract",
+                proto::KnownFunction::OVERLAY => "overlay",
+                proto::KnownFunction::POSITION => "position",
+                proto::KnownFunction::SUBSTRING => "substring",
+                proto::KnownFunction::TREAT => "treat",
+                proto::KnownFunction::TRIM => "trim",
+                proto::KnownFunction::NULLIF => "nullif",
+                proto::KnownFunction::COALESCE => "coalesce",
+                _ => "?",
+            }),
+        }
+    }
+}
+
 impl<'ast> ToSQL<'ast> for Expression<'ast> {
     fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
@@ -1394,14 +1433,140 @@ where
             w.float(f.finish())
         }
         Expression::ColumnRef(name) => name.to_sql(w, filter),
-        Expression::ConstCast(_) => todo!(),
+        Expression::ConstCast(c) => match c {
+            ConstCastExpression::Type(t) => {
+                let mut cast = ScriptTextArray::with_capacity(w, 2);
+                cast.push(t.sql_type.get().to_sql(w, filter));
+                cast.push(t.value.get().to_sql(w, filter).pad_left());
+                w.float(cast.finish())
+            }
+            ConstCastExpression::Interval(_i) => todo!(),
+            ConstCastExpression::Function(_f) => todo!(),
+        },
         Expression::Exists(e) => {
             let mut t = ScriptTextArray::with_capacity(w, 3);
             t.push(w.keyword("EXISTS"));
             t.push(e.statement.get().to_sql(w, filter).pad_left());
             w.float(t.finish())
         }
-        Expression::FunctionCall(_) => todo!(),
+        Expression::FunctionCall(call) => {
+            let mut t = ScriptTextArray::with_capacity(w, 3);
+            t.push(call.name.get().to_sql(w, filter));
+            t.push({
+                let args = if let Some(args) = call.args_known.get() {
+                    match args {
+                        KnownFunctionArguments::Trim(t) => {
+                            let mut trim = ScriptTextArray::with_capacity(w, 3 + 2 * t.input.get().len());
+                            trim.push(w.str(match t.direction.get() {
+                                dashql_proto::TrimDirection::BOTH => "both",
+                                dashql_proto::TrimDirection::LEADING => "leading",
+                                dashql_proto::TrimDirection::TRAILING => "trailing",
+                                _ => "",
+                            }));
+                            if t.characters.get() != Expression::Null {
+                                trim.push(t.characters.get().to_sql(w, filter).pad_left());
+                            }
+                            trim.push(w.str_const("from").pad_left());
+                            for (i, input) in t.input.get().iter().enumerate() {
+                                if i > 0 {
+                                    trim.push(w.str_const(","));
+                                }
+                                trim.push(input.get().to_sql(w, filter).pad_left());
+                            }
+                            trim.finish()
+                        }
+                        KnownFunctionArguments::Substring(s) => {
+                            let mut sub = ScriptTextArray::with_capacity(w, 3);
+                            sub.push(s.input.get().to_sql(w, filter));
+                            if s.substr_from.get() != Expression::Null {
+                                sub.push(w.keyword("from").pad_left());
+                                sub.push(s.substr_from.get().to_sql(w, filter));
+                            }
+                            if s.substr_for.get() != Expression::Null {
+                                sub.push(w.keyword("for").pad_left());
+                                sub.push(s.substr_for.get().to_sql(w, filter));
+                            }
+                            sub.finish()
+                        }
+                        KnownFunctionArguments::Position(p) => {
+                            let mut pos = ScriptTextArray::with_capacity(w, 3);
+                            pos.push(p.search.get().to_sql(w, filter));
+                            pos.push(w.keyword("in").pad_left());
+                            pos.push(p.input.get().to_sql(w, filter));
+                            pos.finish()
+                        }
+                        KnownFunctionArguments::Extract(e) => {
+                            let mut xtr = ScriptTextArray::with_capacity(w, 3);
+                            xtr.push(match e.target.get() {
+                                ExtractFunctionTarget::Unknown(u) => w.str(u),
+                                ExtractFunctionTarget::Known(k) => w.keyword(match k {
+                                    dashql_proto::ExtractTarget::DAY => "day",
+                                    dashql_proto::ExtractTarget::YEAR => "year",
+                                    dashql_proto::ExtractTarget::MONTH => "month",
+                                    dashql_proto::ExtractTarget::HOUR => "hour",
+                                    dashql_proto::ExtractTarget::MINUTE => "minute",
+                                    dashql_proto::ExtractTarget::SECOND => "second",
+                                    _ => "_",
+                                }),
+                            });
+                            xtr.push(w.keyword("from").pad_left());
+                            xtr.push(e.input.get().to_sql(w, filter).pad_left());
+                            xtr.finish()
+                        }
+                        KnownFunctionArguments::Overlay(o) => {
+                            let mut ol = ScriptTextArray::with_capacity(w, 7);
+                            ol.push(o.input.get().to_sql(w, filter));
+                            if o.placing.get() != Expression::Null {
+                                ol.push(w.keyword("placing").pad_left());
+                                ol.push(o.placing.get().to_sql(w, filter).pad_left());
+                            }
+                            if o.substr_from.get() != Expression::Null {
+                                ol.push(w.keyword("from").pad_left());
+                                ol.push(o.substr_from.get().to_sql(w, filter).pad_left());
+                            }
+                            if o.substr_for.get() != Expression::Null {
+                                ol.push(w.keyword("for").pad_left());
+                                ol.push(o.substr_for.get().to_sql(w, filter).pad_left());
+                            }
+                            ol.finish()
+                        }
+                        KnownFunctionArguments::Cast(c) => {
+                            let mut cast = ScriptTextArray::with_capacity(w, 3);
+                            cast.push(c.value.get().to_sql(w, filter));
+                            cast.push(w.keyword("as").pad_left());
+                            cast.push(c.as_type.get().to_sql(w, filter).pad_left());
+                            cast.finish()
+                        }
+                        KnownFunctionArguments::Treat(t) => {
+                            let mut treat = ScriptTextArray::with_capacity(w, 3);
+                            treat.push(t.value.get().to_sql(w, filter));
+                            treat.push(w.keyword("as").pad_left());
+                            treat.push(t.as_type.get().to_sql(w, filter).pad_left());
+                            treat.finish()
+                        }
+                    }
+                } else {
+                    let mut args = ScriptTextArray::with_capacity(w, 2 * call.args.get().len());
+                    for (i, arg) in call.args.get().iter().enumerate() {
+                        if i > 0 {
+                            args.push(w.str_const(",").pad_right());
+                        }
+                        if let Some(name) = arg.get().name.get() {
+                            let mut a = ScriptTextArray::with_capacity(w, 3);
+                            a.push(w.str(name));
+                            a.push(w.str_const(" = "));
+                            a.push(arg.get().value.get().to_sql(w, filter));
+                            args.push(w.float(a.finish()));
+                        } else {
+                            args.push(arg.get().value.get().to_sql(w, filter));
+                        }
+                    }
+                    args.finish()
+                };
+                w.round_brackets(args)
+            });
+            w.float(t.finish())
+        }
         Expression::Indirection(_i) => todo!(),
         Expression::Conjunction(exprs) => {
             let own_prec = get_operator_precedence(ExpressionOperatorName::Known(ExpressionOperator::AND));
@@ -1706,6 +1871,10 @@ mod test {
         test_pipe("select 1 union distinct select 2").await?;
         test_pipe("select 1 except select 2").await?;
         test_pipe("select 1 intersect select 2").await?;
+
+        test_pipe("select cast('0' as integer)").await?;
+        test_pipe("select cast('0' as double)").await?;
+        test_pipe("select extract(year from timestamp '2016-12-31 13:30:15')").await?;
 
         test_with_input(
             "select $test",
