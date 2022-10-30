@@ -18,6 +18,7 @@ export const WorkflowDriver: React.FC<Props> = (props: Props) => {
         }
         if (executed.current !== workflowSession.uncommittedState.programAnalysis) {
             executed.current = workflowSession.uncommittedState.programAnalysis;
+            console.log('EXECUTE');
             workflowSession.executeProgram();
         }
     }, [workflowSession, workflowSessionState]);

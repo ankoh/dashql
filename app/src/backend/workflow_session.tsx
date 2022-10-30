@@ -170,11 +170,15 @@ export const WorkflowSessionProvider: React.FC<WorkflowSessionProviderProps> = (
                 }
                 s.programAnalysis = analysis;
                 s.statementDependsOn = dependsOn;
+                console.log('UPDATE ANALYSIS');
+                console.log(analysis);
             },
             updateTaskGraph: (session: SessionId, graphJSON: string) => {
                 const s = getSessionState(session);
                 const graph = JSON.parse(graphJSON) as TaskGraph;
                 s.programTasks = graph;
+                console.log('UPDATE TASK GRAPH');
+                console.log(graph);
 
                 // Collect status mappings to later construct an immutable map
                 const statusByStatement = new Map();

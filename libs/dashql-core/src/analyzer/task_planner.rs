@@ -284,7 +284,7 @@ fn identify_applicable_tasks<'a, 'b: 'a>(ctx: &mut TaskPlannerContext<'a, 'b>) -
                     let prev_stmt_id = diff_op.source.unwrap_or_default();
                     let next_stmt_id = diff_op.target.unwrap_or_default();
                     let prev_param = prev_program.parameters.get(&prev_stmt_id);
-                    let next_param = prev_program.parameters.get(&next_stmt_id);
+                    let next_param = ctx.next_program.parameters.get(&next_stmt_id);
                     if prev_param != next_param {
                         invalidate(ctx, prev_task_id);
                         continue;
