@@ -1476,15 +1476,15 @@ where
                             trim.finish()
                         }
                         KnownFunctionArguments::Substring(s) => {
-                            let mut sub = ScriptTextArray::with_capacity(w, 3);
+                            let mut sub = ScriptTextArray::with_capacity(w, 5);
                             sub.push(s.input.get().to_sql(w, filter));
                             if s.substr_from.get() != Expression::Null {
                                 sub.push(w.keyword("from").pad_left());
-                                sub.push(s.substr_from.get().to_sql(w, filter));
+                                sub.push(s.substr_from.get().to_sql(w, filter).pad_left());
                             }
                             if s.substr_for.get() != Expression::Null {
                                 sub.push(w.keyword("for").pad_left());
-                                sub.push(s.substr_for.get().to_sql(w, filter));
+                                sub.push(s.substr_for.get().to_sql(w, filter).pad_left());
                             }
                             sub.finish()
                         }
@@ -1492,7 +1492,7 @@ where
                             let mut pos = ScriptTextArray::with_capacity(w, 3);
                             pos.push(p.search.get().to_sql(w, filter));
                             pos.push(w.keyword("in").pad_left());
-                            pos.push(p.input.get().to_sql(w, filter));
+                            pos.push(p.input.get().to_sql(w, filter).pad_left());
                             pos.finish()
                         }
                         KnownFunctionArguments::Extract(e) => {
@@ -1872,9 +1872,15 @@ mod test {
         test_pipe("select 1 except select 2").await?;
         test_pipe("select 1 intersect select 2").await?;
 
+        test_pipe("select now()").await?;
         test_pipe("select cast('0' as integer)").await?;
         test_pipe("select cast('0' as double)").await?;
+        test_pipe("select treat('0' as double)").await?;
         test_pipe("select extract(year from timestamp '2016-12-31 13:30:15')").await?;
+        test_pipe("select substring('foobar' from 1 for 2)").await?;
+        test_pipe("select position('bar' in 'foobar')").await?;
+        test_pipe("select overlay('fooooooooo' placing 'bar' from 3)").await?;
+        test_pipe("select overlay('fooooooooo' placing 'bar' from 3 for 7)").await?;
 
         test_with_input(
             "select $test",
