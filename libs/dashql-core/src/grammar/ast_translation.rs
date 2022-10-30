@@ -913,12 +913,12 @@ pub fn deserialize_ast<'a>(
             proto::NodeType::OBJECT_DASHQL_DECLARE => {
                 let mut name = ASTCell::with_value(NamePath::default());
                 let mut value_type = ASTCell::default();
-                let mut component_type = ASTCell::with_value(Some(proto::InputComponentType::NONE));
+                let mut component_type = ASTCell::with_value(proto::InputComponentType::NONE);
                 let mut extra = ASTCell::default();
                 read_attributes! {
                     (Key::DASHQL_STATEMENT_NAME, ASTNode::Array(n, ni), ci) => name = ASTCell::with_node(read_name(arena, n, *ni), ci),
                     (Key::DASHQL_DECLARE_VALUE_TYPE, ASTNode::SQLType(t), ci) => value_type = ASTCell::with_node(Some(*t), ci),
-                    (Key::DASHQL_DECLARE_COMPONENT_TYPE, ASTNode::InputComponentType(t), ci) => component_type = ASTCell::with_node(Some(t.clone()), ci),
+                    (Key::DASHQL_DECLARE_COMPONENT_TYPE, ASTNode::InputComponentType(t), ci) => component_type = ASTCell::with_node(t.clone(), ci),
                     (Key::DASHQL_DECLARE_EXTRA, n, ci) => extra = ASTCell::with_node(Some(read_dson(arena, n)), ci)
                 }
                 ASTNode::DeclareStatement(arena.alloc(DeclareStatement {

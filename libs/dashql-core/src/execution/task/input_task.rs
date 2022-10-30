@@ -13,7 +13,6 @@ use crate::grammar::{DeclareStatement, SQLBaseType, Statement};
 use crate::{analyzer::program_instance::ProgramInstance, error::SystemError};
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
-use dashql_proto::InputComponentType;
 use serde_json as sj;
 
 pub struct InputTaskOperator<'exec, 'ast> {
@@ -66,7 +65,7 @@ impl<'exec, 'ast> TaskOperator<'exec, 'ast> for InputTaskOperator<'exec, 'ast> {
             Some(Err(e)) => return Err(e),
             _ => sj::Map::new(),
         };
-        let _component = self.statement.component_type.get().unwrap_or(InputComponentType::TEXT);
+        let _component = self.statement.component_type.get();
 
         let value_type = match self.statement.value_type.get().base_type.get() {
             SQLBaseType::Invalid => DataType::Null,

@@ -9,8 +9,8 @@ use serde::Serialize;
 pub struct DeclareStatement<'a> {
     pub name: ASTCell<NamePath<'a>>,
     pub value_type: ASTCell<&'a SQLType<'a>>,
-    #[serde(with = "serde_input_component_type::cell_opt")]
-    pub component_type: ASTCell<Option<proto::InputComponentType>>,
+    #[serde(with = "serde_input_component_type::cell")]
+    pub component_type: ASTCell<proto::InputComponentType>,
     pub extra: ASTCell<Option<DsonValue<'a>>>,
 }
 

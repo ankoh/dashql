@@ -1053,15 +1053,35 @@ impl<'ast> ToSQL<'ast> for CreateViewStatement<'ast> {
 }
 
 impl<'ast> ToSQL<'ast> for DeclareStatement<'ast> {
-    fn to_sql<'writer>(
-        &self,
-        _w: &'writer ScriptWriter,
-        _filter: &dyn ToSQLExpressionFilter<'ast>,
-    ) -> ScriptText<'writer>
+    fn to_sql<'writer>(&self, w: &'writer ScriptWriter, filter: &dyn ToSQLExpressionFilter<'ast>) -> ScriptText<'writer>
     where
         'ast: 'writer,
     {
-        todo!()
+        let mut d = ScriptTextArray::with_capacity(w, 8);
+        d.push(w.keyword("declare"));
+        d.push(self.name.get().to_sql(w, filter).pad_left());
+        d.push(w.keyword("as").pad_left());
+        d.push(self.value_type.get().to_sql(w, filter).pad_left());
+        let mut has_using = false;
+        if self.component_type.get() != dashql_proto::InputComponentType::NONE {
+            has_using = true;
+            d.push(w.keyword("using").pad_left());
+            d.push(
+                w.keyword(match self.component_type.get() {
+                    dashql_proto::InputComponentType::TEXT => "text",
+                    dashql_proto::InputComponentType::CALENDAR => "calendar",
+                    _ => unreachable!(),
+                })
+                .pad_left(),
+            );
+        }
+        if let Some(extra) = self.extra.get() {
+            if !has_using {
+                d.push(w.keyword("using").pad_left());
+            }
+            d.push(extra.to_sql(w, filter).pad_left());
+        }
+        w.float(d.finish())
     }
 }
 
@@ -1071,6 +1091,7 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
         'ast: 'writer,
     {
         match &self {
+            Statement::Declare(d) => d.to_sql(w, filter),
             Statement::CreateAs(s) => s.to_sql(w, filter),
             Statement::CreateView(s) => s.to_sql(w, filter),
             Statement::Create(s) => s.to_sql(w, filter),
@@ -1079,7 +1100,6 @@ impl<'ast> ToSQL<'ast> for Statement<'ast> {
             Statement::Import(s) => s.to_sql(w, filter),
             Statement::Load(s) => s.to_sql(w, filter),
             Statement::Viz(s) => s.to_sql(w, filter),
-            _ => todo!(),
         }
     }
 }
