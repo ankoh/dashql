@@ -1476,7 +1476,7 @@
     </astdump>
     <astdump name="select_column_ref_expr_1">
         <input>select 1 into b;
-            select c from b where c = main.a + 1</input>
+            select c from b where c = $a + 1</input>
         <parsed>
             <statements>
                 <statement type="SELECT_INTO">
@@ -1495,7 +1495,7 @@
                     </node>
                 </statement>
                 <statement type="SELECT">
-                    <node type="OBJECT_SQL_SELECT" loc="29..65" text="select c f..main.a + 1">
+                    <node type="OBJECT_SQL_SELECT" loc="29..61" text="select c f..c = $a + 1">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="43..44" text="b">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
@@ -1513,20 +1513,19 @@
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="51..65" text="c = main.a + 1">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="51..61" text="c = $a + 1">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="51..52" text="c">
                                 <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                     <node type="IDENTIFIER" loc="51..52" text="c"/>
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="55..65" text="main.a + 1">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="55..61" text="main.a">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="IDENTIFIER" loc="55..59" text="main"/>
-                                        <node type="IDENTIFIER" loc="60..61" text="a"/>
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="55..61" text="$a + 1">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_PARAMETER_REF" loc="55..57" text="$a">
+                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="56..57" text="a"/>
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="LITERAL_INTEGER" loc="64..65" text="1"/>
+                                <node key="SQL_EXPRESSION_ARG1" type="LITERAL_INTEGER" loc="60..61" text="1"/>
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS"/>
                             </node>
                             <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
@@ -1543,11 +1542,11 @@
         </parsed>
     </astdump>
     <astdump name="select_column_ref_expr_2">
-        <input>select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = main.month</input>
+        <input>select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = $month</input>
         <parsed>
             <statements>
                 <statement type="SELECT_INTO">
-                    <node type="OBJECT_SQL_SELECT" loc="0..128" text="select * i..main.month">
+                    <node type="OBJECT_SQL_SELECT" loc="0..124" text="select * i..h = $month">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
                             <node type="OBJECT_SQL_TABLEREF" loc="36..55" text="country1_weather c1">
                                 <node key="SQL_TABLEREF_ALIAS" type="IDENTIFIER" loc="53..55" text="c1"/>
@@ -1575,7 +1574,7 @@
                                 <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true"/>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="83..128" text="c1.month =..main.month">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="83..124" text="c1.month =..h = $month">
                             <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_NARY_EXPRESSION" loc="83..102" text="c1.month = c2.month">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="83..91" text="c1.month">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
@@ -1591,17 +1590,16 @@
                                 </node>
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="107..128" text="c2.month =..main.month">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_NARY_EXPRESSION" loc="107..124" text="c2.month = $month">
                                 <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="107..115" text="c2.month">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
                                         <node type="IDENTIFIER" loc="107..109" text="c2"/>
                                         <node type="IDENTIFIER" loc="110..115" text="month"/>
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="118..128" text="main.month">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                        <node type="IDENTIFIER" loc="118..122" text="main"/>
-                                        <node type="IDENTIFIER" loc="123..128" text="month"/>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_PARAMETER_REF" loc="118..124" text="$month">
+                                    <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                        <node type="IDENTIFIER" loc="119..124" text="month"/>
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL"/>

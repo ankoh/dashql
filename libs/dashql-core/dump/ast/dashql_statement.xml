@@ -41,23 +41,22 @@
     </astdump>
     <astdump name="import_url_parameter">
         <input>IMPORT weather_csv FROM http (
-                url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, main.country)
+                url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, $country)
             );</input>
         <parsed>
             <statements>
                 <statement type="IMPORT">
-                    <node type="OBJECT_DASHQL_IMPORT" loc="0..129" text="IMPORT wea..         )">
-                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="29..129" text="(\n        ..         )">
-                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="53..115" text="format(&apos;ht..n.country)">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="0..125" text="IMPORT wea..         )">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="29..125" text="(\n        ..         )">
+                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="53..111" text="format(&apos;ht.. $country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="60..100" text="&apos;https://c..eather/%s&apos;">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="60..100" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="102..114" text="main.country">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="102..114" text="main.country">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="IDENTIFIER" loc="102..106" text="main"/>
-                                                <node type="IDENTIFIER" loc="107..114" text="country"/>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="102..110" text="$country">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="102..110" text="$country">
+                                            <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                                <node type="IDENTIFIER" loc="103..110" text="country"/>
                                             </node>
                                         </node>
                                     </node>
@@ -75,7 +74,7 @@
             <errors/>
             <line_breaks>
                 <line_break loc="30..31" text="\n"/>
-                <line_break loc="115..116" text="\n"/>
+                <line_break loc="111..112" text="\n"/>
             </line_breaks>
             <comments/>
             <dson_keys/>

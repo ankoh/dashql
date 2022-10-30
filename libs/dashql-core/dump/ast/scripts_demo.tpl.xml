@@ -14,7 +14,7 @@
             -- Fetch data from external sources like HTTP REST APIs.
             -- Ref: https://docs.dashql.com/grammar/fetch
             IMPORT weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+                url = format('https://cdn.dashql.com/demo/weather/%s', $country)
             );
 
             -- Interpret the data as SQL table.

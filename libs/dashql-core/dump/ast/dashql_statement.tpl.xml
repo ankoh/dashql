@@ -12,7 +12,7 @@
     <astdump name="import_url_parameter">
         <input>
             IMPORT weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+                url = format('https://cdn.dashql.com/demo/weather/%s', $country)
             );
         </input>
     </astdump>

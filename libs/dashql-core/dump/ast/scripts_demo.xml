@@ -13,7 +13,7 @@
             -- Fetch data from external sources like HTTP REST APIs.
             -- Ref: https://docs.dashql.com/grammar/fetch
             IMPORT weather_csv FROM http (
-                url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, main.country)
+                url = format(&apos;https://cdn.dashql.com/demo/weather/%s&apos;, $country)
             );
 
             -- Interpret the data as SQL table.
@@ -52,18 +52,17 @@
                     </node>
                 </statement>
                 <statement type="IMPORT">
-                    <node type="OBJECT_DASHQL_IMPORT" loc="587..716" text="IMPORT wea..         )">
-                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="616..716" text="(\n        ..         )">
-                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="640..702" text="format(&apos;ht..n.country)">
+                    <node type="OBJECT_DASHQL_IMPORT" loc="587..712" text="IMPORT wea..         )">
+                        <node key="DASHQL_IMPORT_EXTRA" type="OBJECT_DSON" loc="616..712" text="(\n        ..         )">
+                            <node key="DSON_URL" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="640..698" text="format(&apos;ht.. $country)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="647..687" text="&apos;https://c..eather/%s&apos;">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="647..687" text="&apos;https://c..eather/%s&apos;"/>
                                     </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="689..701" text="main.country">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="689..701" text="main.country">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY">
-                                                <node type="IDENTIFIER" loc="689..693" text="main"/>
-                                                <node type="IDENTIFIER" loc="694..701" text="country"/>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="689..697" text="$country">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_PARAMETER_REF" loc="689..697" text="$country">
+                                            <node key="SQL_PARAMETER_NAME" type="ARRAY">
+                                                <node type="IDENTIFIER" loc="690..697" text="country"/>
                                             </node>
                                         </node>
                                     </node>
@@ -78,46 +77,46 @@
                     </node>
                 </statement>
                 <statement type="LOAD">
-                    <node type="OBJECT_DASHQL_LOAD" loc="836..875" text="LOAD weath.. USING CSV">
+                    <node type="OBJECT_DASHQL_LOAD" loc="832..871" text="LOAD weath.. USING CSV">
                         <node key="DASHQL_DATA_SOURCE" type="ARRAY">
-                            <node type="IDENTIFIER" loc="854..865" text="weather_csv"/>
+                            <node type="IDENTIFIER" loc="850..861" text="weather_csv"/>
                         </node>
                         <node key="DASHQL_LOAD_METHOD" type="ENUM_DASHQL_LOAD_METHOD_TYPE" value="CSV"/>
                         <node key="DASHQL_STATEMENT_NAME" type="ARRAY">
-                            <node type="IDENTIFIER" loc="841..848" text="weather"/>
+                            <node type="IDENTIFIER" loc="837..844" text="weather"/>
                         </node>
                     </node>
                 </statement>
                 <statement type="SELECT_INTO">
-                    <node type="OBJECT_SQL_SELECT" loc="1002..1040" text="SELECT 1 I..OM weather">
+                    <node type="OBJECT_SQL_SELECT" loc="998..1036" text="SELECT 1 I..OM weather">
                         <node key="SQL_SELECT_FROM" type="ARRAY">
-                            <node type="OBJECT_SQL_TABLEREF" loc="1033..1040" text="weather">
+                            <node type="OBJECT_SQL_TABLEREF" loc="1029..1036" text="weather">
                                 <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                    <node type="IDENTIFIER" loc="1033..1040" text="weather"/>
+                                    <node type="IDENTIFIER" loc="1029..1036" text="weather"/>
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="1016..1027" text="weather_avg">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="1012..1023" text="weather_avg">
                             <node key="SQL_TEMP_NAME" type="ARRAY">
-                                <node type="IDENTIFIER" loc="1016..1027" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="1012..1023" text="weather_avg"/>
                             </node>
                             <node key="SQL_TEMP_TYPE" type="ENUM_SQL_TEMP_TYPE" value="NONE"/>
                         </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="1009..1010" text="1">
-                                <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="1009..1010" text="1"/>
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="1005..1006" text="1">
+                                <node key="SQL_RESULT_TARGET_VALUE" type="LITERAL_INTEGER" loc="1005..1006" text="1"/>
                             </node>
                         </node>
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="1154..1180" text="VIZ weathe..USING LINE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="1150..1176" text="VIZ weathe..USING LINE">
                         <node key="DASHQL_VIZ_COMPONENT_TYPE" type="ENUM_DASHQL_VIZ_COMPONENT_TYPE" value="LINE"/>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1158..1169" text="weather_avg">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLEREF" loc="1154..1165" text="weather_avg">
                             <node key="SQL_TABLEREF_INHERIT" type="BOOL" value="true"/>
                             <node key="SQL_TABLEREF_NAME" type="ARRAY">
-                                <node type="IDENTIFIER" loc="1158..1169" text="weather_avg"/>
+                                <node type="IDENTIFIER" loc="1154..1165" text="weather_avg"/>
                             </node>
                         </node>
                     </node>
@@ -138,19 +137,19 @@
                 <line_break loc="516..517" text="\n"/>
                 <line_break loc="574..575" text="\n"/>
                 <line_break loc="617..618" text="\n"/>
-                <line_break loc="702..703" text="\n"/>
-                <line_break loc="717..718" text="\n"/>
-                <line_break loc="718..719" text="\n"/>
-                <line_break loc="766..767" text="\n"/>
-                <line_break loc="823..824" text="\n"/>
-                <line_break loc="876..877" text="\n"/>
-                <line_break loc="877..878" text="\n"/>
-                <line_break loc="931..932" text="\n"/>
-                <line_break loc="989..990" text="\n"/>
-                <line_break loc="1041..1042" text="\n"/>
-                <line_break loc="1042..1043" text="\n"/>
-                <line_break loc="1085..1086" text="\n"/>
-                <line_break loc="1141..1142" text="\n"/>
+                <line_break loc="698..699" text="\n"/>
+                <line_break loc="713..714" text="\n"/>
+                <line_break loc="714..715" text="\n"/>
+                <line_break loc="762..763" text="\n"/>
+                <line_break loc="819..820" text="\n"/>
+                <line_break loc="872..873" text="\n"/>
+                <line_break loc="873..874" text="\n"/>
+                <line_break loc="927..928" text="\n"/>
+                <line_break loc="985..986" text="\n"/>
+                <line_break loc="1037..1038" text="\n"/>
+                <line_break loc="1038..1039" text="\n"/>
+                <line_break loc="1081..1082" text="\n"/>
+                <line_break loc="1137..1138" text="\n"/>
             </line_breaks>
             <comments>
                 <comment loc="0..67" text="-- This sc..on DashQL."/>
@@ -159,12 +158,12 @@
                 <comment loc="227..272" text="-- Ref: ht..mmar/param"/>
                 <comment loc="460..516" text="-- Fetch d..REST APIs."/>
                 <comment loc="529..574" text="-- Ref: ht..mmar/fetch"/>
-                <comment loc="731..766" text="-- Interpr..SQL table."/>
-                <comment loc="779..823" text="-- Ref: ht..ammar/load"/>
-                <comment loc="890..931" text="-- Run arb..r browser."/>
-                <comment loc="944..989" text="-- Ref: ht..mmar/query"/>
-                <comment loc="1055..1085" text="-- Visuali..and views."/>
-                <comment loc="1098..1141" text="-- Ref: ht..rammar/viz"/>
+                <comment loc="727..762" text="-- Interpr..SQL table."/>
+                <comment loc="775..819" text="-- Ref: ht..ammar/load"/>
+                <comment loc="886..927" text="-- Run arb..r browser."/>
+                <comment loc="940..985" text="-- Ref: ht..mmar/query"/>
+                <comment loc="1051..1081" text="-- Visuali..and views."/>
+                <comment loc="1094..1137" text="-- Ref: ht..rammar/viz"/>
             </comments>
             <dson_keys/>
         </parsed>
