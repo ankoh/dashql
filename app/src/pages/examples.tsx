@@ -37,9 +37,9 @@ export const Examples: React.FC<Props> = (_props: Props) => {
     const session = useWorkflowSession();
 
     // Maintain feature bitmap
-    const [state, setState] = React.useState<State>({
+    const [state, setState] = React.useState<State>(() => ({
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-    });
+    }));
 
     const features = [];
     for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
@@ -51,10 +51,10 @@ export const Examples: React.FC<Props> = (_props: Props) => {
                 })}
                 onClick={(elem: React.MouseEvent<HTMLDivElement>) => {
                     const feature = (elem.currentTarget as any)?.dataset.feature;
-                    if (!feature) return;
-                    setState(s => ({
-                        features: s.features.flip(feature),
-                    }));
+                    if (feature === undefined) return;
+                    setState({
+                        features: state.features.flip(feature),
+                    });
                 }}
                 data-feature={i}
             >
