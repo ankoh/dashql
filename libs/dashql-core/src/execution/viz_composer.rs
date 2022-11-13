@@ -1,4 +1,7 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use arrow::{datatypes::DataType, util::display::array_value_to_string};
 use dashql_proto::{VizComponentType, VizComponentTypeModifier};
@@ -18,6 +21,7 @@ enum VLFieldType {
     QUANTITATIVE,
     NOMINAL,
     TEMPORAL,
+    ORDINAL,
 }
 
 pub(crate) async fn compose_viz_spec<'ast, 'snap>(
@@ -120,6 +124,18 @@ async fn optimize_vl_spec<'ast, 'snap>(
             continue;
         };
 
+        // Get the field type
+        let mut field_type = None;
+        if let Some(sj::Value::String(field_type_name)) = encoding.get(&key_type) {
+            field_type = match field_type_name.as_str() {
+                "ordinal" => Some(VLFieldType::ORDINAL),
+                "temporal" => Some(VLFieldType::TEMPORAL),
+                "nominal" => Some(VLFieldType::NOMINAL),
+                "quantitative" => Some(VLFieldType::QUANTITATIVE),
+                _ => None,
+            }
+        }
+
         // Refers to a column name?
         // Will likely throw a database error later if not known here...
         let column_id = if let Some(column_id) = table.column_name_mapping.get(field_name) {
@@ -129,36 +145,38 @@ async fn optimize_vl_spec<'ast, 'snap>(
             continue;
         };
 
-        // Resolve VL field type
-        let column_type = &table.column_types[column_id];
-        let field_type = match column_type {
-            DataType::Boolean
-            | DataType::Int8
-            | DataType::Int16
-            | DataType::Int32
-            | DataType::Int64
-            | DataType::UInt8
-            | DataType::UInt16
-            | DataType::UInt32
-            | DataType::UInt64
-            | DataType::Float16
-            | DataType::Float32
-            | DataType::Float64 => VLFieldType::QUANTITATIVE,
-            DataType::Utf8 | DataType::LargeUtf8 => VLFieldType::NOMINAL,
-            DataType::Timestamp(_, _)
-            | DataType::Date32
-            | DataType::Date64
-            | DataType::Time32(_)
-            | DataType::Time64(_)
-            | DataType::Duration(_)
-            | DataType::Interval(_) => VLFieldType::TEMPORAL,
-            _ => continue,
-        };
-        field_defs.push((key.clone(), column_id, field_name.clone(), field_type));
+        if field_type.is_none() {
+            // Resolve VL field type
+            let column_type = &table.column_types[column_id];
+            field_type = Some(match column_type {
+                DataType::Boolean
+                | DataType::Int8
+                | DataType::Int16
+                | DataType::Int32
+                | DataType::Int64
+                | DataType::UInt8
+                | DataType::UInt16
+                | DataType::UInt32
+                | DataType::UInt64
+                | DataType::Float16
+                | DataType::Float32
+                | DataType::Float64 => VLFieldType::QUANTITATIVE,
+                DataType::Utf8 | DataType::LargeUtf8 => VLFieldType::NOMINAL,
+                DataType::Timestamp(_, _)
+                | DataType::Date32
+                | DataType::Date64
+                | DataType::Time32(_)
+                | DataType::Time64(_)
+                | DataType::Duration(_)
+                | DataType::Interval(_) => VLFieldType::TEMPORAL,
+                _ => VLFieldType::QUANTITATIVE,
+            });
+        }
+        field_defs.push((key.clone(), column_id, field_name.clone(), field_type.unwrap()));
     }
 
     // Resolve minmax domains
-    let mut minmax_domains: Vec<_> = field_defs
+    let mut minmax_domains: Vec<usize> = field_defs
         .iter()
         .filter(|(_, _column_id, _, field_type)| {
             *field_type == VLFieldType::QUANTITATIVE || *field_type == VLFieldType::TEMPORAL
@@ -167,7 +185,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         .collect();
     minmax_domains.sort_unstable();
     minmax_domains.dedup();
-    let mut minmax_domain_values = Vec::with_capacity(minmax_domains.len() * 2);
+    let mut minmax_domain_values = HashMap::with_capacity(minmax_domains.len());
 
     if !minmax_domains.is_empty() {
         // Run SQL query
@@ -193,14 +211,14 @@ async fn optimize_vl_spec<'ast, 'snap>(
 
         // Extract the domain values
         let batch = &batches[0];
-        for domain in 0..minmax_domains.len() {
-            let col0 = 2 * domain + 0;
-            let col1 = 2 * domain + 1;
+        for source_column_id in 0..minmax_domains.len() {
+            let col0 = 2 * source_column_id + 0;
+            let col1 = 2 * source_column_id + 1;
             let printed0 =
                 array_value_to_string(batch.column(col0), 0).map_err(|e| SystemError::Generic(e.to_string()))?;
             let printed1 =
                 array_value_to_string(batch.column(col1), 0).map_err(|e| SystemError::Generic(e.to_string()))?;
-            minmax_domain_values.push((printed0, printed1));
+            minmax_domain_values.insert(source_column_id, (printed0, printed1));
         }
     }
 
@@ -209,7 +227,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
         Some(sj::Value::Object(ref mut enc)) => enc,
         _ => &mut tmp,
     };
-    for (i, (key, column_id, _field_name, field_type)) in field_defs.iter().enumerate() {
+    for (_i, (key, column_id, _field_name, field_type)) in field_defs.iter().enumerate() {
         let encoding = encodings.get_mut(key).unwrap().as_object_mut().unwrap();
         if !encoding.contains_key(&key_type) {
             encoding.insert(
@@ -219,6 +237,7 @@ async fn optimize_vl_spec<'ast, 'snap>(
                         VLFieldType::QUANTITATIVE => "quantitative",
                         VLFieldType::NOMINAL => "nominal",
                         VLFieldType::TEMPORAL => "temporal",
+                        VLFieldType::ORDINAL => "ordinal",
                     }
                     .to_string(),
                 ),
@@ -233,36 +252,38 @@ async fn optimize_vl_spec<'ast, 'snap>(
             continue;
         }
         let scale = scale.as_object_mut().unwrap();
-        let (lb, ub) = match table.column_types[*column_id] {
-            DataType::Int8
-            | DataType::Int16
-            | DataType::Int32
-            | DataType::Int64
-            | DataType::UInt8
-            | DataType::UInt16
-            | DataType::UInt32
-            | DataType::UInt64
-            | DataType::Float16
-            | DataType::Float32
-            | DataType::Float64 => {
-                let lb: f64 = minmax_domain_values[i].0.parse().unwrap_or_default();
-                let ub: f64 = minmax_domain_values[i].1.parse().unwrap_or_default();
-                (
-                    sj::Number::from_f64(lb)
-                        .map(|v| sj::Value::Number(v))
-                        .unwrap_or_default(),
-                    sj::Number::from_f64(ub)
-                        .map(|v| sj::Value::Number(v))
-                        .unwrap_or_default(),
-                )
-            }
-            _ => {
-                let lb = minmax_domain_values[i].0.clone();
-                let ub = minmax_domain_values[i].1.clone();
-                (sj::Value::String(lb), sj::Value::String(ub))
-            }
-        };
-        scale.insert(key_domain.clone(), sj::Value::Array(vec![lb, ub]));
+        if let Some((lb, ub)) = minmax_domain_values.get(column_id) {
+            let (lb, ub) = match table.column_types[*column_id] {
+                DataType::Int8
+                | DataType::Int16
+                | DataType::Int32
+                | DataType::Int64
+                | DataType::UInt8
+                | DataType::UInt16
+                | DataType::UInt32
+                | DataType::UInt64
+                | DataType::Float16
+                | DataType::Float32
+                | DataType::Float64 => {
+                    let lb: f64 = lb.parse().unwrap_or_default();
+                    let ub: f64 = ub.parse().unwrap_or_default();
+                    (
+                        sj::Number::from_f64(lb)
+                            .map(|v| sj::Value::Number(v))
+                            .unwrap_or_default(),
+                        sj::Number::from_f64(ub)
+                            .map(|v| sj::Value::Number(v))
+                            .unwrap_or_default(),
+                    )
+                }
+                _ => {
+                    let lb = lb.clone();
+                    let ub = ub.clone();
+                    (sj::Value::String(lb), sj::Value::String(ub))
+                }
+            };
+            scale.insert(key_domain.clone(), sj::Value::Array(vec![lb, ub]));
+        }
 
         // Zero scale?
         match table.column_types[*column_id] {

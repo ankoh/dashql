@@ -1,15 +1,16 @@
--- Fetch vaccination data
-IMPORT csv_vacc_total FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';
-IMPORT csv_vacc_state FROM 'https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv';
-IMPORT csv_deliveries FROM 'https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv';
+-- Fetch weather data
+IMPORT csv_weather FROM 'https://static.dashql.com/data/examples/seattle-weather.csv';
 
 -- Load data into DuckDB
-LOAD vaccinations FROM csv_vacc_total USING CSV;
+LOAD weather FROM csv_weather USING CSV;
 
--- Run arbitrary SQL
-CREATE VIEW vaccinations_desc AS (
-    SELECT * FROM vaccinations ORDER BY "date" DESC
+-- Visualize the weather data
+VIZ weather USING STACKED BAR (
+    x = (
+        timeUnit = 'month',
+        field = 'date',
+        type = 'ordinal'
+    ),
+    y = (aggregate = 'count'),
+    color = 'weather'
 );
-
--- Visualize vaccination data
-VIZ vaccinations_desc USING BAR;
