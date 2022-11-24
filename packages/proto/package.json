@@ -4,7 +4,7 @@
     "description": "",
     "license": "MPL-2.0",
     "dependencies": {
-        "flatbuffers": "^2.0.4"
+        "flatbuffers": "^22.11.23"
     },
     "devDependencies": {
         "esbuild": "^0.14.25",
