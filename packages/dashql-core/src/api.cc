@@ -7,9 +7,9 @@
 #include <span>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/version.h"
 
@@ -242,6 +242,9 @@ extern "C" FFIResult* dashql_script_format(dashql::Script* script) {
     return result;
 }
 
+/// Get script id
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
+
 /// Move the cursor to a script at a position
 extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t text_offset) {
     auto [cursor, status] = script->MoveCursor(text_offset);
@@ -303,6 +306,10 @@ extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr, size_t d
 }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }
+/// Get script id
+extern "C" bool dashql_catalog_contains_entry_id(dashql::Catalog* catalog, uint32_t entry_id) {
+    return catalog->Contains(entry_id);
+}
 /// Describe all entries
 extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog) {
     flatbuffers::FlatBufferBuilder fb;
@@ -313,9 +320,9 @@ extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog) 
     return packBuffer(std::move(detached));
 }
 /// Describe all entries
-extern "C" FFIResult* dashql_catalog_describe_entries_of(dashql::Catalog* catalog, size_t external_id) {
+extern "C" FFIResult* dashql_catalog_describe_entries_of(dashql::Catalog* catalog, size_t entry_id) {
     flatbuffers::FlatBufferBuilder fb;
-    auto entries = catalog->DescribeEntriesOf(fb, external_id);
+    auto entries = catalog->DescribeEntriesOf(fb, entry_id);
     fb.Finish(entries);
 
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));

@@ -1,13 +1,12 @@
-import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
 import * as styles from './file_dropzone.module.css';
 import * as symbols from '../../static/svg/symbols.generated.svg';
-import * as zstd from '../utils/zstd.js';
 
 import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../platform/event.js';
 import { PlatformFile } from '../platform/file.js';
 import { usePlatformEventListener } from '../platform/event_listener_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
+import { FileLoader } from './file_loader.js';
 
 function FileDropzoneArea() {
     return (
@@ -26,25 +25,11 @@ function FileDropzoneArea() {
 export function FileDropzone(props: { children: React.ReactElement }) {
     const _logger = useLogger();
     const appEvents = usePlatformEventListener();
+    const [droppedFile, setDroppedFile] = React.useState<PlatformFile | null>(null);
     const [dragOngoing, setDragOngoing] = React.useState<Date | null>(null);
 
     // Callback to drop file
-    const onDropFile = React.useCallback(async (file: PlatformFile) => {
-        try {
-            const fileBuffer = await file.readAsArrayBuffer();
-            await zstd.init();
-            const fileDecompressed = zstd.decompress(fileBuffer);
-            const fileProto = pb.dashql.file.File.fromBinary(fileDecompressed);
-
-            // XXX
-            console.log(`read bytes: ${fileBuffer.byteLength}, decompressed: ${fileDecompressed.byteLength}`);
-            console.log(fileProto);
-        } catch (e: any) {
-            console.log(e);
-        }
-        setDragOngoing(null);
-    }, []);
-
+    const onDropFile = React.useCallback(async (file: PlatformFile) => setDroppedFile(file), []);
     // Callback for drag/drop events
     const onDragDrop = React.useCallback((event: PlatformDragDropEventVariant) => {
         switch (event.type) {
@@ -67,9 +52,16 @@ export function FileDropzone(props: { children: React.ReactElement }) {
         return () => appEvents.unsubscribeDragDropEvents("dropzone");
     }, [appEvents, onDragDrop]);
 
+    // Determine content
+    let content: React.ReactElement = props.children;
+    if (droppedFile != null) {
+        content = <FileLoader file={droppedFile} />;
+    } else if (dragOngoing) {
+        content = <FileDropzoneArea />;
+    }
     return (
         <div className={styles.root}>
-            {dragOngoing ? <FileDropzoneArea /> : props.children}
+            {content}
         </div>
     );
 }

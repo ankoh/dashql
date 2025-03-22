@@ -54,6 +54,8 @@ extern "C" FFIResult* dashql_script_parse(dashql::Script* script);
 extern "C" FFIResult* dashql_script_analyze(dashql::Script* script);
 /// Get a pretty-printed version of the SQL query
 extern "C" FFIResult* dashql_script_format(dashql::Script* script);
+/// Get script id
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Get script statistics
 extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script);
 /// Move the cursor in a script to a position
@@ -66,6 +68,8 @@ extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr = nullptr
                                          const char* schema_name_ptr = nullptr, size_t schema_name_length = 0);
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog);
+/// Clear a catalog
+extern "C" bool dashql_catalog_contains_entry_id(dashql::Catalog* catalog, uint32_t entry_id);
 /// Describe all entries
 extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog);
 /// Describe all entries

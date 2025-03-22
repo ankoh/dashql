@@ -75,16 +75,16 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         // Are we already loading it?
         // This may happen if the user decided to load the script twice.
         // We'll just await the promise and store a duplicated script
-        const flightKey = script.scriptKey + (script.metadata.scriptId ?? "-");
+        const flightKey = script.scriptKey + (script.metadata.originalScriptName ?? "-");
         const existing = internal.current.scripts.get(flightKey);
         if (existing) {
             return;
         }
         // Otherwise load the url
         let inflight: Promise<string> | null = null;
-        if (script.metadata.httpURL) {
+        if (script.metadata.originalHttpURL) {
             inflight = (async () => {
-                const response = await fetch(script.metadata.httpURL!);
+                const response = await fetch(script.metadata.originalHttpURL!);
                 const content = await response.text();
                 internal.current.scripts.delete(flightKey);
                 return content;

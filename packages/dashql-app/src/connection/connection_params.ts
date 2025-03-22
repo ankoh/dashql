@@ -1,13 +1,13 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ConnectionDetailsVariant as ConnectionStateDetailsVariant, ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { ConnectionStateDetailsVariant, ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
-import { encodeDemoConnectionParamsAsProto, readDemoConnectionParamsFromProto } from './demo/demo_connection_params.js';
-import { encodeHyperConnectionParamsAsProto, HyperGrpcConnectionParams, readHyperConnectionParamsFromProto } from './hyper/hyper_connection_params.js';
-import { encodeSalesforceConnectionParamsAsProto, readSalesforceConnectionParamsFromProto, SalesforceConnectionParams } from './salesforce/salesforce_connection_params.js';
-import { encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
+import { createServerlessConnectionParamsSignature, encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
+import { createDemoConnectionParamsSignature, encodeDemoConnectionParamsAsProto, readDemoConnectionParamsFromProto } from './demo/demo_connection_params.js';
+import { createHyperConnectionParamsSignature, encodeHyperConnectionParamsAsProto, HyperGrpcConnectionParams, readHyperConnectionParamsFromProto } from './hyper/hyper_connection_params.js';
+import { createSalesforceConnectionParamsSignature, encodeSalesforceConnectionParamsAsProto, readSalesforceConnectionParamsFromProto, SalesforceConnectionParams } from './salesforce/salesforce_connection_params.js';
+import { createTrinoConnectionParamsSignature, encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
 import { VariantKind } from '../utils/variant.js';
 import { WorkbookExportSettings } from 'workbook/workbook_export_settings.js';
 import { createConnectionMetrics } from './connection_statistics.js';
@@ -170,6 +170,20 @@ export function readConnectionParamsFromProto(pb: pb.dashql.connection.Connectio
     return null;
 }
 
+export function createConnectionParamsSignature(params: ConnectionParamsVariant): any {
+    switch (params.type) {
+        case SERVERLESS_CONNECTOR:
+            return createServerlessConnectionParamsSignature(params.value);
+        case DEMO_CONNECTOR:
+            return createDemoConnectionParamsSignature(params.value);
+        case TRINO_CONNECTOR:
+            return createTrinoConnectionParamsSignature(params.value);
+        case HYPER_GRPC_CONNECTOR:
+            return createHyperConnectionParamsSignature(params.value);
+        case SALESFORCE_DATA_CLOUD_CONNECTOR:
+            return createSalesforceConnectionParamsSignature(params.value);
+    }
+}
 
 export function createConnectionStateFromParams(lnx: dashql.DashQL, params: ConnectionParamsVariant): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params);

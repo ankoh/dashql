@@ -47,3 +47,16 @@ export function readHyperConnectionParamsFromProto(params: pb.dashql.connection.
     };
 }
 
+export function createHyperConnectionParamsSignature(params: HyperGrpcConnectionParams): any {
+    return {
+        case: "hyper",
+        channelArgs: {
+            endpoint: params.channelArgs.endpoint,
+            tls: params.channelArgs.tls
+        },
+        attachedDatabases: params.attachedDatabases
+            .map(d => ({ path: d.key, alias: d.value }))
+            .sort((a, b) => a.path > b.path ? 1 : -1),
+        gRPCMetadata: params.gRPCMetadata.sort((a, b) => a.key > b.key ? 1 : -1)
+    };
+}

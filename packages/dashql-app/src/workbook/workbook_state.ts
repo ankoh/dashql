@@ -151,11 +151,11 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 script!.replaceText(s.scriptText);
 
                 const metadata: ScriptMetadata = {
-                    scriptId: null,
-                    schemaRef: null,
                     scriptType: s.scriptType == pb.dashql.workbook.ScriptType.Schema ? ScriptType.SCHEMA : ScriptType.QUERY,
+                    originalScriptName: null,
+                    originalSchemaName: null,
                     originType: ScriptOriginType.LOCAL,
-                    httpURL: null,
+                    originalHttpURL: null,
                     annotations: null,
                     immutable: false,
                 };
