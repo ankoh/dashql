@@ -55,6 +55,7 @@ if(WASM)
         -Wl,--export=dashql_delete_result \
         -Wl,--export=dashql_catalog_new \
         -Wl,--export=dashql_catalog_clear \
+        -Wl,--export=dashql_catalog_contains_entry_id \
         -Wl,--export=dashql_catalog_describe_entries \
         -Wl,--export=dashql_catalog_describe_entries_of \
         -Wl,--export=dashql_catalog_load_script \
@@ -75,6 +76,7 @@ if(WASM)
         -Wl,--export=dashql_script_scan \
         -Wl,--export=dashql_script_parse \
         -Wl,--export=dashql_script_analyze \
+        -Wl,--export=dashql_script_get_catalog_entry_id \
         -Wl,--export=dashql_script_get_statistics \
         -Wl,--export=dashql_script_move_cursor \
         -Wl,--export=dashql_script_complete_at_cursor \

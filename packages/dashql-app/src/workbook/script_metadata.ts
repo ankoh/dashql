@@ -1,4 +1,5 @@
 export enum ScriptOriginType {
+    FILE,
     LOCAL,
     HTTP,
 }
@@ -21,16 +22,16 @@ export interface ScriptAnnotations {
 }
 
 export interface ScriptMetadata {
-    /// The script id
-    scriptId: string | null;
-    /// The schema id
-    schemaRef: string | null;
     /// The script type
     scriptType: ScriptType;
     /// The origin type
     originType: ScriptOriginType;
+    /// The script id
+    originalScriptName: string | null;
+    /// The schema id
+    originalSchemaName: string | null;
     /// The http url
-    httpURL: URL | null;
+    originalHttpURL: URL | null;
     /// The statistics
     annotations: ScriptAnnotations | null;
     /// Is the script immutable?
@@ -39,11 +40,11 @@ export interface ScriptMetadata {
 
 export function generateBlankScriptMetadata(): ScriptMetadata {
     return {
-        schemaRef: null,
-        scriptId: null,
+        originalSchemaName: null,
+        originalScriptName: null,
         scriptType: ScriptType.UNKNOWN,
         originType: ScriptOriginType.LOCAL,
-        httpURL: null,
+        originalHttpURL: null,
         annotations: null,
         immutable: false,
     };
@@ -55,6 +56,8 @@ export function getScriptOriginTypeName(origin: ScriptOriginType): string {
             return 'local';
         case ScriptOriginType.HTTP:
             return 'http';
+        case ScriptOriginType.FILE:
+            return 'file';
     }
 }
 

@@ -28,6 +28,7 @@ describe('DashQL Analyzer', () => {
         schemaScript.analyze().delete();
 
         catalog.loadScript(schemaScript, 0);
+        expect(catalog.containsEntryId(1)).toBeTruthy();
 
         expect(() => {
             const mainScript = lnx!.createScript(catalog, 1);
@@ -59,6 +60,7 @@ describe('DashQL Analyzer', () => {
         expect(extAnalyzer.tablesLength()).toEqual(1);
 
         catalog.loadScript(extScript, 0);
+        expect(catalog.containsEntryId(1)).toBeTruthy();
 
         const mainScript = lnx!.createScript(catalog, 2);
         mainScript.insertTextAt(0, 'select * from foo');

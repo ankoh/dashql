@@ -11,7 +11,7 @@ import {
     SalesforceConnectionStateDetails,
     SalesforceConnectionStateAction,
 } from './salesforce/salesforce_connection_state.js';
-import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
     CONNECTOR_INFOS,
@@ -57,7 +57,7 @@ export interface ConnectionState {
     metrics: ConnectionMetrics;
 
     /// The connection details
-    details: ConnectionDetailsVariant;
+    details: ConnectionStateDetailsVariant;
 
     /// The catalog
     catalog: dashql.DashQLCatalog;
@@ -115,7 +115,7 @@ export enum ConnectionHealth {
     FAILED,
 }
 
-export type ConnectionDetailsVariant =
+export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
     | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
     | VariantKind<typeof DEMO_CONNECTOR, DemoConnectionParams>
@@ -270,8 +270,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     }
 }
 
-export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = lnx.createCatalog();
+    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

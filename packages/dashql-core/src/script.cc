@@ -10,12 +10,12 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/completion.h"
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-#include "dashql/buffers/index_generated.h"
 
 namespace dashql {
 
@@ -357,7 +357,8 @@ flatbuffers::Offset<buffers::TableReference> AnalyzedScript::TableReference::Pac
 }
 
 /// Pack as FlatBuffer
-flatbuffers::Offset<buffers::Expression> AnalyzedScript::Expression::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<buffers::Expression> AnalyzedScript::Expression::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
     std::optional<buffers::ExpressionSubType> inner_type;
     flatbuffers::Offset<void> inner_ofs;
     switch (inner.index()) {
@@ -409,7 +410,8 @@ AnalyzedScript::AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& ca
       catalog_version(catalog.GetVersion()) {}
 
 /// Get the name search index
-flatbuffers::Offset<buffers::CatalogEntry> AnalyzedScript::DescribeEntry(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<buffers::CatalogEntry> AnalyzedScript::DescribeEntry(
+    flatbuffers::FlatBufferBuilder& builder) const {
     std::vector<flatbuffers::Offset<buffers::SchemaTable>> table_offsets;
     table_offsets.reserve(table_declarations.GetSize());
     uint32_t table_id = 0;
@@ -613,8 +615,9 @@ flatbuffers::Offset<buffers::AnalyzedScript> AnalyzedScript::Pack(flatbuffers::F
     return out.Finish();
 }
 
-Script::Script(Catalog& catalog, uint32_t external_id) : catalog(catalog), catalog_entry_id(external_id), text(1024) {
-    assert(!catalog.Contains(external_id));
+Script::Script(Catalog& catalog, uint32_t catalog_entry_id)
+    : catalog(catalog), catalog_entry_id(catalog_entry_id), text(1024) {
+    assert(!catalog.Contains(catalog_entry_id));
 }
 
 Script::~Script() { catalog.DropScript(*this); }

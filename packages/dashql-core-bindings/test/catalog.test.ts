@@ -55,6 +55,7 @@ describe('Catalog Tests ', () => {
     it('dynamic registration, one table', () => {
         const catalog = lnx!.createCatalog();
         catalog.addDescriptorPool(1, 10);
+        expect(catalog.containsEntryId(1)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
         const script = lnx!.createScript(catalog, 2);
@@ -112,6 +113,7 @@ describe('Catalog Tests ', () => {
     it('dynamic registration, multiple tables', () => {
         const catalog = lnx!.createCatalog();
         catalog.addDescriptorPool(1, 10);
+        expect(catalog.containsEntryId(1)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
         const script = lnx!.createScript(catalog, 2);
@@ -287,6 +289,7 @@ create table region (
         schemaScript.analyze().delete();
 
         catalog.loadScript(schemaScript, 0);
+        expect(catalog.containsEntryId(1)).toBeTruthy();
 
         const snapPtr = catalog.createSnapshot();
         const snap = snapPtr.read();

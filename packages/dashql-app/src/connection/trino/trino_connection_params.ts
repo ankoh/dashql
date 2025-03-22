@@ -58,3 +58,14 @@ export function readTrinoConnectionParamsFromProto(params: pb.dashql.connection.
     };
 }
 
+export function createTrinoConnectionParamsSignature(params: TrinoConnectionParams): any {
+    return {
+        case: "trino",
+        endpoint: params.channelArgs.endpoint,
+        auth: {
+            username: params.authParams.username,
+        },
+        catalog: params.catalogName,
+        schemas: params.schemaNames.sort((a, b) => a > b ? 1 : -1)
+    };
+}

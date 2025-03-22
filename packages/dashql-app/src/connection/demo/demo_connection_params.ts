@@ -19,3 +19,6 @@ export function readDemoConnectionParamsFromProto(_params: pb.dashql.connection.
     };
 }
 
+export function createDemoConnectionParamsSignature(_params: DemoConnectionParams): any {
+    return { case: "demo" };
+}

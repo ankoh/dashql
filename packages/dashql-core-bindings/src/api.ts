@@ -19,6 +19,7 @@ interface DashQLModuleExports {
     dashql_script_analyze: (ptr: number) => number;
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
     dashql_script_complete_at_cursor: (ptr: number, limit: number) => number;
+    dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_statistics: (ptr: number) => number;
 
     dashql_catalog_new: (
@@ -27,6 +28,7 @@ interface DashQLModuleExports {
         default_schema_name_ptr: number,
         default_schema_name_length: number) => number;
     dashql_catalog_clear: (catalog_ptr: number) => void;
+    dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
     dashql_catalog_describe_entries: (catalog_ptr: number) => number;
     dashql_catalog_describe_entries_of: (catalog_ptr: number, external_id: number) => number;
     dashql_catalog_flatten: (catalog_ptr: number) => number;
@@ -65,12 +67,14 @@ export class DashQL {
     instance: WebAssembly.Instance;
     instanceExports: DashQLModuleExports;
     memory: WebAssembly.Memory;
+    nextScriptId: number;
 
     public constructor(instance: WebAssembly.Instance) {
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
         this.instance = instance;
         this.memory = instance.exports['memory'] as unknown as WebAssembly.Memory;
+        this.nextScriptId = 1;
         this.instanceExports = {
             dashql_version: instance.exports['dashql_version'] as () => number,
             dashql_malloc: instance.exports['dashql_malloc'] as (length: number) => number,
@@ -106,6 +110,7 @@ export class DashQL {
             dashql_script_parse: instance.exports['dashql_script_parse'] as (ptr: number) => number,
             dashql_script_analyze: instance.exports['dashql_script_analyze'] as (ptr: number) => number,
             dashql_script_get_statistics: instance.exports['dashql_script_get_statistics'] as (ptr: number) => number,
+            dashql_script_get_catalog_entry_id: instance.exports['dashql_script_get_catalog_entry_id'] as (ptr: number) => number,
             dashql_script_move_cursor: instance.exports['dashql_script_move_cursor'] as (
                 ptr: number,
                 offset: number,
@@ -121,6 +126,10 @@ export class DashQL {
                 schema_name_ptr: number,
                 schema_name_length: number,
             ) => number,
+            dashql_catalog_contains_entry_id: instance.exports['dashql_catalog_contains_entry_id'] as (
+                catalog_ptr: number,
+                entry_id: number,
+            ) => boolean,
             dashql_catalog_describe_entries: instance.exports['dashql_catalog_describe_entries'] as (
                 catalog_ptr: number,
             ) => number,
@@ -244,11 +253,13 @@ export class DashQL {
 
     public createScript(
         catalog: DashQLCatalog,
-        id: number,
+        catalogEntryId: number | null = null,
         databaseName: string | null = null,
         schemaName: string | null = null,
     ): DashQLScript {
-        if (id == 0xffffffff) {
+        if (catalogEntryId == null) {
+            catalogEntryId = this.nextScriptId++;
+        } else if (catalogEntryId == 0xffffffff) {
             throw new Error('context id 0xFFFFFFFF is reserved');
         }
         let databaseNamePtr = 0,
@@ -267,7 +278,7 @@ export class DashQL {
             }
         }
         const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
-        const result = this.instanceExports.dashql_script_new(catalogPtr, id);
+        const result = this.instanceExports.dashql_script_new(catalogPtr, catalogEntryId);
         const scriptPtr = this.readPtrResult(SCRIPT_TYPE, result);
         return new DashQLScript(scriptPtr);
     }
@@ -470,9 +481,11 @@ export class ParserError extends Error {
 
 export class DashQLScript {
     public readonly ptr: Ptr<typeof SCRIPT_TYPE>;
+    public readonly catalog_entry_id: number;
 
     public constructor(ptr: Ptr<typeof SCRIPT_TYPE>) {
         this.ptr = ptr;
+        this.catalog_entry_id = this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(ptr.assertNotNull());
     }
     /// Delete a graph
     public delete() {
@@ -638,6 +651,11 @@ export class DashQLCatalog {
         this.deleteSnapshot();
         const catalogPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_catalog_clear(catalogPtr);
+    }
+    /// Contains an entry id?
+    public containsEntryId(entryId: number): boolean {
+        const catalogPtr = this.ptr.assertNotNull();
+        return this.ptr.api.instanceExports.dashql_catalog_contains_entry_id(catalogPtr, entryId);
     }
     /// Describe catalog entries
     public describeEntries(): FlatBufferPtr<proto.CatalogEntries> {

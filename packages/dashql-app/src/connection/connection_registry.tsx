@@ -14,7 +14,7 @@ export interface ConnectionRegistry {
 }
 
 type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
-type ConnectionAllocator = (state: ConnectionStateWithoutId) => number;
+export type ConnectionAllocator = (state: ConnectionStateWithoutId) => number;
 export type ConnectionDispatch = (action: ConnectionStateAction) => void;
 export type DynamicConnectionDispatch = (id: number | null, action: ConnectionStateAction) => void;
 

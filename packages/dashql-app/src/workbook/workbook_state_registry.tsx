@@ -15,7 +15,7 @@ interface WorkbookRegistry {
     workbooksByConnection: Map<number, number[]>;
 }
 
-type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
+export type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
 type SetWorkbookRegistryAction = React.SetStateAction<WorkbookRegistry>;
 export type WorkbookAllocator = (workbook: WorkbookStateWithoutId) => number;
 export type ModifyWorkbook = (action: WorkbookStateAction) => void;

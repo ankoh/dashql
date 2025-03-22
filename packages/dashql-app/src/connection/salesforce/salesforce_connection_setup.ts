@@ -133,8 +133,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             `response_type=code`,
             `state=${authStateBase64}`
         ];
-        if (params.loginHint != null) {
-            paramParts.push(`login_hint=${params.loginHint}`);
+        if (params.login != null) {
+            paramParts.push(`login_hint=${params.login}`);
         }
         const url = `${params.instanceUrl}/services/oauth2/authorize?${paramParts.join('&')}`;
 

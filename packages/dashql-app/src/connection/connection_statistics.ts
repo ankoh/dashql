@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectorInfo } from './connector_info.js';
 import {
-    ConnectionDetailsVariant, ConnectionHealth,
+    ConnectionStateDetailsVariant, ConnectionHealth,
     ConnectionStateWithoutId,
     ConnectionStatus,
 } from './connection_state.js';
@@ -39,7 +39,7 @@ export function createConnectionMetrics(): ConnectionMetrics {
     };
 }
 
-export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = lnx.createCatalog();
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,

@@ -5,7 +5,7 @@ import * as style from './connection_settings.module.css';
 import { FileSymlinkFileIcon, KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { ConnectionDetailsVariant, ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
+import { ConnectionStateDetailsVariant, ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
 import { SalesforceConnectionParams } from '../../connection/salesforce/salesforce_connection_params.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { getSalesforceConnectionDetails } from '../../connection/salesforce/salesforce_connection_state.js';
@@ -103,7 +103,7 @@ export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
     }
 }
 
-export function getConnectionError(status: ConnectionDetailsVariant | null): (DetailedError | null) {
+export function getConnectionError(status: ConnectionStateDetailsVariant | null): (DetailedError | null) {
     switch (status?.type) {
         case TRINO_CONNECTOR:
             return status.value.channelError ?? status.value.healthCheckError;
@@ -150,7 +150,7 @@ export const SalesforceConnectorSettings: React.FC<object> = (_props: object) =>
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: null,
-        loginHint: null,
+        login: null,
     }), []);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {

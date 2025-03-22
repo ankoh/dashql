@@ -10,7 +10,7 @@ export interface SalesforceConnectionParams {
     /// The client secret
     appConsumerSecret: string | null;
     /// The login hint (if any)
-    loginHint: string | null;
+    login: string | null;
 }
 
 export function encodeSalesforceConnectionParamsAsProto(params: SalesforceConnectionParams | null, settings: WorkbookExportSettings | null): pb.dashql.connection.ConnectionParams {
@@ -20,7 +20,7 @@ export function encodeSalesforceConnectionParamsAsProto(params: SalesforceConnec
             value: new pb.dashql.connection.SalesforceConnectionParams({
                 instanceUrl: params?.instanceUrl ?? "",
                 appConsumerKey: params?.appConsumerKey ?? "",
-                loginHint: settings?.exportUsername ? (params?.loginHint ?? undefined) : undefined,
+                login: settings?.exportUsername ? (params?.login ?? undefined) : undefined,
             })
         }
     });
@@ -31,7 +31,15 @@ export function readSalesforceConnectionParamsFromProto(params: pb.dashql.connec
         instanceUrl: params.instanceUrl,
         appConsumerKey: params.appConsumerKey,
         appConsumerSecret: "",
-        loginHint: params.loginHint,
+        login: params.login,
     };
 }
 
+export function createSalesforceConnectionParamsSignature(params: SalesforceConnectionParams): any {
+    return {
+        case: "salesforce",
+        instanceUrl: params.instanceUrl,
+        appConsumerKey: params.appConsumerKey,
+        login: params.login,
+    };
+}
