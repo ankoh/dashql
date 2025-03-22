@@ -42,7 +42,7 @@ datafusion-physical-expr = { version = "46.0.0", default-features = false }
 datafusion-physical-plan = { version = "46.0.0", default-features = false }
 
 [dependencies.uuid]
-version = "1.10.0"
+version = "1.16.0"
 features = ["v5", "rng-getrandom"]
 
 [dependencies.web-sys]
