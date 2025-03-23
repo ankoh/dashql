@@ -1,28 +1,29 @@
 import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
-import * as styles from './view/banner_page.module.css';
 import * as symbols from '../static/svg/symbols.generated.svg';
-import * as page_styles from './view/banner_page.module.css';
+import * as baseStyles from './view/banner_page.module.css';
+import * as styles from './oauth_redirect.module.css';
 
 import { IconButton } from '@primer/react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 
+import { AnchorAlignment, AnchorSide } from './view/foundations/anchored_position.js';
 import { BASE64_CODEC } from './utils/base64.js';
-import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';
-import { DASHQL_VERSION } from './globals.js';
 import { Button, ButtonSize, ButtonVariant } from './view/foundations/button.js';
-import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from './view/foundations/text_field.js';
+import { CopyToClipboardButton } from './utils/clipboard.js';
+import { DASHQL_VERSION } from './globals.js';
 import { GitHubTheme } from './github_theme.js';
-import { formatHHMMSS, formatTimeDifference } from './utils/format.js';
-import { LoggerProvider, useLogger } from './platform/logger_provider.js';
+import { InternalsViewerOverlay } from './view/internals_overlay.js';
 import { Logger } from './platform/logger.js';
+import { LoggerProvider, useLogger } from './platform/logger_provider.js';
+import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';
+import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from './view/foundations/text_field.js';
+import { classNames } from './utils/classnames.js';
+import { formatHHMMSS, formatTimeDifference } from './utils/format.js';
 
 import '../static/fonts/fonts.css';
 import './globals.css';
-import { AnchorAlignment, AnchorSide } from './view/foundations/anchored_position.js';
-import { CopyToClipboardButton } from './utils/clipboard.js';
-import { InternalsViewerOverlay } from './view/internals_overlay.js';
 
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;
@@ -128,8 +129,8 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
             codeIsExpired = now.getTime() > (expiresAt ?? 0);
             codeExpiresAt = codeIsExpired ? undefined : new Date(Number(expiresAt));
             providerOptionsSection = (
-                <div className={styles.card_section}>
-                    <div className={styles.section_entries}>
+                <div className={baseStyles.card_section}>
+                    <div className={baseStyles.section_entries}>
                         <TextField
                             name="Salesforce Instance URL"
                             value={props.state.providerOptions.value.instanceUrl}
@@ -188,9 +189,9 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
         case pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
             if (props.state.debugMode) {
                 flowContinuation = (
-                    <div className={styles.card_section}>
-                        <div className={styles.section_entries}>
-                            <div className={styles.section_description}>
+                    <div className={baseStyles.card_section}>
+                        <div className={baseStyles.section_entries}>
+                            <div className={baseStyles.section_description}>
                                 The initiator is a native app in debug mode which cannot register as deep link handler.
                                 Copy the following url and paste it anywhere into the app window.
                             </div>
@@ -208,14 +209,14 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
             } else {
                 flowContinuation = (
-                    <div className={styles.card_section}>
-                        <div className={styles.section_entries}>
-                            <div className={styles.section_description}>
+                    <div className={baseStyles.card_section}>
+                        <div className={baseStyles.section_entries}>
+                            <div className={baseStyles.section_description}>
                                 Your browser should prompt you to open the native app. You can retry until the code expires.
                             </div>
                         </div>
-                        <div className={styles.card_actions}>
-                            <div className={styles.card_actions_right}>
+                        <div className={baseStyles.card_actions}>
+                            <div className={baseStyles.card_actions_right}>
                                 <CopyToClipboardButton
                                     variant={ButtonVariant.Primary}
                                     size={ButtonSize.Medium}
@@ -251,26 +252,26 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
     // Construct the page
     return (
-        <div className={styles.page}>
-            <div className={page_styles.banner_and_content_container}>
-                <div className={styles.banner_container}>
-                    <div className={styles.banner_logo}>
+        <div className={baseStyles.page}>
+            <div className={classNames(baseStyles.banner_and_content_container, styles.banner_and_content_container)}>
+                <div className={baseStyles.banner_container}>
+                    <div className={baseStyles.banner_logo}>
                         <svg width="100%" height="100%">
                             <use xlinkHref={`${symbols}#dashql-inverted`} />
                         </svg>
                     </div>
-                    <div className={styles.banner_text_container}>
-                        <div className={styles.banner_title}>dashql</div>
-                        <div className={styles.app_version}>version {DASHQL_VERSION}</div>
+                    <div className={baseStyles.banner_text_container}>
+                        <div className={baseStyles.banner_title}>dashql</div>
+                        <div className={baseStyles.app_version}>version {DASHQL_VERSION}</div>
                     </div>
                 </div>
-                <div className={page_styles.content_container}>
-                    <div className={styles.card}>
-                        <div className={styles.card_header}>
-                            <div className={styles.card_header_left_container}>
+                <div className={baseStyles.content_container}>
+                    <div className={baseStyles.card}>
+                        <div className={baseStyles.card_header}>
+                            <div className={baseStyles.card_header_left_container}>
                                 Authorization Succeeded
                             </div>
-                            <div className={styles.card_header_right_container}>
+                            <div className={baseStyles.card_header_right_container}>
                                 <InternalsViewerOverlay
                                     isOpen={logsAreOpen}
                                     onClose={() => setLogsAreOpen(false)}
@@ -294,8 +295,8 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                             </div>
                         </div>
                         {providerOptionsSection}
-                        <div className={styles.card_section}>
-                            <div className={styles.section_entries}>
+                        <div className={baseStyles.card_section}>
+                            <div className={baseStyles.section_entries}>
                                 <TextField
                                     name="Authorization Code"
                                     value={code ?? ""}
@@ -322,20 +323,20 @@ interface OAuthFailedProps {
 
 const OAuthFailed: React.FC<OAuthFailedProps> = (props: OAuthFailedProps) => {
     return (
-        <div className={styles.page}>
-            <div className={styles.banner_container}>
-                <div className={styles.banner_logo}>
+        <div className={baseStyles.page}>
+            <div className={baseStyles.banner_container}>
+                <div className={baseStyles.banner_logo}>
                     <svg width="100%" height="100%">
                         <use xlinkHref={`${symbols}#dashql-inverted`} />
                     </svg>
                 </div>
-                <div className={styles.banner_text_container}>
-                    <div className={styles.banner_title}>dashql</div>
-                    <div className={styles.app_version}>version {DASHQL_VERSION}</div>
+                <div className={baseStyles.banner_text_container}>
+                    <div className={baseStyles.banner_title}>dashql</div>
+                    <div className={baseStyles.app_version}>version {DASHQL_VERSION}</div>
                 </div>
             </div>
-            <div className={styles.card}>
-                <div className={styles.card_header}>
+            <div className={baseStyles.card}>
+                <div className={baseStyles.card_header}>
                     <div>Authorization Failed</div>
                 </div>
                 {props.error.toString()}
