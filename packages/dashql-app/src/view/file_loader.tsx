@@ -15,18 +15,15 @@ import { createConnectionParamsSignature, createConnectionStateFromParams, readC
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
 import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
-import { RESULT_OK } from '../utils/result.js';
 
 interface Props {
     file: PlatformFile;
 }
 
-async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, signal: AbortSignal) {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, signal: AbortSignal) {
     try {
         // Setup DashQL
-        const lnxResult = await lnxSetup("file_loader");
-        if (lnxResult?.type != RESULT_OK) throw lnxResult.error;
-        const lnx = lnxResult.value;
+        const dql = await dqlSetup("file_loader");
         signal.throwIfAborted();
 
         // Read the file
@@ -38,7 +35,6 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
         signal.throwIfAborted();
         const fileDecompressed = zstd.decompress(fileBuffer);
         const fileProto = pb.dashql.file.File.fromBinary(fileDecompressed);
-        signal.throwIfAborted();
 
         // The connection map
         const connMap = new Map<string, [number, ConnectionStateWithoutId]>();
@@ -63,7 +59,7 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
             let connId: number | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = createConnectionStateFromParams(lnx, params);
+                connState = createConnectionStateFromParams(dql, params);
                 connId = allocateConn(connState);
                 connMap.set(paramsSig, [connId, connState]);
                 continue;
@@ -95,7 +91,7 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
             let connId: number | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = createConnectionStateFromParams(lnx, params);
+                connState = createConnectionStateFromParams(dql, params);
                 connId = allocateConn(connState);
                 connMap.set(paramsSig, [connId, connState]);
                 continue;
@@ -113,7 +109,7 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
                 }
 
                 // Create a script
-                const s = lnx.createScript(connState.catalog, script.scriptId);
+                const s = dql.createScript(connState.catalog, script.scriptId);
                 s.replaceText(script.scriptText);
 
                 // Deterime script type
@@ -177,7 +173,7 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
 
             // Allocate workbook state
             const workbookState: WorkbookStateWithoutId = {
-                instance: lnx,
+                instance: dql,
                 connectorInfo: connState.connectorInfo,
                 connectionId: connId,
                 connectionCatalog: connState.catalog,
@@ -202,7 +198,7 @@ async function loadDashQLFile(file: PlatformFile, lnxSetup: DashQLSetupFn, alloc
 }
 
 export function FileLoader(props: Props) {
-    const lnx = useDashQLCoreSetup();
+    const dql = useDashQLCoreSetup();
 
     React.useEffect(() => {
 

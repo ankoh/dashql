@@ -65,8 +65,8 @@ export function createHyperGrpcConnectionStateDetails(): HyperGrpcConnectionDeta
     };
 }
 
-export function createHyperGrpcConnectionState(lnx: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(lnx, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], {
+export function createHyperGrpcConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], {
         type: HYPER_GRPC_CONNECTOR,
         value: createHyperGrpcConnectionStateDetails()
     });

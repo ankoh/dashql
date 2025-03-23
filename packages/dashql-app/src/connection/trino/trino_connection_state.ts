@@ -68,8 +68,8 @@ export function createTrinoConnectionStateDetails(): TrinoConnectionStateDetails
     };
 }
 
-export function createTrinoConnectionState(lnx: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(lnx, CONNECTOR_INFOS[ConnectorType.TRINO], {
+export function createTrinoConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.TRINO], {
         type: TRINO_CONNECTOR,
         value: createTrinoConnectionStateDetails(),
     });

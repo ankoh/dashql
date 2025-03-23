@@ -8,19 +8,19 @@ import { fileURLToPath } from 'node:url';
 const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
 
-let lnx: dashql.DashQL | null = null;
+let dql: dashql.DashQL | null = null;
 
 beforeAll(async () => {
-    lnx = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
+    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
         const buf = await fs.promises.readFile(wasmPath);
         return await WebAssembly.instantiate(buf, imports);
     });
-    expect(lnx).not.toBeNull();
+    expect(dql).not.toBeNull();
 });
 
 describe('Catalog Tests ', () => {
     it('clear catalog', () => {
-        const catalog = lnx!.createCatalog();
+        const catalog = dql!.createCatalog();
         catalog.addDescriptorPool(1, 10);
         catalog.addSchemaDescriptorT(
             1,
@@ -53,12 +53,12 @@ describe('Catalog Tests ', () => {
     });
 
     it('dynamic registration, one table', () => {
-        const catalog = lnx!.createCatalog();
+        const catalog = dql!.createCatalog();
         catalog.addDescriptorPool(1, 10);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
-        const script = lnx!.createScript(catalog, 2);
+        const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1');
         script.scan().delete();
         script.parse().delete();
@@ -111,12 +111,12 @@ describe('Catalog Tests ', () => {
     });
 
     it('dynamic registration, multiple tables', () => {
-        const catalog = lnx!.createCatalog();
+        const catalog = dql!.createCatalog();
         catalog.addDescriptorPool(1, 10);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
-        const script = lnx!.createScript(catalog, 2);
+        const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1, db1.schema2.table2');
         script.scan().delete();
         script.parse().delete();
@@ -187,9 +187,9 @@ describe('Catalog Tests ', () => {
     });
 
     it('tpch flattening', () => {
-        const catalog = lnx!.createCatalog();
+        const catalog = dql!.createCatalog();
 
-        const schemaScript = lnx!.createScript(catalog, 1);
+        const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, `
 create table part (
    p_partkey integer not null,

@@ -9,14 +9,14 @@ import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model
 const coreDistPath = path.resolve(fileURLToPath(new URL('../../../../dashql-core-bindings/dist', import.meta.url)));
 const wasmPath = path.resolve(coreDistPath, './dashql.wasm');
 
-let lnx: dashql.DashQL | null = null;
+let dql: dashql.DashQL | null = null;
 
 beforeAll(async () => {
-    lnx = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
+    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
         const buf = await fs.promises.readFile(wasmPath);
         return await WebAssembly.instantiate(buf, imports);
     });
-    expect(lnx).not.toBeNull();
+    expect(dql).not.toBeNull();
 });
 
 const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
@@ -58,7 +58,7 @@ const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
 
 describe('CatalogViewModel', () => {
     it('2 tables', () => {
-        const catalog = lnx!.createCatalog();
+        const catalog = dql!.createCatalog();
         const schemaText = `
             CREATE TABLE table1 (
                 col1 integer,
@@ -77,7 +77,7 @@ describe('CatalogViewModel', () => {
                 col6 integer
             );
         `;
-        const schemaScript = lnx!.createScript(catalog, 1);
+        const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, schemaText);
         schemaScript.scan(true).delete();
         schemaScript.parse(true).delete();
@@ -104,7 +104,7 @@ describe('CatalogViewModel', () => {
         const queryText = `
             select col4 from table1;
         `;
-        const queryScript = lnx!.createScript(catalog, 2);
+        const queryScript = dql!.createScript(catalog, 2);
         queryScript.insertTextAt(0, queryText);
         queryScript.scan(true).delete();
         queryScript.parse(true).delete();

@@ -18,7 +18,7 @@ import { useFileDownloader } from '../../platform/file_downloader_provider.js';
 
 const SLNX_COMPRESSION_LEVEL = 5;
 
-async function packSlnx(conn: ConnectionState, workbook: WorkbookState, settings: WorkbookExportSettings): Promise<Uint8Array> {
+async function packSdql(conn: ConnectionState, workbook: WorkbookState, settings: WorkbookExportSettings): Promise<Uint8Array> {
     const file = encodeWorkbookAsFile(workbook, conn, settings);
     const fileBytes = file.toBinary();
     await zstd.init();
@@ -55,7 +55,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packSlnx(conn, workbook, settings);
+            const fileBytes = await packSdql(conn, workbook, settings);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }
