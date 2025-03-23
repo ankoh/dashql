@@ -140,7 +140,7 @@ interface Props {
 export const HyperGrpcSetupProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const appConfig = useAppConfig();
-    const connectorConfig = appConfig.value?.connectors?.hyper ?? null;
+    const connectorConfig = appConfig?.connectors?.hyper ?? null;
     const hyperClient = useHyperDatabaseClient();
 
     const api = React.useMemo<HyperGrpcSetupApi | null>(() => {

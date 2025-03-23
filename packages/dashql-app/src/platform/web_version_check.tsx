@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useLogger } from './logger_provider.js';
-import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
+import { awaitAndSet, Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { Logger } from './logger.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../globals.js';
 import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode } from './version_check.js';
@@ -46,7 +46,7 @@ function parseReleaseManifest(raw: any): ReleaseManifest {
 export type ReleaseChannel = "stable" | "canary";
 
 /// Load the release manifest
-export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, setResult: (result: Result<ReleaseManifest>) => void, logger: Logger) {
+export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, logger: Logger): Promise<ReleaseManifest> {
     const start = performance.now();
     logger.info(`fetching release manifest`, { "channel": channel }, LOG_CTX);
     try {
@@ -57,17 +57,11 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, set
         // Set release manifest
         const end = performance.now();
         logger.info(`fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
-        setResult({
-            type: RESULT_OK,
-            value: manifest
-        });
+        return manifest;
     } catch (e: any) {
         const end = performance.now();
         logger.error(`failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, LOG_CTX);
-        setResult({
-            type: RESULT_ERROR,
-            error: new Error(e.toString())
-        });
+        throw e;
     }
 }
 
@@ -78,8 +72,8 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
     const [canaryRelease, setCanaryRelease] = React.useState<Result<ReleaseManifest> | null>(null);
 
     React.useEffect(() => {
-        loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, setStableRelease, logger);
-        loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, setCanaryRelease, logger);
+        awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease);
+        awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease);
     }, []);
 
     return (

@@ -22,7 +22,7 @@ interface Props {
 export const SalesforceConnector: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const config = useAppConfig();
-    const connectorConfig = config?.value?.connectors?.salesforce;
+    const connectorConfig = config?.connectors?.salesforce;
     const httpClient = useHttpClient();
     const hyperClient = useHyperDatabaseClient();
     const platformType = usePlatformType();

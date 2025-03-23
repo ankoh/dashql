@@ -17,7 +17,7 @@ export const TrinoConnector: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const config = useAppConfig();
     const httpClient = useHttpClient();
-    const connectorConfig = config?.value?.connectors?.trino;
+    const connectorConfig = config?.connectors?.trino;
 
     const [api, setup] = React.useMemo(() => {
         if (!connectorConfig) {
