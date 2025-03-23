@@ -19,14 +19,12 @@ export function useTrinoWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback(async (signal?: AbortSignal) => {
-        const instance = await setupDashQL("trino_workbook");
-        if (instance?.type != RESULT_OK) throw instance.error;
+        const dql = await setupDashQL("trino_workbook");
         signal?.throwIfAborted();
 
-        const lnx = instance.value;
-        const connectionState = createTrinoConnectionState(lnx);
+        const connectionState = createTrinoConnectionState(dql);
         const connectionId = allocateConnection(connectionState);
-        const mainScript = lnx.createScript(connectionState.catalog, 1);
+        const mainScript = dql.createScript(connectionState.catalog, 1);
 
         const mainScriptData: ScriptData = {
             scriptKey: 1,
@@ -52,7 +50,7 @@ export function useTrinoWorkbookSetup(): WorkbookSetupFn {
         };
 
         return allocateWorkbookState({
-            instance: instance.value,
+            instance: dql,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             connectionId: connectionId,
             connectionCatalog: connectionState.catalog,

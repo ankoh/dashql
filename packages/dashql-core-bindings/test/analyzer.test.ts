@@ -8,20 +8,20 @@ import { fileURLToPath } from 'node:url';
 const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
 
-let lnx: dashql.DashQL | null = null;
+let dql: dashql.DashQL | null = null;
 
 beforeAll(async () => {
-    lnx = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
+    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
         const buf = await fs.promises.readFile(wasmPath);
         return await WebAssembly.instantiate(buf, imports);
     });
-    expect(lnx).not.toBeNull();
+    expect(dql).not.toBeNull();
 });
 
 describe('DashQL Analyzer', () => {
     it('external identifier collision', () => {
-        const catalog = lnx!.createCatalog();
-        const schemaScript = lnx!.createScript(catalog, 1);
+        const catalog = dql!.createCatalog();
+        const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, 'create table foo(a int);');
         schemaScript.scan().delete();
         schemaScript.parse().delete();
@@ -31,7 +31,7 @@ describe('DashQL Analyzer', () => {
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
         expect(() => {
-            const mainScript = lnx!.createScript(catalog, 1);
+            const mainScript = dql!.createScript(catalog, 1);
             mainScript.insertTextAt(0, 'select * from foo;');
             mainScript.scan().delete();
             mainScript.parse().delete();
@@ -44,8 +44,8 @@ describe('DashQL Analyzer', () => {
     });
 
     it(`external ref`, () => {
-        const catalog = lnx!.createCatalog();
-        const extScript = lnx!.createScript(catalog, 1);
+        const catalog = dql!.createCatalog();
+        const extScript = dql!.createScript(catalog, 1);
         extScript.insertTextAt(0, 'create table foo(a int);');
 
         const extScannerRes = extScript.scan();
@@ -62,7 +62,7 @@ describe('DashQL Analyzer', () => {
         catalog.loadScript(extScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
-        const mainScript = lnx!.createScript(catalog, 2);
+        const mainScript = dql!.createScript(catalog, 2);
         mainScript.insertTextAt(0, 'select * from foo');
 
         const mainScannerRes = mainScript.scan();

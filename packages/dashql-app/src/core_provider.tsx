@@ -1,7 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 
-import { RESULT_ERROR, RESULT_OK, Result } from './utils/result.js';
 import { useLogger } from './platform/logger_provider.js';
 
 const DASHQL_MODULE_URL = new URL('@ankoh/dashql-core/dist/dashql.wasm', import.meta.url);
@@ -13,8 +12,7 @@ export interface InstantiationProgress {
     bytesLoaded: bigint;
 }
 
-const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<Result<dashql.DashQL>>) | null>(null);
-const MODULE_CONTEXT = React.createContext<Result<dashql.DashQL> | null>(null);
+const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<dashql.DashQL>) | null>(null);
 const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
 
 interface Props {
@@ -23,11 +21,10 @@ interface Props {
 
 export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const instantiation = React.useRef<Promise<Result<dashql.DashQL>> | null>(null);
-    const [mod, setModule] = React.useState<Result<dashql.DashQL> | null>(null);
+    const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
     const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
 
-    const instantiator = React.useCallback(async (context: string): Promise<Result<dashql.DashQL>> => {
+    const instantiator = React.useCallback(async (context: string): Promise<dashql.DashQL> => {
         /// Already instantiated?
         if (instantiation.current != null) {
             return await instantiation.current;
@@ -70,9 +67,9 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             const ts = new TransformStream(tracker);
             return new Response(response.body?.pipeThrough(ts), response);
         };
-        const instantiate = async (): Promise<Result<dashql.DashQL>> => {
+        const instantiate = async (): Promise<dashql.DashQL> => {
+            const initStart = performance.now();
             try {
-                const initStart = performance.now();
                 const instance = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
                     return await WebAssembly.instantiateStreaming(fetchWithProgress(DASHQL_MODULE_URL), imports);
                 });
@@ -82,20 +79,15 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                     ...internal,
                     updatedAt: new Date(),
                 }));
-                const result: Result<dashql.DashQL> = {
-                    type: RESULT_OK,
-                    value: instance!,
-                };
-                setModule(result);
-                return result;
+                return instance;
             } catch (e: any) {
+                const initEnd = performance.now();
+                logger.error("instantiating core failed", {
+                    "error": e.toString(),
+                    "duration": Math.floor(initEnd - initStart).toString()
+                }, "core");
                 console.error(e);
-                const result: Result<dashql.DashQL> = {
-                    type: RESULT_ERROR,
-                    error: e!,
-                };
-                setModule(result);
-                return result;
+                throw e;
             }
         };
         // Start the instantiation
@@ -103,32 +95,20 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
         // Await the instantiation
         return await instantiation.current;
 
-    }, [logger, setModule, setProgress]);
+    }, [logger, setProgress]);
 
     return (
         <INSTANTIATOR_CONTEXT.Provider value={instantiator}>
-            <MODULE_CONTEXT.Provider value={mod}>
-                <PROGRESS_CONTEXT.Provider value={progress}>
-                    {props.children}
-                </PROGRESS_CONTEXT.Provider>
-            </MODULE_CONTEXT.Provider>
+            <PROGRESS_CONTEXT.Provider value={progress}>
+                {props.children}
+            </PROGRESS_CONTEXT.Provider>
         </INSTANTIATOR_CONTEXT.Provider>
     );
 };
 
 export const useDashQLCoreSetupProgress = (): InstantiationProgress | null => React.useContext(PROGRESS_CONTEXT);
-export type DashQLSetupFn = (context: string) => Promise<Result<dashql.DashQL>>;
+
+export type DashQLSetupFn = (context: string) => Promise<dashql.DashQL>;
 export function useDashQLCoreSetup(): DashQLSetupFn {
-    // Get the module
-    const mod = React.useContext(MODULE_CONTEXT);
-    // Resolve function to instantiate the module
-    const instantiate = React.useContext(INSTANTIATOR_CONTEXT)!;
-    // Create a getter to instantiate on access
-    return React.useCallback(async (context: string): Promise<Result<dashql.DashQL>> => {
-        if (!mod) {
-            return await instantiate(context);
-        } else {
-            return mod;
-        }
-    }, [instantiate, mod]);
+    return React.useContext(INSTANTIATOR_CONTEXT)!;
 };

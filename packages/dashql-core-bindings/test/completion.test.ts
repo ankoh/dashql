@@ -8,21 +8,21 @@ import { fileURLToPath } from 'node:url';
 const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
 
-let lnx: dashql.DashQL | null = null;
+let dql: dashql.DashQL | null = null;
 
 beforeAll(async () => {
-    lnx = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
+    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
         const buf = await fs.promises.readFile(wasmPath);
         return await WebAssembly.instantiate(buf, imports);
     });
-    expect(lnx).not.toBeNull();
+    expect(dql).not.toBeNull();
 });
 
 describe('DashQL Completion', () => {
     describe('single script prefix', () => {
         const test = (text: string, cursor_offset: number, expected: string[]) => {
-            const catalog = lnx!.createCatalog();
-            const script = lnx!.createScript(catalog, 1);
+            const catalog = dql!.createCatalog();
+            const script = dql!.createScript(catalog, 1);
             script.insertTextAt(0, text);
             script.scan().delete();
             script.parse().delete();

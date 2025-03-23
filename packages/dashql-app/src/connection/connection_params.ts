@@ -185,11 +185,11 @@ export function createConnectionParamsSignature(params: ConnectionParamsVariant)
     }
 }
 
-export function createConnectionStateFromParams(lnx: dashql.DashQL, params: ConnectionParamsVariant): ConnectionStateWithoutId {
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params);
     const details = getConnectionStateDetailsFromParams(params);
 
-    const catalog = lnx.createCatalog();
+    const catalog = dql.createCatalog();
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

@@ -39,8 +39,8 @@ export function createConnectionMetrics(): ConnectionMetrics {
     };
 }
 
-export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
-    const catalog = lnx.createCatalog();
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+    const catalog = dql.createCatalog();
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

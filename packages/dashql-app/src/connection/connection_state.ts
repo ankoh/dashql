@@ -270,8 +270,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     }
 }
 
-export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
-    const catalog = lnx.createCatalog();
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+    const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -293,8 +293,8 @@ export function createConnectionState(lnx: dashql.DashQL, info: ConnectorInfo, d
     };
 }
 
-export function createServerlessConnectionState(lnx: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(lnx, CONNECTOR_INFOS[ConnectorType.SERVERLESS], {
+export function createServerlessConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], {
         type: SERVERLESS_CONNECTOR,
         value: {}
     });

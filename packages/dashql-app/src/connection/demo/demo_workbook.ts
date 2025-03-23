@@ -25,14 +25,12 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback(async (signal?: AbortSignal) => {
-        const instance = await setupDashQL("demo_workbook");
-        if (instance?.type != RESULT_OK) throw instance.error;
+        const dql = await setupDashQL("demo_workbook");
         signal?.throwIfAborted();
 
-        const lnx = instance.value;
-        const connectionState = createDemoConnectionState(lnx);
+        const connectionState = createDemoConnectionState(dql);
         const connectionId = allocateConnection(connectionState);
-        const mainScript = lnx.createScript(connectionState.catalog, 1);
+        const mainScript = dql.createScript(connectionState.catalog, 1);
 
         const mainScriptData: ScriptData = {
             scriptKey: 1,
@@ -58,7 +56,7 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
         };
 
         return allocateWorkbookState({
-            instance: instance.value,
+            instance: dql,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.DEMO],
             connectionId: connectionId,
             connectionCatalog: connectionState.catalog,

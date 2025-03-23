@@ -3,7 +3,6 @@ import Immutable from 'immutable';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { EXAMPLES } from '../../workbook/example_scripts.js';
-import { RESULT_OK } from '../../utils/result.js';
 import { ScriptData } from '../../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
 import { useConnectionStateAllocator } from '../connection_registry.js';
@@ -22,15 +21,13 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback(async (signal?: AbortSignal) => {
-        const instance = await setupDashQL("serverless_workbook");
-        if (instance?.type != RESULT_OK) throw instance.error;
+        const dql = await setupDashQL("serverless_workbook");
         signal?.throwIfAborted();
 
-        const lnx = instance.value;
-        const connectionState = createServerlessConnectionState(lnx);
+        const connectionState = createServerlessConnectionState(dql);
         const connectionId = allocateConnection(connectionState);
-        const mainScript = lnx.createScript(connectionState.catalog, 1);
-        const schemaScript = lnx.createScript(connectionState.catalog, 2);
+        const mainScript = dql.createScript(connectionState.catalog, 1);
+        const schemaScript = dql.createScript(connectionState.catalog, 2);
 
         const mainScriptData: ScriptData = {
             scriptKey: 1,
@@ -80,7 +77,7 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
         };
 
         return allocateWorkbookState({
-            instance: instance.value,
+            instance: dql,
             connectorInfo: CONNECTOR_INFOS[ConnectorType.SERVERLESS],
             connectionId: connectionId,
             connectionCatalog: connectionState.catalog,

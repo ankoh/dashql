@@ -142,8 +142,8 @@ export function createSalesforceConnectionStateDetails(): SalesforceConnectionSt
     };
 }
 
-export function createSalesforceConnectionState(lnx: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(lnx, CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], {
+export function createSalesforceConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], {
         type: SALESFORCE_DATA_CLOUD_CONNECTOR,
         value: createSalesforceConnectionStateDetails(),
     });

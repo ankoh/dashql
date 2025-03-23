@@ -8,22 +8,22 @@ import { fileURLToPath } from 'node:url';
 const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
 
-let lnx: dashql.DashQL | null = null;
+let dql: dashql.DashQL | null = null;
 
 beforeAll(async () => {
-    lnx = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
+    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
         const buf = await fs.promises.readFile(wasmPath);
         return await WebAssembly.instantiate(buf, imports);
     });
-    expect(lnx).not.toBeNull();
+    expect(dql).not.toBeNull();
 });
 
 const Token = dashql.buffers.ScannerTokenType;
 
 describe('DashQL Scanner', () => {
     it(`Character Sequence`, () => {
-        const catalog = lnx!.createCatalog();
-        const script = lnx!.createScript(catalog, 1);
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog, 1);
         const tmp = new dashql.buffers.ScannedScript();
 
         let size = 0;
@@ -72,8 +72,8 @@ describe('DashQL Scanner', () => {
                 textRange: [number, number],
                 expectedFiltered: [number, number],
             ) => {
-                const catalog = lnx!.createCatalog();
-                const script = lnx!.createScript(catalog, 1);
+                const catalog = dql!.createCatalog();
+                const script = dql!.createScript(catalog, 1);
                 script.insertTextAt(0, text);
                 const scanResult = script.scan();
                 const scannedScript = scanResult.read();

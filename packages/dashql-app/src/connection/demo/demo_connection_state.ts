@@ -10,8 +10,8 @@ export interface DemoConnectionParams {
     channel: DemoDatabaseChannel;
 }
 
-export function createDemoConnectionState(lnx: dashql.DashQL): ConnectionStateWithoutId {
-    const state = createConnectionState(lnx, CONNECTOR_INFOS[ConnectorType.DEMO], {
+export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DEMO], {
         type: DEMO_CONNECTOR,
         value: {
             channel: new DemoDatabaseChannel()
