@@ -30,16 +30,16 @@ prost = "0.13.3"
 tokio = { version = "1.40.0", features = ["macros", "rt", "sync"] }
 arrow = { version = "54.2.1", default-features = false, features = ["ipc"] }
 
-datafusion-common = { version = "46.0.0", default-features = false }
-datafusion-expr = { version = "46.0.0", default-features = false }
-datafusion-execution = { version = "46.0.0", default-features = false }
-datafusion-datasource = { version = "46.0.0", default-features = false }
-datafusion-functions = { version = "46.0.0", default-features = false }
-datafusion-functions-aggregate = { version = "46.0.0", default-features = false }
-datafusion-functions-nested = { version = "46.0.0", default-features = false }
-datafusion-functions-window = { version = "46.0.0", default-features = false }
-datafusion-physical-expr = { version = "46.0.0", default-features = false }
-datafusion-physical-plan = { version = "46.0.0", default-features = false }
+datafusion-common = { version = "46.0.1", default-features = false }
+datafusion-expr = { version = "46.0.1", default-features = false }
+datafusion-execution = { version = "46.0.1", default-features = false }
+datafusion-datasource = { version = "46.0.1", default-features = false }
+datafusion-functions = { version = "46.0.1", default-features = false }
+datafusion-functions-aggregate = { version = "46.0.1", default-features = false }
+datafusion-functions-nested = { version = "46.0.1", default-features = false }
+datafusion-functions-window = { version = "46.0.1", default-features = false }
+datafusion-physical-expr = { version = "46.0.1", default-features = false }
+datafusion-physical-plan = { version = "46.0.1", default-features = false }
 
 [dependencies.uuid]
 version = "1.16.0"
