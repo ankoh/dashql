@@ -1,0 +1,23 @@
+
+.banner_and_content_container {
+    max-width: 520px;
+}
+
+
+.steps_table {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content;
+    grid-template-rows: repeat(auto-fill, 24px);
+    column-gap: 16px;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.step_name {
+
+}
+.step_metric {
+
+}
+.step_status {
+}

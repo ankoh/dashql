@@ -1,6 +1,11 @@
 import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as zstd from '../utils/zstd.js';
+
+import * as symbols from '../../static/svg/symbols.generated.svg';
+import * as baseStyles from './banner_page.module.css';
+import * as styles from './file_loader.module.css';
+
 import Immutable from 'immutable';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
@@ -14,6 +19,9 @@ import { createConnectionParamsSignature, createConnectionStateFromParams, readC
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
 import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
+import { DASHQL_VERSION } from '../globals.js';
+import { classNames } from '../utils/classnames.js';
+import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 
 interface ProgressState {
     // The time when the file reading started
@@ -53,10 +61,6 @@ interface ProgressState {
 }
 
 type UpdateProgressFn = (state: ProgressState) => void;
-
-interface Props {
-    file: PlatformFile;
-}
 
 async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, signal: AbortSignal) {
     const progress: ProgressState = {
@@ -279,6 +283,30 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
     }
 }
 
+interface StepProps {
+    name: string;
+    metric: string;
+    status: IndicatorStatus;
+}
+
+function Step(props: StepProps) {
+    return (
+        <div className={styles.steps_table}>
+            <StatusIndicator className={styles.step_status} status={props.status} fill="hsl(210deg, 12%, 16%)" width="16px" height="16px" />
+            <div className={styles.step_name}>
+                {props.name}
+            </div>
+            <div className={styles.step_metric}>
+                {props.metric}
+            </div>
+        </div>
+    )
+}
+
+interface Props {
+    file: PlatformFile;
+}
+
 export function FileLoader(props: Props) {
     const dqlSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
@@ -297,5 +325,38 @@ export function FileLoader(props: Props) {
 
     }, [dqlSetup, allocateWorkbook, allocateConnection, props.file]);
 
-    return <div />;
+    return (
+        <div className={baseStyles.page} data-tauri-drag-region>
+            <div className={classNames(baseStyles.banner_and_content_container, styles.banner_and_content_container)} data-tauri-drag-region>
+                <div className={baseStyles.banner_container} data-tauri-drag-region>
+                    <div className={baseStyles.banner_logo} data-tauri-drag-region>
+                        <svg width="100%" height="100%">
+                            <use xlinkHref={`${symbols}#dashql`} />
+                        </svg>
+                    </div>
+                    <div className={baseStyles.banner_text_container} data-tauri-drag-region>
+                        <div className={baseStyles.banner_title} data-tauri-drag-region>dashql</div>
+                        <div className={baseStyles.app_version} data-tauri-drag-region>version {DASHQL_VERSION}</div>
+                    </div>
+                </div>
+                <div className={baseStyles.content_container} data-tauri-drag-region>
+                    <div className={baseStyles.card}>
+                        <div className={baseStyles.card_header} data-tauri-drag-region>
+                            <div className={baseStyles.card_header_left_container}>
+                                Import
+                            </div>
+                        </div>
+                        <div className={baseStyles.card_section}>
+                            <div className={baseStyles.section_entries}>
+                                <Step name="Read File" metric="" status={IndicatorStatus.Succeeded} />
+                                <Step name="Decompress File" metric="" status={IndicatorStatus.Succeeded} />
+                                <Step name="Load Catalogs" metric="" status={IndicatorStatus.Running} />
+                                <Step name="Load Workbooks" metric="" status={IndicatorStatus.None} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
