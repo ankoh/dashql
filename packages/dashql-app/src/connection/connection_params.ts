@@ -15,6 +15,7 @@ import { createTrinoConnectionStateDetails } from './trino/trino_connection_stat
 import { createHyperGrpcConnectionStateDetails } from './hyper/hyper_connection_state.js';
 import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
 import { DemoConnectionParams } from './demo/demo_connection_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 
 export type ConnectionParamsVariant =
     | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
@@ -190,6 +191,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const details = getConnectionStateDetailsFromParams(params);
 
     const catalog = dql.createCatalog();
+    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
