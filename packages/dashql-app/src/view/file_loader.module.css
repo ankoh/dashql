@@ -6,7 +6,7 @@
 
 .steps_table {
     display: grid;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: 20px 1fr max-content;
     grid-template-rows: repeat(auto-fill, 24px);
     column-gap: 16px;
     align-items: center;
@@ -16,8 +16,14 @@
 .step_name {
 
 }
-.step_metric {
-
-}
 .step_status {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.step_metric {
+    font-weight: 500;
 }

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as core from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as zstd from '../utils/zstd.js';
 
@@ -22,21 +23,26 @@ import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { classNames } from '../utils/classnames.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
+import { formatBytes } from '../utils/format.js';
 
 interface ProgressState {
+    // The file size
+    fileByteCount: number | null;
     // The time when the file reading started
     fileReadingStartedAt: Date | null;
     // The time when the file finished at
     fileReadingFinishedAt: Date | null;
-    // The file size
-    fileByteCount: number | null;
+    // The time when the file failed at
+    fileReadingFailedAt: Date | null;
 
+    // The decompressed file size
+    fileDecompressedByteCount: number | null;
     // The time when the file decompressing started
     fileDecompressingStartedAt: Date | null;
     // The time when the file decompressing finished
     fileDecompressingFinishedAt: Date | null;
-    // The decompressed file size
-    fileDecompressedByteCount: number | null;
+    // The time when the file decompressing failed
+    fileDecompressingFailedAt: Date | null;
 
     // The number of catalogs
     catalogCount: number | null;
@@ -46,6 +52,8 @@ interface ProgressState {
     catalogLoadingStartedAt: Date | null;
     // The time when the loading of the last catalog finished
     catalogLoadingFinishedAt: Date | null;
+    // The time when the loading of the last catalog failed
+    catalogLoadingFailedAt: Date | null;
 
     // The number of workbooks
     workbookCount: number | null;
@@ -55,6 +63,8 @@ interface ProgressState {
     workbookLoadingStartedAt: Date | null;
     // The time when the loading of the last workbook finished
     workbookLoadingFinishedAt: Date | null;
+    // The time when the loading of the last workbook failed
+    workbookLoadingFailedAt: Date | null;
 
     // The time when the loading finished
     fileLoadingFinishedAt: Date | null;
@@ -64,60 +74,84 @@ type UpdateProgressFn = (state: ProgressState) => void;
 
 async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, signal: AbortSignal) {
     const progress: ProgressState = {
+        fileByteCount: null,
         fileReadingStartedAt: null,
         fileReadingFinishedAt: null,
-        fileByteCount: null,
+        fileReadingFailedAt: null,
 
+        fileDecompressedByteCount: null,
         fileDecompressingStartedAt: null,
         fileDecompressingFinishedAt: null,
-        fileDecompressedByteCount: null,
+        fileDecompressingFailedAt: null,
 
         catalogCount: null,
         catalogsLoaded: 0,
         catalogLoadingStartedAt: null,
         catalogLoadingFinishedAt: null,
+        catalogLoadingFailedAt: null,
 
         workbookCount: null,
         workbooksLoaded: 0,
         workbookLoadingStartedAt: null,
         workbookLoadingFinishedAt: null,
+        workbookLoadingFailedAt: null,
 
         fileLoadingFinishedAt: null,
     };
+
+    // Read the file as buffer
+    let dql: core.DashQL;
+    let fileBuffer: Uint8Array;
     try {
         progress.fileReadingStartedAt = new Date();
         updateProgress({ ...progress });
 
         // Setup DashQL
-        const dql = await dqlSetup("file_loader");
+        dql = await dqlSetup("file_loader");
         signal.throwIfAborted();
 
         // Read the file
-        const fileBuffer = await file.readAsArrayBuffer();
+        fileBuffer = await file.readAsArrayBuffer();
         signal.throwIfAborted();
 
         progress.fileReadingFinishedAt = new Date();
         progress.fileByteCount = fileBuffer.byteLength;
-        progress.fileDecompressingStartedAt = progress.fileReadingFinishedAt;
+    } catch (e: any) {
+        progress.fileDecompressingFailedAt = new Date();
         updateProgress({ ...progress });
+        throw e;
+    }
 
+    progress.fileDecompressingStartedAt = progress.fileReadingFinishedAt;
+    updateProgress({ ...progress });
+
+    // Decompress and decode the buffer
+    let fileProto: pb.dashql.file.File;
+    try {
         // Decompress the file buffer
         await zstd.init();
         signal.throwIfAborted();
         const fileDecompressed = zstd.decompress(fileBuffer);
-        const fileProto = pb.dashql.file.File.fromBinary(fileDecompressed);
+        fileProto = pb.dashql.file.File.fromBinary(fileDecompressed);
 
         progress.fileDecompressingFinishedAt = new Date();
         progress.fileDecompressedByteCount = fileDecompressed.byteLength;
-        progress.catalogLoadingStartedAt = progress.fileDecompressingFinishedAt;
         progress.catalogCount = fileProto.catalogs.length;
         progress.workbookCount = fileProto.workbooks.length;
+    } catch (e: any) {
+        progress.fileDecompressingFailedAt = new Date();
         updateProgress({ ...progress });
+        throw e;
+    }
 
-        // The connection map
-        const connMap = new Map<string, [number, ConnectionStateWithoutId]>();
-        const workbookIds: number[] = [];
+    progress.catalogLoadingStartedAt = progress.fileDecompressingFinishedAt;
+    updateProgress({ ...progress });
 
+    // The connection map
+    const connMap = new Map<string, [number, ConnectionStateWithoutId]>();
+    const workbookIds: number[] = [];
+
+    try {
         // Setup connection catalogs
         for (const fileCatalog of fileProto.catalogs) {
             if (!fileCatalog.connectionParams) {
@@ -152,10 +186,16 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             progress.catalogsLoaded += 1;
             updateProgress({ ...progress });
         }
-
-        progress.workbookLoadingStartedAt = new Date();
+    } catch (e: any) {
+        progress.catalogLoadingFailedAt = new Date();
         updateProgress({ ...progress });
+        throw e;
+    }
 
+    progress.workbookLoadingStartedAt = new Date();
+    updateProgress({ ...progress });
+
+    try {
         // Setup workbook connections that are not covered by catalogs
         for (const workbook of fileProto.workbooks) {
             if (!workbook.connectionParams) {
@@ -274,25 +314,45 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             progress.workbooksLoaded += 1;
             updateProgress({ ...progress });
         }
-
-        progress.fileLoadingFinishedAt = new Date();
-        updateProgress({ ...progress });
-
     } catch (e: any) {
-        console.log(e);
+        progress.workbookLoadingFailedAt = new Date();
+        updateProgress({ ...progress });
+        throw e;
     }
+
+    progress.fileLoadingFinishedAt = new Date();
+    updateProgress({ ...progress });
 }
 
 interface StepProps {
     name: string;
     metric: string;
-    status: IndicatorStatus;
+    startedAt: Date | null;
+    finishedAt: Date | null;
+    failedAt: Date | null;
 }
 
 function Step(props: StepProps) {
+    let indicator: IndicatorStatus = IndicatorStatus.None;
+    if (props.startedAt != null) {
+        indicator = IndicatorStatus.Running;
+    }
+    if (props.finishedAt != null) {
+        indicator = IndicatorStatus.Succeeded;
+    }
+    if (props.failedAt != null) {
+        indicator = IndicatorStatus.Failed;
+    }
     return (
         <div className={styles.steps_table}>
-            <StatusIndicator className={styles.step_status} status={props.status} fill="hsl(210deg, 12%, 16%)" width="16px" height="16px" />
+            <div className={styles.step_status}>
+                <StatusIndicator
+                    status={indicator}
+                    fill="hsl(210deg, 12%, 16%)"
+                    width="16px"
+                    height="16px"
+                />
+            </div>
             <div className={styles.step_name}>
                 {props.name}
             </div>
@@ -311,7 +371,7 @@ export function FileLoader(props: Props) {
     const dqlSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
-    const [_progress, setProgress] = React.useState<ProgressState | null>(null);
+    const [progress, setProgress] = React.useState<ProgressState | null>(null);
 
     React.useEffect(() => {
         const proxiedSetProgress = (value: ProgressState | null) => {
@@ -348,10 +408,42 @@ export function FileLoader(props: Props) {
                         </div>
                         <div className={baseStyles.card_section}>
                             <div className={baseStyles.section_entries}>
-                                <Step name="Read File" metric="" status={IndicatorStatus.Succeeded} />
-                                <Step name="Decompress File" metric="" status={IndicatorStatus.Succeeded} />
-                                <Step name="Load Catalogs" metric="" status={IndicatorStatus.Running} />
-                                <Step name="Load Workbooks" metric="" status={IndicatorStatus.None} />
+                                <Step
+                                    name="Read File"
+                                    startedAt={progress?.fileReadingStartedAt ?? null}
+                                    finishedAt={progress?.fileReadingFinishedAt ?? null}
+                                    failedAt={progress?.fileReadingFailedAt ?? null}
+                                    metric={formatBytes(progress?.fileByteCount ?? 0)}
+                                />
+                                <Step
+                                    name="Decompress File"
+                                    startedAt={progress?.fileDecompressingStartedAt ?? null}
+                                    finishedAt={progress?.fileDecompressingFinishedAt ?? null}
+                                    failedAt={progress?.fileDecompressingFailedAt ?? null}
+                                    metric={formatBytes(progress?.fileDecompressedByteCount ?? 0)}
+                                />
+                                <Step
+                                    name="Load Catalogs"
+                                    startedAt={progress?.catalogLoadingStartedAt ?? null}
+                                    finishedAt={progress?.catalogLoadingFinishedAt ?? null}
+                                    failedAt={progress?.catalogLoadingFailedAt ?? null}
+                                    metric={
+                                        progress?.catalogsLoaded
+                                            ? `${progress?.catalogsLoaded ?? 0} / ${progress?.catalogCount ?? 0}`
+                                            : "-"
+                                    }
+                                />
+                                <Step
+                                    name="Load Workbooks"
+                                    startedAt={progress?.workbookLoadingStartedAt ?? null}
+                                    finishedAt={progress?.workbookLoadingFinishedAt ?? null}
+                                    failedAt={progress?.workbookLoadingFailedAt ?? null}
+                                    metric={
+                                        progress?.workbooksLoaded
+                                            ? `${progress?.workbooksLoaded ?? 0} / ${progress?.workbookCount ?? 0}`
+                                            : "-"
+                                    }
+                                />
                             </div>
                         </div>
                     </div>
