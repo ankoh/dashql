@@ -11,19 +11,16 @@ export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
     const toggleDebugMode = React.useCallback(() => {
-        reconfigure({
-            map: (value: AppConfig) => ({
-                ...value,
-                settings: {
-                    ...value.settings,
-                    interfaceDebugMode: !value.settings?.interfaceDebugMode,
-                }
-            }),
-            reject: (_err: Error) => { }
-        });
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...value.settings,
+                interfaceDebugMode: !value.settings?.interfaceDebugMode,
+            }
+        }));
         props.onClose();
     }, []);
-    const interfaceDebugMode = config.value?.settings?.interfaceDebugMode ?? false;
+    const interfaceDebugMode = config?.settings?.interfaceDebugMode ?? false;
     return (
         <div className={styles.settings_root}>
             <div className={styles.header_container}>

@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { StatePromise, StatePromiseMapper } from './utils/state_promise.js';
+
 import { ConnectorConfigs, readConnectorConfigs } from './connection/connector_configs.js';
 import { useLogger } from './platform/logger_provider.js';
-import { DASHQL_BUILD_MODE } from './globals.js';
+import { Logger } from './platform/logger.js';
+import { awaitAndSetOrNull } from './utils/result.js';
 
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);
 
@@ -17,15 +18,29 @@ export interface AppConfig {
     connectors?: ConnectorConfigs;
 }
 
-export function readAppConfig(object: Record<string, object>): AppConfig {
+function readAppConfig(object: Record<string, object>): AppConfig {
     if (object.connectors) {
         object.connectors = readConnectorConfigs(object.connectors);
     }
     return object as AppConfig;
 }
 
-const configCtx = React.createContext<StatePromise<AppConfig> | null>(null);
-const reconfigureCtx = React.createContext<((sub: StatePromiseMapper<AppConfig>) => void) | null>(null);
+export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
+    try {
+        const resp = await fetch(CONFIG_URL as unknown as string);
+        const body = await resp.json();
+        const config = readAppConfig(body);
+        logger.info("loaded app config", {}, "app_config");
+        return config;
+    } catch (e: any) {
+        console.error(e);
+        throw e;
+    }
+};
+
+type ReconfigureStateFn = (res: AppConfig | null) => (AppConfig | null);
+const RECONFIGURE_CTX = React.createContext<((config: ReconfigureStateFn) => void) | null>(null);
+const CONFIG_CTX = React.createContext<AppConfig | null>(null);
 
 type Props = {
     children: React.ReactElement;
@@ -33,39 +48,27 @@ type Props = {
 
 export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const [config, setConfig] = React.useState<StatePromise<AppConfig>>(new StatePromise<AppConfig>());
-    const started = React.useRef<boolean>(false);
-    if (!started.current) {
-        started.current = true;
-        const resolve = async (): Promise<void> => {
-            try {
-                const resp = await fetch(CONFIG_URL as unknown as string);
-                const body = await resp.json();
-                const config = readAppConfig(body);
-                setConfig(c => c.resolve(config));
-                logger.info("configured application", {}, "app_config");
-                if (DASHQL_BUILD_MODE == 'development') {
-                    logger.info(`react is running in strict mode and will duplicate events`, {}, "app_config")
-                }
-            } catch (e: any) {
-                console.error(e);
-                setConfig(c => c.reject(e));
-            }
-        };
-        resolve();
-    }
-    const reconfigure = React.useCallback((mapper: StatePromiseMapper<AppConfig>) => {
-        if (DASHQL_BUILD_MODE == 'development') {
-            logger.info(`reconfigure application`, {}, "app_config");
+    const configPromise = React.useRef<Promise<AppConfig>>();
+    const [config, setConfig] = React.useState<AppConfig | null>(null);
+
+    React.useEffect(() => {
+        if (!configPromise.current) {
+            configPromise.current = downloadAppConfig(logger);
+            awaitAndSetOrNull(configPromise.current, setConfig);
         }
-        setConfig(c => c.modify(mapper));
     }, []);
+
+    const reconfigure = React.useCallback((mapper: ReconfigureStateFn) => {
+        logger.info(`reconfigure application`, {}, "app_config");
+        setConfig(c => mapper(c));
+    }, []);
+
     return (
-        <configCtx.Provider value={config}>
-            <reconfigureCtx.Provider value={reconfigure}>{props.children}</reconfigureCtx.Provider>
-        </configCtx.Provider>
+        <CONFIG_CTX.Provider value={config}>
+            <RECONFIGURE_CTX.Provider value={reconfigure}>{props.children}</RECONFIGURE_CTX.Provider>
+        </CONFIG_CTX.Provider>
     );
 };
 
-export const useAppConfig = (): StatePromise<AppConfig> => React.useContext(configCtx)!;
-export const useAppReconfigure = (): ((sub: StatePromiseMapper<AppConfig>) => void) => React.useContext(reconfigureCtx)!;
+export const useAppConfig = (): AppConfig | null => React.useContext(CONFIG_CTX);
+export const useAppReconfigure = (): ((config: ReconfigureStateFn) => void) => React.useContext(RECONFIGURE_CTX)!;

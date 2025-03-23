@@ -3,7 +3,7 @@ import * as React from 'react';
 import { check, DownloadEvent, Update } from '@tauri-apps/plugin-updater';
 
 import { useLogger } from './logger_provider.js';
-import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
+import { awaitAndSet, Result, RESULT_OK } from '../utils/result.js';
 import { Logger } from './logger.js';
 import { loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../globals.js';
@@ -80,7 +80,7 @@ class InstallableTauriUpdate implements InstallableUpdate {
 }
 
 /// Check for updates using the tauri updater
-async function checkChannelUpdates(channel: ReleaseChannel, setResult: (result: Result<InstallableTauriUpdate | null>) => void, setInstallationStatus: (setter: InstallationStatusSetter) => void, logger: Logger) {
+async function checkChannelUpdates(channel: ReleaseChannel, setInstallationStatus: (setter: InstallationStatusSetter) => void, logger: Logger) {
     const start = performance.now();
     try {
         logger.info(`checking for channel updates`, { "channel": channel }, "version_check");
@@ -91,18 +91,12 @@ async function checkChannelUpdates(channel: ReleaseChannel, setResult: (result: 
         });
         const end = performance.now();
         logger.info(`checking for channel updates succeeded`, { "channel": channel, "duration": Math.floor(end - start).toString() }, "version_check");
-        setResult({
-            type: RESULT_OK,
-            value: update == null ? null : new InstallableTauriUpdate(update, setInstallationStatus, logger),
-        });
+        return update == null ? null : new InstallableTauriUpdate(update, setInstallationStatus, logger);
     } catch (e: any) {
         const err = e instanceof Error ? e : new Error(e?.toString());
         const end = performance.now();
         logger.error(`checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, "version_check");
-        setResult({
-            type: RESULT_ERROR,
-            error: new Error(err.toString())
-        });
+        throw err;
     }
 }
 
@@ -124,10 +118,10 @@ export const NativeVersionCheck: React.FC<Props> = (props: Props) => {
     const [installationStatus, setInstallationStatus] = React.useState<InstallationState | null>(null);
 
     React.useEffect(() => {
-        loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, setStableRelease, logger);
-        loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, setCanaryRelease, logger);
-        checkChannelUpdates("stable", setStableUpdate, setInstallationStatus, logger);
-        checkChannelUpdates("canary", setCanaryUpdate, setInstallationStatus, logger);
+        awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease);
+        awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease);
+        awaitAndSet(checkChannelUpdates("stable", setInstallationStatus, logger), setStableUpdate);
+        awaitAndSet(checkChannelUpdates("canary", setInstallationStatus, logger), setCanaryUpdate);
     }, []);
 
 

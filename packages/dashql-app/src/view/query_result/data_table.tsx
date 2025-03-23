@@ -439,7 +439,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     let gridRowCount = 1 + (table.numRows ?? 0);
 
     // Enable debug mode?
-    const interfaceDebugMode = config.value?.settings?.interfaceDebugMode ?? false;
+    const interfaceDebugMode = config?.settings?.interfaceDebugMode ?? false;
 
     // Adjust based on the column header visibility
     let getRowHeight: (_row: number) => number;

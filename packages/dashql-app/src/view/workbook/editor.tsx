@@ -157,7 +157,7 @@ export const ScriptEditor: React.FC<Props> = (_props: Props) => {
         effects.push(
             UpdateDashQLScript.of({
                 config: {
-                    showCompletionDetails: config?.value?.settings?.showCompletionDetails ?? false,
+                    showCompletionDetails: config?.settings?.showCompletionDetails ?? false,
                 },
                 scriptKey: workbookEntryScriptData.scriptKey,
                 targetScript: workbookEntryScriptData.script,
@@ -212,7 +212,7 @@ export const ScriptEditor: React.FC<Props> = (_props: Props) => {
                     />
                 </div>
             </div>
-            {isDebugBuild() && config?.value?.settings?.showEditorStats && workbookEntryScriptData?.statistics &&
+            {isDebugBuild() && config?.settings?.showEditorStats && workbookEntryScriptData?.statistics &&
                 <div className={styles.devtools_overlay}>
                     <div className={styles.devtools_title}>
                         Editor Perf
