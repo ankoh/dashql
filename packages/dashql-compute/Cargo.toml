@@ -14,8 +14,8 @@ crate-type = ["cdylib"]
 rustflags = ['--cfg getrandom_backend="wasm_js"']
 
 [dependencies]
-wasm-bindgen = "0.2.93"
-wasm-bindgen-futures = "0.4.43"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
 console_error_panic_hook = "0.1.7"
 
 log = "0.4.27"
@@ -46,13 +46,13 @@ version = "1.16.0"
 features = ["v5", "rng-getrandom"]
 
 [dependencies.web-sys]
-version = "0.3.70"
+version = "0.3.77"
 features = [
   'console',
 ]
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.43"
+wasm-bindgen-test = "0.3.50"
 pretty_assertions = "1.4.1"
 indoc = "2.0.6"
 
