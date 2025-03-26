@@ -17,7 +17,7 @@ features = []
 [dependencies]
 anyhow = "1.0.97"
 byteorder = "1.5.0"
-serde_json = "1.0.128"
+serde_json = "1.0.140"
 tauri-plugin-updater = "2.0.2"
 tauri-plugin-deep-link = "2.0.1"
 tauri-plugin-log = "2.0.1"
@@ -56,7 +56,7 @@ version = "^0.11.0"
 features = ["tls"]
 
 [dependencies.serde]
-version = "1.0.210"
+version = "1.0.219"
 features = ["derive"]
 
 [dependencies.tauri]
