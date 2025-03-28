@@ -46,7 +46,7 @@
         "@tauri-apps/plugin-process": "^2.0.0",
         "@tauri-apps/plugin-shell": "^2.0.0",
         "@tauri-apps/plugin-updater": "^2.0.0",
-        "@testing-library/react": "^16.0.1",
+        "@testing-library/react": "^16.2.0",
         "@types/d3": "^7.4.3",
         "@types/flatbuffers": "^1.10.3",
         "@types/fontfaceobserver": "^2.1.3",
