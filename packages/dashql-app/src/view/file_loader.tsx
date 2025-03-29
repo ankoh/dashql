@@ -365,6 +365,7 @@ function Step(props: StepProps) {
 
 interface Props {
     file: PlatformFile;
+    onDone: () => void;
 }
 
 export function FileLoader(props: Props) {
@@ -380,7 +381,11 @@ export function FileLoader(props: Props) {
         };
 
         const abort = new AbortController();
-        loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, abort.signal);
+        const runAsync = async () => {
+            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, abort.signal);
+            props.onDone();
+        }
+        runAsync();
         return () => abort.abort();
 
     }, [dqlSetup, allocateWorkbook, allocateConnection, props.file]);
