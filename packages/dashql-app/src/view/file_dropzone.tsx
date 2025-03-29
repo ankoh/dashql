@@ -41,6 +41,7 @@ export function FileDropzone(props: { children: React.ReactElement }) {
                 break;
             case DROP_EVENT: {
                 onDropFile(event.value.file);
+                setDragOngoing(null);
                 break;
             }
         }
@@ -52,10 +53,15 @@ export function FileDropzone(props: { children: React.ReactElement }) {
         return () => appEvents.unsubscribeDragDropEvents("dropzone");
     }, [appEvents, onDragDrop]);
 
+    // On-done handler to close the dropzone again
+    const closeDropzone = React.useCallback(() => {
+        setDroppedFile(null);
+    }, []);
+
     // Determine content
     let content: React.ReactElement = props.children;
     if (droppedFile != null) {
-        content = <FileLoader file={droppedFile} />;
+        content = <FileLoader file={droppedFile} onDone={closeDropzone} />;
     } else if (dragOngoing) {
         content = <FileDropzoneArea />;
     }
