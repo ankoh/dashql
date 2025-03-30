@@ -15,6 +15,13 @@ export enum ConnectorType {
     TRINO = 3,
     DEMO = 4,
 }
+export const CONNECTOR_TYPES: ConnectorType[] = [
+    ConnectorType.SERVERLESS,
+    ConnectorType.HYPER_GRPC,
+    ConnectorType.SALESFORCE_DATA_CLOUD,
+    ConnectorType.TRINO,
+    ConnectorType.DEMO,
+];
 
 export enum CatalogResolver {
     SQL_SCRIPT = 0,

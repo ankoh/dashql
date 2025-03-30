@@ -17,7 +17,7 @@ interface WorkbookRegistry {
 
 export type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
 type SetWorkbookRegistryAction = React.SetStateAction<WorkbookRegistry>;
-export type WorkbookAllocator = (workbook: WorkbookStateWithoutId) => number;
+export type WorkbookAllocator = (workbook: WorkbookStateWithoutId) => WorkbookState;
 export type ModifyWorkbook = (action: WorkbookStateAction) => void;
 export type ModifyConnectionWorkbooks = (conn: number, action: WorkbookStateAction) => void;
 
@@ -48,6 +48,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
     const [_reg, setReg] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: WorkbookStateWithoutId) => {
         const workbookId = NEXT_WORKBOOK_ID++;
+        const workbook: WorkbookState = { ...state, workbookId: workbookId };
         setReg((reg) => {
             const sameConnection = reg.workbooksByConnection.get(state.connectionId);
             if (sameConnection) {
@@ -55,10 +56,10 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             } else {
                 reg.workbooksByConnection.set(state.connectionId, [workbookId]);
             }
-            reg.workbookMap.set(workbookId, { ...state, workbookId: workbookId })
+            reg.workbookMap.set(workbookId, workbook);
             return { ...reg };
         });
-        return workbookId;
+        return workbook;
     }, [setReg]);
 }
 

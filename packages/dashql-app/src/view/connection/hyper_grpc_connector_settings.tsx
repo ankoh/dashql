@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as style from './connection_settings.module.css';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
     ChecklistIcon,
     DatabaseIcon,
@@ -23,12 +25,9 @@ import { Button, ButtonVariant } from '../foundations/button.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { HyperGrpcConnectionParams } from '../../connection/hyper/hyper_connection_params.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
-import { useCurrentWorkbookSelector } from '../../workbook/current_workbook.js';
-import { useNavigate } from 'react-router-dom';
-import { useDefaultWorkbooks } from '../../app_setup_gate.js';
 import { getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connector_settings.js';
 import { useHyperGrpcSetup } from '../../connection/hyper/hyper_connection_setup.js';
+import { useConnectionWorkbookSelector } from './connection_workbook.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -43,21 +42,19 @@ interface PageState {
 type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
 
-export const HyperGrpcConnectorSettings: React.FC = () => {
+interface Props {
+    connectionId: number;
+}
+
+export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const hyperClient = useHyperDatabaseClient();
     const hyperSetup = useHyperGrpcSetup();
-
-    // Get Hyper connection from default workbook
-    const defaultWorkbooks = useDefaultWorkbooks();
-    const workbookId = defaultWorkbooks?.hyper ?? null;
-    const [workbookState, _modifyWorkbook] = useWorkbookState(workbookId);
-
-    // Resolve connection for the default workbook
-    const connectionId = workbookState?.connectionId ?? null;
-    const [connectionState, dispatchConnectionState] = useConnectionState(connectionId);
+    const selectConnectionWorkbook = useConnectionWorkbookSelector();
+    const navigate = useNavigate();
 
     // Wire up the page state
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
@@ -82,8 +79,8 @@ export const HyperGrpcConnectorSettings: React.FC = () => {
             return;
         }
         // Is there a connection id?
-        if (connectionId == null) {
-            logger.warn("Hyper connection id is null", {}, LOG_CTX);
+        if (connectionState == null) {
+            logger.warn("Connection state is null", {}, LOG_CTX);
             return;
         }
 
@@ -103,27 +100,25 @@ export const HyperGrpcConnectorSettings: React.FC = () => {
     };
 
     // Helper to cancel and reset the authorization
-    const cancelAuth = () => {
+    const cancelSetup = () => {
         if (setupAbortController.current) {
             setupAbortController.current.abort("abort the Hyper setup");
             setupAbortController.current = null;
         }
     };
-    const resetAuth = async () => {
+    const resetSetup = async () => {
         if (hyperSetup) {
             await hyperSetup.reset(dispatchConnectionState);
         }
     };
 
     // Helper to switch to the editor
-    const selectCurrentWorkbook = useCurrentWorkbookSelector();
-    const navigate = useNavigate()
-    const switchToEditor = React.useCallback(() => {
-        if (workbookId != null) {
-            selectCurrentWorkbook(workbookId);
-            navigate("/editor");
+    const openEditor = React.useCallback(() => {
+        if (connectionState != null) {
+            selectConnectionWorkbook(connectionState);
+            navigate("/");
         }
-    }, [workbookId]);
+    }, []);
 
     // Get the connection status
     const statusText: string = getConnectionStatusText(connectionState?.connectionStatus, logger);
@@ -139,11 +134,11 @@ export const HyperGrpcConnectorSettings: React.FC = () => {
             connectButton = <Button variant={ButtonVariant.Primary} leadingVisual={PlugIcon} onClick={setupConnection}>Connect</Button>;
             break;
         case ConnectionHealth.CONNECTING:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelAuth}>Cancel</Button>;
+            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelSetup}>Cancel</Button>;
             freezeInput = true;
             break;
         case ConnectionHealth.ONLINE:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={resetAuth}>Disconnect</Button>;
+            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={resetSetup}>Disconnect</Button>;
             freezeInput = true;
             break;
     }
@@ -161,7 +156,7 @@ export const HyperGrpcConnectorSettings: React.FC = () => {
                 </div>
                 <div className={style.platform_actions}>
                     {(connectionState?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={switchToEditor}>Open Editor</Button>
+                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
                     )}
                     {connectButton}
                 </div>

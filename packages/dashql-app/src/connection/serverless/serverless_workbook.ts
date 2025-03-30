@@ -1,33 +1,24 @@
 import * as React from 'react';
+
 import Immutable from 'immutable';
 
-import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { EXAMPLES } from '../../workbook/example_scripts.js';
-import { ScriptData } from '../../workbook/workbook_state.js';
+import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
-import { useConnectionStateAllocator } from '../connection_registry.js';
-import { useDashQLCoreSetup } from '../../core_provider.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
-import { createServerlessConnectionState } from '../connection_state.js';
+import { ConnectionState } from '../connection_state.js';
 
 export const DEFAULT_BOARD_WIDTH = 800;
 export const DEFAULT_BOARD_HEIGHT = 600;
 
-type WorkbookSetupFn = (abort?: AbortSignal) => Promise<number>;
+type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
 export function useServerlessWorkbookSetup(): WorkbookSetupFn {
-    const setupDashQL = useDashQLCoreSetup();
-    const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbookState = useWorkbookStateAllocator();
 
-    return React.useCallback(async (signal?: AbortSignal) => {
-        const dql = await setupDashQL("serverless_workbook");
-        signal?.throwIfAborted();
-
-        const connectionState = createServerlessConnectionState(dql);
-        const connectionId = allocateConnection(connectionState);
-        const mainScript = dql.createScript(connectionState.catalog, 1);
-        const schemaScript = dql.createScript(connectionState.catalog, 2);
+    return React.useCallback((conn: ConnectionState) => {
+        const mainScript = conn.instance.createScript(conn.catalog, 1);
+        const schemaScript = conn.instance.createScript(conn.catalog, 2);
 
         const mainScriptData: ScriptData = {
             scriptKey: 1,
@@ -77,10 +68,10 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
         };
 
         return allocateWorkbookState({
-            instance: dql,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.SERVERLESS],
-            connectionId: connectionId,
-            connectionCatalog: connectionState.catalog,
+            instance: conn.instance,
+            connectorInfo: conn.connectorInfo,
+            connectionId: conn.connectionId,
+            connectionCatalog: conn.catalog,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [schemaScriptData.scriptKey]: schemaScriptData,
@@ -98,5 +89,5 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             userFocus: null,
         });
 
-    }, [setupDashQL, allocateWorkbookState]);
+    }, [allocateWorkbookState]);
 };

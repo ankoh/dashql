@@ -11,7 +11,7 @@ import Immutable from 'immutable';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { ConnectionAllocator, useConnectionStateAllocator } from '../connection/connection_registry.js';
-import { ConnectionStateWithoutId } from '../connection/connection_state.js';
+import { ConnectionState } from '../connection/connection_state.js';
 import { PlatformFile } from "../platform/file.js";
 import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../workbook/script_loader.js';
@@ -148,7 +148,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
     updateProgress({ ...progress });
 
     // The connection map
-    const connMap = new Map<string, [number, ConnectionStateWithoutId]>();
+    const connMap = new Map<string, [number, ConnectionState]>();
     const workbookIds: number[] = [];
 
     try {
@@ -167,15 +167,13 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             const paramsSig = JSON.stringify(paramsSigObj);
 
             // Allocate connection state
-            let connState: ConnectionStateWithoutId | null = null;
-            let connId: number | null = null;
+            let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = createConnectionStateFromParams(dql, params);
-                connId = allocateConn(connState);
-                connMap.set(paramsSig, [connId, connState]);
+                connState = allocateConn(createConnectionStateFromParams(dql, params));
+                connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
-                [connId, connState] = prevConn;
+                connState = prevConn[1];
             }
 
             // Add schema descriptors
@@ -211,15 +209,13 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             const paramsSig = JSON.stringify(paramsSigObj);
 
             // Allocate connection state
-            let connState: ConnectionStateWithoutId | null = null;
-            let connId: number | null = null;
+            let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = createConnectionStateFromParams(dql, params);
-                connId = allocateConn(connState);
-                connMap.set(paramsSig, [connId, connState]);
+                connState = allocateConn(createConnectionStateFromParams(dql, params));
+                connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
-                [connId, connState] = prevConn;
+                connState = prevConn[1];
             }
 
             // Collect workbook scripts
@@ -295,18 +291,17 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             }));
 
             // Allocate workbook state
-            const workbookState: WorkbookStateWithoutId = {
+            const workbookState = allocateWorkbook({
                 instance: dql,
                 connectorInfo: connState.connectorInfo,
-                connectionId: connId,
+                connectionId: connState.connectionId,
                 connectionCatalog: connState.catalog,
                 scripts,
                 workbookEntries,
                 selectedWorkbookEntry: 0,
                 userFocus: null
-            };
-            const workbookId = allocateWorkbook(workbookState);
-            workbookIds.push(workbookId);
+            });
+            workbookIds.push(workbookState.workbookId);
 
             console.log(workbookState);
 

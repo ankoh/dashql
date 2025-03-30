@@ -1,21 +1,22 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ConnectionStateDetailsVariant, ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { createServerlessConnectionParamsSignature, encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
-import { createDemoConnectionParamsSignature, encodeDemoConnectionParamsAsProto, readDemoConnectionParamsFromProto } from './demo/demo_connection_params.js';
-import { createHyperConnectionParamsSignature, encodeHyperConnectionParamsAsProto, HyperGrpcConnectionParams, readHyperConnectionParamsFromProto } from './hyper/hyper_connection_params.js';
-import { createSalesforceConnectionParamsSignature, encodeSalesforceConnectionParamsAsProto, readSalesforceConnectionParamsFromProto, SalesforceConnectionParams } from './salesforce/salesforce_connection_params.js';
-import { createTrinoConnectionParamsSignature, encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
+import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { DemoConnectionParams } from './demo/demo_connection_state.js';
 import { VariantKind } from '../utils/variant.js';
 import { WorkbookExportSettings } from 'workbook/workbook_export_settings.js';
 import { createConnectionMetrics } from './connection_statistics.js';
-import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
+import { createDemoConnectionParamsSignature, encodeDemoConnectionParamsAsProto, readDemoConnectionParamsFromProto } from './demo/demo_connection_params.js';
+import { createHyperConnectionParamsSignature, encodeHyperConnectionParamsAsProto, HyperGrpcConnectionParams, readHyperConnectionParamsFromProto } from './hyper/hyper_connection_params.js';
 import { createHyperGrpcConnectionStateDetails } from './hyper/hyper_connection_state.js';
+import { createSalesforceConnectionParamsSignature, encodeSalesforceConnectionParamsAsProto, readSalesforceConnectionParamsFromProto, SalesforceConnectionParams } from './salesforce/salesforce_connection_params.js';
 import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
-import { DemoConnectionParams } from './demo/demo_connection_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
+import { createServerlessConnectionParamsSignature, encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
+import { createTrinoConnectionParamsSignature, encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
+import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 
 export type ConnectionParamsVariant =
     | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
@@ -93,6 +94,7 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
             };
         }
     }
+    return null;
 }
 
 export function createConnectionStateDetailsFromParams(params: ConnectionParamsVariant): ConnectionStateDetailsVariant {
@@ -193,6 +195,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
+        instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
