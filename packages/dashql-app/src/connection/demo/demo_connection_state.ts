@@ -10,12 +10,17 @@ export interface DemoConnectionParams {
     channel: DemoDatabaseChannel;
 }
 
+export function createDemoConnectionStateDetails(): DemoConnectionParams {
+    return {
+        channel: new DemoDatabaseChannel()
+    };
+}
+
 export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+    const details = createDemoConnectionStateDetails();
     const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DEMO], {
         type: DEMO_CONNECTOR,
-        value: {
-            channel: new DemoDatabaseChannel()
-        }
+        value: details,
     });
     state.connectionHealth = ConnectionHealth.ONLINE;
     state.connectionStatus = ConnectionStatus.HEALTH_CHECK_SUCCEEDED;

@@ -5,17 +5,24 @@ import { BASE64_CODEC } from '../utils/base64.js';
 import { ConnectionParamsVariant, encodeConnectionParamsAsProto } from '../connection/connection_params.js';
 import { WorkbookExportSettings } from './workbook_export_settings.js';
 
-export function encodeWorkbookAsProto(workbookState: WorkbookState, connectionParams: ConnectionParamsVariant, settings: WorkbookExportSettings | null = null): pb.dashql.workbook.Workbook {
+export function encodeWorkbookAsProto(workbookState: WorkbookState | null, connectionParams: ConnectionParamsVariant, settings: WorkbookExportSettings | null = null): pb.dashql.workbook.Workbook {
     // Build the connector params
     const params = encodeConnectionParamsAsProto(connectionParams, settings);
 
     // Collect the scripts
     const scripts: pb.dashql.workbook.WorkbookScript[] = [];
-    for (const k in workbookState.scripts) {
-        const script = workbookState.scripts[k];
+    if (workbookState != null) {
+        for (const k in workbookState.scripts) {
+            const script = workbookState.scripts[k];
+            scripts.push(new pb.dashql.workbook.WorkbookScript({
+                scriptId: script.scriptKey as number,
+                scriptText: script.script?.toString() ?? "",
+            }));
+        }
+    } else {
         scripts.push(new pb.dashql.workbook.WorkbookScript({
-            scriptId: script.scriptKey as number,
-            scriptText: script.script?.toString() ?? "",
+            scriptId: 0,
+            scriptText: "",
         }));
     }
     const setup = new pb.dashql.workbook.Workbook({

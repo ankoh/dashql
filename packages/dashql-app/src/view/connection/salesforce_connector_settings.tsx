@@ -2,10 +2,12 @@ import * as React from 'react';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as style from './connection_settings.module.css';
 
+import { useNavigate } from 'react-router-dom';
+
 import { FileSymlinkFileIcon, KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { ConnectionStateDetailsVariant, ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
+import { ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
 import { SalesforceConnectionParams } from '../../connection/salesforce/salesforce_connection_params.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { getSalesforceConnectionDetails } from '../../connection/salesforce/salesforce_connection_state.js';
@@ -20,13 +22,11 @@ import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
-import { useCurrentWorkbookSelector } from '../../workbook/current_workbook.js';
-import { useNavigate } from 'react-router-dom';
 import { Button, ButtonVariant } from '../foundations/button.js';
-import { useDefaultWorkbooks } from '../../app_setup_gate.js';
 import { HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
-import { DetailedError } from 'utils/error.js';
+import { DetailedError } from '../../utils/error.js';
+import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
+import { useAnyConnectionWorkbook, useConnectionWorkbookSelector } from './connection_workbook.js';
 
 const LOG_CTX = "sf_connector";
 
@@ -116,19 +116,19 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
     }
 }
 
-export const SalesforceConnectorSettings: React.FC<object> = (_props: object) => {
+interface Props {
+    connectionId: number;
+}
+
+export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
+    const navigate = useNavigate();
     const sfSetup = useSalesforceSetup();
 
-    // Get Hyper connection from default workbook
-    const defaultWorkbooks = useDefaultWorkbooks();
-    const workbookId = defaultWorkbooks?.salesforce ?? null;
-    const [workbookState, _modifyWorkbook] = useWorkbookState(workbookId);
-
-    // Resolve connection for the default workbook
-    const connectionId = workbookState?.connectionId ?? null;
-    const [connectionState, dispatchConnectionState] = useConnectionState(connectionId);
+    // Resolve connection state
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
+    const selectConnectionWorkbook = useConnectionWorkbookSelector();
 
     // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
@@ -213,14 +213,12 @@ export const SalesforceConnectorSettings: React.FC<object> = (_props: object) =>
     };
 
     // Helper to switch to the editor
-    const selectCurrentSession = useCurrentWorkbookSelector();
-    const navigate = useNavigate()
-    const switchToEditor = React.useCallback(() => {
-        if (workbookId != null) {
-            selectCurrentSession(workbookId);
-            navigate("/editor");
+    const openEditor = React.useCallback(() => {
+        if (connectionState != null) {
+            selectConnectionWorkbook(connectionState);
+            navigate("/");
         }
-    }, [workbookId]);
+    }, []);
 
     // Get the connection status
     const statusText = getConnectionStatusText(connectionState?.connectionStatus, logger);
@@ -262,7 +260,7 @@ export const SalesforceConnectorSettings: React.FC<object> = (_props: object) =>
                 </div>
                 <div className={style.platform_actions}>
                     {(connectionState?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={switchToEditor}>Open Editor</Button>
+                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
                     )}
                     {connectButton}
                 </div>

@@ -26,16 +26,14 @@ import { classNames } from '../../utils/classnames.js';
 import { encodeWorkbookProtoAsUrl, encodeWorkbookAsProto, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../connection/salesforce_connector_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useCurrentWorkbookSelector } from '../../workbook/current_workbook.js';
-import { useDefaultWorkbooks } from '../../app_setup_gate.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { ConnectionParamsVariant } from '../../connection/connection_params.js';
 import { TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { DetailedError } from '../../utils/error.js';
 import { ErrorDetailsButton } from '../error_details.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
+import { useAnyConnectionWorkbook, useConnectionWorkbookSelector } from './connection_workbook.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -46,18 +44,19 @@ interface PageState {
 type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
 
-export const TrinoConnectorSettings: React.FC = () => {
+interface Props {
+    connectionId: number;
+}
+
+export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
+    const navigate = useNavigate();
     const trinoSetup = useTrinoSetup();
 
-    // Get Trino connection from default session
-    const defaultWorkbooks = useDefaultWorkbooks();
-    const workbookId = defaultWorkbooks?.trino ?? null;
-    const [workbook, _modifyWorkbook] = useWorkbookState(workbookId);
-
-    // Resolve connection for the default workbook
-    const connectionId = workbook?.connectionId ?? null;
-    const [connectionState, dispatchConnectionState] = useConnectionState(connectionId);
+    // Resolve connection state
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
+    const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
+    const selectConnectionWorkbook = useConnectionWorkbookSelector();
 
     // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
@@ -94,8 +93,8 @@ export const TrinoConnectorSettings: React.FC = () => {
             return;
         }
         // Is there a connection id?
-        if (connectionId == null) {
-            logger.warn("Trino connection id is null", {}, LOG_CTX);
+        if (connectionState == null) {
+            logger.warn("Trino connection state is null", {}, LOG_CTX);
             return;
         }
 
@@ -125,14 +124,12 @@ export const TrinoConnectorSettings: React.FC = () => {
     };
 
     // Helper to switch to the editor
-    const selectCurrentWorkbook = useCurrentWorkbookSelector();
-    const navigate = useNavigate()
-    const switchToEditor = React.useCallback(() => {
-        if (workbookId != null) {
-            selectCurrentWorkbook(workbookId);
-            navigate("/editor");
+    const openEditor = React.useCallback(() => {
+        if (connectionState != null) {
+            selectConnectionWorkbook(connectionState);
+            navigate("/");
         }
-    }, [workbookId]);
+    }, []);
 
     // Get the connection status
     const statusText: string = getConnectionStatusText(connectionState?.connectionStatus, logger);
@@ -163,16 +160,16 @@ export const TrinoConnectorSettings: React.FC = () => {
     const platformType = usePlatformType();
     const setupLinkTarget = platformType === PlatformType.WEB ? WorkbookLinkTarget.WEB : WorkbookLinkTarget.NATIVE;
     const setupURL = React.useMemo(() => {
-        if (workbook == null || connectionState == null || connectionState.details.type != TRINO_CONNECTOR) {
+        if (connectionWorkbook == null || connectionState == null || connectionState.details.type != TRINO_CONNECTOR) {
             return null;
         }
         const params: ConnectionParamsVariant = {
             type: TRINO_CONNECTOR,
             value: pageState.newParams
         };
-        const proto = encodeWorkbookAsProto(workbook, params);
+        const proto = encodeWorkbookAsProto(connectionWorkbook, params);
         return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
-    }, [workbook, connectionState, setupLinkTarget]);
+    }, [connectionWorkbook, connectionState, setupLinkTarget]);
 
     return (
         <div className={style.layout}>
@@ -198,7 +195,7 @@ export const TrinoConnectorSettings: React.FC = () => {
                     />
 
                     {(connectionState?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={switchToEditor}>Open Editor</Button>
+                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
                     )}
                     {connectButton}
                 </div>

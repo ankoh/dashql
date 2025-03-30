@@ -2,10 +2,11 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectorInfo } from './connector_info.js';
 import {
-    ConnectionStateDetailsVariant, ConnectionHealth,
+    ConnectionHealth,
     ConnectionStateWithoutId,
     ConnectionStatus,
 } from './connection_state.js';
+import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 
 export interface ConnectionQueryMetrics {
     totalQueries: bigint;
@@ -42,6 +43,7 @@ export function createConnectionMetrics(): ConnectionMetrics {
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
     return {
+        instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,

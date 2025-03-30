@@ -2,32 +2,19 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
 
 import { ConnectionSetupPage } from './view/connection/connection_setup_page.js';
-import { getConnectorInfoForParams } from './connection/connector_info.js';
-import { useServerlessWorkbookSetup } from './connection/serverless/serverless_workbook.js';
-import { usePlatformEventListener } from './platform/event_listener_provider.js';
-import { useSalesforceWorkbookSetup } from './connection/salesforce/salesforce_workbook.js';
-import { useDemoWorkbookSetup } from './connection/demo/demo_workbook.js';
-import { useHyperWorkbookSetup } from './connection/hyper/hyper_workbook.js';
-import { useCurrentWorkbookSelector } from './workbook/current_workbook.js';
-import { useLogger } from './platform/logger_provider.js';
-import { useDynamicConnectionDispatch } from './connection/connection_registry.js';
-import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
-import { useTrinoWorkbookSetup } from './connection/trino/trino_workbook.js';
-import { RESET } from './connection/connection_state.js';
-import { isDebugBuild } from './globals.js';
+import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
 import { SETUP_FILE, SETUP_WORKBOOK, SetupEventVariant } from './platform/event.js';
-
-/// For now, we just set up one workbook per connector.
-/// Our abstractions would allow for a more dynamic workbook management, but we don't have the UI for that.
-interface DefaultWorkbooks {
-    salesforce: number;
-    hyper: number;
-    serverless: number;
-    trino: number;
-    demo: number;
-}
-const DEFAULT_WORKBOOKS = React.createContext<DefaultWorkbooks | null>(null);
-export const useDefaultWorkbooks = () => React.useContext(DEFAULT_WORKBOOKS);
+import { createConnectionStateForType } from './connection/connection_state.js';
+import { isDebugBuild } from './globals.js';
+import { useAwaitStateChange } from './utils/state_change.js';
+import { useConnectionRegistry, useConnectionStateAllocator } from './connection/connection_registry.js';
+import { useCurrentWorkbookSelector } from './workbook/current_workbook.js';
+import { useDashQLCoreSetup } from './core_provider.js';
+import { useDefaultConnections } from './connection/default_connections.js';
+import { useLogger } from './platform/logger_provider.js';
+import { usePlatformEventListener } from './platform/event_listener_provider.js';
+import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
+import { useWorkbookSetup } from './workbook/workbook_setup.js';
 
 enum AppSetupDecision {
     UNDECIDED,
@@ -47,41 +34,19 @@ interface AppSetupState {
     args: AppSetupArgs | null;
 }
 
-export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
+export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const logger = useLogger();
+    const setupCore = useDashQLCoreSetup();
+    const allocateConnectionState = useConnectionStateAllocator();
+    const connReg = useConnectionRegistry();
+    const selectWorkbook = useCurrentWorkbookSelector();
+    const setupWorkbook = useWorkbookSetup();
 
-    const setupServerlessWorkbook = useServerlessWorkbookSetup();
-    const setupHyperWorkbook = useHyperWorkbookSetup();
-    const setupSalesforceWorkbook = useSalesforceWorkbookSetup();
-    const setupDemoWorkbook = useDemoWorkbookSetup();
-    const setupTrinoWorkbook = useTrinoWorkbookSetup();
-
-    const selectCurrentWorkbook = useCurrentWorkbookSelector();
-    const [defaultWorkbooks, setDefaultWorkbooks] = React.useState<DefaultWorkbooks | null>(null);
-    const workbookReg = useWorkbookRegistry();
-    const [_connReg, connDispatch] = useDynamicConnectionDispatch();
+    const defaultConnections = useDefaultConnections();
+    const awaitDefaultConnections = useAwaitStateChange(defaultConnections);
 
     const appEvents = usePlatformEventListener();
     const abortDefaultWorkbookSwitch = React.useRef(new AbortController());
-
-    const setupDefaultWorkbook = React.useMemo(async () => {
-        const [sf, hyper, serverless, demo, trino] = await Promise.all([
-            setupSalesforceWorkbook(),
-            setupHyperWorkbook(),
-            setupServerlessWorkbook(),
-            setupDemoWorkbook(),
-            setupTrinoWorkbook(),
-        ]);
-        const defaultWorkbooks: DefaultWorkbooks = {
-            salesforce: sf,
-            hyper: hyper,
-            serverless: serverless,
-            trino: trino,
-            demo: demo,
-        };
-        setDefaultWorkbooks(defaultWorkbooks);
-        return defaultWorkbooks;
-    }, []);
 
     // State to decide about workbook setup strategy
     const [state, setState] = React.useState<AppSetupState>(() => ({
@@ -91,10 +56,11 @@ export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: 
 
     // Configure catalog and workbooks
     const runSetup = React.useCallback(async (data: SetupEventVariant) => {
-        // Stop the default workbook switch after DashQL is ready
-        abortDefaultWorkbookSwitch.current.abort("workbook_setup_event");
-        // Await the setup of the static workbooks
-        const defaultWorkbooks = await setupDefaultWorkbook;
+        const core = await setupCore("app_setup");
+
+        // Await the setup of the default connections
+        await awaitDefaultConnections(s => s != null);
+        const defaultConns = defaultConnections!;
 
         // Resolve workbook
         let catalogs: pb.dashql.file.FileCatalog[] = [];
@@ -131,54 +97,55 @@ export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: 
             }
             switch (workbookProto.connectionParams?.connection.case) {
                 case "hyper": {
-                    const workbook = workbookReg.workbookMap.get(defaultWorkbooks.hyper)!;
-                    connDispatch(workbook.connectionId, { type: RESET, value: null });
-                    selectCurrentWorkbook(defaultWorkbooks.hyper);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER_GRPC);
+                    const conn = allocateConnectionState(connWithoutId);
+                    const workbook = setupWorkbook(conn);
                     setState({
                         decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
                         args: {
-                            connectionId: workbook.connectionId,
+                            connectionId: conn.connectionId,
                             connectionParams: workbookProto.connectionParams,
-                            workbookId: defaultWorkbooks.hyper,
-                            workbookProto: workbookProto,
+                            workbookId: workbook.workbookId,
+                            workbookProto,
                         },
                     });
                     break;
                 }
                 case "salesforce": {
-                    const workbook = workbookReg.workbookMap.get(defaultWorkbooks.salesforce)!;
-                    connDispatch(workbook.connectionId, { type: RESET, value: null });
-                    selectCurrentWorkbook(defaultWorkbooks.salesforce);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD);
+                    const conn = allocateConnectionState(connWithoutId);
+                    const workbook = setupWorkbook(conn);
                     setState({
                         decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
                         args: {
-                            connectionId: workbook.connectionId,
+                            connectionId: conn.connectionId,
                             connectionParams: workbookProto.connectionParams,
-                            workbookId: defaultWorkbooks.salesforce,
-                            workbookProto: workbookProto,
+                            workbookId: workbook.workbookId,
+                            workbookProto,
                         },
                     });
                     break;
                 }
                 case "trino": {
-                    const workbook = workbookReg.workbookMap.get(defaultWorkbooks.trino)!;
-                    connDispatch(workbook.connectionId, { type: RESET, value: null });
-                    selectCurrentWorkbook(defaultWorkbooks.trino);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO);
+                    const conn = allocateConnectionState(connWithoutId);
+                    const workbook = setupWorkbook(conn);
                     setState({
                         decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
                         args: {
-                            connectionId: workbook.connectionId,
+                            connectionId: conn.connectionId,
                             connectionParams: workbookProto.connectionParams,
-                            workbookId: defaultWorkbooks.trino,
-                            workbookProto: workbookProto,
+                            workbookId: workbook.workbookId,
+                            workbookProto,
                         },
                     });
                     return;
                 }
                 case "serverless": {
-                    const workbook = workbookReg.workbookMap.get(defaultWorkbooks.serverless)!;
-                    connDispatch(workbook.connectionId, { type: RESET, value: null });
-                    selectCurrentWorkbook(defaultWorkbooks.serverless);
+                    const connectionId = defaultConns!.hyper;
+                    const conn = connReg.connectionMap.get(connectionId)!;
+                    const workbook = setupWorkbook(conn);
+                    selectWorkbook(workbook.workbookId);
                     setState({
                         decision: AppSetupDecision.SETUP_DONE,
                         args: null,
@@ -186,9 +153,10 @@ export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: 
                     return;
                 }
                 case "demo": {
-                    const workbook = workbookReg.workbookMap.get(defaultWorkbooks.demo)!;
-                    connDispatch(workbook.connectionId, { type: RESET, value: null });
-                    selectCurrentWorkbook(defaultWorkbooks.demo);
+                    const connectionId = defaultConns!.demo;
+                    const conn = connReg.connectionMap.get(connectionId)!;
+                    const workbook = setupWorkbook(conn);
+                    selectWorkbook(workbook.workbookId);
                     setState({
                         decision: AppSetupDecision.SETUP_DONE,
                         args: null,
@@ -211,18 +179,33 @@ export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: 
     }, [appEvents]);
 
     // Effect to switch to default workbook after setup
+    const workbookRegistry = useWorkbookRegistry();
+    const awaitDefaultWorkbooks = useAwaitStateChange(workbookRegistry);
+
     React.useEffect(() => {
         const selectDefaultWorkbook = async () => {
+            // Await the setup of the default connections
+            const defaultConns = (await awaitDefaultConnections(s => s != null))!;
+            // Await the setup of default workbooks
+            await awaitDefaultWorkbooks(s => {
+                const hasServerless = (s.workbooksByConnection.get(defaultConns.serverless)?.length ?? 0) > 0;
+                const hasDemo = (s.workbooksByConnection.get(defaultConns.demo)?.length ?? 0) > 0;
+                return hasServerless && (hasDemo || !isDebugBuild());
+            });
+            const serverlessWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns.serverless)!;
+            const demoWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns.demo) ?? [];
+
             // Await the setup of the static workbooks
-            const defaultWorkbooks = await setupDefaultWorkbook;
             // We might have received a workbook setup link in the meantime.
             // In that case, don't default-select the serverless workbook
             if (abortDefaultWorkbookSwitch.current.signal.aborted) {
                 return;
             }
             // Be extra careful not to override a selected workbook
-            const d = isDebugBuild() ? defaultWorkbooks.demo : defaultWorkbooks.serverless;
-            selectCurrentWorkbook(s => (s == null) ? d : s);
+            const d = isDebugBuild()
+                ? demoWorkbooks[0]
+                : serverlessWorkbooks[0];
+            selectWorkbook(s => (s == null) ? d : s);
             // Skip the setup
             setState({
                 decision: AppSetupDecision.SETUP_DONE,
@@ -251,9 +234,5 @@ export const AppSetupGate: React.FC<{ children: React.ReactElement }> = (props: 
             child = props.children;
             break;
     }
-    return (
-        <DEFAULT_WORKBOOKS.Provider value={defaultWorkbooks}>
-            {child}
-        </DEFAULT_WORKBOOKS.Provider>
-    );
+    return child;
 };

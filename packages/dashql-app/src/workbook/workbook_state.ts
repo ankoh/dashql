@@ -16,11 +16,11 @@ export type ScriptKey = number;
 
 /// The state of the workbook
 export interface WorkbookState {
+    /// The workbook state contains many references into the Wasm heap.
+    /// It therefore makes sense that workbook state users resolve the "right" module through here.
+    instance: core.DashQL;
     /// The workbook id
     workbookId: number;
-    /// The workbook state contains many references into the Wasm heap.
-    /// It therefore makes sense that script state users resolve the "right" module through here.
-    instance: core.DashQL | null;
     /// The connector info
     connectorInfo: ConnectorInfo;
     /// The connector state

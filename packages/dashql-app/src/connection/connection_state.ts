@@ -1,7 +1,10 @@
+import * as core from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 
 import {
+    createHyperGrpcConnectionState,
+    createHyperGrpcConnectionStateDetails,
     HyperGrpcConnectionDetails,
     HyperGrpcConnectorAction,
     reduceHyperGrpcConnectorState,
@@ -10,6 +13,7 @@ import {
     reduceSalesforceConnectionState,
     SalesforceConnectionStateDetails,
     SalesforceConnectionStateAction,
+    createSalesforceConnectionStateDetails,
 } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
@@ -31,8 +35,9 @@ import {
 } from './query_execution_state.js';
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { DemoConnectionParams } from './demo/demo_connection_state.js';
-import { reduceTrinoConnectorState, TrinoConnectionStateDetails, TrinoConnectorAction } from './trino/trino_connection_state.js';
+import { createDemoConnectionState, createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
+import { createTrinoConnectionStateDetails, reduceTrinoConnectorState, TrinoConnectionStateDetails, TrinoConnectorAction } from './trino/trino_connection_state.js';
+import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -45,6 +50,9 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
+    /// The connection state contains many references into the Wasm heap.
+    /// It therefore makes sense that connection state users resolve the "right" module through here.
+    instance: core.DashQL;
     /// The connection id
     connectionId: number;
     /// The connection state
@@ -114,14 +122,6 @@ export enum ConnectionHealth {
     ONLINE,
     FAILED,
 }
-
-export type ConnectionStateDetailsVariant =
-    | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
-    | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
-    | VariantKind<typeof DEMO_CONNECTOR, DemoConnectionParams>
-    | VariantKind<typeof HYPER_GRPC_CONNECTOR, HyperGrpcConnectionDetails>
-    | VariantKind<typeof TRINO_CONNECTOR, TrinoConnectionStateDetails>
-    ;
 
 export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
 
@@ -274,11 +274,40 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, d
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
+        instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
         metrics: createConnectionMetrics(),
         details,
+        catalog,
+        catalogUpdates: {
+            tasksRunning: new Map(),
+            tasksFinished: new Map(),
+            lastFullRefresh: null,
+        },
+        snapshotQueriesActiveFinished: 1,
+        queriesActive: new Map(),
+        queriesActiveOrdered: [],
+        queriesFinished: new Map(),
+        queriesFinishedOrdered: [],
+    };
+}
+
+export function createConnectionStateForType(dql: dashql.DashQL, type: ConnectorType): ConnectionStateWithoutId {
+    const connectorInfo = CONNECTOR_INFOS[type as number];
+    const connectionMetrics = createConnectionMetrics();
+    const connectionDetails = createConnectionStateDetails(type);
+
+    const catalog = dql.createCatalog();
+    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    return {
+        instance: dql,
+        connectionStatus: ConnectionStatus.NOT_STARTED,
+        connectionHealth: ConnectionHealth.NOT_STARTED,
+        connectorInfo,
+        metrics: connectionMetrics,
+        details: connectionDetails,
         catalog,
         catalogUpdates: {
             tasksRunning: new Map(),

@@ -2,30 +2,23 @@ import * as React from 'react';
 
 import Immutable from 'immutable';
 
-import { createExampleMetadata } from '../../workbook/example_scripts.js';
-import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
-import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
-import { ScriptType } from '../../workbook/script_metadata.js';
-import { ConnectionState } from 'connection/connection_state.js';
-
-const demo_q1 = new URL('../../../static/examples/demo/demo1.sql', import.meta.url);
-
-export const DEFAULT_BOARD_WIDTH = 800;
-export const DEFAULT_BOARD_HEIGHT = 600;
+import { ConnectionState } from '../connection/connection_state.js';
+import { ScriptData, WorkbookState } from './workbook_state.js';
+import { ScriptLoadingStatus } from './script_loader.js';
+import { generateBlankScriptMetadata } from './script_metadata.js';
+import { useWorkbookStateAllocator } from './workbook_state_registry.js';
 
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
-export function useDemoWorkbookSetup(): WorkbookSetupFn {
+export function useWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {
         const mainScript = conn.instance.createScript(conn.catalog, 1);
-
         const mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
-            metadata: createExampleMetadata(ScriptType.QUERY, "Demo", demo_q1, null),
+            metadata: generateBlankScriptMetadata(),
             loading: {
                 status: ScriptLoadingStatus.PENDING,
                 error: null,

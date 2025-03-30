@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
+import { CONNECTOR_TYPES } from './connector_info.js';
 
 /// The connection registry
 ///
@@ -11,10 +12,12 @@ import { Dispatch } from '../utils/variant.js';
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
     connectionMap: Map<number, ConnectionState>;
+    connectionsPerType: Set<number>[];
 }
 
 type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
-export type ConnectionAllocator = (state: ConnectionStateWithoutId) => number;
+export type ConnectionAllocator = (state: ConnectionStateWithoutId) => ConnectionState;
+export type ConnectionCloner = (state: ConnectionState) => ConnectionState;
 export type ConnectionDispatch = (action: ConnectionStateAction) => void;
 export type DynamicConnectionDispatch = (id: number | null, action: ConnectionStateAction) => void;
 
@@ -26,9 +29,12 @@ type Props = {
 };
 
 export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
-    const reg = React.useState<ConnectionRegistry>(() => ({
-        connectionMap: new Map(),
-    }));
+    const reg = React.useState<ConnectionRegistry>(() => {
+        return ({
+            connectionMap: new Map(),
+            connectionsPerType: CONNECTOR_TYPES.map(() => new Set()),
+        });
+    });
     return (
         <CONNECTION_REGISTRY_CTX.Provider value={reg}>
             {props.children}
@@ -40,15 +46,19 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
     return React.useCallback((state: ConnectionStateWithoutId) => {
         const cid = NEXT_CONNECTION_ID++;
+        const conn: ConnectionState = { ...state, connectionId: cid };
         setReg((reg) => {
-            reg.connectionMap.set(cid, { ...state, connectionId: cid });
+            reg.connectionMap.set(cid, conn);
+            reg.connectionsPerType[state.connectorInfo.connectorType].add(cid);
             return { ...reg };
         });
-        return cid;
+        return conn;
     }, [setReg]);
 }
 
-export const useConnectionRegistry = () => React.useContext(CONNECTION_REGISTRY_CTX)![0];
+export function useConnectionRegistry(): ConnectionRegistry {
+    return React.useContext(CONNECTION_REGISTRY_CTX)![0];
+}
 
 export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConnectionDispatch] {
     const [registry, setRegistry] = React.useContext(CONNECTION_REGISTRY_CTX)!;

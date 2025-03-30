@@ -3,14 +3,16 @@ import { createRoot } from 'react-dom/client';
 import { Route, Routes, Navigate, BrowserRouter, HashRouter } from 'react-router-dom';
 
 import { AppConfigProvider } from './app_config.js';
-import { AppSetupGate } from './app_setup_gate.js';
+import { AppSetupListener } from './app_setup_listener.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
-import { ConnectionSettingsPage, ConnectionSettingsPageStateProvider } from './view/connection/connection_settings_page.js';
+import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { CurrentWorkbookStateProvider } from './workbook/current_workbook.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
+import { DefaultConnectionProvider } from './connection/default_connections.js';
+import { DefaultWorkbookProvider } from './workbook/default_workbooks.js';
 import { EditorPage } from './view/workbook/workbook_page.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
@@ -43,15 +45,13 @@ import './globals.css';
 
 // We decouple (some) page states from the actual page views to remember user input
 const PageStateProviders = (props: { children: React.ReactElement }) => (
-    <ConnectionSettingsPageStateProvider>
-        <SalesforceConnectorSettingsStateProvider>
-            <HyperGrpcConnectorSettingsStateProvider>
-                <TrinoConnectorSettingsStateProvider>
-                    {props.children}
-                </TrinoConnectorSettingsStateProvider>
-            </HyperGrpcConnectorSettingsStateProvider>
-        </SalesforceConnectorSettingsStateProvider>
-    </ConnectionSettingsPageStateProvider>
+    <SalesforceConnectorSettingsStateProvider>
+        <HyperGrpcConnectorSettingsStateProvider>
+            <TrinoConnectorSettingsStateProvider>
+                {props.children}
+            </TrinoConnectorSettingsStateProvider>
+        </HyperGrpcConnectorSettingsStateProvider>
+    </SalesforceConnectorSettingsStateProvider>
 );
 
 // Note that the order among connection providers is important and non-obvious.
@@ -66,14 +66,18 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                         <QueryExecutorProvider>
                             <WorkbookStateRegistry>
                                 <CatalogLoaderProvider>
-                                    <CurrentWorkbookStateProvider>
-                                        <ScriptLoader />
-                                        <WorkbookCommands>
-                                            <AppSetupGate>
-                                                {props.children}
-                                            </AppSetupGate>
-                                        </WorkbookCommands>
-                                    </CurrentWorkbookStateProvider>
+                                    <DefaultConnectionProvider>
+                                        <DefaultWorkbookProvider>
+                                            <CurrentWorkbookStateProvider>
+                                                <ScriptLoader />
+                                                <WorkbookCommands>
+                                                    <AppSetupListener>
+                                                        {props.children}
+                                                    </AppSetupListener>
+                                                </WorkbookCommands>
+                                            </CurrentWorkbookStateProvider>
+                                        </DefaultWorkbookProvider>
+                                    </DefaultConnectionProvider>
                                 </CatalogLoaderProvider>
                             </WorkbookStateRegistry>
                         </QueryExecutorProvider>
