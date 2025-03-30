@@ -95,7 +95,7 @@ __metadata:
     react-router-dom: "npm:^6.26.2"
     react-test-renderer: "npm:^18.3.1"
     react-window: "npm:^1.8.11"
-    react-zoom-pan-pinch: "npm:^3.6.1"
+    react-zoom-pan-pinch: "npm:^3.7.0"
     source-map-loader: "npm:^5.0.0"
     style-loader: "npm:^4.0.0"
     style-mod: "npm:^4.1.2"
@@ -9638,13 +9638,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-zoom-pan-pinch@npm:^3.6.1":
-  version: 3.6.1
-  resolution: "react-zoom-pan-pinch@npm:3.6.1"
+"react-zoom-pan-pinch@npm:^3.7.0":
+  version: 3.7.0
+  resolution: "react-zoom-pan-pinch@npm:3.7.0"
   peerDependencies:
     react: "*"
     react-dom: "*"
-  checksum: 10c0/ec32df7ba9c1b8113fa87e5759c6b697f0f985df1be31b26720c3fdff67dc7f31ac13eabad201d7d5a12f2a4bed637bf7090e8a04f0237618bc751cf37c784d9
+  checksum: 10c0/96889849800a953128fe7f9e42bed0d5cbc48d03024995b136f5e972146236688efb24d7381d8e6f09598f5512b4897d2420f62d828a665fdf24b745b7d55911
   languageName: node
   linkType: hard
 
