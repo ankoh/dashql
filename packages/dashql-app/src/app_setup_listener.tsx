@@ -58,9 +58,10 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
     const runSetup = React.useCallback(async (data: SetupEventVariant) => {
         const core = await setupCore("app_setup");
 
+        // Stop the default workbook switch after DashQL is ready
+        abortDefaultWorkbookSwitch.current.abort("workbook_setup_event");
         // Await the setup of the default connections
-        await awaitDefaultConnections(s => s != null);
-        const defaultConns = defaultConnections!;
+        const defaultConns = (await awaitDefaultConnections(s => s != null))!;
 
         // Resolve workbook
         let catalogs: pb.dashql.file.FileCatalog[] = [];
