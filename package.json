@@ -17,7 +17,7 @@
         "@tauri-apps/cli": "^2.0.1",
         "@types/node": "^20.17.28",
         "eslint": "^9.11.1",
-        "prettier": "^3.3.3",
+        "prettier": "^3.5.3",
         "ts-node": "^10.9.2",
         "typescript": "^5.6.2",
         "typescript-eslint": "^7.18.0",
