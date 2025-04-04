@@ -67,7 +67,7 @@
         "file-loader": "^6.2.0",
         "flatbuffers": "^24.12.23",
         "fontfaceobserver": "^2.3.0",
-        "fork-ts-checker-webpack-plugin": "^9.0.2",
+        "fork-ts-checker-webpack-plugin": "^9.1.0",
         "framer-motion": "^11.18.2",
         "html-webpack-plugin": "^5.6.3",
         "identity-obj-proxy": "^3.0.0",
