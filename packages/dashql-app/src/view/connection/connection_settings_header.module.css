@@ -1,0 +1,122 @@
+:root {
+    --connector_header_background: hsl(210, 29%, 97%);
+    --connector_status_background: hsl(210, 29%, 97%);
+}
+
+.container {
+}
+
+.connector_header_container {
+    position: relative;
+
+    display: grid;
+    grid-template-columns: max-content auto max-content;
+    grid-template-rows: 56px;
+
+    background-color: var(--connector_header_background);
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.platform_logo {
+    grid-row: 1;
+    grid-column: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 16px;
+}
+
+.platform_name {
+    grid-row: 1;
+    grid-column: 2;
+
+    font-size: 1.1rem;
+
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+}
+
+.platform_actions {
+    grid-row: 1;
+    grid-column: 3;
+    display: flex;
+    align-items: center;
+    margin-right: 16px;
+    column-gap: 8px
+}
+
+.salesforce_logo {
+    color: var(--logo_color_salesforce);
+}
+
+.status_container {
+    height: auto;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.status_section {
+    background-color: var(--connector_status_background);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+@media only screen and (max-width: 800px) {
+    .status_section_layout {
+        padding: 12px 16px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        row-gap: 16px;
+        align-items: start;
+    }
+}
+@media only screen and (min-width: 800px) {
+    .status_section_layout {
+        padding: 12px 16px;
+        position: relative;
+        width: 100%;
+        max-width: 1000px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 32px;
+        row-gap: 16px;
+        align-items: start;
+    }
+}
+
+.status_bar {
+    display: grid;
+    grid-template-columns: max-content max-content auto max-content;
+    align-items: center;
+
+    column-gap: 12px;
+}
+.status_indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    height: 26px;
+}
+.status_indicator_spinner {
+    width: 16px;
+    height: 16px;
+}
+
+
+.status_text {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status_error {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: #8c959f;
+}

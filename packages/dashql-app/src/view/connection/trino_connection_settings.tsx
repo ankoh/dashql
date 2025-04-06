@@ -1,39 +1,28 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 
-import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as style from './connection_settings.module.css';
 
 import {
     BookIcon,
-    FileSymlinkFileIcon,
     KeyIcon,
-    LinkIcon,
     PlugIcon,
     XIcon,
 } from '@primer/octicons-react';
 
-import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
+import { Button, ButtonVariant } from '../foundations/button.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
-import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { Dispatch } from '../../utils/variant.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { KeyValueListBuilder, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
-import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { TrinoConnectionParams } from '../../connection/trino/trino_connection_params.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeWorkbookProtoAsUrl, encodeWorkbookAsProto, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
-import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
-import { ConnectionParamsVariant } from '../../connection/connection_params.js';
-import { TRINO_CONNECTOR } from '../../connection/connector_info.js';
-import { DetailedError } from '../../utils/error.js';
-import { ErrorDetailsButton } from '../error_details.js';
+import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
-import { useAnyConnectionWorkbook, useConnectionWorkbookSelector } from './connection_workbook.js';
+import { useAnyConnectionWorkbook } from './connection_workbook.js';
+import { ConnectionHeader } from './connection_settings_header.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -50,13 +39,15 @@ interface Props {
 
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const navigate = useNavigate();
     const trinoSetup = useTrinoSetup();
+
+    // Can we use the connector here?
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
+    const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
     const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
-    const selectConnectionWorkbook = useConnectionWorkbookSelector();
 
     // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
@@ -123,21 +114,6 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         }
     };
 
-    // Helper to switch to the editor
-    const openEditor = React.useCallback(() => {
-        if (connectionState != null) {
-            selectConnectionWorkbook(connectionState);
-            navigate("/");
-        }
-    }, []);
-
-    // Get the connection status
-    const statusText: string = getConnectionStatusText(connectionState?.connectionStatus, logger);
-    // Get the connection error (if any)
-    const connectionError: DetailedError | null = getConnectionError(connectionState?.details ?? null);
-    // Get the indicator status
-    const indicatorStatus: IndicatorStatus = getConnectionHealthIndicator(connectionState?.connectionHealth ?? null);
-
     // Get the action button
     let connectButton: React.ReactElement = <div />;
     let freezeInput = false;
@@ -156,67 +132,17 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             break;
     }
 
-    // Maintain the workbook setup url for the same platform
-    const platformType = usePlatformType();
-    const setupLinkTarget = platformType === PlatformType.WEB ? WorkbookLinkTarget.WEB : WorkbookLinkTarget.NATIVE;
-    const setupURL = React.useMemo(() => {
-        if (connectionState == null) {
-            return null;
-        }
-        const params: ConnectionParamsVariant = {
-            type: TRINO_CONNECTOR,
-            value: pageState.newParams
-        };
-        const proto = encodeWorkbookAsProto(connectionWorkbook, params);
-        return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
-    }, [connectionWorkbook, connectionState, setupLinkTarget]);
-
     return (
         <div className={style.layout}>
-            <div className={style.connector_header_container}>
-                <div className={style.platform_logo}>
-                    <svg width="28px" height="28px">
-                        <use xlinkHref={`${symbols}#trino`} />
-                    </svg>
-                </div>
-                <div className={style.platform_name} aria-labelledby="connector-hyper-database">
-                    Trino
-                </div>
-                <div className={style.platform_actions}>
-                    <CopyToClipboardButton
-                        variant={ButtonVariant.Default}
-                        size={ButtonSize.Medium}
-                        logContext={LOG_CTX}
-                        value={setupURL?.toString() ?? ""}
-                        disabled={setupURL == null}
-                        icon={LinkIcon}
-                        aria-label="copy-link"
-                        aria-labelledby=""
-                    />
-
-                    {(connectionState?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
-                    )}
-                    {connectButton}
-                </div>
-            </div >
-            <div className={style.status_container}>
-                <div className={classNames(style.section, style.status_section)}>
-                    <div className={classNames(style.section_layout, style.status_section_layout)}>
-                        <div className={style.status_bar}>
-                            <div className={style.status_indicator}>
-                                <StatusIndicator className={style.status_indicator_spinner} status={indicatorStatus} fill="black" />
-                            </div>
-                            <div className={style.status_text}>
-                                {statusText}
-                            </div>
-                            {connectionError?.message &&
-                                <ErrorDetailsButton className={style.status_error} error={connectionError} />
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <ConnectionHeader
+                connector={connectorInfo}
+                connection={connectionState}
+                wrongPlatform={wrongPlatform}
+                setupConnection={setupConnection}
+                cancelSetup={cancelSetup}
+                resetSetup={resetSetup}
+                workbook={connectionWorkbook}
+            />
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
