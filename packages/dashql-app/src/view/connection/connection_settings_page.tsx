@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';
-import { HyperGrpcConnectorSettings } from './hyper_grpc_connection_settings.js';
+import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';

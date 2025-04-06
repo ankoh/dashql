@@ -51,7 +51,6 @@
 .kv_field {
     display: grid;
     grid-template-columns: 1fr;
-    margin-top: 4px;
 }
 .kv_field_name {
     font-weight: 600;

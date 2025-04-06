@@ -23,7 +23,7 @@ import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
-import { HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { DetailedError } from '../../utils/error.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import { useAnyConnectionWorkbook, useConnectionWorkbookSelector } from './connection_workbook.js';
@@ -124,6 +124,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const navigate = useNavigate();
     const sfSetup = useSalesforceSetup();
+
+    // Can we use the connector here?
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    const connectorRequiresSwitch = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
@@ -234,7 +238,16 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         case ConnectionHealth.NOT_STARTED:
         case ConnectionHealth.FAILED:
         case ConnectionHealth.CANCELLED:
-            connectButton = <Button variant={ButtonVariant.Primary} leadingVisual={PlugIcon} onClick={setupConnection}>Connect</Button>;
+            connectButton = (
+                <Button
+                    variant={ButtonVariant.Primary}
+                    leadingVisual={PlugIcon}
+                    onClick={setupConnection}
+                    disabled={connectorRequiresSwitch}
+                >
+                    Connect
+                </Button>
+            );
             break;
         case ConnectionHealth.CONNECTING:
             connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelSetup}>Cancel</Button>;

@@ -160,7 +160,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const platformType = usePlatformType();
     const setupLinkTarget = platformType === PlatformType.WEB ? WorkbookLinkTarget.WEB : WorkbookLinkTarget.NATIVE;
     const setupURL = React.useMemo(() => {
-        if (connectionWorkbook == null || connectionState == null || connectionState.details.type != TRINO_CONNECTOR) {
+        if (connectionState == null) {
             return null;
         }
         const params: ConnectionParamsVariant = {
