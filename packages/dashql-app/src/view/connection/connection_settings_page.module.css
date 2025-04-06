@@ -121,8 +121,4 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-
-    display: grid;
-    grid-template-rows: 48px calc(100% - 48px);
-    grid-template-columns: 100%;
 }

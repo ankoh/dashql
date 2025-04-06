@@ -144,7 +144,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     return;
                 }
                 case "serverless": {
-                    const connectionId = defaultConns!.hyper;
+                    const connectionId = defaultConns![ConnectorType.HYPER_GRPC];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
                     selectWorkbook(workbook.workbookId);
@@ -155,7 +155,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     return;
                 }
                 case "demo": {
-                    const connectionId = defaultConns!.demo;
+                    const connectionId = defaultConns![ConnectorType.DEMO];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
                     selectWorkbook(workbook.workbookId);
@@ -190,12 +190,12 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             const defaultConns = (await awaitDefaultConnections(s => s != null))!;
             // Await the setup of default workbooks
             await awaitDefaultWorkbooks(s => {
-                const hasServerless = (s.workbooksByConnection.get(defaultConns.serverless)?.length ?? 0) > 0;
-                const hasDemo = (s.workbooksByConnection.get(defaultConns.demo)?.length ?? 0) > 0;
+                const hasServerless = (s.workbooksByConnection.get(defaultConns[ConnectorType.SERVERLESS])?.length ?? 0) > 0;
+                const hasDemo = (s.workbooksByConnection.get(defaultConns[ConnectorType.DEMO])?.length ?? 0) > 0;
                 return hasServerless && (hasDemo || !isDebugBuild());
             });
-            const serverlessWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns.serverless)!;
-            const demoWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns.demo) ?? [];
+            const serverlessWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns[ConnectorType.SERVERLESS])!;
+            const demoWorkbooks = workbookRegistry.workbooksByConnection.get(defaultConns[ConnectorType.DEMO]) ?? [];
 
             // Await the setup of the static workbooks
             // We might have received a workbook setup link in the meantime.

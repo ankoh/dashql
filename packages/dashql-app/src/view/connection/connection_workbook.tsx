@@ -9,7 +9,10 @@ import { WorkbookState } from '../../workbook/workbook_state.js';
 
 export type SelectConnectionWorkbook = (conn: ConnectionState) => void;
 
-export function useAnyConnectionWorkbook(connectionId: number): WorkbookState | null {
+export function useAnyConnectionWorkbook(connectionId: number | null): WorkbookState | null {
+    if (connectionId == null) {
+        return null;
+    }
     const workbookRegistry = useWorkbookRegistry();
     const workbooks: undefined | (number[]) = workbookRegistry.workbooksByConnection.get(connectionId);
     if (workbooks !== undefined && workbooks.length > 0) {
