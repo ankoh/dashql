@@ -23,6 +23,7 @@ import { ConnectorInfo } from '../../connection/connector_info.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
+import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 
 const LOG_CTX = "conn_header";
 
@@ -34,6 +35,11 @@ interface Props {
     cancelSetup: () => void;
     resetSetup: () => void;
     workbook: WorkbookState | null;
+}
+
+interface SetupURLs {
+    browser: URL;
+    native: URL;
 }
 
 export function ConnectionHeader(props: Props): React.ReactElement {
@@ -81,21 +87,26 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     }, []);
 
     // Maintain the setup url for the same platform
-    const platformType = usePlatformType();
-    const setupLinkTarget = platformType === PlatformType.WEB ? WorkbookLinkTarget.WEB : WorkbookLinkTarget.NATIVE;
-    const setupURL = React.useMemo(() => {
-        if (props.connection == null) {
-            return null;
-        }
-        // const params: ConnectionParamsVariant = {
-        //     type: TRINO_CONNECTOR,
-        //     value: pageState.newParams
-        // };
+    const setupURLs = React.useMemo<SetupURLs | null>(() => {
+        if (props.connection == null) return null;
+        // Resolve the parameters
+        const params = getConnectionParamsFromStateDetails(props.connection.details);
+        if (params == null) return null;
+        // Encode the workbook
+        const proto = encodeWorkbookAsProto(props.workbook, params);
+        // Construct the setup URLs
+        const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
+        const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
+        const setupURLs: SetupURLs = {
+            browser: urlWeb,
+            native: urlNative,
+        };
+        return setupURLs;
+    }, [props.workbook, props.connection]);
 
-        // XXX Get Params
-        const proto = encodeWorkbookAsProto(props.workbook, {} as any);
-        return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
-    }, [props.workbook, props.connection, setupLinkTarget]);
+    // Determine platform type
+    const platformType = usePlatformType();
+    // XXX Add a button to switch the platform (that's why we're computing both setup urls)
 
     // Get the connection status
     let statusText: string = "";
@@ -130,8 +141,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                         variant={ButtonVariant.Default}
                         size={ButtonSize.Medium}
                         logContext={LOG_CTX}
-                        value={setupURL?.toString() ?? ""}
-                        disabled={setupURL == null}
+                        value={(platformType == PlatformType.WEB ? setupURLs?.browser : setupURLs?.native)?.toString() ?? ""}
+                        disabled={!setupURLs}
                         icon={LinkIcon}
                         aria-label="copy-link"
                         aria-labelledby=""
