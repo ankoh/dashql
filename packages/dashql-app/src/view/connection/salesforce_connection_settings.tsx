@@ -1,10 +1,7 @@
 import * as React from 'react';
-import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as style from './connection_settings.module.css';
 
-import { useNavigate } from 'react-router-dom';
-
-import { FileSymlinkFileIcon, KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
+import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
@@ -17,16 +14,16 @@ import {
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
 } from '../foundations/text_field.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { IndicatorStatus } from '../foundations/status_indicator.js';
 import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger.js';
-import { useLogger } from '../../platform/logger_provider.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { DetailedError } from '../../utils/error.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
-import { useAnyConnectionWorkbook, useConnectionWorkbookSelector } from './connection_workbook.js';
+import { useAnyConnectionWorkbook } from './connection_workbook.js';
+import { ConnectionHeader } from './connection_settings_header.js';
 
 const LOG_CTX = "sf_connector";
 
@@ -121,18 +118,16 @@ interface Props {
 }
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
-    const logger = useLogger();
-    const navigate = useNavigate();
     const sfSetup = useSalesforceSetup();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    const connectorRequiresSwitch = requiresSwitchingToNative(connectorInfo);
+    const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
+    const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
-    const selectConnectionWorkbook = useConnectionWorkbookSelector();
 
     // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
@@ -216,21 +211,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         }
     };
 
-    // Helper to switch to the editor
-    const openEditor = React.useCallback(() => {
-        if (connectionState != null) {
-            selectConnectionWorkbook(connectionState);
-            navigate("/");
-        }
-    }, []);
-
-    // Get the connection status
-    const statusText = getConnectionStatusText(connectionState?.connectionStatus, logger);
-    // Get the indicator status
-    const indicatorStatus: IndicatorStatus = getConnectionHealthIndicator(connectionState?.connectionHealth ?? null);
-    // Get the connection error
-    const errorMessage = getConnectionError(connectionState?.details ?? null);
-
     // Get the action button
     let connectButton: React.ReactElement = <div />;
     let freezeInput = false;
@@ -243,7 +223,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                     variant={ButtonVariant.Primary}
                     leadingVisual={PlugIcon}
                     onClick={setupConnection}
-                    disabled={connectorRequiresSwitch}
+                    disabled={wrongPlatform}
                 >
                     Connect
                 </Button>
@@ -262,41 +242,15 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     // Lock any changes?
     return (
         <div className={style.layout}>
-            <div className={style.connector_header_container}>
-                <div className={classNames(style.platform_logo, style.salesforce_logo)}>
-                    <svg width="28px" height="28px">
-                        <use xlinkHref={`${symbols}#salesforce_notext`} />
-                    </svg>
-                </div>
-                <div className={style.platform_name} id="connector-sf-data-cloud">
-                    Salesforce Data Cloud
-                </div>
-                <div className={style.platform_actions}>
-                    {(connectionState?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
-                    )}
-                    {connectButton}
-                </div>
-            </div>
-            <div className={style.status_container}>
-                <div className={classNames(style.section, style.status_section)}>
-                    <div className={classNames(style.section_layout, style.status_section_layout)}>
-                        <div className={style.status_bar}>
-                            <div className={style.status_indicator}>
-                                <StatusIndicator className={style.status_indicator_spinner} status={indicatorStatus} fill="black" />
-                            </div>
-                            <div className={style.status_text}>
-                                {statusText}
-                            </div>
-                            {errorMessage && (
-                                <div className={style.status_error}>
-                                    {errorMessage.toString()}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <ConnectionHeader
+                connector={connectorInfo}
+                connection={connectionState}
+                wrongPlatform={wrongPlatform}
+                setupConnection={setupConnection}
+                cancelSetup={cancelSetup}
+                resetSetup={resetSetup}
+                workbook={connectionWorkbook}
+            />
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>

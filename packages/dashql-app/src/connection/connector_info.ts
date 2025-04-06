@@ -121,7 +121,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         icons: {
             colored: "salesforce_notext",
-            uncolored: "salesforce_notext",
+            uncolored: "salesforce_notext_nocolor",
             outlines: "salesforce_outlines",
         },
         catalogResolver: CatalogResolver.SALESFORCE_METDATA_API,
