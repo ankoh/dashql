@@ -1,56 +1,46 @@
 import * as React from 'react';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
+import { DemoConnectorSettings } from './demo_connector_settings.js';
+import { HyperGrpcConnectorSettings } from './hyper_grpc_connector_settings.js';
+import { SalesforceConnectorSettings } from './salesforce_connector_settings.js';
+import { ServerlessConnectorSettings } from './serverless_connector_settings.js';
+import { TrinoConnectorSettings } from './trino_connector_settings.js';
+import { isDebugBuild } from '../../globals.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
+import { useDefaultConnections } from '../../connection/default_connections.js';
+import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
+import { classNames } from '../../utils/classnames.js';
 
 import * as styles from './connection_settings_page.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
-// type PageState = {
-//     workbook: null | {
-//         connectionId: number;
-//         connectorType: ConnectorType
-//     };
-//     focus: ConnectorType;
-// };
-// type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
-// const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
-
-// interface ConnectorProps extends VerticalTabProps {
-//     connectorType: ConnectorType;
-// }
-
-
-// const CONNECTOR_TABS: ConnectorType[] = [
-//     ConnectorType.HYPER_GRPC,
-//     ConnectorType.SALESFORCE_DATA_CLOUD,
-//     ConnectorType.TRINO
-// ];
-// 
-// const CONNECTOR_RENDERERS: VerticalTabRenderers<ConnectorProps> = {
-//     [ConnectorType.HYPER_GRPC as number]: (props: ConnectorProps) => <PlatformCheck connectorType={props.connectorType}><HyperGrpcConnectorSettings /></PlatformCheck>,
-//     [ConnectorType.SALESFORCE_DATA_CLOUD as number]: (props: ConnectorProps) => <PlatformCheck connectorType={props.connectorType}><SalesforceConnectorSettings /></PlatformCheck>,
-//     [ConnectorType.TRINO as number]: (props: ConnectorProps) => <PlatformCheck connectorType={props.connectorType}><TrinoConnectorSettings /></PlatformCheck>,
-// };
-
 interface ConnectionGroupProps {
     connector: ConnectorType;
-    selected: number | null;
+    selected: [ConnectorType, number] | null;
+    select: (conn: [ConnectorType, number] | null) => void;
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     const info = CONNECTOR_INFOS[props.connector as number];
+    const defaultConnections = useDefaultConnections();
+    const defaultConnId = defaultConnections != null ? defaultConnections[props.connector] : null;
+    const groupSelected = props.selected != null && props.selected[0] == props.connector;
     return (
         <div
             key={props.connector as number}
-            className={styles.connector}
+            className={classNames(styles.connector, {
+                [styles.connector_active]: groupSelected
+            })}
             data-tab={props.connector as number}
             onClick={console.log}
         >
-            <button className={styles.connector_button}>
+            <button
+                className={styles.connector_button}
+                onClick={defaultConnId != null ? () => props.select([props.connector, defaultConnId]) : undefined}
+            >
                 <svg className={styles.connector_icon} width="18px" height="16px">
-                    <use xlinkHref={`${icons}#${info.icons.outlines}`} />
+                    <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
                 </svg>
                 <div className={styles.connector_label}>{info.displayName.short}</div>
             </button>
@@ -63,57 +53,46 @@ interface PageProps { }
 export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) => {
     const connRegistry = useConnectionRegistry();
     const [currentWorkbook, _] = useCurrentWorkbookState();
-    const [focusedConnection, setFocusedConnection] = React.useState<number | null>(null);
+    const [focusedConnection, setFocusedConnection] = React.useState<[ConnectorType, number] | null>(null);
 
     React.useEffect(() => {
+        // Always try to switch to the current workbook connection
         if (currentWorkbook != null) {
-            setFocusedConnection(currentWorkbook.connectionId);
-        } else {
-
+            setFocusedConnection([currentWorkbook.connectorInfo.connectorType, currentWorkbook.connectionId]);
+        } else if (focusedConnection == null) {
+            // Otherwise pick a fallback connection
+            const fallbackType = isDebugBuild() ? ConnectorType.DEMO : ConnectorType.SERVERLESS;
+            const defaultConnIds = connRegistry.connectionsPerType[fallbackType];
+            if (defaultConnIds.size > 0) {
+                const connId = defaultConnIds.values().next().value!;
+                setFocusedConnection([fallbackType, connId]);
+            }
         }
     }, []);
 
-    // // If someone selects a Trino workbook, we should switch to the appropriate connector settings automatically.
-    // // Note that this suffers a bit right now from the fact that we only have one connection per connector.
-    // // Otherwise we could just always switch to the correct connection id.
-    // React.useEffect(() => {
-    //     if (currentWorkbook != null && pageState.workbook?.connectionId != (currentWorkbook?.connectionId ?? null)) {
-    //         const newFocus = currentWorkbook.connectorInfo.connectorType;
-    //         if (newFocus != ConnectorType.SERVERLESS && newFocus != ConnectorType.DEMO) {
-    //             updatePageState({
-    //                 workbook: {
-    //                     connectionId: currentWorkbook.connectionId,
-    //                     connectorType: currentWorkbook.connectorInfo.connectorType,
-    //                 },
-    //                 focus: newFocus,
-    //             });
-    //         }
-    //     }
-    // }, [currentWorkbook]);
+    // Render the setttings page
+    let settings: React.ReactElement = <div />;
+    if (focusedConnection != null) {
+        const [focusedConnector, focusedConnectionId] = focusedConnection;
+        switch (focusedConnector) {
+            case ConnectorType.TRINO:
+                settings = <TrinoConnectorSettings connectionId={focusedConnectionId} />;
+                break;
+            case ConnectorType.SALESFORCE_DATA_CLOUD:
+                settings = <SalesforceConnectorSettings connectionId={focusedConnectionId} />;
+                break;
+            case ConnectorType.HYPER_GRPC:
+                settings = <HyperGrpcConnectorSettings connectionId={focusedConnectionId} />;
+                break;
+            case ConnectorType.SERVERLESS:
+                settings = <ServerlessConnectorSettings connectionId={focusedConnectionId} />;
+                break;
+            case ConnectorType.DEMO:
+                settings = <DemoConnectorSettings connectionId={focusedConnectionId} />;
+                break;
+        }
+    }
 
-    // const connectors: Record<number, ConnectorProps> = React.useMemo(() => {
-    //     let connectorProps: Record<number, ConnectorProps> = {};
-    //     for (const tabType of CONNECTOR_TABS) {
-    //         const connInfo = CONNECTOR_INFOS[tabType as number];
-    //         connectorProps[tabType] = {
-    //             tabId: tabType as number,
-    //             labelShort: connInfo.displayName.short,
-    //             labelLong: connInfo.displayName.long,
-    //             icon: `${icons}#${connInfo.icons.outlines}`,
-    //             iconActive: `${icons}#${connInfo.icons.uncolored}`,
-    //             connectorType: tabType
-    //         };
-    //     }
-    //     return connectorProps;
-    // }, []);
-
-    //                variant={VerticalTabVariant.Wide}
-    //                selectedTab={pageState.focus}
-    //                selectTab={selectConnector}
-    //                tabKeys={CONNECTOR_TABS}
-    //                tabProps={connectors}
-    //                tabRenderers={CONNECTOR_RENDERERS}
-    //                />
     return (
         <div className={styles.container}>
             <div className={styles.header_container}>
@@ -125,15 +104,15 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 <div className={styles.connection_list}>
                     <div className={styles.connector_group}>
                         {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER_GRPC, ConnectorType.TRINO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
                     </div>
                     <div className={styles.connector_group}>
                         {[ConnectorType.SERVERLESS, ConnectorType.DEMO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
                     </div>
                 </div>
                 <div className={styles.connection_settings_container}>
-
+                    {settings}
                 </div>
             </div>
         </div >
