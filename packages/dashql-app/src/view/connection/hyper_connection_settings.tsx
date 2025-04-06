@@ -28,6 +28,8 @@ import { HyperGrpcConnectionParams } from '../../connection/hyper/hyper_connecti
 import { getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useHyperGrpcSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useConnectionWorkbookSelector } from './connection_workbook.js';
+import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
+import { requiresSwitchingToNative } from '../../connection/connector_info.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -52,6 +54,10 @@ export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
     const hyperSetup = useHyperGrpcSetup();
     const selectConnectionWorkbook = useConnectionWorkbookSelector();
     const navigate = useNavigate();
+
+    // Can we use the connector here?
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
+    const connectorRequiresSwitch = requiresSwitchingToNative(connectorInfo);
 
     // Wire up the page state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
@@ -121,17 +127,33 @@ export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
     }, []);
 
     // Get the connection status
-    const statusText: string = getConnectionStatusText(connectionState?.connectionStatus, logger);
-    // Get the indicator status
-    const indicatorStatus: IndicatorStatus = getConnectionHealthIndicator(connectionState?.connectionHealth ?? null);
+    let statusText: string = "";
+    let indicatorStatus: IndicatorStatus = IndicatorStatus.None;
+    if (connectorRequiresSwitch) {
+        statusText = "Connector is disabled in the browser";
+        indicatorStatus = IndicatorStatus.Skip;
+    } else {
+        statusText = getConnectionStatusText(connectionState?.connectionStatus, logger);
+        indicatorStatus = getConnectionHealthIndicator(connectionState?.connectionHealth ?? null);
+    }
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
     let freezeInput = false;
     switch (connectionState?.connectionHealth) {
         case ConnectionHealth.NOT_STARTED:
+        case ConnectionHealth.CANCELLED:
         case ConnectionHealth.FAILED:
-            connectButton = <Button variant={ButtonVariant.Primary} leadingVisual={PlugIcon} onClick={setupConnection}>Connect</Button>;
+            connectButton = (
+                <Button
+                    variant={ButtonVariant.Primary}
+                    leadingVisual={PlugIcon}
+                    onClick={setupConnection}
+                    disabled={connectorRequiresSwitch}
+                >
+                    Connect
+                </Button>
+            );
             break;
         case ConnectionHealth.CONNECTING:
             connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelSetup}>Cancel</Button>;

@@ -20,7 +20,7 @@ import { GitHubTheme } from './github_theme.js';
 import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperGrpcConnector } from './connection/hyper/hyper_connector.js';
-import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_grpc_connection_settings.js';
+import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';

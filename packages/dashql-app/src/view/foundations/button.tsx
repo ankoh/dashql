@@ -74,6 +74,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>((props: B
                 [styles.no_visuals]: !props.leadingVisual && !props.trailingVisual && !props.trailingAction ? true : undefined,
             }, props.className)}
             onClick={props.onClick}
+            disabled={props.disabled}
             ref={ref}
         >
             <span className={styles.button_content}>
