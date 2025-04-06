@@ -25,7 +25,7 @@ import { Button, ButtonVariant } from '../foundations/button.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { HyperGrpcConnectionParams } from '../../connection/hyper/hyper_connection_params.js';
-import { getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connector_settings.js';
+import { getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useHyperGrpcSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useConnectionWorkbookSelector } from './connection_workbook.js';
 

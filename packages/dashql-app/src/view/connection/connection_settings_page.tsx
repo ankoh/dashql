@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
-import { DemoConnectorSettings } from './demo_connector_settings.js';
-import { HyperGrpcConnectorSettings } from './hyper_grpc_connector_settings.js';
-import { SalesforceConnectorSettings } from './salesforce_connector_settings.js';
-import { ServerlessConnectorSettings } from './serverless_connector_settings.js';
-import { TrinoConnectorSettings } from './trino_connector_settings.js';
+import { DemoConnectorSettings } from './demo_connection_settings.js';
+import { HyperGrpcConnectorSettings } from './hyper_grpc_connection_settings.js';
+import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
+import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
+import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { isDebugBuild } from '../../globals.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';

@@ -18,7 +18,7 @@ import { DASHQL_VERSION } from '../../globals.js';
 import { VersionInfoOverlay } from '../version_viewer.js';
 import { encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { formatHHMMSS } from '../../utils/format.js';
-import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connector_settings.js';
+import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
