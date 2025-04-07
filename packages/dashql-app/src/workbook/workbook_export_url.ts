@@ -1,7 +1,7 @@
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { WorkbookState } from './workbook_state.js';
-import { BASE64_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '../utils/base64.js';
 import { ConnectionParamsVariant, encodeConnectionParamsAsProto } from '../connection/connection_params.js';
 import { WorkbookExportSettings } from './workbook_export_settings.js';
 
@@ -45,7 +45,7 @@ export function encodeWorkbookProtoAsUrl(setup: pb.dashql.workbook.Workbook, tar
         }
     });
     const eventDataBytes = eventData.toBinary();
-    const eventDataBase64 = BASE64_CODEC.encode(eventDataBytes.buffer);
+    const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
 
     switch (target) {
         case WorkbookLinkTarget.WEB:

@@ -4,10 +4,8 @@ import { Logger } from '../../platform/logger.js';
 import { HttpClient } from '../../platform/http_client.js';
 import { SalesforceConnectionParams } from './salesforce_connection_params.js';
 import { SalesforceAuthConfig } from '../connector_configs.js';
-import { Base64Codec } from '../../utils/base64.js';
 import { HealthCheckResult, HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_client.js';
-import { AsyncConsumer } from "../../utils/async_consumer.js";
-import { QueryExecutionProgress } from "../../connection/query_execution_state.js";
+import { BASE64_CODEC } from "../../utils/base64.js";
 
 const LOG_CTX = "salesforce_api";
 
@@ -222,13 +220,11 @@ export interface SalesforceApiClientInterface {
 export class SalesforceApiClient implements SalesforceApiClientInterface {
     logger: Logger;
     httpClient: HttpClient;
-    base64Codec: Base64Codec;
     textDecoder: TextDecoder;
 
     constructor(logger: Logger, httpClient: HttpClient) {
         this.logger = logger;
         this.httpClient = httpClient;
-        this.base64Codec = new Base64Codec();
         this.textDecoder = new TextDecoder();
     }
 
@@ -294,13 +290,13 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
 
         // Parse the JWT header
         const jwtHeaderRaw = jwtParts[0];
-        const jwtHeaderBytes = this.base64Codec.decode(jwtHeaderRaw);
+        const jwtHeaderBytes = BASE64_CODEC.decode(jwtHeaderRaw);
         const jwtHeaderText = this.textDecoder.decode(jwtHeaderBytes);
         const jwtHeaderParsed = JSON.parse(jwtHeaderText);
 
         // Parse the JWT payload
         const jwtPayloadRaw = jwtParts[1];
-        const jwtPayloadBytes = this.base64Codec.decode(jwtPayloadRaw);
+        const jwtPayloadBytes = BASE64_CODEC.decode(jwtPayloadRaw);
         const jwtPayloadText = this.textDecoder.decode(jwtPayloadBytes);
         const jwtPayloadParsed = JSON.parse(jwtPayloadText) as SalesforceDataCloudJWTPayload;
 

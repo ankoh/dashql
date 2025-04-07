@@ -17,7 +17,7 @@ import {
     SalesforceConnectionStateAction,
 } from './salesforce_connection_state.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
-import { BASE64_CODEC } from '../../utils/base64.js';
+import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { SalesforceConnectionParams } from './salesforce_connection_params.js';
@@ -122,7 +122,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             }
         });
         const authStateBuffer = authState.toBinary();
-        const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
+        const authStateBase64 = BASE64URL_CODEC.encode(authStateBuffer.buffer);
 
         // Collect the oauth parameters
         const paramParts = [

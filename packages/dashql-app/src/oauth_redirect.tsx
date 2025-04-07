@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 
 import { AnchorAlignment, AnchorSide } from './view/foundations/anchored_position.js';
-import { BASE64_CODEC } from './utils/base64.js';
+import { BASE64URL_CODEC } from './utils/base64.js';
 import { Button, ButtonSize, ButtonVariant } from './view/foundations/button.js';
 import { CopyToClipboardButton } from './utils/clipboard.js';
 import { DASHQL_VERSION } from './globals.js';
@@ -73,7 +73,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                 value: new pb.dashql.oauth.OAuthRedirectData({ code, state: props.state })
             }
         });
-        const event = BASE64_CODEC.encode(eventMessage.toBinary().buffer);
+        const event = BASE64URL_CODEC.encode(eventMessage.toBinary().buffer);
         return {
             eventBase64: event,
             deepLink: buildDeepLink(event).toString(),
@@ -356,7 +356,7 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
 
     const authState = React.useMemo<Result<pb.dashql.oauth.OAuthState>>(() => {
         try {
-            const authStateBuffer = BASE64_CODEC.decode(state);
+            const authStateBuffer = BASE64URL_CODEC.decode(state);
             return {
                 type: RESULT_OK,
                 value: pb.dashql.oauth.OAuthState.fromBinary(new Uint8Array(authStateBuffer))
