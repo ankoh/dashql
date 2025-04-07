@@ -8,7 +8,6 @@ import { ButtonGroup, IconButton } from '@primer/react';
 import { DownloadIcon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
-import { ConnectorInfo } from '../../connection/connector_info.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -26,11 +25,27 @@ import { useQueryState } from '../../connection/query_executor.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { WorkbookState } from 'workbook/workbook_state.js';
+import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
+
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const sessionCommand = useWorkbookCommandDispatch();
+
+    const DatabaseIcon = SymbolIcon("database_16");
     return (
         <>
+            <ActionList.ListItem
+                disabled={!props.conn?.connectorInfo.features.executeQueryAction}
+                onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
+            >
+                <ActionList.Leading>
+                    <DatabaseIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Edit Connection
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + L</ActionList.Trailing>
+            </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
                 onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
@@ -62,8 +77,30 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
 const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
+
+    const ArrowDownIcon = SymbolIcon("arrow_down_16");
+    const ArrowUpIcon = SymbolIcon("arrow_up_16");
+    const FileZipIcon = SymbolIcon("file_zip_16");
     return (
         <>
+            <ActionList.ListItem>
+                <ActionList.Leading>
+                    <ArrowUpIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Previous Script
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem>
+                <ActionList.Leading>
+                    <ArrowDownIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Next Script
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
+            </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>
                     <LinkIcon />
@@ -76,7 +113,7 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openFileSave(s => !s)}>
                 <ActionList.Leading>
-                    <DownloadIcon />
+                    <FileZipIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     Save as File
