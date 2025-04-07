@@ -1,6 +1,6 @@
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { BASE64_CODEC } from '../utils/base64.js';
+import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Logger } from './logger.js';
 import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SetupEventVariant } from './event.js';
 
@@ -184,13 +184,13 @@ export abstract class PlatformEventListener {
             return null;
         }
         // Is a valid base64?
-        if (!BASE64_CODEC.isValidBase64(dataBase64)) {
+        if (!BASE64URL_CODEC.isValidBase64(dataBase64)) {
             this.logger.info("skipping app event with invalid base64 data", {}, LOG_CTX);
             return null;
         }
         // Try to parse as app event data
         try {
-            const dataBuffer = BASE64_CODEC.decode(dataBase64);
+            const dataBuffer = BASE64URL_CODEC.decode(dataBase64);
             const dataBytes = new Uint8Array(dataBuffer);
             const event = pb.dashql.app_event.AppEventData.fromBinary(dataBytes);
             this.logger.info(`parsed app event`, { "type": event.data.case }, LOG_CTX);
