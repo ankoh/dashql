@@ -31,9 +31,9 @@ interface Props {
     connector: ConnectorInfo;
     connection: ConnectionState | null;
     wrongPlatform: boolean;
-    setupConnection: () => void;
-    cancelSetup: () => void;
-    resetSetup: () => void;
+    setupConnection?: () => void;
+    cancelSetup?: () => void;
+    resetSetup?: () => void;
     workbook: WorkbookState | null;
 }
 
@@ -50,27 +50,47 @@ export function ConnectionHeader(props: Props): React.ReactElement {
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
-    switch (props.connection?.connectionHealth) {
-        case ConnectionHealth.NOT_STARTED:
-        case ConnectionHealth.CANCELLED:
-        case ConnectionHealth.FAILED:
-            connectButton = (
-                <Button
-                    variant={ButtonVariant.Primary}
-                    leadingVisual={PlugIcon}
-                    onClick={props.setupConnection}
-                    disabled={props.wrongPlatform}
-                >
-                    Connect
-                </Button>
-            );
-            break;
-        case ConnectionHealth.CONNECTING:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={props.cancelSetup}>Cancel</Button>;
-            break;
-        case ConnectionHealth.ONLINE:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={props.resetSetup}>Disconnect</Button>;
-            break;
+    if (props.connector.features.manualSetup) {
+        switch (props.connection?.connectionHealth) {
+            case ConnectionHealth.NOT_STARTED:
+            case ConnectionHealth.CANCELLED:
+            case ConnectionHealth.FAILED:
+                connectButton = (
+                    <Button
+                        variant={ButtonVariant.Primary}
+                        leadingVisual={PlugIcon}
+                        onClick={props.setupConnection}
+                        disabled={props.wrongPlatform || !props.setupConnection}
+                    >
+                        Connect
+                    </Button>
+                );
+                break;
+            case ConnectionHealth.CONNECTING:
+                connectButton = (
+                    <Button
+                        variant={ButtonVariant.Danger}
+                        leadingVisual={XIcon}
+                        onClick={props.cancelSetup}
+                        disabled={!props.cancelSetup}
+                    >
+                        Cancel
+                    </Button>
+                );
+                break;
+            case ConnectionHealth.ONLINE:
+                connectButton = (
+                    <Button
+                        variant={ButtonVariant.Danger}
+                        leadingVisual={XIcon}
+                        onClick={props.resetSetup}
+                        disabled={!props.resetSetup}
+                    >
+                        Disconnect
+                    </Button>
+                );
+                break;
+        }
     }
 
     // Helper to switch to the editor
@@ -91,9 +111,11 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         if (props.connection == null) return null;
         // Resolve the parameters
         const params = getConnectionParamsFromStateDetails(props.connection.details);
+        console.log(params);
         if (params == null) return null;
         // Encode the workbook
         const proto = encodeWorkbookAsProto(props.workbook, params);
+        console.log(params);
         // Construct the setup URLs
         const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
         const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
@@ -126,7 +148,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         <div className={style.container}>
             <div className={style.connector_header_container}>
                 <div className={style.platform_logo}>
-                    <svg width="28px" height="28px">
+                    <svg width="24px" height="28px">
                         <use xlinkHref={`${symbols}#${props.connector.icons.colored}`} />
                     </svg>
                 </div>
@@ -150,25 +172,27 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                     {connectButton}
                 </div>
             </div >
-            <div className={style.status_container}>
-                <div className={style.status_section}>
-                    <div className={style.status_section_layout}>
-                        <div className={style.status_bar}>
-                            <div className={style.status_indicator}>
-                                <StatusIndicator className={style.status_indicator_spinner} status={indicatorStatus} fill="black" />
-                            </div>
-                            <div className={style.status_text}>
-                                {statusText}
-                            </div>
-                            {connectionError && (
-                                <div className={style.status_error}>
-                                    {connectionError.toString()}
+            {props.connector.features.healthChecks && (
+                <div className={style.status_container}>
+                    <div className={style.status_section}>
+                        <div className={style.status_section_layout}>
+                            <div className={style.status_bar}>
+                                <div className={style.status_indicator}>
+                                    <StatusIndicator className={style.status_indicator_spinner} status={indicatorStatus} fill="black" />
                                 </div>
-                            )}
+                                <div className={style.status_text}>
+                                    {statusText}
+                                </div>
+                                {connectionError && (
+                                    <div className={style.status_error}>
+                                        {connectionError.toString()}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

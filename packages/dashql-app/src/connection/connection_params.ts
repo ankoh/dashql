@@ -68,26 +68,17 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
                 value: params.value,
             };
         case TRINO_CONNECTOR:
-            if (params.value.channelParams == null) {
-                return null;
-            }
             return {
                 type: TRINO_CONNECTOR,
                 value: params.value.channelParams,
             };
         case HYPER_GRPC_CONNECTOR: {
-            if (params.value.channelSetupParams == null) {
-                return null;
-            }
             return {
                 type: HYPER_GRPC_CONNECTOR,
                 value: params.value.channelSetupParams
             };
         }
         case SALESFORCE_DATA_CLOUD_CONNECTOR: {
-            if (params.value.setupParams == null) {
-                return null;
-            }
             return {
                 type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                 value: params.value.setupParams

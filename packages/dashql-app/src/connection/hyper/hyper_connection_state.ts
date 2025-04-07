@@ -37,7 +37,7 @@ export interface HyperGrpcConnectionDetails {
     /// The setup timings
     setupTimings: HyperGrpcSetupTimings;
     /// The setup params
-    channelSetupParams: HyperGrpcConnectionParams | null;
+    channelSetupParams: HyperGrpcConnectionParams;
     /// The setup error
     channelError: DetailedError | null;
     /// The hyper channel
@@ -58,7 +58,13 @@ export function createHyperGrpcConnectionStateDetails(): HyperGrpcConnectionDeta
             healthCheckFailedAt: null,
             healthCheckSucceededAt: null,
         },
-        channelSetupParams: null,
+        channelSetupParams: {
+            channelArgs: {
+                endpoint: ""
+            },
+            attachedDatabases: [],
+            gRPCMetadata: [],
+        },
         channelError: null,
         channel: null,
         healthCheckError: null,

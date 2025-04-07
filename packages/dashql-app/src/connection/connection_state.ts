@@ -38,6 +38,7 @@ import { reduceQueryAction } from './query_execution_state.js';
 import { createDemoConnectionState, createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
 import { createTrinoConnectionStateDetails, reduceTrinoConnectorState, TrinoConnectionStateDetails, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
+import { ConnectionHeader } from 'view/connection/connection_settings_header.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -323,8 +324,11 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
 }
 
 export function createServerlessConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], {
+    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], {
         type: SERVERLESS_CONNECTOR,
         value: {}
     });
+    state.connectionStatus = ConnectionStatus.CHANNEL_READY;
+    state.connectionHealth = ConnectionHealth.ONLINE;
+    return state;
 }

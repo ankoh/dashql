@@ -101,7 +101,7 @@ export interface SalesforceConnectionStateDetails {
     /// The setup timings
     setupTimings: SalesforceSetupTimings;
     /// The setup params
-    setupParams: SalesforceConnectionParams | null;
+    setupParams: SalesforceConnectionParams;
     /// The setup error
     setupError: DetailedError | null;
 
@@ -127,7 +127,12 @@ export interface SalesforceConnectionStateDetails {
 export function createSalesforceConnectionStateDetails(): SalesforceConnectionStateDetails {
     return {
         setupTimings: createSalesforceSetupTimings(),
-        setupParams: null,
+        setupParams: {
+            instanceUrl: "",
+            appConsumerKey: "",
+            appConsumerSecret: null,
+            login: null,
+        },
         setupError: null,
 
         pkceChallenge: null,
