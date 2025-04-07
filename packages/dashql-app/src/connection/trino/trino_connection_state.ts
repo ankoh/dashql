@@ -37,7 +37,7 @@ export interface TrinoConnectionStateDetails {
     /// The setup timings
     setupTimings: TrinoSetupTimings;
     /// The auth params
-    channelParams: TrinoConnectionParams | null;
+    channelParams: TrinoConnectionParams;
     /// The authentication error
     channelError: DetailedError | null;
     /// The channel
@@ -60,7 +60,18 @@ export function createTrinoConnectionStateDetails(): TrinoConnectionStateDetails
             healthCheckFailedAt: null,
             healthCheckSucceededAt: null,
         },
-        channelParams: null,
+        channelParams: {
+            channelArgs: {
+                endpoint: ""
+            },
+            authParams: {
+                username: "",
+                secret: "",
+            },
+            metadata: [],
+            catalogName: "",
+            schemaNames: [],
+        },
         channelError: null,
         channel: null,
         healthCheckError: null,

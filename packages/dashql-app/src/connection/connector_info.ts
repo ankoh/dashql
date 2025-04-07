@@ -60,6 +60,10 @@ export interface ConnectorPlatforms {
 }
 
 export interface ConnectorFeatures {
+    /// Can manually set up connector? (vs. static / preloaded)
+    manualSetup: boolean;
+    /// Has health checks?
+    healthChecks: boolean;
     /// User-editable schema script?
     schemaScript: boolean;
     /// Can execute queries?
@@ -82,6 +86,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         catalogResolver: CatalogResolver.SQL_SCRIPT,
         features: {
+            manualSetup: false,
+            healthChecks: false,
             schemaScript: true,
             executeQueryAction: false,
             refreshSchemaAction: false,
@@ -104,6 +110,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         catalogResolver: CatalogResolver.SQL_PG_ATTRIBUTE,
         features: {
+            manualSetup: true,
+            healthChecks: true,
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
@@ -126,6 +134,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         catalogResolver: CatalogResolver.SALESFORCE_METDATA_API,
         features: {
+            manualSetup: true,
+            healthChecks: true,
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
@@ -148,6 +158,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {
+            manualSetup: true,
+            healthChecks: true,
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
@@ -170,6 +182,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {
+            manualSetup: true,
+            healthChecks: true,
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
