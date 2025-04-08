@@ -63,20 +63,31 @@
     overflow: auto;
 }
 
-.connector_group {
+.connection_section {
     display: flex;
     flex-direction: column;
     row-gap: 4px;
     overflow: auto;
     padding: 4px;
 }
-.connector_group:not(:first-child) {
+.connection_section:not(:first-child) {
     border-top: 1px solid var(--border_color_primary);
 }
 
-.connector {
+.connector_group {
 }
-.connector_button {
+
+.connector_group_head {
+
+}
+.connector_group_head:hover > .connector_group_button {
+    background-color: var(--conns_tabs_background_hover);
+}
+.connector_group_active > .connector_group_button {
+    color: var(--conns_tabs_foreground_active);
+    background-color: var(--conns_tabs_background_active) !important;
+}
+.connector_group_button {
     -webkit-appearance: none;
     background: none;
 
@@ -94,21 +105,19 @@
 .connector_icon {
     color: var(--button_fg);
 }
-.connector_label {
+.connector_name {
     font-family: 'Roboto';
     font-size: 0.9rem;
     font-weight: 400;
     white-space: nowrap;
 }
-.connector:hover > .connector_button {
-    background-color: var(--conns_tabs_background_hover);
+
+.connection_group_entries {
+
 }
-.connector_disabled:hover > .connector_button {
-    background-color: transparent !important;
-}
-.connector_active > .connector_button {
-    color: var(--conns_tabs_foreground_active);
-    background-color: var(--conns_tabs_background_active) !important;
+
+.connection_group_entry {
+
 }
 
 
