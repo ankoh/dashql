@@ -71,7 +71,7 @@ features = [
 ]
 
 [dependencies.tokio]
-version = "^1.44.1"
+version = "^1.44.2"
 features = [
     "net",
     "rt",
