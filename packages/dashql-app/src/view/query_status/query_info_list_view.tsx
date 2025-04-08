@@ -134,7 +134,7 @@ function computeViewModel(props: QueryInfoListViewProps, connReg: ConnectionRegi
 }
 
 export function QueryInfoListView(props: QueryInfoListViewProps) {
-    const connReg = useConnectionRegistry();
+    const [connReg, _setConnReg] = useConnectionRegistry();
 
     /// We maintain state snapshots to detect changes
     const stateSnapshots = React.useRef<StateSnapshot>({

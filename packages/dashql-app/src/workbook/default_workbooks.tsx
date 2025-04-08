@@ -10,7 +10,7 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
     const setupServerlessWorkbook = useServerlessWorkbookSetup();
     const setupDemoWorkbook = useDemoWorkbookSetup();
 
-    const connReg = useConnectionRegistry();
+    const [connReg, _setConnReg] = useConnectionRegistry();
     const awaitConnReg = useAwaitStateChange(connReg);
 
     React.useEffect(() => {
@@ -49,25 +49,3 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
 
     return props.children;
 }
-
-//    // Effect to switch to default workbook after setup
-//    React.useEffect(() => {
-//        const selectDefaultWorkbook = async () => {
-//            // Await the setup of the static workbooks
-//            const defaultWorkbooks = await setupDefaultWorkbook;
-//            // We might have received a workbook setup link in the meantime.
-//            // In that case, don't default-select the serverless workbook
-//            if (abortDefaultWorkbookSwitch.current.signal.aborted) {
-//                return;
-//            }
-//            // Be extra careful not to override a selected workbook
-//            const d = isDebugBuild() ? defaultWorkbooks.demo : defaultWorkbooks.serverless;
-//            selectWorkbook(s => (s == null) ? d : s);
-//            // Skip the setup
-//            setState({
-//                decision: AppSetupDecision.SETUP_DONE,
-//                args: null,
-//            });
-//        };
-//        selectDefaultWorkbook();
-//    }, []);

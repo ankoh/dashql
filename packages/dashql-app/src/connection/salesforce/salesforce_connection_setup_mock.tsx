@@ -10,6 +10,8 @@ import {
     REQUESTING_CORE_AUTH_TOKEN,
     REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
     SalesforceConnectionStateAction,
+    SF_CHANNEL_READY,
+    SF_CHANNEL_SETUP_STARTED,
 } from './salesforce_connection_state.js';
 import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { sleep } from '../../utils/sleep.js';
@@ -19,9 +21,8 @@ import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './sales
 import { SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectionParams } from './salesforce_connection_params.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { RESET } from '../connection_state.js';
+import { HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_client_mock.js';
-import { CHANNEL_READY, CHANNEL_SETUP_STARTED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 
 
@@ -101,7 +102,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
             gRPCMetadata: []
         };
         updateState({
-            type: CHANNEL_SETUP_STARTED,
+            type: SF_CHANNEL_SETUP_STARTED,
             value: connParams,
         });
         abortSignal.throwIfAborted()
@@ -112,7 +113,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 
         // Mark the channel as ready
         updateState({
-            type: CHANNEL_READY,
+            type: SF_CHANNEL_READY,
             value: sfChannel,
         });
         abortSignal.throwIfAborted();

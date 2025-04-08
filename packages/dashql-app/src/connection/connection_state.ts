@@ -2,19 +2,8 @@ import * as core from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 
-import {
-    createHyperGrpcConnectionState,
-    createHyperGrpcConnectionStateDetails,
-    HyperGrpcConnectionDetails,
-    HyperGrpcConnectorAction,
-    reduceHyperGrpcConnectorState,
-} from './hyper/hyper_connection_state.js';
-import {
-    reduceSalesforceConnectionState,
-    SalesforceConnectionStateDetails,
-    SalesforceConnectionStateAction,
-    createSalesforceConnectionStateDetails,
-} from './salesforce/salesforce_connection_state.js';
+import { HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
+import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
@@ -35,10 +24,9 @@ import {
 } from './query_execution_state.js';
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { createDemoConnectionState, createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
-import { createTrinoConnectionStateDetails, reduceTrinoConnectorState, TrinoConnectionStateDetails, TrinoConnectorAction } from './trino/trino_connection_state.js';
+import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
+import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
-import { ConnectionHeader } from 'view/connection/connection_settings_header.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -148,6 +136,11 @@ export const QUERY_SUCCEEDED = Symbol('QUERY_SUCCEEDED');
 export const QUERY_FAILED = Symbol('QUERY_FAILED');
 export const QUERY_CANCELLED = Symbol('QUERY_CANCELLED');
 
+export const HEALTH_CHECK_STARTED = Symbol('HEALTH_CHECK_STARTED');
+export const HEALTH_CHECK_CANCELLED = Symbol('HEALTH_CHECK_CANCELLED');
+export const HEALTH_CHECK_SUCCEEDED = Symbol('HEALTH_CHECK_SUCCEEDED');
+export const HEALTH_CHECK_FAILED = Symbol('HEALTH_CHECK_FAILED');
+
 export type CatalogAction =
     | VariantKind<typeof UPDATE_CATALOG, [number, CatalogUpdateTaskState]>
     | VariantKind<typeof CATALOG_UPDATE_REGISTER_QUERY, [number, number]>
@@ -177,6 +170,7 @@ export type ConnectionStateAction =
     | CatalogAction
     | QueryExecutionAction
     | HyperGrpcConnectorAction
+    | DemoConnectorAction
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
     ;
@@ -238,8 +232,10 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case HYPER_GRPC_CONNECTOR:
                     details = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction);
                     break;
-                case SERVERLESS_CONNECTOR:
                 case DEMO_CONNECTOR:
+                    details = reduceDemoConnectorState(cleaned, action as DemoConnectorAction);
+                    break;
+                case SERVERLESS_CONNECTOR:
                     break;
             }
 
@@ -259,8 +255,10 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     next = reduceTrinoConnectorState(state, action as TrinoConnectorAction);
                     break;
-                case SERVERLESS_CONNECTOR:
                 case DEMO_CONNECTOR:
+                    next = reduceDemoConnectorState(state, action as DemoConnectorAction);
+                    break;
+                case SERVERLESS_CONNECTOR:
                     break;
             }
             if (next == null) {

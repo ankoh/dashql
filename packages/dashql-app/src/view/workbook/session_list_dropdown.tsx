@@ -22,7 +22,7 @@ export function WorkbookListDropdown(props: { className?: string; short: boolean
     const [workbookState, _modifyWorkbookState] = useCurrentWorkbookState();
     const selectWorkbook = useCurrentWorkbookSelector();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
-    const connRegistry = useConnectionRegistry();
+    const [connRegistry, _setConnRegistry] = useConnectionRegistry();
 
     const onWorkbookClick = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();

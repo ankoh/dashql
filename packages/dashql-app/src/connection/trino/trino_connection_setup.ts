@@ -1,17 +1,7 @@
-import {
-    CHANNEL_READY,
-    CHANNEL_SETUP_CANCELLED,
-    CHANNEL_SETUP_FAILED,
-    CHANNEL_SETUP_STARTED,
-    HEALTH_CHECK_CANCELLED,
-    HEALTH_CHECK_FAILED,
-    HEALTH_CHECK_STARTED,
-    HEALTH_CHECK_SUCCEEDED,
-    TrinoConnectorAction,
-} from './trino_connection_state.js';
+import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_STARTED, TrinoConnectorAction } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/index.js';
 import { Logger } from '../../platform/logger.js';
-import { RESET } from '../connection_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
 import { TrinoConnectionParams } from './trino_connection_params.js';
@@ -25,7 +15,7 @@ export async function setupTrinoConnection(modifyState: Dispatch<TrinoConnectorA
     try {
         // Start the channel setup
         modifyState({
-            type: CHANNEL_SETUP_STARTED,
+            type: TRINO_CHANNEL_SETUP_STARTED,
             value: params,
         });
         abortSignal.throwIfAborted();
@@ -39,7 +29,7 @@ export async function setupTrinoConnection(modifyState: Dispatch<TrinoConnectorA
 
         // Mark the channel as ready
         modifyState({
-            type: CHANNEL_READY,
+            type: TRINO_CHANNEL_READY,
             value: channel,
         });
         abortSignal.throwIfAborted();
@@ -49,13 +39,13 @@ export async function setupTrinoConnection(modifyState: Dispatch<TrinoConnectorA
         if (error.name === 'AbortError') {
             logger.warn("setup was aborted", {}, LOG_CTX);
             modifyState({
-                type: CHANNEL_SETUP_CANCELLED,
+                type: TRINO_CHANNEL_SETUP_CANCELLED,
                 value: error.message,
             });
         } else {
             logger.error("setup failed", { "message": error.message, "details": error.details }, LOG_CTX);
             modifyState({
-                type: CHANNEL_SETUP_FAILED,
+                type: TRINO_CHANNEL_SETUP_FAILED,
                 value: error,
             });
         }

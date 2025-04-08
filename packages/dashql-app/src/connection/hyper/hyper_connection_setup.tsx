@@ -1,14 +1,10 @@
 import * as React from 'react';
 
 import {
-    CHANNEL_READY,
-    CHANNEL_SETUP_CANCELLED,
-    CHANNEL_SETUP_FAILED,
-    CHANNEL_SETUP_STARTED,
-    HEALTH_CHECK_CANCELLED,
-    HEALTH_CHECK_FAILED,
-    HEALTH_CHECK_STARTED,
-    HEALTH_CHECK_SUCCEEDED,
+    HYPER_CHANNEL_READY,
+    HYPER_CHANNEL_SETUP_CANCELLED,
+    HYPER_CHANNEL_SETUP_FAILED,
+    HYPER_CHANNEL_SETUP_STARTED,
     HyperGrpcConnectorAction,
 } from './hyper_connection_state.js';
 import { Logger } from '../../platform/logger.js';
@@ -24,7 +20,7 @@ import {
 import { useLogger } from '../../platform/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
 import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
-import { RESET } from '../connection_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -33,7 +29,7 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
     try {
         // Start the channel setup
         updateState({
-            type: CHANNEL_SETUP_STARTED,
+            type: HYPER_CHANNEL_SETUP_STARTED,
             value: params,
         });
         abortSignal.throwIfAborted()
@@ -63,7 +59,7 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
 
         // Mark the channel as ready
         updateState({
-            type: CHANNEL_READY,
+            type: HYPER_CHANNEL_READY,
             value: channel,
         });
         abortSignal.throwIfAborted();
@@ -72,13 +68,13 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
         if (error.name === 'AbortError') {
             logger.warn("setup was aborted", {}, LOG_CTX);
             updateState({
-                type: CHANNEL_SETUP_CANCELLED,
+                type: HYPER_CHANNEL_SETUP_CANCELLED,
                 value: error,
             });
         } else if (error instanceof Error) {
             logger.error("setup failed", { "error": error?.message }, LOG_CTX);
             updateState({
-                type: CHANNEL_SETUP_FAILED,
+                type: HYPER_CHANNEL_SETUP_FAILED,
                 value: error,
             });
         }

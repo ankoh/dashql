@@ -15,21 +15,15 @@ import {
     ConnectionStateWithoutId,
     ConnectionStatus,
     createConnectionState,
-    RESET,
-} from '../connection_state.js';
-import {
-    CHANNEL_READY,
-    CHANNEL_SETUP_CANCELLED,
-    CHANNEL_SETUP_FAILED,
-    CHANNEL_SETUP_STARTED,
     HEALTH_CHECK_CANCELLED,
     HEALTH_CHECK_FAILED,
     HEALTH_CHECK_STARTED,
     HEALTH_CHECK_SUCCEEDED,
-    HyperGrpcSetupTimings
-} from '../hyper/hyper_connection_state.js';
+    RESET,
+} from '../connection_state.js';
+import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
-import { DetailedError } from 'utils/error.js';
+import { DetailedError } from '../../utils/error.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
     /// The time when the auth started
@@ -124,10 +118,10 @@ export interface SalesforceConnectionStateDetails {
     healthCheckError: DetailedError | null;
 }
 
-export function createSalesforceConnectionStateDetails(): SalesforceConnectionStateDetails {
+export function createSalesforceConnectionStateDetails(params?: SalesforceConnectionParams): SalesforceConnectionStateDetails {
     return {
         setupTimings: createSalesforceSetupTimings(),
-        setupParams: {
+        setupParams: params ?? {
             instanceUrl: "",
             appConsumerKey: "",
             appConsumerSecret: null,
@@ -166,6 +160,11 @@ export const AUTH_CANCELLED = Symbol('AUTH_CANCELLED');
 export const AUTH_FAILED = Symbol('AUTH_FAILED');
 export const AUTH_STARTED = Symbol('AUTH_STARTED');
 
+export const SF_CHANNEL_SETUP_CANCELLED = Symbol('SF_CHANNEL_SETUP_CANCELLED');
+export const SF_CHANNEL_SETUP_FAILED = Symbol('SF_CHANNEL_SETUP_FAILED');
+export const SF_CHANNEL_SETUP_STARTED = Symbol('SF_CHANNEL_SETUP_STARTED');
+export const SF_CHANNEL_READY = Symbol('SF_CHANNEL_READY');
+
 export const GENERATING_PKCE_CHALLENGE = Symbol('GENERATING_PKCE_CHALLENGE');
 export const GENERATED_PKCE_CHALLENGE = Symbol('GENERATED_PKCE_CHALLENGE');
 export const OAUTH_NATIVE_LINK_OPENED = Symbol('OAUTH_NATIVE_LINK_OPENED');
@@ -181,10 +180,6 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof AUTH_CANCELLED, DetailedError>
     | VariantKind<typeof AUTH_FAILED, DetailedError>
     | VariantKind<typeof AUTH_STARTED, SalesforceConnectionParams>
-    | VariantKind<typeof CHANNEL_READY, SalesforceDatabaseChannel>
-    | VariantKind<typeof CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof CHANNEL_SETUP_FAILED, DetailedError>
-    | VariantKind<typeof CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
     | VariantKind<typeof GENERATED_PKCE_CHALLENGE, PKCEChallenge>
     | VariantKind<typeof GENERATING_PKCE_CHALLENGE, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
@@ -199,6 +194,10 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, SalesforceDataCloudAccessToken>
     | VariantKind<typeof REQUESTING_CORE_AUTH_TOKEN, null>
     | VariantKind<typeof REQUESTING_DATA_CLOUD_ACCESS_TOKEN, null>
+    | VariantKind<typeof SF_CHANNEL_READY, SalesforceDatabaseChannel>
+    | VariantKind<typeof SF_CHANNEL_SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof SF_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof SF_CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
     | VariantKind<typeof RESET, null>
     ;
 
@@ -470,7 +469,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 }
             };
             break;
-        case CHANNEL_SETUP_STARTED:
+        case SF_CHANNEL_SETUP_STARTED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
@@ -490,7 +489,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 },
             };
             break;
-        case CHANNEL_SETUP_CANCELLED:
+        case SF_CHANNEL_SETUP_CANCELLED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_CANCELLED,
@@ -509,7 +508,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 },
             };
             break;
-        case CHANNEL_SETUP_FAILED:
+        case SF_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_FAILED,
@@ -528,7 +527,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 },
             };
             break;
-        case CHANNEL_READY:
+        case SF_CHANNEL_READY:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
