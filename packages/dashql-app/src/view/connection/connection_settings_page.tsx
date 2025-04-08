@@ -43,6 +43,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     width={24}
                     height={24}
                     prng={connSig.asSfc32()}
+                    layers={2}
                 />
             </div>
         </div>
