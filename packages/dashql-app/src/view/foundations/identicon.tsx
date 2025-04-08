@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cyrb128, sfc32T } from '../../utils/prng.js';
+import { NumberGenerator } from '../../utils/prng.js';
 
 enum ShapeType {
     Rectangle = 0,
@@ -90,13 +90,12 @@ const SHAPE_FILLS: string[] = [
 export interface IdenticonProps {
     width?: number;
     height?: number;
-    values: string[];
+    prng: NumberGenerator;
     style?: React.CSSProperties;
     className?: string;
 }
 
 export function Identicon(props: IdenticonProps) {
-    const prng = sfc32T(cyrb128(props.values));
     return (
         <svg
             className={props.className}
@@ -107,7 +106,7 @@ export function Identicon(props: IdenticonProps) {
         >
             <g transform="matrix(1.2 0 0 1.2 -10 -10)">
                 <Component
-                    value={prng()}
+                    value={props.prng()}
                     width={100}
                     height={100}
                     shapes={[
@@ -127,7 +126,7 @@ export function Identicon(props: IdenticonProps) {
             </g>
             <g transform="matrix(.8 0 0 .8 10 10)">
                 <Component
-                    value={prng()}
+                    value={props.prng()}
                     width={100}
                     height={100}
                     shapes={[
@@ -147,7 +146,7 @@ export function Identicon(props: IdenticonProps) {
             </g>
             <g transform="matrix(.4 0 0 .4 30 30)">
                 <Component
-                    value={prng()}
+                    value={props.prng()}
                     width={100}
                     height={100}
                     shapes={[
