@@ -17,6 +17,7 @@ import {
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
+import { Cyrb128 } from "utils/prng.js";
 
 export interface TrinoSetupTimings {
     /// The time when the channel setup started
@@ -96,6 +97,12 @@ export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoC
         case TRINO_CONNECTOR: return state.details.value;
         default: return null;
     }
+}
+
+export function computeTrinoConnectionSignature(details: TrinoConnectionStateDetails, hasher: Cyrb128) {
+    hasher.add(details.channelParams.channelArgs.endpoint);
+    hasher.add(details.channelParams.catalogName);
+    hasher.addN(details.channelParams.schemaNames);
 }
 
 export const TRINO_CHANNEL_SETUP_CANCELLED = Symbol('TRINO_CHANNEL_SETUP_CANCELLED');

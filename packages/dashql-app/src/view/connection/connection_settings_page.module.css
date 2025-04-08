@@ -118,7 +118,6 @@
 
 .connection_group_entry {
     display: grid;
-    grid-template-columns: 24px max-content 1fr;
 }
 .connection_group_entry_status {
     width: 8px;
@@ -127,6 +126,11 @@
     border-radius: 50%;
 }
 .connection_group_entry_name {
+}
+.connection_group_entry_icon {
+    border: 1px solid var(--border_color_primary);
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 

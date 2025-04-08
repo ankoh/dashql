@@ -17,6 +17,7 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
+import { Cyrb128 } from "utils/prng.js";
 
 export interface HyperGrpcSetupTimings {
     /// The time when the channel setup started
@@ -88,6 +89,10 @@ export function getHyperGrpcConnectionDetails(state: ConnectionState | null): Hy
         case HYPER_GRPC_CONNECTOR: return state.details.value;
         default: return null;
     }
+}
+
+export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Cyrb128) {
+    hasher.add(details.channelSetupParams.channelArgs.endpoint);
 }
 
 export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');

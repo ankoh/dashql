@@ -2,8 +2,8 @@ import * as core from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 
-import { HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
-import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
+import { computeHyperGrpcConnectionSignature, HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
+import { SalesforceConnectionStateAction, computeSalesforceConnectionSignature, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
@@ -23,9 +23,10 @@ import {
     QueryExecutionState,
 } from './query_execution_state.js';
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
+import { Cyrb128 } from 'utils/prng.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
-import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
+import { computeDemoConnectionSignature, DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
+import { computeTrinoConnectionSignature, reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 
 export interface CatalogUpdates {
@@ -329,4 +330,20 @@ export function createServerlessConnectionState(dql: dashql.DashQL): ConnectionS
     state.connectionStatus = ConnectionStatus.CHANNEL_READY;
     state.connectionHealth = ConnectionHealth.ONLINE;
     return state;
+}
+
+export function computeConnectionSignature(state: ConnectionState, hasher: Cyrb128) {
+    switch (state.details.type) {
+        case DEMO_CONNECTOR:
+            return computeDemoConnectionSignature(state.details.value, hasher);
+        case TRINO_CONNECTOR:
+            return computeTrinoConnectionSignature(state.details.value, hasher);
+        case HYPER_GRPC_CONNECTOR:
+            return computeHyperGrpcConnectionSignature(state.details.value, hasher);
+        case SALESFORCE_DATA_CLOUD_CONNECTOR:
+            return computeSalesforceConnectionSignature(state.details.value, hasher);
+        case SERVERLESS_CONNECTOR:
+            // Do nothing for serverless connections
+            return;
+    }
 }

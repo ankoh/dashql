@@ -14,6 +14,9 @@ import { useConnectionRegistry, useConnectionState } from '../../connection/conn
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
+import { computeConnectionSignature } from '../../connection/connection_state.js';
+import { Cyrb128 } from '../../utils/prng.js';
+import { Identicon } from '../../view/foundations/identicon.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
@@ -23,11 +26,24 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
 
+    // Compute the connection signature
+    const connSig = React.useMemo(() => {
+        const seed = new Cyrb128();
+        if (connState != null) {
+            computeConnectionSignature(connState, seed);
+        }
+        return seed;
+    }, [connState?.details]);
+
     return (
         <div className={styles.connection_group_entry}>
-            <div className={styles.connection_group_entry_status} />
             <div className={styles.connection_group_entry_name}>
-                {connState?.connectionId}
+                <Identicon
+                    className={styles.connection_group_entry_icon}
+                    width={24}
+                    height={24}
+                    prng={connSig.asSfc32()}
+                />
             </div>
         </div>
     );
