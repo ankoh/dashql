@@ -3,9 +3,11 @@ import * as styles from './ui_internals_page.module.css';
 
 import { TextInput } from '../foundations/text_input.js';
 import { Identicon } from '../../view/foundations/identicon.js';
+import { cyrb128, sfc32T } from '../../utils/prng.js';
 
 export function IdentInternalsPage(): React.ReactElement {
     const [seed, setSeed] = React.useState<string>();
+    const prng = sfc32T(cyrb128([seed ?? ""]));
 
     return (
         <div className={styles.root}>
@@ -22,7 +24,7 @@ export function IdentInternalsPage(): React.ReactElement {
                         <Identicon
                             width={32}
                             height={32}
-                            values={[seed ?? ""]}
+                            prng={prng}
                             style={{
                                 background: "hsl(210deg, 12%, 96%)",
                                 borderRadius: "8px",
