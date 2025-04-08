@@ -38,7 +38,9 @@ export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWi
     return state;
 }
 
-export function computeDemoConnectionSignature(_details: DemoConnectionStateDetails, _hasher: Cyrb128) { }
+export function computeDemoConnectionSignature(_details: DemoConnectionStateDetails, hasher: Cyrb128) {
+    hasher.add("Demo");
+}
 
 export const DEMO_CHANNEL_READY = Symbol('DEMO_CHANNEL_READY');
 export const DEMO_CHANNEL_SETUP_FAILED = Symbol('DEMO_CHANNEL_SETUP_FAILED');
