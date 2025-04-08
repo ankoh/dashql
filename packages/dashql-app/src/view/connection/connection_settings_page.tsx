@@ -24,7 +24,7 @@ interface ConnectionGroupProps {
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     const info = CONNECTOR_INFOS[props.connector as number];
     const defaultConnections = useDefaultConnections();
-    const defaultConnId = defaultConnections != null ? defaultConnections[props.connector] : null;
+    const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
     const groupSelected = props.selected != null && props.selected[0] == props.connector;
     return (
         <div
@@ -51,7 +51,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
 interface PageProps { }
 
 export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) => {
-    const connRegistry = useConnectionRegistry();
+    const [connRegistry, _setConnReg] = useConnectionRegistry();
     const [currentWorkbook, _] = useCurrentWorkbookState();
     const [focusedConnection, setFocusedConnection] = React.useState<[ConnectorType, number] | null>(null);
 

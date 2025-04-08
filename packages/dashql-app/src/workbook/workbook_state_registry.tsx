@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
 import { Dispatch } from '../utils/variant.js';
+import { ConnectorType } from '../connection/connector_info.js';
 
 /// The workbook registry.
 ///
@@ -13,6 +14,8 @@ interface WorkbookRegistry {
     workbookMap: Map<number, WorkbookState>;
     /// The index to find workbooks associated with a connection id
     workbooksByConnection: Map<number, number[]>;
+    /// The index to find workbooks associated with a connection type
+    workbooksByConnectionType: Map<ConnectorType, number[]>;
 }
 
 export type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
@@ -31,7 +34,8 @@ type Props = {
 export const WorkbookStateRegistry: React.FC<Props> = (props: Props) => {
     const reg = React.useState<WorkbookRegistry>(() => ({
         workbookMap: new Map(),
-        workbooksByConnection: new Map()
+        workbooksByConnection: new Map(),
+        workbooksByConnectionType: new Map(),
     }));
     return (
         <WORKBOOK_REGISTRY_CTX.Provider value={reg}>
@@ -55,6 +59,12 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
                 sameConnection.push(workbookId);
             } else {
                 reg.workbooksByConnection.set(state.connectionId, [workbookId]);
+            }
+            const sameType = reg.workbooksByConnectionType.get(state.connectorInfo.connectorType);
+            if (sameType) {
+                sameType.push(workbookId);
+            } else {
+                reg.workbooksByConnectionType.set(state.connectorInfo.connectorType, [workbookId]);
             }
             reg.workbookMap.set(workbookId, workbook);
             return { ...reg };
@@ -88,10 +98,14 @@ export function useWorkbookState(id: number | null): [WorkbookState | null, Modi
                     reg.workbookMap.delete(id)
                     let sameConnection = reg.workbooksByConnection.get(prev.connectionId) ?? [];
                     sameConnection = sameConnection.filter(c => c != prev.workbookId);
+                    let sameType = reg.workbooksByConnectionType.get(prev.connectorInfo.connectorType) ?? [];
+                    sameType = sameType.filter(c => c != prev.workbookId);
                     if (sameConnection.length == 0) {
                         reg.workbooksByConnection.delete(prev.connectionId);
+                        reg.workbooksByConnectionType.delete(prev.connectorInfo.connectorType);
                     } else {
                         reg.workbooksByConnection.set(prev.connectionId, sameConnection);
+                        reg.workbooksByConnectionType.set(prev.connectorInfo.connectorType, sameType);
                     }
                     return { ...reg }
                 } else {

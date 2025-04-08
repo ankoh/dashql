@@ -10,6 +10,10 @@ import {
     ConnectionStateWithoutId,
     createConnectionState,
     RESET,
+    HEALTH_CHECK_CANCELLED,
+    HEALTH_CHECK_FAILED,
+    HEALTH_CHECK_STARTED,
+    HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
@@ -48,7 +52,7 @@ export interface TrinoConnectionStateDetails {
     schemaResolutionError: DetailedError | null;
 }
 
-export function createTrinoConnectionStateDetails(): TrinoConnectionStateDetails {
+export function createTrinoConnectionStateDetails(params?: TrinoConnectionParams): TrinoConnectionStateDetails {
     return {
         setupTimings: {
             channelSetupStartedAt: null,
@@ -60,7 +64,7 @@ export function createTrinoConnectionStateDetails(): TrinoConnectionStateDetails
             healthCheckFailedAt: null,
             healthCheckSucceededAt: null,
         },
-        channelParams: {
+        channelParams: params ?? {
             channelArgs: {
                 endpoint: ""
             },
@@ -94,21 +98,17 @@ export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoC
     }
 }
 
-export const CHANNEL_SETUP_CANCELLED = Symbol('CHANNEL_SETUP_CANCELLED');
-export const CHANNEL_SETUP_FAILED = Symbol('CHANNEL_SETUP_FAILED');
-export const CHANNEL_SETUP_STARTED = Symbol('CHANNEL_SETUP_STARTED');
-export const CHANNEL_READY = Symbol('CHANNEL_READY');
-export const HEALTH_CHECK_CANCELLED = Symbol('CHANNEL_SETUP_CANCELLED');
-export const HEALTH_CHECK_FAILED = Symbol('CHANNEL_SETUP_FAILED');
-export const HEALTH_CHECK_STARTED = Symbol('CHANNEL_SETUP_STARTED');
-export const HEALTH_CHECK_SUCCEEDED = Symbol('CHANNEL_READY');
+export const TRINO_CHANNEL_SETUP_CANCELLED = Symbol('TRINO_CHANNEL_SETUP_CANCELLED');
+export const TRINO_CHANNEL_SETUP_FAILED = Symbol('TRINO_CHANNEL_SETUP_FAILED');
+export const TRINO_CHANNEL_SETUP_STARTED = Symbol('TRINO_CHANNEL_SETUP_STARTED');
+export const TRINO_CHANNEL_READY = Symbol('TRINO_CHANNEL_READY');
 
 export type TrinoConnectorAction =
     | VariantKind<typeof RESET, null>
-    | VariantKind<typeof CHANNEL_SETUP_STARTED, TrinoConnectionParams>
-    | VariantKind<typeof CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof CHANNEL_SETUP_FAILED, DetailedError>
-    | VariantKind<typeof CHANNEL_READY, TrinoChannelInterface>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_STARTED, TrinoConnectionParams>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof TRINO_CHANNEL_READY, TrinoChannelInterface>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, DetailedError>
     | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
@@ -148,7 +148,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 },
             };
             break;
-        case CHANNEL_SETUP_CANCELLED:
+        case TRINO_CHANNEL_SETUP_CANCELLED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_CANCELLED,
@@ -167,7 +167,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 },
             };
             break;
-        case CHANNEL_SETUP_FAILED:
+        case TRINO_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_FAILED,
@@ -186,7 +186,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 },
             };
             break;
-        case CHANNEL_SETUP_STARTED:
+        case TRINO_CHANNEL_SETUP_STARTED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
@@ -214,7 +214,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 },
             };
             break;
-        case CHANNEL_READY:
+        case TRINO_CHANNEL_READY:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,

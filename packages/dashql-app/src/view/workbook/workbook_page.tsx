@@ -5,7 +5,7 @@ import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
 import { ButtonGroup, IconButton } from '@primer/react';
-import { DownloadIcon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';

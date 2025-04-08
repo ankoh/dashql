@@ -23,7 +23,7 @@ export function useAnyConnectionWorkbook(connectionId: number | null): WorkbookS
 }
 
 export function useConnectionWorkbookSelector(): SelectConnectionWorkbook {
-    const connectionRegistry = useConnectionRegistry();
+    const [connRegistry, _setConnRegistry] = useConnectionRegistry();
     const workbookRegistry = useWorkbookRegistry();
     const selectCurrentWorkbook = useCurrentWorkbookSelector();
     const setupWorkbook = useWorkbookSetup();
@@ -36,5 +36,5 @@ export function useConnectionWorkbookSelector(): SelectConnectionWorkbook {
             const workbook = setupWorkbook(conn);
             selectCurrentWorkbook(workbook.workbookId);
         }
-    }, [connectionRegistry, workbookRegistry, selectCurrentWorkbook]);
+    }, [connRegistry, workbookRegistry, selectCurrentWorkbook]);
 }

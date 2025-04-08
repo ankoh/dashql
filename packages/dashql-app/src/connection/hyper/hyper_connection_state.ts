@@ -11,6 +11,10 @@ import {
     ConnectionStateWithoutId,
     createConnectionState,
     RESET,
+    HEALTH_CHECK_STARTED,
+    HEALTH_CHECK_CANCELLED,
+    HEALTH_CHECK_FAILED,
+    HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
 
@@ -46,7 +50,7 @@ export interface HyperGrpcConnectionDetails {
     healthCheckError: DetailedError | null;
 }
 
-export function createHyperGrpcConnectionStateDetails(): HyperGrpcConnectionDetails {
+export function createHyperGrpcConnectionStateDetails(params?: HyperGrpcConnectionParams): HyperGrpcConnectionDetails {
     return {
         setupTimings: {
             channelSetupStartedAt: null,
@@ -58,7 +62,7 @@ export function createHyperGrpcConnectionStateDetails(): HyperGrpcConnectionDeta
             healthCheckFailedAt: null,
             healthCheckSucceededAt: null,
         },
-        channelSetupParams: {
+        channelSetupParams: params ?? {
             channelArgs: {
                 endpoint: ""
             },
@@ -86,21 +90,17 @@ export function getHyperGrpcConnectionDetails(state: ConnectionState | null): Hy
     }
 }
 
-export const CHANNEL_SETUP_CANCELLED = Symbol('CHANNEL_SETUP_CANCELLED');
-export const CHANNEL_SETUP_FAILED = Symbol('CHANNEL_SETUP_FAILED');
-export const CHANNEL_SETUP_STARTED = Symbol('CHANNEL_SETUP_STARTED');
-export const CHANNEL_READY = Symbol('CHANNEL_READY');
-export const HEALTH_CHECK_STARTED = Symbol('HEALTH_CHECK_STARTED');
-export const HEALTH_CHECK_CANCELLED = Symbol('HEALTH_CHECK_CANCELLED');
-export const HEALTH_CHECK_SUCCEEDED = Symbol('HEALTH_CHECK_SUCCEEDED');
-export const HEALTH_CHECK_FAILED = Symbol('HEALTH_CHECK_FAILED');
+export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');
+export const HYPER_CHANNEL_SETUP_FAILED = Symbol('HYPER_CHANNEL_SETUP_FAILED');
+export const HYPER_CHANNEL_SETUP_STARTED = Symbol('HYPER_CHANNEL_SETUP_STARTED');
+export const HYPER_CHANNEL_READY = Symbol('HYPER_CHANNEL_READY');
 
 export type HyperGrpcConnectorAction =
     | VariantKind<typeof RESET, null>
-    | VariantKind<typeof CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
-    | VariantKind<typeof CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof CHANNEL_SETUP_FAILED, DetailedError>
-    | VariantKind<typeof CHANNEL_READY, HyperDatabaseChannel>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_READY, HyperDatabaseChannel>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
     | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
@@ -139,7 +139,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 },
             };
             break;
-        case CHANNEL_SETUP_CANCELLED:
+        case HYPER_CHANNEL_SETUP_CANCELLED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_CANCELLED,
@@ -158,7 +158,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 },
             };
             break;
-        case CHANNEL_SETUP_FAILED:
+        case HYPER_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_FAILED,
@@ -177,7 +177,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 },
             };
             break;
-        case CHANNEL_SETUP_STARTED:
+        case HYPER_CHANNEL_SETUP_STARTED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
@@ -204,7 +204,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 },
             };
             break;
-        case CHANNEL_READY:
+        case HYPER_CHANNEL_READY:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,

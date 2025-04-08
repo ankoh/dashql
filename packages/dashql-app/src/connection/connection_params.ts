@@ -5,7 +5,7 @@ import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK }
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { DemoConnectionParams } from './demo/demo_connection_state.js';
+import { createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
 import { VariantKind } from '../utils/variant.js';
 import { WorkbookExportSettings } from 'workbook/workbook_export_settings.js';
 import { createConnectionMetrics } from './connection_statistics.js';
@@ -45,13 +45,13 @@ export function getConnectionStateDetailsFromParams(params: ConnectionParamsVari
         case SERVERLESS_CONNECTOR:
             return { type: SERVERLESS_CONNECTOR, value: {} };
         case DEMO_CONNECTOR:
-            return { type: DEMO_CONNECTOR, value: params.value };
+            return { type: DEMO_CONNECTOR, value: createDemoConnectionStateDetails(params.value) };
         case TRINO_CONNECTOR:
-            return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails() };
+            return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.value) };
         case HYPER_GRPC_CONNECTOR:
-            return { type: HYPER_GRPC_CONNECTOR, value: createHyperGrpcConnectionStateDetails() };
+            return { type: HYPER_GRPC_CONNECTOR, value: createHyperGrpcConnectionStateDetails(params.value) };
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails() };
+            return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.value) };
     }
 }
 
@@ -65,7 +65,7 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
         case DEMO_CONNECTOR:
             return {
                 type: DEMO_CONNECTOR,
-                value: params.value,
+                value: params.value.channelParams,
             };
         case TRINO_CONNECTOR:
             return {
@@ -86,36 +86,6 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
         }
     }
     return null;
-}
-
-export function createConnectionStateDetailsFromParams(params: ConnectionParamsVariant): ConnectionStateDetailsVariant {
-    switch (params.type) {
-        case SERVERLESS_CONNECTOR:
-            return {
-                type: SERVERLESS_CONNECTOR,
-                value: params.value
-            };
-        case DEMO_CONNECTOR:
-            return {
-                type: DEMO_CONNECTOR,
-                value: params.value
-            }
-        case TRINO_CONNECTOR:
-            return {
-                type: TRINO_CONNECTOR,
-                value: createTrinoConnectionStateDetails()
-            };
-        case HYPER_GRPC_CONNECTOR:
-            return {
-                type: HYPER_GRPC_CONNECTOR,
-                value: createHyperGrpcConnectionStateDetails(),
-            };
-        case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return {
-                type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                value: createSalesforceConnectionStateDetails(),
-            };
-    }
 }
 
 export function encodeConnectionParamsAsProto(params: ConnectionParamsVariant, settings: WorkbookExportSettings | null = null): pb.dashql.connection.ConnectionParams {
