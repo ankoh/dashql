@@ -49,6 +49,15 @@ export class Cyrb128 {
         return (new Cyrb128()).add(str);
     }
 
+    public clone(): Cyrb128 {
+        const c = new Cyrb128();
+        c.h1 = this.h1;
+        c.h2 = this.h2;
+        c.h3 = this.h3;
+        c.h4 = this.h4;
+        return c;
+    }
+
     public add(str: string): Cyrb128 {
         for (let i = 0, k; i < str.length; i++) {
             k = str.charCodeAt(i);

@@ -24,14 +24,16 @@ export function IdentInternalsPage(): React.ReactElement {
                         <Identicon
                             width={32}
                             height={32}
-                            prng={prng}
                             style={{
                                 background: "hsl(210deg, 12%, 96%)",
                                 borderRadius: "8px",
                                 border: "1px solid var(--border_color_primary)",
                                 overflow: "hidden",
                             }}
-                            layers={2}
+                            layers={[
+                                prng.next(),
+                                prng.next(),
+                            ]}
                         />
                     </div>
                 </div>
