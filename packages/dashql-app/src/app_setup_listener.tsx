@@ -15,7 +15,6 @@ import { useLogger } from './platform/logger_provider.js';
 import { usePlatformEventListener } from './platform/event_listener_provider.js';
 import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
 import { useWorkbookSetup } from './workbook/workbook_setup.js';
-import { WorkbookState } from 'workbook/workbook_state.js';
 
 enum AppSetupDecision {
     UNDECIDED,
@@ -192,12 +191,12 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             // Is debug build?
             if (isDebugBuild()) {
                 // Await the setup of the demo workbook
-                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType.has(ConnectorType.DEMO));
-                workbookId = workbooks.workbooksByConnection.get(ConnectorType.DEMO)![0];
+                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DEMO].length > 0);
+                workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
             } else {
                 // Await the setup of serverless workbook
-                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType.has(ConnectorType.SERVERLESS));
-                workbookId = workbooks.workbooksByConnectionType.get(ConnectorType.SERVERLESS)![0];
+                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.SERVERLESS].length > 0);
+                workbookId = workbooks.workbooksByConnectionType[ConnectorType.SERVERLESS][0];
             }
 
             // Await the setup of the static workbooks

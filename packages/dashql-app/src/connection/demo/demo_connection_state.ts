@@ -52,22 +52,8 @@ export type DemoConnectorAction =
 export function reduceDemoConnectorState(state: ConnectionState, action: DemoConnectorAction): ConnectionState | null {
     const details = state.details.value as DemoConnectionStateDetails;
     let next: ConnectionState | null = null;
+    console.log(action);
     switch (action.type) {
-        case DEMO_CHANNEL_READY:
-            next = {
-                ...state,
-                connectionStatus: ConnectionStatus.CHANNEL_READY,
-                connectionHealth: ConnectionHealth.CONNECTING,
-                details: {
-                    type: DEMO_CONNECTOR,
-                    value: {
-                        ...details,
-                        channel: action.value,
-                        channelError: null,
-                    }
-                },
-            };
-            break;
         case DEMO_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
@@ -94,6 +80,21 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                         ...details,
                         channelError: action.value,
                         channel: null
+                    }
+                },
+            };
+            break;
+        case DEMO_CHANNEL_READY:
+            next = {
+                ...state,
+                connectionStatus: ConnectionStatus.CHANNEL_READY,
+                connectionHealth: ConnectionHealth.CONNECTING,
+                details: {
+                    type: DEMO_CONNECTOR,
+                    value: {
+                        ...details,
+                        channel: action.value,
+                        channelError: null,
                     }
                 },
             };

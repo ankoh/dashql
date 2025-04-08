@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
 import { Dispatch } from '../utils/variant.js';
-import { ConnectorType } from '../connection/connector_info.js';
+import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 
 /// The workbook registry.
 ///
@@ -15,7 +15,7 @@ interface WorkbookRegistry {
     /// The index to find workbooks associated with a connection id
     workbooksByConnection: Map<number, number[]>;
     /// The index to find workbooks associated with a connection type
-    workbooksByConnectionType: Map<ConnectorType, number[]>;
+    workbooksByConnectionType: number[][];
 }
 
 export type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
@@ -35,7 +35,7 @@ export const WorkbookStateRegistry: React.FC<Props> = (props: Props) => {
     const reg = React.useState<WorkbookRegistry>(() => ({
         workbookMap: new Map(),
         workbooksByConnection: new Map(),
-        workbooksByConnectionType: new Map(),
+        workbooksByConnectionType: CONNECTOR_TYPES.map(() => []),
     }));
     return (
         <WORKBOOK_REGISTRY_CTX.Provider value={reg}>
@@ -60,12 +60,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             } else {
                 reg.workbooksByConnection.set(state.connectionId, [workbookId]);
             }
-            const sameType = reg.workbooksByConnectionType.get(state.connectorInfo.connectorType);
-            if (sameType) {
-                sameType.push(workbookId);
-            } else {
-                reg.workbooksByConnectionType.set(state.connectorInfo.connectorType, [workbookId]);
-            }
+            reg.workbooksByConnectionType[state.connectorInfo.connectorType].push(workbookId);
             reg.workbookMap.set(workbookId, workbook);
             return { ...reg };
         });
@@ -96,16 +91,13 @@ export function useWorkbookState(id: number | null): [WorkbookState | null, Modi
                 // Should we delete the entry?
                 if (action.type == DESTROY) {
                     reg.workbookMap.delete(id)
-                    let sameConnection = reg.workbooksByConnection.get(prev.connectionId) ?? [];
-                    sameConnection = sameConnection.filter(c => c != prev.workbookId);
-                    let sameType = reg.workbooksByConnectionType.get(prev.connectorInfo.connectorType) ?? [];
-                    sameType = sameType.filter(c => c != prev.workbookId);
-                    if (sameConnection.length == 0) {
+                    reg.workbooksByConnectionType[prev.connectorInfo.connectorType] = reg.workbooksByConnectionType[prev.connectorInfo.connectorType].filter(c => c != prev.workbookId);
+                    let byConn = reg.workbooksByConnection.get(prev.connectionId) ?? [];
+                    byConn = byConn.filter(c => c != prev.workbookId);
+                    if (byConn.length == 0) {
                         reg.workbooksByConnection.delete(prev.connectionId);
-                        reg.workbooksByConnectionType.delete(prev.connectorInfo.connectorType);
                     } else {
-                        reg.workbooksByConnection.set(prev.connectionId, sameConnection);
-                        reg.workbooksByConnectionType.set(prev.connectorInfo.connectorType, sameType);
+                        reg.workbooksByConnection.set(prev.connectionId, byConn);
                     }
                     return { ...reg }
                 } else {

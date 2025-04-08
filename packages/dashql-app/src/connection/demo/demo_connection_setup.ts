@@ -7,13 +7,13 @@ import { DemoDatabaseChannel } from './demo_database_channel.js';
 
 const LOG_CTX = "demo_setup";
 
-export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAction>, logger: Logger, params: DemoConnectionParams, abortSignal: AbortSignal): Promise<DemoDatabaseChannel> {
+export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAction>, logger: Logger, params: DemoConnectionParams, abortSignal?: AbortSignal): Promise<DemoDatabaseChannel> {
     try {
         modifyState({
             type: DEMO_CHANNEL_READY,
             value: params.channel,
         });
-        abortSignal.throwIfAborted();
+        abortSignal?.throwIfAborted();
 
 
     } catch (error: any) {
@@ -33,6 +33,7 @@ export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAct
         throw error;
     }
 
+    console.log("foo");
     modifyState({
         type: HEALTH_CHECK_SUCCEEDED,
         value: null,
