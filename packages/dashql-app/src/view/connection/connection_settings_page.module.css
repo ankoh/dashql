@@ -131,6 +131,7 @@
     border: 1px solid var(--border_color_primary);
     border-radius: 6px;
     overflow: hidden;
+    background-color: hsl(210deg, 12%, 50%);
 }
 
 
