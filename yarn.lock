@@ -2258,11 +2258,11 @@ __metadata:
   linkType: hard
 
 "@tauri-apps/plugin-shell@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@tauri-apps/plugin-shell@npm:2.0.0"
+  version: 2.2.1
+  resolution: "@tauri-apps/plugin-shell@npm:2.2.1"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/4246553a4ef9c6b7ae089f2fdf0c6e5a989b1949e30471bb8d29ed9227819822a3d9c00176c28ad293ab99e9b6d9b37dcac2ef02bb93ee768db0885fb35ae8f3
+  checksum: 10c0/2136cd66a37c980a8adb1103e5a30cbcfcf02b7d3dfdcbe0ec9f2bc1cc695ca86731bde7119c9cf086217114cdfd5f569b43e076c7525964f162976ab9d12d8c
   languageName: node
   linkType: hard
 
