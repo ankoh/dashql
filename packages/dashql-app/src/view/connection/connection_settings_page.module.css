@@ -117,7 +117,16 @@
 }
 
 .connection_group_entry {
-
+    display: grid;
+    grid-template-columns: 24px max-content 1fr;
+}
+.connection_group_entry_status {
+    width: 8px;
+    height: 8px;
+    background: red;
+    border-radius: 50%;
+}
+.connection_group_entry_name {
 }
 
 

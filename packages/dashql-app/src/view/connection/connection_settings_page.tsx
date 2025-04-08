@@ -1,5 +1,8 @@
 import * as React from 'react';
 
+import * as styles from './connection_settings_page.module.css';
+import * as icons from '../../../static/svg/symbols.generated.svg';
+
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';
 import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
@@ -7,13 +10,28 @@ import { SalesforceConnectorSettings } from './salesforce_connection_settings.js
 import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { isDebugBuild } from '../../globals.js';
-import { useConnectionRegistry } from '../../connection/connection_registry.js';
+import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
 
-import * as styles from './connection_settings_page.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+interface ConnectionGroupEntryProps {
+    connectionId: number;
+}
+
+function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
+    // Get the connection state
+    const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
+
+    return (
+        <div className={styles.connection_group_entry}>
+            <div className={styles.connection_group_entry_status} />
+            <div className={styles.connection_group_entry_name}>
+                {connState?.connectionId}
+            </div>
+        </div>
+    );
+}
 
 interface ConnectionGroupProps {
     connector: ConnectorType;
@@ -62,7 +80,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             </div>
             {nonDefaultConns.length > 0 && (
                 <div className={styles.connection_group_entries}>
-                    {nonDefaultConns.map(i => i)}
+                    {nonDefaultConns.map(i => <ConnectionGroupEntry key={i} connectionId={i} />)}
                 </div>
             )}
         </div>
