@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NumberGenerator } from '../../utils/prng.js';
+import { PseudoRandomNumberGenerator } from '../../utils/prng.js';
 
 enum ShapeType {
     Rectangle = 0,
@@ -68,11 +68,11 @@ interface ComponentProps {
 }
 
 function Component(props: ComponentProps) {
-    const shape: ShapeType = Math.round(Math.random() * ShapeType.MAX) as ShapeType;
-    const fill: string = props.fills[Math.floor(Math.random() * props.fills.length)];
-    const offsetX = props.offsetXMin + Math.round(Math.random() * (props.offsetXMax - props.offsetXMin));
-    const offsetY = props.offsetYMin + Math.round(Math.random() * (props.offsetYMax - props.offsetYMin));
-    const rotate = props.rotateMin + Math.round(Math.random() * (props.rotateMin - props.rotateMax));
+    const shape: ShapeType = Math.round(props.value * ShapeType.MAX) as ShapeType;
+    const fill: string = props.fills[Math.floor(props.value * props.fills.length)];
+    const offsetX = props.offsetXMin + Math.round(props.value * (props.offsetXMax - props.offsetXMin));
+    const offsetY = props.offsetYMin + Math.round(props.value * (props.offsetYMax - props.offsetYMin));
+    const rotate = props.rotateMin + Math.round(props.value * (props.rotateMin - props.rotateMax));
     return (
         <g transform={`translate(${offsetX}, ${offsetY}) rotate(${rotate} ${props.width / 2} ${props.height / 2})`}>
             {<Shape shape={shape} fill={fill} />}
@@ -88,11 +88,11 @@ const SHAPE_FILLS: string[] = [
 ];
 
 export interface IdenticonProps {
-    width?: number;
-    height?: number;
-    prng: NumberGenerator;
     style?: React.CSSProperties;
     className?: string;
+    width?: number;
+    height?: number;
+    prng: PseudoRandomNumberGenerator;
 }
 
 export function Identicon(props: IdenticonProps) {
@@ -106,7 +106,7 @@ export function Identicon(props: IdenticonProps) {
         >
             <g transform="matrix(1.2 0 0 1.2 -10 -10)">
                 <Component
-                    value={props.prng()}
+                    value={props.prng.next()}
                     width={100}
                     height={100}
                     shapes={[
@@ -126,7 +126,7 @@ export function Identicon(props: IdenticonProps) {
             </g>
             <g transform="matrix(.8 0 0 .8 10 10)">
                 <Component
-                    value={props.prng()}
+                    value={props.prng.next()}
                     width={100}
                     height={100}
                     shapes={[
@@ -146,7 +146,7 @@ export function Identicon(props: IdenticonProps) {
             </g>
             <g transform="matrix(.4 0 0 .4 30 30)">
                 <Component
-                    value={props.prng()}
+                    value={props.prng.next()}
                     width={100}
                     height={100}
                     shapes={[

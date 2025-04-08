@@ -6,6 +6,7 @@ import { createConnectionState } from "../connection_statistics.js";
 import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { DetailedError } from "../../utils/error.js";
+import { Cyrb128 } from "../../utils/prng.js";
 
 export interface DemoConnectionParams {
     // XXX Could also just setup with a data spec
@@ -36,6 +37,8 @@ export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWi
     });
     return state;
 }
+
+export function computeDemoConnectionSignature(_details: DemoConnectionStateDetails, _hasher: Cyrb128) { }
 
 export const DEMO_CHANNEL_READY = Symbol('DEMO_CHANNEL_READY');
 export const DEMO_CHANNEL_SETUP_FAILED = Symbol('DEMO_CHANNEL_SETUP_FAILED');

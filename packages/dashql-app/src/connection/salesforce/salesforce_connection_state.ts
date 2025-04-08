@@ -24,6 +24,7 @@ import {
 import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 import { DetailedError } from '../../utils/error.js';
+import { Cyrb128 } from 'utils/prng.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
     /// The time when the auth started
@@ -154,6 +155,11 @@ export function getSalesforceConnectionDetails(state: ConnectionState | null): S
         case SALESFORCE_DATA_CLOUD_CONNECTOR: return state.details.value;
         default: return null;
     }
+}
+
+export function computeSalesforceConnectionSignature(details: SalesforceConnectionStateDetails, hasher: Cyrb128) {
+    hasher.add(details.setupParams.instanceUrl);
+    hasher.add(details.setupParams.appConsumerKey);
 }
 
 export const AUTH_CANCELLED = Symbol('AUTH_CANCELLED');

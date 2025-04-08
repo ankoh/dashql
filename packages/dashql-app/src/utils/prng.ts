@@ -1,49 +1,86 @@
 // Taken from here: https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript
 
-export type NumberGenerator = () => number;
-
-export function cyrb128(strs: string[]): [number, number, number, number] {
-    let h1 = 1779033703, h2 = 3144134277,
-        h3 = 1013904242, h4 = 2773480762;
-    for (const str of strs) {
-        for (let i = 0, k; i < str.length; i++) {
-            k = str.charCodeAt(i);
-            h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
-            h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
-            h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
-            h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
-        }
-        h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
-        h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
-        h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
-        h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
-        h1 ^= (h2 ^ h3 ^ h4), h2 ^= h1, h3 ^= h1, h4 ^= h1;
-    }
-    return [h1 >>> 0, h2 >>> 0, h3 >>> 0, h4 >>> 0];
+export interface PseudoRandomNumberGenerator {
+    next(): number;
 }
 
-export function sfc32(a: number, b: number, c: number, d: number): NumberGenerator {
-    return function() {
-        a |= 0; b |= 0; c |= 0; d |= 0;
-        const t = (a + b | 0) + d | 0;
-        d = d + 1 | 0;
-        a = b ^ b >>> 9;
-        b = c + (c << 3) | 0;
-        c = (c << 21 | c >>> 11);
-        c = c + t | 0;
+export class Sfc32 implements PseudoRandomNumberGenerator {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+
+    constructor(a: number, b: number, c: number, d: number) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.d = d;
+    }
+
+    public nextI32(): number {
+        const t = (this.a + this.b | 0) + this.d | 0;
+        this.d = this.d + 1 | 0;
+        this.a = this.b ^ this.b >>> 9;
+        this.b = this.c + (this.c << 3) | 0;
+        this.c = (this.c << 21 | this.c >>> 11);
+        this.c = this.c + t | 0;
         return t >>> 0;
     }
+
+    public next(): number {
+        return Math.abs(this.nextI32() / 0xFFFFFFFF);
+    }
 }
 
-export function sfc32T(seed: [number, number, number, number]): NumberGenerator {
-    const [a, b, c, d] = seed;
-    return sfc32(a, b, c, d);
-}
+export class Cyrb128 {
+    protected h1: number;
+    protected h2: number;
+    protected h3: number;
+    protected h4: number;
 
-export function randomBuffer32(len: number, fill: NumberGenerator) {
+    constructor() {
+        this.h1 = 1779033703;
+        this.h2 = 3144134277;
+        this.h3 = 1013904242;
+        this.h4 = 2773480762;
+    }
+
+    public static from(str: string): Cyrb128 {
+        return (new Cyrb128()).add(str);
+    }
+
+    public add(str: string): Cyrb128 {
+        for (let i = 0, k; i < str.length; i++) {
+            k = str.charCodeAt(i);
+            this.h1 = this.h2 ^ Math.imul(this.h1 ^ k, 597399067);
+            this.h2 = this.h3 ^ Math.imul(this.h2 ^ k, 2869860233);
+            this.h3 = this.h4 ^ Math.imul(this.h3 ^ k, 951274213);
+            this.h4 = this.h1 ^ Math.imul(this.h4 ^ k, 2716044179);
+        }
+        this.h1 = Math.imul(this.h3 ^ (this.h1 >>> 18), 597399067);
+        this.h2 = Math.imul(this.h4 ^ (this.h2 >>> 22), 2869860233);
+        this.h3 = Math.imul(this.h1 ^ (this.h3 >>> 17), 951274213);
+        this.h4 = Math.imul(this.h2 ^ (this.h4 >>> 19), 2716044179);
+        this.h1 ^= (this.h2 ^ this.h3 ^ this.h4), this.h2 ^= this.h1, this.h3 ^= this.h1, this.h4 ^= this.h1;
+        return this;
+    }
+    public addN(strs: string[]) {
+        for (const str of strs) {
+            this.add(str);
+        }
+        return this;
+    }
+
+    public asSfc32(): PseudoRandomNumberGenerator {
+        return new Sfc32(this.h1, this.h2, this.h3, this.h4);
+    }
+
+};
+
+export function randomBuffer32(len: number, rng: PseudoRandomNumberGenerator) {
     const out = new Uint32Array(len);
     for (let i = 0; i < out.length; ++i) {
-        out[i] = fill();
+        out[i] = rng.next();
     }
     return out.buffer;
 }
