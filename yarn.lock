@@ -99,7 +99,7 @@ __metadata:
     source-map-loader: "npm:^5.0.0"
     style-loader: "npm:^4.0.0"
     style-mod: "npm:^4.1.2"
-    styled-components: "npm:^6.1.16"
+    styled-components: "npm:^6.1.17"
     stylis: "npm:^4.3.6"
     ts-jest: "npm:^29.3.1"
     ts-loader: "npm:^9.5.2"
@@ -10672,9 +10672,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"styled-components@npm:^6.1.16":
-  version: 6.1.16
-  resolution: "styled-components@npm:6.1.16"
+"styled-components@npm:^6.1.17":
+  version: 6.1.17
+  resolution: "styled-components@npm:6.1.17"
   dependencies:
     "@emotion/is-prop-valid": "npm:1.2.2"
     "@emotion/unitless": "npm:0.8.1"
@@ -10688,7 +10688,7 @@ __metadata:
   peerDependencies:
     react: ">= 16.8.0"
     react-dom: ">= 16.8.0"
-  checksum: 10c0/190d6d5dc9099489fac37e23be5bda7fef399ca9f9230f1de81100b98ec1c75070ef5990241c007126d97f40069d3c864f4239e185161a70ff111dd3e3bf5370
+  checksum: 10c0/87f35173c5fc2291ddba7ed8224d19fe6872d056a577f55fe130248f5ea23e5c48c012e881fa1ad93df60b56a12c1c2d553f628e204f090189221734927e50b0
   languageName: node
   linkType: hard
 
