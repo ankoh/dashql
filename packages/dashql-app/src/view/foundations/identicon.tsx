@@ -72,7 +72,6 @@ function Component(props: ComponentProps) {
     const offsetX = props.offsetXMin + Math.round(props.value * (props.offsetXMax - props.offsetXMin));
     const offsetY = props.offsetYMin + Math.round(props.value * (props.offsetYMax - props.offsetYMin));
     const rotate = props.rotateMin + Math.round(props.value * (props.rotateMax - props.rotateMin));
-    console.log({ shape, fill, offsetX, offsetY, rotate });
     return (
         <g transform={`translate(${offsetX}, ${offsetY}) rotate(${rotate} ${props.width / 2} ${props.height / 2})`}>
             {<Shape shape={shape} fill={fill} />}
