@@ -49,7 +49,6 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                     [styles.connector_group_active]: groupSelected
                 })}
                 data-tab={props.connector as number}
-                onClick={console.log}
             >
                 <button
                     className={styles.connector_group_button}
