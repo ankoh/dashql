@@ -31,6 +31,7 @@ export function IdentInternalsPage(): React.ReactElement {
                                 border: "1px solid var(--border_color_primary)",
                                 overflow: "hidden",
                             }}
+                            layers={2}
                         />
                     </div>
                 </div>

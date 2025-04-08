@@ -14,6 +14,8 @@ enum ShapeType {
 
 function Shape(props: { shape: ShapeType, fill: string }): React.ReactElement {
     switch (props.shape) {
+        case ShapeType.RectangleFilled:
+            return <path d="M0 0h100v100H0V0Z" fill={props.fill} />;
         case ShapeType.Rectangle:
             return (
                 <path
@@ -23,11 +25,9 @@ function Shape(props: { shape: ShapeType, fill: string }): React.ReactElement {
                     clipRule="evenodd"
                 />
             );
-        case ShapeType.RectangleFilled:
-            return <path d="M0 0h100v100H0V0Z" fill={props.fill} />;
-        case ShapeType.Ellipse:
-            return <path d="M100 50A50 50 0 1 1 0 50a50 50 0 0 1 100 0Z" fill={props.fill} />;
         case ShapeType.EllipseFilled:
+            return <path d="M100 50A50 50 0 1 1 0 50a50 50 0 0 1 100 0Z" fill={props.fill} />;
+        case ShapeType.Ellipse:
             return (
                 <path
                     d="M50 90a40 40 0 1 0 0-80 40 40 0 0 0 0 80Zm0 10A50 50 0 1 0 50 0a50 50 0 0 0 0 100Z"
@@ -36,6 +36,8 @@ function Shape(props: { shape: ShapeType, fill: string }): React.ReactElement {
                     clipRule="evenodd"
                 />
             );
+        case ShapeType.PolygonFilled:
+            return <path d="m50 7 50 86.6H0L50 7Z" fill={props.fill} />;
         case ShapeType.Polygon:
             return (
                 <path
@@ -45,8 +47,6 @@ function Shape(props: { shape: ShapeType, fill: string }): React.ReactElement {
                     clipRule="evenodd"
                 />
             );
-        case ShapeType.PolygonFilled:
-            return <path d="m50 7 50 86.6H0L50 7Z" fill={props.fill} />;
         case ShapeType.Line:
             return <path d="M45-150h10v400H45z" fill={props.fill} />;
 
@@ -68,7 +68,7 @@ interface ComponentProps {
 }
 
 function Component(props: ComponentProps) {
-    const shape: ShapeType = Math.round(props.value * ShapeType.MAX) as ShapeType;
+    const shape: ShapeType = props.shapes[Math.floor(props.value * props.shapes.length)];
     const fill: string = props.fills[Math.floor(props.value * props.fills.length)];
     const offsetX = props.offsetXMin + Math.round(props.value * (props.offsetXMax - props.offsetXMin));
     const offsetY = props.offsetYMin + Math.round(props.value * (props.offsetYMax - props.offsetYMin));
@@ -93,6 +93,7 @@ export interface IdenticonProps {
     width?: number;
     height?: number;
     prng: PseudoRandomNumberGenerator;
+    layers: number;
 }
 
 export function Identicon(props: IdenticonProps) {
@@ -104,69 +105,71 @@ export function Identicon(props: IdenticonProps) {
             height={props.height ? `${props.height}px` : "100%"}
             viewBox="0 0 100 100"
         >
-            <g transform="matrix(1.2 0 0 1.2 -10 -10)">
-                <Component
-                    value={props.prng.next()}
-                    width={100}
-                    height={100}
-                    shapes={[
-                        ShapeType.RectangleFilled,
-                        ShapeType.EllipseFilled,
-                        ShapeType.PolygonFilled
-                    ]}
-                    fills={SHAPE_FILLS}
-                    offsetXMin={-65}
-                    offsetXMax={65}
-                    offsetYMin={-45}
-                    offsetYMax={45}
-                    rotateMin={-160}
-                    rotateMax={160}
+            {(props.layers >= 1) && (
+                <g transform="matrix(1.2 0 0 1.2 -10 -10)">
+                    <Component
+                        value={props.prng.next()}
+                        width={100}
+                        height={100}
+                        shapes={[
+                            ShapeType.RectangleFilled,
+                            ShapeType.EllipseFilled,
+                            ShapeType.PolygonFilled
+                        ]}
+                        fills={SHAPE_FILLS}
+                        offsetXMin={-65}
+                        offsetXMax={65}
+                        offsetYMin={-45}
+                        offsetYMax={45}
+                        rotateMin={-160}
+                        rotateMax={160}
 
-                />
-            </g>
-            <g transform="matrix(.8 0 0 .8 10 10)">
-                <Component
-                    value={props.prng.next()}
-                    width={100}
-                    height={100}
-                    shapes={[
-                        ShapeType.RectangleFilled,
-                        ShapeType.EllipseFilled,
-                        ShapeType.PolygonFilled,
-                        ShapeType.Line,
-                    ]}
-                    fills={SHAPE_FILLS}
-                    offsetXMin={-40}
-                    offsetXMax={40}
-                    offsetYMin={-40}
-                    offsetYMax={40}
-                    rotateMin={-180}
-                    rotateMax={180}
-                />
-            </g>
-            <g transform="matrix(.4 0 0 .4 30 30)">
-                <Component
-                    value={props.prng.next()}
-                    width={100}
-                    height={100}
-                    shapes={[
-                        ShapeType.Rectangle,
-                        ShapeType.RectangleFilled,
-                        ShapeType.Ellipse,
-                        ShapeType.EllipseFilled,
-                        ShapeType.Polygon,
-                        ShapeType.PolygonFilled,
-                        ShapeType.Line,
-                    ]}
-                    fills={SHAPE_FILLS}
-                    offsetXMin={-40}
-                    offsetXMax={40}
-                    offsetYMin={-40}
-                    offsetYMax={40}
-                    rotateMin={-180}
-                    rotateMax={180}
-                />
-            </g>
+                    />
+                </g>
+            )}
+            {(props.layers >= 2) && (
+                <g transform="matrix(.8 0 0 .8 10 10)">
+                    <Component
+                        value={props.prng.next()}
+                        width={100}
+                        height={100}
+                        shapes={[
+                            ShapeType.RectangleFilled,
+                            ShapeType.EllipseFilled,
+                            ShapeType.PolygonFilled,
+                        ]}
+                        fills={SHAPE_FILLS}
+                        offsetXMin={-40}
+                        offsetXMax={40}
+                        offsetYMin={-40}
+                        offsetYMax={40}
+                        rotateMin={-180}
+                        rotateMax={180}
+                    />
+                </g>
+            )}
+            {(props.layers >= 3) && (
+                <g transform="matrix(.4 0 0 .4 30 30)">
+                    <Component
+                        value={props.prng.next()}
+                        width={100}
+                        height={100}
+                        shapes={[
+                            ShapeType.Rectangle,
+                            ShapeType.Ellipse,
+                            ShapeType.Polygon,
+                            ShapeType.Line,
+                        ]}
+                        fills={SHAPE_FILLS}
+                        offsetXMin={-40}
+                        offsetXMax={40}
+                        offsetYMin={-40}
+                        offsetYMax={40}
+                        rotateMin={-180}
+                        rotateMax={180}
+                    />
+                </g>
+            )}
         </svg>
     );
 }
