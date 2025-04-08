@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { PseudoRandomNumberGenerator } from '../../utils/prng.js';
 
 enum ShapeType {
     Rectangle = 0,
@@ -72,7 +71,8 @@ function Component(props: ComponentProps) {
     const fill: string = props.fills[Math.floor(props.value * props.fills.length)];
     const offsetX = props.offsetXMin + Math.round(props.value * (props.offsetXMax - props.offsetXMin));
     const offsetY = props.offsetYMin + Math.round(props.value * (props.offsetYMax - props.offsetYMin));
-    const rotate = props.rotateMin + Math.round(props.value * (props.rotateMin - props.rotateMax));
+    const rotate = props.rotateMin + Math.round(props.value * (props.rotateMax - props.rotateMin));
+    console.log({ shape, fill, offsetX, offsetY, rotate });
     return (
         <g transform={`translate(${offsetX}, ${offsetY}) rotate(${rotate} ${props.width / 2} ${props.height / 2})`}>
             {<Shape shape={shape} fill={fill} />}
@@ -92,8 +92,7 @@ export interface IdenticonProps {
     className?: string;
     width?: number;
     height?: number;
-    prng: PseudoRandomNumberGenerator;
-    layers: number;
+    layers: number[];
 }
 
 export function Identicon(props: IdenticonProps) {
@@ -105,10 +104,10 @@ export function Identicon(props: IdenticonProps) {
             height={props.height ? `${props.height}px` : "100%"}
             viewBox="0 0 100 100"
         >
-            {(props.layers >= 1) && (
+            {(props.layers.length >= 1) && (
                 <g transform="matrix(1.2 0 0 1.2 -10 -10)">
                     <Component
-                        value={props.prng.next()}
+                        value={props.layers[0]}
                         width={100}
                         height={100}
                         shapes={[
@@ -127,10 +126,10 @@ export function Identicon(props: IdenticonProps) {
                     />
                 </g>
             )}
-            {(props.layers >= 2) && (
+            {(props.layers.length >= 2) && (
                 <g transform="matrix(.8 0 0 .8 10 10)">
                     <Component
-                        value={props.prng.next()}
+                        value={props.layers[1]}
                         width={100}
                         height={100}
                         shapes={[
@@ -148,10 +147,10 @@ export function Identicon(props: IdenticonProps) {
                     />
                 </g>
             )}
-            {(props.layers >= 3) && (
+            {(props.layers.length >= 3) && (
                 <g transform="matrix(.4 0 0 .4 30 30)">
                     <Component
-                        value={props.prng.next()}
+                        value={props.layers[2]}
                         width={100}
                         height={100}
                         shapes={[

@@ -33,7 +33,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
             computeConnectionSignature(connState, seed);
         }
         return seed;
-    }, [connState?.details]);
+    }, [connState?.details]).asSfc32();
 
     return (
         <div className={styles.connection_group_entry}>
@@ -42,8 +42,10 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     className={styles.connection_group_entry_icon}
                     width={24}
                     height={24}
-                    prng={connSig.asSfc32()}
-                    layers={2}
+                    layers={[
+                        connSig.next(),
+                        connSig.next()
+                    ]}
                 />
             </div>
         </div>

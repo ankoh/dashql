@@ -9,11 +9,12 @@
     padding: 0px 8px;
 }
 
-.entry_key_container {
+.entry_icon_container {
+    background-color: hsl(210deg, 12%, 75%);
     border-radius: var(--border_radius);
     border: 1px solid var(--border_color_primary);
-    height: 32px;
-    width: 32px;
+    height: 36px;
+    width: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
