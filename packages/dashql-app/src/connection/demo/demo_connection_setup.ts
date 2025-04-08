@@ -33,7 +33,6 @@ export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAct
         throw error;
     }
 
-    console.log("foo");
     modifyState({
         type: HEALTH_CHECK_SUCCEEDED,
         value: null,

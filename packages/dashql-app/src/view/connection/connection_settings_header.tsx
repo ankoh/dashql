@@ -111,11 +111,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         if (props.connection == null) return null;
         // Resolve the parameters
         const params = getConnectionParamsFromStateDetails(props.connection.details);
-        console.log(params);
         if (params == null) return null;
         // Encode the workbook
         const proto = encodeWorkbookAsProto(props.workbook, params);
-        console.log(params);
         // Construct the setup URLs
         const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
         const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
