@@ -566,66 +566,66 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-darwin-arm64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-darwin-arm64@npm:1.52.0"
+"@bufbuild/buf-darwin-arm64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-darwin-arm64@npm:1.52.1"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-darwin-x64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-darwin-x64@npm:1.52.0"
+"@bufbuild/buf-darwin-x64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-darwin-x64@npm:1.52.1"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-aarch64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-linux-aarch64@npm:1.52.0"
+"@bufbuild/buf-linux-aarch64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-linux-aarch64@npm:1.52.1"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-armv7@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-linux-armv7@npm:1.52.0"
+"@bufbuild/buf-linux-armv7@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-linux-armv7@npm:1.52.1"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-x64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-linux-x64@npm:1.52.0"
+"@bufbuild/buf-linux-x64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-linux-x64@npm:1.52.1"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-win32-arm64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-win32-arm64@npm:1.52.0"
+"@bufbuild/buf-win32-arm64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-win32-arm64@npm:1.52.1"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-win32-x64@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf-win32-x64@npm:1.52.0"
+"@bufbuild/buf-win32-x64@npm:1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf-win32-x64@npm:1.52.1"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf@npm:^1.52.0":
-  version: 1.52.0
-  resolution: "@bufbuild/buf@npm:1.52.0"
+"@bufbuild/buf@npm:^1.52.1":
+  version: 1.52.1
+  resolution: "@bufbuild/buf@npm:1.52.1"
   dependencies:
-    "@bufbuild/buf-darwin-arm64": "npm:1.52.0"
-    "@bufbuild/buf-darwin-x64": "npm:1.52.0"
-    "@bufbuild/buf-linux-aarch64": "npm:1.52.0"
-    "@bufbuild/buf-linux-armv7": "npm:1.52.0"
-    "@bufbuild/buf-linux-x64": "npm:1.52.0"
-    "@bufbuild/buf-win32-arm64": "npm:1.52.0"
-    "@bufbuild/buf-win32-x64": "npm:1.52.0"
+    "@bufbuild/buf-darwin-arm64": "npm:1.52.1"
+    "@bufbuild/buf-darwin-x64": "npm:1.52.1"
+    "@bufbuild/buf-linux-aarch64": "npm:1.52.1"
+    "@bufbuild/buf-linux-armv7": "npm:1.52.1"
+    "@bufbuild/buf-linux-x64": "npm:1.52.1"
+    "@bufbuild/buf-win32-arm64": "npm:1.52.1"
+    "@bufbuild/buf-win32-x64": "npm:1.52.1"
   dependenciesMeta:
     "@bufbuild/buf-darwin-arm64":
       optional: true
@@ -645,7 +645,7 @@ __metadata:
     buf: bin/buf
     protoc-gen-buf-breaking: bin/protoc-gen-buf-breaking
     protoc-gen-buf-lint: bin/protoc-gen-buf-lint
-  checksum: 10c0/9bd993468a84f770ce9f2c2e31a7b3ad85422787b18d032a6acfc6ee407b85eeebb2127d3bd7dc0164e62513c63205b56a659c9e80970348535d99800536998b
+  checksum: 10c0/9ae49b5729924d745fed963887d833a639c80c87e9b477bdd320d90858aa120bb6aeef5d7082e7a723f7ee3c0b1fa9dffbc6f9df18be15888138f60a0ce88419
   languageName: node
   linkType: hard
 
@@ -10010,7 +10010,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@bufbuild/buf": "npm:^1.52.0"
+    "@bufbuild/buf": "npm:^1.52.1"
     "@bufbuild/protoc-gen-es": "npm:^1.10.0"
     "@connectrpc/protoc-gen-connect-es": "npm:^1.6.1"
     "@eslint/js": "npm:^9.24.0"
