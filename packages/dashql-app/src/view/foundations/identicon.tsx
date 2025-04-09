@@ -79,11 +79,18 @@ function Component(props: ComponentProps) {
     );
 }
 
+// const SHAPE_FILLS: string[] = [
+//     "#363d45",
+//     "#3d7789",
+//     "#38b8b7",
+//     "#79fac5",
+// ];
+
 const SHAPE_FILLS: string[] = [
-    "#363d45",
-    "#3d7789",
-    "#38b8b7",
-    "#79fac5",
+    "hsl(210deg, 12%, 36%)",
+    "hsl(210deg, 12%, 46%)",
+    "hsl(210deg, 12%, 56%)",
+    "hsl(210deg, 12%, 66%)",
 ];
 
 export interface IdenticonProps {

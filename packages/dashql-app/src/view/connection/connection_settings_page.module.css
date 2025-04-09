@@ -128,10 +128,11 @@
 .connection_group_entry_name {
 }
 .connection_group_entry_icon {
-    border: 1px solid var(--border_color_primary);
+    /* border: 1px solid var(--border_color_primary); */
+    border: 1px solid hsl(210deg, 12%, 76%);
     border-radius: 6px;
     overflow: hidden;
-    background-color: hsl(210deg, 12%, 50%);
+    background-color: hsl(210deg, 12%, 86%);
 }
 
 
