@@ -100,6 +100,7 @@ export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoC
 }
 
 export function computeTrinoConnectionSignature(details: TrinoConnectionStateDetails, hasher: Cyrb128) {
+    hasher.add("Trino");
     hasher.add(details.channelParams.channelArgs.endpoint);
     hasher.add(details.channelParams.catalogName);
     hasher.addN(details.channelParams.schemaNames);
