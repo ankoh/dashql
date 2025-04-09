@@ -18,6 +18,10 @@ export class Sfc32 implements PseudoRandomNumberGenerator {
     }
 
     public nextI32(): number {
+        this.a |= 0;
+        this.b |= 0;
+        this.c |= 0;
+        this.d |= 0;
         const t = (this.a + this.b | 0) + this.d | 0;
         this.d = this.d + 1 | 0;
         this.a = this.b ^ this.b >>> 9;
@@ -71,6 +75,10 @@ export class Cyrb128 {
         this.h3 = Math.imul(this.h1 ^ (this.h3 >>> 17), 951274213);
         this.h4 = Math.imul(this.h2 ^ (this.h4 >>> 19), 2716044179);
         this.h1 ^= (this.h2 ^ this.h3 ^ this.h4), this.h2 ^= this.h1, this.h3 ^= this.h1, this.h4 ^= this.h1;
+        this.h1 >>>= 0;
+        this.h2 >>>= 0;
+        this.h3 >>>= 0;
+        this.h4 >>>= 0;
         return this;
     }
     public addN(strs: string[]) {
