@@ -30,11 +30,12 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     const connSig = connSigHasher.asSfc32();
 
     // Compute the entry signature
-    const entrySig = React.useMemo(() => {
+    const entrySigHasher = React.useMemo(() => {
         const seed = connSigHasher.clone();
         seed.add(props.scriptKey.toString());
         return seed;
-    }, [props.entryIndex]).asSfc32();
+    }, [props.entryIndex]);
+    const entrySig = entrySigHasher.asSfc32();
 
     return (
         <div className={styles.entry_container}>
