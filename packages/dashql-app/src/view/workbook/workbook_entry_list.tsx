@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as styles from './workbook_entry_list.module.css';
 
-import { ScriptData, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
 import { Cyrb128 } from '../../utils/prng.js';
 import { computeConnectionSignature } from '../../connection/connection_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
@@ -12,6 +12,7 @@ interface WorkbookEntryProps {
     workbook: WorkbookState;
     entryIndex: number;
     entry: WorkbookEntry;
+    scriptKey: ScriptKey;
     script: ScriptData;
 }
 
@@ -31,7 +32,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     // Compute the entry signature
     const entrySig = React.useMemo(() => {
         const seed = connSigHasher.clone();
-        seed.add(props.entryIndex.toString());
+        seed.add(props.scriptKey.toString());
         return seed;
     }, [props.entryIndex]).asSfc32();
 
@@ -68,6 +69,7 @@ export function WorkbookEntryList(props: ListProps) {
                     workbook={props.workbook!}
                     entryIndex={i}
                     entry={props.workbook!.workbookEntries[i]}
+                    scriptKey={v.scriptKey}
                     script={v}
                 />
             ))}
