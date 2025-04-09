@@ -121,7 +121,9 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.EllipseFilled,
                             ShapeType.PolygonFilled
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 36%)"
+                        ]}
                         offsetXMin={-65}
                         offsetXMax={65}
                         offsetYMin={-45}
@@ -143,7 +145,9 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.EllipseFilled,
                             ShapeType.PolygonFilled,
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 56%)"
+                        ]}
                         offsetXMin={-40}
                         offsetXMax={40}
                         offsetYMin={-40}
@@ -165,7 +169,10 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.Polygon,
                             ShapeType.Line,
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 46%)",
+                            "hsl(210deg, 12%, 66%)",
+                        ]}
                         offsetXMin={-40}
                         offsetXMax={40}
                         offsetYMin={-40}
