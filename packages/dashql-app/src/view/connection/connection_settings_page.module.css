@@ -120,12 +120,23 @@
 }
 
 .connection_group_entry {
+    -webkit-appearance: none;
+    background: none;
+
+    width: 100%;
     display: grid;
     grid-template-columns: max-content 1fr;
     column-gap: 8px;
     padding: 4px 0px 4px 4px;
-    background-color: var(--conns_tabs_background_active) !important;
     border-radius: var(--border_radius);
+    border: 1px solid transparent;
+}
+.connection_group_entry:hover {
+    background-color: var(--conns_tabs_background_hover);
+    border: 1px solid var(--border_color_primary);
+}
+.connection_group_entry_active {
+    background-color: var(--conns_tabs_background_active) !important;
     border: 1px solid var(--border_color_primary);
 }
 .connection_group_entry_icon_container {
