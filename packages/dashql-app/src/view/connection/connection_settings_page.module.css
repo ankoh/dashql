@@ -116,7 +116,7 @@
 }
 
 .connection_group_entries {
-    padding: 4px 0px 8px 20px;
+    padding: 4px 0px 8px 16px;
 }
 
 .connection_group_entry {
@@ -130,6 +130,7 @@
     padding: 4px 0px 4px 4px;
     border-radius: var(--border_radius);
     border: 1px solid transparent;
+    align-items: center;
 }
 .connection_group_entry:hover {
     background-color: var(--conns_tabs_background_hover);
@@ -161,7 +162,6 @@
     display: flex;
     align-items: center;
 }
-
 
 .connection_settings_container {
     grid-row: 1;

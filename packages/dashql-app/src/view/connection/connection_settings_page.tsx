@@ -14,7 +14,7 @@ import { useConnectionRegistry, useConnectionState } from '../../connection/conn
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
-import { computeConnectionSignature } from '../../connection/connection_state.js';
+import { computeConnectionSignature, ConnectionHealth } from '../../connection/connection_state.js';
 import { Cyrb128 } from '../../utils/prng.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 
@@ -37,6 +37,16 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
         return seed;
     }, [connState?.details]).asSfc32();
 
+    // The status class
+    const statusMapping: string[] = [
+        styles.status_not_started,
+        styles.status_connecting,
+        styles.status_cancelled,
+        styles.status_online,
+        styles.status_failed,
+    ];
+    const statusClass = statusMapping[connState?.connectionHealth ?? 0];
+
     return (
         <button
             className={classNames(styles.connection_group_entry, {
@@ -56,6 +66,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                 />
             </div>
             <div className={styles.connection_group_entry_label}>
+                {props.connectionId}
             </div>
         </button>
     );
