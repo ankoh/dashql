@@ -106,11 +106,11 @@ export enum ConnectionStatus {
 }
 
 export enum ConnectionHealth {
-    NOT_STARTED,
-    CONNECTING,
-    CANCELLED,
-    ONLINE,
-    FAILED,
+    NOT_STARTED = 0,
+    CONNECTING = 1,
+    CANCELLED = 2,
+    ONLINE = 3,
+    FAILED = 4,
 }
 
 export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
