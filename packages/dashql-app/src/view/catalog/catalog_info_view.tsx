@@ -90,7 +90,13 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
     return (
         <div className={styles.root}>
             <div className={styles.header}>
-                <div className={styles.header_title}>
+                <div
+                    className={styles.header_title}
+                    onClick={(ev: React.MouseEvent) => {
+                        ev.stopPropagation();
+                        setExpanded(e => !e);
+                    }}
+                >
                     Catalog
                 </div>
                 <div className={styles.header_button}>
@@ -98,7 +104,10 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
                         icon={expanded ? CollapseIcon : ExpandIcon}
                         variant="invisible"
                         aria-labelledby="info-expand"
-                        onClick={() => setExpanded(e => !e)}
+                        onClick={(ev: React.MouseEvent) => {
+                            ev.stopPropagation();
+                            setExpanded(e => !e);
+                        }}
                     />
                 </div>
             </div>
