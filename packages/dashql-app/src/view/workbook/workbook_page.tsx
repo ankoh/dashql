@@ -24,19 +24,20 @@ import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { WorkbookState } from 'workbook/workbook_state.js';
+import { WorkbookState } from '../../workbook/workbook_state.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
+import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
-    const sessionCommand = useWorkbookCommandDispatch();
+    const workbookCommand = useWorkbookCommandDispatch();
 
     const DatabaseIcon = SymbolIcon("database_16");
     return (
         <>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
+                onClick={() => workbookCommand(WorkbookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
                     <DatabaseIcon />
@@ -48,7 +49,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
             </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
+                onClick={() => workbookCommand(WorkbookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
                     <PaperAirplaneIcon />
@@ -60,7 +61,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
             </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.refreshSchemaAction}
-                onClick={() => sessionCommand(WorkbookCommandType.RefreshCatalog)}
+                onClick={() => workbookCommand(WorkbookCommandType.RefreshCatalog)}
             >
                 <ActionList.Leading>
                     <SyncIcon />
@@ -74,16 +75,20 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
     );
 };
 
-const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
+const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null, modifyWorkbook: ModifyWorkbook | null }) => {
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
+    const workbookCommand = useWorkbookCommandDispatch();
 
     const ArrowDownIcon = SymbolIcon("arrow_down_16");
     const ArrowUpIcon = SymbolIcon("arrow_up_16");
     const FileZipIcon = SymbolIcon("file_zip_16");
     return (
         <>
-            <ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => workbookCommand(WorkbookCommandType.SelectPreviousWorkbookEntry)}
+                disabled={(props.workbook?.selectedWorkbookEntry ?? 0) == 0}
+            >
                 <ActionList.Leading>
                     <ArrowUpIcon />
                 </ActionList.Leading>
@@ -92,7 +97,10 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
             </ActionList.ListItem>
-            <ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => workbookCommand(WorkbookCommandType.SelectNextWorkbookEntry)}
+                disabled={((props.workbook?.selectedWorkbookEntry ?? 0) + 1) >= (props.workbook?.workbookEntries.length ?? 0)}
+            >
                 <ActionList.Leading>
                     <ArrowDownIcon />
                 </ActionList.Leading>
@@ -143,7 +151,7 @@ interface TabState {
 interface Props { }
 
 export const EditorPage: React.FC<Props> = (_props: Props) => {
-    const [workbook, _modifyWorkbook] = useCurrentWorkbookState();
+    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
@@ -294,6 +302,7 @@ export const EditorPage: React.FC<Props> = (_props: Props) => {
                     <WorkbookCommandList
                         conn={conn ?? null}
                         workbook={workbook}
+                        modifyWorkbook={modifyWorkbook}
                     />
                     <ActionList.Divider />
                 </ActionList.List>
