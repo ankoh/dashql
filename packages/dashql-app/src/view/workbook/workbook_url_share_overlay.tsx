@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_url_share_overlay.module.css';
 
-import { Box, IconButton } from '@primer/react';
+import { Box } from '@primer/react';
 import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment } from '../foundations/anchored_position.js';
@@ -15,6 +15,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
+import { IconButton } from '../../view/foundations/button.js';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
 
@@ -34,7 +35,7 @@ interface State {
 
 export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
-    const buttonRef = React.createRef<HTMLAnchorElement>();
+    const buttonRef = React.createRef<HTMLButtonElement>();
 
     const [workbookState, _modifyWorkbook] = useCurrentWorkbookState();
     const [connectionState, _setConnectionState] = useConnectionState(workbookState?.connectionId ?? null);
@@ -110,6 +111,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         [state, setState],
     );
 
+    const ButtonIcon = state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon;
     return (
         <AnchoredOverlay
             renderAnchor={() => <div ref={anchorRef} />}
@@ -126,10 +128,12 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     <TextInput disabled={true} value={state.publicURLText ?? ''} />
                     <IconButton
                         ref={buttonRef}
-                        icon={state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon}
                         onClick={copyURL}
                         aria-labelledby="copy-to-clipboard"
-                    />
+                        aria-label="Copy to Clipboard"
+                    >
+                        <ButtonIcon />
+                    </IconButton>
                     <div className={styles.sharing_url_stats}>{state.publicURLText?.length ?? 0} characters</div>
                 </div>
                 <WorkbookExportSettingsView

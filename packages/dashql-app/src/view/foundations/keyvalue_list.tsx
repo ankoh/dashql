@@ -1,13 +1,13 @@
 import * as React from 'react';
 
+import * as styles from './keyvalue_list.module.css';
+
 import { Dispatch } from '../../utils/variant.js';
 import { PlusIcon, XIcon } from '@primer/octicons-react';
 import { classNames } from '../../utils/classnames.js';
-
-import * as styles from './keyvalue_list.module.css';
 import { TextInput } from './text_input.js';
-import { IconButton } from '@primer/react';
 import { TextInputAction } from './text_input_action.js';
+import { ButtonSize, ButtonVariant, IconButton } from './button.js';
 
 export interface KeyValueListElement {
     key: string;
@@ -59,12 +59,13 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
             </div>
             <IconButton
                 className={styles.add_button}
-                icon={PlusIcon}
-                aria-label="add-entry"
+                aria-label="Add Entry"
                 onClick={appendElement}
                 disabled={props.disabled}
-                size="small"
-            />
+                size={ButtonSize.Small}
+            >
+                <PlusIcon />
+            </IconButton>
             <div className={styles.list_elements}>
                 {props.elements.map((elem, i) => (
                     <div key={i} className={styles.element}>
@@ -76,11 +77,12 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                             leadingVisual={props.keyIcon}
                             trailingAction={
                                 <TextInputAction
-                                    icon={XIcon}
                                     aria-label="Clear input"
                                     aria-labelledby=""
                                     onClick={() => deleteIndex(i)}
-                                />
+                                >
+                                    <XIcon />
+                                </TextInputAction>
                             }
                             disabled={props.disabled}
                             readOnly={props.disabled}

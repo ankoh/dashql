@@ -1,6 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
-import { IconButton } from '@primer/react';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
@@ -8,7 +7,7 @@ import * as baseStyles from '../banner_page.module.css';
 import * as connStyles from './connection_settings.module.css';
 
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
@@ -526,15 +525,14 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const logButton = React.useMemo(() => {
         return (
             <IconButton
-                variant="invisible"
-                icon={() => (
-                    <svg width="16px" height="16px">
-                        <use xlinkHref={`${symbols}#processor`} />
-                    </svg>
-                )}
-                aria-label="close-overlay"
+                variant={ButtonVariant.Invisible}
+                aria-label="Close Overlay"
                 onClick={() => setShowLogs(s => !s)}
-            />
+            >
+                <svg width="16px" height="16px">
+                    <use xlinkHref={`${symbols}#processor`} />
+                </svg>
+            </IconButton>
         );
     }, []);
 
@@ -569,11 +567,12 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                                     anchorOffset={16}
                                 />
                                 <IconButton
-                                    variant="invisible"
-                                    icon={XIcon}
+                                    variant={ButtonVariant.Invisible}
                                     aria-label="close-setup"
                                     onClick={() => props.onDone()}
-                                />
+                                >
+                                    <XIcon />
+                                </IconButton>
                             </div>
                         </div>
                         {sections}

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import * as styles from './value_list.module.css';
 
-import { IconButton } from '@primer/react';
 import { PlusIcon, XIcon } from '@primer/octicons-react';
 
 import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';
+import { ButtonSize, IconButton } from './button.js';
 
 export type ValueListElement = string;
 
@@ -54,12 +54,13 @@ export const ValueListBuilder: React.FC<Props> = (props: Props) => {
             )}
             <IconButton
                 className={styles.add_button}
-                icon={PlusIcon}
-                aria-label="add-entry"
+                aria-label="Add Entry"
                 onClick={appendElement}
                 disabled={props.disabled}
-                size="small"
-            />
+                size={ButtonSize.Small}
+            >
+                <PlusIcon />
+            </IconButton>
             <div className={styles.list_elements}>
                 {props.elements.map((elem, i) => (
                     <div key={i} className={styles.element}>
@@ -71,11 +72,12 @@ export const ValueListBuilder: React.FC<Props> = (props: Props) => {
                             leadingVisual={props.valueIcon}
                             trailingAction={
                                 <TextInputAction
-                                    icon={XIcon}
                                     aria-label="Clear input"
                                     aria-labelledby=""
                                     onClick={() => deleteIndex(i)}
-                                />
+                                >
+                                    <XIcon />
+                                </TextInputAction>
                             }
                             disabled={props.disabled}
                             readOnly={props.disabled}
