@@ -1,11 +1,10 @@
 import * as React from "react";
 import * as styles from "./catalog_info_view.module.css";
 
-import { IconButton } from "@primer/react";
-
 import { ConnectionState } from "../../connection/connection_state.js";
 import { formatTimeDifference } from "../../utils/format.js";
 import { SymbolIcon } from "../../view/foundations/symbol_icon.js";
+import { ButtonVariant, IconButton } from "../../view/foundations/button.js";
 
 interface CatalogInfoViewProps {
     conn: ConnectionState;
@@ -86,6 +85,7 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
     const ExpandIcon = SymbolIcon("triangle_down_24");
     const CollapseIcon = SymbolIcon("triangle_up_24");
     const [expanded, setExpanded] = React.useState<boolean>();
+    const TriangleIcon = expanded ? CollapseIcon : ExpandIcon;
 
     return (
         <div className={styles.root}>
@@ -101,14 +101,16 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
                 </div>
                 <div className={styles.header_button}>
                     <IconButton
-                        icon={expanded ? CollapseIcon : ExpandIcon}
-                        variant="invisible"
+                        variant={ButtonVariant.Invisible}
                         aria-labelledby="info-expand"
+                        aria-label={expanded ? "Hide Info" : "Show Info"}
                         onClick={(ev: React.MouseEvent) => {
                             ev.stopPropagation();
                             setExpanded(e => !e);
                         }}
-                    />
+                    >
+                        <TriangleIcon />
+                    </IconButton>
                 </div>
             </div>
             {expanded && (

@@ -2,11 +2,10 @@ import * as React from 'react';
 import * as styles from './error_details.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { IconButton } from '@primer/react';
 
 import { AnchoredOverlay } from './foundations/anchored_overlay.js';
 import { DetailedError } from 'utils/error.js';
-import { Button, ButtonSize, ButtonVariant } from './foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from './foundations/button.js';
 import { OverlaySize } from './foundations/overlay.js';
 
 interface ErrorDetailsViewerProps {
@@ -39,11 +38,12 @@ export const ErrorDetailsViewer: React.FC<ErrorDetailsViewerProps> = (props: Err
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton
-                        variant="invisible"
-                        icon={XIcon}
-                        aria-label="close-overlay"
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close Overlay"
                         onClick={props.onClose}
-                    />
+                    >
+                        <XIcon />
+                    </IconButton>
                 </div>
             </div>
             <div className={styles.error_container}>

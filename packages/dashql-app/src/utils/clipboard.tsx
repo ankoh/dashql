@@ -3,9 +3,7 @@ import * as React from 'react';
 import { CheckIcon, CopyIcon, Icon } from '@primer/octicons-react';
 
 import { useLogger } from '../platform/logger_provider.js';
-import { Tooltip } from '../view/foundations/tooltip.js';
-import { IconButton } from '@primer/react';
-import { ButtonSize, ButtonVariant, mapButtonSize, mapButtonVariant } from '../view/foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../view/foundations/button.js';
 
 const DEFAULT_COPY_TIMEOUT = 2000;
 
@@ -51,28 +49,25 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
         return () => clearTimeout(timeoutId);
     }, [lastCopied]);
 
-    let icon: Icon;
+    let InnerIcon: Icon;
     if (wasRecentlyCopied) {
-        icon = CheckIcon;
+        InnerIcon = CheckIcon;
     } else {
-        icon = props.icon ?? CopyIcon;
+        InnerIcon = props.icon ?? CopyIcon;
     }
 
     const ariaLabel = props['aria-label'];
     const ariaLabelledBy = props['aria-labelledby'];
-    const buttonVariant = mapButtonVariant(props.variant);
-    const buttonSize = mapButtonSize(props.size);
     return (
-        <Tooltip text={ariaLabel} type="label" direction="s">
-            <IconButton
-                className={props.className}
-                type="button"
-                icon={icon}
-                variant={buttonVariant}
-                size={buttonSize}
-                onClick={copy}
-                aria-labelledby={ariaLabelledBy}
-            />
-        </Tooltip>
+        <IconButton
+            className={props.className}
+            variant={props.variant}
+            size={props.size}
+            onClick={copy}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+        >
+            <InnerIcon />
+        </IconButton>
     );
 }
