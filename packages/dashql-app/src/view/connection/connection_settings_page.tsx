@@ -20,6 +20,8 @@ import { Identicon } from '../../view/foundations/identicon.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
+    selected: boolean;
+    select: (conn: [ConnectorType, number] | null) => void;
 }
 
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
@@ -36,7 +38,12 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
     }, [connState?.details]).asSfc32();
 
     return (
-        <div className={styles.connection_group_entry}>
+        <button
+            className={classNames(styles.connection_group_entry, {
+                [styles.connection_group_entry_active]: props.selected
+            })}
+            onClick={connState != null ? () => props.select([connState.connectorInfo.connectorType, props.connectionId]) : undefined}
+        >
             <div className={styles.connection_group_entry_icon_container}>
                 <Identicon
                     className={styles.connection_group_entry_icon}
@@ -49,9 +56,8 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                 />
             </div>
             <div className={styles.connection_group_entry_label}>
-                Foo
             </div>
-        </div>
+        </button>
     );
 }
 
@@ -69,6 +75,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     // Resolve the default connections
     const defaultConnections = useDefaultConnections();
     const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
+    const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
 
     // Collect non-default connections
     let nonDefaultConns: number[] = [];
@@ -86,7 +93,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
         >
             <div
                 className={classNames(styles.connector_group_head, {
-                    [styles.connector_group_active]: groupSelected
+                    [styles.connector_group_active]: defaultConnSelected
                 })}
                 data-tab={props.connector as number}
             >
@@ -102,7 +109,14 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             </div>
             {nonDefaultConns.length > 0 && (
                 <div className={styles.connection_group_entries}>
-                    {nonDefaultConns.map(i => <ConnectionGroupEntry key={i} connectionId={i} />)}
+                    {nonDefaultConns.map(cid => (
+                        <ConnectionGroupEntry
+                            key={cid}
+                            connectionId={cid}
+                            selected={props.selected != null && props.selected[1] == cid}
+                            select={props.select}
+                        />
+                    ))}
                 </div>
             )}
         </div>
