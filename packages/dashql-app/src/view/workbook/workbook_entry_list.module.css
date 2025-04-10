@@ -21,6 +21,9 @@
     justify-content: center;
     align-items: center;
 }
+.entry_icon_container:hover {
+    background-color: hsl(210deg, 18%, 60%, 0.32);
+}
 
 .entry_key_name {}
 
