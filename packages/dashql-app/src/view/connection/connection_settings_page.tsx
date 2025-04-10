@@ -37,7 +37,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
 
     return (
         <div className={styles.connection_group_entry}>
-            <div className={styles.connection_group_entry_name}>
+            <div className={styles.connection_group_entry_icon_container}>
                 <Identicon
                     className={styles.connection_group_entry_icon}
                     width={24}
@@ -47,6 +47,9 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                         connSig.next()
                     ]}
                 />
+            </div>
+            <div className={styles.connection_group_entry_label}>
+                Foo
             </div>
         </div>
     );
