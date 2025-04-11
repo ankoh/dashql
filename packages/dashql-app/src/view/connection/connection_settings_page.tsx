@@ -39,13 +39,13 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
 
     // The status class
     const statusMapping: string[] = [
-        styles.status_not_started,
-        styles.status_connecting,
-        styles.status_cancelled,
-        styles.status_online,
-        styles.status_failed,
+        "Pending",
+        "Connecting",
+        "Cancelled",
+        "Online",
+        "Failed",
     ];
-    const statusClass = statusMapping[connState?.connectionHealth ?? 0];
+    const statusLabel = statusMapping[connState?.connectionHealth ?? 0];
 
     return (
         <button
@@ -66,7 +66,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                 />
             </div>
             <div className={styles.connection_group_entry_label}>
-                {props.connectionId}
+                {statusLabel}
             </div>
         </button>
     );
