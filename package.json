@@ -10,13 +10,13 @@
         "ts-node": "^10.9.1"
     },
     "devDependencies": {
-        "@bufbuild/buf": "^1.52.0",
+        "@bufbuild/buf": "^1.52.1",
         "@bufbuild/protoc-gen-es": "^1.10.0",
         "@connectrpc/protoc-gen-connect-es": "^1.6.1",
-        "@eslint/js": "^9.23.0",
+        "@eslint/js": "^9.24.0",
         "@tauri-apps/cli": "^2.0.1",
-        "@types/node": "^20.17.30",
-        "eslint": "^9.23.0",
+        "@types/node": "^22.14.0",
+        "eslint": "^9.24.0",
         "prettier": "^3.5.3",
         "ts-node": "^10.9.2",
         "typescript": "^5.6.2",
@@ -27,7 +27,7 @@
         "last 1 version",
         "> 1%"
     ],
-    "packageManager": "yarn@4.8.1",
+    "packageManager": "yarn@4.9.0",
     "resolutions": {
         "@primer/octicons-react@npm:^19.8.0": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
     },

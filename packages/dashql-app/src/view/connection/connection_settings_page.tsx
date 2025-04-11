@@ -14,12 +14,14 @@ import { useConnectionRegistry, useConnectionState } from '../../connection/conn
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
-import { computeConnectionSignature } from '../../connection/connection_state.js';
+import { computeConnectionSignature, ConnectionHealth } from '../../connection/connection_state.js';
 import { Cyrb128 } from '../../utils/prng.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
+    selected: boolean;
+    select: (conn: [ConnectorType, number] | null) => void;
 }
 
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
@@ -35,9 +37,24 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
         return seed;
     }, [connState?.details]).asSfc32();
 
+    // The status class
+    const statusMapping: string[] = [
+        styles.status_not_started,
+        styles.status_connecting,
+        styles.status_cancelled,
+        styles.status_online,
+        styles.status_failed,
+    ];
+    const statusClass = statusMapping[connState?.connectionHealth ?? 0];
+
     return (
-        <div className={styles.connection_group_entry}>
-            <div className={styles.connection_group_entry_name}>
+        <button
+            className={classNames(styles.connection_group_entry, {
+                [styles.connection_group_entry_active]: props.selected
+            })}
+            onClick={connState != null ? () => props.select([connState.connectorInfo.connectorType, props.connectionId]) : undefined}
+        >
+            <div className={styles.connection_group_entry_icon_container}>
                 <Identicon
                     className={styles.connection_group_entry_icon}
                     width={24}
@@ -48,7 +65,10 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     ]}
                 />
             </div>
-        </div>
+            <div className={styles.connection_group_entry_label}>
+                {props.connectionId}
+            </div>
+        </button>
     );
 }
 
@@ -66,6 +86,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     // Resolve the default connections
     const defaultConnections = useDefaultConnections();
     const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
+    const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
 
     // Collect non-default connections
     let nonDefaultConns: number[] = [];
@@ -83,7 +104,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
         >
             <div
                 className={classNames(styles.connector_group_head, {
-                    [styles.connector_group_active]: groupSelected
+                    [styles.connector_group_active]: defaultConnSelected
                 })}
                 data-tab={props.connector as number}
             >
@@ -99,7 +120,14 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             </div>
             {nonDefaultConns.length > 0 && (
                 <div className={styles.connection_group_entries}>
-                    {nonDefaultConns.map(i => <ConnectionGroupEntry key={i} connectionId={i} />)}
+                    {nonDefaultConns.map(cid => (
+                        <ConnectionGroupEntry
+                            key={cid}
+                            connectionId={cid}
+                            selected={props.selected != null && props.selected[1] == cid}
+                            select={props.select}
+                        />
+                    ))}
                 </div>
             )}
         </div>

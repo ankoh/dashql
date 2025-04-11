@@ -53,10 +53,11 @@ export function UIInternalsPage(): React.ReactElement {
                         trailingAction={
                             <TextInputAction
                                 onClick={() => { }}
-                                icon={CopyIcon}
                                 aria-label="action"
                                 aria-labelledby=""
-                            />
+                            >
+                                <CopyIcon />
+                            </TextInputAction>
                         }
                     />
                     <TextInput
@@ -65,10 +66,11 @@ export function UIInternalsPage(): React.ReactElement {
                         trailingAction={
                             <TextInputAction
                                 onClick={() => { }}
-                                icon={CopyIcon}
                                 aria-label="action"
                                 aria-labelledby=""
-                            />
+                            >
+                                <CopyIcon />
+                            </TextInputAction>
                         }
                     />
                 </div>

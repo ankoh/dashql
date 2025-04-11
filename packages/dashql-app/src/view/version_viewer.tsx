@@ -3,7 +3,7 @@ import * as symbols from '../../static/svg/symbols.generated.svg';
 import * as styles from './version_viewer.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { IconButton, ProgressBar } from '@primer/react';
+import { ProgressBar } from '@primer/react';
 
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION } from '../globals.js';
 import {
@@ -18,7 +18,7 @@ import {
     useVersionCheck,
     VersionCheckStatusCode,
 } from '../platform/version_check.js';
-import { Button } from './foundations/button.js';
+import { Button, ButtonVariant, IconButton } from './foundations/button.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { ReleaseManifest } from '../platform/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
@@ -146,11 +146,12 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton
-                        variant="invisible"
-                        icon={XIcon}
-                        aria-label="close-overlay"
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close"
                         onClick={props.onClose}
-                    />
+                    >
+                        <XIcon />
+                    </IconButton>
                 </div>
             </div>
             <div className={styles.version_info_container}>

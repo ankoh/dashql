@@ -2,13 +2,13 @@ import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 
 import { VariableSizeGrid as Grid } from 'react-window';
-import { IconButton } from '@primer/react';
 import { XIcon } from '@primer/octicons-react';
 
 import { useScrollbarWidth } from '../utils/scrollbar.js';
 import { LogLevel, getLogLevelName } from '../platform/log_buffer.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { observeSize } from './foundations/size_observer.js';
+import { ButtonVariant, IconButton } from './foundations/button.js';
 
 interface LevelCellProps {
     level: LogLevel;
@@ -177,11 +177,12 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton
-                        variant="invisible"
-                        icon={XIcon}
-                        aria-label="close-overlay"
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close"
                         onClick={props.onClose}
-                    />
+                    >
+                        <XIcon />
+                    </IconButton>
                 </div>
             </div>
             <div className={styles.log_grid_container} ref={containerRef}>

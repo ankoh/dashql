@@ -79,12 +79,12 @@ function Component(props: ComponentProps) {
     );
 }
 
-const SHAPE_FILLS: string[] = [
-    "#363d45",
-    "#3d7789",
-    "#38b8b7",
-    "#79fac5",
-];
+// const SHAPE_FILLS: string[] = [
+//     "#363d45",
+//     "#3d7789",
+//     "#38b8b7",
+//     "#79fac5",
+// ];
 
 export interface IdenticonProps {
     style?: React.CSSProperties;
@@ -114,7 +114,9 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.EllipseFilled,
                             ShapeType.PolygonFilled
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 36%)"
+                        ]}
                         offsetXMin={-65}
                         offsetXMax={65}
                         offsetYMin={-45}
@@ -136,7 +138,9 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.EllipseFilled,
                             ShapeType.PolygonFilled,
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 56%)"
+                        ]}
                         offsetXMin={-40}
                         offsetXMax={40}
                         offsetYMin={-40}
@@ -158,7 +162,10 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.Polygon,
                             ShapeType.Line,
                         ]}
-                        fills={SHAPE_FILLS}
+                        fills={[
+                            "hsl(210deg, 12%, 46%)",
+                            "hsl(210deg, 12%, 66%)",
+                        ]}
                         offsetXMin={-40}
                         offsetXMax={40}
                         offsetYMin={-40}

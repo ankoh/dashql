@@ -78,14 +78,17 @@
 }
 
 .connector_group_head {
+    border: 1px solid transparent;
 
 }
 .connector_group_head:hover > .connector_group_button {
     background-color: var(--conns_tabs_background_hover);
+    border: 1px solid var(--border_color_primary);
 }
 .connector_group_active > .connector_group_button {
     color: var(--conns_tabs_foreground_active);
     background-color: var(--conns_tabs_background_active) !important;
+    border: 1px solid var(--border_color_primary);
 }
 .connector_group_button {
     -webkit-appearance: none;
@@ -113,27 +116,52 @@
 }
 
 .connection_group_entries {
-
+    padding: 4px 0px 8px 16px;
 }
 
 .connection_group_entry {
+    -webkit-appearance: none;
+    background: none;
+
+    width: 100%;
     display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 8px;
+    padding: 4px 0px 4px 4px;
+    border-radius: var(--border_radius);
+    border: 1px solid transparent;
+    align-items: center;
 }
-.connection_group_entry_status {
-    width: 8px;
-    height: 8px;
-    background: red;
-    border-radius: 50%;
+.connection_group_entry:hover {
+    background-color: var(--conns_tabs_background_hover);
+    border: 1px solid var(--border_color_primary);
 }
-.connection_group_entry_name {
+.connection_group_entry_active {
+    background-color: var(--conns_tabs_background_active) !important;
+    border: 1px solid var(--border_color_primary);
+}
+.connection_group_entry_icon_container {
+    grid-column: 1;
+    display: flex;
 }
 .connection_group_entry_icon {
-    border: 1px solid var(--border_color_primary);
+    /* border: 1px solid var(--border_color_primary); */
+    border: 1px solid hsl(210deg, 12%, 76%);
+    /* border: 1px solid hsl(210deg, 12%, 96%); */
     border-radius: 6px;
     overflow: hidden;
-    background-color: hsl(210deg, 12%, 50%);
+    /* background-color: hsl(210deg, 12%, 86%); */
+    /* background-color: hsl(210deg, 29%, 97%); */
+    /* background-color: hsl(210deg, 12%, 66%); */
+    background-color: hsl(210deg, 18%, 74%, 0.32);
 }
-
+.connection_group_entry_label {
+    grid-column: 2;
+    padding: 0px 8px 0px 0px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
 
 .connection_settings_container {
     grid-row: 1;

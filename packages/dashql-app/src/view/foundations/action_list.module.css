@@ -22,7 +22,7 @@
     text-decoration: none;
     user-select: none;
     padding: 4px 12px;
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--border_radius);
     background-color: transparent;
     margin-left: 8px;
@@ -44,6 +44,7 @@
 }
 .item_container:hover {
     background-color: rgba(208,215,222,0.32);
+    border: 1px solid var(--border_color_primary);
 }
 
 .leading_container {

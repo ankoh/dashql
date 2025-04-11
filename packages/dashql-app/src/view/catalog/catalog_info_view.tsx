@@ -3,6 +3,8 @@ import * as styles from "./catalog_info_view.module.css";
 
 import { ConnectionState } from "../../connection/connection_state.js";
 import { formatTimeDifference } from "../../utils/format.js";
+import { SymbolIcon } from "../../view/foundations/symbol_icon.js";
+import { ButtonVariant, IconButton } from "../../view/foundations/button.js";
 
 interface CatalogInfoViewProps {
     conn: ConnectionState;
@@ -80,25 +82,55 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
         </>
     );
 
+    const ExpandIcon = SymbolIcon("triangle_down_24");
+    const CollapseIcon = SymbolIcon("triangle_up_24");
+    const [expanded, setExpanded] = React.useState<boolean>();
+    const TriangleIcon = expanded ? CollapseIcon : ExpandIcon;
+
     return (
         <div className={styles.root}>
             <div className={styles.header}>
-                Catalog
-            </div>
-            <div className={styles.catalog_metrics}>
-                <Metric name="Last Refresh" value={sinceLastFullRefresh ?? "-"} />
-                <Metric name="Databases" value={Intl.NumberFormat().format(catalogStats.dbCount)} />
-                <Metric name="Schemas" value={Intl.NumberFormat().format(catalogStats.schemaCount)} />
-                <Metric name="Tables" value={Intl.NumberFormat().format(catalogStats.tableCount)} />
-                <Metric name="Columns" value={Intl.NumberFormat().format(catalogStats.columnCount)} />
-            </div>
-            {props.entries.length > 0 &&
-                <div className={styles.additional_entries}>
-                    {props.entries.map(([n, v], i) => (
-                        <AdditionalEntry key={i} name={n} value={v} />
-                    ))}
+                <div
+                    className={styles.header_title}
+                    onClick={(ev: React.MouseEvent) => {
+                        ev.stopPropagation();
+                        setExpanded(e => !e);
+                    }}
+                >
+                    Catalog
                 </div>
-            }
+                <div className={styles.header_button}>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-labelledby="info-expand"
+                        aria-label={expanded ? "Hide Info" : "Show Info"}
+                        onClick={(ev: React.MouseEvent) => {
+                            ev.stopPropagation();
+                            setExpanded(e => !e);
+                        }}
+                    >
+                        <TriangleIcon />
+                    </IconButton>
+                </div>
+            </div>
+            {expanded && (
+                <>
+                    <div className={styles.catalog_metrics}>
+                        <Metric name="Last Refresh" value={sinceLastFullRefresh ?? "-"} />
+                        <Metric name="Databases" value={Intl.NumberFormat().format(catalogStats.dbCount)} />
+                        <Metric name="Schemas" value={Intl.NumberFormat().format(catalogStats.schemaCount)} />
+                        <Metric name="Tables" value={Intl.NumberFormat().format(catalogStats.tableCount)} />
+                        <Metric name="Columns" value={Intl.NumberFormat().format(catalogStats.columnCount)} />
+                    </div>
+                    {props.entries.length > 0 &&
+                        <div className={styles.additional_entries}>
+                            {props.entries.map(([n, v], i) => (
+                                <AdditionalEntry key={i} name={n} value={v} />
+                            ))}
+                        </div>
+                    }
+                </>
+            )}
         </div>
     );
 }

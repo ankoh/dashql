@@ -7,7 +7,7 @@ import { useQueryExecutor } from '../connection/query_executor.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { ConnectionHealth } from '../connection/connection_state.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { REGISTER_QUERY } from './workbook_state.js';
+import { REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
 import { QueryType } from '../connection/query_execution_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 
@@ -17,6 +17,8 @@ export enum WorkbookCommandType {
     SaveWorkbookAsLink = 3,
     SaveQueryAsSql = 4,
     SaveQueryResultsAsArrow = 5,
+    SelectPreviousWorkbookEntry = 6,
+    SelectNextWorkbookEntry = 7,
 }
 
 export type ScriptCommandDispatch = (command: WorkbookCommandType) => void;
@@ -30,7 +32,7 @@ export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const [workbook, dispatchWorkbook] = useCurrentWorkbookState();
+    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
     const [connection, _dispatchConnection] = useConnectionState(workbook?.connectionId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
@@ -62,7 +64,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                                 userProvided: true
                             }
                         });
-                        dispatchWorkbook({
+                        modifyWorkbook({
                             type: REGISTER_QUERY,
                             value: [workbook.selectedWorkbookEntry, script.scriptKey, queryId]
                         })
@@ -83,6 +85,22 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case WorkbookCommandType.SaveQueryResultsAsArrow:
                     console.log('save query results as arrow');
+                    break;
+                case WorkbookCommandType.SelectPreviousWorkbookEntry:
+                    if (modifyWorkbook) {
+                        modifyWorkbook({
+                            type: SELECT_PREV_ENTRY,
+                            value: null,
+                        });
+                    }
+                    break;
+                case WorkbookCommandType.SelectNextWorkbookEntry:
+                    if (modifyWorkbook) {
+                        modifyWorkbook({
+                            type: SELECT_NEXT_ENTRY,
+                            value: null,
+                        });
+                    }
                     break;
             }
         },
@@ -142,6 +160,16 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         ? () => commandNotImplemented(c, 'SAVE_QUERY_RESULTS_AS_ARROW')
                         : () => commandDispatch(WorkbookCommandType.SaveQueryResultsAsArrow),
                 ),
+            },
+            {
+                key: 'k',
+                ctrlKey: true,
+                callback: () => commandDispatch(WorkbookCommandType.SelectPreviousWorkbookEntry),
+            },
+            {
+                key: 'j',
+                ctrlKey: true,
+                callback: () => commandDispatch(WorkbookCommandType.SelectNextWorkbookEntry),
             },
         ],
         [workbook?.connectorInfo, commandDispatch],
