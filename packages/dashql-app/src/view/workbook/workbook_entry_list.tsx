@@ -2,14 +2,16 @@ import * as React from 'react';
 
 import * as styles from './workbook_entry_list.module.css';
 
-import { ScriptData, ScriptKey, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, SELECT_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
 import { Cyrb128 } from '../../utils/prng.js';
 import { computeConnectionSignature } from '../../connection/connection_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
+import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 
 interface WorkbookEntryProps {
     workbook: WorkbookState;
+    modifyWorkbook: ModifyWorkbook;
     entryIndex: number;
     entry: WorkbookEntry;
     scriptKey: ScriptKey;
@@ -37,8 +39,16 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     }, [props.entryIndex]);
     const entrySig = entrySigHasher.asSfc32();
 
+    // Callback to select a workbook
+    const selectWorkbook = () => {
+        props.modifyWorkbook({
+            type: SELECT_ENTRY,
+            value: props.entryIndex
+        });
+    };
+
     return (
-        <div className={styles.entry_container}>
+        <div className={styles.entry_container} onClick={selectWorkbook}>
             <Identicon
                 className={styles.entry_icon_container}
                 layers={[
@@ -53,10 +63,11 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
 
 interface ListProps {
     workbook: WorkbookState | null;
+    modifyWorkbook: ModifyWorkbook | null;
 }
 
 export function WorkbookEntryList(props: ListProps) {
-    if (props.workbook == null) {
+    if (props.workbook == null || props.modifyWorkbook == null) {
         return <div />;
     }
 
@@ -68,6 +79,7 @@ export function WorkbookEntryList(props: ListProps) {
                 <WorkbookScriptEntry
                     key={i}
                     workbook={props.workbook!}
+                    modifyWorkbook={props.modifyWorkbook!}
                     entryIndex={i}
                     entry={props.workbook!.workbookEntries[i]}
                     scriptKey={v.scriptKey}

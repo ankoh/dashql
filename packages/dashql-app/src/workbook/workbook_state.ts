@@ -91,6 +91,7 @@ export const DESTROY = Symbol('DESTROY');
 export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
+export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
 export const UPDATE_SCRIPT = Symbol('UPDATE_SCRIPT');
 export const UPDATE_SCRIPT_ANALYSIS = Symbol('UPDATE_SCRIPT_ANALYSIS');
 export const UPDATE_SCRIPT_CURSOR = Symbol('UPDATE_SCRIPT_CURSOR');
@@ -108,6 +109,7 @@ export type WorkbookStateAction =
     | VariantKind<typeof RESTORE_WORKBOOK, pb.dashql.workbook.Workbook>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
+    | VariantKind<typeof SELECT_ENTRY, number>
     | VariantKind<typeof UPDATE_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_SCRIPT_ANALYSIS, [ScriptKey, DashQLScriptBuffers, core.buffers.ScriptCursorT]>
     | VariantKind<typeof UPDATE_SCRIPT_CURSOR, [ScriptKey, core.buffers.ScriptCursorT]>
@@ -213,6 +215,11 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             return {
                 ...state,
                 selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0)
+            };
+        case SELECT_ENTRY:
+            return {
+                ...state,
+                selectedWorkbookEntry: Math.max(Math.min(action.value, state.workbookEntries.length - 1), 0),
             };
 
         case CATALOG_DID_UPDATE: {

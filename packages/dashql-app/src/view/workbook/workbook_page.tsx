@@ -251,7 +251,7 @@ export const EditorPage: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.workbook_entry_sidebar}>
-                <WorkbookEntryList workbook={workbook} />
+                <WorkbookEntryList workbook={workbook} modifyWorkbook={modifyWorkbook} />
             </div>
             <div className={styles.body_container}>
                 <div className={styles.editor_container}>
