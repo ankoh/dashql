@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as zstd from '../../utils/zstd.js';
 import * as styles from './workbook_file_save_overlay.module.css';
 
-import { Box, IconButton } from '@primer/react';
+import { Box } from '@primer/react';
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment } from '../foundations/anchored_position.js';
@@ -15,6 +15,7 @@ import { classNames } from '../../utils/classnames.js';
 import { encodeWorkbookAsFile } from '../../workbook/workbook_export_file.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file_downloader_provider.js';
+import { IconButton } from '../../view/foundations/button.js';
 
 const SLNX_COMPRESSION_LEVEL = 5;
 
@@ -35,7 +36,7 @@ interface Props {
 
 export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
-    const buttonRef = React.createRef<HTMLAnchorElement>();
+    const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
@@ -91,10 +92,12 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                     <div className={styles.download}>
                         <IconButton
                             ref={buttonRef}
-                            icon={DownloadIcon}
-                            aria-labelledby="save-file"
                             onClick={downloadFile}
-                        />
+                            aria-labelledby="save-file"
+                            aria-label="Save File"
+                        >
+                            <DownloadIcon />
+                        </IconButton>
                     </div>
                 </div>
                 <WorkbookExportSettingsView

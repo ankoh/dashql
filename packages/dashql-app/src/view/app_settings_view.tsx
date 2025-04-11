@@ -2,8 +2,7 @@ import * as React from 'react';
 import * as styles from './app_settings_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { IconButton } from '@primer/react';
-import { Button } from '../view/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../view/foundations/button.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../app_config.js';
 
@@ -29,11 +28,12 @@ export function AppSettings(props: { onClose: () => void; }) {
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton
-                        variant="invisible"
-                        icon={XIcon}
+                        variant={ButtonVariant.Invisible}
                         aria-label="close-overlay"
                         onClick={props.onClose}
-                    />
+                    >
+                        <XIcon />
+                    </IconButton>
                 </div>
             </div>
             <div className={styles.internals_container}>

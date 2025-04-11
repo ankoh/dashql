@@ -5,29 +5,45 @@ import { ConnectionHeader } from './connection_settings_header.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
-import { DEMO_CHANNEL_READY } from '../../connection/demo/demo_connection_state.js';
+import { DemoConnectionParams } from '../../connection/demo/demo_connection_state.js';
 import { DemoDatabaseChannel } from '../../connection/demo/demo_database_channel.js';
+import { setupDemoConnection } from '../../connection/demo/demo_connection_setup.js';
+import { useLogger } from '../../platform/logger_provider.js';
+import { RESET } from '../../connection/connection_state.js';
 
 interface Props {
     connectionId: number;
 }
 
 export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
+    const logger = useLogger();
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.DEMO];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
     const [connectionState, modifyConnection] = useConnectionState(props.connectionId);
     const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
 
+    const abortCtrl = React.useRef<AbortController | null>(null);
+
     const setupConnection = async () => {
-        modifyConnection({
-            type: DEMO_CHANNEL_READY,
-            value: new DemoDatabaseChannel(),
-        });
+        abortCtrl.current?.abort();
+        abortCtrl.current = new AbortController();
+
+        const params: DemoConnectionParams = {
+            channel: new DemoDatabaseChannel(),
+        };
+        await setupDemoConnection(modifyConnection, logger, params, abortCtrl.current.signal);
+
+        // XXX If default & successful, replace default connection
     };
     const cancelSetup = async () => {
+        abortCtrl.current?.abort;
     };
     const resetSetup = () => {
-
+        abortCtrl.current?.abort;
+        modifyConnection({
+            type: RESET,
+            value: null
+        });
     };
 
     return (

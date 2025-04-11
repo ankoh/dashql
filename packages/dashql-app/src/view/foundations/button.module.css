@@ -253,6 +253,7 @@
 
 .button_variant_invisible:hover:not(.disabled) {
     background-color: rgba(208,215,222,0.32);
+    border: 1px solid var(--border_color_primary);
 }
 .button_variant_invisible:active:not(.disabled) {
     background-color: rgba(208,215,222,0.48);

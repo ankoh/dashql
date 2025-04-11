@@ -1,11 +1,8 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
-import { createConnectionMetrics } from './connection_statistics.js';
-import { createConnectionStateDetails } from './connection_state_details.js';
 
 /// The connection registry
 ///

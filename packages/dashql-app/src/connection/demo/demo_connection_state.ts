@@ -6,6 +6,7 @@ import { createConnectionState } from "../connection_statistics.js";
 import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { DetailedError } from "../../utils/error.js";
+import { Cyrb128 } from "../../utils/prng.js";
 
 export interface DemoConnectionParams {
     // XXX Could also just setup with a data spec
@@ -37,6 +38,10 @@ export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWi
     return state;
 }
 
+export function computeDemoConnectionSignature(_details: DemoConnectionStateDetails, hasher: Cyrb128) {
+    hasher.add("Demo");
+}
+
 export const DEMO_CHANNEL_READY = Symbol('DEMO_CHANNEL_READY');
 export const DEMO_CHANNEL_SETUP_FAILED = Symbol('DEMO_CHANNEL_SETUP_FAILED');
 export const DEMO_CHANNEL_SETUP_CANCELLED = Symbol('DEMO_CHANNEL_SETUP_CANCELLED');
@@ -53,21 +58,6 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
     const details = state.details.value as DemoConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
-        case DEMO_CHANNEL_READY:
-            next = {
-                ...state,
-                connectionStatus: ConnectionStatus.CHANNEL_READY,
-                connectionHealth: ConnectionHealth.CONNECTING,
-                details: {
-                    type: DEMO_CONNECTOR,
-                    value: {
-                        ...details,
-                        channel: action.value,
-                        channelError: null,
-                    }
-                },
-            };
-            break;
         case DEMO_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
@@ -94,6 +84,21 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                         ...details,
                         channelError: action.value,
                         channel: null
+                    }
+                },
+            };
+            break;
+        case DEMO_CHANNEL_READY:
+            next = {
+                ...state,
+                connectionStatus: ConnectionStatus.CHANNEL_READY,
+                connectionHealth: ConnectionHealth.CONNECTING,
+                details: {
+                    type: DEMO_CONNECTOR,
+                    value: {
+                        ...details,
+                        channel: action.value,
+                        channelError: null,
                     }
                 },
             };

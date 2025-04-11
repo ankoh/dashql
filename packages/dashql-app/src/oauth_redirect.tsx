@@ -4,13 +4,12 @@ import * as symbols from '../static/svg/symbols.generated.svg';
 import * as baseStyles from './view/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
-import { IconButton } from '@primer/react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 
 import { AnchorAlignment, AnchorSide } from './view/foundations/anchored_position.js';
 import { BASE64URL_CODEC } from './utils/base64.js';
-import { Button, ButtonSize, ButtonVariant } from './view/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from './view/foundations/button.js';
 import { CopyToClipboardButton } from './utils/clipboard.js';
 import { DASHQL_VERSION } from './globals.js';
 import { GitHubTheme } from './github_theme.js';
@@ -278,15 +277,14 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                                     renderAnchor={(p: object) => (
                                         <IconButton
                                             {...p}
-                                            variant="invisible"
-                                            icon={() => (
-                                                <svg width="16px" height="16px">
-                                                    <use xlinkHref={`${symbols}#log`} />
-                                                </svg>
-                                            )}
+                                            variant={ButtonVariant.Invisible}
                                             aria-label="close-overlay"
                                             onClick={() => setLogsAreOpen(s => !s)}
-                                        />
+                                        >
+                                            <svg width="16px" height="16px">
+                                                <use xlinkHref={`${symbols}#log`} />
+                                            </svg>
+                                        </IconButton>
                                     )}
                                     side={AnchorSide.OutsideBottom}
                                     align={AnchorAlignment.End}

@@ -2,8 +2,19 @@
 }
 
 .header {
-    padding: 8px 16px;
+    width: 100%;
+    display: grid;
+    grid-template-rows: max-content;
+    grid-template-columns: 1fr max-content;
+    align-items: center;
     font-size: 0.95rem;
+}
+
+.header_title {
+    padding: 0 16px;
+}
+.header_button {
+    padding: 4px;
 }
 
 .catalog_metrics {

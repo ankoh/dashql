@@ -89,6 +89,8 @@ export function destroyState(state: WorkbookState): WorkbookState {
 
 export const DESTROY = Symbol('DESTROY');
 export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
+export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
+export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const UPDATE_SCRIPT = Symbol('UPDATE_SCRIPT');
 export const UPDATE_SCRIPT_ANALYSIS = Symbol('UPDATE_SCRIPT_ANALYSIS');
 export const UPDATE_SCRIPT_CURSOR = Symbol('UPDATE_SCRIPT_CURSOR');
@@ -104,6 +106,8 @@ export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
     | VariantKind<typeof RESTORE_WORKBOOK, pb.dashql.workbook.Workbook>
+    | VariantKind<typeof SELECT_NEXT_ENTRY, null>
+    | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof UPDATE_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_SCRIPT_ANALYSIS, [ScriptKey, DashQLScriptBuffers, core.buffers.ScriptCursorT]>
     | VariantKind<typeof UPDATE_SCRIPT_CURSOR, [ScriptKey, core.buffers.ScriptCursorT]>
@@ -199,6 +203,17 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             // All other scripts are marked via `outdatedAnalysis`
             return next;
         }
+
+        case SELECT_NEXT_ENTRY:
+            return {
+                ...state,
+                selectedWorkbookEntry: Math.max(Math.min(state.selectedWorkbookEntry + 1, state.workbookEntries.length - 1), 0),
+            };
+        case SELECT_PREV_ENTRY:
+            return {
+                ...state,
+                selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0)
+            };
 
         case CATALOG_DID_UPDATE: {
             const scripts = { ...state.scripts };

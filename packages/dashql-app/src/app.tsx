@@ -21,6 +21,7 @@ import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperGrpcConnector } from './connection/hyper/hyper_connector.js';
 import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
+import { IdentInternalsPage } from './view/internals/ident_internals_page.js';
 import { LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';
@@ -135,6 +136,7 @@ root.render(
                         {isDebugBuild() && (
                             <>
                                 <Route path="/internals/ui" Component={UIInternalsPage} />
+                                <Route path="/internals/ident" Component={IdentInternalsPage} />
                                 <Route path="/internals/schema" Component={SchemaGraphDemoPage} />
                             </>
                         )}

@@ -1,5 +1,8 @@
 import * as React from 'react';
 
+import * as styles from './connection_settings_page.module.css';
+import * as icons from '../../../static/svg/symbols.generated.svg';
+
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';
 import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
@@ -7,13 +10,67 @@ import { SalesforceConnectorSettings } from './salesforce_connection_settings.js
 import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { isDebugBuild } from '../../globals.js';
-import { useConnectionRegistry } from '../../connection/connection_registry.js';
+import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
+import { computeConnectionSignature, ConnectionHealth } from '../../connection/connection_state.js';
+import { Cyrb128 } from '../../utils/prng.js';
+import { Identicon } from '../../view/foundations/identicon.js';
 
-import * as styles from './connection_settings_page.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+interface ConnectionGroupEntryProps {
+    connectionId: number;
+    selected: boolean;
+    select: (conn: [ConnectorType, number] | null) => void;
+}
+
+function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
+    // Get the connection state
+    const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
+
+    // Compute the connection signature
+    const connSig = React.useMemo(() => {
+        const seed = new Cyrb128();
+        if (connState != null) {
+            computeConnectionSignature(connState, seed);
+        }
+        return seed;
+    }, [connState?.details]).asSfc32();
+
+    // The status class
+    const statusMapping: string[] = [
+        styles.status_not_started,
+        styles.status_connecting,
+        styles.status_cancelled,
+        styles.status_online,
+        styles.status_failed,
+    ];
+    const statusClass = statusMapping[connState?.connectionHealth ?? 0];
+
+    return (
+        <button
+            className={classNames(styles.connection_group_entry, {
+                [styles.connection_group_entry_active]: props.selected
+            })}
+            onClick={connState != null ? () => props.select([connState.connectorInfo.connectorType, props.connectionId]) : undefined}
+        >
+            <div className={styles.connection_group_entry_icon_container}>
+                <Identicon
+                    className={styles.connection_group_entry_icon}
+                    width={24}
+                    height={24}
+                    layers={[
+                        connSig.next(),
+                        connSig.next()
+                    ]}
+                />
+            </div>
+            <div className={styles.connection_group_entry_label}>
+                {props.connectionId}
+            </div>
+        </button>
+    );
+}
 
 interface ConnectionGroupProps {
     connector: ConnectorType;
@@ -22,28 +79,57 @@ interface ConnectionGroupProps {
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
+    // Is the group connected?
+    const groupSelected = props.selected != null && props.selected[0] == props.connector;
+    // Resolve the connector info
     const info = CONNECTOR_INFOS[props.connector as number];
+    // Resolve the default connections
     const defaultConnections = useDefaultConnections();
     const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
-    const groupSelected = props.selected != null && props.selected[0] == props.connector;
+    const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
+
+    // Collect non-default connections
+    let nonDefaultConns: number[] = [];
+    const [connReg, _] = useConnectionRegistry();
+    for (let cid of connReg.connectionsPerType[props.connector]) {
+        if (cid !== defaultConnId) {
+            nonDefaultConns.push(cid);
+        }
+    }
+
     return (
         <div
             key={props.connector as number}
-            className={classNames(styles.connector, {
-                [styles.connector_active]: groupSelected
-            })}
-            data-tab={props.connector as number}
-            onClick={console.log}
+            className={styles.connector_group}
         >
-            <button
-                className={styles.connector_button}
-                onClick={defaultConnId != null ? () => props.select([props.connector, defaultConnId]) : undefined}
+            <div
+                className={classNames(styles.connector_group_head, {
+                    [styles.connector_group_active]: defaultConnSelected
+                })}
+                data-tab={props.connector as number}
             >
-                <svg className={styles.connector_icon} width="18px" height="16px">
-                    <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
-                </svg>
-                <div className={styles.connector_label}>{info.displayName.short}</div>
-            </button>
+                <button
+                    className={styles.connector_group_button}
+                    onClick={defaultConnId != null ? () => props.select([props.connector, defaultConnId]) : undefined}
+                >
+                    <svg className={styles.connector_icon} width="18px" height="16px">
+                        <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
+                    </svg>
+                    <div className={styles.connector_name}>{info.displayName.short}</div>
+                </button>
+            </div>
+            {nonDefaultConns.length > 0 && (
+                <div className={styles.connection_group_entries}>
+                    {nonDefaultConns.map(cid => (
+                        <ConnectionGroupEntry
+                            key={cid}
+                            connectionId={cid}
+                            selected={props.selected != null && props.selected[1] == cid}
+                            select={props.select}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -102,11 +188,11 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             </div>
             <div className={styles.body_container}>
                 <div className={styles.connection_list}>
-                    <div className={styles.connector_group}>
+                    <div className={styles.connection_section}>
                         {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER_GRPC, ConnectorType.TRINO]
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
                     </div>
-                    <div className={styles.connector_group}>
+                    <div className={styles.connection_section}>
                         {[ConnectorType.SERVERLESS, ConnectorType.DEMO]
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
                     </div>
