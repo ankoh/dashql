@@ -44,8 +44,8 @@ __metadata:
     "@octokit/graphql": "npm:^8.2.2"
     "@primer/behaviors": "npm:^1.8.1"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
-    "@primer/react": "npm:^37.18.0"
-    "@primer/react-brand": "npm:^0.50.0"
+    "@primer/react": "npm:^37.19.0"
+    "@primer/react-brand": "npm:^0.51.0"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.0.1"
     "@tauri-apps/cli": "npm:^2.0.1"
@@ -1763,13 +1763,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/react-brand@npm:^0.50.0":
-  version: 0.50.0
-  resolution: "@primer/react-brand@npm:0.50.0"
+"@primer/react-brand@npm:^0.51.0":
+  version: 0.51.0
+  resolution: "@primer/react-brand@npm:0.51.0"
   dependencies:
     "@oddbird/popover-polyfill": "npm:0.5.2"
     "@primer/behaviors": "npm:1.8.0"
-    clsx: "npm:1.2.1"
   peerDependencies:
     "@types/react": ">=18 <20"
     "@types/react-dom": ">=18 <20"
@@ -1780,13 +1779,13 @@ __metadata:
       optional: true
     "@types/react-dom":
       optional: true
-  checksum: 10c0/a2f4c91984a7c73d7148d186eba09716155a5cdf4557433f2272a75b91fce9b0ee8611b17f5d07ac800b8bb9198529591c1995185901fc45bcce70241769092f
+  checksum: 10c0/2ad02e79413b9da6dadb818ab3540d4e9c9a6e498dc03c116712d4d52070a76723bf4948299dac1e83ffe7027d3ed0b4f0e70944e816eb55f3f92a89a6825b3e
   languageName: node
   linkType: hard
 
-"@primer/react@npm:^37.18.0":
-  version: 37.18.0
-  resolution: "@primer/react@npm:37.18.0"
+"@primer/react@npm:^37.19.0":
+  version: 37.19.0
+  resolution: "@primer/react@npm:37.19.0"
   dependencies:
     "@github/relative-time-element": "npm:^4.4.5"
     "@github/tab-container-element": "npm:4.8.2"
@@ -1829,7 +1828,7 @@ __metadata:
       optional: true
     "@types/styled-components":
       optional: true
-  checksum: 10c0/23445b53492033657e70dd41864c57ada6bf42ee555e790cf647118d9e363063ad13ae5ece78fd53c2fd6eed807bcbbd5527c15cb44560926b684f5ba69b6e85
+  checksum: 10c0/9b30ea7f239aea892fe8fd22fd93d213113599af9ecdf635233e5a3971d800ed09eb8358c0e1a01a665f221f767256f5dfbf505d33300bd8be4509e8a59907c8
   languageName: node
   linkType: hard
 
@@ -4534,7 +4533,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"clsx@npm:1.2.1, clsx@npm:^1.1.1":
+"clsx@npm:^1.1.1":
   version: 1.2.1
   resolution: "clsx@npm:1.2.1"
   checksum: 10c0/34dead8bee24f5e96f6e7937d711978380647e936a22e76380290e35486afd8634966ce300fc4b74a32f3762c7d4c0303f442c3e259f4ce02374eb0c82834f27
