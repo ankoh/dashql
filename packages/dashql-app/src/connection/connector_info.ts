@@ -33,10 +33,11 @@ export enum CatalogResolver {
 export interface ConnectorInfo {
     /// The connector type
     connectorType: ConnectorType;
-    /// The connector title
-    displayName: {
-        long: string;
-        short: string;
+    /// The connector name
+    names: {
+        displayLong: string;
+        displayShort: string;
+        fileShort: string;
     };
     /// The icons
     icons: {
@@ -75,9 +76,10 @@ export interface ConnectorFeatures {
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.SERVERLESS,
-        displayName: {
-            short: 'Serverless',
-            long: 'Serverless',
+        names: {
+            displayShort: 'Serverless',
+            displayLong: 'Serverless',
+            fileShort: 'serverless',
         },
         icons: {
             colored: "cloud_offline",
@@ -99,9 +101,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.HYPER_GRPC,
-        displayName: {
-            short: 'Hyper',
-            long: 'Hyper Database',
+        names: {
+            displayShort: 'Hyper',
+            displayLong: 'Hyper Database',
+            fileShort: 'hyper',
         },
         icons: {
             colored: "hyper",
@@ -123,9 +126,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
-        displayName: {
-            short: 'Salesforce',
-            long: 'Salesforce Data Cloud',
+        names: {
+            displayShort: 'Salesforce',
+            displayLong: 'Salesforce Data Cloud',
+            fileShort: 'sfdc',
         },
         icons: {
             colored: "salesforce_notext",
@@ -147,9 +151,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.TRINO,
-        displayName: {
-            short: 'Trino',
-            long: 'Trino',
+        names: {
+            displayShort: 'Trino',
+            displayLong: 'Trino',
+            fileShort: 'trino',
         },
         icons: {
             colored: "trino",
@@ -171,9 +176,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.DEMO,
-        displayName: {
-            short: 'Demo',
-            long: 'Demo',
+        names: {
+            displayShort: 'Demo',
+            displayLong: 'Demo',
+            fileShort: 'demo',
         },
         icons: {
             colored: "code",

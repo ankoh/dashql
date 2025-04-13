@@ -24,7 +24,7 @@ export function ConnectionInfoView(props: ConnectionInfoViewProps) {
     return (
         <div className={classNames(props.className, styles.root)} style={props.style}>
             <div className={styles.title}>
-                {conn.connectorInfo.displayName.long}
+                {conn.connectorInfo.names.displayLong}
             </div>
         </div>
     );

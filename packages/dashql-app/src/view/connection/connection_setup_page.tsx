@@ -555,7 +555,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                     <div className={baseStyles.card}>
                         <div className={baseStyles.card_header} data-tauri-drag-region>
                             <div className={baseStyles.card_header_left_container}>
-                                {connection.connectorInfo.displayName.long}
+                                {connection.connectorInfo.names.displayLong}
                             </div>
                             <div className={baseStyles.card_header_right_container}>
                                 <InternalsViewerOverlay

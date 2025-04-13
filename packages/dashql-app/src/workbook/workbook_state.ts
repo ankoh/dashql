@@ -14,6 +14,11 @@ import { VariantKind } from '../utils/index.js';
 /// The script key
 export type ScriptKey = number;
 
+export interface WorkbookMetadata {
+    /// The file name of the workbook
+    fileName: string;
+}
+
 /// The state of the workbook
 export interface WorkbookState {
     /// The workbook state contains many references into the Wasm heap.
@@ -21,6 +26,8 @@ export interface WorkbookState {
     instance: core.DashQL;
     /// The workbook id
     workbookId: number;
+    /// The workbook metadata
+    workbookMetadata: WorkbookMetadata;
     /// The connector info
     connectorInfo: ConnectorInfo;
     /// The connector state

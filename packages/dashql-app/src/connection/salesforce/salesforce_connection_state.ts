@@ -24,7 +24,7 @@ import {
 import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 import { DetailedError } from '../../utils/error.js';
-import { Cyrb128 } from 'utils/prng.js';
+import { Cyrb128 } from '../../utils/prng.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
     /// The time when the auth started
@@ -163,9 +163,9 @@ export function computeSalesforceConnectionSignature(details: SalesforceConnecti
     hasher.add(details.setupParams.appConsumerKey);
 }
 
-export const AUTH_CANCELLED = Symbol('AUTH_CANCELLED');
-export const AUTH_FAILED = Symbol('AUTH_FAILED');
-export const AUTH_STARTED = Symbol('AUTH_STARTED');
+export const SETUP_CANCELLED = Symbol('AUTH_CANCELLED');
+export const SETUP_FAILED = Symbol('AUTH_FAILED');
+export const SETUP_STARTED = Symbol('AUTH_STARTED');
 
 export const SF_CHANNEL_SETUP_CANCELLED = Symbol('SF_CHANNEL_SETUP_CANCELLED');
 export const SF_CHANNEL_SETUP_FAILED = Symbol('SF_CHANNEL_SETUP_FAILED');
@@ -184,9 +184,9 @@ export const REQUESTING_DATA_CLOUD_ACCESS_TOKEN = Symbol('REQUESTING_DATA_CLOUD_
 export const RECEIVED_DATA_CLOUD_ACCESS_TOKEN = Symbol('RECEIVED_DATA_CLOUD_ACCESS_TOKEN');
 
 export type SalesforceConnectionStateAction =
-    | VariantKind<typeof AUTH_CANCELLED, DetailedError>
-    | VariantKind<typeof AUTH_FAILED, DetailedError>
-    | VariantKind<typeof AUTH_STARTED, SalesforceConnectionParams>
+    | VariantKind<typeof SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof SETUP_FAILED, DetailedError>
+    | VariantKind<typeof SETUP_STARTED, SalesforceConnectionParams>
     | VariantKind<typeof GENERATED_PKCE_CHALLENGE, PKCEChallenge>
     | VariantKind<typeof GENERATING_PKCE_CHALLENGE, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
@@ -232,10 +232,30 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                         channel: null,
                         healthCheckError: null,
                     }
-                }
+                },
             };
             break;
-        case AUTH_STARTED:
+        case SETUP_STARTED: {
+            const details: SalesforceConnectionStateDetails = {
+                setupTimings: {
+                    ...createSalesforceSetupTimings(),
+                    authStartedAt: new Date(),
+                },
+                setupParams: action.value,
+                setupError: null,
+
+                pkceChallenge: null,
+                openAuthWindow: null,
+                coreAuthCode: null,
+                coreAccessToken: null,
+                dataCloudAccessToken: null,
+
+                channelError: null,
+                channel: null,
+                healthCheckError: null,
+            };
+            let sig = new Cyrb128();
+            computeSalesforceConnectionSignature(details, sig);
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.AUTH_STARTED,
@@ -243,28 +263,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 metrics: state.metrics,
                 details: {
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                    value: {
-                        setupTimings: {
-                            ...createSalesforceSetupTimings(),
-                            authStartedAt: new Date(),
-                        },
-                        setupParams: action.value,
-                        setupError: null,
-
-                        pkceChallenge: null,
-                        openAuthWindow: null,
-                        coreAuthCode: null,
-                        coreAccessToken: null,
-                        dataCloudAccessToken: null,
-
-                        channelError: null,
-                        channel: null,
-                        healthCheckError: null,
-                    }
-                }
+                    value: details,
+                },
+                connectionSignature: sig,
             };
             break
-        case AUTH_CANCELLED:
+        }
+        case SETUP_CANCELLED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.AUTH_CANCELLED,
@@ -282,7 +287,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 }
             };
             break;
-        case AUTH_FAILED:
+        case SETUP_FAILED:
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.AUTH_FAILED,

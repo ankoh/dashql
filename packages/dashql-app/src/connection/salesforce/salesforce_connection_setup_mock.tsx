@@ -1,7 +1,7 @@
 import {
-    AUTH_CANCELLED,
-    AUTH_FAILED,
-    AUTH_STARTED,
+    SETUP_CANCELLED,
+    SETUP_FAILED,
+    SETUP_STARTED,
     GENERATED_PKCE_CHALLENGE,
     GENERATING_PKCE_CHALLENGE,
     RECEIVED_CORE_AUTH_CODE,
@@ -30,7 +30,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
     try {
         // Start the authorization process
         updateState({
-            type: AUTH_STARTED,
+            type: SETUP_STARTED,
             value: params,
         });
         abortSignal.throwIfAborted()
@@ -139,13 +139,13 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         if (error.name === 'AbortError') {
             logger.warn("oauth flow was aborted", {});
             updateState({
-                type: AUTH_CANCELLED,
+                type: SETUP_CANCELLED,
                 value: error.message,
             });
         } else if (error instanceof Error) {
             logger.error("oauth flow was failed", { "error": error.toString() });
             updateState({
-                type: AUTH_FAILED,
+                type: SETUP_FAILED,
                 value: error,
             });
         }

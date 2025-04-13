@@ -52,7 +52,13 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
     const [_reg, setReg] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: WorkbookStateWithoutId) => {
         const workbookId = NEXT_WORKBOOK_ID++;
-        const workbook: WorkbookState = { ...state, workbookId: workbookId };
+        const workbook: WorkbookState = {
+            ...state,
+            workbookId: workbookId
+        };
+        if (workbook.workbookMetadata.fileName == "") {
+            workbook.workbookMetadata.fileName = `${workbook.connectorInfo.names.fileShort}_${workbookId}`
+        }
         setReg((reg) => {
             const sameConnection = reg.workbooksByConnection.get(state.connectionId);
             if (sameConnection) {

@@ -17,7 +17,7 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
-import { Cyrb128 } from "utils/prng.js";
+import { Cyrb128 } from "../../utils/prng.js";
 
 export interface HyperGrpcSetupTimings {
     /// The time when the channel setup started
@@ -183,33 +183,37 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 },
             };
             break;
-        case HYPER_CHANNEL_SETUP_STARTED:
+        case HYPER_CHANNEL_SETUP_STARTED: {
+            const details: HyperGrpcConnectionDetails = {
+                setupTimings: {
+                    channelSetupStartedAt: new Date(),
+                    channelSetupCancelledAt: null,
+                    channelSetupFailedAt: null,
+                    channelReadyAt: null,
+                    healthCheckStartedAt: null,
+                    healthCheckCancelledAt: null,
+                    healthCheckFailedAt: null,
+                    healthCheckSucceededAt: null,
+                },
+                channelSetupParams: action.value,
+                channelError: null,
+                channel: null,
+                healthCheckError: null,
+            };
+            const sig = new Cyrb128();
+            computeHyperGrpcConnectionSignature(details, sig);
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
                     type: HYPER_GRPC_CONNECTOR,
-                    value: {
-                        ...details,
-                        setupTimings: {
-                            channelSetupStartedAt: new Date(),
-                            channelSetupCancelledAt: null,
-                            channelSetupFailedAt: null,
-                            channelReadyAt: null,
-                            healthCheckStartedAt: null,
-                            healthCheckCancelledAt: null,
-                            healthCheckFailedAt: null,
-                            healthCheckSucceededAt: null,
-                        },
-                        channelSetupParams: action.value,
-                        channelError: null,
-                        channel: null,
-                        healthCheckError: null,
-                    }
+                    value: details,
                 },
+                connectionSignature: sig,
             };
             break;
+        }
         case HYPER_CHANNEL_READY:
             next = {
                 ...state,

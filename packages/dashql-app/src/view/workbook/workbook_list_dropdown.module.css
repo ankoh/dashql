@@ -1,0 +1,15 @@
+.workbook_icon {
+    border: 1px solid hsl(210deg, 12%, 76%);
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: hsl(210deg, 18%, 74%, 0.32);
+}
+
+.filename {
+    font-weight: 400;
+}
+
+.filename_ext {
+    opacity: 40%;
+    font-weight: 400;
+}

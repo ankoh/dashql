@@ -3,8 +3,6 @@ import * as React from 'react';
 import * as styles from './workbook_entry_list.module.css';
 
 import { ScriptData, ScriptKey, SELECT_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
-import { Cyrb128 } from '../../utils/prng.js';
-import { computeConnectionSignature } from '../../connection/connection_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -22,18 +20,11 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     // Compute the connection signature
     const [connReg, _modifyConnReg] = useConnectionRegistry();
     const connState = connReg.connectionMap.get(props.workbook.connectionId)!;
-    const connSigHasher = React.useMemo(() => {
-        const seed = new Cyrb128();
-        if (props.workbook != null) {
-            computeConnectionSignature(connState, seed);
-        }
-        return seed;
-    }, [connState?.details]);
-    const connSig = connSigHasher.asSfc32();
+    const connSig = connState.connectionSignature.asSfc32();
 
     // Compute the entry signature
     const entrySigHasher = React.useMemo(() => {
-        const seed = connSigHasher.clone();
+        const seed = connState.connectionSignature.clone();
         seed.add(props.scriptKey.toString());
         return seed;
     }, [props.entryIndex]);

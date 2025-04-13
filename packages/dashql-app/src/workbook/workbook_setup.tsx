@@ -39,6 +39,9 @@ export function useWorkbookSetup(): WorkbookSetupFn {
         };
 
         return allocateWorkbookState({
+            workbookMetadata: {
+                fileName: "",
+            },
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,

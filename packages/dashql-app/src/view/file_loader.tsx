@@ -293,6 +293,9 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             // Allocate workbook state
             const workbookState = allocateWorkbook({
                 instance: dql,
+                workbookMetadata: {
+                    fileName: ""
+                },
                 connectorInfo: connState.connectorInfo,
                 connectionId: connState.connectionId,
                 connectionCatalog: connState.catalog,
