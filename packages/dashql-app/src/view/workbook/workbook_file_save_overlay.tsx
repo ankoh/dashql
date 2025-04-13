@@ -16,6 +16,7 @@ import { encodeWorkbookAsFile } from '../../workbook/workbook_export_file.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file_downloader_provider.js';
 import { IconButton } from '../../view/foundations/button.js';
+import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
 const SLNX_COMPRESSION_LEVEL = 5;
 
@@ -38,6 +39,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
+    const fileName = `${props.workbook?.workbookMetadata.fileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         exportCatalog: true,
@@ -66,8 +68,8 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     }, [settings, props.conn, props.workbook, props.isOpen]);
 
     const downloadFile = React.useCallback(async () => {
-        await fileDownloader.downloadBufferAsFile(fileBytes, "workbook.dashql");
-    }, [fileBytes]);
+        await fileDownloader.downloadBufferAsFile(fileBytes, fileName);
+    }, [fileBytes, fileName]);
 
     return (
         <AnchoredOverlay
@@ -86,7 +88,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                         <FileIcon />
                     </div>
                     <div className={styles.file_info}>
-                        <div className={styles.file_name}>workbook.dashql</div>
+                        <div className={styles.file_name}>{fileName}</div>
                         <div className={styles.file_size}>~&nbsp;{formatBytes(fileBytes.length)}</div>
                     </div>
                     <div className={styles.download}>

@@ -105,7 +105,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         }
                         default:
                             throw new Error(
-                                `cannot load information_schema catalog for ${conn.connectorInfo.displayName.short} connections`,
+                                `cannot load information_schema catalog for ${conn.connectorInfo.names.displayShort} connections`,
                             );
                     }
                     break;
@@ -117,7 +117,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         await updatePgAttributeSchemaCatalog(connectionId, connDispatch, updateId, schemas, executor, conn.catalog);
                     } else {
                         throw new Error(
-                            `cannot load pg_attribute catalog for ${conn.connectorInfo.displayName.short} connections`,
+                            `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,
                         );
                     }
                     break;
@@ -129,7 +129,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         break;
                     } else {
                         throw new Error(
-                            `cannot load salesforce metadata catalog for ${conn.connectorInfo.displayName.short} connections`,
+                            `cannot load salesforce metadata catalog for ${conn.connectorInfo.names.displayShort} connections`,
                         );
                     }
                 }

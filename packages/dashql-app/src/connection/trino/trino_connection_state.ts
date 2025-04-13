@@ -17,7 +17,7 @@ import {
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
-import { Cyrb128 } from "utils/prng.js";
+import { Cyrb128 } from "../../utils/prng.js";
 
 export interface TrinoSetupTimings {
     /// The time when the channel setup started
@@ -194,34 +194,38 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 },
             };
             break;
-        case TRINO_CHANNEL_SETUP_STARTED:
+        case TRINO_CHANNEL_SETUP_STARTED: {
+            const details: TrinoConnectionStateDetails = {
+                setupTimings: {
+                    channelSetupStartedAt: new Date(),
+                    channelSetupCancelledAt: null,
+                    channelSetupFailedAt: null,
+                    channelReadyAt: null,
+                    healthCheckStartedAt: null,
+                    healthCheckCancelledAt: null,
+                    healthCheckFailedAt: null,
+                    healthCheckSucceededAt: null,
+                },
+                channelParams: action.value,
+                channelError: null,
+                channel: null,
+                schemaResolutionError: null,
+                healthCheckError: null,
+            };
+            const sig = new Cyrb128();
+            computeTrinoConnectionSignature(details, sig);
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
                     type: TRINO_CONNECTOR,
-                    value: {
-                        ...details,
-                        setupTimings: {
-                            channelSetupStartedAt: new Date(),
-                            channelSetupCancelledAt: null,
-                            channelSetupFailedAt: null,
-                            channelReadyAt: null,
-                            healthCheckStartedAt: null,
-                            healthCheckCancelledAt: null,
-                            healthCheckFailedAt: null,
-                            healthCheckSucceededAt: null,
-                        },
-                        channelParams: action.value,
-                        channelError: null,
-                        channel: null,
-                        schemaResolutionError: null,
-                        healthCheckError: null,
-                    }
+                    value: details,
                 },
+                connectionSignature: sig
             };
             break;
+        }
         case TRINO_CHANNEL_READY:
             next = {
                 ...state,

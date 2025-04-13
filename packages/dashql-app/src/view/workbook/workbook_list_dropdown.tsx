@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
+import * as styles from './workbook_list_dropdown.module.css';
 
 import { useCurrentWorkbookSelector, useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
-import { ConnectorIcon, ConnectorIconVariant } from '../connection/connection_icons.js';
 import {
     HYPER_GRPC_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
@@ -16,10 +16,11 @@ import {
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
+import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
+import { Identicon } from '../../view/foundations/identicon.js';
 
-export function WorkbookListDropdown(props: { className?: string; short: boolean }) {
+export function WorkbookListDropdown(props: { className?: string; }) {
     const workbookRegistry = useWorkbookRegistry();
-    const [workbookState, _modifyWorkbookState] = useCurrentWorkbookState();
     const selectWorkbook = useCurrentWorkbookSelector();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [connRegistry, _setConnRegistry] = useConnectionRegistry();
@@ -34,31 +35,48 @@ export function WorkbookListDropdown(props: { className?: string; short: boolean
             console.warn("click target did not contain a data attribute");
         }
     }, []);
-    const connectorName = !workbookState?.connectorInfo
-        ? 'Not set'
-        : props.short
-            ? workbookState?.connectorInfo.displayName.short
-            : workbookState?.connectorInfo.displayName.long;
+
+    const [currentWorkbook, _modifyWorkbookState] = useCurrentWorkbookState();
+    const currentWorkbookFileName = currentWorkbook?.workbookMetadata.fileName ?? "_";
+    const currentConnection = currentWorkbook
+        ? connRegistry.connectionMap.get(currentWorkbook.connectionId)
+        : null;
 
     // Memoize button to prevent svg flickering
-    const button = React.useMemo(() => (
-        <Button
-            className={props.className}
-            onClick={() => setIsOpen(true)}
-            variant={ButtonVariant.Invisible}
-            leadingVisual={() => (!workbookState?.connectorInfo
-                ? <div />
-                : <ConnectorIcon connector={workbookState?.connectorInfo} variant={ConnectorIconVariant.OUTLINES} />
-            )}
-        >
-            {connectorName}
-        </Button>
-    ), [workbookState?.connectorInfo, connectorName]);
+    const button = React.useMemo(() => {
+        const connSig = currentConnection?.connectionSignature?.asSfc32();
+        return (
+            <Button
+                className={props.className}
+                onClick={() => setIsOpen(true)}
+                variant={ButtonVariant.Invisible}
+                leadingVisual={() => (!currentWorkbook?.connectorInfo
+                    ? <div />
+                    : <Identicon
+                        className={styles.workbook_icon}
+                        width={24}
+                        height={24}
+                        layers={[
+                            connSig?.next() ?? 0,
+                            connSig?.next() ?? 0,
+                        ]}
+                    />
+                )}
+            >
+                <div>
+                    <span className={styles.filename}>{currentWorkbookFileName}</span>
+                    <span className={styles.filename_ext}>.{DASHQL_ARCHIVE_FILENAME_EXT}</span>
+                </div>
+            </Button>
+        );
+    }, [currentWorkbook?.connectorInfo, currentWorkbookFileName]);
 
     const renderItem = ([workbookId, workbook]: [number, WorkbookState]) => {
         const connection = connRegistry.connectionMap.get(workbook.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
+        const workbookFileName = workbook.workbookMetadata.fileName;
+        const connSig = connection.connectionSignature.asSfc32();
 
         switch (connection.details.type) {
             case SALESFORCE_DATA_CLOUD_CONNECTOR: {
@@ -119,21 +137,34 @@ export function WorkbookListDropdown(props: { className?: string; short: boolean
             case DEMO_CONNECTOR:
                 break;
         }
+
         return (
             <ActionList.ListItem
                 key={workbookId}
                 data-workbook={workbook.connectionId}
                 onClick={onWorkbookClick}
-                selected={workbookId === workbookState?.workbookId}
+                selected={workbookId === currentWorkbook?.workbookId}
                 disabled={!enabled}
                 data-item={workbookId.toString()}
             >
                 <ActionList.Leading>
-                    <ConnectorIcon connector={workbook.connectorInfo} variant={ConnectorIconVariant.OUTLINES} />
+                    <Identicon
+                        className={styles.workbook_icon}
+                        width={24}
+                        height={24}
+                        layers={[
+                            connSig.next(),
+                            connSig.next()
+                        ]}
+                    />
+
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     <ActionList.ItemTextTitle>
-                        {props.short ? workbook.connectorInfo.displayName.short : workbook.connectorInfo.displayName.long}
+                        <div>
+                            <span className={styles.filename}>{workbookFileName}</span>
+                            <span className={styles.filename_ext}>.{DASHQL_ARCHIVE_FILENAME_EXT}</span>
+                        </div>
                     </ActionList.ItemTextTitle>
                     {description}
                 </ActionList.ItemText>

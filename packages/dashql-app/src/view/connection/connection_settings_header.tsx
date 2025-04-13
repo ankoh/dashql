@@ -151,7 +151,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                     </svg>
                 </div>
                 <div className={style.platform_name} aria-labelledby="connector-name">
-                    {props.connector.displayName.long}
+                    {props.connector.names.displayLong}
                 </div>
                 <div className={style.platform_actions}>
                     {(props.connection?.connectionHealth == ConnectionHealth.ONLINE) && (

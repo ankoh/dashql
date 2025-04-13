@@ -14,9 +14,8 @@ import { useConnectionRegistry, useConnectionState } from '../../connection/conn
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
-import { computeConnectionSignature, ConnectionHealth } from '../../connection/connection_state.js';
-import { Cyrb128 } from '../../utils/prng.js';
 import { Identicon } from '../../view/foundations/identicon.js';
+import { CONNECTION_HEALTH_NAMES } from './connection_status.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
@@ -27,25 +26,10 @@ interface ConnectionGroupEntryProps {
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
-
     // Compute the connection signature
-    const connSig = React.useMemo(() => {
-        const seed = new Cyrb128();
-        if (connState != null) {
-            computeConnectionSignature(connState, seed);
-        }
-        return seed;
-    }, [connState?.details]).asSfc32();
-
+    const connSig = connState?.connectionSignature.asSfc32();
     // The status class
-    const statusMapping: string[] = [
-        "Pending",
-        "Connecting",
-        "Cancelled",
-        "Online",
-        "Failed",
-    ];
-    const statusLabel = statusMapping[connState?.connectionHealth ?? 0];
+    const statusText = CONNECTION_HEALTH_NAMES[connState?.connectionHealth ?? 0];
 
     return (
         <button
@@ -60,13 +44,13 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     width={24}
                     height={24}
                     layers={[
-                        connSig.next(),
-                        connSig.next()
+                        connSig?.next() ?? 0,
+                        connSig?.next() ?? 0
                     ]}
                 />
             </div>
             <div className={styles.connection_group_entry_label}>
-                {statusLabel}
+                {statusText}
             </div>
         </button>
     );
@@ -115,7 +99,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                     <svg className={styles.connector_icon} width="18px" height="16px">
                         <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
                     </svg>
-                    <div className={styles.connector_name}>{info.displayName.short}</div>
+                    <div className={styles.connector_name}>{info.names.displayShort}</div>
                 </button>
             </div>
             {nonDefaultConns.length > 0 && (

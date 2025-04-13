@@ -8,25 +8,26 @@ import { ButtonGroup, IconButton } from '@primer/react';
 import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
+import { ConnectionState } from '../../connection/connection_state.js';
+import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
+import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ScriptEditor } from './editor.js';
+import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/workbook_commands.js';
 import { WorkbookEntryList } from './workbook_entry_list.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
-import { WorkbookListDropdown } from './session_list_dropdown.js';
+import { WorkbookListDropdown } from './workbook_list_dropdown.js';
+import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { useConnectionState } from '../../connection/connection_registry.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { useConnectionState } from '../../connection/connection_registry.js';
-import { ConnectionState } from '../../connection/connection_state.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
-import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
-import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
@@ -224,7 +225,10 @@ export const EditorPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
                     <div className={styles.page_title}>Workbook</div>
-                    <WorkbookListDropdown short={true} />
+                    <WorkbookListDropdown />
+                </div>
+                <div className={styles.header_right_container}>
+                    {conn && <ConnectionStatus conn={conn} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>

@@ -17,3 +17,6 @@ export const DASHQL_CANARY_RELEASE_MANIFEST = new URL("https://get.dashql.app/ca
 export function isDebugBuild() {
     return DASHQL_BUILD_MODE == "development";
 }
+
+/// The filename extension for archive files
+export const DASHQL_ARCHIVE_FILENAME_EXT = "dashql";

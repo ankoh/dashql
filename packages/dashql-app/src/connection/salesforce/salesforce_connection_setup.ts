@@ -2,9 +2,9 @@ import * as shell from '@tauri-apps/plugin-shell';
 import * as pb from '@ankoh/dashql-protobuf';
 
 import {
-    AUTH_CANCELLED,
-    AUTH_FAILED,
-    AUTH_STARTED,
+    SETUP_CANCELLED,
+    SETUP_FAILED,
+    SETUP_STARTED,
     GENERATED_PKCE_CHALLENGE,
     GENERATING_PKCE_CHALLENGE,
     OAUTH_NATIVE_LINK_OPENED,
@@ -77,7 +77,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
     try {
         // Start the authorization process
         modifyState({
-            type: AUTH_STARTED,
+            type: SETUP_STARTED,
             value: params,
         });
         abortSignal.throwIfAborted()
@@ -249,13 +249,13 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         if (error.name === 'AbortError') {
             logger.warn("oauth flow was aborted", {}, LOG_CTX);
             modifyState({
-                type: AUTH_CANCELLED,
+                type: SETUP_CANCELLED,
                 value: error,
             });
         } else if (error instanceof Error) {
             logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
-                type: AUTH_FAILED,
+                type: SETUP_FAILED,
                 value: error,
             });
         }

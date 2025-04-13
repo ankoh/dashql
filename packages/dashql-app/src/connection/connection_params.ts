@@ -3,7 +3,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { computeNewConnectionSignatureFromDetails, ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
 import { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
 import { VariantKind } from '../utils/variant.js';
@@ -152,6 +152,7 @@ export function createConnectionParamsSignature(params: ConnectionParamsVariant)
 export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params);
     const details = getConnectionStateDetailsFromParams(params);
+    const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
@@ -160,6 +161,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
+        connectionSignature: sig,
         metrics: createConnectionMetrics(),
         details,
         catalog,
