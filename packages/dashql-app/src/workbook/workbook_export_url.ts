@@ -27,7 +27,16 @@ export function encodeWorkbookAsProto(workbookState: WorkbookState | null, conne
     }
     const setup = new pb.dashql.workbook.Workbook({
         connectionParams: (params == null) ? undefined : params,
-        scripts: scripts
+        scripts: scripts,
+        workbookEntries: workbookState?.workbookEntries.map(e => (
+            new pb.dashql.workbook.WorkbookEntry({
+                scriptId: e.scriptKey,
+                title: e.title ?? undefined,
+            })
+        )),
+        workbookMetadata: {
+            fileName: workbookState?.workbookMetadata.fileName
+        }
     });
     return setup;
 }

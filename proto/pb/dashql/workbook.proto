@@ -26,6 +26,11 @@ message WorkbookScript {
     string script_text = 3;
 }
 
+message WorkbookMetadata {
+    /// The file name
+    string file_name = 1;
+}
+
 message Workbook {
     /// The connection params
     ConnectionParams connection_params = 1;
@@ -33,4 +38,6 @@ message Workbook {
     repeated WorkbookScript scripts = 2;
     /// The workbook entries
     repeated WorkbookEntry workbook_entries = 3;
+    /// The workbook metadata
+    WorkbookMetadata workbook_metadata = 4;
 }
