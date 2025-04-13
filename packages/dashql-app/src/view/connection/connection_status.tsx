@@ -3,6 +3,7 @@ import * as styles from './connection_status.module.css';
 
 import { ConnectionState } from '../../connection/connection_state.js';
 import { classNames } from '../../utils/classnames.js';
+import { ConnectorType } from '../../connection/connector_info.js';
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
     "Offline",
@@ -28,6 +29,11 @@ interface Props {
 export function ConnectionStatus(props: Props) {
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusClass = CONNECTION_HEALTH_CLASSES[props.conn.connectionHealth ?? 0];
+
+    // Don't show a connector info for serverless connections
+    if (props.conn.connectorInfo.connectorType == ConnectorType.SERVERLESS) {
+        return <div />;
+    }
     return (
         <div className={styles.container}>
             <div className={classNames(styles.status_icon, connStatusClass)} />
