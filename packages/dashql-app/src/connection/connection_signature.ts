@@ -1,4 +1,4 @@
-import { BASE64URL_CODEC } from "../utils/base64.js";
+import { BASE64_TABLE_URL } from "../utils/base64.js";
 import { Cyrb128 } from "../utils/prng.js";
 
 export type UniqueConnectionSignatures = Set<string>;
@@ -15,8 +15,6 @@ export interface ConnectionSignatureState {
     uniqueSignatures: Set<string>;
 }
 
-const SIGNATURE_BUFFER_INITIAL_CAPACITY = 64;
-const SIGNATURE_BUFFER_GROWTH_FACTOR = 1.25;
 const SIGNATURE_DEFAULT_LENGTH = 6;
 
 export function updateConnectionSignature(prev: ConnectionSignatureState, next: Cyrb128): ConnectionSignatureState {
@@ -27,24 +25,14 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
         prev.uniqueSignatures.delete(prev.signatureString);
     }
 
-    // Fill the minimum
-    let buffer = new Uint8Array(SIGNATURE_BUFFER_INITIAL_CAPACITY);
-    let length = SIGNATURE_DEFAULT_LENGTH;
-    for (let i = 0; i < length; ++i) {
-        buffer[i] = rng.next() * 0xFF;
+    // Fill default length
+    let sig = "";
+    for (let i = 0; i < SIGNATURE_DEFAULT_LENGTH; ++i) {
+        sig += BASE64_TABLE_URL[Math.floor(rng.next() * BASE64_TABLE_URL.length)];
     }
 
+    // Fill more characters
     while (true) {
-        // Resize the signature buffer?
-        if (length == buffer.length) {
-            const resized = new Uint8Array(buffer.length * SIGNATURE_BUFFER_GROWTH_FACTOR);
-            resized.set(buffer);
-            buffer = resized;
-        }
-
-        // Convert to base64
-        const sig = BASE64URL_CODEC.encode(buffer.buffer.slice(0, length));
-        // Unique?
         if (!prev.uniqueSignatures.has(sig)) {
             prev.uniqueSignatures.add(sig);
             return {
@@ -53,7 +41,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
                 uniqueSignatures: prev.uniqueSignatures,
             }
         } else {
-            buffer[length++] = rng.next() * 0xFF;
+            sig += BASE64_TABLE_URL[Math.floor(rng.next() * BASE64_TABLE_URL.length)];
         }
     }
 }

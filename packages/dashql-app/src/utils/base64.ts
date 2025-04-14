@@ -1,5 +1,5 @@
-const B64DFT = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const B64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+export const BASE64_TABLE_DEFAULT = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+export const BASE64_TABLE_URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 export class Base64Codec {
     lookupTable: Uint8Array;
@@ -8,8 +8,8 @@ export class Base64Codec {
         // Build a lookup query_result
         this.lookupTable = new Uint8Array(256);
         this.lookupTable.fill(0xFF);
-        for (let i = 0; i < B64DFT.length; i++) {
-            this.lookupTable[B64DFT.charCodeAt(i)] = i;
+        for (let i = 0; i < BASE64_TABLE_DEFAULT.length; i++) {
+            this.lookupTable[BASE64_TABLE_DEFAULT.charCodeAt(i)] = i;
         }
     }
 
@@ -21,28 +21,28 @@ export class Base64Codec {
         let reader = 0;
         for (; (reader + 3) < bytes.length; reader += 3) {
             // Upper 6 bits of first bytes
-            base64 += B64DFT[bytes[reader] >> 2];
+            base64 += BASE64_TABLE_DEFAULT[bytes[reader] >> 2];
             // Lower 2 bits of first byte and upper 4 bits of second byte
-            base64 += B64DFT[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
+            base64 += BASE64_TABLE_DEFAULT[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
             // Lower 4 bits of second byte and upper 2 bits of third byte
-            base64 += B64DFT[((bytes[reader + 1] & 15) << 2) | (bytes[reader + 2] >> 6)];
+            base64 += BASE64_TABLE_DEFAULT[((bytes[reader + 1] & 15) << 2) | (bytes[reader + 2] >> 6)];
             // Lower 4 bits of third byte
-            base64 += B64DFT[bytes[reader + 2] & 63];
+            base64 += BASE64_TABLE_DEFAULT[bytes[reader + 2] & 63];
         }
         // Now map the remainder
         const leftOver = bytes.length - reader;
         switch (leftOver) {
             // 2 bytes left, pack into 3 bytes with trailing zero
             case 2:
-                base64 += B64DFT[bytes[reader] >> 2];
-                base64 += B64DFT[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
-                base64 += B64DFT[(bytes[reader + 1] & 15) << 2];
+                base64 += BASE64_TABLE_DEFAULT[bytes[reader] >> 2];
+                base64 += BASE64_TABLE_DEFAULT[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
+                base64 += BASE64_TABLE_DEFAULT[(bytes[reader + 1] & 15) << 2];
                 base64 += "=";
                 break;
             // 1 bytes left, pack into 2 bytes with trailing zero
             case 1:
-                base64 += B64DFT[bytes[reader] >> 2];
-                base64 += B64DFT[(bytes[reader] & 3) << 4];
+                base64 += BASE64_TABLE_DEFAULT[bytes[reader] >> 2];
+                base64 += BASE64_TABLE_DEFAULT[(bytes[reader] & 3) << 4];
                 base64 += "==";
                 break;
             case 0:
@@ -134,8 +134,8 @@ export class Base64UrlCodec {
         // Build a lookup query_result
         this.lookupTable = new Uint8Array(256);
         this.lookupTable.fill(0xFF);
-        for (let i = 0; i < B64URL.length; i++) {
-            this.lookupTable[B64URL.charCodeAt(i)] = i;
+        for (let i = 0; i < BASE64_TABLE_URL.length; i++) {
+            this.lookupTable[BASE64_TABLE_URL.charCodeAt(i)] = i;
         }
     }
 
@@ -149,27 +149,27 @@ export class Base64UrlCodec {
         let reader = 0;
         for (; (reader + 3) <= bytes.length; reader += 3) {
             // Upper 6 bits of first byte
-            base64 += B64URL[bytes[reader] >> 2];
+            base64 += BASE64_TABLE_URL[bytes[reader] >> 2];
             // Lower 2 bits of first byte and upper 4 bits of second byte
-            base64 += B64URL[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
+            base64 += BASE64_TABLE_URL[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
             // Lower 4 bits of second byte and upper 2 bits of third byte
-            base64 += B64URL[((bytes[reader + 1] & 15) << 2) | (bytes[reader + 2] >> 6)];
+            base64 += BASE64_TABLE_URL[((bytes[reader + 1] & 15) << 2) | (bytes[reader + 2] >> 6)];
             // Lower 4 bits of third byte
-            base64 += B64URL[bytes[reader + 2] & 63];
+            base64 += BASE64_TABLE_URL[bytes[reader + 2] & 63];
         }
         // Now map the remainder
         const leftOver = bytes.length - reader;
         switch (leftOver) {
             // 2 bytes left, pack into 3 bytes with trailing zero
             case 2:
-                base64 += B64URL[bytes[reader] >> 2];
-                base64 += B64URL[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
-                base64 += B64URL[(bytes[reader + 1] & 15) << 2];
+                base64 += BASE64_TABLE_URL[bytes[reader] >> 2];
+                base64 += BASE64_TABLE_URL[((bytes[reader] & 3) << 4) | (bytes[reader + 1] >> 4)];
+                base64 += BASE64_TABLE_URL[(bytes[reader + 1] & 15) << 2];
                 break;
             // 1 bytes left, pack into 2 bytes with trailing zero
             case 1:
-                base64 += B64URL[bytes[reader] >> 2];
-                base64 += B64URL[(bytes[reader] & 3) << 4];
+                base64 += BASE64_TABLE_URL[bytes[reader] >> 2];
+                base64 += BASE64_TABLE_URL[(bytes[reader] & 3) << 4];
                 break;
             case 0:
                 break;
