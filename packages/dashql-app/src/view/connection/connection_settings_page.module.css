@@ -127,7 +127,7 @@
     display: grid;
     grid-template-columns: max-content 1fr;
     column-gap: 8px;
-    padding: 4px 0px 4px 4px;
+    padding: 4px 4px 4px 4px;
     border-radius: var(--border_radius);
     border: 1px solid transparent;
     align-items: center;
@@ -161,6 +161,7 @@
     font-size: 0.9rem;
     display: flex;
     align-items: center;
+    font-weight: 400;
 }
 
 .connection_settings_container {
