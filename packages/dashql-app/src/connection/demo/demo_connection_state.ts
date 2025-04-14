@@ -7,6 +7,7 @@ import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { DetailedError } from "../../utils/error.js";
 import { Cyrb128 } from "../../utils/prng.js";
+import { UniqueConnectionSignatures } from "connection/connection_signature.js";
 
 export interface DemoConnectionParams {
     // XXX Could also just setup with a data spec
@@ -29,9 +30,9 @@ export function createDemoConnectionStateDetails(params?: DemoConnectionParams):
     };
 }
 
-export function createDemoConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
+export function createDemoConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
     const details = createDemoConnectionStateDetails();
-    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DEMO], {
+    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DEMO], connSigs, {
         type: DEMO_CONNECTOR,
         value: details,
     });

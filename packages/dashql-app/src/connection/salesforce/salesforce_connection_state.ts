@@ -25,6 +25,7 @@ import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 import { DetailedError } from '../../utils/error.js';
 import { Cyrb128 } from '../../utils/prng.js';
+import { UniqueConnectionSignatures, updateConnectionSignature } from '../../connection/connection_signature.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
     /// The time when the auth started
@@ -142,8 +143,8 @@ export function createSalesforceConnectionStateDetails(params?: SalesforceConnec
     };
 }
 
-export function createSalesforceConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], {
+export function createSalesforceConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], connSigs, {
         type: SALESFORCE_DATA_CLOUD_CONNECTOR,
         value: createSalesforceConnectionStateDetails(),
     });
@@ -265,7 +266,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: sig,
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig),
             };
             break
         }

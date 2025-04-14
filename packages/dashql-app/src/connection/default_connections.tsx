@@ -11,7 +11,7 @@ import { createSalesforceConnectionState } from './salesforce/salesforce_connect
 import { createTrinoConnectionState } from './trino/trino_connection_state.js';
 import { isDebugBuild } from '../globals.js';
 import { setupDemoConnection } from './demo/demo_connection_setup.js';
-import { useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection_registry.js';
+import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection_registry.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 
@@ -21,10 +21,11 @@ const DEFAULT_CONNECTIONS = React.createContext<[number[], Dispatch<React.SetSta
 export const useDefaultConnections = () => React.useContext(DEFAULT_CONNECTIONS)![0];
 
 export function useDefaultConnectionSetup() {
+    const [registry, _setReg] = useConnectionRegistry();
     const allocState = useConnectionStateAllocator();
     const [_, setDefaultConns] = React.useContext(DEFAULT_CONNECTIONS)!;
     return React.useCallback(async (dql: dashql.DashQL, type: ConnectorType) => {
-        const newDefault = allocState(createConnectionStateForType(dql, type));
+        const newDefault = allocState(createConnectionStateForType(dql, type, registry.uniqueConnectionSignatures));
         setDefaultConns(c => {
             const copy = [...c];
             copy[type] = newDefault.connectionId;
@@ -39,7 +40,7 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
     const allocState = useConnectionStateAllocator();
     const setupCore = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
-    const [_connReg, dynamicDispatch] = useDynamicConnectionDispatch();
+    const [registry, dynamicDispatch] = useDynamicConnectionDispatch();
 
     const [defaultConns, setDefaultConns] = React.useState<number[]>([]);
     React.useEffect(() => {
@@ -50,11 +51,11 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
             abort.signal.throwIfAborted();
 
             // Allocate connection states
-            const trinoConn = allocateConnection(createTrinoConnectionState(core));
-            const hyperConn = allocateConnection(createHyperGrpcConnectionState(core));
-            const serverlessConn = allocateConnection(createServerlessConnectionState(core));
-            const demoConn = allocateConnection(createDemoConnectionState(core));
-            const sfConn = allocateConnection(createSalesforceConnectionState(core));
+            const trinoConn = allocateConnection(createTrinoConnectionState(core, registry.uniqueConnectionSignatures));
+            const hyperConn = allocateConnection(createHyperGrpcConnectionState(core, registry.uniqueConnectionSignatures));
+            const serverlessConn = allocateConnection(createServerlessConnectionState(core, registry.uniqueConnectionSignatures));
+            const demoConn = allocateConnection(createDemoConnectionState(core, registry.uniqueConnectionSignatures));
+            const sfConn = allocateConnection(createSalesforceConnectionState(core, registry.uniqueConnectionSignatures));
 
             // Set default connections
             const connections: number[] = new Array<number>(CONNECTOR_TYPES.length);
@@ -77,7 +78,7 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
                 await setupDemoConnection(dispatch, logger, params, abort.signal);
                 // Create a fresh default connection.
                 // This means we actually set up 2 demo connections to mimic the default connection behavior of normal connectors
-                const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO));
+                const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO, registry.uniqueConnectionSignatures));
                 setDefaultConns(c => {
                     const copy = [...c];
                     copy[ConnectorType.DEMO] = newDefault.connectionId;

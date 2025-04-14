@@ -18,6 +18,7 @@ import {
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
 import { Cyrb128 } from "../../utils/prng.js";
+import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 
 export interface TrinoSetupTimings {
     /// The time when the channel setup started
@@ -84,8 +85,8 @@ export function createTrinoConnectionStateDetails(params?: TrinoConnectionParams
     };
 }
 
-export function createTrinoConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.TRINO], {
+export function createTrinoConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.TRINO], connSigs, {
         type: TRINO_CONNECTOR,
         value: createTrinoConnectionStateDetails(),
     });
@@ -222,7 +223,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: sig
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig)
             };
             break;
         }

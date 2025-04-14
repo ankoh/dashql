@@ -44,7 +44,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
 
     // Memoize button to prevent svg flickering
     const button = React.useMemo(() => {
-        const connSig = currentConnection?.connectionSignature?.asSfc32();
+        const connSig = currentConnection?.connectionSignature?.seed.asSfc32();
         return (
             <Button
                 className={props.className}
@@ -76,7 +76,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
         const workbookFileName = workbook.workbookMetadata.fileName;
-        const connSig = connection.connectionSignature.asSfc32();
+        const connSig = connection.connectionSignature.seed.asSfc32();
 
         switch (connection.details.type) {
             case SALESFORCE_DATA_CLOUD_CONNECTOR: {

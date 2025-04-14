@@ -10,12 +10,12 @@ import * as styles from './file_loader.module.css';
 import Immutable from 'immutable';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
-import { ConnectionAllocator, useConnectionStateAllocator } from '../connection/connection_registry.js';
+import { ConnectionAllocator, useConnectionRegistry, useConnectionStateAllocator } from '../connection/connection_registry.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { PlatformFile } from "../platform/file.js";
 import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../workbook/script_loader.js';
-import { useWorkbookStateAllocator, WorkbookAllocator, WorkbookStateWithoutId } from '../workbook/workbook_state_registry.js';
+import { useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
@@ -24,6 +24,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { classNames } from '../utils/classnames.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { formatBytes } from '../utils/format.js';
+import { UniqueConnectionSignatures } from 'connection/connection_signature.js';
 
 interface ProgressState {
     // The file size
@@ -72,7 +73,7 @@ interface ProgressState {
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, signal: AbortSignal) {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: UniqueConnectionSignatures, signal: AbortSignal) {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -170,7 +171,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = allocateConn(createConnectionStateFromParams(dql, params));
+                connState = allocateConn(createConnectionStateFromParams(dql, params, connSigs));
                 connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
                 connState = prevConn[1];
@@ -212,7 +213,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = allocateConn(createConnectionStateFromParams(dql, params));
+                connState = allocateConn(createConnectionStateFromParams(dql, params, connSigs));
                 connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
                 connState = prevConn[1];
@@ -371,6 +372,7 @@ export function FileLoader(props: Props) {
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
     const [progress, setProgress] = React.useState<ProgressState | null>(null);
+    const [reg, _setReg] = useConnectionRegistry();
 
     React.useEffect(() => {
         const proxiedSetProgress = (value: ProgressState | null) => {
@@ -380,7 +382,7 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, abort.signal);
+            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.uniqueConnectionSignatures, abort.signal);
             props.onDone();
         }
         runAsync();

@@ -20,11 +20,11 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     // Compute the connection signature
     const [connReg, _modifyConnReg] = useConnectionRegistry();
     const connState = connReg.connectionMap.get(props.workbook.connectionId)!;
-    const connSig = connState.connectionSignature.asSfc32();
+    const connSig = connState.connectionSignature.seed.asSfc32();
 
     // Compute the entry signature
     const entrySigHasher = React.useMemo(() => {
-        const seed = connState.connectionSignature.clone();
+        const seed = connState.connectionSignature.seed.clone();
         seed.add(props.scriptKey.toString());
         return seed;
     }, [props.entryIndex]);

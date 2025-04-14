@@ -15,7 +15,6 @@ import { useDefaultConnections } from '../../connection/default_connections.js';
 import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
 import { Identicon } from '../../view/foundations/identicon.js';
-import { CONNECTION_HEALTH_NAMES } from './connection_status.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
@@ -27,9 +26,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
     // Compute the connection signature
-    const connSig = connState?.connectionSignature.asSfc32();
-    // The status class
-    const statusText = CONNECTION_HEALTH_NAMES[connState?.connectionHealth ?? 0];
+    const connSig = connState?.connectionSignature.seed.asSfc32();
 
     return (
         <button
@@ -50,7 +47,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                 />
             </div>
             <div className={styles.connection_group_entry_label}>
-                {statusText}
+                {connState?.connectionSignature.signatureString}
             </div>
         </button>
     );

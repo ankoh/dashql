@@ -3,8 +3,8 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { computeNewConnectionSignatureFromDetails, ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
-import { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails, DemoConnectionParams } from './demo/demo_connection_state.js';
 import { VariantKind } from '../utils/variant.js';
 import { WorkbookExportSettings } from 'workbook/workbook_export_settings.js';
@@ -17,6 +17,7 @@ import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_
 import { createServerlessConnectionParamsSignature, encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
 import { createTrinoConnectionParamsSignature, encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
+import { newConnectionSignature, UniqueConnectionSignatures } from './connection_signature.js';
 
 export type ConnectionParamsVariant =
     | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
@@ -149,7 +150,7 @@ export function createConnectionParamsSignature(params: ConnectionParamsVariant)
     }
 }
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant): ConnectionStateWithoutId {
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params);
     const details = getConnectionStateDetailsFromParams(params);
     const sig = computeNewConnectionSignatureFromDetails(details);
@@ -161,7 +162,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
-        connectionSignature: sig,
+        connectionSignature: newConnectionSignature(sig, connSigs),
         metrics: createConnectionMetrics(),
         details,
         catalog,

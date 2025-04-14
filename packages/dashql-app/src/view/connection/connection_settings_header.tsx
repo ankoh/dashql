@@ -155,7 +155,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                 </div>
                 <div className={style.platform_actions}>
                     {(props.connection?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Editor</Button>
+                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Workbook</Button>
                     )}
                     <CopyToClipboardButton
                         variant={ButtonVariant.Default}
