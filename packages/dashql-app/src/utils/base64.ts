@@ -147,7 +147,7 @@ export class Base64UrlCodec {
         // Base64 maps 6 input bits to 1 output byte (8 bits).
         // First map 3 bytes at once (24 bits), to 32 output bits (4 bytes).
         let reader = 0;
-        for (; (reader + 3) < bytes.length; reader += 3) {
+        for (; (reader + 3) <= bytes.length; reader += 3) {
             // Upper 6 bits of first byte
             base64 += B64URL[bytes[reader] >> 2];
             // Lower 2 bits of first byte and upper 4 bits of second byte
