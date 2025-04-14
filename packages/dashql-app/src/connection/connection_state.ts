@@ -2,8 +2,8 @@ import * as core from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
 import * as arrow from 'apache-arrow';
 
-import { computeHyperGrpcConnectionSignature, HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
-import { SalesforceConnectionStateAction, computeSalesforceConnectionSignature, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
+import { HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
+import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
@@ -25,9 +25,10 @@ import {
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
 import { Cyrb128 } from '../utils/prng.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { computeDemoConnectionSignature, DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
-import { computeTrinoConnectionSignature, reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
-import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
+import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
+import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
+import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
+import { UniqueConnectionSignatures, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -52,7 +53,8 @@ export interface ConnectionState {
     /// The connection info
     connectorInfo: ConnectorInfo;
     /// The connection signature
-    connectionSignature: Cyrb128;
+    connectionSignature: ConnectionSignatureState;
+
     /// The connection statistics
     metrics: ConnectionMetrics;
 
@@ -272,7 +274,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     }
 }
 
-export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: UniqueConnectionSignatures, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     const connSig = computeNewConnectionSignatureFromDetails(details);
@@ -281,7 +283,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, d
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
-        connectionSignature: connSig,
+        connectionSignature: newConnectionSignature(connSig, connSigs),
         metrics: createConnectionMetrics(),
         details,
         catalog,
@@ -298,11 +300,11 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, d
     };
 }
 
-export function createConnectionStateForType(dql: dashql.DashQL, type: ConnectorType): ConnectionStateWithoutId {
-    const connectorInfo = CONNECTOR_INFOS[type as number];
-    const connectionMetrics = createConnectionMetrics();
-    const connectionDetails = createConnectionStateDetails(type);
-    const connectionSig = computeNewConnectionSignatureFromDetails(connectionDetails);
+export function createConnectionStateForType(dql: dashql.DashQL, type: ConnectorType, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+    const connInfo = CONNECTOR_INFOS[type as number];
+    const connMetrics = createConnectionMetrics();
+    const connDetails = createConnectionStateDetails(type);
+    const connSig = computeNewConnectionSignatureFromDetails(connDetails);
 
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
@@ -310,10 +312,10 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
         instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
-        connectorInfo,
-        connectionSignature: connectionSig,
-        metrics: connectionMetrics,
-        details: connectionDetails,
+        connectorInfo: connInfo,
+        connectionSignature: newConnectionSignature(connSig, connSigs),
+        metrics: connMetrics,
+        details: connDetails,
         catalog,
         catalogUpdates: {
             tasksRunning: new Map(),
@@ -328,8 +330,8 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     };
 }
 
-export function createServerlessConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
-    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], {
+export function createServerlessConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], connSigs, {
         type: SERVERLESS_CONNECTOR,
         value: {}
     });
@@ -340,26 +342,4 @@ export function createServerlessConnectionState(dql: dashql.DashQL): ConnectionS
 
 export function computeConnectionSignature(state: ConnectionState, hasher: Cyrb128) {
     return computeConnectionSignatureFromDetails(state.details, hasher);
-}
-
-export function computeConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant, hasher: Cyrb128) {
-    switch (state.type) {
-        case DEMO_CONNECTOR:
-            return computeDemoConnectionSignature(state.value, hasher);
-        case TRINO_CONNECTOR:
-            return computeTrinoConnectionSignature(state.value, hasher);
-        case HYPER_GRPC_CONNECTOR:
-            return computeHyperGrpcConnectionSignature(state.value, hasher);
-        case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return computeSalesforceConnectionSignature(state.value, hasher);
-        case SERVERLESS_CONNECTOR:
-            // Do nothing for serverless connections
-            return;
-    }
-}
-
-export function computeNewConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant): Cyrb128 {
-    const sig = new Cyrb128();
-    computeConnectionSignatureFromDetails(state, sig);
-    return sig;
 }

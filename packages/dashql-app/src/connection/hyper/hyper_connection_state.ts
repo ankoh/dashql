@@ -18,6 +18,7 @@ import {
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
 import { Cyrb128 } from "../../utils/prng.js";
+import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 
 export interface HyperGrpcSetupTimings {
     /// The time when the channel setup started
@@ -76,8 +77,8 @@ export function createHyperGrpcConnectionStateDetails(params?: HyperGrpcConnecti
     };
 }
 
-export function createHyperGrpcConnectionState(dql: dashql.DashQL): ConnectionStateWithoutId {
-    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], {
+export function createHyperGrpcConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], connSigs, {
         type: HYPER_GRPC_CONNECTOR,
         value: createHyperGrpcConnectionStateDetails()
     });
@@ -210,7 +211,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: sig,
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig),
             };
             break;
         }

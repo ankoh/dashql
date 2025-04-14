@@ -3,6 +3,7 @@ import * as React from 'react';
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
+import { UniqueConnectionSignatures } from './connection_signature.js';
 
 /// The connection registry
 ///
@@ -13,6 +14,7 @@ import { CONNECTOR_TYPES } from './connector_info.js';
 export interface ConnectionRegistry {
     connectionMap: Map<number, ConnectionState>;
     connectionsPerType: Set<number>[];
+    uniqueConnectionSignatures: UniqueConnectionSignatures;
 }
 
 type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
@@ -33,6 +35,7 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
         return ({
             connectionMap: new Map(),
             connectionsPerType: CONNECTOR_TYPES.map(() => new Set()),
+            uniqueConnectionSignatures: new Set(),
         });
     });
     return (

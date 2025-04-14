@@ -1,9 +1,10 @@
 import { ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
 import { VariantKind } from "../utils/variant.js";
-import { createDemoConnectionStateDetails, DemoConnectionStateDetails } from "./demo/demo_connection_state.js";
-import { createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
-import { createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
-import { createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
+import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoConnectionStateDetails } from "./demo/demo_connection_state.js";
+import { computeHyperGrpcConnectionSignature, createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
+import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
+import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
+import { Cyrb128 } from "../utils/prng.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
@@ -41,4 +42,26 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
                 value: {},
             };
     }
+}
+
+export function computeConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant, hasher: Cyrb128) {
+    switch (state.type) {
+        case DEMO_CONNECTOR:
+            return computeDemoConnectionSignature(state.value, hasher);
+        case TRINO_CONNECTOR:
+            return computeTrinoConnectionSignature(state.value, hasher);
+        case HYPER_GRPC_CONNECTOR:
+            return computeHyperGrpcConnectionSignature(state.value, hasher);
+        case SALESFORCE_DATA_CLOUD_CONNECTOR:
+            return computeSalesforceConnectionSignature(state.value, hasher);
+        case SERVERLESS_CONNECTOR:
+            // Do nothing for serverless connections
+            return;
+    }
+}
+
+export function computeNewConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant): Cyrb128 {
+    const sig = new Cyrb128();
+    computeConnectionSignatureFromDetails(state, sig);
+    return sig;
 }

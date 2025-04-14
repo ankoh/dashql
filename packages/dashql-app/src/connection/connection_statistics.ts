@@ -1,13 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectorInfo } from './connector_info.js';
-import {
-    computeNewConnectionSignatureFromDetails,
-    ConnectionHealth,
-    ConnectionStateWithoutId,
-    ConnectionStatus,
-} from './connection_state.js';
-import { ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
+import { newConnectionSignature, UniqueConnectionSignatures } from './connection_signature.js';
 
 export interface ConnectionQueryMetrics {
     totalQueries: bigint;
@@ -41,7 +37,7 @@ export function createConnectionMetrics(): ConnectionMetrics {
     };
 }
 
-export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: UniqueConnectionSignatures, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
     const sig = computeNewConnectionSignatureFromDetails(details);
     return {
@@ -49,7 +45,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, d
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
-        connectionSignature: sig,
+        connectionSignature: newConnectionSignature(sig, connSigs),
         metrics: createConnectionMetrics(),
         details,
         catalog,

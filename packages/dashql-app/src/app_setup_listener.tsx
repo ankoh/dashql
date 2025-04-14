@@ -99,7 +99,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             }
             switch (workbookProto.connectionParams?.connection.case) {
                 case "hyper": {
-                    const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER_GRPC);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER_GRPC, connReg.uniqueConnectionSignatures);
                     const conn = allocateConnectionState(connWithoutId);
                     const workbook = setupWorkbook(conn);
                     setState({
@@ -114,7 +114,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     break;
                 }
                 case "salesforce": {
-                    const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD, connReg.uniqueConnectionSignatures);
                     const conn = allocateConnectionState(connWithoutId);
                     const workbook = setupWorkbook(conn);
                     setState({
@@ -129,7 +129,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     break;
                 }
                 case "trino": {
-                    const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO);
+                    const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO, connReg.uniqueConnectionSignatures);
                     const conn = allocateConnectionState(connWithoutId);
                     const workbook = setupWorkbook(conn);
                     setState({
