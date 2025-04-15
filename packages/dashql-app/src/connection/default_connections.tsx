@@ -25,7 +25,7 @@ export function useDefaultConnectionSetup() {
     const allocState = useConnectionStateAllocator();
     const [_, setDefaultConns] = React.useContext(DEFAULT_CONNECTIONS)!;
     return React.useCallback(async (dql: dashql.DashQL, type: ConnectorType) => {
-        const newDefault = allocState(createConnectionStateForType(dql, type, registry.uniqueConnectionSignatures));
+        const newDefault = allocState(createConnectionStateForType(dql, type, registry.connectionsBySignature));
         setDefaultConns(c => {
             const copy = [...c];
             copy[type] = newDefault.connectionId;
@@ -51,11 +51,11 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
             abort.signal.throwIfAborted();
 
             // Allocate connection states
-            const trinoConn = allocateConnection(createTrinoConnectionState(core, registry.uniqueConnectionSignatures));
-            const hyperConn = allocateConnection(createHyperGrpcConnectionState(core, registry.uniqueConnectionSignatures));
-            const serverlessConn = allocateConnection(createServerlessConnectionState(core, registry.uniqueConnectionSignatures));
-            const demoConn = allocateConnection(createDemoConnectionState(core, registry.uniqueConnectionSignatures));
-            const sfConn = allocateConnection(createSalesforceConnectionState(core, registry.uniqueConnectionSignatures));
+            const trinoConn = allocateConnection(createTrinoConnectionState(core, registry.connectionsBySignature));
+            const hyperConn = allocateConnection(createHyperGrpcConnectionState(core, registry.connectionsBySignature));
+            const serverlessConn = allocateConnection(createServerlessConnectionState(core, registry.connectionsBySignature));
+            const demoConn = allocateConnection(createDemoConnectionState(core, registry.connectionsBySignature));
+            const sfConn = allocateConnection(createSalesforceConnectionState(core, registry.connectionsBySignature));
 
             // Set default connections
             const connections: number[] = new Array<number>(CONNECTOR_TYPES.length);
@@ -78,7 +78,7 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
                 await setupDemoConnection(dispatch, logger, params, abort.signal);
                 // Create a fresh default connection.
                 // This means we actually set up 2 demo connections to mimic the default connection behavior of normal connectors
-                const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO, registry.uniqueConnectionSignatures));
+                const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO, registry.connectionsBySignature));
                 setDefaultConns(c => {
                     const copy = [...c];
                     copy[ConnectorType.DEMO] = newDefault.connectionId;

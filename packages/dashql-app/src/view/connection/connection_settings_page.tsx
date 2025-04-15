@@ -72,7 +72,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     // Collect non-default connections
     let nonDefaultConns: number[] = [];
     const [connReg, _] = useConnectionRegistry();
-    for (let cid of connReg.connectionsPerType[props.connector]) {
+    for (let cid of connReg.connectionsByType[props.connector]) {
         if (cid !== defaultConnId) {
             nonDefaultConns.push(cid);
         }
@@ -129,7 +129,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
         } else if (focusedConnection == null) {
             // Otherwise pick a fallback connection
             const fallbackType = isDebugBuild() ? ConnectorType.DEMO : ConnectorType.SERVERLESS;
-            const defaultConnIds = connRegistry.connectionsPerType[fallbackType];
+            const defaultConnIds = connRegistry.connectionsByType[fallbackType];
             if (defaultConnIds.size > 0) {
                 const connId = defaultConnIds.values().next().value!;
                 setFocusedConnection([fallbackType, connId]);

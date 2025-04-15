@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { ConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
-import { newConnectionSignature, ConnectionSignatures } from './connection_signature.js';
+import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
 
 export interface ConnectionQueryMetrics {
     totalQueries: bigint;
@@ -37,7 +37,7 @@ export function createConnectionMetrics(): ConnectionMetrics {
     };
 }
 
-export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatures, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
     const sig = computeNewConnectionSignatureFromDetails(details);
     return {
@@ -45,7 +45,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
-        connectionSignature: newConnectionSignature(sig, connSigs),
+        connectionSignature: newConnectionSignature(sig, connSigs, null),
         metrics: createConnectionMetrics(),
         details,
         catalog,

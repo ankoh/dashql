@@ -18,7 +18,7 @@ import {
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
 import { Hasher } from "../../utils/hash.js";
-import { ConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
+import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
 
 export interface TrinoSetupTimings {
@@ -86,7 +86,7 @@ export function createTrinoConnectionStateDetails(params?: TrinoConnectionParams
     };
 }
 
-export function createTrinoConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatures): ConnectionStateWithoutId {
+export function createTrinoConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
     return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.TRINO], connSigs, {
         type: TRINO_CONNECTOR,
         value: createTrinoConnectionStateDetails(),
@@ -224,7 +224,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig)
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId)
             };
             break;
         }
