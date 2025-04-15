@@ -144,7 +144,6 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 data-workbook={workbook.connectionId}
                 onClick={onWorkbookClick}
                 selected={workbookId === currentWorkbook?.workbookId}
-                disabled={!enabled}
                 data-item={workbookId.toString()}
             >
                 <ActionList.Leading>
