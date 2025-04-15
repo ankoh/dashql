@@ -94,7 +94,7 @@ export function getHyperGrpcConnectionDetails(state: ConnectionState | null): Hy
 }
 
 export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Hasher) {
-    hasher.add("HyperGrpc");
+    hasher.add("hyper-grpc");
     hasher.add(details.channelSetupParams.channelArgs.endpoint);
 }
 

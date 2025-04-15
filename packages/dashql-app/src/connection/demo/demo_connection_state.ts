@@ -40,7 +40,7 @@ export function createDemoConnectionState(dql: dashql.DashQL, connSigs: Connecti
 }
 
 export function computeDemoConnectionSignature(_details: DemoConnectionStateDetails, hasher: Hasher) {
-    hasher.add("Demo");
+    hasher.add("demo");
 }
 
 export const DEMO_CHANNEL_READY = Symbol('DEMO_CHANNEL_READY');

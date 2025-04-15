@@ -160,7 +160,7 @@ export function getSalesforceConnectionDetails(state: ConnectionState | null): S
 }
 
 export function computeSalesforceConnectionSignature(details: SalesforceConnectionStateDetails, hasher: Hasher) {
-    hasher.add("Salesforce");
+    hasher.add("salesforce");
     hasher.add(details.setupParams.instanceUrl);
     hasher.add(details.setupParams.appConsumerKey);
 }
