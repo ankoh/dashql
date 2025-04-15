@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
-import { UniqueConnectionSignatures } from './connection_signature.js';
+import { ConnectionSignatures } from './connection_signature.js';
 
 /// The connection registry
 ///
@@ -14,7 +14,7 @@ import { UniqueConnectionSignatures } from './connection_signature.js';
 export interface ConnectionRegistry {
     connectionMap: Map<number, ConnectionState>;
     connectionsPerType: Set<number>[];
-    uniqueConnectionSignatures: UniqueConnectionSignatures;
+    uniqueConnectionSignatures: ConnectionSignatures;
 }
 
 type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;

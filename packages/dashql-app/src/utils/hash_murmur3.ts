@@ -50,6 +50,7 @@ export class Murmur3_x86_128 implements Hasher {
         c.h2 = this.h2;
         c.h3 = this.h3;
         c.h4 = this.h4;
+        c.len = this.len;
         return c;
     }
 

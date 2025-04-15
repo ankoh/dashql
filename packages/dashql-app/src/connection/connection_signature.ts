@@ -1,18 +1,18 @@
 import { BASE64_TABLE_URL } from "../utils/base64.js";
 import { Hasher } from "../utils/hash.js";
 
-export type UniqueConnectionSignatures = Set<string>;
+export type ConnectionSignatures = Set<string>;
 
 export interface ConnectionSignatureState {
     /// The seed derived from the connection
-    seed: Hasher;
+    hash: Hasher;
     /// The connection signature string.
     /// Base64 encoded buffer derived from the seed.
     signatureString: string;
     /// The shared map to dedup connection signature strings.
     /// Note that this set can never be used for change-detection since it shared on-construction with every state.
     /// We use this set to make sure that a connection signature is unique.
-    uniqueSignatures: Set<string>;
+    signatures: Set<string>;
 }
 
 const SIGNATURE_DEFAULT_LENGTH = 6;
@@ -23,7 +23,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
 
     // Remove the old one
     if (prev.signatureString != "") {
-        prev.uniqueSignatures.delete(prev.signatureString);
+        prev.signatures.delete(prev.signatureString);
     }
 
     // Fill default length
@@ -34,12 +34,12 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
 
     // Fill more characters
     while (true) {
-        if (!prev.uniqueSignatures.has(sig)) {
-            prev.uniqueSignatures.add(sig);
+        if (!prev.signatures.has(sig)) {
+            prev.signatures.add(sig);
             return {
-                seed: next,
+                hash: next,
                 signatureString: sig,
-                uniqueSignatures: prev.uniqueSignatures,
+                signatures: prev.signatures,
             }
         } else {
             sig += BASE64_TABLE_URL[Math.floor(rng.next() * BASE64_TABLE_URL.length)];
@@ -47,11 +47,11 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     }
 }
 
-export function newConnectionSignature(seed: Hasher, sigs: UniqueConnectionSignatures) {
+export function newConnectionSignature(seed: Hasher, sigs: ConnectionSignatures) {
     const state: ConnectionSignatureState = {
-        seed,
+        hash: seed,
         signatureString: "",
-        uniqueSignatures: sigs
+        signatures: sigs
     };
     return updateConnectionSignature(state, seed);
 }
