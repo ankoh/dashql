@@ -220,6 +220,16 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             }
 
             // Collect workbook scripts
+            let workbookScripts = [...workbook.scripts];
+            if (workbookScripts.length == 0) {
+                workbookScripts.push(new pb.dashql.workbook.WorkbookScript({
+                    scriptId: 1,
+                    scriptType: pb.dashql.workbook.ScriptType.Query,
+                    scriptText: "",
+                }));
+            }
+
+            // Collect workbook scripts
             let scripts: Record<number, ScriptData> = {};
             for (const script of workbook.scripts) {
                 // Duplicate script key?
@@ -290,6 +300,13 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 queryId: null,
                 title: e.title
             }));
+            if (workbook.workbookEntries.length == 0) {
+                workbookEntries.push({
+                    scriptKey: workbookScripts[0].scriptId,
+                    queryId: null,
+                    title: ""
+                })
+            }
 
             // Allocate workbook state
             const workbookState = allocateWorkbook({
