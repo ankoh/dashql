@@ -26,7 +26,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
     // Compute the connection signature
-    const connSig = connState?.connectionSignature.seed.asSfc32();
+    const connSig = connState?.connectionSignature.seed.asPrng();
 
     return (
         <button

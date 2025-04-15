@@ -4,7 +4,7 @@ import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoC
 import { computeHyperGrpcConnectionSignature, createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
-import { Cyrb128 } from "../utils/prng.js";
+import { DefaultHasher, Hasher } from "../utils/prng.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
@@ -44,7 +44,7 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
     }
 }
 
-export function computeConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant, hasher: Cyrb128) {
+export function computeConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant, hasher: Hasher) {
     switch (state.type) {
         case DEMO_CONNECTOR:
             return computeDemoConnectionSignature(state.value, hasher);
@@ -60,8 +60,8 @@ export function computeConnectionSignatureFromDetails(state: ConnectionStateDeta
     }
 }
 
-export function computeNewConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant): Cyrb128 {
-    const sig = new Cyrb128();
+export function computeNewConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant): Hasher {
+    const sig = new DefaultHasher();
     computeConnectionSignatureFromDetails(state, sig);
     return sig;
 }

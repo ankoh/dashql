@@ -17,7 +17,7 @@ import {
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
-import { Cyrb128 } from "../../utils/prng.js";
+import { DefaultHasher, Hasher } from "../../utils/prng.js";
 import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 
 export interface TrinoSetupTimings {
@@ -100,7 +100,7 @@ export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoC
     }
 }
 
-export function computeTrinoConnectionSignature(details: TrinoConnectionStateDetails, hasher: Cyrb128) {
+export function computeTrinoConnectionSignature(details: TrinoConnectionStateDetails, hasher: Hasher) {
     hasher.add("Trino");
     hasher.add(details.channelParams.channelArgs.endpoint);
     hasher.add(details.channelParams.catalogName);
@@ -213,7 +213,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                 schemaResolutionError: null,
                 healthCheckError: null,
             };
-            const sig = new Cyrb128();
+            const sig = new DefaultHasher();
             computeTrinoConnectionSignature(details, sig);
             next = {
                 ...state,

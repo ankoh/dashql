@@ -3,11 +3,11 @@ import * as styles from './ui_internals_page.module.css';
 
 import { TextInput } from '../foundations/text_input.js';
 import { Identicon } from '../../view/foundations/identicon.js';
-import { Cyrb128 } from '../../utils/prng.js';
+import { DefaultHasher } from '../../utils/prng.js';
 
 export function IdentInternalsPage(): React.ReactElement {
     const [seed, setSeed] = React.useState<string>();
-    const prng = Cyrb128.from(seed ?? "").asSfc32();
+    const prng = DefaultHasher.from(seed ?? "").asPrng();
 
     return (
         <div className={styles.root}>

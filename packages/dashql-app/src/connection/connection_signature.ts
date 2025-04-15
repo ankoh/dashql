@@ -1,11 +1,11 @@
 import { BASE64_TABLE_URL } from "../utils/base64.js";
-import { Cyrb128 } from "../utils/prng.js";
+import { Hasher } from "../utils/prng.js";
 
 export type UniqueConnectionSignatures = Set<string>;
 
 export interface ConnectionSignatureState {
     /// The seed derived from the connection
-    seed: Cyrb128;
+    seed: Hasher;
     /// The connection signature string.
     /// Base64 encoded buffer derived from the seed.
     signatureString: string;
@@ -17,8 +17,8 @@ export interface ConnectionSignatureState {
 
 const SIGNATURE_DEFAULT_LENGTH = 6;
 
-export function updateConnectionSignature(prev: ConnectionSignatureState, next: Cyrb128): ConnectionSignatureState {
-    const rng = next.asSfc32();
+export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher): ConnectionSignatureState {
+    const rng = next.asPrng();
 
     // Remove the old one
     if (prev.signatureString != "") {
@@ -46,7 +46,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     }
 }
 
-export function newConnectionSignature(seed: Cyrb128, sigs: UniqueConnectionSignatures) {
+export function newConnectionSignature(seed: Hasher, sigs: UniqueConnectionSignatures) {
     const state: ConnectionSignatureState = {
         seed,
         signatureString: "",

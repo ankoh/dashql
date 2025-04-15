@@ -17,7 +17,7 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
-import { Cyrb128 } from "../../utils/prng.js";
+import { DefaultHasher, Hasher } from "../../utils/prng.js";
 import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 
 export interface HyperGrpcSetupTimings {
@@ -92,7 +92,7 @@ export function getHyperGrpcConnectionDetails(state: ConnectionState | null): Hy
     }
 }
 
-export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Cyrb128) {
+export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Hasher) {
     hasher.add("HyperGrpc");
     hasher.add(details.channelSetupParams.channelArgs.endpoint);
 }
@@ -201,7 +201,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 channel: null,
                 healthCheckError: null,
             };
-            const sig = new Cyrb128();
+            const sig = new DefaultHasher();
             computeHyperGrpcConnectionSignature(details, sig);
             next = {
                 ...state,
