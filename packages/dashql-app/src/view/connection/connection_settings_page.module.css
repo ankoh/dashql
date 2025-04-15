@@ -162,8 +162,7 @@
     font-size: 0.85rem;
     display: flex;
     align-items: center;
-    color: rgba(0, 0, 0, 0.5);
-    font-family: 'Roboto Mono';
+    color: rgba(0, 0, 0, 0.8);
 }
 
 .connection_settings_container {
