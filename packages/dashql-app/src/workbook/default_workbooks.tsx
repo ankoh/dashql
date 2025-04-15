@@ -19,14 +19,14 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
         const asyncSetup = async () => {
             // Wait until serverless and demo connections are set up
             await Promise.all([
-                awaitConnReg((s) => s.connectionsPerType[ConnectorType.SERVERLESS].size > 0),
-                awaitConnReg((s) => s.connectionsPerType[ConnectorType.DEMO].size > 0),
+                awaitConnReg((s) => s.connectionsByType[ConnectorType.SERVERLESS].size > 0),
+                awaitConnReg((s) => s.connectionsByType[ConnectorType.DEMO].size > 0),
             ]);
             abort.signal.throwIfAborted();
 
             // Setup the serverless workbook
             const serverlessConnId = connReg
-                .connectionsPerType[ConnectorType.SERVERLESS]
+                .connectionsByType[ConnectorType.SERVERLESS]
                 .values()
                 .next()
                 .value!;
@@ -35,7 +35,7 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
 
             // Setup the demo workbook
             const demoConnId = connReg
-                .connectionsPerType[ConnectorType.DEMO]
+                .connectionsByType[ConnectorType.DEMO]
                 .values()
                 .next()
                 .value!;

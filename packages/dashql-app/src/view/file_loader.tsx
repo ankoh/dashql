@@ -24,7 +24,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { classNames } from '../utils/classnames.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { formatBytes } from '../utils/format.js';
-import { ConnectionSignatures } from '../connection/connection_signature.js';
+import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 
 interface ProgressState {
     // The file size
@@ -73,7 +73,7 @@ interface ProgressState {
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatures, signal: AbortSignal) {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal) {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -382,7 +382,7 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.uniqueConnectionSignatures, abort.signal);
+            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.connectionsBySignature, abort.signal);
             props.onDone();
         }
         runAsync();

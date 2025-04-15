@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
-import { ConnectionSignatures } from './connection_signature.js';
+import { ConnectionSignatureMap } from './connection_signature.js';
 
 /// The connection registry
 ///
@@ -13,8 +13,8 @@ import { ConnectionSignatures } from './connection_signature.js';
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
     connectionMap: Map<number, ConnectionState>;
-    connectionsPerType: Set<number>[];
-    uniqueConnectionSignatures: ConnectionSignatures;
+    connectionsByType: Set<number>[];
+    connectionsBySignature: ConnectionSignatureMap;
 }
 
 type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
@@ -34,8 +34,8 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
     const reg = React.useState<ConnectionRegistry>(() => {
         return ({
             connectionMap: new Map(),
-            connectionsPerType: CONNECTOR_TYPES.map(() => new Set()),
-            uniqueConnectionSignatures: new Set(),
+            connectionsByType: CONNECTOR_TYPES.map(() => new Set()),
+            connectionsBySignature: new Map(),
         });
     });
     return (
@@ -52,7 +52,8 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
         const conn: ConnectionState = { ...state, connectionId: cid };
         setReg((reg) => {
             reg.connectionMap.set(cid, conn);
-            reg.connectionsPerType[state.connectorInfo.connectorType].add(cid);
+            reg.connectionsByType[state.connectorInfo.connectorType].add(cid);
+            reg.connectionsBySignature.set(state.connectionSignature.signatureString, cid);
             return { ...reg };
         });
         return conn;
