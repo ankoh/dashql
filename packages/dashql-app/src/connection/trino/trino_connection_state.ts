@@ -17,8 +17,9 @@ import {
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { DetailedError } from "../../utils/error.js";
-import { DefaultHasher, Hasher } from "../../utils/hash.js";
+import { Hasher } from "../../utils/hash.js";
 import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
+import { DefaultHasher } from "../../utils/hash_default.js";
 
 export interface TrinoSetupTimings {
     /// The time when the channel setup started

@@ -1,40 +1,6 @@
 // Taken from here: https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript
 
-export interface PseudoRandomNumberGenerator {
-    next(): number;
-}
-
-class Sfc32 implements PseudoRandomNumberGenerator {
-    a: number;
-    b: number;
-    c: number;
-    d: number;
-
-    constructor(a: number, b: number, c: number, d: number) {
-        this.a = a;
-        this.b = b;
-        this.c = c;
-        this.d = d;
-    }
-
-    public nextI32(): number {
-        this.a |= 0;
-        this.b |= 0;
-        this.c |= 0;
-        this.d |= 0;
-        const t = (this.a + this.b | 0) + this.d | 0;
-        this.d = this.d + 1 | 0;
-        this.a = this.b ^ this.b >>> 9;
-        this.b = this.c + (this.c << 3) | 0;
-        this.c = (this.c << 21 | this.c >>> 11);
-        this.c = this.c + t | 0;
-        return t >>> 0;
-    }
-
-    public next(): number {
-        return Math.abs(this.nextI32() / 0xFFFFFFFF);
-    }
-}
+import { PseudoRandomNumberGenerator } from "./prng.js";
 
 export interface Hasher {
     clone(): Hasher;
@@ -43,66 +9,6 @@ export interface Hasher {
     asPrng(): PseudoRandomNumberGenerator;
 }
 
-class Cyrb128 implements Hasher {
-    protected h1: number;
-    protected h2: number;
-    protected h3: number;
-    protected h4: number;
-
-    constructor() {
-        this.h1 = 1779033703;
-        this.h2 = 3144134277;
-        this.h3 = 1013904242;
-        this.h4 = 2773480762;
-    }
-
-    public static from(str: string): Hasher {
-        return (new Cyrb128()).add(str);
-    }
-
-    public clone(): Hasher {
-        const c = new Cyrb128();
-        c.h1 = this.h1;
-        c.h2 = this.h2;
-        c.h3 = this.h3;
-        c.h4 = this.h4;
-        return c;
-    }
-
-    public add(str: string): Hasher {
-        for (let i = 0, k; i < str.length; i++) {
-            k = str.charCodeAt(i);
-            this.h1 = this.h2 ^ Math.imul(this.h1 ^ k, 597399067);
-            this.h2 = this.h3 ^ Math.imul(this.h2 ^ k, 2869860233);
-            this.h3 = this.h4 ^ Math.imul(this.h3 ^ k, 951274213);
-            this.h4 = this.h1 ^ Math.imul(this.h4 ^ k, 2716044179);
-        }
-        this.h1 = Math.imul(this.h3 ^ (this.h1 >>> 18), 597399067);
-        this.h2 = Math.imul(this.h4 ^ (this.h2 >>> 22), 2869860233);
-        this.h3 = Math.imul(this.h1 ^ (this.h3 >>> 17), 951274213);
-        this.h4 = Math.imul(this.h2 ^ (this.h4 >>> 19), 2716044179);
-        this.h1 ^= (this.h2 ^ this.h3 ^ this.h4), this.h2 ^= this.h1, this.h3 ^= this.h1, this.h4 ^= this.h1;
-        this.h1 >>>= 0;
-        this.h2 >>>= 0;
-        this.h3 >>>= 0;
-        this.h4 >>>= 0;
-        return this;
-    }
-    public addN(strs: string[]) {
-        for (const str of strs) {
-            this.add(str);
-        }
-        return this;
-    }
-
-    public asPrng(): PseudoRandomNumberGenerator {
-        return new Sfc32(this.h1, this.h2, this.h3, this.h4);
-    }
-
-};
-
-export class DefaultHasher extends Cyrb128 { };
-
 export function randomBuffer32(len: number, rng: PseudoRandomNumberGenerator) {
     const out = new Uint32Array(len);
     for (let i = 0; i < out.length; ++i) {
@@ -110,3 +16,4 @@ export function randomBuffer32(len: number, rng: PseudoRandomNumberGenerator) {
     }
     return out.buffer;
 }
+
