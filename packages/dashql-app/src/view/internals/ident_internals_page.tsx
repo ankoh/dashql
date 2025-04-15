@@ -3,7 +3,7 @@ import * as styles from './ui_internals_page.module.css';
 
 import { TextInput } from '../foundations/text_input.js';
 import { Identicon } from '../../view/foundations/identicon.js';
-import { DefaultHasher } from '../../utils/hash.js';
+import { DefaultHasher } from '../../utils/hash_default.js';
 
 export function IdentInternalsPage(): React.ReactElement {
     const [seed, setSeed] = React.useState<string>();

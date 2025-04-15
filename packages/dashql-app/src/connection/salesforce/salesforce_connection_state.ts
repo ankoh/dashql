@@ -24,8 +24,9 @@ import {
 import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 import { DetailedError } from '../../utils/error.js';
-import { DefaultHasher, Hasher } from '../../utils/hash.js';
+import { Hasher } from '../../utils/hash.js';
 import { UniqueConnectionSignatures, updateConnectionSignature } from '../../connection/connection_signature.js';
+import { DefaultHasher } from '../../utils/hash_default.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
     /// The time when the auth started

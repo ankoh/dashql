@@ -17,8 +17,9 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
-import { DefaultHasher, Hasher } from "../../utils/hash.js";
+import { Hasher } from "../../utils/hash.js";
 import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
+import { DefaultHasher } from "../../utils/hash_default.js";
 
 export interface HyperGrpcSetupTimings {
     /// The time when the channel setup started

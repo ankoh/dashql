@@ -1,7 +1,8 @@
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";
-import { DefaultHasher, randomBuffer32 } from "./hash.js";
+import { randomBuffer32 } from "./hash.js";
+import { DefaultHasher } from './hash_default.js';
 
 describe('Base64Codec', () => {
     describe("invalid base64 strings", () => {
