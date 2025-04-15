@@ -117,6 +117,7 @@
 
 .connection_group_entries {
     padding: 4px 0px 8px 16px;
+    display: flex;
 }
 
 .connection_group_entry {
@@ -126,7 +127,7 @@
     width: 100%;
     display: grid;
     grid-template-columns: max-content 1fr;
-    column-gap: 8px;
+    column-gap: 10px;
     padding: 4px 4px 4px 4px;
     border-radius: var(--border_radius);
     border: 1px solid transparent;
@@ -158,10 +159,11 @@
 .connection_group_entry_label {
     grid-column: 2;
     padding: 0px 8px 0px 0px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
-    font-weight: 400;
+    color: rgba(0, 0, 0, 0.5);
+    font-family: 'Roboto Mono';
 }
 
 .connection_settings_container {
