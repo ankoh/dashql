@@ -23,7 +23,7 @@ import {
     QueryExecutionState,
 } from './query_execution_state.js';
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
-import { Hasher } from '../utils/prng.js';
+import { Hasher } from '../utils/hash.js';
 import { reduceQueryAction } from './query_execution_state.js';
 import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';

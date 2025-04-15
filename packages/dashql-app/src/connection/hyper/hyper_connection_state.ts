@@ -17,7 +17,7 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
-import { DefaultHasher, Hasher } from "../../utils/prng.js";
+import { DefaultHasher, Hasher } from "../../utils/hash.js";
 import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 
 export interface HyperGrpcSetupTimings {

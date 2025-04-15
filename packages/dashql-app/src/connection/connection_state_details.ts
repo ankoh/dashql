@@ -4,7 +4,7 @@ import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoC
 import { computeHyperGrpcConnectionSignature, createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
-import { DefaultHasher, Hasher } from "../utils/prng.js";
+import { DefaultHasher, Hasher } from "../utils/hash.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>

@@ -1,5 +1,5 @@
 import { BASE64_TABLE_URL } from "../utils/base64.js";
-import { Hasher } from "../utils/prng.js";
+import { Hasher } from "../utils/hash.js";
 
 export type UniqueConnectionSignatures = Set<string>;
 
