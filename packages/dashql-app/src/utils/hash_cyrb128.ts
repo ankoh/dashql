@@ -14,7 +14,7 @@ export class Cyrb128 implements Hasher {
         this.h4 = 2773480762;
     }
 
-    public static from(str: string): Hasher {
+    public static hash(str: string): Hasher {
         return (new Cyrb128()).add(str);
     }
 
@@ -52,9 +52,15 @@ export class Cyrb128 implements Hasher {
         }
         return this;
     }
-
+    public asString(): string {
+        return (
+            ("00000000" + (this.h1 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h2 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h3 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h4 >>> 0).toString(16)).slice(-8)
+        );
+    }
     public asPrng(): PseudoRandomNumberGenerator {
         return new Sfc32(this.h1, this.h2, this.h3, this.h4);
     }
-
 };
