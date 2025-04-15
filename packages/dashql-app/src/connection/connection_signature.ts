@@ -16,6 +16,7 @@ export interface ConnectionSignatureState {
 }
 
 const SIGNATURE_DEFAULT_LENGTH = 6;
+const HEX_TABLE = "0123456789abcdef";
 
 export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher): ConnectionSignatureState {
     const rng = next.asPrng();
@@ -28,7 +29,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     // Fill default length
     let sig = "";
     for (let i = 0; i < SIGNATURE_DEFAULT_LENGTH; ++i) {
-        sig += BASE64_TABLE_URL[Math.floor(rng.next() * BASE64_TABLE_URL.length)];
+        sig += HEX_TABLE[Math.floor(rng.next() * HEX_TABLE.length)];
     }
 
     // Fill more characters
