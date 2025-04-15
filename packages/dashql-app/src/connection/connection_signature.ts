@@ -42,7 +42,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
                 signatures: prev.signatures,
             }
         } else {
-            sig += BASE64_TABLE_URL[Math.floor(rng.next() * BASE64_TABLE_URL.length)];
+            sig += HEX_TABLE[Math.floor(rng.next() * HEX_TABLE.length)];
         }
     }
 }
