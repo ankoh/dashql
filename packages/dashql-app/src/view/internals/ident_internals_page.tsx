@@ -7,7 +7,7 @@ import { DefaultHasher } from '../../utils/hash_default.js';
 
 export function IdentInternalsPage(): React.ReactElement {
     const [seed, setSeed] = React.useState<string>();
-    const prng = DefaultHasher.from(seed ?? "").asPrng();
+    const prng = DefaultHasher.hash(seed ?? "").asPrng();
 
     return (
         <div className={styles.root}>

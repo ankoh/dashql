@@ -7,6 +7,7 @@ export interface Hasher {
     add(str: string): Hasher;
     addN(str: string[]): Hasher;
     asPrng(): PseudoRandomNumberGenerator;
+    asString(): string;
 }
 
 export function randomBuffer32(len: number, rng: PseudoRandomNumberGenerator) {

@@ -17,7 +17,7 @@ describe('Base64Codec', () => {
     describe("encodes random 32 byte sequences", () => {
         for (let i = 0; i < 1000; ++i) {
             it(`seed=${i}`, () => {
-                const randomBytes = randomBuffer32(32, DefaultHasher.from(i.toString()).asPrng())
+                const randomBytes = randomBuffer32(32, DefaultHasher.hash(i.toString()).asPrng())
                 const encoded = BASE64_CODEC.encode(randomBytes);
                 expect(BASE64_CODEC.isValidBase64(encoded)).toBeTruthy();
                 const decoded = BASE64_CODEC.decode(encoded);
@@ -75,7 +75,7 @@ describe('Base64UrlCodec', () => {
     describe("encodes random 32 byte sequences", () => {
         for (let i = 0; i < 1000; ++i) {
             it(`seed=${i}`, () => {
-                const randomBytes = randomBuffer32(32, DefaultHasher.from(i.toString()).asPrng())
+                const randomBytes = randomBuffer32(32, DefaultHasher.hash(i.toString()).asPrng())
                 const encoded = BASE64URL_CODEC.encode(randomBytes);
                 expect(BASE64URL_CODEC.isValidBase64(encoded)).toBeTruthy();
                 const decoded = BASE64URL_CODEC.decode(encoded);

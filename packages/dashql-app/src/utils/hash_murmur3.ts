@@ -18,20 +18,24 @@ const P4 = 2716044179;
 
 const encoder = new TextEncoder();
 
+/// Implements the murmur3 x86 128 bit variant
 export class Murmur3_128 implements Hasher {
     h1: number;
     h2: number;
     h3: number;
     h4: number;
 
-    constructor() {
-        this.h1 = P1;
-        this.h2 = P2;
-        this.h3 = P3;
-        this.h4 = P4;
+    constructor(seed: number = 0) {
+        this.h1 = seed ^ P1;
+        this.h2 = seed ^ P2;
+        this.h3 = seed ^ P3;
+        this.h4 = seed ^ P4;
     }
 
-    public static from(str: string): Hasher {
+    public static withSeed(seed: number): Murmur3_128 {
+        return new Murmur3_128(seed);
+    }
+    public static hash(str: string): Hasher {
         return (new Murmur3_128()).add(str);
     }
 
@@ -114,6 +118,11 @@ export class Murmur3_128 implements Hasher {
         this.h1 += this.h2; this.h1 += this.h3; this.h1 += this.h4;
         this.h2 += this.h1; this.h3 += this.h1; this.h4 += this.h1;
 
+        this.h1 >>>= 0;
+        this.h2 >>>= 0;
+        this.h3 >>>= 0;
+        this.h4 >>>= 0;
+
         return this;
     };
 
@@ -126,5 +135,13 @@ export class Murmur3_128 implements Hasher {
 
     public asPrng(): PseudoRandomNumberGenerator {
         return new Sfc32(this.h1, this.h2, this.h3, this.h4);
+    }
+    public asString(): string {
+        return (
+            ("00000000" + (this.h1 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h2 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h3 >>> 0).toString(16)).slice(-8) +
+            ("00000000" + (this.h4 >>> 0).toString(16)).slice(-8)
+        );
     }
 }
