@@ -18,7 +18,7 @@ import {
 } from '../connection_state.js';
 import { DetailedError } from "../../utils/error.js";
 import { Hasher } from "../../utils/hash.js";
-import { UniqueConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
+import { ConnectionSignatures, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
 
 export interface HyperGrpcSetupTimings {
@@ -78,7 +78,7 @@ export function createHyperGrpcConnectionStateDetails(params?: HyperGrpcConnecti
     };
 }
 
-export function createHyperGrpcConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+export function createHyperGrpcConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatures): ConnectionStateWithoutId {
     return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], connSigs, {
         type: HYPER_GRPC_CONNECTOR,
         value: createHyperGrpcConnectionStateDetails()

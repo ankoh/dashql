@@ -20,15 +20,15 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     // Compute the connection signature
     const [connReg, _modifyConnReg] = useConnectionRegistry();
     const connState = connReg.connectionMap.get(props.workbook.connectionId)!;
-    const connSig = connState.connectionSignature.seed.asPrng();
+    const connSig = connState.connectionSignature.hash.asPrng();
 
     // Compute the entry signature
-    const entrySigHasher = React.useMemo(() => {
-        const seed = connState.connectionSignature.seed.clone();
+    const entrySigHash = React.useMemo(() => {
+        const seed = connState.connectionSignature.hash.clone();
         seed.add(props.scriptKey.toString());
         return seed;
-    }, [props.entryIndex]);
-    const entrySig = entrySigHasher.asPrng();
+    }, [connSig, props.entryIndex]);
+    const entrySig = entrySigHash.asPrng();
 
     // Callback to select a workbook
     const selectWorkbook = () => {

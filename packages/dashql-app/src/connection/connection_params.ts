@@ -17,7 +17,7 @@ import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_
 import { createServerlessConnectionParamsSignature, encodeServerlessConnectionParamsAsProto, readServerlessConnectionParamsFromProto } from './serverless/serverless_connection_params.js';
 import { createTrinoConnectionParamsSignature, encodeTrinoConnectionParamsAsProto, readTrinoConnectionParamsFromProto, TrinoConnectionParams } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
-import { newConnectionSignature, UniqueConnectionSignatures } from './connection_signature.js';
+import { newConnectionSignature, ConnectionSignatures } from './connection_signature.js';
 
 export type ConnectionParamsVariant =
     | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
@@ -150,7 +150,7 @@ export function createConnectionParamsSignature(params: ConnectionParamsVariant)
     }
 }
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParamsVariant, connSigs: ConnectionSignatures): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params);
     const details = getConnectionStateDetailsFromParams(params);
     const sig = computeNewConnectionSignatureFromDetails(details);

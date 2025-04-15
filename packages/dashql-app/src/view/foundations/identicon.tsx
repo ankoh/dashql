@@ -117,10 +117,10 @@ export function Identicon(props: IdenticonProps) {
                         fills={[
                             "hsl(210deg, 12%, 36%)"
                         ]}
-                        offsetXMin={-65}
-                        offsetXMax={65}
-                        offsetYMin={-45}
-                        offsetYMax={45}
+                        offsetXMin={-30}
+                        offsetXMax={30}
+                        offsetYMin={-30}
+                        offsetYMax={30}
                         rotateMin={-160}
                         rotateMax={160}
 
@@ -141,10 +141,10 @@ export function Identicon(props: IdenticonProps) {
                         fills={[
                             "hsl(210deg, 12%, 56%)"
                         ]}
-                        offsetXMin={-40}
-                        offsetXMax={40}
-                        offsetYMin={-40}
-                        offsetYMax={40}
+                        offsetXMin={-65}
+                        offsetXMax={65}
+                        offsetYMin={-45}
+                        offsetYMax={45}
                         rotateMin={-180}
                         rotateMax={180}
                     />

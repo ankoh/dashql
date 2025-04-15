@@ -28,7 +28,7 @@ import { reduceQueryAction } from './query_execution_state.js';
 import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
-import { UniqueConnectionSignatures, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
+import { ConnectionSignatures, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -274,7 +274,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
     }
 }
 
-export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: UniqueConnectionSignatures, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
+export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatures, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
     catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     const connSig = computeNewConnectionSignatureFromDetails(details);
@@ -300,7 +300,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
     };
 }
 
-export function createConnectionStateForType(dql: dashql.DashQL, type: ConnectorType, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+export function createConnectionStateForType(dql: dashql.DashQL, type: ConnectorType, connSigs: ConnectionSignatures): ConnectionStateWithoutId {
     const connInfo = CONNECTOR_INFOS[type as number];
     const connMetrics = createConnectionMetrics();
     const connDetails = createConnectionStateDetails(type);
@@ -330,7 +330,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     };
 }
 
-export function createServerlessConnectionState(dql: dashql.DashQL, connSigs: UniqueConnectionSignatures): ConnectionStateWithoutId {
+export function createServerlessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatures): ConnectionStateWithoutId {
     const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], connSigs, {
         type: SERVERLESS_CONNECTOR,
         value: {}
