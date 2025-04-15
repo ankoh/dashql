@@ -4,7 +4,7 @@ export interface PseudoRandomNumberGenerator {
     next(): number;
 }
 
-export class Sfc32 implements PseudoRandomNumberGenerator {
+class Sfc32 implements PseudoRandomNumberGenerator {
     a: number;
     b: number;
     c: number;
@@ -36,7 +36,14 @@ export class Sfc32 implements PseudoRandomNumberGenerator {
     }
 }
 
-export class Cyrb128 {
+export interface Hasher {
+    clone(): Hasher;
+    add(str: string): Hasher;
+    addN(str: string[]): Hasher;
+    asPrng(): PseudoRandomNumberGenerator;
+}
+
+class Cyrb128 implements Hasher {
     protected h1: number;
     protected h2: number;
     protected h3: number;
@@ -49,11 +56,11 @@ export class Cyrb128 {
         this.h4 = 2773480762;
     }
 
-    public static from(str: string): Cyrb128 {
+    public static from(str: string): Hasher {
         return (new Cyrb128()).add(str);
     }
 
-    public clone(): Cyrb128 {
+    public clone(): Hasher {
         const c = new Cyrb128();
         c.h1 = this.h1;
         c.h2 = this.h2;
@@ -62,7 +69,7 @@ export class Cyrb128 {
         return c;
     }
 
-    public add(str: string): Cyrb128 {
+    public add(str: string): Hasher {
         for (let i = 0, k; i < str.length; i++) {
             k = str.charCodeAt(i);
             this.h1 = this.h2 ^ Math.imul(this.h1 ^ k, 597399067);
@@ -88,11 +95,13 @@ export class Cyrb128 {
         return this;
     }
 
-    public asSfc32(): PseudoRandomNumberGenerator {
+    public asPrng(): PseudoRandomNumberGenerator {
         return new Sfc32(this.h1, this.h2, this.h3, this.h4);
     }
 
 };
+
+export class DefaultHasher extends Cyrb128 { };
 
 export function randomBuffer32(len: number, rng: PseudoRandomNumberGenerator) {
     const out = new Uint32Array(len);

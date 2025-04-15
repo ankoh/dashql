@@ -23,7 +23,7 @@ import {
     QueryExecutionState,
 } from './query_execution_state.js';
 import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
-import { Cyrb128 } from '../utils/prng.js';
+import { Hasher } from '../utils/prng.js';
 import { reduceQueryAction } from './query_execution_state.js';
 import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
@@ -340,6 +340,6 @@ export function createServerlessConnectionState(dql: dashql.DashQL, connSigs: Un
     return state;
 }
 
-export function computeConnectionSignature(state: ConnectionState, hasher: Cyrb128) {
+export function computeConnectionSignature(state: ConnectionState, hasher: Hasher) {
     return computeConnectionSignatureFromDetails(state.details, hasher);
 }

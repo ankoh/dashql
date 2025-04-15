@@ -24,7 +24,7 @@ import {
 import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
 import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 import { DetailedError } from '../../utils/error.js';
-import { Cyrb128 } from '../../utils/prng.js';
+import { DefaultHasher, Hasher } from '../../utils/prng.js';
 import { UniqueConnectionSignatures, updateConnectionSignature } from '../../connection/connection_signature.js';
 
 export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
@@ -158,7 +158,7 @@ export function getSalesforceConnectionDetails(state: ConnectionState | null): S
     }
 }
 
-export function computeSalesforceConnectionSignature(details: SalesforceConnectionStateDetails, hasher: Cyrb128) {
+export function computeSalesforceConnectionSignature(details: SalesforceConnectionStateDetails, hasher: Hasher) {
     hasher.add("Salesforce");
     hasher.add(details.setupParams.instanceUrl);
     hasher.add(details.setupParams.appConsumerKey);
@@ -255,7 +255,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 channel: null,
                 healthCheckError: null,
             };
-            let sig = new Cyrb128();
+            let sig = new DefaultHasher();
             computeSalesforceConnectionSignature(details, sig);
             next = {
                 ...state,
