@@ -25,6 +25,7 @@ import { classNames } from '../utils/classnames.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { formatBytes } from '../utils/format.js';
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
+import { useCurrentWorkbookSelector } from '../workbook/current_workbook.js';
 
 interface ProgressState {
     // The file size
@@ -73,7 +74,7 @@ interface ProgressState {
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal) {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal): Promise<number[]> {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -338,6 +339,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
     progress.fileLoadingFinishedAt = new Date();
     updateProgress({ ...progress });
+
+    return workbookIds;
 }
 
 interface StepProps {
@@ -388,6 +391,7 @@ export function FileLoader(props: Props) {
     const dqlSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
+    const selectWorkbook = useCurrentWorkbookSelector();
     const [progress, setProgress] = React.useState<ProgressState | null>(null);
     const [reg, _setReg] = useConnectionRegistry();
 
@@ -399,7 +403,10 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.connectionsBySignature, abort.signal);
+            const workbookIds = await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.connectionsBySignature, abort.signal);
+            if (workbookIds.length > 0) {
+                selectWorkbook(workbookIds[0]);
+            }
             props.onDone();
         }
         runAsync();

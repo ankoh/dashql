@@ -141,7 +141,6 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         return (
             <ActionList.ListItem
                 key={workbookId}
-                data-workbook={workbook.connectionId}
                 onClick={onWorkbookClick}
                 selected={workbookId === currentWorkbook?.workbookId}
                 data-item={workbookId.toString()}
