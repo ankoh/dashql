@@ -1,4 +1,6 @@
 .workbook_icon {
+    width: 24px;
+    height: 24px;
     border: 1px solid hsl(210deg, 12%, 76%);
     border-radius: 6px;
     overflow: hidden;
