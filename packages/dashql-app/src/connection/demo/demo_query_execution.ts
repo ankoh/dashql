@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { QueryExecutionArgs } from "../query_execution_args.js";
-import { DemoConnectionParams, DemoConnectionStateDetails } from "./demo_connection_state.js";
+import { DemoConnectionStateDetails } from "./demo_connection_state.js";
 import { QueryExecutionResponseStream, QueryType } from "../query_execution_state.js";
 import { DemoQuerySpec } from './demo_database_channel.js';
 import { Int128 } from '../../utils/int128.js';
@@ -107,10 +107,13 @@ const DEFAULT_QUERY_SPEC: DemoQuerySpec = {
     timeMsBetweenBatches: 50,
 };
 
-const CATALOG_SCHEMAS = 10;
-const CATALOG_TABLES_PER_SCHEMA = 10;
-const CATALOG_COLUMNS_PER_TABLE = 10;
-const CATALOG_COLUMNS_PER_SCHEMA = CATALOG_COLUMNS_PER_TABLE * CATALOG_TABLES_PER_SCHEMA;
+const CATALOG_COUNT = 2;
+const SCHEMAS_PER_CATALOG = 10;
+const TABLES_PER_SCHEMA = 10;
+const TABLES_PER_CATALOG = TABLES_PER_SCHEMA * SCHEMAS_PER_CATALOG;
+const COLUMNS_PER_TABLE = 10;
+const COLUMNS_PER_SCHEMA = COLUMNS_PER_TABLE * TABLES_PER_SCHEMA;
+const COLUMNS_PER_CATALOG = COLUMNS_PER_TABLE * TABLES_PER_CATALOG;
 
 const CATALOG_QUERY_SPEC: DemoQuerySpec = {
     fields: [
@@ -118,31 +121,31 @@ const CATALOG_QUERY_SPEC: DemoQuerySpec = {
             name: "table_catalog",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (_row: number) => "dashql"
+            generateScalarValue: (row: number) => `catalog_${Math.floor(row / COLUMNS_PER_CATALOG)}`
         },
         {
             name: "table_schema",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (_row: number) => `public`
+            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}`,
         },
         {
             name: "table_name",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (row: number) => `table_${Math.floor(row / CATALOG_COLUMNS_PER_SCHEMA)}_${Math.floor(row / CATALOG_COLUMNS_PER_TABLE)}`
+            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}`,
         },
         {
             name: "column_name",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (row: number) => `column_${Math.floor(row / CATALOG_COLUMNS_PER_SCHEMA)}_${Math.floor(row / CATALOG_COLUMNS_PER_TABLE)}_${row % CATALOG_COLUMNS_PER_TABLE}`
+            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}_${row % COLUMNS_PER_TABLE}`,
         },
         {
             name: "ordinal_position",
             type: new arrow.Uint32(),
             nullable: true,
-            generateScalarValue: (row: number) => row % CATALOG_COLUMNS_PER_TABLE
+            generateScalarValue: (row: number) => row % COLUMNS_PER_TABLE
         },
         {
             name: "is_nullable",
@@ -157,8 +160,8 @@ const CATALOG_QUERY_SPEC: DemoQuerySpec = {
             generateScalarValue: (_row: number) => `varchar`
         },
     ],
-    resultBatches: CATALOG_SCHEMAS,
-    resultRowsPerBatch: CATALOG_COLUMNS_PER_SCHEMA * CATALOG_SCHEMAS,
+    resultBatches: SCHEMAS_PER_CATALOG,
+    resultRowsPerBatch: COLUMNS_PER_SCHEMA * SCHEMAS_PER_CATALOG * CATALOG_COUNT,
     timeMsUntilFirstBatch: 500,
     timeMsBetweenBatches: 50,
 }
