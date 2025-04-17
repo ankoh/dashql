@@ -262,6 +262,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     <div className={styles.node_label}>
                         {thisName}
                     </div>
+                    {((entryFlags & PINNED_BY_ANYTHING) != 0) && (
+                        <div className={styles.node_count}>
+                            {0}
+                        </div>
+                    )}
                     <div className={styles.node_ports}>
                         {(parentEntryId != null) && (
                             <div
