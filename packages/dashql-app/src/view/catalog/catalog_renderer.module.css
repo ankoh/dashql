@@ -30,18 +30,32 @@
 
     display: grid;
     grid-template-rows: 100%;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: 1fr max-content;
     align-items: center;
     justify-items: center;
+    column-gap: 4px;
 
-    padding: 0px 12px;
-    font-size: 0.95rem;
+    padding: 0px 8px 0px 12px;
+    font-size: 0.85rem;
 }
 
-.node_overflow {}
+.node_overflow {
+    grid-template-columns: 1fr max-content;
+}
 
 
-.node_label {}
+.node_label {
+    overflow-wrap: anywhere;
+    width: 100%;
+    line-height: 2rex;
+}
+
+.node_count {
+    background-color: rgba(100, 100, 100, 0.2);
+    border-radius: 6px;
+    padding: 0px 4px;
+    font-size: 0.8rem;
+}
 
 .node_ports {
     position: absolute;
