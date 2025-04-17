@@ -7,16 +7,17 @@
 #include <map>
 #include <variant>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/external.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/string_conversion.h"
 
 using namespace dashql;
 
-flatbuffers::Offset<buffers::TableColumn> CatalogEntry::TableColumn::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<buffers::TableColumn> CatalogEntry::TableColumn::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
     flatbuffers::Offset<flatbuffers::String> column_name_ofs;
     if (!column_name.get().text.empty()) {
         column_name_ofs = builder.CreateString(column_name.get().text);
@@ -27,7 +28,8 @@ flatbuffers::Offset<buffers::TableColumn> CatalogEntry::TableColumn::Pack(flatbu
     return out.Finish();
 }
 
-flatbuffers::Offset<buffers::Table> CatalogEntry::TableDeclaration::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<buffers::Table> CatalogEntry::TableDeclaration::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
     auto table_name_ofs = table_name.Pack(builder);
 
     // Pack table columns
@@ -133,8 +135,10 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
                 continue;
             }
             // Do the same lookup in the other entries
-            auto table_lb = tables_by_name.lower_bound({database_name, schema_name, "\0"});
-            auto table_ub = tables_by_name.upper_bound({database_name, schema_name, std::string_view{&ub_text, 1}});
+            auto& other_entry = *catalog.entries.at(iter->second.catalog_entry_id);
+            auto table_lb = other_entry.tables_by_name.lower_bound({database_name, schema_name, "\0"});
+            auto table_ub =
+                other_entry.tables_by_name.upper_bound({database_name, schema_name, std::string_view{&ub_text, 1}});
             for (auto table_iter = table_lb; table_iter != table_ub; ++table_iter) {
                 out.push_back({table_iter->second, true});
             }
@@ -186,8 +190,8 @@ DescriptorPool::DescriptorPool(Catalog& catalog, CatalogEntryID external_id, uin
 }
 
 static flatbuffers::Offset<buffers::SchemaDescriptor> describeEntrySchema(flatbuffers::FlatBufferBuilder& builder,
-                                                                        const buffers::SchemaDescriptor& descriptor,
-                                                                        uint32_t& table_id) {
+                                                                          const buffers::SchemaDescriptor& descriptor,
+                                                                          uint32_t& table_id) {
     auto database_name = builder.CreateString(descriptor.database_name());
     auto schema_name = builder.CreateString(descriptor.schema_name());
 
@@ -221,7 +225,8 @@ static flatbuffers::Offset<buffers::SchemaDescriptor> describeEntrySchema(flatbu
     return schema_builder.Finish();
 }
 
-flatbuffers::Offset<buffers::CatalogEntry> DescriptorPool::DescribeEntry(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<buffers::CatalogEntry> DescriptorPool::DescribeEntry(
+    flatbuffers::FlatBufferBuilder& builder) const {
     std::vector<flatbuffers::Offset<buffers::SchemaDescriptor>> schema_offsets;
     schema_offsets.reserve(descriptor_buffers.size());
     uint32_t table_id = 0;
@@ -256,9 +261,9 @@ flatbuffers::Offset<buffers::CatalogEntry> DescriptorPool::DescribeEntry(flatbuf
 const CatalogEntry::NameSearchIndex& DescriptorPool::GetNameSearchIndex() { return name_search_index.value(); }
 
 buffers::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant descriptor_variant,
-                                                      std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                      size_t descriptor_buffer_size, CatalogDatabaseID& db_id,
-                                                      CatalogSchemaID& schema_id) {
+                                                        std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                                        size_t descriptor_buffer_size, CatalogDatabaseID& db_id,
+                                                        CatalogSchemaID& schema_id) {
     // Unpack the schemas
     std::vector<std::reference_wrapper<const buffers::SchemaDescriptor>> descriptors;
     switch (descriptor_variant.index()) {
@@ -462,7 +467,7 @@ flatbuffers::Offset<buffers::CatalogEntries> Catalog::DescribeEntries(flatbuffer
 }
 
 flatbuffers::Offset<buffers::CatalogEntries> Catalog::DescribeEntriesOf(flatbuffers::FlatBufferBuilder& builder,
-                                                                      size_t external_id) const {
+                                                                        size_t external_id) const {
     auto iter = entries.find(external_id);
     if (iter == entries.end()) {
         return {};
@@ -1009,8 +1014,8 @@ buffers::StatusCode Catalog::DropDescriptorPool(CatalogEntryID external_id) {
 }
 
 buffers::StatusCode Catalog::AddSchemaDescriptor(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                                               std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                               size_t descriptor_buffer_size) {
+                                                 std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                                 size_t descriptor_buffer_size) {
     auto iter = descriptor_pool_entries.find(external_id);
     if (iter == descriptor_pool_entries.end()) {
         return buffers::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN;
@@ -1044,9 +1049,10 @@ buffers::StatusCode Catalog::AddSchemaDescriptor(CatalogEntryID external_id, std
     return buffers::StatusCode::OK;
 }
 
-buffers::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                                                std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                size_t descriptor_buffer_size) {
+buffers::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID external_id,
+                                                  std::span<const std::byte> descriptor_data,
+                                                  std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                                  size_t descriptor_buffer_size) {
     auto iter = descriptor_pool_entries.find(external_id);
     if (iter == descriptor_pool_entries.end()) {
         return buffers::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN;
