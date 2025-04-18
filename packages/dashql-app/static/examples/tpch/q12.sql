@@ -1,3 +1,5 @@
+-- TPC-H query 12
+
 select
     l_shipmode,
     sum(case

@@ -1,3 +1,5 @@
+-- TPC-H query 1
+
 select
     l_returnflag,
     l_linestatus,

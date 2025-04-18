@@ -1,3 +1,5 @@
+-- TPC-H query 20
+
 select
     s_name,
     s_address

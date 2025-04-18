@@ -1,3 +1,5 @@
+-- TPC-H query 4
+
 select
     o_orderpriority,
     count(*) as order_count

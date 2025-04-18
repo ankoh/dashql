@@ -133,13 +133,13 @@ const CATALOG_QUERY_SPEC: DemoQuerySpec = {
             name: "table_name",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}`,
+            generateScalarValue: (row: number) => `table_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}`,
         },
         {
             name: "column_name",
             type: new arrow.Utf8(),
             nullable: true,
-            generateScalarValue: (row: number) => `schema_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}_${row % COLUMNS_PER_TABLE}`,
+            generateScalarValue: (row: number) => `column_${Math.floor(row / COLUMNS_PER_CATALOG)}_${Math.floor(row / COLUMNS_PER_SCHEMA)}_${Math.floor(row / COLUMNS_PER_TABLE)}_${row % COLUMNS_PER_TABLE}`,
         },
         {
             name: "ordinal_position",

@@ -1,3 +1,5 @@
+-- TPC-H query 7
+
 select
     supp_nation,
     cust_nation,

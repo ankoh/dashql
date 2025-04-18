@@ -49,9 +49,12 @@
     width: 100%;
     line-height: 2rex;
 }
+.node_label_empty {
+    color: hsl(210deg, 12.68%, 64.16%);
+}
 
 .node_count {
-    background-color: rgba(100, 100, 100, 0.2);
+    background-color: hsl(210deg, 12.68%, 90.16%);
     border-radius: 6px;
     padding: 0px 4px;
     font-size: 0.8rem;

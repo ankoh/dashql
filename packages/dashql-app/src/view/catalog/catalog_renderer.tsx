@@ -259,9 +259,19 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-snapshot-level={levelId.toString()}
                     data-catalog-object={entry.catalogObjectId()}
                 >
-                    <div className={styles.node_label}>
-                        {thisName}
-                    </div>
+                    {
+                        thisName == ""
+                            ? (
+                                <div className={styles.node_label_empty}>
+                                    &lt;empty&gt;
+                                </div>
+                            )
+                            : (
+                                <div className={styles.node_label}>
+                                    {thisName}
+                                </div>
+                            )
+                    }
                     {((entryFlags & PINNED_BY_ANYTHING) != 0) && (
                         <div className={styles.node_count}>
                             {0}
