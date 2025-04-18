@@ -393,7 +393,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-snapshot-entry={key}
                     data-snapshot-level={levelId.toString()}
                 >
-                    {overflowChildCount}
+                    {overflowChildCount} more
                 </div>
             );
         }
