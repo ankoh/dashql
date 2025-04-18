@@ -22,11 +22,7 @@ interface DashQLModuleExports {
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_statistics: (ptr: number) => number;
 
-    dashql_catalog_new: (
-        default_db_name_ptr: number,
-        default_db_name_length: number,
-        default_schema_name_ptr: number,
-        default_schema_name_length: number) => number;
+    dashql_catalog_new: () => number;
     dashql_catalog_clear: (catalog_ptr: number) => void;
     dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
     dashql_catalog_describe_entries: (catalog_ptr: number) => number;
@@ -120,12 +116,7 @@ export class DashQL {
                 limit: number,
             ) => number,
 
-            dashql_catalog_new: instance.exports['dashql_catalog_new'] as (
-                db_name_ptr: number,
-                db_name_length: number,
-                schema_name_ptr: number,
-                schema_name_length: number,
-            ) => number,
+            dashql_catalog_new: instance.exports['dashql_catalog_new'] as () => number,
             dashql_catalog_contains_entry_id: instance.exports['dashql_catalog_contains_entry_id'] as (
                 catalog_ptr: number,
                 entry_id: number,
@@ -283,31 +274,8 @@ export class DashQL {
         return new DashQLScript(scriptPtr);
     }
 
-    public createCatalog(
-        databaseName: string | null = null,
-        schemaName: string | null = null,
-    ): DashQLCatalog {
-        let databaseNamePtr = 0,
-            databaseNameLength = 0,
-            schemaNamePtr = 0,
-            schemaNameLength = 0;
-        if (databaseName != null) {
-            [databaseNamePtr, databaseNameLength] = this.copyString(databaseName);
-        }
-        if (schemaName != null) {
-            try {
-                [schemaNamePtr, schemaNameLength] = this.copyString(schemaName);
-            } catch (e: any) {
-                this.instanceExports.dashql_free(databaseNamePtr);
-                throw e;
-            }
-        }
-        const result = this.instanceExports.dashql_catalog_new(
-            databaseNamePtr, // pass ownership over buffer
-            databaseNameLength,
-            schemaNamePtr, // pass ownership over buffer
-            schemaNameLength,
-        );
+    public createCatalog(): DashQLCatalog {
+        const result = this.instanceExports.dashql_catalog_new();
         const ptr = this.readPtrResult(CATALOG_TYPE, result);
         return new DashQLCatalog(ptr);
     }

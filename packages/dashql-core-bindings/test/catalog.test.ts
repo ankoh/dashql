@@ -301,13 +301,13 @@ create table region (
         const db = snap.catalogReader.databases(0)!;
         expect(db.childBegin()).toEqual(0);
         expect(db.childCount()).toEqual(1);
-        expect(snap.readName(db.nameId())).toEqual("dashql");
+        expect(snap.readName(db.nameId())).toEqual("");
 
         const schema = snap.catalogReader.schemas(0)!;
         expect(schema.flatParentIdx()).toEqual(0);
         expect(schema.childBegin()).toEqual(0);
         expect(schema.childCount()).toEqual(8);
-        expect(snap.readName(schema.nameId())).toEqual("public");
+        expect(snap.readName(schema.nameId())).toEqual("");
 
         const tableNames = [
             "customer",
