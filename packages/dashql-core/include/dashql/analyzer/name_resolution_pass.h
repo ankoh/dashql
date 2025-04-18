@@ -4,8 +4,8 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/pass_manager.h"
-#include "dashql/external.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/external.h"
 #include "dashql/script.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/attribute_index.h"
@@ -48,10 +48,8 @@ class NameResolutionPass : public PassManager::LTRPass {
     /// The ast
     std::span<const buffers::Node> ast;
 
-    /// The default database name
-    RegisteredName& default_database_name;
-    /// The default schema name
-    RegisteredName& default_schema_name;
+    /// The empty name
+    RegisteredName& empty_name;
 
     /// The state of all nodes
     std::vector<NodeState> node_states;

@@ -3,11 +3,11 @@
 #include <filesystem>
 #include <string>
 
-#include "gtest/gtest.h"
-#include "pugixml.hpp"
 #include "dashql/analyzer/completion.h"
 #include "dashql/script.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
+#include "gtest/gtest.h"
+#include "pugixml.hpp"
 
 namespace dashql::testing {
 
@@ -23,10 +23,6 @@ struct CompletionSnapshotTest {
     std::string name;
     /// The main script
     AnalyzerSnapshotTest::ScriptAnalysisSnapshot script;
-    /// The catalog default database
-    std::string catalog_default_database;
-    /// The catalog default schema
-    std::string catalog_default_schema;
     /// The catalog
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_entries;
     /// The cursor script

@@ -60,11 +60,11 @@
             </input>
             <errors />
             <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..46" text="db1.schema1.A x" />
+                <tableref type="name/unresolved" stmt="0" loc="31..46" text="db1.schema1.A x" />
                 <tableref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..61" text="db2.schema2.A" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="68..71" text="x.a" />
+                <expr type="colref/unresolved" stmt="0" loc="68..71" text="x.a" />
                 <expr type="colref/external" id="257.65537.4294967297.0" stmt="0" loc="74..75" text="c" />
             </expressions>
         </script>
@@ -102,11 +102,11 @@
             </input>
             <errors />
             <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <tableref type="name/unresolved" stmt="0" loc="31..44" text="db1.schema1.A" />
                 <tableref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="66..67" text="a" />
+                <expr type="colref/unresolved" stmt="0" loc="66..67" text="a" />
                 <expr type="colref/external" id="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
             </expressions>
         </script>

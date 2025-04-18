@@ -8,13 +8,16 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/catalog_object.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/string_conversion.h"
 
 using namespace dashql;
+
+static const char TEXT_UB_CHAR = 0x7F;
+static const std::string_view TEXT_UB{&TEXT_UB_CHAR, 1};
+static const std::string_view TEXT_LB = "\0";
 
 flatbuffers::Offset<buffers::TableColumn> CatalogEntry::TableColumn::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {
@@ -63,23 +66,11 @@ CatalogEntry::CatalogEntry(Catalog& catalog, CatalogEntryID external_id)
       schema_references(),
       table_declarations(),
       databases_by_name(),
-      schemas_by_name(),
-      tables_by_name(),
+      schemas_by_qualified_name(),
+      tables_by_qualified_name(),
+      tables_by_unqualified_name(),
       table_columns_by_name(),
       name_search_index() {}
-
-CatalogEntry::QualifiedTableName CatalogEntry::QualifyTableName(NameRegistry& name_registry,
-                                                                CatalogEntry::QualifiedTableName name) const {
-    if (name.database_name.get().text.empty()) {
-        name.database_name =
-            name_registry.Register(catalog.GetDefaultDatabaseName(), NameTags{buffers::NameTag::DATABASE_NAME});
-    }
-    if (name.schema_name.get().text.empty()) {
-        name.schema_name =
-            name_registry.Register(catalog.GetDefaultSchemaName(), NameTags{buffers::NameTag::SCHEMA_NAME});
-    }
-    return name;
-}
 
 void CatalogEntry::ResolveDatabaseSchemasWithCatalog(
     std::string_view database_name,
@@ -90,8 +81,8 @@ void CatalogEntry::ResolveDatabaseSchemasWithCatalog(
     // Note that this script might not have been added to the catalog yet.
     // That's why we have to check the own script first.
     {
-        auto lb = schemas_by_name.lower_bound({database_name, "\0"});
-        auto ub = schemas_by_name.upper_bound({database_name, std::string_view{&ub_text, 1}});
+        auto lb = schemas_by_qualified_name.lower_bound({database_name, "\0"});
+        auto ub = schemas_by_qualified_name.upper_bound({database_name, std::string_view{&ub_text, 1}});
         for (auto iter = lb; iter != ub; ++iter) {
             out.push_back({iter->second, false});
         }
@@ -108,6 +99,43 @@ void CatalogEntry::ResolveDatabaseSchemasWithCatalog(
 }
 
 void CatalogEntry::ResolveSchemaTablesWithCatalog(
+    std::string_view schema_name,
+    std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const {
+    char ub_text = 0x7F;
+
+    // First search in our own script.
+    // Note that this script might not have been added to the catalog yet.
+    // That's why we have to check the own script first.
+    {
+        auto lb = tables_by_unqualified_schema.lower_bound({schema_name, "\0"});
+        auto ub = tables_by_unqualified_schema.upper_bound({schema_name, std::string_view{&ub_text, 1}});
+        for (auto iter = lb; iter != ub; ++iter) {
+            out.push_back({iter->second, false});
+        }
+    }
+
+    // Then discover all catalog entries that populate that schema
+    {
+        auto lb = catalog.entries_by_schema.lower_bound({schema_name, 0, 0});
+        auto ub = catalog.entries_by_schema.upper_bound(
+            {schema_name, std::numeric_limits<CatalogEntry::Rank>::max(), std::numeric_limits<CatalogEntryID>::max()});
+        for (auto iter = lb; iter != ub; ++iter) {
+            // Skip own entry, we checked earlier
+            if (iter->second.catalog_entry_id == catalog_entry_id) {
+                continue;
+            }
+            // Do the same lookup in the other entries
+            auto& other_entry = *catalog.entries.at(iter->second.catalog_entry_id);
+            auto table_lb = other_entry.tables_by_unqualified_schema.lower_bound({schema_name, TEXT_LB});
+            auto table_ub = other_entry.tables_by_unqualified_schema.upper_bound({schema_name, TEXT_UB});
+            for (auto table_iter = table_lb; table_iter != table_ub; ++table_iter) {
+                out.push_back({table_iter->second, true});
+            }
+        }
+    }
+}
+
+void CatalogEntry::ResolveSchemaTablesWithCatalog(
     std::string_view database_name, std::string_view schema_name,
     std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const {
     char ub_text = 0x7F;
@@ -116,8 +144,8 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
     // Note that this script might not have been added to the catalog yet.
     // That's why we have to check the own script first.
     {
-        auto lb = tables_by_name.lower_bound({database_name, schema_name, "\0"});
-        auto ub = tables_by_name.upper_bound({database_name, schema_name, std::string_view{&ub_text, 1}});
+        auto lb = tables_by_unqualified_schema.lower_bound({schema_name, database_name});
+        auto ub = tables_by_unqualified_schema.upper_bound({schema_name, database_name});
         for (auto iter = lb; iter != ub; ++iter) {
             out.push_back({iter->second, false});
         }
@@ -125,10 +153,10 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
 
     // Then discover all catalog entries that populate that schema
     {
-        auto lb = catalog.entries_by_schema.lower_bound({database_name, schema_name, 0, 0});
-        auto ub = catalog.entries_by_schema.upper_bound({database_name, schema_name,
-                                                         std::numeric_limits<CatalogEntry::Rank>::max(),
-                                                         std::numeric_limits<CatalogEntryID>::max()});
+        auto lb = catalog.entries_by_qualified_schema.lower_bound({database_name, schema_name, 0, 0});
+        auto ub = catalog.entries_by_qualified_schema.upper_bound({database_name, schema_name,
+                                                                   std::numeric_limits<CatalogEntry::Rank>::max(),
+                                                                   std::numeric_limits<CatalogEntryID>::max()});
         for (auto iter = lb; iter != ub; ++iter) {
             // Skip own entry, we checked earlier
             if (iter->second.catalog_entry_id == catalog_entry_id) {
@@ -136,9 +164,8 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
             }
             // Do the same lookup in the other entries
             auto& other_entry = *catalog.entries.at(iter->second.catalog_entry_id);
-            auto table_lb = other_entry.tables_by_name.lower_bound({database_name, schema_name, "\0"});
-            auto table_ub =
-                other_entry.tables_by_name.upper_bound({database_name, schema_name, std::string_view{&ub_text, 1}});
+            auto table_lb = other_entry.tables_by_unqualified_schema.lower_bound({schema_name, database_name});
+            auto table_ub = other_entry.tables_by_unqualified_schema.upper_bound({schema_name, database_name});
             for (auto table_iter = table_lb; table_iter != table_ub; ++table_iter) {
                 out.push_back({table_iter->second, true});
             }
@@ -146,34 +173,53 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
     }
 }
 
-const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTable(ContextObjectID table_id) const {
+const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTableById(ContextObjectID table_id) const {
     if (table_id.GetContext() == catalog_entry_id) {
         return &table_declarations[table_id.GetObject()];
     }
     return nullptr;
 }
 
-const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTableWithCatalog(ContextObjectID table_id) const {
-    if (catalog_entry_id == table_id.GetContext()) {
-        return &table_declarations[table_id.GetObject()];
-    } else {
-        return catalog.ResolveTable(table_id);
+void CatalogEntry::ResolveTable(QualifiedTableName table_name,
+                                std::vector<std::reference_wrapper<const TableDeclaration>>& out, size_t limit) const {
+    // Probe the qualified names map directly
+    auto iter = tables_by_qualified_name.find(table_name);
+    if (iter != tables_by_qualified_name.end()) {
+        out.push_back(iter->second);
+        return;
+    }
+
+    // Are database and/or schema empty?
+    if (table_name.database_name.get() == "") {
+        if (table_name.schema_name.get() == "") {
+            return ResolveTableEverywhere(table_name.table_name.get(), out, limit);
+        } else {
+            return ResolveTableInSchema(table_name.schema_name.get(), table_name.table_name.get(), out, limit);
+        }
     }
 }
 
-const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTable(QualifiedTableName name) const {
-    auto iter = tables_by_name.find(name);
-    if (iter == tables_by_name.end()) {
-        return nullptr;
+void CatalogEntry::ResolveTableInSchema(std::string_view schema_name, std::string_view table_name,
+                                        std::vector<std::reference_wrapper<const TableDeclaration>>& out,
+                                        size_t limit) const {
+    auto lb = tables_by_unqualified_schema.lower_bound({schema_name, TEXT_LB});
+    auto ub = tables_by_unqualified_schema.upper_bound({schema_name, TEXT_UB});
+    for (auto iter = lb; iter != ub; ++iter) {
+        out.push_back(iter->second.get());
+        if (out.size() >= limit) {
+            return;
+        }
     }
-    return &iter->second.get();
 }
 
-const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTableWithCatalog(QualifiedTableName name) const {
-    if (auto resolved = ResolveTable(name)) {
-        return resolved;
-    } else {
-        return catalog.ResolveTable(name, catalog_entry_id);
+void CatalogEntry::ResolveTableEverywhere(std::string_view table_name,
+                                          std::vector<std::reference_wrapper<const TableDeclaration>>& out,
+                                          size_t limit) const {
+    for (auto iter = tables_by_unqualified_name.find(table_name); iter != tables_by_unqualified_name.end(); ++iter) {
+        out.push_back(iter->second.get());
+        if (out.size() >= limit) {
+            return;
+        }
     }
 }
 
@@ -334,13 +380,13 @@ buffers::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant des
         }
 
         // Allocate the descriptors schema id
-        auto schema_ref_iter = schemas_by_name.find({db_name, schema_name});
-        if (schema_ref_iter == schemas_by_name.end()) {
+        auto schema_ref_iter = schemas_by_qualified_name.find({db_name, schema_name});
+        if (schema_ref_iter == schemas_by_qualified_name.end()) {
             schema_id = catalog.AllocateSchemaId(db_name.text, schema_name.text);
-            if (!schemas_by_name.contains({db_name, schema_name})) {
+            if (!schemas_by_qualified_name.contains({db_name, schema_name})) {
                 auto& schema =
                     schema_references.Append(CatalogEntry::SchemaReference{db_id, schema_id, db_name, schema_name});
-                schemas_by_name.insert({{db_name, schema_name}, schema});
+                schemas_by_qualified_name.insert({{db_name, schema_name}, schema});
                 schema_name.resolved_objects.PushBack(schema.CastToBase());
             }
         } else {
@@ -368,7 +414,7 @@ buffers::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant des
             }
             // Build the qualified table name
             QualifiedTableName::Key qualified_table_name{db_name.text, schema_name.text, table_name.text};
-            if (tables_by_name.contains(qualified_table_name)) {
+            if (tables_by_qualified_name.contains(qualified_table_name)) {
                 return buffers::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_COLLISION;
             }
             // Collect the table columns (if any)
@@ -422,7 +468,10 @@ buffers::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant des
     // Build table index
     for (auto& table_chunk : table_declarations.GetChunks()) {
         for (auto& table : table_chunk) {
-            tables_by_name.insert({table.table_name, table});
+            tables_by_qualified_name.insert({table.table_name, table});
+            tables_by_unqualified_name.insert({table.table_name.table_name.get().text, table});
+            tables_by_unqualified_schema.insert(
+                {{table.table_name.schema_name.get().text, table.table_name.database_name.get().text}, table});
             for (size_t i = 0; i < table.table_columns.size(); ++i) {
                 table_columns_by_name.insert({table.table_columns[i].column_name.get().text, table.table_columns[i]});
             }
@@ -440,11 +489,10 @@ void CatalogEntry::ResolveTableColumnsWithCatalog(std::string_view table_column,
     ResolveTableColumns(table_column, tmp);
 }
 
-Catalog::Catalog(std::string_view default_db, std::string_view default_schema)
-    : default_database_name(default_db.empty() ? DEFAULT_DATABASE_NAME : default_db),
-      default_schema_name(default_schema.empty() ? DEFAULT_SCHEMA_NAME : default_schema) {}
+Catalog::Catalog() {}
 
 void Catalog::Clear() {
+    entries_by_qualified_schema.clear();
     entries_by_schema.clear();
     entries_ranked.clear();
     entries.clear();
@@ -568,7 +616,7 @@ flatbuffers::Offset<buffers::FlatCatalog> Catalog::Flatten(flatbuffers::FlatBuff
         }
 
         /// Register all schemas
-        for (auto& [schema_key, schema_ref_raw] : catalog_entry->schemas_by_name) {
+        for (auto& [schema_key, schema_ref_raw] : catalog_entry->schemas_by_qualified_name) {
             auto& schema_ref = schema_ref_raw.get();
             if (auto iter = schema_node_map.find(schema_ref.catalog_schema_id); iter == schema_node_map.end()) {
                 auto schema_name = schema_ref.schema_name;
@@ -816,16 +864,19 @@ buffers::StatusCode Catalog::LoadScript(Script& script, CatalogEntry::Rank rank)
 
     // Collect all schema names
     CatalogEntry& entry = *script.analyzed_script;
-    for (auto& [schema_key, schema_ref] : entry.schemas_by_name) {
-        auto& [db_name, schema_name] = schema_key;
-        std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> entry_key{
+    for (auto& [schema_qualified, schema_ref] : entry.schemas_by_qualified_name) {
+        auto& [db_name, schema_name] = schema_qualified;
+        std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> qualified_schema_key{
             db_name, schema_name, rank, entry.GetCatalogEntryId()};
+        std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_key{schema_name, rank,
+                                                                                    entry.GetCatalogEntryId()};
         CatalogSchemaEntryInfo entry_info{
             .catalog_entry_id = entry.GetCatalogEntryId(),
             .catalog_database_id = schema_ref.get().catalog_database_id,
             .catalog_schema_id = schema_ref.get().catalog_schema_id,
         };
-        entries_by_schema.insert({entry_key, entry_info});
+        entries_by_qualified_schema.insert({qualified_schema_key, entry_info});
+        entries_by_schema.insert({schema_key, entry_info});
     }
     // Register as script entry
     script_entries.insert({&script, {.script = script, .analyzed = script.analyzed_script, .rank = rank}});
@@ -890,13 +941,13 @@ buffers::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
     };
     // Collect all new schema names
     std::unordered_map<std::pair<std::string_view, std::string_view>, NewSchemaEntry, TupleHasher> new_schemas;
-    new_schemas.reserve(script.analyzed_script->schemas_by_name.size());
-    for (auto& [key, ref] : script.analyzed_script->schemas_by_name) {
+    new_schemas.reserve(script.analyzed_script->schemas_by_qualified_name.size());
+    for (auto& [key, ref] : script.analyzed_script->schemas_by_qualified_name) {
         NewSchemaEntry new_entry{.schema_ref = ref, .already_exists = false};
         new_schemas.insert({key, new_entry});
     }
     // Scan previous schema names, mark new names that already exist, erase those that no longer exist
-    auto& prev_schemas = entry.analyzed->schemas_by_name;
+    auto& prev_schemas = entry.analyzed->schemas_by_qualified_name;
     for (auto iter = prev_schemas.begin(); iter != prev_schemas.end(); ++iter) {
         auto& [db_name, schema_name] = iter->first;
         // Check if the previous schema name is in the new schema entries.
@@ -906,10 +957,11 @@ buffers::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
         } else {
             // Previous schema no longer exists in new schema.
             // Drop the entry reference from the catalog for this schema.
-            entries_by_schema.erase({db_name, schema_name, rank, external_id});
+            entries_by_qualified_schema.erase({db_name, schema_name, rank, external_id});
+            entries_by_schema.erase({schema_name, rank, external_id});
             // Check if there's any remaining catalog entry with that schema name
-            auto rem_iter = entries_by_schema.lower_bound({db_name, schema_name, 0, 0});
-            if (rem_iter == entries_by_schema.end() || std::get<0>(rem_iter->first) != db_name ||
+            auto rem_iter = entries_by_qualified_schema.lower_bound({db_name, schema_name, 0, 0});
+            if (rem_iter == entries_by_qualified_schema.end() || std::get<0>(rem_iter->first) != db_name ||
                 std::get<1>(rem_iter->first) != schema_name) {
                 // If not, remove the schema declaration from the catalog completely
                 schemas.erase({db_name, schema_name});
@@ -926,9 +978,11 @@ buffers::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
                 .catalog_database_id = new_entry.schema_ref.catalog_database_id,
                 .catalog_schema_id = new_entry.schema_ref.catalog_schema_id,
             };
-            std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> entry_key{
+            std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> qualified_schema_key{
                 db_name, schema_name, rank, external_id};
-            entries_by_schema.insert({entry_key, entry});
+            std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_key{schema_name, rank, external_id};
+            entries_by_qualified_schema.insert({qualified_schema_key, entry});
+            entries_by_schema.insert({schema_key, entry});
 
             // Add schema declaration
             if (!schemas.contains({db_name, schema_name})) {
@@ -952,8 +1006,8 @@ buffers::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
         auto new_name_iter = new_dbs.find(db_name);
         if (new_name_iter == new_dbs.end()) {
             // Check if there are other entries with that database name
-            auto other_iter = entries_by_schema.lower_bound({db_name, "", 0, 0});
-            if (other_iter == entries_by_schema.end() || std::get<0>(other_iter->first) != db_name) {
+            auto other_iter = entries_by_qualified_schema.lower_bound({db_name, "", 0, 0});
+            if (other_iter == entries_by_qualified_schema.end() || std::get<0>(other_iter->first) != db_name) {
                 databases.erase(db_name);
             }
         }
@@ -973,9 +1027,10 @@ void Catalog::DropScript(Script& script) {
         auto external_id = script.GetCatalogEntryId();
         if (iter->second.analyzed) {
             auto& analyzed = iter->second.analyzed;
-            for (auto& [schema_key, entry_info] : analyzed->schemas_by_name) {
+            for (auto& [schema_key, entry_info] : analyzed->schemas_by_qualified_name) {
                 auto& [db_name, schema_name] = schema_key;
-                entries_by_schema.erase({db_name, schema_name, iter->second.rank, external_id});
+                entries_by_qualified_schema.erase({db_name, schema_name, iter->second.rank, external_id});
+                entries_by_schema.erase({schema_name, iter->second.rank, external_id});
             }
         }
         entries_ranked.erase({iter->second.rank, external_id});
@@ -1004,7 +1059,8 @@ buffers::StatusCode Catalog::DropDescriptorPool(CatalogEntryID external_id) {
         auto rank = iter->second->GetRank();
         entries_ranked.erase({rank, external_id});
         pool.GetSchemas().ForEach([&](auto i, const CatalogEntry::SchemaReference& schema_ref) {
-            entries_by_schema.erase({schema_ref.database_name, schema_ref.schema_name, rank, external_id});
+            entries_by_qualified_schema.erase({schema_ref.database_name, schema_ref.schema_name, rank, external_id});
+            entries_by_schema.erase({schema_ref.schema_name, rank, external_id});
         });
         entries.erase(external_id);
         descriptor_pool_entries.erase(iter);
@@ -1036,14 +1092,17 @@ buffers::StatusCode Catalog::AddSchemaDescriptor(CatalogEntryID external_id, std
         std::string_view schema_name = schema.schema_name() == nullptr ? "" : schema.schema_name()->string_view();
 
         // Add the entry
-        std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> entry_key{
+        std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> database_schema_key{
             db_name, schema_name, pool.GetRank(), external_id};
+        std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_database_key{
+            schema_name, pool.GetRank(), external_id};
         CatalogSchemaEntryInfo entry{
             .catalog_entry_id = external_id,
             .catalog_database_id = db_id,
             .catalog_schema_id = schema_id,
         };
-        entries_by_schema.insert({entry_key, entry});
+        entries_by_qualified_schema.insert({database_schema_key, entry});
+        entries_by_schema.insert({schema_database_key, entry});
     }
     ++version;
     return buffers::StatusCode::OK;
@@ -1077,14 +1136,17 @@ buffers::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID external_id,
             std::string_view schema_name = schema.schema_name() == nullptr ? "" : schema.schema_name()->string_view();
 
             // Add the entry
-            std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> entry_key{
+            std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> database_schema_key{
                 db_name, schema_name, pool.GetRank(), external_id};
+            std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_key{schema_name, pool.GetRank(),
+                                                                                        external_id};
             CatalogSchemaEntryInfo entry{
                 .catalog_entry_id = external_id,
                 .catalog_database_id = db_id,
                 .catalog_schema_id = schema_id,
             };
-            entries_by_schema.insert({entry_key, entry});
+            entries_by_qualified_schema.insert({database_schema_key, entry});
+            entries_by_schema.insert({schema_key, entry});
         }
     }
     ++version;
@@ -1093,52 +1155,88 @@ buffers::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID external_id,
 
 const CatalogEntry::TableDeclaration* Catalog::ResolveTable(ContextObjectID table_id) const {
     if (auto iter = entries.find(table_id.GetContext()); iter != entries.end()) {
-        return iter->second->ResolveTable(table_id);
+        return iter->second->ResolveTableById(table_id);
     } else {
         return nullptr;
     }
 }
-const CatalogEntry::TableDeclaration* Catalog::ResolveTable(CatalogEntry::QualifiedTableName table_name,
-                                                            CatalogEntryID ignore_entry) const {
-    for (auto iter = entries_by_schema.lower_bound(
-             {table_name.database_name.get().text, table_name.schema_name.get().text, 0, 0});
-         iter != entries_by_schema.end(); ++iter) {
+void Catalog::ResolveTable(CatalogEntry::QualifiedTableName name, CatalogEntryID ignore_entry,
+                           std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>>& out,
+                           size_t limit) const {
+    // Always check if there are schema entries that contains the fully qualified name.
+    // "Fully qualified" just means that we're doing direct lookups here and not a path suffix search.
+    // If someone registered a name as `"".""."foo"` and then searches for "foo", there will be a direct hit here.
+    for (auto iter = entries_by_qualified_schema.lower_bound({name.database_name.get(), name.schema_name.get(), 0, 0}),
+              end = entries_by_qualified_schema.upper_bound({name.database_name.get(), name.schema_name.get(),
+                                                             std::numeric_limits<CatalogEntry::Rank>::max(),
+                                                             std::numeric_limits<CatalogEntryID>::max()});
+         iter != end; ++iter) {
         auto& [db_name, schema_name, rank, candidate] = iter->first;
-        if (db_name != table_name.database_name.get().text || schema_name != table_name.schema_name.get().text) {
-            break;
-        }
         if (candidate == ignore_entry) {
             continue;
         }
         assert(entries.contains(candidate));
-        auto& schema = entries.at(candidate);
-        if (auto resolved = schema->ResolveTable(table_name)) {
-            return resolved;
+        auto& entry = entries.at(candidate);
+        auto tbl = entry->tables_by_qualified_name.find(name);
+        if (tbl != entry->tables_by_qualified_name.end()) {
+            out.push_back(tbl->second.get());
+            if (out.size() >= limit) {
+                break;
+            }
         }
     };
-    return nullptr;
-}
 
-/// Resolve all schema tables
-void Catalog::ResolveSchemaTables(
-    std::string_view database_name, std::string_view schema_name,
-    std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>>& out) const {
-    auto entries_lb = entries_by_schema.lower_bound({database_name, schema_name, 0, 0});
-    auto entries_ub =
-        entries_by_schema.upper_bound({database_name, schema_name, std::numeric_limits<CatalogEntry::Rank>::max(),
-                                       std::numeric_limits<CatalogEntryID>::max()});
-    for (auto entry_iter = entries_lb; entry_iter != entries_ub; ++entry_iter) {
-        CatalogEntryID entry_id = entry_iter->second.catalog_entry_id;
-        CatalogEntry* entry = entries.at(entry_id);
+    // If we have a direct hit we always return early.
+    // There's an interesting special case if the catalog contains `"".""."foo"`.
+    // Do we want to report ambiguity if there's:
+    //  - "".""."foo"
+    //  - ""."bar"."foo"
+    //
+    // We could, but we can also say that registering global names in the catalog overrules everything.
+    // For now, we'll go with overrulling.
+    if (out.size() > 0) {
+        return;
+    }
 
-        auto& tables_by_name = entry->GetTablesByName();
-        char tables_ub_text = 0x7F;
-        auto tables_lb = tables_by_name.lower_bound({database_name, schema_name, "\0"});
-        auto tables_ub = tables_by_name.upper_bound({database_name, schema_name, std::string_view{&tables_ub_text, 1}});
+    // Database is empty?
+    // Then we search cross-database
+    if (name.database_name.get() == "") {
+        // Schema name is not empty?
+        // Filter catalog entries by schema name then
+        if (name.schema_name.get() != "") {
+            // Table + schema name?
+            // Find all catalog entries that contain a schema name independent of the database name.
+            // The output will be sorted by rank.
+            for (auto iter = entries_by_schema.lower_bound({name.schema_name.get().text, 0, 0}),
+                      end = entries_by_schema.upper_bound({name.schema_name.get().text,
+                                                           std::numeric_limits<CatalogEntry::Rank>::max(),
+                                                           std::numeric_limits<CatalogEntryID>::max()});
+                 iter != end; ++iter) {
+                auto& [schema_name, rank, candidate] = iter->first;
+                if (candidate == ignore_entry) {
+                    continue;
+                }
+                assert(entries.contains(candidate));
+                auto& schema = entries.at(candidate);
 
-        for (auto table_iter = tables_lb; table_iter != tables_ub; ++table_iter) {
-            auto& table_decl = table_iter->second.get();
-            out.push_back(table_decl);
+                // Resolve all tables cross-database
+                schema->ResolveTableInSchema(schema_name, name.table_name.get(), out, limit);
+                if (out.size() >= limit) {
+                    break;
+                }
+            };
+            return;
+        } else {
+            // Schema name is empty, we only have the table name.
+            // This is the most fuzzy resolution.
+            // We go through all the entries ordered by rank and collect all matches until we hit the limit.
+            for (auto& [rank, external_id] : entries_ranked) {
+                auto& entry = *entries.at(external_id);
+                entry.ResolveTableEverywhere(name.table_name.get(), out, limit);
+                if (out.size() >= limit) {
+                    break;
+                }
+            }
         }
     }
 }

@@ -8,10 +8,10 @@
 #include <string_view>
 #include <variant>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/text/rope.h"
 #include "dashql/utils/intrusive_list.h"
 #include "dashql/utils/string_pool.h"
@@ -179,10 +179,7 @@ class AnalyzedScript : public CatalogEntry {
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
         };
-        /// A resolved column reference
-        struct ResolvedRelationExpression {
-            /// The AST node id of the name path
-            uint32_t table_name_ast_node_id;
+        struct ResolvedTableEntry {
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
             /// The resolved database id in the catalog
@@ -191,6 +188,15 @@ class AnalyzedScript : public CatalogEntry {
             CatalogSchemaID catalog_schema_id = 0;
             /// The resolved table id in the catalog
             ContextObjectID catalog_table_id;
+        };
+        /// A resolved column reference
+        struct ResolvedRelationExpression {
+            /// The AST node id of the name path
+            uint32_t table_name_ast_node_id;
+            /// The best match
+            ResolvedTableEntry selected;
+            /// The ambiguous matches (if any)
+            std::vector<ResolvedTableEntry> alternatives;
         };
 
         /// The table reference id
@@ -302,11 +308,6 @@ class AnalyzedScript : public CatalogEntry {
             referenced_tables_by_name;
     };
 
-    /// The default database name
-    const RegisteredName default_database_name;
-    /// The default schema name
-    const RegisteredName default_schema_name;
-
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
     /// The catalog version
@@ -379,7 +380,8 @@ struct ScriptCursor {
     flatbuffers::Offset<buffers::ScriptCursor> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Create a script cursor
-    static std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> Place(const Script& script, size_t text_offset);
+    static std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> Place(const Script& script,
+                                                                               size_t text_offset);
 };
 
 class Script {
