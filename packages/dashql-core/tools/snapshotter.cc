@@ -4,16 +4,16 @@
 #include <string_view>
 #include <vector>
 
-#include "gflags/gflags.h"
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
+#include "gflags/gflags.h"
 
 using namespace dashql;
 using namespace dashql::testing;
@@ -77,13 +77,6 @@ static void generate_parser_snapshots(const std::filesystem::path& source_dir) {
 
 static std::unique_ptr<Script> read_script(pugi::xml_node node, size_t entry_id, Catalog& catalog) {
     auto input = node.child("input").last_child().value();
-    std::string database_name, schema_name;
-    if (auto db = node.attribute("database")) {
-        database_name = db.value();
-    }
-    if (auto schema = node.attribute("schema")) {
-        schema_name = schema.value();
-    }
     auto script = std::make_unique<Script>(catalog, entry_id);
     script->InsertTextAt(0, input);
     auto scanned = script->Scan();
@@ -106,15 +99,7 @@ static std::unique_ptr<Script> read_script(pugi::xml_node node, size_t entry_id,
 
 static std::unique_ptr<Catalog> read_catalog(pugi::xml_node catalog_node,
                                              std::vector<std::unique_ptr<Script>>& catalog_scripts, size_t& entry_id) {
-    std::string database_name, schema_name;
-    if (auto db = catalog_node.attribute("database")) {
-        database_name = db.value();
-    }
-    if (auto schema = catalog_node.attribute("schema")) {
-        schema_name = schema.value();
-    }
-
-    auto catalog = std::make_unique<Catalog>(std::move(database_name), std::move(schema_name));
+    auto catalog = std::make_unique<Catalog>();
     for (auto entry_node : catalog_node.children()) {
         std::string entry_name = entry_node.name();
 

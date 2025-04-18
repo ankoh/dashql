@@ -11,13 +11,14 @@
 #include <tuple>
 #include <variant>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/external.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/btree/map.h"
 #include "dashql/utils/btree/set.h"
 #include "dashql/utils/chunk_buffer.h"
+#include "dashql/utils/hash.h"
 #include "dashql/utils/string_conversion.h"
 
 namespace dashql {
@@ -31,6 +32,8 @@ using CatalogSchemaID = uint32_t;
 constexpr uint32_t PROTO_NULL_U32 = std::numeric_limits<uint32_t>::max();
 constexpr CatalogDatabaseID INITIAL_DATABASE_ID = 1 << 8;
 constexpr CatalogSchemaID INITIAL_SCHEMA_ID = 1 << 16;
+constexpr std::string_view ANY_DATABASE = "\0";
+constexpr std::string_view ANY_SCHEMA = "\0";
 
 /// A schema stores database metadata.
 /// It is used as a virtual container to expose table and column information to the analyzer.
@@ -49,6 +52,7 @@ class CatalogEntry {
     /// A qualified table name
     struct QualifiedTableName {
         using Key = std::tuple<std::string_view, std::string_view, std::string_view>;
+
         /// The AST node id in the target script
         std::optional<uint32_t> ast_node_id;
         /// The database name, may refer to different context
@@ -75,7 +79,7 @@ class CatalogEntry {
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::QualifiedTableName> Pack(flatbuffers::FlatBufferBuilder& builder) const;
         /// Construct a key
-        operator Key() { return {database_name.get().text, schema_name.get().text, table_name.get().text}; }
+        operator Key() { return {database_name.get(), schema_name.get(), table_name.get()}; }
     };
     /// A qualified column name
     struct QualifiedColumnName {
@@ -207,14 +211,43 @@ class CatalogEntry {
     ChunkBuffer<TableDeclaration, 16> table_declarations;
     /// The databases, indexed by name
     std::unordered_map<std::string_view, std::reference_wrapper<const DatabaseReference>> databases_by_name;
-    /// The schema, indexed by name
+    /// The schemas indexed by qualified name.
+    /// Key: (database, schema)
+    ///
+    /// We use this btree to find all schemas that belong to a database.
     btree::map<std::pair<std::string_view, std::string_view>, std::reference_wrapper<const SchemaReference>>
-        schemas_by_name;
-    /// The tables, indexed by name
-    btree::map<QualifiedTableName::Key, std::reference_wrapper<const TableDeclaration>> tables_by_name;
-    /// The table columns, indexed by the name
+        schemas_by_qualified_name;
+    /// The tables indexed by qualified name.
+    /// Key: (database, schema, table)
+    ///
+    /// During catalog loading, we need to quickly find out if we know a qualified table name already.
+    /// This hashmap allows us to probe existing tables and check if there's a name collision.
+    std::unordered_map<QualifiedTableName::Key, std::reference_wrapper<const TableDeclaration>, TupleHasher>
+        tables_by_qualified_name;
+    /// The tables by name.
+    /// Key: (table)
+    ///
+    /// We use this multimap to quickly find all table declarations if the table name is not qualified.
+    /// Note that this name may easily be amgiguous then cross schemas.
+    /// We pick an arbitrary match and emit an ambiguity warning
+    std::unordered_multimap<std::string_view, std::reference_wrapper<const TableDeclaration>>
+        tables_by_unqualified_name;
+    /// The tables indexed by schema name.
+    /// Key: (schema, database)
+    ///
+    /// This index is used during dot completion.
+    /// The user either gives us `<db>.<schema>.` or just `<schema>.` and we want to quickly find all matching tables.
+    /// This can be done through a prefix search in this btree.
+    btree::multimap<std::pair<std::string_view, std::string_view>, std::reference_wrapper<const TableDeclaration>>
+        tables_by_unqualified_schema;
+    /// The table columns indexed by the name.
+    /// Key: (column)
+    ///
+    /// During SQL completion, we also want to find out what tables a column *might* come from.
+    /// This is a more costly completion since a columns names might occur in many tables which are not yet in scope.
     std::unordered_multimap<std::string_view, std::reference_wrapper<const TableColumn>> table_columns_by_name;
-    /// The name search index
+    /// The name search index.
+    /// This name search index stores suffixes of all registered names.
     std::optional<CatalogEntry::NameSearchIndex> name_search_index;
 
    public:
@@ -230,16 +263,13 @@ class CatalogEntry {
     /// Get the schema declarations
     auto& GetSchemas() const { return schema_references; }
     /// Get the schema declarations by name
-    auto& GetSchemasByName() const { return schemas_by_name; }
+    auto& GetSchemasByName() const { return schemas_by_qualified_name; }
     /// Get the table declarations
     auto& GetTables() const { return table_declarations; }
     /// Get the table declarations by name
-    auto& GetTablesByName() const { return tables_by_name; }
+    auto& GetTablesByName() const { return tables_by_qualified_name; }
     /// Get the table columns by name
     auto& GetTableColumnsByName() const { return table_columns_by_name; }
-
-    /// Get the qualified name
-    QualifiedTableName QualifyTableName(NameRegistry& name_registry, QualifiedTableName name) const;
 
     /// Describe the catalog entry
     virtual flatbuffers::Offset<buffers::CatalogEntry> DescribeEntry(flatbuffers::FlatBufferBuilder& builder) const = 0;
@@ -252,16 +282,23 @@ class CatalogEntry {
         std::vector<std::pair<std::reference_wrapper<const SchemaReference>, bool>>& out) const;
     /// Find table columns by name
     void ResolveSchemaTablesWithCatalog(
+        std::string_view schema_name,
+        std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const;
+    /// Find table columns by name
+    void ResolveSchemaTablesWithCatalog(
         std::string_view database_name, std::string_view schema_name,
         std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const;
     /// Resolve a table by id
-    const TableDeclaration* ResolveTable(ContextObjectID table_id) const;
-    /// Resolve a table by id
-    const TableDeclaration* ResolveTableWithCatalog(ContextObjectID table_id) const;
-    /// Resolve a table by name
-    const TableDeclaration* ResolveTable(QualifiedTableName table_name) const;
-    /// Resolve a table by name
-    const TableDeclaration* ResolveTableWithCatalog(QualifiedTableName table_name) const;
+    const TableDeclaration* ResolveTableById(ContextObjectID table_id) const;
+    /// Resolve a table by qualified name <database, schema, table>
+    void ResolveTable(QualifiedTableName table_name, std::vector<std::reference_wrapper<const TableDeclaration>>& out,
+                      size_t limit) const;
+    /// Resolve a table by ambiguous name with schema <schema, table>
+    void ResolveTableInSchema(std::string_view schema_name, std::string_view table_name,
+                              std::vector<std::reference_wrapper<const TableDeclaration>>& out, size_t limit) const;
+    /// Resolve a table by ambiguous name with only the table name <table>
+    void ResolveTableEverywhere(std::string_view table_name,
+                                std::vector<std::reference_wrapper<const TableDeclaration>>& out, size_t limit) const;
     /// Find table columns by name
     void ResolveTableColumns(std::string_view table_column, std::vector<TableColumn>& out) const;
     /// Find table columns by name
@@ -308,9 +345,9 @@ class DescriptorPool : public CatalogEntry {
 
     /// Add a schema descriptor
     buffers::StatusCode AddSchemaDescriptor(DescriptorRefVariant descriptor,
-                                          std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                          size_t descriptor_buffer_size, CatalogDatabaseID& db_id,
-                                          CatalogSchemaID& schema_id);
+                                            std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                            size_t descriptor_buffer_size, CatalogDatabaseID& db_id,
+                                            CatalogSchemaID& schema_id);
 };
 
 class Catalog {
@@ -318,11 +355,6 @@ class Catalog {
 
    public:
     using Version = uint64_t;
-
-    /// The default database name
-    constexpr static std::string_view DEFAULT_DATABASE_NAME = "dashql";
-    /// The default schema name
-    constexpr static std::string_view DEFAULT_SCHEMA_NAME = "public";
 
    protected:
     /// A catalog entry backed by an analyzed script
@@ -386,10 +418,6 @@ class Catalog {
     /// The catalog version.
     /// Every modification bumps the version counter, the analyzer reads the version counter which protects all refs.
     Version version = 1;
-    /// The default database name
-    const std::string default_database_name;
-    /// The default schema name
-    const std::string default_schema_name;
 
     /// The catalog entries
     std::unordered_map<CatalogEntryID, CatalogEntry*> entries;
@@ -399,9 +427,13 @@ class Catalog {
     std::unordered_map<CatalogEntryID, std::unique_ptr<DescriptorPool>> descriptor_pool_entries;
     /// The entries ordered by <rank>
     btree::set<std::tuple<CatalogEntry::Rank, CatalogEntryID>> entries_ranked;
-    /// The entries ordered by <database, schema, rank>
+    /// The entries ordered by <database, schema, rank, entry>
     btree::map<std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID>,
                CatalogSchemaEntryInfo>
+        entries_by_qualified_schema;
+    /// The entries ordered by <schema, rank, entry>.
+    /// We need this index during dot completion if the user provided us only with `<schema>.<table>`.
+    btree::map<std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID>, CatalogSchemaEntryInfo>
         entries_by_schema;
 
     /// The next database id
@@ -421,8 +453,7 @@ class Catalog {
 
    public:
     /// Explicit constructor needed due to deleted copy constructor
-    Catalog(std::string_view default_database_name = DEFAULT_DATABASE_NAME,
-            std::string_view default_schema_name = DEFAULT_SCHEMA_NAME);
+    Catalog();
     /// Catalogs must not be copied
     Catalog(const Catalog& other) = delete;
     /// Catalogs must not be copy-assigned
@@ -430,10 +461,6 @@ class Catalog {
 
     /// Get the current version of the registry
     uint64_t GetVersion() const { return version; }
-    /// Get the default database name
-    std::string_view GetDefaultDatabaseName() const { return default_database_name; }
-    /// Get the default schema name
-    std::string_view GetDefaultSchemaName() const { return default_schema_name; }
     /// Get the databases
     auto& GetDatabases() const { return databases; }
     /// Get the schemas ordered by <database, schema>
@@ -479,7 +506,7 @@ class Catalog {
     flatbuffers::Offset<buffers::CatalogEntries> DescribeEntries(flatbuffers::FlatBufferBuilder& builder) const;
     /// Describe catalog entries
     flatbuffers::Offset<buffers::CatalogEntries> DescribeEntriesOf(flatbuffers::FlatBufferBuilder& builder,
-                                                                 size_t external_id) const;
+                                                                   size_t external_id) const;
     /// Flatten the catalog
     flatbuffers::Offset<buffers::FlatCatalog> Flatten(flatbuffers::FlatBufferBuilder& builder) const;
 
@@ -493,21 +520,19 @@ class Catalog {
     buffers::StatusCode DropDescriptorPool(CatalogEntryID external_id);
     /// Add a schema descriptor as serialized FlatBuffer
     buffers::StatusCode AddSchemaDescriptor(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                                          std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                          size_t descriptor_buffer_size);
+                                            std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                            size_t descriptor_buffer_size);
     /// Add a schema descriptor>s< as serialized FlatBuffer
     buffers::StatusCode AddSchemaDescriptors(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                                           std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                           size_t descriptor_buffer_size);
+                                             std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                             size_t descriptor_buffer_size);
 
     /// Resolve a table by id
     const CatalogEntry::TableDeclaration* ResolveTable(ContextObjectID table_id) const;
     /// Resolve a table by id
-    const CatalogEntry::TableDeclaration* ResolveTable(CatalogEntry::QualifiedTableName table_name,
-                                                       CatalogEntryID ignore_entry) const;
-    /// Resolve all schema tables
-    void ResolveSchemaTables(std::string_view database_name, std::string_view schema_name,
-                             std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>>& out) const;
+    void ResolveTable(CatalogEntry::QualifiedTableName table_name, CatalogEntryID ignore_entry,
+                      std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>>& out,
+                      size_t limit) const;
     /// Get statisics
     std::unique_ptr<buffers::CatalogStatisticsT> GetStatistics();
 };

@@ -1,6 +1,6 @@
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/external.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "gtest/gtest.h"
 
@@ -44,11 +44,9 @@ TEST(UnificationTest, SingleTableInDefaultSchema) {
     ASSERT_EQ(flat->tables()->Get(0)->catalog_object_id(), ContextObjectID(42, 0).Pack());
 
     // Check names
-    EXPECT_EQ(flat->name_dictionary()->size(), 4);
-    EXPECT_EQ(flat->name_dictionary()->Get(flat->databases()->Get(0)->name_id())->string_view(),
-              Catalog::DEFAULT_DATABASE_NAME);
-    EXPECT_EQ(flat->name_dictionary()->Get(flat->schemas()->Get(0)->name_id())->string_view(),
-              Catalog::DEFAULT_SCHEMA_NAME);
+    EXPECT_EQ(flat->name_dictionary()->size(), 3);
+    EXPECT_EQ(flat->name_dictionary()->Get(flat->databases()->Get(0)->name_id())->string_view(), "");
+    EXPECT_EQ(flat->name_dictionary()->Get(flat->schemas()->Get(0)->name_id())->string_view(), "");
     EXPECT_EQ(flat->name_dictionary()->Get(flat->tables()->Get(0)->name_id())->string_view(), "foo");
     EXPECT_EQ(flat->name_dictionary()->Get(flat->columns()->Get(0)->name_id())->string_view(), "a");
 }
@@ -188,9 +186,9 @@ TEST(UnificationTest, SimpleTableReference) {
         analyzed->table_references[0].inner));
     auto& resolved =
         std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(analyzed->table_references[0].inner);
-    ASSERT_EQ(resolved.catalog_database_id, flat->databases()->Get(1)->catalog_object_id());
-    ASSERT_EQ(resolved.catalog_schema_id, flat->schemas()->Get(1)->catalog_object_id());
-    ASSERT_EQ(resolved.catalog_table_id.Pack(), flat->tables()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.selected.catalog_database_id, flat->databases()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.selected.catalog_schema_id, flat->schemas()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.selected.catalog_table_id.Pack(), flat->tables()->Get(1)->catalog_object_id());
 }
 
 TEST(UnificationTest, ParallelDatabaseRegistration) {

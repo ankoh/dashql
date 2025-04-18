@@ -324,12 +324,12 @@ flatbuffers::Offset<buffers::TableReference> AnalyzedScript::TableReference::Pac
         }
         case 2: {
             auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(inner);
-            auto table_name_ofs = resolved.table_name.Pack(builder);
+            auto table_name_ofs = resolved.selected.table_name.Pack(builder);
             buffers::ResolvedRelationExpressionBuilder out{builder};
             out.add_table_name(table_name_ofs);
-            out.add_catalog_database_id(resolved.catalog_database_id);
-            out.add_catalog_schema_id(resolved.catalog_schema_id);
-            out.add_catalog_table_id(resolved.catalog_table_id.Pack());
+            out.add_catalog_database_id(resolved.selected.catalog_database_id);
+            out.add_catalog_schema_id(resolved.selected.catalog_schema_id);
+            out.add_catalog_table_id(resolved.selected.catalog_table_id.Pack());
             inner_ofs = out.Finish().Union();
             inner_type = buffers::TableReferenceSubType::ResolvedRelationExpression;
             break;
@@ -404,8 +404,6 @@ flatbuffers::Offset<buffers::Expression> AnalyzedScript::Expression::Pack(
 /// Constructor
 AnalyzedScript::AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
     : CatalogEntry(catalog, parsed->external_id),
-      default_database_name(parsed->scanned_script->name_registry.Register(catalog.GetDefaultDatabaseName())),
-      default_schema_name(parsed->scanned_script->name_registry.Register(catalog.GetDefaultSchemaName())),
       parsed_script(std::move(parsed)),
       catalog_version(catalog.GetVersion()) {}
 
@@ -522,10 +520,11 @@ flatbuffers::Offset<buffers::AnalyzedScript> AnalyzedScript::Pack(flatbuffers::F
         table_refs_by_id.reserve(table_references.GetSize());
         table_references.ForEach([&](size_t ref_id, TableReference& ref) {
             if (auto* resolved = std::get_if<TableReference::ResolvedRelationExpression>(&ref.inner)) {
-                assert(resolved->catalog_database_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved->catalog_schema_id != std::numeric_limits<uint32_t>::max());
-                table_refs_by_id.emplace_back(resolved->catalog_database_id, resolved->catalog_schema_id,
-                                              resolved->catalog_table_id.Pack(), ref_id);
+                assert(resolved->selected.catalog_database_id != std::numeric_limits<uint32_t>::max());
+                assert(resolved->selected.catalog_schema_id != std::numeric_limits<uint32_t>::max());
+                table_refs_by_id.emplace_back(resolved->selected.catalog_database_id,
+                                              resolved->selected.catalog_schema_id,
+                                              resolved->selected.catalog_table_id.Pack(), ref_id);
             }
         });
         std::sort(table_refs_by_id.begin(), table_refs_by_id.end(),

@@ -291,18 +291,11 @@ extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
 /// Create a catalog
 extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr, size_t database_name_length,
                                          const char* schema_name_ptr, size_t schema_name_length) {
-    // Read database and schema names
-    std::string database_name, schema_name;
-    if (database_name_ptr != nullptr) {
-        database_name = {database_name_ptr, database_name_length};
-    }
-    if (schema_name_ptr != nullptr) {
-        schema_name = {schema_name_ptr, schema_name_length};
-    }
     // Free argument buffers
+    // XXX Get rid of the arguments
     dashql_free(database_name_ptr);
     dashql_free(schema_name_ptr);
-    return packPtr(std::make_unique<dashql::Catalog>(database_name, schema_name));
+    return packPtr(std::make_unique<dashql::Catalog>());
 }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }

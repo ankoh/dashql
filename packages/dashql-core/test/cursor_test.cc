@@ -1,7 +1,7 @@
-#include "gtest/gtest.h"
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -91,7 +91,7 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
             }
             case 2: {
                 auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(table_ref.inner);
-                auto table_name = print_name(script, resolved.table_name);
+                auto table_name = print_name(script, resolved.selected.table_name);
                 ASSERT_EQ(table_name, expected.table_ref_name);
                 break;
             }
@@ -158,7 +158,7 @@ TEST(CursorTest, SimpleNoExternal) {
              .statement_id = 0,
              .ast_attribute_key = buffers::AttributeKey::NONE,
              .ast_node_type = buffers::NodeType::NAME,
-             .table_ref_name = "dashql.public.a",
+             .table_ref_name = "a",
          });
     test(script, 16,
          {
@@ -166,7 +166,7 @@ TEST(CursorTest, SimpleNoExternal) {
              .statement_id = 0,
              .ast_attribute_key = buffers::AttributeKey::SQL_TABLEREF_ALIAS,
              .ast_node_type = buffers::NodeType::NAME,
-             .table_ref_name = "dashql.public.a",
+             .table_ref_name = "a",
          });
     test(script, 23,
          {
@@ -233,7 +233,7 @@ TEST(CursorTest, TableRef) {
              .statement_id = 0,
              .ast_attribute_key = buffers::AttributeKey::NONE,
              .ast_node_type = buffers::NodeType::NAME,
-             .table_ref_name = "dashql.public.n",
+             .table_ref_name = "n",
          });
 }
 

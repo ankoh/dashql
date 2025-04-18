@@ -4,10 +4,10 @@
 
 #include <variant>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/external.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/string_conversion.h"
@@ -334,13 +334,15 @@ void Completion::FindCandidatesForNamePath() {
                 // "a" might be a database name or a schema name
 
                 // Is referring to a schema in the default database?
-                auto& a_text = name_path[0].name.value().get().text;
+                std::string_view a_text = name_path[0].name.value().get();
                 std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>> tables;
-                script.analyzed_script->ResolveSchemaTablesWithCatalog(catalog.GetDefaultDatabaseName(), a_text,
-                                                                       tables);
+                script.analyzed_script->ResolveSchemaTablesWithCatalog(a_text, tables);
                 if (!tables.empty()) {
                     // Add the tables as candidates
                     for (auto& [table, through_catalog] : tables) {
+                        // XXX Also discover tables with different schemas
+                        //     We can rank entries higher that are in the default database
+
                         // Store the candidate
                         auto& name = table.get().table_name.table_name.get();
                         DotCandidate candidate{.name = name.text,
@@ -375,8 +377,8 @@ void Completion::FindCandidatesForNamePath() {
             case 2: {
                 // User gave us a.b._
                 // "a" must be a database name, "b" must be a schema name.
-                auto& a_text = name_path[0].name.value().get().text;
-                auto& b_text = name_path[1].name.value().get().text;
+                std::string_view a_text = name_path[0].name.value().get();
+                std::string_view b_text = name_path[1].name.value().get();
 
                 // Is a known?
                 std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>> tables;
@@ -412,7 +414,7 @@ void Completion::FindCandidatesForNamePath() {
             case 1: {
                 // User gave us a._
                 // "a" might be a table alias
-                auto& a_text = name_path[0].name.value().get().text;
+                std::string_view a_text = name_path[0].name.value().get();
 
                 // Check all naming scopes for tables that are in scope.
                 for (auto& name_scope : cursor.name_scopes) {

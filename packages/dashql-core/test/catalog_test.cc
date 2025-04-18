@@ -3,10 +3,10 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
-#include "gtest/gtest.h"
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -130,9 +130,9 @@ TEST(CatalogTest, SingleDescriptorPool) {
             analyzed->table_references[0].inner));
         auto& resolved =
             std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(analyzed->table_references[0].inner);
-        ASSERT_FALSE(resolved.catalog_table_id.IsNull());
-        ASSERT_EQ(resolved.catalog_table_id.GetContext(), 1);
-        ASSERT_EQ(resolved.catalog_table_id.GetObject(), 0);
+        ASSERT_FALSE(resolved.selected.catalog_table_id.IsNull());
+        ASSERT_EQ(resolved.selected.catalog_table_id.GetContext(), 1);
+        ASSERT_EQ(resolved.selected.catalog_table_id.GetObject(), 0);
     }
     {
         script.ReplaceText("select * from db1.schema1.table2");

@@ -1,13 +1,13 @@
 #include <initializer_list>
 
-#include "gtest/gtest.h"
 #include "dashql/analyzer/analyzer.h"
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/text/names.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -36,7 +36,9 @@ struct NameTaggingTest {
 
     NameTaggingTest(std::string_view title, std::string_view script,
                     std::initializer_list<std::pair<std::string_view, NameTags>> expected)
-        : title(title), script(script), expected(expected) {}
+        : title(title), script(script), expected(expected) {
+        this->expected.push_back({"", NameTags(buffers::NameTag::DATABASE_NAME) | buffers::NameTag::SCHEMA_NAME});
+    }
 };
 
 void operator<<(std::ostream& out, const NameTaggingTest& p) { out << p.title; }
@@ -74,48 +76,34 @@ TEST_P(TestNameTags, Test) {
 }
 
 std::vector<NameTaggingTest> TESTS_SIMPLE{
-    {"select_1",
-     "select 1",
-     {
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
-     }},
+    {"select_1", "select 1", {}},
     {"select_foo",
      "select foo",
      {
          {"foo", NameTags(buffers::NameTag::COLUMN_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_from_bar",
      "select foo from bar",
      {
          {"foo", NameTags(buffers::NameTag::COLUMN_NAME)},
          {"bar", NameTags(buffers::NameTag::TABLE_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_from_foo",
      "select foo from foo",
      {
          {"foo", NameTags(buffers::NameTag::COLUMN_NAME) | buffers::NameTag::TABLE_NAME},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_from_foo_foo",
      "select foo from foo foo",
      {
-         {"foo", NameTags(buffers::NameTag::COLUMN_NAME) | buffers::NameTag::TABLE_NAME | buffers::NameTag::TABLE_ALIAS},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
+         {"foo",
+          NameTags(buffers::NameTag::COLUMN_NAME) | buffers::NameTag::TABLE_NAME | buffers::NameTag::TABLE_ALIAS},
      }},
     {"select_foo_from_foo_bar",
      "select foo from foo bar",
      {
          {"foo", NameTags(buffers::NameTag::COLUMN_NAME) | buffers::NameTag::TABLE_NAME},
          {"bar", NameTags(buffers::NameTag::TABLE_ALIAS)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_bar_from_the_foo",
      "select foo.bar from the foo",
@@ -123,8 +111,6 @@ std::vector<NameTaggingTest> TESTS_SIMPLE{
          {"foo", NameTags(buffers::NameTag::TABLE_ALIAS)},
          {"bar", NameTags(buffers::NameTag::COLUMN_NAME)},
          {"the", NameTags(buffers::NameTag::TABLE_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_bar_from_the_real_foo",
      "select foo.bar from the.real foo",
@@ -133,8 +119,6 @@ std::vector<NameTaggingTest> TESTS_SIMPLE{
          {"bar", NameTags(buffers::NameTag::COLUMN_NAME)},
          {"the", NameTags(buffers::NameTag::SCHEMA_NAME)},
          {"real", NameTags(buffers::NameTag::TABLE_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"select_foo_bar_from_the_actually_real_foo",
      "select foo.bar from the.actually.real foo",
@@ -144,16 +128,10 @@ std::vector<NameTaggingTest> TESTS_SIMPLE{
          {"the", NameTags(buffers::NameTag::DATABASE_NAME)},
          {"actually", NameTags(buffers::NameTag::SCHEMA_NAME)},
          {"real", NameTags(buffers::NameTag::TABLE_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
      }},
     {"quoted_identifier",
      "select * from \"SomeQuotedString\"",
-     {
-         {"SomeQuotedString", NameTags(buffers::NameTag::TABLE_NAME)},
-         {Catalog::DEFAULT_DATABASE_NAME, NameTags(buffers::NameTag::DATABASE_NAME)},
-         {Catalog::DEFAULT_SCHEMA_NAME, NameTags(buffers::NameTag::SCHEMA_NAME)},
-     }}};
+     {{"SomeQuotedString", NameTags(buffers::NameTag::TABLE_NAME)}}}};
 
 INSTANTIATE_TEST_SUITE_P(SimpleNameTagging, TestNameTags, ::testing::ValuesIn(TESTS_SIMPLE), NameTaggingTestPrinter());
 

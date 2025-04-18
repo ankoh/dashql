@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ankerl/unordered_dense.h"
-#include "dashql/catalog_object.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog_object.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/intrusive_list.h"
@@ -33,6 +33,11 @@ struct RegisteredName {
     /// The catalog objects resolved by the Analyzer.
     /// These objects are only available when the script was analyzed and are cleaned up when re-analyzing.
     IntrusiveList<CatalogObject> resolved_objects;
+
+    /// Comparison
+    bool operator==(std::string_view other) { return text == other; }
+    /// Comparison
+    bool operator!=(std::string_view other) { return text != other; }
     /// Return the name text
     operator std::string_view() { return text; }
 };

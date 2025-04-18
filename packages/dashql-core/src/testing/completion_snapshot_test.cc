@@ -167,8 +167,6 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
 
             // Read catalog
             auto catalog_node = test_node.child("catalog");
-            test.catalog_default_database = catalog_node.attribute("database").as_string();
-            test.catalog_default_schema = catalog_node.attribute("schema").as_string();
 
             // Read main script
             {

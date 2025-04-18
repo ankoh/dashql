@@ -3,10 +3,10 @@
 #include <filesystem>
 #include <string>
 
-#include "gtest/gtest.h"
-#include "pugixml.hpp"
 #include "dashql/external.h"
 #include "dashql/script.h"
+#include "gtest/gtest.h"
+#include "pugixml.hpp"
 
 namespace dashql::testing {
 
@@ -37,10 +37,6 @@ struct AnalyzerSnapshotTest {
     std::string name;
     /// The main script
     ScriptAnalysisSnapshot script;
-    /// The catalog default database
-    std::string catalog_default_database;
-    /// The catalog default schema
-    std::string catalog_default_schema;
     /// The entries
     std::vector<ScriptAnalysisSnapshot> catalog_entries;
 

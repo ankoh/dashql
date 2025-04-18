@@ -6,9 +6,9 @@
 #include <optional>
 #include <stack>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/external.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/utils/intrusive_list.h"
 
@@ -49,11 +49,10 @@ NameResolutionPass::NameResolutionPass(AnalyzedScript& analyzed, Catalog& catalo
       catalog(catalog),
       attribute_index(attribute_index),
       ast(parsed.nodes),
-      default_database_name(parsed.scanned_script->name_registry.Register(catalog.GetDefaultDatabaseName())),
-      default_schema_name(parsed.scanned_script->name_registry.Register(catalog.GetDefaultSchemaName())) {
+      empty_name(parsed.scanned_script->name_registry.Register("")) {
     node_states.resize(ast.size());
-    default_database_name.coarse_analyzer_tags |= buffers::NameTag::DATABASE_NAME;
-    default_schema_name.coarse_analyzer_tags |= buffers::NameTag::SCHEMA_NAME;
+    empty_name.coarse_analyzer_tags |= buffers::NameTag::DATABASE_NAME;
+    empty_name.coarse_analyzer_tags |= buffers::NameTag::SCHEMA_NAME;
 }
 
 std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePath(const sx::Node& node) {
@@ -96,12 +95,11 @@ std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualif
         case 2: {
             name_path[0].get().coarse_analyzer_tags |= sx::NameTag::SCHEMA_NAME;
             name_path[1].get().coarse_analyzer_tags |= sx::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, default_database_name, name_path[0], name_path[1]};
+            return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, name_path[0], name_path[1]};
         }
         case 1: {
             name_path[0].get().coarse_analyzer_tags |= sx::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, default_database_name, default_schema_name,
-                                                      name_path[0]};
+            return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, empty_name, name_path[0]};
         }
         default:
             return std::nullopt;
@@ -144,12 +142,12 @@ std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema
         db_id = db_ref_iter->second.get().catalog_database_id;
     }
     // Register the schema
-    auto schema_ref_iter = analyzed.schemas_by_name.find({database_name, schema_name});
-    if (schema_ref_iter == analyzed.schemas_by_name.end()) {
+    auto schema_ref_iter = analyzed.schemas_by_qualified_name.find({database_name, schema_name});
+    if (schema_ref_iter == analyzed.schemas_by_qualified_name.end()) {
         schema_id = catalog.AllocateSchemaId(database_name, schema_name);
         auto& schema = analyzed.schema_references.Append(
             CatalogEntry::SchemaReference{db_id, schema_id, database_name, schema_name});
-        analyzed.schemas_by_name.insert({{database_name, schema_name}, schema});
+        analyzed.schemas_by_qualified_name.insert({{database_name, schema_name}, schema});
         schema_name.resolved_objects.PushBack(schema.CastToBase());
     } else {
         schema_id = schema_ref_iter->second.get().catalog_schema_id;
@@ -199,6 +197,8 @@ AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, ui
     return scope;
 }
 
+constexpr size_t MAX_TABLE_REF_AMBIGUITY = 100;
+
 void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scope) {
     for (auto& table_ref : scope.table_references) {
         // TODO Matches a view or CTE?
@@ -229,42 +229,55 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             }
         };
 
-        // Table ref points to own table?
-        auto iter = analyzed.tables_by_name.find(table_name);
-        if (iter != analyzed.tables_by_name.end()) {
+        // Try to resolve in the own script
+        std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>> resolved_tables;
+        analyzed.ResolveTable(table_name, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
+
+        // Didn't find anything?
+        // Then resolve through the catalog
+        if (resolved_tables.size() == 0) {
+            catalog.ResolveTable(table_name, catalog_entry_id, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
+        }
+
+        // Found something?
+        // Then register the resolved table(s)
+        if (resolved_tables.size() > 0) {
+            // Always pick the first match, ResolveTable respects qualification and catalog entry ranks
+            auto& best_match = resolved_tables.front().get();
+
             // Store resolved relation expression
-            auto& table = iter->second.get();
-            table_ref.inner = AnalyzedScript::TableReference::ResolvedRelationExpression{
+            AnalyzedScript::TableReference::ResolvedRelationExpression resolved{
                 .table_name_ast_node_id = unresolved->table_name_ast_node_id,
-                .table_name = table.table_name,
-                .catalog_database_id = table.catalog_database_id,
-                .catalog_schema_id = table.catalog_schema_id,
-                .catalog_table_id = table.catalog_table_id,
-            };
+                .selected =
+                    {
+                        .table_name = best_match.table_name,
+                        .catalog_database_id = best_match.catalog_database_id,
+                        .catalog_schema_id = best_match.catalog_schema_id,
+                        .catalog_table_id = best_match.catalog_table_id,
+                    },
+                .alternatives = {}};
+
+            // Store ambiguous matches
+            for (size_t i = 1; i < resolved_tables.size(); ++i) {
+                auto& match = resolved_tables[i].get();
+                resolved.alternatives.push_back({
+                    .table_name = match.table_name,
+                    .catalog_database_id = match.catalog_database_id,
+                    .catalog_schema_id = match.catalog_schema_id,
+                    .catalog_table_id = match.catalog_table_id,
+                });
+            }
+
+            table_ref.inner = std::move(resolved);
+
             // Register the table either using the alias or the table name
             std::string_view alias = table_ref.alias_name.has_value() ? table_ref.alias_name->get().text
-                                                                      : table.table_name.table_name.get().text;
-            register_name(alias, table);
+                                                                      : best_match.table_name.table_name.get().text;
+            register_name(alias, best_match);
             continue;
         }
 
-        // Otherwise consult the external search path
-        if (auto* resolved = catalog.ResolveTable(table_name, catalog_entry_id)) {
-            // Remember resolved table
-            table_ref.inner = AnalyzedScript::TableReference::ResolvedRelationExpression{
-                .table_name = table_name,
-                .catalog_database_id = resolved->catalog_database_id,
-                .catalog_schema_id = resolved->catalog_schema_id,
-                .catalog_table_id = resolved->catalog_table_id,
-            };
-            // Register the table either using the alias or the table name
-            auto alias = table_ref.alias_name.has_value() ? table_ref.alias_name->get().text
-                                                          : resolved->table_name.table_name.get().text;
-            register_name(alias, *resolved);
-            continue;
-        }
-
-        // Failed to resolve the table ref, leave unresolved
+        // Otherwise leave unresolved
     }
 }
 
@@ -281,13 +294,13 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
         for (auto iter = unresolved_columns.begin(); iter != unresolved_columns.end();) {
             auto& expr = iter->get();
             auto unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(expr.inner);
-            auto column_name = unresolved.column_name.column_name.get().text;
+            std::string_view column_name = unresolved.column_name.column_name.get();
 
             // Try to resolve a table
             std::optional<std::reference_wrapper<AnalyzedScript::TableColumn>> table_column;
             if (unresolved.column_name.table_alias.has_value()) {
                 // Do we know the name in this scope?
-                auto table_alias = unresolved.column_name.table_alias->get().text;
+                std::string_view table_alias = unresolved.column_name.table_alias->get();
                 auto table_iter = target_scope->referenced_tables_by_name.find(table_alias);
                 if (table_iter != target_scope->referenced_tables_by_name.end()) {
                     // Is the table known in that table?
@@ -583,7 +596,12 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
 void NameResolutionPass::Finish() {
     for (auto& table_chunk : analyzed.table_declarations.GetChunks()) {
         for (auto& table : table_chunk) {
-            analyzed.tables_by_name.insert({table.table_name, table});
+            analyzed.tables_by_qualified_name.insert({table.table_name, table});
+            analyzed.tables_by_unqualified_name.insert({table.table_name.table_name.get().text, table});
+            if (table.table_name.schema_name.get() != "") {
+                analyzed.tables_by_unqualified_schema.insert(
+                    {{table.table_name.schema_name.get(), table.table_name.database_name.get()}, table});
+            }
         }
     }
 

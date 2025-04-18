@@ -3,11 +3,11 @@
 #include <format>
 #include <fstream>
 
-#include "gtest/gtest.h"
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/testing/xml_tests.h"
+#include "gtest/gtest.h"
 
 namespace dashql {
 
@@ -153,9 +153,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                 }
                 case 2: {
                     auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(ref.inner);
-                    std::string catalog_id = std::format("{}.{}.{}", resolved.catalog_database_id,
-                                                         resolved.catalog_schema_id, resolved.catalog_table_id.Pack());
-                    auto type = is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId()
+                    std::string catalog_id =
+                        std::format("{}.{}.{}", resolved.selected.catalog_database_id,
+                                    resolved.selected.catalog_schema_id, resolved.selected.catalog_table_id.Pack());
+                    auto type = is_main && resolved.selected.catalog_table_id.GetContext() == script.GetCatalogEntryId()
                                     ? "name/internal"
                                     : "name/external";
                     xml_ref.append_attribute("type").set_value(type);
@@ -244,8 +245,6 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
 
             // Read catalog
             auto catalog_node = test_node.child("catalog");
-            test.catalog_default_database = catalog_node.attribute("database").as_string();
-            test.catalog_default_schema = catalog_node.attribute("schema").as_string();
 
             // Read main script
             {
