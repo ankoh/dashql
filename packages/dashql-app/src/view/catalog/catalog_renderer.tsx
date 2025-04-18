@@ -144,6 +144,13 @@ interface RenderingContext {
     outEdgesFocused: React.ReactElement[];
 };
 
+const LEVEL_NAMES = [
+    "database",
+    "schema",
+    "table",
+    "column"
+];
+
 /// Render entries and emit ReactElements if they are within the virtual scroll window
 function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBegin: number, entriesCount: number, parentEntryId: number | null, parentIsFocused: boolean) {
     const levels = ctx.viewModel.levels;
@@ -161,6 +168,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     let overflowChildCount = 0;
     let lastOverflowEntryId = 0;
     let isFirst = true;
+
+    let levelName = LEVEL_NAMES[levelId];
 
     // First render all pinned entries, then all unpinned
     for (const renderPinned of [true, false]) {
@@ -263,7 +272,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         thisName == ""
                             ? (
                                 <div className={styles.node_label_empty}>
-                                    &lt;empty&gt;
+                                    &lt;no {levelName}&gt;
                                 </div>
                             )
                             : (
