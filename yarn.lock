@@ -30,7 +30,7 @@ __metadata:
     "@ankoh/dashql-core": "link:../dashql-core-bindings"
     "@ankoh/dashql-protobuf": "link:../dashql-protobuf"
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
-    "@bufbuild/protobuf": "npm:^1.10.0"
+    "@bufbuild/protobuf": "npm:^1.10.1"
     "@codemirror/autocomplete": "npm:^6.18.1"
     "@codemirror/commands": "npm:^6.6.2"
     "@codemirror/language": "npm:^6.10.3"
@@ -150,7 +150,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ankoh/dashql-protobuf@workspace:packages/dashql-protobuf"
   dependencies:
-    "@bufbuild/protobuf": "npm:^1.10.0"
+    "@bufbuild/protobuf": "npm:^1.10.1"
     "@connectrpc/connect": "npm:^1.6.1"
     "@connectrpc/connect-web": "npm:^1.6.1"
     "@types/node": "npm:^22.14.1"
@@ -656,24 +656,42 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/protoc-gen-es@npm:^1.10.0":
-  version: 1.10.0
-  resolution: "@bufbuild/protoc-gen-es@npm:1.10.0"
+"@bufbuild/protobuf@npm:1.10.1, @bufbuild/protobuf@npm:^1.10.1":
+  version: 1.10.1
+  resolution: "@bufbuild/protobuf@npm:1.10.1"
+  checksum: 10c0/a89572ae99aa193dd232fca0cdc9ece1dfe2f3d8b061be1f966a4f88fb63410aeb0fe7de927037e970aefcb52036eec58a7f89a40fe1286eed1448ea1bd2634e
+  languageName: node
+  linkType: hard
+
+"@bufbuild/protoc-gen-es@npm:^1.10.1":
+  version: 1.10.1
+  resolution: "@bufbuild/protoc-gen-es@npm:1.10.1"
   dependencies:
-    "@bufbuild/protobuf": "npm:^1.10.0"
-    "@bufbuild/protoplugin": "npm:1.10.0"
+    "@bufbuild/protobuf": "npm:^1.10.1"
+    "@bufbuild/protoplugin": "npm:1.10.1"
   peerDependencies:
-    "@bufbuild/protobuf": 1.10.0
+    "@bufbuild/protobuf": 1.10.1
   peerDependenciesMeta:
     "@bufbuild/protobuf":
       optional: true
   bin:
     protoc-gen-es: bin/protoc-gen-es
-  checksum: 10c0/d5f53df70a6fc4d13b47ff56244318313de1a24a61aa5a7dd82efc4b5baa031c6bf1aface6a3f5b28a935ab5802de28fbe5c8bbc4d16d7d245fb4918cfe263df
+  checksum: 10c0/aa06192c9cc85ea8abe7397da31b35fb057c2e6646374d18f91b8be27ce802647e221bfbd49d6a404e0a918dfad11a8654952fc4eab3115e7fb56788912a7c4c
   languageName: node
   linkType: hard
 
-"@bufbuild/protoplugin@npm:1.10.0, @bufbuild/protoplugin@npm:^1.10.0":
+"@bufbuild/protoplugin@npm:1.10.1":
+  version: 1.10.1
+  resolution: "@bufbuild/protoplugin@npm:1.10.1"
+  dependencies:
+    "@bufbuild/protobuf": "npm:1.10.1"
+    "@typescript/vfs": "npm:^1.4.0"
+    typescript: "npm:4.5.2"
+  checksum: 10c0/8c2b8bfbc29996824c1f13ae1063d68f55bbda7be2ff20c6404e80476f01c92b640348bb775f3ebe1d261723264da2e81b90b1cacbd134539185b54d53ef8dfc
+  languageName: node
+  linkType: hard
+
+"@bufbuild/protoplugin@npm:^1.10.0":
   version: 1.10.0
   resolution: "@bufbuild/protoplugin@npm:1.10.0"
   dependencies:
@@ -9515,7 +9533,7 @@ __metadata:
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
     "@bufbuild/buf": "npm:^1.52.1"
-    "@bufbuild/protoc-gen-es": "npm:^1.10.0"
+    "@bufbuild/protoc-gen-es": "npm:^1.10.1"
     "@connectrpc/protoc-gen-connect-es": "npm:^1.6.1"
     "@eslint/js": "npm:^9.24.0"
     "@tauri-apps/cli": "npm:^2.0.1"
