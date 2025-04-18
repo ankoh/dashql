@@ -11,6 +11,7 @@
         "declarationDir": "./dist",
         "noImplicitAny": true,
         "esModuleInterop": false,
+        "isolatedModules": true,
         "lib": [
             "es6",
             "dom"
