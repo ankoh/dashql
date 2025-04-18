@@ -1,3 +1,5 @@
+-- TPC-H query 9
+
 select
     nation,
     o_year,

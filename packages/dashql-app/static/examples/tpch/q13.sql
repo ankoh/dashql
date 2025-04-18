@@ -1,3 +1,5 @@
+-- TPC-H query 13
+
 select
     c_count,
     count(*) as custdist

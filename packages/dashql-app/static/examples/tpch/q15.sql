@@ -1,3 +1,5 @@
+-- TPC-H query 15
+
 with revenue as (
 	select
 		l_suppkey as supplier_no,
