@@ -12,9 +12,9 @@
 .entry_icon_container {
     border-radius: var(--border_radius);
     /* border: 1px solid var(--border_color_primary); */
-    border: 1px solid hsl(210deg, 12%, 76%);
     /* background-color: hsl(210deg, 12%, 66%); */
-    background-color: hsl(210deg, 18%, 74%, 0.32);
+    border: 1px solid hsl(210deg, 12%, 76%);
+    background-color: hsl(210deg, 18%, 24%);
     height: 32px;
     width: 32px;
     display: flex;

@@ -1,10 +1,10 @@
 .workbook_icon {
     width: 24px;
     height: 24px;
-    border: 1px solid hsl(210deg, 12%, 76%);
     border-radius: 6px;
     overflow: hidden;
-    background-color: hsl(210deg, 18%, 74%, 0.32);
+    border: 1px solid hsl(210deg, 12%, 76%);
+    background-color: hsl(210deg, 18%, 24%);
 }
 
 .filename {
