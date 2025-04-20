@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_list.module.css';
 
 import { ScriptData, ScriptKey, SELECT_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
@@ -7,6 +8,7 @@ import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 import { classNames } from '../../utils/classnames.js';
+import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
 interface WorkbookEntryProps {
     workbook: WorkbookState;
@@ -83,6 +85,20 @@ export function WorkbookEntryList(props: ListProps) {
                     script={v}
                 />
             ))}
+            <div
+                className={styles.entry_add_container}
+                onClick={() => { }}
+            >
+                <IconButton
+                    className={styles.entry_add_icon_container}
+                    variant={ButtonVariant.Invisible}
+                    aria-label="Add Workbook"
+                >
+                    <svg width="14px" height="14px">
+                        <use xlinkHref={`${symbols}#plus_16`} />
+                    </svg>
+                </IconButton>
+            </div>
         </div>
     );
 }

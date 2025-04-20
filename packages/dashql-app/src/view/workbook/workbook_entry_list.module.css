@@ -42,8 +42,14 @@
     justify-content: center;
     align-items: center;
 }
-.entry_icon_container:hover {
+
+.entry_add_container {
+    position: relative;
+    padding: 4px 8px 4px 12px;
 }
+.entry_add_icon_container {
+}
+
 
 .entry_key_name {}
 
