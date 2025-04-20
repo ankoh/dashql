@@ -3,8 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "./utils/variant.js";
 
 export interface RouteContext {
+    /// This is the focused connection id on the connection settings page
     connectionId: number | null;
+    /// This is the focused workbook id on the workbook settings page.
+    /// Note that the connection id might not match the workbook connection.
     workbookId: number | null;
+    /// Is the setup done?
     setupDone: boolean;
 }
 

@@ -33,8 +33,8 @@ export function ListItem(props: ListItemProps) {
                 [styles.selected]: props.selected
             })}
             onClick={props.onClick}
-            disabled={props.disabled}
             data-item={props['data-item']}
+            tabIndex={0}
         >
             {props.children}
         </button>
