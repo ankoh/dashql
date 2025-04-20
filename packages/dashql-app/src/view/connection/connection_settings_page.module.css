@@ -154,7 +154,7 @@
     /* background-color: hsl(210deg, 12%, 86%); */
     /* background-color: hsl(210deg, 29%, 97%); */
     /* background-color: hsl(210deg, 12%, 66%); */
-    background-color: hsl(210deg, 18%, 74%, 0.32);
+    background-color: hsl(210deg, 18%, 24%);
 }
 .connection_group_entry_label {
     grid-column: 2;
