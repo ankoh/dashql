@@ -1,7 +1,5 @@
 import * as React from 'react';
 
-import { useNavigate } from 'react-router-dom';
-
 import { ConnectionHealth } from '../connection/connection_state.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
@@ -11,7 +9,7 @@ import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
-import { useRouteContext } from '../router.js';
+import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../router.js';
 import { useWorkbookState } from './workbook_state_registry.js';
 
 export enum WorkbookCommandType {
@@ -36,7 +34,7 @@ export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const logger = useLogger();
 
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
@@ -111,9 +109,9 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case WorkbookCommandType.EditWorkbookConnection:
                     if (workbook.connectionId != null) {
-                        navigate(`/connection`, {
-                            state: {
-                                ...route,
+                        navigate({
+                            type: CONNECTION_PATH,
+                            value: {
                                 workbookId: workbook.workbookId,
                                 connectionId: workbook.connectionId,
                             }

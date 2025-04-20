@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
-import { useRouteContext } from '../../router.js';
+import { CONNECTION_PATH, useRouterNavigate } from '../../router.js';
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
     "Disconnected",
@@ -28,8 +27,7 @@ interface Props {
 }
 
 export function ConnectionStatus(props: Props) {
-    const navigate = useNavigate();
-    const route = useRouteContext();
+    const navigate = useRouterNavigate();
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
@@ -47,11 +45,11 @@ export function ConnectionStatus(props: Props) {
                     </svg>
                 )
             }
-            onClick={() => navigate(`/connection`, {
-                state: {
-                    ...route,
+            onClick={() => navigate({
+                type: CONNECTION_PATH,
+                value: {
                     connectionId: props.conn.connectionId,
-                    workbookId: props.workbookId,
+                    workbookId: props.workbookId ?? null,
                 }
             })}
         >

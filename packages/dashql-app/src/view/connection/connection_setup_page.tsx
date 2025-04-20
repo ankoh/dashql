@@ -1,6 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
@@ -26,7 +25,7 @@ import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { useRouteContext } from '../../router.js';
+import { FINISH_SETUP, SKIP_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 
@@ -233,7 +232,7 @@ interface Props {
 
 export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const now = new Date();
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const route = useRouteContext();
     const logger = useLogger();
     const salesforceSetup = useSalesforceSetup();
@@ -305,12 +304,11 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
             }
 
             // We're done, return close the workbook setup page
-            navigate(location.pathname, {
-                state: {
-                    ...route,
+            navigate({
+                type: FINISH_SETUP,
+                value: {
                     connectionId: connection.connectionId,
-                    workbookId: null, // XXX This is likely not what we want?
-                    setupDone: true,
+                    workbookId: null
                 }
             });
 
@@ -523,11 +521,9 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                     <Button
                         variant={ButtonVariant.Primary}
                         onClick={() => {
-                            navigate(location.pathname, {
-                                state: {
-                                    ...route,
-                                    setupDone: true,
-                                }
+                            navigate({
+                                type: SKIP_SETUP,
+                                value: null
                             });
                         }}
                     >
@@ -587,11 +583,9 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                                     variant={ButtonVariant.Invisible}
                                     aria-label="close-setup"
                                     onClick={() => {
-                                        navigate(location.pathname, {
-                                            state: {
-                                                ...route,
-                                                setupDone: true,
-                                            }
+                                        navigate({
+                                            type: SKIP_SETUP,
+                                            value: null
                                         });
                                     }}
                                 >

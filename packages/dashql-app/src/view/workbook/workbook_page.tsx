@@ -148,10 +148,9 @@ interface TabState {
     enabledTabs: number;
 }
 
-interface Props {
-}
+interface Props { }
 
-export const WorkbookPage: React.FC<Props> = (props: Props) => {
+export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import * as ActionList from '../foundations/action_list.js';
 import * as styles from './workbook_list_dropdown.module.css';
@@ -20,11 +19,11 @@ import { ConnectionHealth } from '../../connection/connection_state.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { tryParseInt } from '../../utils/number.js';
-import { useRouteContext } from '../../router.js';
+import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
 
 export function WorkbookListDropdown(props: { className?: string; }) {
     const route = useRouteContext();
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const workbookRegistry = useWorkbookRegistry();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
@@ -41,9 +40,9 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             const workbookId = tryParseInt(target.dataset.item);
             if (workbookId != null && workbookRegistry.workbookMap.has(workbookId)) {
                 const workbook = workbookRegistry.workbookMap.get(workbookId)!;
-                navigate(`/`, {
-                    state: {
-                        ...route,
+                navigate({
+                    type: WORKBOOK_PATH,
+                    value: {
                         workbookId: workbookId,
                         connectionId: workbook.connectionId
                     }

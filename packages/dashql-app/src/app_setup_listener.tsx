@@ -1,10 +1,9 @@
 import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { useLocation, useNavigate } from 'react-router-dom';
-
 import { ConnectionSetupPage } from './view/connection/connection_setup_page.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
+import { FINISH_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { SETUP_FILE, SETUP_WORKBOOK, SetupEventVariant } from './platform/event.js';
 import { createConnectionStateForType } from './connection/connection_state.js';
 import { isDebugBuild } from './globals.js';
@@ -14,7 +13,6 @@ import { useDashQLCoreSetup } from './core_provider.js';
 import { useDefaultConnections } from './connection/default_connections.js';
 import { useLogger } from './platform/logger_provider.js';
 import { usePlatformEventListener } from './platform/event_listener_provider.js';
-import { useRouteContext } from './router.js';
 import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
 import { useWorkbookSetup } from './workbook/workbook_setup.js';
 
@@ -27,8 +25,7 @@ interface AppSetupArgs {
 
 export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const logger = useLogger();
-    const location = useLocation();
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const route = useRouteContext();
     const setupCore = useDashQLCoreSetup();
     const setupWorkbook = useWorkbookSetup();
@@ -128,12 +125,11 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     const connectionId = defaultConns![ConnectorType.HYPER_GRPC];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
-                    navigate(location.pathname, {
-                        state: {
-                            ...route,
+                    navigate({
+                        type: FINISH_SETUP,
+                        value: {
                             workbookId: workbook.workbookId,
                             connectionId: workbook.connectionId,
-                            setupDone: true,
                         }
                     });
                     return;
@@ -142,12 +138,11 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     const connectionId = defaultConns![ConnectorType.DEMO];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
-                    navigate(location.pathname, {
-                        state: {
-                            ...route,
+                    navigate({
+                        type: FINISH_SETUP,
+                        value: {
                             workbookId: workbook.workbookId,
                             connectionId: workbook.connectionId,
-                            setupDone: true,
                         }
                     });
                     return;
@@ -197,12 +192,11 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             }
 
             // Mark setup as done
-            navigate(location.pathname, {
-                state: {
-                    ...route,
+            navigate({
+                type: FINISH_SETUP,
+                value: {
                     workbookId: workbookId,
                     connectionId: connectionId,
-                    setupDone: true,
                 }
             });
         };

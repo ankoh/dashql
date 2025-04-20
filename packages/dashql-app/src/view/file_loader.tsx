@@ -7,8 +7,6 @@ import * as symbols from '../../static/svg/symbols.generated.svg';
 import * as baseStyles from './banner_page.module.css';
 import * as styles from './file_loader.module.css';
 
-import { useNavigate } from 'react-router-dom';
-
 import Immutable from 'immutable';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
@@ -26,7 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
-import { useRouteContext } from '../router.js';
+import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
 import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 
 interface ProgressState {
@@ -390,8 +388,7 @@ interface Props {
 }
 
 export function FileLoader(props: Props) {
-    const navigate = useNavigate();
-    const route = useRouteContext();
+    const navigate = useRouterNavigate();
     const coreSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
@@ -411,9 +408,9 @@ export function FileLoader(props: Props) {
             if (workbookIds.length > 0) {
                 const workbookId = workbookIds[0];
                 const state = workbookReg.workbookMap.get(workbookId)!;
-                navigate(`/workbook`, {
-                    state: {
-                        ...route,
+                navigate({
+                    type: WORKBOOK_PATH,
+                    value: {
                         workbookId: state.workbookId,
                         connectionId: state.connectionId,
                     }

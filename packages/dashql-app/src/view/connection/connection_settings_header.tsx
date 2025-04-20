@@ -21,8 +21,7 @@ import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } f
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { useNavigate } from 'react-router-dom';
-import { useRouteContext } from '../../router.js';
+import { useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
 import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
 
 const LOG_CTX = "conn_header";
@@ -44,8 +43,7 @@ interface SetupURLs {
 
 export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
-    const navigate = useNavigate();
-    const route = useRouteContext();
+    const navigate = useRouterNavigate();
     const setupWorkbook = useWorkbookSetup();
 
     // Get the action button
@@ -103,9 +101,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                 const workbook = setupWorkbook(props.connection);
                 workbookId = workbook.workbookId;
             }
-            navigate("/", {
-                state: {
-                    ...route,
+            navigate({
+                type: WORKBOOK_PATH,
+                value: {
                     connectionId: props.connection.connectionId,
                     workbookId: workbookId
                 }

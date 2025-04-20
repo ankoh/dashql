@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import * as styles from './connection_settings_page.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
@@ -14,7 +13,7 @@ import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';
-import { useRouteContext } from '../../router.js';
+import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../router.js';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
@@ -22,8 +21,7 @@ interface ConnectionGroupEntryProps {
 }
 
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
-    const navigate = useNavigate();
-    const route = useRouteContext();
+    const navigate = useRouterNavigate();
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
     // Compute the connection signature
@@ -34,7 +32,16 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
             className={classNames(styles.connection_group_entry, {
                 [styles.connection_group_entry_active]: props.selected
             })}
-            onClick={connState != null ? () => navigate(`/connection`, { state: { ...route, connectionId: props.connectionId } }) : undefined}
+            onClick={connState != null
+                ? () => navigate({
+                    type: CONNECTION_PATH,
+                    value: {
+                        connectionId: props.connectionId,
+                        workbookId: null,
+                    }
+                })
+                : undefined
+            }
         >
             <div className={styles.connection_group_entry_icon_container}>
                 <Identicon
@@ -60,7 +67,7 @@ interface ConnectionGroupProps {
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const route = useRouteContext();
     // Is the group connected?
     const groupSelected = props.selected != null && props.selected[0] == props.connector;
@@ -93,7 +100,16 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             >
                 <button
                     className={styles.connector_group_button}
-                    onClick={defaultConnId != null ? () => navigate(`/connection`, { state: { ...route, connectionId: defaultConnId } }) : undefined}
+                    onClick={defaultConnId != null
+                        ? () => navigate({
+                            type: CONNECTION_PATH,
+                            value: {
+                                connectionId: defaultConnId,
+                                workbookId: null,
+                            }
+                        })
+                        : undefined
+                    }
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
                         <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
@@ -119,7 +135,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
 interface PageProps { }
 
 export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) => {
-    const navigate = useNavigate();
+    const navigate = useRouterNavigate();
     const route = useRouteContext();
     const defaultConns = useDefaultConnections();
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
@@ -128,20 +144,20 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
         // If the connection parameter is missing, we navigate to the workbook connection
-        if (route?.connectionId !== undefined) {
-            navigate(`/connection`, {
-                state: {
-                    ...route,
+        if (route.connectionId !== null) {
+            navigate({
+                type: CONNECTION_PATH,
+                value: {
                     connectionId: route.connectionId,
-                    workbookId: route?.workbookId,
+                    workbookId: route?.workbookId ?? null,
                 }
             });
             return;
         } else if (defaultConns.length > 0) {
             // Otherwise we navigate to the serverless connector
-            navigate(`/connection`, {
-                state: {
-                    ...route,
+            navigate({
+                type: CONNECTION_PATH,
+                value: {
                     connectionId: defaultConns[ConnectorType.SERVERLESS],
                     workbookId: null,
                 }
