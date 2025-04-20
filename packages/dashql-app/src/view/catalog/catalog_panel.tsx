@@ -1,26 +1,26 @@
-import { ContextObjectID } from '@ankoh/dashql-core';
-
 import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 import * as styles from './catalog_panel.module.css';
 
+import { CatalogInfoView } from './catalog_info_view.js';
+import { CatalogRefreshView } from './catalog_refresh_view.js';
+import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
 import { CatalogViewer } from '../catalog/catalog_viewer.js';
 import { FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID } from '../../workbook/focus.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { U32_MAX } from '../../utils/numeric_limits.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
-import { CatalogRefreshView } from './catalog_refresh_view.js';
-import { CatalogInfoView } from './catalog_info_view.js';
+import { useRouteContext } from '../../router.js';
+import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 interface CatalogPanelProps { }
 
 export function CatalogPanel(_props: CatalogPanelProps) {
-    const [workbookState, _dispatchWorkbook] = useCurrentWorkbookState();
-    const [connState, _connDispatch] = useConnectionState(workbookState?.connectionId ?? null);
+    const route = useRouteContext();
+    const [workbook, _dispatchWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const [conn, _connDispatch] = useConnectionState(workbook?.connectionId ?? null);
 
-    const workbookEntry = workbookState?.workbookEntries[workbookState.selectedWorkbookEntry];
-    const script = workbookEntry ? workbookState.scripts[workbookEntry.scriptKey] : null;
+    const workbookEntry = workbook?.workbookEntries[workbook.selectedWorkbookEntry];
+    const script = workbookEntry ? workbook.scripts[workbookEntry.scriptKey] : null;
 
     // Collect overlay metrics
     const infoEntries = React.useMemo<[string, string][]>(() => {
@@ -44,13 +44,13 @@ export function CatalogPanel(_props: CatalogPanelProps) {
         }
 
         // Is there a user focus?
-        const focusTarget = workbookState?.userFocus?.focusTarget;
+        const focusTarget = workbook?.userFocus?.focusTarget;
         switch (focusTarget?.type) {
             case FOCUSED_TABLE_REF_ID: {
                 const tableRefObject = focusTarget.value.tableReference;
-                const scriptKey = ContextObjectID.getContext(tableRefObject);
-                const tableRefId = ContextObjectID.getObject(tableRefObject);
-                const scriptData = workbookState?.scripts[scriptKey];
+                const scriptKey = dashql.ContextObjectID.getContext(tableRefObject);
+                const tableRefId = dashql.ContextObjectID.getObject(tableRefObject);
+                const scriptData = workbook?.scripts[scriptKey];
                 const analyzed = scriptData?.processed.analyzed;
                 if (analyzed) {
                     const analyzedPtr = analyzed.read();
@@ -73,9 +73,9 @@ export function CatalogPanel(_props: CatalogPanelProps) {
             }
             case FOCUSED_EXPRESSION_ID: {
                 const expressionObject = focusTarget.value.expression;
-                const scriptKey = ContextObjectID.getContext(expressionObject);
-                const expressionId = ContextObjectID.getObject(expressionObject);
-                const scriptData = workbookState?.scripts[scriptKey];
+                const scriptKey = dashql.ContextObjectID.getContext(expressionObject);
+                const expressionId = dashql.ContextObjectID.getObject(expressionObject);
+                const scriptData = workbook?.scripts[scriptKey];
                 const analyzed = scriptData?.processed.analyzed;
                 if (analyzed) {
                     const analyzedPtr = analyzed.read();
@@ -119,38 +119,41 @@ export function CatalogPanel(_props: CatalogPanelProps) {
         }
 
         return overlay;
-    }, [workbookState?.userFocus, script?.cursor]);
+    }, [workbook?.userFocus, script?.cursor]);
 
     // Resolve the latest full-refresh task
     const fullRefreshTask = React.useMemo<CatalogUpdateTaskState | null>(() => {
-        const lastFullRefresh = connState?.catalogUpdates.lastFullRefresh ?? null;
+        const lastFullRefresh = conn?.catalogUpdates.lastFullRefresh ?? null;
         if (lastFullRefresh != null) {
-            const task = connState!.catalogUpdates.tasksRunning.get(lastFullRefresh)
-                ?? connState!.catalogUpdates.tasksFinished.get(lastFullRefresh)
+            const task = conn!.catalogUpdates.tasksRunning.get(lastFullRefresh)
+                ?? conn!.catalogUpdates.tasksFinished.get(lastFullRefresh)
                 ?? null;
             return task;
         }
         return null;
-    }, [connState?.catalogUpdates]);
+    }, [conn?.catalogUpdates]);
 
     // Show the catalog full refresh status until the latest refresh succeeded
     const showRefreshView = fullRefreshTask != null
         && fullRefreshTask.status != CatalogUpdateTaskStatus.SUCCEEDED;
 
+    if (workbook == null) {
+        return <div />;
+    }
     return (
         <div className={styles.root}>
             <div className={styles.panel_container}>
                 <div className={styles.catalog_viewer}>
-                    <CatalogViewer />
+                    <CatalogViewer workbookId={workbook.workbookId} />
                     {showRefreshView
                         ? (
                             <div className={styles.info_overlay}>
-                                <CatalogRefreshView conn={connState!} refresh={fullRefreshTask} />
+                                <CatalogRefreshView conn={conn!} refresh={fullRefreshTask} />
                             </div>
                         )
                         : (
                             <div className={styles.info_overlay}>
-                                <CatalogInfoView conn={connState!} entries={infoEntries} />
+                                <CatalogInfoView conn={conn!} entries={infoEntries} />
                             </div>
                         )
                     }

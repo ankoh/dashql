@@ -7,25 +7,27 @@ import * as symbols from '../../static/svg/symbols.generated.svg';
 import * as baseStyles from './banner_page.module.css';
 import * as styles from './file_loader.module.css';
 
+import { useNavigate } from 'react-router-dom';
+
 import Immutable from 'immutable';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { ConnectionAllocator, useConnectionRegistry, useConnectionStateAllocator } from '../connection/connection_registry.js';
+import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 import { ConnectionState } from '../connection/connection_state.js';
+import { DASHQL_VERSION } from '../globals.js';
+import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
+import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { PlatformFile } from "../platform/file.js";
 import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../workbook/script_loader.js';
-import { useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
+import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
+import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
-import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
-import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
-import { DASHQL_VERSION } from '../globals.js';
-import { classNames } from '../utils/classnames.js';
-import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { formatBytes } from '../utils/format.js';
-import { ConnectionSignatureMap } from '../connection/connection_signature.js';
-import { useCurrentWorkbookSelector } from '../workbook/current_workbook.js';
+import { useRouteContext } from '../router.js';
+import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 
 interface ProgressState {
     // The file size
@@ -388,12 +390,14 @@ interface Props {
 }
 
 export function FileLoader(props: Props) {
-    const dqlSetup = useDashQLCoreSetup();
+    const navigate = useNavigate();
+    const route = useRouteContext();
+    const coreSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
-    const selectWorkbook = useCurrentWorkbookSelector();
     const [progress, setProgress] = React.useState<ProgressState | null>(null);
-    const [reg, _setReg] = useConnectionRegistry();
+    const [connReg, _setConnReg] = useConnectionRegistry();
+    const workbookReg = useWorkbookRegistry();
 
     React.useEffect(() => {
         const proxiedSetProgress = (value: ProgressState | null) => {
@@ -403,16 +407,24 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            const workbookIds = await loadDashQLFile(props.file, dqlSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, reg.connectionsBySignature, abort.signal);
+            const workbookIds = await loadDashQLFile(props.file, coreSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, connReg.connectionsBySignature, abort.signal);
             if (workbookIds.length > 0) {
-                selectWorkbook(workbookIds[0]);
+                const workbookId = workbookIds[0];
+                const state = workbookReg.workbookMap.get(workbookId)!;
+                navigate(`/workbook`, {
+                    state: {
+                        ...route,
+                        workbookId: state.workbookId,
+                        connectionId: state.connectionId,
+                    }
+                });
             }
             props.onDone();
         }
         runAsync();
         return () => abort.abort();
 
-    }, [dqlSetup, allocateWorkbook, allocateConnection, props.file]);
+    }, [coreSetup, allocateWorkbook, allocateConnection, props.file]);
 
     return (
         <div className={baseStyles.page} data-tauri-drag-region>

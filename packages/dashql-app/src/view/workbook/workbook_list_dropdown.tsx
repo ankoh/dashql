@@ -1,9 +1,10 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import * as ActionList from '../foundations/action_list.js';
 import * as styles from './workbook_list_dropdown.module.css';
 
-import { useCurrentWorkbookSelector, useCurrentWorkbookState } from '../../workbook/current_workbook.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useWorkbookRegistry, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import {
@@ -18,39 +19,50 @@ import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { Identicon } from '../../view/foundations/identicon.js';
+import { tryParseInt } from '../../utils/number.js';
+import { useRouteContext } from '../../router.js';
 
 export function WorkbookListDropdown(props: { className?: string; }) {
+    const route = useRouteContext();
+    const navigate = useNavigate();
     const workbookRegistry = useWorkbookRegistry();
-    const selectWorkbook = useCurrentWorkbookSelector();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
-    const [connRegistry, _setConnRegistry] = useConnectionRegistry();
+    const [conn, _modifyConn] = useConnectionRegistry();
+    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const workbookFileName = workbook?.workbookMetadata.fileName ?? "_";
+    const workbookConnection = workbook
+        ? conn.connectionMap.get(workbook.connectionId)
+        : null;
 
     const onWorkbookClick = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const target = e.currentTarget as HTMLLIElement;
         if (target.dataset.item) {
-            const workbookId = Number.parseInt(target.dataset.item)!;
-            selectWorkbook(workbookId);
+            const workbookId = tryParseInt(target.dataset.item);
+            if (workbookId != null && workbookRegistry.workbookMap.has(workbookId)) {
+                const workbook = workbookRegistry.workbookMap.get(workbookId)!;
+                navigate(`/`, {
+                    state: {
+                        ...route,
+                        workbookId: workbookId,
+                        connectionId: workbook.connectionId
+                    }
+                });
+            }
         } else {
             console.warn("click target did not contain a data attribute");
         }
     }, []);
 
-    const [currentWorkbook, _modifyWorkbookState] = useCurrentWorkbookState();
-    const currentWorkbookFileName = currentWorkbook?.workbookMetadata.fileName ?? "_";
-    const currentConnection = currentWorkbook
-        ? connRegistry.connectionMap.get(currentWorkbook.connectionId)
-        : null;
-
     // Memoize button to prevent svg flickering
     const button = React.useMemo(() => {
-        const connSig = currentConnection?.connectionSignature?.hash.asPrng();
+        const connSig = workbookConnection?.connectionSignature?.hash.asPrng();
         return (
             <Button
                 className={props.className}
                 onClick={() => setIsOpen(true)}
                 variant={ButtonVariant.Invisible}
-                leadingVisual={() => (!currentWorkbook?.connectorInfo
+                leadingVisual={() => (!workbook?.connectorInfo
                     ? <div />
                     : <Identicon
                         className={styles.workbook_icon}
@@ -64,18 +76,18 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 )}
             >
                 <div>
-                    <span className={styles.filename}>{currentWorkbookFileName}</span>
+                    <span className={styles.filename}>{workbookFileName}</span>
                     <span className={styles.filename_ext}>.{DASHQL_ARCHIVE_FILENAME_EXT}</span>
                 </div>
             </Button>
         );
-    }, [currentWorkbook?.connectorInfo, currentWorkbookFileName]);
+    }, [workbook?.connectorInfo, workbookFileName]);
 
-    const renderItem = ([workbookId, workbook]: [number, WorkbookState]) => {
-        const connection = connRegistry.connectionMap.get(workbook.connectionId)!;
+    const renderItem = ([wi, w]: [number, WorkbookState]) => {
+        const connection = conn.connectionMap.get(w.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
-        const workbookFileName = workbook.workbookMetadata.fileName;
+        const workbookFileName = w.workbookMetadata.fileName;
         const connSig = connection.connectionSignature.hash.asPrng();
 
         switch (connection.details.type) {
@@ -140,10 +152,10 @@ export function WorkbookListDropdown(props: { className?: string; }) {
 
         return (
             <ActionList.ListItem
-                key={workbookId}
+                key={wi}
                 onClick={onWorkbookClick}
-                selected={workbookId === currentWorkbook?.workbookId}
-                data-item={workbookId.toString()}
+                selected={wi === workbook?.workbookId}
+                data-item={wi.toString()}
             >
                 <ActionList.Leading>
                     <Identicon

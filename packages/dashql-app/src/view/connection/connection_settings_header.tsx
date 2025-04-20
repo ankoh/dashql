@@ -10,20 +10,20 @@ import {
     LinkIcon,
 } from '@primer/octicons-react';
 
-import { useNavigate } from 'react-router-dom';
 import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
-import { useCurrentWorkbookSelector } from '../../workbook/current_workbook.js';
-import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
-import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
-import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
-import { useLogger } from '../../platform/logger_provider.js';
 import { ConnectorInfo } from '../../connection/connector_info.js';
-import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
+import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
+import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
+import { WorkbookState } from '../../workbook/workbook_state.js';
+import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
+import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
+import { useLogger } from '../../platform/logger_provider.js';
+import { useNavigate } from 'react-router-dom';
+import { useRouteContext } from '../../router.js';
+import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
 
 const LOG_CTX = "conn_header";
 
@@ -45,7 +45,7 @@ interface SetupURLs {
 export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
     const navigate = useNavigate();
-    const selectWorkbook = useCurrentWorkbookSelector();
+    const route = useRouteContext();
     const setupWorkbook = useWorkbookSetup();
 
     // Get the action button
@@ -96,13 +96,20 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     // Helper to switch to the editor
     const openEditor = React.useCallback(() => {
         if (props.connection != null) {
+            let workbookId: number | undefined = undefined;
             if (props.workbook != null) {
-                selectWorkbook(props.workbook.workbookId);
+                workbookId = props.workbook.workbookId;
             } else {
                 const workbook = setupWorkbook(props.connection);
-                selectWorkbook(workbook.workbookId);
+                workbookId = workbook.workbookId;
             }
-            navigate("/");
+            navigate("/", {
+                state: {
+                    ...route,
+                    connectionId: props.connection.connectionId,
+                    workbookId: workbookId
+                }
+            });
         }
     }, []);
 

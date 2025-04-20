@@ -2,8 +2,6 @@ import * as React from 'react';
 import * as styles from './navbar.module.css';
 import * as symbols from '../../static/svg/symbols.generated.svg';
 
-import { useLocation } from 'react-router-dom';
-
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals_overlay.js';
@@ -15,20 +13,26 @@ import { classNames } from '../utils/classnames.js';
 import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../workbook/workbook_export_url.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
-import { useCurrentWorkbookState } from '../workbook/current_workbook.js';
 import { useLogger } from '../platform/logger_provider.js';
+import { RouteContext, useRouteContext } from '../router.js';
 import { useVersionCheck } from '../platform/version_check.js';
+import { useWorkbookState } from '../workbook/workbook_state_registry.js';
 
 const LOG_CTX = "navbar";
 
-const PageTab = (props: { route: string; alt?: string; location: string; icon: string; label: string | null }) => (
+const PageTab = (props: { route: string; alt?: string; location: string; icon: string; label: string | null, state: RouteContext }) => (
     <div
         key={props.route}
         className={classNames(styles.tab, {
             [styles.active]: props.location == props.route || props.location == props.alt,
         })}
     >
-        <NavBarLink className={styles.tab_button} to={props.route} hover={HoverMode.Darken}>
+        <NavBarLink
+            className={styles.tab_button}
+            to={props.route}
+            hover={HoverMode.Darken}
+            state={props.state}
+        >
             <>
                 <svg width="16px" height="16px">
                     <use xlinkHref={props.icon} />
@@ -39,9 +43,15 @@ const PageTab = (props: { route: string; alt?: string; location: string; icon: s
     </div>
 );
 
-const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label: string, newWindow?: boolean }) => (
+const OpenIn = (props: { url?: string | null; alt?: string; icon?: string; label: string, newWindow?: boolean, state: RouteContext }) => (
     <div className={styles.tab}>
-        <NavBarLink className={styles.tab_button} to={props.url ?? ""} hover={HoverMode.Darken} newWindow={props.newWindow}>
+        <NavBarLink
+            className={styles.tab_button}
+            to={props.url ?? ""}
+            hover={HoverMode.Darken}
+            newWindow={props.newWindow}
+            state={props.state}
+        >
             <>
                 {props.icon &&
                     <svg width="16px" height="16px">
@@ -112,26 +122,27 @@ const VersionButton = (_props: {}) => {
 };
 
 export const NavBar = (): React.ReactElement => {
+    const route = useRouteContext();
     const logger = useLogger();
-    const location = useLocation();
     const platformType = usePlatformType();
-    const [workbook, _modifyWorkbook] = useCurrentWorkbookState();
-    const [connectionState, _setConnectionState] = useConnectionState(workbook?.connectionId ?? null);
+
+    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? workbook?.connectionId ?? null);
 
     const isBrowser = platformType === PlatformType.WEB;
     const isMac = platformType === PlatformType.MACOS;
     const setupLinkTarget = isBrowser ? WorkbookLinkTarget.NATIVE : WorkbookLinkTarget.WEB;
     const setupUrl = React.useMemo(() => {
-        if (workbook == null || connectionState == null) {
+        if (connection == null) {
             return null;
         }
-        const params = getConnectionParamsFromStateDetails(connectionState.details);
+        const params = getConnectionParamsFromStateDetails(connection.details);
         if (params == null) {
             return null;
         }
         const proto = encodeWorkbookAsProto(workbook, params);
         return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
-    }, [workbook, connectionState, setupLinkTarget]);
+    }, [workbook, connection, setupLinkTarget]);
 
     React.useEffect(() => {
         logger.info("navigated to path", { "path": location.pathname }, LOG_CTX);
@@ -143,15 +154,15 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <PageTab label="Workbook" route="/" location={location.pathname} icon={`${symbols}#file`} />
-                <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} />
+                <PageTab label="Workbook" route="/" location={location.pathname} icon={`${symbols}#file`} state={route} />
+                <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />
                 <VersionButton />
                 {isBrowser
-                    ? <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} />
-                    : <OpenIn label="Open in Browser" url={setupUrl?.toString()} icon={`${symbols}#upload_browser`} newWindow={true} />
+                    ? <OpenIn label="Open in App" url={setupUrl?.toString()} icon={`${symbols}#download_desktop`} newWindow={false} state={route} />
+                    : <OpenIn label="Open in Browser" url={setupUrl?.toString()} icon={`${symbols}#upload_browser`} newWindow={true} state={route} />
                 }
             </div>
         </div>

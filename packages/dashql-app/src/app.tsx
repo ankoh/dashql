@@ -7,13 +7,12 @@ import { AppSetupListener } from './app_setup_listener.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
-import { ConnectionSettingsPage, ConnectionSettingsPageRedirect } from './view/connection/connection_settings_page.js';
-import { CurrentWorkbookStateProvider } from './workbook/current_workbook.js';
+import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
 import { DefaultConnectionProvider } from './connection/default_connections.js';
 import { DefaultWorkbookProvider } from './workbook/default_workbooks.js';
-import { EditorPage } from './view/workbook/workbook_page.js';
+import { WorkbookPage } from './view/workbook/workbook_page.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
@@ -69,14 +68,14 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                 <CatalogLoaderProvider>
                                     <DefaultConnectionProvider>
                                         <DefaultWorkbookProvider>
-                                            <CurrentWorkbookStateProvider>
+                                            <>
                                                 <ScriptLoader />
                                                 <WorkbookCommands>
                                                     <AppSetupListener>
                                                         {props.children}
                                                     </AppSetupListener>
                                                 </WorkbookCommands>
-                                            </CurrentWorkbookStateProvider>
+                                            </>
                                         </DefaultWorkbookProvider>
                                     </DefaultConnectionProvider>
                                 </CatalogLoaderProvider>
@@ -131,9 +130,9 @@ root.render(
             <FileDropzone>
                 <NavBarContainer>
                     <Routes>
-                        <Route index Component={EditorPage} />
-                        <Route path="/connection" Component={ConnectionSettingsPageRedirect} />
-                        <Route path="/connection/:connectionId" Component={ConnectionSettingsPage} />
+                        <Route index Component={WorkbookPage} />
+                        <Route path="/workbook" Component={WorkbookPage} />
+                        <Route path="/connection" Component={ConnectionSettingsPage} />
                         {isDebugBuild() && (
                             <>
                                 <Route path="/internals/ui" Component={UIInternalsPage} />

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { classNames } from '../utils/classnames.js';
 
 import * as styles from './navbar_button.module.css';
+import { RouteContext } from 'router.js';
 
 export enum HoverMode {
     Invert,
@@ -17,6 +18,7 @@ type LinkProps = {
     invert?: boolean;
     children?: React.ReactElement;
     newWindow?: boolean;
+    state: RouteContext;
 };
 
 export const NavBarLink: React.FC<LinkProps> = (props: LinkProps) => (
@@ -30,6 +32,7 @@ export const NavBarLink: React.FC<LinkProps> = (props: LinkProps) => (
         })}
         to={props.to}
         target={props.newWindow ? '_blank' : undefined}
+        state={props.state}
     >
         {props.children}
     </Link>

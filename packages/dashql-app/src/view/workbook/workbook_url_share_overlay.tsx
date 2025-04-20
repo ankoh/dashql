@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
+
 import * as styles from './workbook_url_share_overlay.module.css';
 
 import { Box } from '@primer/react';
@@ -6,16 +8,17 @@ import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
+import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
+import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
+import { WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
 import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
-import { WorkbookExportSettingsView } from './workbook_export_settings_view.js';
-import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
-import { IconButton } from '../../view/foundations/button.js';
+import { useRouteContext } from '../../router.js';
+import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
 
@@ -34,11 +37,12 @@ interface State {
 }
 
 export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
+    const route = useRouteContext();
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [workbookState, _modifyWorkbook] = useCurrentWorkbookState();
-    const [connectionState, _setConnectionState] = useConnectionState(workbookState?.connectionId ?? null);
+    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(workbook?.connectionId ?? null);
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
         copyStartedAt: null,
@@ -56,10 +60,10 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
             return;
         }
         let setupUrl: URL | null = null;
-        if (workbookState != null && connectionState != null) {
-            const params = getConnectionParamsFromStateDetails(connectionState.details);
+        if (workbook != null && connection != null) {
+            const params = getConnectionParamsFromStateDetails(connection.details);
             if (params != null) {
-                const proto = encodeWorkbookAsProto(workbookState, params, settings);
+                const proto = encodeWorkbookAsProto(workbook, params, settings);
                 setupUrl = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB);
             }
         }
@@ -70,7 +74,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
             copyError: null,
             uiResetAt: null,
         });
-    }, [settings, workbookState, connectionState, props.isOpen]);
+    }, [settings, workbook, connection, props.isOpen]);
 
     // Copy the url to the clipboard
     const copyURL = React.useCallback(

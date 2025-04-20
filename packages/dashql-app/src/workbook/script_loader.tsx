@@ -1,8 +1,9 @@
 import * as React from 'react';
 
 import { ScriptMetadata } from './script_metadata.js';
-import { useCurrentWorkbookState } from './current_workbook.js';
 import { SCRIPT_LOADING_FAILED, SCRIPT_LOADING_STARTED, SCRIPT_LOADING_SUCCEEDED, ScriptData, ScriptKey } from './workbook_state.js';
+import { useWorkbookState } from './workbook_state_registry.js';
+import { useRouteContext } from '../router.js';
 
 export enum ScriptLoadingStatus {
     PENDING = 1,
@@ -37,7 +38,8 @@ interface Props {
 }
 
 export const ScriptLoader: React.FC<Props> = (props: Props) => {
-    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
+    const locationState = useRouteContext();
+    const [workbook, modifyWorkbook] = useWorkbookState(locationState.workbookId ?? null);
     const internal = React.useRef<LoaderState>({
         scripts: new Map<string, ScriptLoadingState>(),
     });

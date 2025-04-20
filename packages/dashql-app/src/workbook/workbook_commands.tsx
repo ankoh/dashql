@@ -1,16 +1,18 @@
 import * as React from 'react';
+
 import { useNavigate } from 'react-router-dom';
 
-import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
-import { ConnectorInfo } from '../connection/connector_info.js';
-import { useCurrentWorkbookState } from './current_workbook.js';
-import { useQueryExecutor } from '../connection/query_executor.js';
-import { useConnectionState } from '../connection/connection_registry.js';
 import { ConnectionHealth } from '../connection/connection_state.js';
-import { useLogger } from '../platform/logger_provider.js';
-import { REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
+import { ConnectorInfo } from '../connection/connector_info.js';
+import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
+import { REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
+import { useConnectionState } from '../connection/connection_registry.js';
+import { useLogger } from '../platform/logger_provider.js';
+import { useQueryExecutor } from '../connection/query_executor.js';
+import { useRouteContext } from '../router.js';
+import { useWorkbookState } from './workbook_state_registry.js';
 
 export enum WorkbookCommandType {
     ExecuteEditorQuery = 1,
@@ -33,9 +35,11 @@ const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(n
 export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
 
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
+    const route = useRouteContext();
     const navigate = useNavigate();
     const logger = useLogger();
-    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
+
+    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [connection, _dispatchConnection] = useConnectionState(workbook?.connectionId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
@@ -107,7 +111,13 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case WorkbookCommandType.EditWorkbookConnection:
                     if (workbook.connectionId != null) {
-                        navigate(`/connection/${workbook.connectionId}`);
+                        navigate(`/connection`, {
+                            state: {
+                                ...route,
+                                workbookId: workbook.workbookId,
+                                connectionId: workbook.connectionId,
+                            }
+                        });
                     }
                     break;
             }

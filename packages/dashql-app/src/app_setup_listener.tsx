@@ -1,5 +1,7 @@
-import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
+import * as pb from '@ankoh/dashql-protobuf';
+
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ConnectionSetupPage } from './view/connection/connection_setup_page.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
@@ -8,19 +10,13 @@ import { createConnectionStateForType } from './connection/connection_state.js';
 import { isDebugBuild } from './globals.js';
 import { useAwaitStateChange } from './utils/state_change.js';
 import { useConnectionRegistry, useConnectionStateAllocator } from './connection/connection_registry.js';
-import { useCurrentWorkbookSelector } from './workbook/current_workbook.js';
 import { useDashQLCoreSetup } from './core_provider.js';
 import { useDefaultConnections } from './connection/default_connections.js';
 import { useLogger } from './platform/logger_provider.js';
 import { usePlatformEventListener } from './platform/event_listener_provider.js';
+import { useRouteContext } from './router.js';
 import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
 import { useWorkbookSetup } from './workbook/workbook_setup.js';
-
-enum AppSetupDecision {
-    UNDECIDED,
-    SHOW_CONNECTION_SETUP,
-    SETUP_DONE,
-}
 
 interface AppSetupArgs {
     connectionId: number;
@@ -29,18 +25,15 @@ interface AppSetupArgs {
     workbookProto: pb.dashql.workbook.Workbook;
 }
 
-interface AppSetupState {
-    decision: AppSetupDecision;
-    args: AppSetupArgs | null;
-}
-
 export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const logger = useLogger();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const route = useRouteContext();
     const setupCore = useDashQLCoreSetup();
-    const allocateConnectionState = useConnectionStateAllocator();
-    const [connReg, _setConnReg] = useConnectionRegistry();
-    const selectWorkbook = useCurrentWorkbookSelector();
     const setupWorkbook = useWorkbookSetup();
+    const allocateConnection = useConnectionStateAllocator();
+    const [connReg, _setConnReg] = useConnectionRegistry();
 
     const defaultConnections = useDefaultConnections();
     const awaitDefaultConnections = useAwaitStateChange(defaultConnections);
@@ -49,10 +42,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
     const abortDefaultWorkbookSwitch = React.useRef(new AbortController());
 
     // State to decide about workbook setup strategy
-    const [state, setState] = React.useState<AppSetupState>(() => ({
-        decision: AppSetupDecision.UNDECIDED,
-        args: null,
-    }));
+    const [setupArgs, setSetupArgs] = React.useState<AppSetupArgs | null>(null);
 
     // Configure catalog and workbooks
     const runSetup = React.useCallback(async (data: SetupEventVariant) => {
@@ -100,46 +90,37 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             switch (workbookProto.connectionParams?.connection.case) {
                 case "hyper": {
                     const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER_GRPC, connReg.connectionsBySignature);
-                    const conn = allocateConnectionState(connWithoutId);
+                    const conn = allocateConnection(connWithoutId);
                     const workbook = setupWorkbook(conn);
-                    setState({
-                        decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
-                        args: {
-                            connectionId: conn.connectionId,
-                            connectionParams: workbookProto.connectionParams,
-                            workbookId: workbook.workbookId,
-                            workbookProto,
-                        },
+                    setSetupArgs({
+                        connectionId: conn.connectionId,
+                        connectionParams: workbookProto.connectionParams,
+                        workbookId: workbook.workbookId,
+                        workbookProto,
                     });
                     break;
                 }
                 case "salesforce": {
                     const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD, connReg.connectionsBySignature);
-                    const conn = allocateConnectionState(connWithoutId);
+                    const conn = allocateConnection(connWithoutId);
                     const workbook = setupWorkbook(conn);
-                    setState({
-                        decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
-                        args: {
-                            connectionId: conn.connectionId,
-                            connectionParams: workbookProto.connectionParams,
-                            workbookId: workbook.workbookId,
-                            workbookProto,
-                        },
+                    setSetupArgs({
+                        connectionId: conn.connectionId,
+                        connectionParams: workbookProto.connectionParams,
+                        workbookId: workbook.workbookId,
+                        workbookProto,
                     });
                     break;
                 }
                 case "trino": {
                     const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO, connReg.connectionsBySignature);
-                    const conn = allocateConnectionState(connWithoutId);
+                    const conn = allocateConnection(connWithoutId);
                     const workbook = setupWorkbook(conn);
-                    setState({
-                        decision: AppSetupDecision.SHOW_CONNECTION_SETUP,
-                        args: {
-                            connectionId: conn.connectionId,
-                            connectionParams: workbookProto.connectionParams,
-                            workbookId: workbook.workbookId,
-                            workbookProto,
-                        },
+                    setSetupArgs({
+                        connectionId: conn.connectionId,
+                        connectionParams: workbookProto.connectionParams,
+                        workbookId: workbook.workbookId,
+                        workbookProto,
                     });
                     return;
                 }
@@ -147,10 +128,13 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     const connectionId = defaultConns![ConnectorType.HYPER_GRPC];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
-                    selectWorkbook(workbook.workbookId);
-                    setState({
-                        decision: AppSetupDecision.SETUP_DONE,
-                        args: null,
+                    navigate(location.pathname, {
+                        state: {
+                            ...route,
+                            workbookId: workbook.workbookId,
+                            connectionId: workbook.connectionId,
+                            setupDone: true,
+                        }
                     });
                     return;
                 }
@@ -158,10 +142,13 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     const connectionId = defaultConns![ConnectorType.DEMO];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
-                    selectWorkbook(workbook.workbookId);
-                    setState({
-                        decision: AppSetupDecision.SETUP_DONE,
-                        args: null,
+                    navigate(location.pathname, {
+                        state: {
+                            ...route,
+                            workbookId: workbook.workbookId,
+                            connectionId: workbook.connectionId,
+                            setupDone: true,
+                        }
                     });
                     return;
                 }
@@ -187,16 +174,19 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
     React.useEffect(() => {
         const selectDefaultWorkbook = async () => {
             let workbookId: number;
+            let connectionId: number;
 
             // Is debug build?
             if (isDebugBuild()) {
                 // Await the setup of the demo workbook
                 const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DEMO].length > 0);
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
+                connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             } else {
                 // Await the setup of serverless workbook
                 const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.SERVERLESS].length > 0);
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.SERVERLESS][0];
+                connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             }
 
             // Await the setup of the static workbooks
@@ -205,34 +195,32 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
             if (abortDefaultWorkbookSwitch.current.signal.aborted) {
                 return;
             }
-            selectWorkbook(s => (s == null) ? workbookId : s);
-            // Skip the setup
-            setState({
-                decision: AppSetupDecision.SETUP_DONE,
-                args: null,
+
+            // Mark setup as done
+            navigate(location.pathname, {
+                state: {
+                    ...route,
+                    workbookId: workbookId,
+                    connectionId: connectionId,
+                    setupDone: true,
+                }
             });
         };
         selectDefaultWorkbook();
     }, []);
 
-    // Determine what we want to render
-    let child: React.ReactElement = <div />;
-    switch (state.decision) {
-        case AppSetupDecision.UNDECIDED:
-            break;
-        case AppSetupDecision.SHOW_CONNECTION_SETUP: {
-            const args = state.args!;
-            child = <ConnectionSetupPage
-                connectionId={args.connectionId}
-                connectionParams={args.connectionParams}
-                workbookProto={args.workbookProto}
-                onDone={() => setState(s => ({ ...s, decision: AppSetupDecision.SETUP_DONE }))}
-            />;
-            break;
-        }
-        case AppSetupDecision.SETUP_DONE:
-            child = props.children;
-            break;
+    // Setup done?
+    if (route.setupDone) {
+        return props.children;
+    } else if (setupArgs != null) {
+        return (
+            <ConnectionSetupPage
+                connectionId={setupArgs.connectionId}
+                connectionParams={setupArgs.connectionParams}
+                workbookProto={setupArgs.workbookProto}
+            />
+        );
+    } else {
+        return <div />;
     }
-    return child;
 };

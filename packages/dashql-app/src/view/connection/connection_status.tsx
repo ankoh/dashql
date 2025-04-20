@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
+import { useRouteContext } from '../../router.js';
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
     "Disconnected",
@@ -22,11 +23,13 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 ];
 
 interface Props {
+    workbookId?: number;
     conn: ConnectionState;
 }
 
 export function ConnectionStatus(props: Props) {
     const navigate = useNavigate();
+    const route = useRouteContext();
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
@@ -44,7 +47,13 @@ export function ConnectionStatus(props: Props) {
                     </svg>
                 )
             }
-            onClick={() => navigate(`/connection/${props.conn.connectionId}`)}
+            onClick={() => navigate(`/connection`, {
+                state: {
+                    ...route,
+                    connectionId: props.conn.connectionId,
+                    workbookId: props.workbookId,
+                }
+            })}
         >
             {connStatusText}
         </Button>

@@ -1,5 +1,6 @@
 import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
@@ -9,24 +10,25 @@ import * as connStyles from './connection_settings.module.css';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
-import { HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { ConnectionParamsVariant, encodeConnectionParamsAsProto, readConnectionParamsFromProto } from '../../connection/connection_params.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { DASHQL_VERSION } from '../../globals.js';
+import { DetailedError } from '../../utils/error.js';
+import { ErrorDetailsButton } from '../error_details.js';
+import { HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { InternalsViewerOverlay } from '../internals_overlay.js';
+import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
+import { ValueListBuilder } from '../foundations/value_list.js';
 import { VersionInfoOverlay } from '../version_viewer.js';
 import { encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
 import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
+import { useRouteContext } from '../../router.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
-import { ErrorDetailsButton } from '../error_details.js';
-import { DetailedError } from '../../utils/error.js';
-import { ConnectionParamsVariant, encodeConnectionParamsAsProto, readConnectionParamsFromProto } from '../../connection/connection_params.js';
-import { ValueListBuilder } from '../foundations/value_list.js';
-import { InternalsViewerOverlay } from '../internals_overlay.js';
 
 const LOG_CTX = "workbook_setup";
 const AUTO_TRIGGER_DELAY = 2000;
@@ -227,12 +229,12 @@ interface Props {
     /// The proto of the workbook where this connection is used.
     /// This is necessary to generate links with workbook data when switching platforms.
     workbookProto: pb.dashql.workbook.Workbook;
-    /// The done callback
-    onDone: () => void;
 }
 
 export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const now = new Date();
+    const navigate = useNavigate();
+    const route = useRouteContext();
     const logger = useLogger();
     const salesforceSetup = useSalesforceSetup();
     const trinoSetup = useTrinoSetup();
@@ -303,7 +305,15 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
             }
 
             // We're done, return close the workbook setup page
-            props.onDone();
+            navigate(location.pathname, {
+                state: {
+                    ...route,
+                    connectionId: connection.connectionId,
+                    workbookId: null, // XXX This is likely not what we want?
+                    setupDone: true,
+                }
+            });
+
         } catch (e: any) {
             setupInProgressOrDone.current = false;
         }
@@ -512,7 +522,14 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 <div className={baseStyles.card_actions_right}>
                     <Button
                         variant={ButtonVariant.Primary}
-                        onClick={() => props.onDone()}
+                        onClick={() => {
+                            navigate(location.pathname, {
+                                state: {
+                                    ...route,
+                                    setupDone: true,
+                                }
+                            });
+                        }}
                     >
                         Continue
                     </Button>
@@ -569,7 +586,14 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                                 <IconButton
                                     variant={ButtonVariant.Invisible}
                                     aria-label="close-setup"
-                                    onClick={() => props.onDone()}
+                                    onClick={() => {
+                                        navigate(location.pathname, {
+                                            state: {
+                                                ...route,
+                                                setupDone: true,
+                                            }
+                                        });
+                                    }}
                                 >
                                     <XIcon />
                                 </IconButton>

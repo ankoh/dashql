@@ -27,7 +27,7 @@ export type ModifyWorkbook = (action: WorkbookStateAction) => void;
 export type ModifyConnectionWorkbooks = (conn: number, action: WorkbookStateAction) => void;
 
 const WORKBOOK_REGISTRY_CTX = React.createContext<[WorkbookRegistry, Dispatch<SetWorkbookRegistryAction>] | null>(null);
-let NEXT_WORKBOOK_ID: number = 1;
+let NEXT_GLOBAL_WORKBOOK_ID: number = 1;
 
 type Props = {
     children: React.ReactElement | React.ReactElement[];
@@ -54,7 +54,7 @@ export function useWorkbookRegistry(): WorkbookRegistry {
 export function useWorkbookStateAllocator(): WorkbookAllocator {
     const [_reg, setReg] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: WorkbookStateWithoutId) => {
-        const workbookId = NEXT_WORKBOOK_ID++;
+        const workbookId = NEXT_GLOBAL_WORKBOOK_ID++;
         const workbook: WorkbookState = {
             ...state,
             workbookId: workbookId

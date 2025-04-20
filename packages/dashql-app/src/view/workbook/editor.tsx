@@ -16,13 +16,14 @@ import { COMPLETION_CHANGED, COMPLETION_STARTED, COMPLETION_STOPPED, UPDATE_SCRI
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { isDebugBuild } from '../../globals.js';
 import { useAppConfig } from '../../app_config.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
+import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 interface Props {
     className?: string;
+    workbookId: number;
 }
 
 interface ActiveScriptState {
@@ -31,10 +32,10 @@ interface ActiveScriptState {
     cursor: dashql.buffers.ScriptCursorT | null;
 }
 
-export const ScriptEditor: React.FC<Props> = (_props: Props) => {
+export const ScriptEditor: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const config = useAppConfig();
-    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
+    const [workbook, modifyWorkbook] = useWorkbookState(props.workbookId);
     const [connState, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
 
     // The editor view

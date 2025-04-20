@@ -12,7 +12,7 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
+import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
@@ -26,9 +26,8 @@ import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { useQueryState } from '../../connection/query_executor.js';
-
+import { useRouteContext } from '../../router.js';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -149,10 +148,12 @@ interface TabState {
     enabledTabs: number;
 }
 
-interface Props { }
+interface Props {
+}
 
-export const EditorPage: React.FC<Props> = (_props: Props) => {
-    const [workbook, modifyWorkbook] = useCurrentWorkbookState();
+export const WorkbookPage: React.FC<Props> = (props: Props) => {
+    const route = useRouteContext();
+    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
@@ -220,6 +221,10 @@ export const EditorPage: React.FC<Props> = (_props: Props) => {
     }, [activeQueryId, activeQueryState?.status]);
 
     const sessionCommand = useWorkbookCommandDispatch();
+
+    if (route.workbookId === null) {
+        return <div />;
+    }
     return (
         <div className={styles.page}>
             <div className={styles.header_container}>
@@ -259,7 +264,7 @@ export const EditorPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.body_container}>
                 <div className={styles.editor_container}>
-                    <ScriptEditor className={styles.editor_card} />
+                    <ScriptEditor className={styles.editor_card} workbookId={route.workbookId} />
                 </div>
                 <DragSizing border={DragSizingBorder.Top} className={styles.output_container}>
                     <VerticalTabs
