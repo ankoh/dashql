@@ -23,18 +23,21 @@ export interface ListItemProps {
     disabled?: boolean;
     selected?: boolean;
     'data-item'?: string;
+    tabIndex?: number;
 }
 
 export function ListItem(props: ListItemProps) {
     return (
         <button
+            type="button"
             className={classNames(styles.item_container, {
                 [styles.disabled]: props.disabled,
                 [styles.selected]: props.selected
             })}
             onClick={props.onClick}
             data-item={props['data-item']}
-            tabIndex={0}
+            tabIndex={props.tabIndex}
+            aria-selected={props.selected}
         >
             {props.children}
         </button>

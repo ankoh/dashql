@@ -82,11 +82,11 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         );
     }, [workbook?.connectorInfo, workbookFileName]);
 
-    const renderItem = ([wi, w]: [number, WorkbookState]) => {
-        const connection = conn.connectionMap.get(w.connectionId)!;
+    const Item = (props: { wi: number, w: WorkbookState, idx: number }) => {
+        const connection = conn.connectionMap.get(props.w.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
-        const workbookFileName = w.workbookMetadata.fileName;
+        const workbookFileName = props.w.workbookMetadata.fileName;
         const connSig = connection.connectionSignature.hash.asPrng();
 
         switch (connection.details.type) {
@@ -151,10 +151,10 @@ export function WorkbookListDropdown(props: { className?: string; }) {
 
         return (
             <ActionList.ListItem
-                key={wi}
+                tabIndex={0}
                 onClick={onWorkbookClick}
-                selected={wi === workbook?.workbookId}
-                data-item={wi.toString()}
+                selected={props.wi === workbook?.workbookId}
+                data-item={props.wi.toString()}
             >
                 <ActionList.Leading>
                     <Identicon
@@ -190,11 +190,14 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             open={isOpen}
             onClose={() => setIsOpen(false)}
             renderAnchor={(p: object) => <div {...p}>{button}</div>}
+            focusZoneSettings={{ disabled: true }}
         >
             <ActionList.List aria-label="Workbooks">
                 <ActionList.GroupHeading>Workbooks</ActionList.GroupHeading>
                 <>
-                    {workbooks.map(renderItem)}
+                    {workbooks.map(([wi, w]: [number, WorkbookState], idx: number) => (
+                        <Item key={wi} w={w} wi={wi} idx={idx} />
+                    ))}
                 </>
             </ActionList.List>
         </AnchoredOverlay>
