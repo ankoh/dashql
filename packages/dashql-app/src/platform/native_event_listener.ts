@@ -74,6 +74,7 @@ export class NativePlatformEventListener extends PlatformEventListener {
                 });
 
             } else if (rawEvent.payload.type === 'drop') {
+                let anyDropped = false;
                 for (let i = 0; i < rawEvent.payload.paths.length; ++i) {
                     const path = rawEvent.payload.paths[i];
                     const pos = rawEvent.payload.position;
@@ -82,9 +83,16 @@ export class NativePlatformEventListener extends PlatformEventListener {
                         pageY: pos.y,
                         file: new NativeFile(path),
                     };
+                    anyDropped = true;
                     listener.dispatchDragDrop({
                         type: DROP_EVENT,
                         value: event
+                    });
+                }
+                if (!anyDropped) {
+                    listener.dispatchDragDrop({
+                        type: DRAG_STOP_EVENT,
+                        value: null
                     });
                 }
             } else {

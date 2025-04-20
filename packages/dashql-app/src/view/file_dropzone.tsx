@@ -5,7 +5,6 @@ import * as symbols from '../../static/svg/symbols.generated.svg';
 import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../platform/event.js';
 import { PlatformFile } from '../platform/file.js';
 import { usePlatformEventListener } from '../platform/event_listener_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
 import { FileLoader } from './file_loader.js';
 
 function FileDropzoneArea() {
@@ -23,7 +22,6 @@ function FileDropzoneArea() {
 }
 
 export function FileDropzone(props: { children: React.ReactElement }) {
-    const _logger = useLogger();
     const appEvents = usePlatformEventListener();
     const [droppedFile, setDroppedFile] = React.useState<PlatformFile | null>(null);
     const [dragOngoing, setDragOngoing] = React.useState<Date | null>(null);

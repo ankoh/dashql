@@ -75,6 +75,7 @@ export class WebPlatformEventListener extends PlatformEventListener {
 
             // Dispatch drop event
             if (e.dataTransfer) {
+                let anyDropped = false;
                 for (let i = 0; i < e.dataTransfer.files.length; ++i) {
                     const file = e.dataTransfer.files.item(i);
                     if (file) {
@@ -83,12 +84,24 @@ export class WebPlatformEventListener extends PlatformEventListener {
                             pageY: e.pageY as number,
                             file: new WebFile(file, file.name),
                         };
+                        anyDropped = true;
                         listener.dispatchDragDrop({
                             type: DROP_EVENT,
                             value: event
                         });
                     }
                 }
+                if (!anyDropped) {
+                    listener.dispatchDragDrop({
+                        type: DRAG_STOP_EVENT,
+                        value: null
+                    });
+                }
+            } else {
+                listener.dispatchDragDrop({
+                    type: DRAG_STOP_EVENT,
+                    value: null
+                });
             }
         });
     }
