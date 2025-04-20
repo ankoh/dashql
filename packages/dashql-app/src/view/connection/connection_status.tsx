@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorType } from '../../connection/connector_info.js';
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ConnectionStatus(props: Props) {
+    const navigate = useNavigate();
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
@@ -42,6 +44,7 @@ export function ConnectionStatus(props: Props) {
                     </svg>
                 )
             }
+            onClick={() => navigate(`/connection/${props.conn.connectionId}`)}
         >
             {connStatusText}
         </Button>

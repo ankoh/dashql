@@ -7,7 +7,7 @@ import { AppSetupListener } from './app_setup_listener.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
-import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
+import { ConnectionSettingsPage, ConnectionSettingsPageRedirect } from './view/connection/connection_settings_page.js';
 import { CurrentWorkbookStateProvider } from './workbook/current_workbook.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
@@ -132,7 +132,8 @@ root.render(
                 <NavBarContainer>
                     <Routes>
                         <Route index Component={EditorPage} />
-                        <Route path="/connection" Component={ConnectionSettingsPage} />
+                        <Route path="/connection" Component={ConnectionSettingsPageRedirect} />
+                        <Route path="/connection/:connectionId" Component={ConnectionSettingsPage} />
                         {isDebugBuild() && (
                             <>
                                 <Route path="/internals/ui" Component={UIInternalsPage} />

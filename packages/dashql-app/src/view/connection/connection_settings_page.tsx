@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import * as styles from './connection_settings_page.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
@@ -9,20 +10,42 @@ import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
-import { isDebugBuild } from '../../globals.js';
 import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';
-import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
 import { classNames } from '../../utils/classnames.js';
 import { Identicon } from '../../view/foundations/identicon.js';
+import { useCurrentWorkbookState } from '../../workbook/current_workbook.js';
+
+export const ConnectionSettingsPageRedirect = (props: { children?: React.ReactElement }) => {
+    const navigate = useNavigate();
+    const [currentWorkbook, _] = useCurrentWorkbookState();
+    const defaultConns = useDefaultConnections();
+
+    // Navigate to the default connection
+    React.useEffect(() => {
+        // If the connection parameter is missing, we navigate to the workbook connection
+        const workbookConnection = currentWorkbook?.connectionId ?? null;
+        if (workbookConnection != null) {
+            navigate(`/connection/${workbookConnection}`);
+            return;
+        } else if (defaultConns.length > 0) {
+            // Otherwise we navigate to the serverless connector
+            navigate(`/connection/${defaultConns[ConnectorType.SERVERLESS]}`);
+        } else {
+            navigate(``);
+        }
+    }, [currentWorkbook]);
+
+    return props.children;
+};
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
     selected: boolean;
-    select: (conn: [ConnectorType, number] | null) => void;
 }
 
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
+    const navigate = useNavigate();
     // Get the connection state
     const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
     // Compute the connection signature
@@ -33,7 +56,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
             className={classNames(styles.connection_group_entry, {
                 [styles.connection_group_entry_active]: props.selected
             })}
-            onClick={connState != null ? () => props.select([connState.connectorInfo.connectorType, props.connectionId]) : undefined}
+            onClick={connState != null ? () => navigate(`/connection/${props.connectionId}`) : undefined}
         >
             <div className={styles.connection_group_entry_icon_container}>
                 <Identicon
@@ -56,10 +79,10 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
 interface ConnectionGroupProps {
     connector: ConnectorType;
     selected: [ConnectorType, number] | null;
-    select: (conn: [ConnectorType, number] | null) => void;
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
+    const navigate = useNavigate();
     // Is the group connected?
     const groupSelected = props.selected != null && props.selected[0] == props.connector;
     // Resolve the connector info
@@ -91,7 +114,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             >
                 <button
                     className={styles.connector_group_button}
-                    onClick={defaultConnId != null ? () => props.select([props.connector, defaultConnId]) : undefined}
+                    onClick={defaultConnId != null ? () => navigate(`/connection/${defaultConnId}`) : undefined}
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
                         <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
@@ -106,7 +129,6 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                             key={cid}
                             connectionId={cid}
                             selected={props.selected != null && props.selected[1] == cid}
-                            select={props.select}
                         />
                     ))}
                 </div>
@@ -118,48 +140,52 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
 interface PageProps { }
 
 export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) => {
+    const navigate = useNavigate();
+    const params = useParams();
     const [connRegistry, _setConnReg] = useConnectionRegistry();
-    const [currentWorkbook, _] = useCurrentWorkbookState();
-    const [focusedConnection, setFocusedConnection] = React.useState<[ConnectorType, number] | null>(null);
 
+    // Parse the connection id param
+    let connectionId: number | null = null;
+    let connectionType = ConnectorType.SERVERLESS;
+    if (params?.connectionId !== undefined) {
+        try {
+            connectionId = Number.parseInt(params.connectionId);
+            connectionType = connRegistry.connectionMap.get(connectionId)!.connectorInfo.connectorType;
+        } catch (e: unknown) { }
+    }
+
+    // If connection does not exist, trigger redirect
     React.useEffect(() => {
-        // Always try to switch to the current workbook connection
-        if (currentWorkbook != null) {
-            setFocusedConnection([currentWorkbook.connectorInfo.connectorType, currentWorkbook.connectionId]);
-        } else if (focusedConnection == null) {
-            // Otherwise pick a fallback connection
-            const fallbackType = isDebugBuild() ? ConnectorType.DEMO : ConnectorType.SERVERLESS;
-            const defaultConnIds = connRegistry.connectionsByType[fallbackType];
-            if (defaultConnIds.size > 0) {
-                const connId = defaultConnIds.values().next().value!;
-                setFocusedConnection([fallbackType, connId]);
-            }
+        if (connectionId == null) {
+            navigate("/connection");
         }
-    }, []);
+    }, [connectionId]);
 
     // Render the setttings page
     let settings: React.ReactElement = <div />;
-    if (focusedConnection != null) {
-        const [focusedConnector, focusedConnectionId] = focusedConnection;
-        switch (focusedConnector) {
+    if (connectionId !== null) {
+        switch (connectionType) {
             case ConnectorType.TRINO:
-                settings = <TrinoConnectorSettings connectionId={focusedConnectionId} />;
+                settings = <TrinoConnectorSettings connectionId={connectionId} />;
                 break;
             case ConnectorType.SALESFORCE_DATA_CLOUD:
-                settings = <SalesforceConnectorSettings connectionId={focusedConnectionId} />;
+                settings = <SalesforceConnectorSettings connectionId={connectionId} />;
                 break;
             case ConnectorType.HYPER_GRPC:
-                settings = <HyperGrpcConnectorSettings connectionId={focusedConnectionId} />;
+                settings = <HyperGrpcConnectorSettings connectionId={connectionId} />;
                 break;
             case ConnectorType.SERVERLESS:
-                settings = <ServerlessConnectorSettings connectionId={focusedConnectionId} />;
+                settings = <ServerlessConnectorSettings connectionId={connectionId} />;
                 break;
             case ConnectorType.DEMO:
-                settings = <DemoConnectorSettings connectionId={focusedConnectionId} />;
+                settings = <DemoConnectorSettings connectionId={connectionId} />;
                 break;
         }
     }
 
+    if (connectionId == null) {
+        return <div />;
+    }
     return (
         <div className={styles.container}>
             <div className={styles.header_container}>
@@ -171,11 +197,11 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 <div className={styles.connection_list}>
                     <div className={styles.connection_section}>
                         {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER_GRPC, ConnectorType.TRINO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connectionType, connectionId]} />)}
                     </div>
                     <div className={styles.connection_section}>
                         {[ConnectorType.SERVERLESS, ConnectorType.DEMO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={focusedConnection} select={setFocusedConnection} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connectionType, connectionId]} />)}
                     </div>
                 </div>
                 <div className={styles.connection_settings_container}>
@@ -185,3 +211,4 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
         </div >
     );
 };
+

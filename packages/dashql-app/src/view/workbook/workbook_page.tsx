@@ -38,7 +38,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
         <>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => workbookCommand(WorkbookCommandType.ExecuteEditorQuery)}
+                onClick={() => workbookCommand(WorkbookCommandType.EditWorkbookConnection)}
             >
                 <ActionList.Leading>
                     <DatabaseIcon />

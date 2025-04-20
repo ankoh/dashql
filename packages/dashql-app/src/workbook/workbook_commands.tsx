@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
@@ -19,6 +20,7 @@ export enum WorkbookCommandType {
     SaveQueryResultsAsArrow = 5,
     SelectPreviousWorkbookEntry = 6,
     SelectNextWorkbookEntry = 7,
+    EditWorkbookConnection = 8,
 }
 
 export type ScriptCommandDispatch = (command: WorkbookCommandType) => void;
@@ -31,6 +33,7 @@ const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(n
 export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
 
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
+    const navigate = useNavigate();
     const logger = useLogger();
     const [workbook, modifyWorkbook] = useCurrentWorkbookState();
     const [connection, _dispatchConnection] = useConnectionState(workbook?.connectionId ?? null);
@@ -102,6 +105,11 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         });
                     }
                     break;
+                case WorkbookCommandType.EditWorkbookConnection:
+                    if (workbook.connectionId != null) {
+                        navigate(`/connection/${workbook.connectionId}`);
+                    }
+                    break;
             }
         },
         [connection, workbook, workbook?.connectorInfo],
@@ -141,6 +149,11 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         ? () => commandNotImplemented(c, 'REFRESH_SCHEMA')
                         : () => commandDispatch(WorkbookCommandType.RefreshCatalog),
                 ),
+            },
+            {
+                key: 'u',
+                ctrlKey: true,
+                callback: () => commandDispatch(WorkbookCommandType.SaveWorkbookAsLink),
             },
             {
                 key: 'u',
