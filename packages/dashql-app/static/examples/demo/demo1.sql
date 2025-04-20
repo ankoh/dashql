@@ -1,4 +1,4 @@
--- Demo Script
+-- Demo script
 
 select column_0_0_0_2
 from table_0_0_0 a, table_0_0_2 b
