@@ -1,45 +1,49 @@
 import * as React from 'react';
-import * as styles from './connection_status.module.css';
 
 import { ConnectionState } from '../../connection/connection_state.js';
-import { classNames } from '../../utils/classnames.js';
 import { ConnectorType } from '../../connection/connector_info.js';
+import { Button, ButtonVariant } from '../../view/foundations/button.js';
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
-    "Offline",
+    "Disconnected",
     "Connecting",
     "Cancelled",
     "Connected",
     "Failed",
 ]
 
-export const CONNECTION_HEALTH_CLASSES: string[] = [
-    styles.dot_offline,
-    styles.dot_connecting,
-    styles.dot_cancelled,
-    styles.dot_online,
-    styles.dot_failed,
+export const CONNECTION_HEALTH_COLORS: string[] = [
+    "#cf222e",
+    "#9a6700",
+    "#cf222e",
+    "#1f883d",
+    "#cf222e",
 ];
 
 interface Props {
-    className?: string;
     conn: ConnectionState;
 }
 
 export function ConnectionStatus(props: Props) {
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
-    const connStatusClass = CONNECTION_HEALTH_CLASSES[props.conn.connectionHealth ?? 0];
+    const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
     // Don't show a connector info for serverless connections
     if (props.conn.connectorInfo.connectorType == ConnectorType.SERVERLESS) {
         return <div />;
     }
     return (
-        <div className={styles.container}>
-            <div className={classNames(styles.status_icon, connStatusClass)} />
-            <div className={styles.status_text}>
-                {connStatusText}
-            </div>
-        </div>
+        <Button
+            variant={ButtonVariant.Default}
+            trailingVisual={
+                () => (
+                    <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="4" cy="4" r="4" fill={connStatusColor} />
+                    </svg>
+                )
+            }
+        >
+            {connStatusText}
+        </Button>
     );
 }

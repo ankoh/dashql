@@ -3,30 +3,6 @@
     flex-direction: row;
     align-items: center;
     column-gap: 8px;
-}
-.status_text {
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-.status_icon {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: red;
-}
-
-.dot_offline {
-    background-color: #24292f;
-}
-.dot_connecting {
-    background-color: #9a6700;
-}
-.dot_cancelled {
-    background-color: #24292f;
-}
-.dot_online {
-    background-color: #1f883d;
-}
-.dot_failed {
-    background-color: #cf222e;
+    padding: 4px 8px;
+    border-radius: var(--border_radius);
 }

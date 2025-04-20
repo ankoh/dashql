@@ -421,7 +421,7 @@ export class CatalogViewModel {
             for (let i = 0; i < notNullEntries - 1; ++i) {
                 const entryId = entryIds[i]!;
 
-                // Ping the entry
+                // Pin the entry
                 wasOverflowing[i] = (levels[i].entryFlags[entryId] & CatalogRenderingFlag.OVERFLOW) != 0;
                 levels[i].pinnedEntries.add(entryId);
                 levels[i].pinnedInEpoch[entryId] = epoch;
