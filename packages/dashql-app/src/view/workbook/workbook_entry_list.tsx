@@ -6,6 +6,7 @@ import { ScriptData, ScriptKey, SELECT_ENTRY, WorkbookEntry, WorkbookState } fro
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
+import { classNames } from '../../utils/classnames.js';
 
 interface WorkbookEntryProps {
     workbook: WorkbookState;
@@ -38,8 +39,14 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
         });
     };
 
+    const selected = props.entryIndex == props.workbook.selectedWorkbookEntry;
     return (
-        <div className={styles.entry_container} onClick={selectWorkbook}>
+        <div
+            className={classNames(styles.entry_container, {
+                [styles.selected]: selected,
+            })}
+            onClick={selectWorkbook}
+        >
             <Identicon
                 className={styles.entry_icon_container}
                 layers={[
@@ -63,7 +70,6 @@ export function WorkbookEntryList(props: ListProps) {
     }
 
     const scripts = props.workbook.workbookEntries.map(e => props.workbook!.scripts[e.scriptKey]);
-
     return (
         <div className={styles.entry_list}>
             {scripts.map((v, i) => (

@@ -37,7 +37,7 @@
     left: -8px;
     width: 4px;
     border-radius: 8px;
-    background-color: #0969da;
+    background-color: hsl(212.44deg 92.07% 44.51%);
 }
 .item_container.disabled {
     cursor: not-allowed;

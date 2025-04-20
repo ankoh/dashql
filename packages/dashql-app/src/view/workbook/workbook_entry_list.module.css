@@ -1,12 +1,33 @@
 .entry_list {
     display: flex;
     flex-direction: column;
-    row-gap: 6px;
+    row-gap: 4px;
     padding: 6px 0px;
 }
 
 .entry_container {
-    padding: 0px 6px;
+    position: relative;
+    padding: 4px 8px 4px 12px;
+}
+.entry_container.selected::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0px;
+    width: 4px;
+    border-radius: 8px;
+    background-color: hsl(212.44deg 92.07% 44.51%);
+}
+.entry_container:hover:not(.selected)::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0px;
+    width: 4px;
+    border-radius: 8px;
+    background-color: hsl(212.44deg 40.07% 84.51%);
 }
 
 .entry_icon_container {
