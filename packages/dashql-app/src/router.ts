@@ -14,7 +14,7 @@ export const FINISH_SETUP = Symbol("SETUP_DONE");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, { workbookId: number | null, connectionId: number }>
+    VariantKind<typeof CONNECTION_PATH, { connectionId: number }>
     | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number }>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof SKIP_SETUP, null>
@@ -44,7 +44,7 @@ export function useRouterNavigate() {
                 navigate("/connection", {
                     state: {
                         connectionId: route.value.connectionId,
-                        workbookId: route.value.workbookId,
+                        workbookId: context.workbookId,
                         setupDone: context.setupDone,
                     }
                 });

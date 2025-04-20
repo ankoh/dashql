@@ -122,15 +122,15 @@ const VersionButton = (_props: {}) => {
 };
 
 export const NavBar = (): React.ReactElement => {
-    const route = useRouteContext();
     const logger = useLogger();
-    const platformType = usePlatformType();
+    const route = useRouteContext();
+    const platform = usePlatformType();
 
     const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? workbook?.connectionId ?? null);
 
-    const isBrowser = platformType === PlatformType.WEB;
-    const isMac = platformType === PlatformType.MACOS;
+    const isBrowser = platform === PlatformType.WEB;
+    const isMac = platform === PlatformType.MACOS;
     const setupLinkTarget = isBrowser ? WorkbookLinkTarget.NATIVE : WorkbookLinkTarget.WEB;
     const setupUrl = React.useMemo(() => {
         if (connection == null) {
@@ -154,7 +154,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <PageTab label="Workbook" route="/" location={location.pathname} icon={`${symbols}#file`} state={route} />
+                <PageTab label="Workbook" route="/workbook" location={location.pathname} icon={`${symbols}#file`} state={route} />
                 <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
             </div>
             <div className={styles.version_container}>

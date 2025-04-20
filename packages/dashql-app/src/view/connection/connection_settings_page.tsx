@@ -37,7 +37,6 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     type: CONNECTION_PATH,
                     value: {
                         connectionId: props.connectionId,
-                        workbookId: null,
                     }
                 })
                 : undefined
@@ -105,7 +104,6 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                             type: CONNECTION_PATH,
                             value: {
                                 connectionId: defaultConnId,
-                                workbookId: null,
                             }
                         })
                         : undefined
@@ -149,7 +147,6 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: route.connectionId,
-                    workbookId: route?.workbookId ?? null,
                 }
             });
             return;
@@ -159,7 +156,6 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: defaultConns[ConnectorType.SERVERLESS],
-                    workbookId: null,
                 }
             });
         }

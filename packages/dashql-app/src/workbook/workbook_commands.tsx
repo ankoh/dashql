@@ -112,7 +112,6 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         navigate({
                             type: CONNECTION_PATH,
                             value: {
-                                workbookId: workbook.workbookId,
                                 connectionId: workbook.connectionId,
                             }
                         });
