@@ -180,7 +180,7 @@ export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<
             if (transaction.docChanged) {
                 copyIfNotReplaced();
                 transaction.changes.iterChanges(
-                    (fromA: number, toA: number, fromB: number, toB: number, inserted: Text) => {
+                    (fromA: number, toA: number, fromB: number, _toB: number, inserted: Text) => {
                         if (toA - fromA > 0) {
                             next.targetScript!.eraseTextRange(fromA, toA - fromA);
                         }

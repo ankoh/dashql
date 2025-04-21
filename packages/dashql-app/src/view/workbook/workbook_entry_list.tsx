@@ -157,8 +157,8 @@ export function WorkbookEntryList(props: ListProps) {
     const dndSensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
-                delay: 200,
+                distance: 4,
+                delay: 150,
                 tolerance: 10,
             },
         }),
