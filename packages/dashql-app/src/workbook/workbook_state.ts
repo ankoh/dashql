@@ -696,6 +696,9 @@ function deleteDeadScripts(state: WorkbookState): WorkbookState {
     const cleanedScripts: ScriptDataMap = { ...state.scripts };
     // Delete scripts
     for (const [k, v] of deadScripts) {
+        if (v.script && v.metadata.scriptType === ScriptType.SCHEMA) {
+            state.connectionCatalog.dropScript(v.script);
+        }
         deleteScriptData(v);
         delete cleanedScripts[k];
     }
