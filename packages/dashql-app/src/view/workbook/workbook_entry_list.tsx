@@ -74,12 +74,14 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
 }
 
 function WorkbookDeletionZone(_props: {}) {
-    const { setNodeRef } = useDroppable({
+    const { setNodeRef, isOver } = useDroppable({
         id: WORKBOOK_TRASH_DROPZONE,
     });
     return (
         <div
-            className={styles.entry_delete_zone_container}
+            className={classNames(styles.entry_delete_zone_container, {
+                [styles.over]: isOver
+            })}
             ref={setNodeRef}
             aria-label="Delete Workbook"
         >

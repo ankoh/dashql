@@ -54,11 +54,18 @@
     height: 32px;
     padding: 0 8px;
     border-radius: 6px;
-    border: 1px solid;
-    border-color: var(--border_color_primary);
+    /* border: 2px dashed hsl(355.84deg 71.78% 47.25%); */
+    border: 2px dashed hsl(210deg 17.5% 84.31%);
+    /* color: hsl(355.84deg 71.78% 47.25%); */
+    /* color: hsl(210deg 17.5% 44.31%); */
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+.entry_delete_zone_container.over {
+    border: 2px dashed hsl(355.84deg, 71.78%, 47.25%);
+    background-color: hsla(355.84deg, 71.78%, 47.25%, 0.3);
+    color: hsl(355.84deg 71.78% 47.25%);
 }
 
 
