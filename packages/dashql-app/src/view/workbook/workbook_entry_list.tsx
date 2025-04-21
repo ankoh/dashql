@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable, DragOverlay } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
@@ -14,15 +14,16 @@ import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
+const WORKBOOK_TRASH_DROPZONE = "workbook-trash-dropzone";
+
 interface WorkbookEntryProps {
     id: string;
     workbook: WorkbookState;
-    modifyWorkbook: ModifyWorkbook;
     entryIndex: number;
     entry: WorkbookEntry;
     scriptKey: ScriptKey;
     script: ScriptData;
-    selectWorkbook: (entryIdx: number) => void;
+    selectWorkbook?: (entryIdx: number) => void;
 }
 
 function WorkbookScriptEntry(props: WorkbookEntryProps) {
@@ -48,6 +49,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     };
 
     const selected = props.entryIndex == props.workbook.selectedWorkbookEntry;
+    const selectWorkbook = props.selectWorkbook;
     return (
         <div
             ref={sortable.setNodeRef}
@@ -57,7 +59,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
             className={classNames(styles.entry_container, {
                 [styles.selected]: selected,
             })}
-            onClick={() => props.selectWorkbook(props.entryIndex)}
+            onClick={selectWorkbook ? () => selectWorkbook(props.entryIndex) : undefined}
         >
             <Identicon
                 className={styles.entry_icon_container}
@@ -67,6 +69,23 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
                     entrySig.next(),
                 ]}
             />
+        </div>
+    );
+}
+
+function WorkbookDeletionZone(_props: {}) {
+    const { setNodeRef } = useDroppable({
+        id: WORKBOOK_TRASH_DROPZONE,
+    });
+    return (
+        <div
+            className={styles.entry_delete_zone_container}
+            ref={setNodeRef}
+            aria-label="Delete Workbook"
+        >
+            <svg width="14px" height="14px">
+                <use xlinkHref={`${symbols}#trash_16`} />
+            </svg>
         </div>
     );
 }
@@ -81,15 +100,19 @@ export function WorkbookEntryList(props: ListProps) {
         return <div />;
     }
 
-    const [isDragging, setIsDragging] = React.useState<boolean>(false);
     const lastDragEnd = React.useRef<Date | null>(null);
+    const [draggedElementId, setDraggedElementId] = React.useState<string | null>(null);
     const handleDragStart = (event: any) => {
-        setIsDragging(true);
+        setDraggedElementId(event.active.id);
     };
     const handleDragEnd = (event: any) => {
+        setDraggedElementId(null);
         const { active, over } = event;
         if (!active || !over) {
             return;
+        }
+        if (over.id == WORKBOOK_TRASH_DROPZONE) {
+            console.log(`DELETE SCRIPT ${active.id}`);
         }
         if (active.id !== over.id) {
             const oldIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === active.id);
@@ -106,7 +129,6 @@ export function WorkbookEntryList(props: ListProps) {
                 }
             });
         }
-        setIsDragging(false);
     };
     const selectWorkbook = (entryIdx: number) => {
         // Just finished drag?
@@ -125,14 +147,11 @@ export function WorkbookEntryList(props: ListProps) {
     const dndSensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8, // Only start dragging after moving 8px
-                delay: 200, // Or after holding for 100ms
+                distance: 8,
+                delay: 200,
                 tolerance: 10,
             },
         }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
     );
 
     const scripts = props.workbook.workbookEntries.map(e => props.workbook!.scripts[e.scriptKey]);
@@ -153,7 +172,6 @@ export function WorkbookEntryList(props: ListProps) {
                             key={v.scriptKey.toString()}
                             id={v.scriptKey.toString()}
                             workbook={props.workbook!}
-                            modifyWorkbook={props.modifyWorkbook!}
                             entryIndex={i}
                             entry={props.workbook!.workbookEntries[i]}
                             scriptKey={v.scriptKey}
@@ -161,44 +179,45 @@ export function WorkbookEntryList(props: ListProps) {
                             selectWorkbook={selectWorkbook}
                         />
                     ))}
-                    <div
-                        className={styles.entry_add_container}
-                        onClick={() => {
-                            if (props.modifyWorkbook) {
-                                props.modifyWorkbook({
-                                    type: CREATE_WORKBOOK_ENTRY,
-                                    value: null
-                                });
-                            }
-                        }}
-                    >
-                        {isDragging
-                            ? (
-                                <IconButton
-                                    className={styles.entry_add_icon_container}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="Delete Workbook"
-                                >
-                                    <svg width="14px" height="14px">
-                                        <use xlinkHref={`${symbols}#trash_16`} />
-                                    </svg>
-                                </IconButton>
-                            )
-                            : (
-                                <IconButton
-                                    className={styles.entry_add_icon_container}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="Add Workbook"
-                                >
-                                    <svg width="14px" height="14px">
-                                        <use xlinkHref={`${symbols}#plus_16`} />
-                                    </svg>
-                                </IconButton>
-                            )
-                        }
-                    </div>
                 </div>
             </SortableContext>
+            <div className={styles.entry_list_modify_container}>
+                {draggedElementId != null
+                    ? <WorkbookDeletionZone />
+                    : (
+                        <IconButton
+                            className={styles.entry_add_button_container}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Add Workbook"
+                            onClick={() => {
+                                if (props.modifyWorkbook) {
+                                    props.modifyWorkbook({
+                                        type: CREATE_WORKBOOK_ENTRY,
+                                        value: null
+                                    });
+                                }
+                            }}
+                        >
+                            <svg width="14px" height="14px">
+                                <use xlinkHref={`${symbols}#plus_16`} />
+                            </svg>
+                        </IconButton>
+                    )
+                }
+            </div>
+            <DragOverlay>
+                {(draggedElementId != null) ? (
+                    <WorkbookScriptEntry
+                        id={draggedElementId}
+                        workbook={props.workbook!}
+                        entryIndex={scripts.findIndex(s => s.scriptKey.toString() === draggedElementId)}
+                        entry={props.workbook!.workbookEntries.find(e => e.scriptKey.toString() === draggedElementId)!}
+                        scriptKey={parseInt(draggedElementId)}
+                        script={scripts.find(s => s.scriptKey.toString() === draggedElementId)!}
+                        selectWorkbook={selectWorkbook}
+                    />
+                ) : null}
+            </DragOverlay>
         </DndContext>
     );
 }

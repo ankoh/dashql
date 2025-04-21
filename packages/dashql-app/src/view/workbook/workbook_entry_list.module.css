@@ -43,11 +43,22 @@
     align-items: center;
 }
 
-.entry_add_container {
+.entry_list_modify_container {
     position: relative;
     padding: 4px 8px 4px 12px;
 }
-.entry_add_icon_container {
+.entry_add_button_container {}
+
+.entry_delete_zone_container {
+    width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    border-color: var(--border_color_primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 
