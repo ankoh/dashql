@@ -10,6 +10,7 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/oc
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
+import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
@@ -33,6 +34,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
     const workbookCommand = useWorkbookCommandDispatch();
 
     const DatabaseIcon = SymbolIcon("database_16");
+    const FileSymlinkIcon = SymbolIcon("file_symlink_16");
     return (
         <>
             <ActionList.ListItem
@@ -70,6 +72,17 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
                     Refresh Catalog
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + R</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => { }}
+            >
+                <ActionList.Leading>
+                    <FileSymlinkIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Add to Catalog
+                </ActionList.ItemText>
+                <ActionList.Trailing></ActionList.Trailing>
             </ActionList.ListItem>
         </>
     );
@@ -124,7 +137,7 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                     <FileZipIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Save as File
+                    Save .{DASHQL_ARCHIVE_FILENAME_EXT}
                     <WorkbookFileSaveOverlay
                         isOpen={fileSaveIsOpen}
                         setIsOpen={openFileSave}

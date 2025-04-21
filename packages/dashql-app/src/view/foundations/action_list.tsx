@@ -34,6 +34,7 @@ export function ListItem(props: ListItemProps) {
                 [styles.disabled]: props.disabled,
                 [styles.selected]: props.selected
             })}
+            disabled={props.disabled}
             onClick={props.onClick}
             data-item={props['data-item']}
             tabIndex={props.tabIndex}
