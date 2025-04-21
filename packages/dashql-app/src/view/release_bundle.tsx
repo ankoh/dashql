@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Button } from '@primer/react';
 
 import { classNames } from '../utils/classnames.js';
+import { Button } from './foundations/button.js';
 import { ReleaseChannel, ReleaseManifest } from '../platform/web_version_check.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { useCanaryReleaseManifest, useStableReleaseManifest } from '../platform/version_check.js';

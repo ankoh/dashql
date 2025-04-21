@@ -189,27 +189,36 @@ impl Release {
     pub async fn publish(&self, client: &aws_sdk_s3::Client) -> anyhow::Result<()> {
         // Upload files one by one first to work around R2 upload issue
         for (_, file_upload) in self.file_uploads.iter() {
-            let path = file_upload.remote_path.clone();
-            let bytes = ByteStream::from_path(file_upload.source_path.clone()).await?;
-            let client = client.clone();
-            log::info!("upload started, path={}", &path);
-            let result = client
-                .put_object()
-                .bucket("dashql-get")
-                .key(&path)
-                .body(bytes)
-                .content_type("application/octet-stream")
-                .send()
-                .await
-                .map_err(|e| (path.clone(), e))
-                .map(|_| path.clone());
-            match result {
-                Ok(path) => {
-                    log::info!("upload finished, path={}", &path);
+            // Retry 3 times to work around cloudflare issues
+            let upload_succeeded = false;
+            for i in 0..3 {
+                let path = file_upload.remote_path.clone();
+                let bytes = ByteStream::from_path(file_upload.source_path.clone()).await?;
+                let client = client.clone();
+                log::info!("upload started, path={}", &path);
+                let result = client
+                    .put_object()
+                    .bucket("dashql-get")
+                    .key(&path)
+                    .body(bytes)
+                    .content_type("application/octet-stream")
+                    .send()
+                    .await
+                    .map_err(|e| (path.clone(), e))
+                    .map(|_| path.clone());
+                match result {
+                    Ok(path) => {
+                        log::info!("upload finished, path={}", &path);
+                        upload_succeeded = true;
+                        break;
+                    }
+                    Err((path, e)) => {
+                        log::error!("upload failed, path={}, error={}", &path, &e);
+                    }
                 }
-                Err((path, e)) => {
-                    log::error!("upload failed, path={}, error={}", &path, &e);
-                }
+            }
+            if !upload_succeeded {
+                return anyhow!("uploading file exhausted retries");
             }
         }
 
