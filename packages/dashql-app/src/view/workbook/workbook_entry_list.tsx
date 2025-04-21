@@ -121,7 +121,7 @@ export function WorkbookEntryList(props: ListProps) {
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 8, // Only start dragging after moving 8px
-                delay: 100, // Or after holding for 100ms
+                delay: 200, // Or after holding for 100ms
                 tolerance: 10,
             },
         }),
