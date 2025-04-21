@@ -163,8 +163,7 @@ export function Identicon(props: IdenticonProps) {
                             ShapeType.Line,
                         ]}
                         fills={[
-                            "hsl(210deg, 12%, 46%)",
-                            "hsl(210deg, 12%, 66%)",
+                            "hsl(210deg, 12%, 76%)",
                         ]}
                         offsetXMin={-40}
                         offsetXMax={40}

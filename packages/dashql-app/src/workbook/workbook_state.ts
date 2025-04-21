@@ -111,6 +111,7 @@ export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
 export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
 export const REORDER_ENTRIES = Symbol('REORDER_ENTRIES');
+export const CREATE_ENTRY = Symbol('CREATE_ENTRY');
 
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
@@ -129,7 +130,8 @@ export type WorkbookStateAction =
     | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
     | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
     | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
-    | VariantKind<typeof REORDER_ENTRIES, { oldIndex: number, newIndex: number }>;
+    | VariantKind<typeof REORDER_ENTRIES, { oldIndex: number, newIndex: number }>
+    | VariantKind<typeof CREATE_ENTRY, null>;
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
@@ -564,6 +566,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
             // Calculate how the reordering affects the selected index
             let newSelectedIndex = state.selectedWorkbookEntry;
+
             if (state.selectedWorkbookEntry === oldIndex) {
                 // We reordered the selected element
                 newSelectedIndex = newIndex;
@@ -574,10 +577,65 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 // We moved one element above the selection below it and have to increment the selection
                 newSelectedIndex++;
             }
+
             return {
                 ...state,
                 workbookEntries: newEntries,
                 selectedWorkbookEntry: newSelectedIndex
+            };
+        }
+
+        case CREATE_ENTRY: {
+            // Generate a new script key
+            const scriptKey = Math.max(...Object.keys(state.scripts).map(k => parseInt(k)), 0) + 1;
+            // Create a new script
+            const script = state.instance.createScript(state.connectionCatalog, scriptKey);
+            // Create script data
+            const scriptData: ScriptData = {
+                scriptKey,
+                script,
+                metadata: {
+                    scriptType: ScriptType.QUERY,
+                    originalScriptName: null,
+                    originalSchemaName: null,
+                    originType: ScriptOriginType.LOCAL,
+                    originalHttpURL: null,
+                    annotations: null,
+                    immutable: false,
+                },
+                loading: {
+                    status: ScriptLoadingStatus.SUCCEEDED,
+                    error: null,
+                    startedAt: null,
+                    finishedAt: null,
+                },
+                processed: {
+                    scanned: null,
+                    parsed: null,
+                    analyzed: null,
+                    destroy: () => { },
+                },
+                outdatedAnalysis: true,
+                statistics: Immutable.List(),
+                cursor: null,
+                completion: null,
+                selectedCompletionCandidate: null,
+            };
+
+            // Create workbook entry
+            const entry: WorkbookEntry = {
+                scriptKey,
+                queryId: null,
+                title: null,
+            };
+            return {
+                ...state,
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: scriptData,
+                },
+                workbookEntries: [...state.workbookEntries, entry],
+                selectedWorkbookEntry: state.workbookEntries.length,
             };
         }
     }

@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_list.module.css';
 
-import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_ENTRIES, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_ENTRIES, CREATE_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -36,7 +36,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
         const seed = connState.connectionSignature.hash.clone();
         seed.add(props.scriptKey.toString());
         return seed;
-    }, [connSig, props.entryIndex]);
+    }, [connState.connectionSignature.hash, props.scriptKey]);
     const entrySig = entrySigHash.asPrng();
 
     // Setup drag and drop
@@ -122,7 +122,7 @@ export function WorkbookEntryList(props: ListProps) {
             activationConstraint: {
                 distance: 8, // Only start dragging after moving 8px
                 delay: 100, // Or after holding for 100ms
-                tolerance: 5,
+                tolerance: 10,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -157,7 +157,14 @@ export function WorkbookEntryList(props: ListProps) {
                     ))}
                     <div
                         className={styles.entry_add_container}
-                        onClick={() => { }}
+                        onClick={() => {
+                            if (props.modifyWorkbook) {
+                                props.modifyWorkbook({
+                                    type: CREATE_ENTRY,
+                                    value: null
+                                });
+                            }
+                        }}
                     >
                         <IconButton
                             className={styles.entry_add_icon_container}
