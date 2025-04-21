@@ -81,7 +81,11 @@ export function WorkbookEntryList(props: ListProps) {
         return <div />;
     }
 
+    const [isDragging, setIsDragging] = React.useState<boolean>(false);
     const lastDragEnd = React.useRef<Date | null>(null);
+    const handleDragStart = (event: any) => {
+        setIsDragging(true);
+    };
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
         if (!active || !over) {
@@ -102,6 +106,7 @@ export function WorkbookEntryList(props: ListProps) {
                 }
             });
         }
+        setIsDragging(false);
     };
     const selectWorkbook = (entryIdx: number) => {
         // Just finished drag?
@@ -135,6 +140,7 @@ export function WorkbookEntryList(props: ListProps) {
         <DndContext
             sensors={dndSensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
             <SortableContext
@@ -166,15 +172,30 @@ export function WorkbookEntryList(props: ListProps) {
                             }
                         }}
                     >
-                        <IconButton
-                            className={styles.entry_add_icon_container}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Add Workbook"
-                        >
-                            <svg width="14px" height="14px">
-                                <use xlinkHref={`${symbols}#plus_16`} />
-                            </svg>
-                        </IconButton>
+                        {isDragging
+                            ? (
+                                <IconButton
+                                    className={styles.entry_add_icon_container}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="Delete Workbook"
+                                >
+                                    <svg width="14px" height="14px">
+                                        <use xlinkHref={`${symbols}#trash_16`} />
+                                    </svg>
+                                </IconButton>
+                            )
+                            : (
+                                <IconButton
+                                    className={styles.entry_add_icon_container}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="Add Workbook"
+                                >
+                                    <svg width="14px" height="14px">
+                                        <use xlinkHref={`${symbols}#plus_16`} />
+                                    </svg>
+                                </IconButton>
+                            )
+                        }
                     </div>
                 </div>
             </SortableContext>
