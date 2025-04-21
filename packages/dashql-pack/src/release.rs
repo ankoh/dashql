@@ -190,8 +190,8 @@ impl Release {
         // Upload files one by one first to work around R2 upload issue
         for (_, file_upload) in self.file_uploads.iter() {
             // Retry 3 times to work around cloudflare issues
-            let upload_succeeded = false;
-            for i in 0..3 {
+            let mut upload_succeeded = false;
+            for _ in 0..3 {
                 let path = file_upload.remote_path.clone();
                 let bytes = ByteStream::from_path(file_upload.source_path.clone()).await?;
                 let client = client.clone();
@@ -218,7 +218,7 @@ impl Release {
                 }
             }
             if !upload_succeeded {
-                return anyhow!("uploading file exhausted retries");
+                anyhow::bail!("uploading file exhausted retries");
             }
         }
 
