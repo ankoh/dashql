@@ -110,8 +110,8 @@ export const SCRIPT_LOADING_STARTED = Symbol('SCRIPT_LOADING_STARTED');
 export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
 export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REORDER_ENTRIES = Symbol('REORDER_ENTRIES');
-export const CREATE_ENTRY = Symbol('CREATE_ENTRY');
+export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_ENTRIES');
+export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_ENTRY');
 
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
@@ -130,8 +130,8 @@ export type WorkbookStateAction =
     | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
     | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
     | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
-    | VariantKind<typeof REORDER_ENTRIES, { oldIndex: number, newIndex: number }>
-    | VariantKind<typeof CREATE_ENTRY, null>;
+    | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
+    | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>;
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
@@ -558,7 +558,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             return next;
         }
 
-        case REORDER_ENTRIES: {
+        case REORDER_WORKBOOK_ENTRIES: {
             const { oldIndex, newIndex } = action.value;
             const newEntries = [...state.workbookEntries];
             const [movedEntry] = newEntries.splice(oldIndex, 1);
@@ -585,7 +585,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
         }
 
-        case CREATE_ENTRY: {
+        case CREATE_WORKBOOK_ENTRY: {
             // Generate a new script key
             const scriptKey = Math.max(...Object.keys(state.scripts).map(k => parseInt(k)), 0) + 1;
             // Create a new script

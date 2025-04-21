@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_list.module.css';
 
-import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_ENTRIES, CREATE_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -95,7 +95,7 @@ export function WorkbookEntryList(props: ListProps) {
             }
             lastDragEnd.current = new Date();
             props.modifyWorkbook!({
-                type: REORDER_ENTRIES,
+                type: REORDER_WORKBOOK_ENTRIES,
                 value: {
                     oldIndex,
                     newIndex,
@@ -160,7 +160,7 @@ export function WorkbookEntryList(props: ListProps) {
                         onClick={() => {
                             if (props.modifyWorkbook) {
                                 props.modifyWorkbook({
-                                    type: CREATE_ENTRY,
+                                    type: CREATE_WORKBOOK_ENTRY,
                                     value: null
                                 });
                             }
