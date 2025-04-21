@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
 
 import * as styles from './catalog_viewer.module.css'
 
@@ -9,7 +8,6 @@ import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
-import { useRouteContext } from '../../router.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 const RENDERING_SETTINGS: CatalogRenderingSettings = {

@@ -43,6 +43,22 @@
     align-items: center;
 }
 
+.entry_type_container {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    background-color: red;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    border: 1px solid hsl(210deg 17.5% 84.31%);
+}
+
 .entry_list_modify_container {
     position: relative;
     padding: 4px 8px 4px 12px;

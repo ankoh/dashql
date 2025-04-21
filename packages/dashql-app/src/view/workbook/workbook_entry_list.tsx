@@ -14,6 +14,7 @@ import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { ScriptType } from '../../workbook/script_metadata.js';
 
 const WORKBOOK_TRASH_DROPZONE = "workbook-trash-dropzone";
 
@@ -49,7 +50,8 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
         opacity: sortable.isDragging ? 0.5 : 1,
     };
 
-    const selected = props.entryIndex == props.workbook.selectedWorkbookEntry;
+    const isSchema = props.script.metadata.scriptType == ScriptType.SCHEMA;
+    const isSelected = props.entryIndex == props.workbook.selectedWorkbookEntry;
     const selectWorkbook = props.selectWorkbook;
     return (
         <div
@@ -58,7 +60,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
             {...sortable.attributes}
             {...sortable.listeners}
             className={classNames(styles.entry_container, {
-                [styles.selected]: selected,
+                [styles.selected]: isSelected,
             })}
             onClick={selectWorkbook ? () => selectWorkbook(props.entryIndex) : undefined}
         >
@@ -70,6 +72,13 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
                     entrySig.next(),
                 ]}
             />
+            {isSchema && (
+                <div className={styles.entry_type_container}>
+                    <svg width="8px" height="8px">
+                        <use xlinkHref={`${symbols}#database`} />
+                    </svg>
+                </div>
+            )}
         </div>
     );
 }
