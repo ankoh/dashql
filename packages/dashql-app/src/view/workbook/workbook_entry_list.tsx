@@ -3,6 +3,7 @@ import * as React from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_list.module.css';
@@ -78,17 +79,22 @@ function WorkbookDeletionZone(_props: {}) {
         id: WORKBOOK_TRASH_DROPZONE,
     });
     return (
-        <div
+        <motion.div
             className={classNames(styles.entry_delete_zone_container, {
                 [styles.over]: isOver
             })}
             ref={setNodeRef}
             aria-label="Delete Workbook"
+
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
         >
             <svg width="14px" height="14px">
                 <use xlinkHref={`${symbols}#trash_16`} />
             </svg>
-        </div>
+        </motion.div>
     );
 }
 
@@ -192,28 +198,36 @@ export function WorkbookEntryList(props: ListProps) {
                 </div>
             </SortableContext>
             <div className={styles.entry_list_modify_container}>
-                {draggedElementId != null
-                    ? <WorkbookDeletionZone />
-                    : (
-                        <IconButton
-                            className={styles.entry_add_button_container}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Add Workbook"
-                            onClick={() => {
-                                if (props.modifyWorkbook) {
-                                    props.modifyWorkbook({
-                                        type: CREATE_WORKBOOK_ENTRY,
-                                        value: null
-                                    });
-                                }
-                            }}
-                        >
-                            <svg width="14px" height="14px">
-                                <use xlinkHref={`${symbols}#plus_16`} />
-                            </svg>
-                        </IconButton>
-                    )
-                }
+                <AnimatePresence>
+                    {draggedElementId != null
+                        ? <WorkbookDeletionZone />
+                        : (
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                            >
+                                <IconButton
+                                    className={styles.entry_add_button_container}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="Add Workbook"
+                                    onClick={() => {
+                                        if (props.modifyWorkbook) {
+                                            props.modifyWorkbook({
+                                                type: CREATE_WORKBOOK_ENTRY,
+                                                value: null
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <svg width="14px" height="14px">
+                                        <use xlinkHref={`${symbols}#plus_16`} />
+                                    </svg>
+                                </IconButton>
+                            </motion.div>
+                        )}
+                </AnimatePresence>
             </div>
             <DragOverlay>
                 {(draggedElementId != null) ? (
