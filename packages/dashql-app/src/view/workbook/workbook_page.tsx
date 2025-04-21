@@ -75,6 +75,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => { }}
+                disabled={true}
             >
                 <ActionList.Leading>
                     <FileSymlinkIcon />
