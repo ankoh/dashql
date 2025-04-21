@@ -110,6 +110,7 @@ export const SCRIPT_LOADING_STARTED = Symbol('SCRIPT_LOADING_STARTED');
 export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
 export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
+export const REORDER_ENTRIES = Symbol('REORDER_ENTRIES');
 
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
@@ -127,7 +128,8 @@ export type WorkbookStateAction =
     | VariantKind<typeof SCRIPT_LOADING_STARTED, ScriptKey>
     | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
     | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
-    | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>;
+    | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
+    | VariantKind<typeof REORDER_ENTRIES, { oldIndex: number, newIndex: number }>;
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
@@ -552,6 +554,31 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 next.userFocus = deriveFocusFromScriptCursor(action.value, scriptData, scriptData.cursor);
             }
             return next;
+        }
+
+        case REORDER_ENTRIES: {
+            const { oldIndex, newIndex } = action.value;
+            const newEntries = [...state.workbookEntries];
+            const [movedEntry] = newEntries.splice(oldIndex, 1);
+            newEntries.splice(newIndex, 0, movedEntry);
+
+            // Calculate how the reordering affects the selected index
+            let newSelectedIndex = state.selectedWorkbookEntry;
+            if (state.selectedWorkbookEntry === oldIndex) {
+                // We reordered the selected element
+                newSelectedIndex = newIndex;
+            } else if (oldIndex < state.selectedWorkbookEntry && newIndex >= state.selectedWorkbookEntry) {
+                // We moved one element below the selection above it and have to decrement the selection
+                newSelectedIndex--;
+            } else if (oldIndex > state.selectedWorkbookEntry && newIndex <= state.selectedWorkbookEntry) {
+                // We moved one element above the selection below it and have to increment the selection
+                newSelectedIndex++;
+            }
+            return {
+                ...state,
+                workbookEntries: newEntries,
+                selectedWorkbookEntry: newSelectedIndex
+            };
         }
     }
 }
