@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_list.module.css';
 
-import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookEntry, WorkbookState } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookEntry, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -114,7 +114,15 @@ export function WorkbookEntryList(props: ListProps) {
             return;
         }
         if (over.id == WORKBOOK_TRASH_DROPZONE) {
-            console.log(`DELETE SCRIPT ${active.id}`);
+            const draggedEntry = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === active.id);
+            if (draggedEntry == -1) {
+                return;
+            }
+            props.modifyWorkbook!({
+                type: DELETE_WORKBOOK_ENTRY,
+                value: draggedEntry,
+            });
+            return;
         }
         if (active.id !== over.id) {
             const oldIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === active.id);

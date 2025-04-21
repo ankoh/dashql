@@ -79,6 +79,7 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [schemaScriptData.scriptKey]: schemaScriptData,
             },
+            nextScriptKey: 3,
             workbookEntries: [{
                 scriptKey: mainScriptData.scriptKey,
                 queryId: null,

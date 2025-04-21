@@ -49,6 +49,7 @@ export function useWorkbookSetup(): WorkbookSetupFn {
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
+            nextScriptKey: 2,
             workbookEntries: [{
                 scriptKey: mainScriptData.scriptKey,
                 queryId: null,

@@ -319,6 +319,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 connectionId: connState.connectionId,
                 connectionCatalog: connState.catalog,
                 scripts,
+                nextScriptKey: Math.max(...Object.keys(scripts).map(k => parseInt(k)), 0) + 1,
                 workbookEntries,
                 selectedWorkbookEntry: 0,
                 userFocus: null

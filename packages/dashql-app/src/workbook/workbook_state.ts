@@ -11,8 +11,10 @@ import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, FOCUS
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 
-/// The script key
+/// A script key
 export type ScriptKey = number;
+/// A script data map
+export type ScriptDataMap = { [scriptKey: number]: ScriptData };
 
 export interface WorkbookMetadata {
     /// The file name of the workbook
@@ -35,9 +37,9 @@ export interface WorkbookState {
     /// The connection catalog
     connectionCatalog: core.DashQLCatalog;
     /// The scripts
-    scripts: {
-        [scriptKey: number]: ScriptData
-    };
+    scripts: ScriptDataMap;
+    /// The next script key
+    nextScriptKey: number;
     /// The workbook entries.
     /// A workbook defines a layout for a set of scripts and links script data to query executions.
     workbookEntries: WorkbookEntry[]
@@ -81,19 +83,6 @@ export interface ScriptData {
     selectedCompletionCandidate: number | null;
 }
 
-/// Destroy a state
-export function destroyState(state: WorkbookState): WorkbookState {
-    for (const key in state.scripts) {
-        const script = state.scripts[key];
-        script.processed.destroy(script.processed);
-        for (const stats of script.statistics) {
-            stats.delete();
-        }
-        script.script?.delete();
-    }
-    return state;
-}
-
 export const DESTROY = Symbol('DESTROY');
 export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
@@ -110,8 +99,9 @@ export const SCRIPT_LOADING_STARTED = Symbol('SCRIPT_LOADING_STARTED');
 export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
 export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_ENTRIES');
-export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_ENTRY');
+export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_WORKBOOK_ENTRIES');
+export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_WORKBOOK_ENTRY');
+export const DELETE_WORKBOOK_ENTRY = Symbol('DELETE_WORKBOOK_ENTRY');
 
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
@@ -131,7 +121,9 @@ export type WorkbookStateAction =
     | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
     | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
     | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
-    | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>;
+    | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>
+    | VariantKind<typeof DELETE_WORKBOOK_ENTRY, number>
+    ;
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
@@ -585,9 +577,33 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
         }
 
+        case DELETE_WORKBOOK_ENTRY: {
+            // Refuse to delete the last entry or non-existing entries
+            if (state.workbookEntries.length <= 1 || action.value >= state.workbookEntries.length) {
+                return state;
+            }
+            // Delete the entries
+            const newEntries = [...state.workbookEntries];
+            newEntries.splice(action.value, 1);
+            // Update the selected workbook entry
+            let newSelectedIndex = state.selectedWorkbookEntry;
+            if (state.selectedWorkbookEntry === action.value) {
+                // We deleted the selected index
+                newSelectedIndex = 0;
+            } else if (action.value < state.selectedWorkbookEntry) {
+                // We deleted one entry below the selected, decrement the selection index
+                newSelectedIndex--;
+            }
+            return deleteDeadScripts({
+                ...state,
+                workbookEntries: newEntries,
+                selectedWorkbookEntry: newSelectedIndex,
+            });
+        }
+
         case CREATE_WORKBOOK_ENTRY: {
             // Generate a new script key
-            const scriptKey = Math.max(...Object.keys(state.scripts).map(k => parseInt(k)), 0) + 1;
+            const scriptKey = state.nextScriptKey;
             // Create a new script
             const script = state.instance.createScript(state.connectionCatalog, scriptKey);
             // Create script data
@@ -630,6 +646,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
             return {
                 ...state,
+                nextScriptKey: state.nextScriptKey + 1,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
@@ -641,12 +658,48 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
     }
 }
 
+export function destroyState(state: WorkbookState): WorkbookState {
+    for (const key in state.scripts) {
+        const script = state.scripts[key];
+        script.processed.destroy(script.processed);
+        for (const stats of script.statistics) {
+            stats.delete();
+        }
+        script.script?.delete();
+    }
+    return state;
+}
+
 function deleteScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
     data.script?.delete();
     for (const stats of data.statistics) {
         stats.delete();
     }
+}
+
+function deleteDeadScripts(state: WorkbookState): WorkbookState {
+    // Determine script liveness
+    let deadScripts = new Map<number, ScriptData>();
+    for (const key in state.scripts) {
+        deadScripts.delete(+key);
+    }
+    // Mark workbook entries as live
+    for (const entry of state.workbookEntries) {
+        deadScripts.delete(entry.scriptKey);
+    }
+    // Nothing to cleanup?
+    if (deadScripts.size == 0) {
+        return state;
+    }
+    // Copy scripts
+    const cleanedScripts: ScriptDataMap = { ...state.scripts };
+    // Delete scripts
+    for (const [k, v] of deadScripts) {
+        deleteScriptData(v);
+        delete cleanedScripts[k];
+    }
+    return { ...state, scripts: cleanedScripts };
 }
 
 function rotateStatistics(
