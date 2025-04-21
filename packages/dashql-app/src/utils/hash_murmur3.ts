@@ -1,5 +1,5 @@
 import { Hasher } from "./hash.js";
-import { PseudoRandomNumberGenerator, Sfc32 } from "./prng.js";
+import { PseudoRandomNumberGenerator, TycheI } from "./prng.js";
 
 // Derived from here:
 // https://github.com/bryc/code/tree/master/jshash/hashes
@@ -27,18 +27,25 @@ export class Murmur3_x86_128 implements Hasher {
     h4: number;
     len: number;
 
-    constructor(seed: number = 0) {
-        // XXX bryc xor'ed h1-h4 with p1-p4, but this is deviating from the original murmur3:
+    constructor(seed: number = 0, preserveSeed: boolean = false) {
+        // bryc xor'ed h1-h4 with p1-p4, but this is deviating from the original murmur3:
         //     https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-        this.h1 = seed;
-        this.h2 = seed;
-        this.h3 = seed;
-        this.h4 = seed;
+        if (preserveSeed) {
+            this.h1 = seed;
+            this.h2 = seed;
+            this.h3 = seed;
+            this.h4 = seed;
+        } else {
+            this.h1 = seed ^ c1;
+            this.h2 = seed ^ c2;
+            this.h3 = seed ^ c3;
+            this.h4 = seed ^ c4;
+        }
         this.len = 0;
     }
 
-    public static withSeed(seed: number): Murmur3_x86_128 {
-        return new Murmur3_x86_128(seed);
+    public static withSeed(seed: number, preserveSeed: boolean = false): Murmur3_x86_128 {
+        return new Murmur3_x86_128(seed, preserveSeed);
     }
     public static hash(str: string): Hasher {
         return (new Murmur3_x86_128()).add(str);
@@ -156,7 +163,7 @@ export class Murmur3_x86_128 implements Hasher {
 
     public asPrng(): PseudoRandomNumberGenerator {
         const [h1, h2, h3, h4] = this.finish();
-        return new Sfc32(h1, h2, h3, h4);
+        return new TycheI(h1, h2, h3, h4);
     }
     public asString(): string {
         const [h1, h2, h3, h4] = this.finish();
