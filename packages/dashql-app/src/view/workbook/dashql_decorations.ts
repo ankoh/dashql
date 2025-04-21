@@ -317,6 +317,7 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
         // Rebuild decorations
         const s = { ...state };
         s.scriptBuffers.scanned = processor.scriptBuffers.scanned;
+        s.decorations = (new RangeSetBuilder<Decoration>()).finish();
         if (s.scriptBuffers.scanned) {
             s.decorations = buildDecorationsFromTokens(transaction.state, s.scriptBuffers.scanned);
         }
