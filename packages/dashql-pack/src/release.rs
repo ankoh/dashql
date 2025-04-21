@@ -1,7 +1,7 @@
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::prelude::*;
 use futures::StreamExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 use std::path::PathBuf;
 
 use crate::{
@@ -189,36 +189,18 @@ impl Release {
     pub async fn publish(&self, client: &aws_sdk_s3::Client) -> anyhow::Result<()> {
         // Upload files one by one first to work around R2 upload issue
         for (_, file_upload) in self.file_uploads.iter() {
-            // Retry 3 times to work around cloudflare issues
-            let mut upload_succeeded = false;
-            for _ in 0..3 {
-                let path = file_upload.remote_path.clone();
-                let bytes = ByteStream::from_path(file_upload.source_path.clone()).await?;
-                let client = client.clone();
-                log::info!("upload started, path={}", &path);
-                let result = client
-                    .put_object()
-                    .bucket("dashql-get")
-                    .key(&path)
-                    .body(bytes)
-                    .content_type("application/octet-stream")
-                    .send()
-                    .await
-                    .map_err(|e| (path.clone(), e))
-                    .map(|_| path.clone());
-                match result {
-                    Ok(path) => {
-                        log::info!("upload finished, path={}", &path);
-                        upload_succeeded = true;
-                        break;
-                    }
-                    Err((path, e)) => {
-                        log::error!("upload failed, path={}, error={}", &path, &e);
-                    }
+            let path = file_upload.remote_path.clone();
+            let client = client.clone();
+            log::info!("upload started, path={}", &path);
+
+            let result = multipart_upload(&client, &file_upload.source_path, &path).await;
+            match result {
+                Ok(_) => {
+                    log::info!("multipart upload finished, path={}", &path);
                 }
-            }
-            if !upload_succeeded {
-                anyhow::bail!("uploading file exhausted retries");
+                Err(e) => {
+                    log::error!("multipart upload failed, path={}, error={}", &path, &e);
+                }
             }
         }
 
@@ -324,4 +306,65 @@ impl Release {
         }
         Ok(())
     }
+}
+
+async fn multipart_upload(
+    client: &aws_sdk_s3::Client,
+    source_path: &PathBuf,
+    remote_path: &str,
+) -> anyhow::Result<()> {
+    // Create multipart upload
+    let create_upload = client
+        .create_multipart_upload()
+        .bucket("dashql-get")
+        .key(remote_path)
+        .content_type("application/octet-stream")
+        .send()
+        .await?;
+    let upload_id = create_upload.upload_id().unwrap();
+
+    // Read file in chunks
+    let file = std::fs::File::open(source_path)?;
+    let mut reader = std::io::BufReader::new(file);
+    let mut part_number = 1;
+    let mut parts = Vec::new();
+    let mut buffer = vec![0; 5 * 1024 * 1024]; // 5MB chunks
+
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+
+        let part = client
+            .upload_part()
+            .bucket("dashql-get")
+            .key(remote_path)
+            .upload_id(upload_id)
+            .part_number(part_number)
+            .body(ByteStream::from(buffer[..bytes_read].to_vec()))
+            .send()
+            .await?;
+
+        parts.push(aws_sdk_s3::types::CompletedPart::builder()
+            .part_number(part_number)
+            .e_tag(part.e_tag().unwrap())
+            .build());
+
+        part_number += 1;
+    }
+
+    // Complete multipart upload
+    client
+        .complete_multipart_upload()
+        .bucket("dashql-get")
+        .key(remote_path)
+        .upload_id(upload_id)
+        .multipart_upload(aws_sdk_s3::types::CompletedMultipartUpload::builder()
+            .set_parts(Some(parts))
+            .build())
+        .send()
+        .await?;
+
+    Ok(())
 }
