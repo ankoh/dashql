@@ -308,7 +308,7 @@ export class DashQL {
         }
     }
 
-    public readFlatBufferResult<T extends FlatBufferObject<T>>(resultPtr: number, factory: () => T) {
+    public readFlatBufferResult<T extends FlatBufferObject<T> = any>(resultPtr: number, factory: () => T) {
         const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
         const heapU32 = new Uint32Array(this.memory.buffer);
@@ -485,7 +485,7 @@ export class DashQLScript {
     public toString(): string {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_to_string(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult(result, () => null);
+        const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
         const text = this.ptr.api.decoder.decode(resultBuffer.data);
         resultBuffer.delete();
         return text;
@@ -528,7 +528,7 @@ export class DashQLScript {
     public format(): string {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_format(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult(result, () => null);
+        const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
         const text = this.ptr.api.decoder.decode(resultBuffer.data);
         resultBuffer.delete();
         return text;
