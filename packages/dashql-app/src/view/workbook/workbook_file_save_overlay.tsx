@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as zstd from '../../utils/zstd.js';
 import * as styles from './workbook_file_save_overlay.module.css';
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { Box } from '@primer/react';
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
@@ -22,7 +24,7 @@ const SLNX_COMPRESSION_LEVEL = 5;
 
 async function packSdql(conn: ConnectionState, workbook: WorkbookState, settings: WorkbookExportSettings): Promise<Uint8Array> {
     const file = encodeWorkbookAsFile(workbook, conn, settings);
-    const fileBytes = file.toBinary();
+    const fileBytes = buf.toBinary(pb.dashql.file.FileSchema, file);
     await zstd.init();
     return zstd.compress(fileBytes, SLNX_COMPRESSION_LEVEL);
 }

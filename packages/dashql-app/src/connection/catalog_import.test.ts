@@ -1,13 +1,14 @@
 import '@jest/globals';
 
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { decodeCatalogFileFromProto } from './catalog_import.js';
 
 describe('Catalog Import', () => {
     it('can import example file catalog', async () => {
-        const catalogPb = new pb.dashql.file.FileCatalog({
-            connectionParams: new pb.dashql.connection.ConnectionParams({
+        const catalogPb = buf.create(pb.dashql.file.FileCatalogSchema, {
+            connectionParams: buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
                     case: "demo",
                     value: {}
@@ -15,39 +16,39 @@ describe('Catalog Import', () => {
             }),
             catalog: {
                 databases: [
-                    new pb.dashql.catalog.CatalogDatabase({
+                    buf.create(pb.dashql.catalog.CatalogDatabaseSchema, {
                         name: "db1",
                         schemas: [
-                            new pb.dashql.catalog.CatalogSchema({
+                            buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
                                 name: "schema1",
                                 tables: [
-                                    new pb.dashql.catalog.CatalogTable({
+                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table1",
                                         columns: [
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column1" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column2" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
                                         ]
                                     }),
-                                    new pb.dashql.catalog.CatalogTable({
+                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table2",
                                         columns: [
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column1" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column2" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
                                         ]
                                     })
                                 ]
                             }),
-                            new pb.dashql.catalog.CatalogSchema({
+                            buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
                                 name: "schema2",
                                 tables: [
-                                    new pb.dashql.catalog.CatalogTable({
+                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table1",
                                         columns: [
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column1" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column2" }),
-                                            new pb.dashql.catalog.CatalogColumn({ name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
                                         ]
                                     })
                                 ]

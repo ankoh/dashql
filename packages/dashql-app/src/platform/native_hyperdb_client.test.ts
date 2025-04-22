@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 
 import * as proto from "@ankoh/dashql-protobuf";
+import * as buf from "@bufbuild/protobuf";
 
 import { GrpcServerStream, NativeAPIMock } from './native_api_mock.js';
 import { ChannelArgs } from './channel_common.js';
@@ -65,14 +66,14 @@ describe('Native Hyper client', () => {
             {
                 event: NativeGrpcServerStreamBatchEvent.FlushAfterClose,
                 messages: [
-                    new proto.salesforce_hyperdb_grpc_v1.pb.QueryResult()
+                    buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$)
                 ],
             }
         ]));
         mock!.hyperService.executeQuery = (p) => executeQueryMock(p.query);
 
         // Start the server stream
-        const params = new proto.salesforce_hyperdb_grpc_v1.pb.QueryParam({
+        const params = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
             query: "select 1"
         });
         await channel.executeQuery(params);
@@ -93,23 +94,23 @@ describe('Native Hyper client', () => {
         expect(channel.grpcChannel.channelId).not.toBeNaN();
 
         // Build the first message that is returned to the client (in this test a header message)
-        const headerMessage = new proto.salesforce_hyperdb_grpc_v1.pb.QueryResult({
+        const headerMessage = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, {
             result: {
                 case: "header",
-                value: new proto.salesforce_hyperdb_grpc_v1.pb.QueryResultHeader({
+                value: buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultHeaderSchema, {
                     header: {
                         case: "schema",
-                        value: new proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema({
+                        value: buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchemaSchema, {
                             column: []
                         })
                     }
                 }),
             }
         });
-        const bodyMessage = new proto.salesforce_hyperdb_grpc_v1.pb.QueryResult({
+        const bodyMessage = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, {
             result: {
                 case: "arrowChunk",
-                value: new proto.salesforce_hyperdb_grpc_v1.pb.QueryBinaryResultChunk({
+                value: buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryBinaryResultChunkSchema, {
                     data: new Uint8Array([0x01, 0x02, 0x03, 0x04]),
                 }),
             }
@@ -125,7 +126,7 @@ describe('Native Hyper client', () => {
         mock!.hyperService.executeQuery = (p) => executeQueryMock(p.query);
 
         // Start the server stream
-        const params = new proto.salesforce_hyperdb_grpc_v1.pb.QueryParam({
+        const params = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
             query: "select 1"
         });
         const stream = await channel.executeQuery(params) as NativeHyperQueryResultStream;

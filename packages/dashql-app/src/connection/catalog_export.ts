@@ -1,5 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.dashql.catalog.Catalog {
     const snapReader = snap.read();
@@ -13,31 +14,31 @@ export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.das
     for (let i = 0; i < snapReader.catalogReader.databasesLength(); ++i) {
         const entry = snapReader.catalogReader.databases(i, tmpEntry)!;
         const name = snapReader.readName(entry.nameId());
-        databases.push(new pb.dashql.catalog.CatalogDatabase({ name }));
+        databases.push(buf.create(pb.dashql.catalog.CatalogDatabaseSchema, { name }));
     }
     for (let i = 0; i < snapReader.catalogReader.schemasLength(); ++i) {
         const entry = snapReader.catalogReader.schemas(i, tmpEntry)!;
         const name = snapReader.readName(entry.nameId());
-        const schema = new pb.dashql.catalog.CatalogSchema({ name });
+        const schema = buf.create(pb.dashql.catalog.CatalogSchemaSchema, { name });
         schemas.push(schema);
         databases[entry.flatParentIdx()].schemas.push(schema);
     }
     for (let i = 0; i < snapReader.catalogReader.tablesLength(); ++i) {
         const entry = snapReader.catalogReader.tables(i, tmpEntry)!;
         const name = snapReader.readName(entry.nameId());
-        const table = new pb.dashql.catalog.CatalogTable({ name });
+        const table = buf.create(pb.dashql.catalog.CatalogTableSchema, { name });
         tables.push(table);
         schemas[entry.flatParentIdx()].tables.push(table);
     }
     for (let i = 0; i < snapReader.catalogReader.columnsLength(); ++i) {
         const entry = snapReader.catalogReader.columns(i, tmpEntry)!;
         const name = snapReader.readName(entry.nameId());
-        const column = new pb.dashql.catalog.CatalogColumn({ name });
+        const column = buf.create(pb.dashql.catalog.CatalogColumnSchema, { name });
         columns.push(column);
         tables[entry.flatParentIdx()].columns.push(column);
     }
 
-    const out = new pb.dashql.catalog.Catalog({ databases });
+    const out = buf.create(pb.dashql.catalog.CatalogSchema$, { databases });
     return out;
 }
 

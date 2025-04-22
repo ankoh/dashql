@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
 
@@ -14,10 +15,10 @@ export interface SalesforceConnectionParams {
 }
 
 export function encodeSalesforceConnectionParamsAsProto(params: SalesforceConnectionParams | null, settings: WorkbookExportSettings | null): pb.dashql.connection.ConnectionParams {
-    return new pb.dashql.connection.ConnectionParams({
+    return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
         connection: {
             case: "salesforce",
-            value: new pb.dashql.connection.SalesforceConnectionParams({
+            value: buf.create(pb.dashql.connection.SalesforceConnectionParamsSchema, {
                 instanceUrl: params?.instanceUrl ?? "",
                 appConsumerKey: params?.appConsumerKey ?? "",
                 login: settings?.exportUsername ? (params?.login ?? undefined) : undefined,

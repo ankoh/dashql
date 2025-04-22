@@ -1,5 +1,6 @@
 import * as shell from '@tauri-apps/plugin-shell';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import {
     SETUP_CANCELLED,
@@ -103,19 +104,19 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             : pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW;
 
         // Construct the auth state
-        const authState = new pb.dashql.oauth.OAuthState({
+        const authState = buf.create(pb.dashql.oauth.OAuthStateSchema, {
             debugMode: isNativePlatform() && isDebugBuild(),
             flowVariant: flowVariant,
             providerOptions: {
                 case: "salesforceProvider",
-                value: new pb.dashql.oauth.SalesforceOAuthOptions({
+                value: buf.create(pb.dashql.oauth.SalesforceOAuthOptionsSchema, {
                     instanceUrl: params.instanceUrl,
                     appConsumerKey: params.appConsumerKey,
                     expiresAt: BigInt(Date.now()) + BigInt(DEFAULT_EXPIRATION_TIME_MS)
                 }),
             }
         });
-        const authStateBuffer = authState.toBinary();
+        const authStateBuffer = buf.toBinary(pb.dashql.oauth.OAuthStateSchema, authState);
         const authStateBase64 = BASE64URL_CODEC.encode(authStateBuffer.buffer);
 
         // Collect the oauth parameters

@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 import * as React from 'react';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
@@ -262,7 +263,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
         setupInProgressOrDone.current = true;
 
         // Bake the workbook proto, we'll need this in any case
-        const workbookProto = new pb.dashql.workbook.Workbook({
+        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
             ...props.workbookProto,
             connectionParams: connectionParams == null ? undefined : encodeConnectionParamsAsProto(connectionParams)
         });
@@ -383,7 +384,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
 
     // Get the workbook url
     const getWorkbookUrl = () => {
-        const workbookProto = new pb.dashql.workbook.Workbook({
+        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
             ...props.workbookProto,
             connectionParams: connectionParams == null ? undefined : encodeConnectionParamsAsProto(connectionParams)
         });
@@ -478,7 +479,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
         }
 
         // Encode the workbook url
-        const workbookProto = new pb.dashql.workbook.Workbook({
+        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
             ...props.workbookProto,
             connectionParams: connectionParams == null ? undefined : encodeConnectionParamsAsProto(connectionParams)
         });

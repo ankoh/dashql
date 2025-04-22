@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { WorkbookState } from './workbook_state.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
@@ -14,22 +15,22 @@ export function encodeWorkbookAsProto(workbookState: WorkbookState | null, conne
     if (workbookState != null) {
         for (const k in workbookState.scripts) {
             const script = workbookState.scripts[k];
-            scripts.push(new pb.dashql.workbook.WorkbookScript({
+            scripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
                 scriptId: script.scriptKey as number,
                 scriptText: script.script?.toString() ?? "",
             }));
         }
     } else {
-        scripts.push(new pb.dashql.workbook.WorkbookScript({
+        scripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
             scriptId: 0,
             scriptText: "",
         }));
     }
-    const setup = new pb.dashql.workbook.Workbook({
+    const setup = buf.create(pb.dashql.workbook.WorkbookSchema, {
         connectionParams: (params == null) ? undefined : params,
         scripts: scripts,
         workbookEntries: workbookState?.workbookEntries.map(e => (
-            new pb.dashql.workbook.WorkbookEntry({
+            buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
                 scriptId: e.scriptKey,
                 title: e.title ?? undefined,
             })
@@ -47,13 +48,13 @@ export enum WorkbookLinkTarget {
 }
 
 export function encodeWorkbookProtoAsUrl(setup: pb.dashql.workbook.Workbook, target: WorkbookLinkTarget): URL {
-    const eventData = new pb.dashql.app_event.AppEventData({
+    const eventData = buf.create(pb.dashql.app_event.AppEventDataSchema, {
         data: {
             case: "workbook",
             value: setup
         }
     });
-    const eventDataBytes = eventData.toBinary();
+    const eventDataBytes = buf.toBinary(pb.dashql.app_event.AppEventDataSchema, eventData);
     const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
 
     switch (target) {

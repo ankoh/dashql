@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { ChannelArgs } from "../../platform/channel_common.js";
 import { KeyValueListElement } from "../../view/foundations/keyvalue_list.js";
@@ -14,15 +15,15 @@ export interface HyperGrpcConnectionParams {
 }
 
 export function encodeHyperConnectionParamsAsProto(params: HyperGrpcConnectionParams, _settings: WorkbookExportSettings | null): pb.dashql.connection.ConnectionParams {
-    const tls = new pb.dashql.connection.TlsConfig({
+    const tls = buf.create(pb.dashql.connection.TlsConfigSchema, {
         clientKeyPath: params.channelArgs.tls?.keyPath,
         clientCertPath: params.channelArgs.tls?.pubPath,
         caCertsPath: params.channelArgs.tls?.caPath,
     });
-    return new pb.dashql.connection.ConnectionParams({
+    return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
         connection: {
             case: "hyper",
-            value: new pb.dashql.connection.HyperConnectionParams({
+            value: buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
                 endpoint: params.channelArgs.endpoint ?? "",
                 tls
             })

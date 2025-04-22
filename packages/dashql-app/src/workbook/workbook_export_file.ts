@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { ConnectionState } from '../connection/connection_state.js';
 import { WorkbookExportSettings } from './workbook_export_settings.js';
@@ -20,16 +21,16 @@ export function encodeWorkbookAsFile(workbookState: WorkbookState, connectionSta
     const scripts: pb.dashql.workbook.WorkbookScript[] = [];
     for (const k in workbookState.scripts) {
         const script = workbookState.scripts[k];
-        scripts.push(new pb.dashql.workbook.WorkbookScript({
+        scripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
             scriptId: script.scriptKey as number,
             scriptText: script.script?.toString() ?? "",
         }));
     }
-    const workbook = new pb.dashql.workbook.Workbook({
+    const workbook = buf.create(pb.dashql.workbook.WorkbookSchema, {
         connectionParams: paramsProto,
         scripts: scripts,
         workbookEntries: workbookState.workbookEntries.map(e => (
-            new pb.dashql.workbook.WorkbookEntry({
+            buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
                 scriptId: e.scriptKey,
                 title: e.title ?? undefined,
             })
@@ -40,7 +41,7 @@ export function encodeWorkbookAsFile(workbookState: WorkbookState, connectionSta
     });
 
     // Pack the file
-    const file = new pb.dashql.file.File({
+    const file = buf.create(pb.dashql.file.FileSchema, {
         workbooks: [workbook]
     });
 
@@ -48,7 +49,7 @@ export function encodeWorkbookAsFile(workbookState: WorkbookState, connectionSta
     if (settings?.exportCatalog) {
         const catalogSnapshot = connectionState.catalog.createSnapshot();
         const catalogProto = encodeCatalogAsProto(catalogSnapshot);
-        const c = new pb.dashql.file.FileCatalog({
+        const c = buf.create(pb.dashql.file.FileCatalogSchema, {
             connectionParams: paramsProto,
             catalog: catalogProto
         });

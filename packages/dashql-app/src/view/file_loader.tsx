@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 import * as zstd from '../utils/zstd.js';
 
 import * as symbols from '../../static/svg/symbols.generated.svg';
@@ -134,7 +135,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
         await zstd.init();
         signal.throwIfAborted();
         const fileDecompressed = zstd.decompress(fileBuffer);
-        fileProto = pb.dashql.file.File.fromBinary(fileDecompressed);
+        fileProto = buf.fromBinary(pb.dashql.file.FileSchema, fileDecompressed);
 
         progress.fileDecompressingFinishedAt = new Date();
         progress.fileDecompressedByteCount = fileDecompressed.byteLength;
@@ -223,7 +224,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             // Collect workbook scripts
             let workbookScripts = [...workbook.scripts];
             if (workbookScripts.length == 0) {
-                workbookScripts.push(new pb.dashql.workbook.WorkbookScript({
+                workbookScripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
                     scriptId: 1,
                     scriptType: pb.dashql.workbook.ScriptType.Query,
                     scriptText: "",
