@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";
 import { randomBuffer32 } from "./hash.js";
@@ -27,33 +28,33 @@ describe('Base64Codec', () => {
     });
 
     it("encode salesforce oauth web flow state", () => {
-        const authState = new pb.dashql.oauth.OAuthState({
+        const authState = buf.create(pb.dashql.oauth.OAuthStateSchema, {
             flowVariant: pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW,
             providerOptions: {
                 case: "salesforceProvider",
-                value: new pb.dashql.oauth.SalesforceOAuthOptions({
+                value: buf.create(pb.dashql.oauth.SalesforceOAuthOptionsSchema, {
                     instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
                     appConsumerKey: "foo",
                 }),
             }
         });
-        const authStateBuffer = authState.toBinary();
+        const authStateBuffer = buf.toBinary(pb.dashql.oauth.OAuthStateSchema, authState);
         const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
         expect(authStateBase64).toEqual("EAEaQgo7aHR0cHM6Ly90cmlhbG9yZ2Zhcm1mb3J1LTE2Zi50ZXN0Mi5teS5wYy1ybmQuc2FsZXNmb3JjZS5jb20SA2Zvbw==");
     });
 
     it("encode salesforce oauth native flow state", () => {
-        const authState = new pb.dashql.oauth.OAuthState({
+        const authState = buf.create(pb.dashql.oauth.OAuthStateSchema, {
             flowVariant: pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW,
             providerOptions: {
                 case: "salesforceProvider",
-                value: new pb.dashql.oauth.SalesforceOAuthOptions({
+                value: buf.create(pb.dashql.oauth.SalesforceOAuthOptionsSchema, {
                     instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
                     appConsumerKey: "foo"
                 }),
             }
         });
-        const authStateBuffer = authState.toBinary();
+        const authStateBuffer = buf.toBinary(pb.dashql.oauth.OAuthStateSchema, authState);
         const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
         expect(authStateBase64).toEqual("EAIaQgo7aHR0cHM6Ly90cmlhbG9yZ2Zhcm1mb3J1LTE2Zi50ZXN0Mi5teS5wYy1ybmQuc2FsZXNmb3JjZS5jb20SA2Zvbw==");
     });

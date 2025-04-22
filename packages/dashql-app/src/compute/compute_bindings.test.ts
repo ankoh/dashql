@@ -3,6 +3,7 @@ import '@jest/globals';
 import * as arrow from 'apache-arrow';
 import * as compute from '@ankoh/dashql-compute';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -63,8 +64,8 @@ describe('DashQLCompute Arrow IO', () => {
 
 const testOrderByColumn = async (inTable: arrow.Table, columnName: string, asc: boolean, nullsFirst: boolean, mapper: (o: any) => any, expected: any[]) => {
     const dataFrame = createDataFrameFromTable(inTable);
-    const dataFrameTransform = new pb.dashql.compute.DataFrameTransform({
-        orderBy: new pb.dashql.compute.OrderByTransform({
+    const dataFrameTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
             constraints: [{
                 fieldName: columnName,
                 ascending: asc,
@@ -72,7 +73,7 @@ const testOrderByColumn = async (inTable: arrow.Table, columnName: string, asc: 
             }]
         })
     });
-    const orderByConfigBytes = dataFrameTransform.toBinary();
+    const orderByConfigBytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, dataFrameTransform);
     const orderedFrame = await dataFrame.transform(orderByConfigBytes);
     dataFrame.free();
 
@@ -100,16 +101,16 @@ describe('DashQLCompute OrderBy', () => {
 
 const testBinning = async (inTable: arrow.Table, columnName: string, expectedStats: any[], expectedBins: any[]) => {
     const inFrame = createDataFrameFromTable(inTable);
-    const statsTransform = new pb.dashql.compute.DataFrameTransform({
-        groupBy: new pb.dashql.compute.GroupByTransform({
+    const statsTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
             keys: [],
             aggregates: [
-                new pb.dashql.compute.GroupByAggregate({
+                buf.create(pb.dashql.compute.GroupByAggregateSchema, {
                     fieldName: columnName,
                     outputAlias: "min",
                     aggregationFunction: pb.dashql.compute.AggregationFunction.Min,
                 }),
-                new pb.dashql.compute.GroupByAggregate({
+                buf.create(pb.dashql.compute.GroupByAggregateSchema, {
                     fieldName: columnName,
                     outputAlias: "max",
                     aggregationFunction: pb.dashql.compute.AggregationFunction.Max,
@@ -117,15 +118,16 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
             ]
         })
     });
-    const statsFrame = await inFrame.transform(statsTransform.toBinary());
+    const statsTransformBuf = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, statsTransform);
+    const statsFrame = await inFrame.transform(statsTransformBuf);
 
-    const binTransform = new pb.dashql.compute.DataFrameTransform({
-        groupBy: new pb.dashql.compute.GroupByTransform({
+    const binTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
             keys: [
-                new pb.dashql.compute.GroupByKey({
+                buf.create(pb.dashql.compute.GroupByKeySchema, {
                     fieldName: columnName,
                     outputAlias: "bin",
-                    binning: new pb.dashql.compute.GroupByKeyBinning({
+                    binning: buf.create(pb.dashql.compute.GroupByKeyBinningSchema, {
                         statsMinimumFieldName: "min",
                         statsMaximumFieldName: "max",
                         binCount: 8,
@@ -136,14 +138,14 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
                 })
             ],
             aggregates: [
-                new pb.dashql.compute.GroupByAggregate({
+                buf.create(pb.dashql.compute.GroupByAggregateSchema, {
                     fieldName: columnName,
                     outputAlias: "count",
                     aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
                 })
             ]
         }),
-        orderBy: new pb.dashql.compute.OrderByTransform({
+        orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
             constraints: [{
                 fieldName: "bin",
                 ascending: true,
@@ -151,7 +153,8 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
             }]
         })
     });
-    const binnedFrame = await inFrame.transformWithStats(binTransform.toBinary(), statsFrame);
+    const binTransformBuf = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, binTransform);
+    const binnedFrame = await inFrame.transform(binTransformBuf);
 
     const statsTable = readDataFrame(statsFrame);
     const binnedTable = readDataFrame(binnedFrame);

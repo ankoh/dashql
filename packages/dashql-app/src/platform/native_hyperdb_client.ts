@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as proto from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import {
     HealthCheckResult,
@@ -57,7 +58,7 @@ export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterab
             if (next.value == null) {
                 return { done: true, value: null };
             }
-            const resultMessage = proto.salesforce_hyperdb_grpc_v1.pb.QueryResult.fromBinary(next.value);
+            const resultMessage = buf.fromBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, next.value);
             switch (resultMessage.result.case) {
                 // We skip any dedicated header prefix
                 case "header":
@@ -150,7 +151,7 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     /// Check if Hyper is reachable
     public async checkHealth(): Promise<HealthCheckResult> {
         try {
-            const result = await this.executeQuery(new proto.salesforce_hyperdb_grpc_v1.pb.QueryParam({
+            const result = await this.executeQuery(buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
                 query: "select 1 as healthy"
             }));
             const schema = await result.getSchema();
@@ -201,11 +202,11 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     public async executeQuery(params: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
         params.outputFormat = proto.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
         for (const db of this.connection.getAttachedDatabases()) {
-            params.database.push(new proto.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase(db))
+            params.database.push(buf.create(proto.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
         }
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
-            body: params.toBinary(),
+            body: buf.toBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
         });
         return new NativeHyperQueryResultStream(stream, this.connection, this.logger);
     }

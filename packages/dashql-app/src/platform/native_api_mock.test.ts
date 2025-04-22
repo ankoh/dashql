@@ -1,4 +1,5 @@
 import * as proto from "@ankoh/dashql-protobuf";
+import * as buf from "@bufbuild/protobuf";
 
 import { jest } from '@jest/globals';
 
@@ -112,10 +113,10 @@ describe('Native API mock', () => {
         const channelId = Number.parseInt(channelResponse.headers.get("dashql-channel-id")!);
 
         // Mock the next ExecuteQuery call
-        const messageToRespond = new proto.salesforce_hyperdb_grpc_v1.pb.QueryResult({
+        const messageToRespond = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, {
             result: {
                 case: "header",
-                value: new proto.salesforce_hyperdb_grpc_v1.pb.QueryResultHeader(),
+                value: buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultHeaderSchema),
             }
         });
         const respondSingleMessage = (_req: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => {
@@ -137,9 +138,9 @@ describe('Native API mock', () => {
         mock!.hyperService.executeQuery = (req: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => executeQueryMock.call(req);
 
         // Send the ExecuteQuery request
-        const params = new proto.salesforce_hyperdb_grpc_v1.pb.QueryParam();
+        const params = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema);
         params.query = "select 1";
-        const paramsBuffer = params.toBinary();
+        const paramsBuffer = buf.toBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params);
         const streamRequest = new Request(new URL(`dashql-native://localhost/grpc/channel/${channelId}/streams`), {
             method: 'POST',
             headers: {
@@ -164,7 +165,7 @@ describe('Native API mock', () => {
                 "dashql-path": "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery"
             },
         });
-        const expectedMessage = messageToRespond.toBinary();
+        const expectedMessage = buf.toBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, messageToRespond);
         const expectedBuffer = new ArrayBuffer(expectedMessage.length + 4);
         (new DataView(expectedBuffer)).setUint32(expectedMessage.length, 0, true);
         (new Uint8Array(expectedBuffer, 4)).set(expectedMessage);

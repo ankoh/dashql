@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 import * as symbols from '../static/svg/symbols.generated.svg';
 import * as baseStyles from './view/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
@@ -66,13 +67,13 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
     // Encode the event as base64
     const { eventBase64, deepLink } = React.useMemo(() => {
-        const eventMessage = new pb.dashql.app_event.AppEventData({
+        const eventMessage = buf.create(pb.dashql.app_event.AppEventDataSchema, {
             data: {
                 case: "oauthRedirect",
-                value: new pb.dashql.oauth.OAuthRedirectData({ code, state: props.state })
+                value: buf.create(pb.dashql.oauth.OAuthRedirectDataSchema, { code, state: props.state })
             }
         });
-        const event = BASE64URL_CODEC.encode(eventMessage.toBinary().buffer);
+        const event = BASE64URL_CODEC.encode(buf.toBinary(pb.dashql.app_event.AppEventDataSchema, eventMessage).buffer);
         return {
             eventBase64: event,
             deepLink: buildDeepLink(event).toString(),
@@ -357,7 +358,7 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
             const authStateBuffer = BASE64URL_CODEC.decode(state);
             return {
                 type: RESULT_OK,
-                value: pb.dashql.oauth.OAuthState.fromBinary(new Uint8Array(authStateBuffer))
+                value: buf.fromBinary(pb.dashql.oauth.OAuthStateSchema, new Uint8Array(authStateBuffer))
             };
         } catch (e: any) {
             return {

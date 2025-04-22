@@ -1,8 +1,6 @@
 import * as hyper from '@ankoh/dashql-protobuf';
 import * as arrow from 'apache-arrow';
-import * as bufconnect from '@connectrpc/connect-web';
 
-import { createPromiseClient, PromiseClient } from '@connectrpc/connect';
 import { Logger } from "./logger.js";
 import {
     createQueryResponseStreamMetrics,
@@ -106,35 +104,6 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
                 batches.resolve(this, iter.value);
             }
         }
-    }
-}
-
-export class HyperServiceChannel {
-    client: PromiseClient<typeof hyper.salesforce_hyperdb_grpc_v1.grpc.HyperService>;
-    public url: string;
-
-    constructor(url: string, credentials?: RequestCredentials) {
-        this.url = url;
-        const transport = bufconnect.createGrpcWebTransport({
-            baseUrl: url,
-            credentials,
-        });
-        this.client = createPromiseClient(hyper.salesforce_hyperdb_grpc_v1.grpc.HyperService, transport);
-    }
-    public executeQuery(text: string, token: string): AsyncIterable<hyper.salesforce_hyperdb_grpc_v1.pb.QueryResult> {
-        const request = new hyper.salesforce_hyperdb_grpc_v1.pb.QueryParam();
-        request.query = text;
-        request.outputFormat = hyper.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
-        // request.database = [
-        //     new hyper.pb.AttachedDatabase({
-        //         path: 'hyper.external:lakehouse_a360_falcondev_cb1b20c5c1b449969b9b3da9f8e0fce6',
-        //     }),
-        // ];
-
-        const headers = new Headers();
-        headers.set('Authorization', `Bearer ${token}`);
-        headers.set('X-Trace-Id', 'akohn-connect-es');
-        return this.client.executeQuery(request, { headers });
     }
 }
 

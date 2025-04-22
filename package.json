@@ -11,8 +11,7 @@
     },
     "devDependencies": {
         "@bufbuild/buf": "^1.53.0",
-        "@bufbuild/protoc-gen-es": "^1.10.1",
-        "@connectrpc/protoc-gen-connect-es": "^1.6.1",
+        "@bufbuild/protoc-gen-es": "^2.2.5",
         "@eslint/js": "^9.25.1",
         "@tauri-apps/cli": "^2.5.0",
         "@types/node": "^22.15.1",

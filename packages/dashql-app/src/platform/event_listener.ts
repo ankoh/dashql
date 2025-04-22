@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Logger } from './logger.js';
@@ -192,7 +193,7 @@ export abstract class PlatformEventListener {
         try {
             const dataBuffer = BASE64URL_CODEC.decode(dataBase64);
             const dataBytes = new Uint8Array(dataBuffer);
-            const event = pb.dashql.app_event.AppEventData.fromBinary(dataBytes);
+            const event = buf.fromBinary(pb.dashql.app_event.AppEventDataSchema, dataBytes);
             this.logger.info(`parsed app event`, { "type": event.data.case }, LOG_CTX);
             return event;
 

@@ -1,14 +1,15 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
 
 export interface ServerlessConnectionParams { }
 
 export function encodeServerlessConnectionParamsAsProto(_settings: WorkbookExportSettings | null): pb.dashql.connection.ConnectionParams {
-    return new pb.dashql.connection.ConnectionParams({
+    return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
         connection: {
             case: "serverless",
-            value: new pb.dashql.connection.ServerlessParams()
+            value: buf.create(pb.dashql.connection.ServerlessParamsSchema)
         }
     });
 }

@@ -1,4 +1,5 @@
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { KeyValueListElement } from '../../view/foundations/keyvalue_list.js';
 import { ChannelArgs } from '../../platform/channel_common.js';
@@ -28,12 +29,12 @@ export interface TrinoConnectionParams {
 }
 
 export function encodeTrinoConnectionParamsAsProto(params: TrinoConnectionParams, _settings: WorkbookExportSettings | null): pb.dashql.connection.ConnectionParams {
-    return new pb.dashql.connection.ConnectionParams({
+    return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
         connection: {
             case: "trino",
-            value: new pb.dashql.connection.TrinoConnectionParams({
+            value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
                 endpoint: params.channelArgs.endpoint ?? "",
-                auth: new pb.dashql.connection.TrinoAuthParams({
+                auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                     username: params.authParams.username ?? "",
                 }),
                 catalogName: params.catalogName,

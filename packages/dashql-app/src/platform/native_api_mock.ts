@@ -1,4 +1,5 @@
 import * as proto from "@ankoh/dashql-protobuf";
+import * as buf from "@bufbuild/protobuf";
 
 import { NativeGrpcServerStreamBatchEvent } from "./native_grpc_client.js";
 import { NativeHttpServerStreamBatchEvent } from "./native_http_client.js";
@@ -313,7 +314,7 @@ export class NativeAPIMock {
                     });
                 }
                 const body = await req.arrayBuffer();
-                const params = proto.salesforce_hyperdb_grpc_v1.pb.QueryParam.fromBinary(new Uint8Array(body));
+                const params = buf.fromBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, new Uint8Array(body));
                 const stream = handler(params);
                 stream.channelId = channel.channelId;
                 stream.streamId = this.nextGrpcStreamId;

@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from "../platform/logger.js";
 import { ComputeWorkerRequestType, ComputeWorkerResponseType, ComputeWorkerResponseVariant, ComputeWorkerTask, ComputeWorkerTaskReturnType, ComputeWorkerTaskVariant } from "./compute_worker_request.js";
@@ -338,7 +339,7 @@ export class AsyncDataFrame {
 
     /// Transform a data frame
     async transform(transform: pb.dashql.compute.DataFrameTransform, stats: AsyncDataFrame | null = null): Promise<AsyncDataFrame> {
-        const bytes = transform.toBinary();
+        const bytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, transform);
         const task = new ComputeWorkerTask<
             ComputeWorkerRequestType.DATAFRAME_TRANSFORM,
             { frameId: number, buffer: Uint8Array, statsFrameId: number | null },
