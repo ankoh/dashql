@@ -6,10 +6,10 @@
     "description": "",
     "dependencies": {
         "@bufbuild/protobuf": "^1.10.1",
-        "@connectrpc/connect-web": "^1.6.1"
+        "@connectrpc/connect-web": "^2.0.2"
     },
     "devDependencies": {
-        "@connectrpc/connect": "^1.6.1",
+        "@connectrpc/connect": "^2.0.2",
         "@types/node": "^22.15.1",
         "esbuild": "^0.25.3",
         "typescript": "^5.8.3"
