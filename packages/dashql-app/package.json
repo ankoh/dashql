@@ -63,7 +63,7 @@
         "apache-arrow": "^19.0.1",
         "cm6-theme-basic-light": "^0.2.0",
         "cm6-theme-nord": "^0.2.0",
-        "copy-webpack-plugin": "^12.0.2",
+        "copy-webpack-plugin": "^13.0.0",
         "cross-env": "^7.0.3",
         "css-loader": "^7.1.2",
         "d3": "^7.9.0",
