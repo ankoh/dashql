@@ -47,8 +47,8 @@ __metadata:
     "@octokit/graphql": "npm:^8.2.2"
     "@primer/behaviors": "npm:^1.8.1"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
-    "@primer/react": "npm:^37.19.1"
-    "@primer/react-brand": "npm:^0.51.0"
+    "@primer/react": "npm:^37.20.0"
+    "@primer/react-brand": "npm:^0.51.1"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.5.0"
     "@tauri-apps/cli": "npm:^2.5.0"
@@ -1833,9 +1833,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/react-brand@npm:^0.51.0":
-  version: 0.51.0
-  resolution: "@primer/react-brand@npm:0.51.0"
+"@primer/react-brand@npm:^0.51.1":
+  version: 0.51.1
+  resolution: "@primer/react-brand@npm:0.51.1"
   dependencies:
     "@oddbird/popover-polyfill": "npm:0.5.2"
     "@primer/behaviors": "npm:1.8.0"
@@ -1849,13 +1849,13 @@ __metadata:
       optional: true
     "@types/react-dom":
       optional: true
-  checksum: 10c0/2ad02e79413b9da6dadb818ab3540d4e9c9a6e498dc03c116712d4d52070a76723bf4948299dac1e83ffe7027d3ed0b4f0e70944e816eb55f3f92a89a6825b3e
+  checksum: 10c0/4e6f7dbdced96479e87e3992ad3e9f729ececc8dbdae704298ba87b62536b5f7ca48f9b3695a35c3ebfc82c9d1eb312f25788400c3c2e980dbb7db4617826e77
   languageName: node
   linkType: hard
 
-"@primer/react@npm:^37.19.1":
-  version: 37.19.1
-  resolution: "@primer/react@npm:37.19.1"
+"@primer/react@npm:^37.20.0":
+  version: 37.20.0
+  resolution: "@primer/react@npm:37.20.0"
   dependencies:
     "@github/relative-time-element": "npm:^4.4.5"
     "@github/tab-container-element": "npm:4.8.2"
@@ -1875,7 +1875,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     color2k: "npm:^2.0.3"
     deepmerge: "npm:^4.3.1"
-    focus-visible: "npm:^5.2.0"
+    focus-visible: "npm:^5.2.1"
     history: "npm:^5.0.0"
     hsluv: "npm:1.0.1"
     lodash.isempty: "npm:^4.4.0"
@@ -1898,7 +1898,7 @@ __metadata:
       optional: true
     "@types/styled-components":
       optional: true
-  checksum: 10c0/deda4c4d3ba63cd8a98b80771a4500c92ae72baeaa0e51dcc81145e1070010bb38830a5daa295f26e824dad2ade0495673412367cf75506644189d828e23970e
+  checksum: 10c0/b9d3bd794e30f7651f83408418c82eb2de616e64e504cf2610a8426dcc05d3e3a38c4a6cd3eb37025d16683de40b74a3495a1efdde6918f731ced485c561af12
   languageName: node
   linkType: hard
 
@@ -6363,7 +6363,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"focus-visible@npm:^5.2.0":
+"focus-visible@npm:^5.2.1":
   version: 5.2.1
   resolution: "focus-visible@npm:5.2.1"
   checksum: 10c0/1c0e4e8b22be8684a664acc340efd6a41aafb560ce09979186a1c934de321ce8d6a3d7175c946aab1c87409b0e10f623274d7ce7d42ff16a0e4dc862fa151623
