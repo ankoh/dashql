@@ -15,7 +15,7 @@
         "@connectrpc/protoc-gen-connect-es": "^1.6.1",
         "@eslint/js": "^9.25.1",
         "@tauri-apps/cli": "^2.5.0",
-        "@types/node": "^22.14.1",
+        "@types/node": "^22.15.1",
         "eslint": "^9.25.1",
         "prettier": "^3.5.3",
         "ts-node": "^10.9.2",
