@@ -47,7 +47,7 @@ __metadata:
     "@octokit/graphql": "npm:^8.2.2"
     "@primer/behaviors": "npm:^1.8.1"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
-    "@primer/react": "npm:^37.20.0"
+    "@primer/react": "npm:^37.21.0"
     "@primer/react-brand": "npm:^0.51.1"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.5.0"
@@ -1853,9 +1853,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/react@npm:^37.20.0":
-  version: 37.20.0
-  resolution: "@primer/react@npm:37.20.0"
+"@primer/react@npm:^37.21.0":
+  version: 37.21.0
+  resolution: "@primer/react@npm:37.21.0"
   dependencies:
     "@github/relative-time-element": "npm:^4.4.5"
     "@github/tab-container-element": "npm:4.8.2"
@@ -1898,7 +1898,7 @@ __metadata:
       optional: true
     "@types/styled-components":
       optional: true
-  checksum: 10c0/b9d3bd794e30f7651f83408418c82eb2de616e64e504cf2610a8426dcc05d3e3a38c4a6cd3eb37025d16683de40b74a3495a1efdde6918f731ced485c561af12
+  checksum: 10c0/377a45a279e1c8cd1ca6faa30fc44bae575b0892ce9b0ca4b0031e0745d564ef08259e118143553f9001d638da3678673aef94831b2e2080a13cfd14fb2fe3eb
   languageName: node
   linkType: hard
 
