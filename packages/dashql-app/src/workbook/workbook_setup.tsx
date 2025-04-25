@@ -1,6 +1,5 @@
 import * as React from 'react';
-
-import Immutable from 'immutable';
+import * as Immutable from 'immutable';
 
 import { ConnectionState } from '../connection/connection_state.js';
 import { ScriptData, WorkbookState } from './workbook_state.js';

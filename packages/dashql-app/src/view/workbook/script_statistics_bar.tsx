@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import * as React from 'react';
-import Immutable from 'immutable';
+import * as Immutable from 'immutable';
 
 import { formatBytes, formatNanoseconds } from '../../utils/format.js';
 import { classNames } from '../../utils/classnames.js';
