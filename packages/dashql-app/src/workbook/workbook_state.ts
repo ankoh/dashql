@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import Immutable from 'immutable';
+import * as Immutable from 'immutable';
 
 import { ScriptMetadata, ScriptOriginType, ScriptType } from './script_metadata.js';
 import { ScriptLoadingStatus } from './script_loader.js';

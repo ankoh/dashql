@@ -1,6 +1,5 @@
 import * as React from 'react';
-
-import Immutable from 'immutable';
+import * as Immutable from 'immutable';
 
 import { createExampleMetadata } from '../../workbook/example_scripts.js';
 import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
