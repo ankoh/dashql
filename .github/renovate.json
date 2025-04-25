@@ -131,8 +131,9 @@
             ]
         },
         {
-            "groupName": "datafusion",
+            "groupName": "arrow_datafusion",
             "matchPackageNames": [
+                "arrow",
                 "datafusion",
                 "/^datafusion-*/"
             ],
