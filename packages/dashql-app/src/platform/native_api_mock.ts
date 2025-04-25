@@ -143,7 +143,7 @@ export class GrpcServerStream {
             const batch = this.batches[batchId];
 
             // Encode all messages in the batch
-            const encodedMessages = batch.messages.map((m) => m.toBinary());
+            const encodedMessages = batch.messages.map((m) => buf.toBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, m));
             let totalBatchBytes = 0;
             for (const m of encodedMessages) {
                 totalBatchBytes += m.length;
