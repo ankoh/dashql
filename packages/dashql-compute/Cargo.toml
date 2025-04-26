@@ -28,18 +28,18 @@ getrandom_3 = { package = "getrandom", version = "0.3.2", features = ["wasm_js"]
 prost = "0.13.3"
 
 tokio = { version = "1.44.2", features = ["macros", "rt", "sync"] }
-arrow = { version = "54.3.1", default-features = false, features = ["ipc"] }
+arrow = { version = "55.0.0", default-features = false, features = ["ipc"] }
 
-datafusion-common = { version = "46.0.1", default-features = false }
-datafusion-expr = { version = "46.0.1", default-features = false }
-datafusion-execution = { version = "46.0.1", default-features = false }
-datafusion-datasource = { version = "46.0.1", default-features = false }
-datafusion-functions = { version = "46.0.1", default-features = false }
-datafusion-functions-aggregate = { version = "46.0.1", default-features = false }
-datafusion-functions-nested = { version = "46.0.1", default-features = false }
-datafusion-functions-window = { version = "46.0.1", default-features = false }
-datafusion-physical-expr = { version = "46.0.1", default-features = false }
-datafusion-physical-plan = { version = "46.0.1", default-features = false }
+datafusion-common = { version = "47.0.0", default-features = false }
+datafusion-expr = { version = "47.0.0", default-features = false }
+datafusion-execution = { version = "47.0.0", default-features = false }
+datafusion-datasource = { version = "47.0.0", default-features = false }
+datafusion-functions = { version = "47.0.0", default-features = false }
+datafusion-functions-aggregate = { version = "47.0.0", default-features = false }
+datafusion-functions-nested = { version = "47.0.0", default-features = false }
+datafusion-functions-window = { version = "47.0.0", default-features = false }
+datafusion-physical-expr = { version = "47.0.0", default-features = false }
+datafusion-physical-plan = { version = "47.0.0", default-features = false }
 
 [dependencies.uuid]
 version = "1.16.0"
