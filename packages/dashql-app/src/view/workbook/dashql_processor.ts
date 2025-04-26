@@ -10,7 +10,7 @@ export interface DashQLProcessorConfig {
 /// A DashQL script key
 export type DashQLScriptKey = number;
 /// A DashQL script update
-export interface DashQLScriptUpdate {
+export interface DashQLSyncState {
     // The config
     config: DashQLProcessorConfig;
     // The key of the currently active script
@@ -26,17 +26,18 @@ export interface DashQLScriptUpdate {
     // This callback is called when the editor updates the script
     onScriptUpdate: (
         scriptKey: DashQLScriptKey,
-        script: DashQLScriptBuffers,
+        script: dashql.DashQLScript,
+        scriptBuffers: DashQLScriptBuffers,
         cursor: dashql.buffers.ScriptCursorT,
     ) => void;
     // This callback is called when the editor updates the cursor
-    onCursorUpdate: (scriptKey: DashQLScriptKey, cursor: dashql.buffers.ScriptCursorT) => void;
+    onCursorUpdate: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, cursor: dashql.buffers.ScriptCursorT) => void;
     // This callback is called when the editor completion is starting
-    onCompletionStart: (scriptKey: DashQLScriptKey, completion: dashql.buffers.CompletionT) => void;
+    onCompletionStart: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.buffers.CompletionT) => void;
     // This callback is called when the user peeks a completion candidate
-    onCompletionPeek: (scriptKey: DashQLScriptKey, completion: dashql.buffers.CompletionT, candidateId: number) => void;
+    onCompletionPeek: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.buffers.CompletionT, candidateId: number) => void;
     // This callback is called when the editor completion is starting
-    onCompletionStop: (scriptKey: DashQLScriptKey) => void;
+    onCompletionStop: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript) => void;
 }
 /// The DashQL script buffers
 export interface DashQLScriptBuffers {
@@ -52,7 +53,7 @@ export interface DashQLScriptBuffers {
     destroy: (state: DashQLScriptBuffers) => void;
 }
 /// The state of a DashQL analyzer
-export type DashQLEditorState = DashQLScriptUpdate & {
+export type DashQLProcessorState = DashQLSyncState & {
     completionStatus: null | "active" | "pending";
     completionActive: boolean;
 };
@@ -97,14 +98,14 @@ const destroyBuffers = (state: DashQLScriptBuffers) => {
 };
 
 /// Effect to update a DashQL script attached to a CodeMirror editor
-export const UpdateDashQLScript: StateEffectType<DashQLScriptUpdate> = StateEffect.define<DashQLScriptUpdate>();
+export const DashQLSyncEffect: StateEffectType<DashQLSyncState> = StateEffect.define<DashQLSyncState>();
 
 /// A processor for DashQL scripts
-export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<DashQLEditorState>({
+export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.define<DashQLProcessorState>({
     // Create the initial state
     create: () => {
         // By default, the DashQL script is not configured
-        const config: DashQLEditorState = {
+        const config: DashQLProcessorState = {
             config: {
                 showCompletionDetails: false,
             },
@@ -129,13 +130,13 @@ export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<
         return config;
     },
     // Mirror the DashQL state
-    update: (state: DashQLEditorState, transaction: Transaction) => {
+    update: (state: DashQLProcessorState, transaction: Transaction) => {
         // Did the selection change?
         const prevSelection = transaction.startState.selection.asSingle();
         const newSelection = transaction.newSelection.asSingle();
         const cursorChanged = !prevSelection.eq(newSelection);
         const selection: number | null = newSelection.main.to;
-        let next: DashQLEditorState = state;
+        let next: DashQLProcessorState = state;
 
         // Helper to create a new state if it wasn't replaced
         const copyIfNotReplaced = () => {
@@ -151,14 +152,14 @@ export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<
                 next.completionActive = true;
             } else if (next.completionStatus == null && state.completionActive) {
                 next.completionActive = false;
-                next.onCompletionStop(next.scriptKey);
+                next.onCompletionStop(next.scriptKey, next.targetScript!);
             }
         }
 
         // Did the user provide us with a new DashQL script?
         for (const effect of transaction.effects) {
             // DashQL update effect?
-            if (effect.is(UpdateDashQLScript)) {
+            if (effect.is(DashQLSyncEffect)) {
                 next = {
                     ...next,
                     ...effect.value,
@@ -199,7 +200,7 @@ export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<
                 next.scriptCursor = cursorBuffer.read().unpack();
                 cursorBuffer.delete();
                 // Watch out, this passes ownership over the script buffers
-                next.onScriptUpdate(next.scriptKey, next.scriptBuffers, next.scriptCursor);
+                next.onScriptUpdate(next.scriptKey, next.targetScript!, next.scriptBuffers, next.scriptCursor);
                 return next;
             }
             // Update the script cursor..
@@ -209,7 +210,7 @@ export const DashQLProcessor: StateField<DashQLEditorState> = StateField.define<
                 const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
                 next.scriptCursor = cursorBuffer.read().unpack();
                 cursorBuffer.delete();
-                next.onCursorUpdate(next.scriptKey, next.scriptCursor);
+                next.onCursorUpdate(next.scriptKey, next.targetScript!, next.scriptCursor);
                 return next;
             }
         }

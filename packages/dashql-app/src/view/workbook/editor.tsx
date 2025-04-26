@@ -1,35 +1,25 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './editor.module.css';
-import * as themes from './themes/index.js';
 
-import { lineNumbers } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
+import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
-import { EditorView, keymap } from '@codemirror/view';
-import { ChangeSpec, EditorSelection, StateEffect } from '@codemirror/state';
-
-import { CodeMirror } from './codemirror.js';
-import { DashQLExtensions } from './dashql_extension.js';
-import { DashQLScriptBuffers, DashQLScriptKey, UpdateDashQLScript } from './dashql_processor.js';
-import { COMPLETION_CHANGED, COMPLETION_STARTED, COMPLETION_STOPPED, UPDATE_SCRIPT, UPDATE_SCRIPT_ANALYSIS, UPDATE_SCRIPT_CURSOR } from '../../workbook/workbook_state.js';
+import { CodeMirror, createCodeMirrorExtensions } from './codemirror.js';
+import { DashQLProcessor, DashQLScriptBuffers, DashQLScriptKey, DashQLSyncEffect } from './dashql_processor.js';
+import { COMPLETION_CHANGED, COMPLETION_STARTED, COMPLETION_STOPPED, ScriptData, UPDATE_SCRIPT, UPDATE_SCRIPT_ANALYSIS, UPDATE_SCRIPT_CURSOR, WorkbookState } from '../../workbook/workbook_state.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { isDebugBuild } from '../../globals.js';
-import { useAppConfig } from '../../app_config.js';
+import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { Logger } from '../../platform/logger.js';
 
 interface Props {
     className?: string;
     workbookId: number;
-}
-
-interface ActiveScriptState {
-    script: dashql.DashQLScript | null;
-    scriptBuffers: DashQLScriptBuffers | null;
-    cursor: dashql.buffers.ScriptCursorT | null;
 }
 
 export const ScriptEditor: React.FC<Props> = (props: Props) => {
@@ -37,16 +27,6 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const [workbook, modifyWorkbook] = useWorkbookState(props.workbookId);
     const [connState, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
-
-    // The editor view
-    const [view, setView] = React.useState<EditorView | null>(null);
-    const viewWasCreated = React.useCallback((view: EditorView) => setView(view), [setView]);
-    const viewWillBeDestroyed = React.useCallback((_view: EditorView) => setView(null), [setView]);
-    const active = React.useRef<ActiveScriptState>({
-        script: null,
-        scriptBuffers: null,
-        cursor: null,
-    });
 
     // The current index in the workbook
     const workbookEntryIdx = workbook?.selectedWorkbookEntry ?? 0;
@@ -69,135 +49,23 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
         }
     }, [workbookEntryScriptData]);
 
-    // Helper to update a script.
-    // Called when the script gets updated by the CodeMirror extension.
-    const updateScript = React.useCallback(
-        (scriptKey: DashQLScriptKey, buffers: DashQLScriptBuffers, cursor: dashql.buffers.ScriptCursorT) => {
-            active.current.cursor = cursor;
-            active.current.scriptBuffers = buffers;
-            modifyWorkbook({
-                type: UPDATE_SCRIPT_ANALYSIS,
-                value: [scriptKey, buffers, cursor],
-            });
-        },
-        [modifyWorkbook],
-    );
-    // Helper to update a script cursor.
-    // Called when the cursor gets updated by the CodeMirror extension.
-    const updateCursor = React.useCallback(
-        (scriptKey: DashQLScriptKey, cursor: dashql.buffers.ScriptCursorT) => {
-            active.current.cursor = cursor;
-            modifyWorkbook({
-                type: UPDATE_SCRIPT_CURSOR,
-                value: [scriptKey, cursor],
-            });
-        },
-        [modifyWorkbook],
-    );
-    // Helper to start a completion.
-    // Called when the CodeMirror extension opens the completion dropdown.
-    const startCompletion = React.useCallback((scriptKey: DashQLScriptKey, completion: dashql.buffers.CompletionT) => {
-        modifyWorkbook({
-            type: COMPLETION_STARTED,
-            value: [scriptKey, completion],
-        });
-    }, []);
-    // Helper to peek a completion candidate
-    // Called when the CodeMirror extension changes the selected completion.
-    const peekCompletionCandidate = React.useCallback((scriptKey: DashQLScriptKey, completion: dashql.buffers.CompletionT, candidateId: number) => {
-        modifyWorkbook({
-            type: COMPLETION_CHANGED,
-            value: [scriptKey, completion, candidateId],
-        });
-    }, []);
-    // Helper to stop a completion.
-    // Called when the CodeMirror extension opens the completion dropdown.
-    const stopCompletion = React.useCallback((scriptKey: DashQLScriptKey) => {
-        modifyWorkbook({
-            type: COMPLETION_STOPPED,
-            value: scriptKey,
-        });
-    }, []);
-
-    // Effect to update the editor context whenever the script changes
+    // Track the current CodeMirror view
+    const [view, setView] = React.useState<EditorView | null>(null);
+    // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
-        // CodeMirror not set up yet?
-        if (view === null) {
+        // Setup pending?
+        if (config == null || view == null || workbookEntryScriptData == null) {
             return;
         }
-        // No script data?
-        if (!workbookEntryScriptData) {
-            return
-        }
+        // Update the editor
+        updateEditor(view, workbook!, workbookEntryScriptData, modifyWorkbook, logger, config);
 
-        // Did the script change?
-        const changes: ChangeSpec[] = [];
-        const effects: StateEffect<any>[] = [];
-        if (
-            active.current.script !== workbookEntryScriptData.script ||
-            active.current.scriptBuffers !== workbookEntryScriptData.processed
-        ) {
-            logger.info("loading new script", {}, "editor");
-            active.current.script = workbookEntryScriptData.script;
-            active.current.scriptBuffers = workbookEntryScriptData.processed;
-            changes.push({
-                from: 0,
-                to: view.state.doc.length,
-                insert: workbookEntryScriptData.script?.toString(),
-            });
-        }
-
-        // Did the cursor change?
-        let selection: EditorSelection | null = null;
-        if (active.current.cursor !== workbookEntryScriptData.cursor) {
-            active.current.cursor = workbookEntryScriptData.cursor;
-            selection = EditorSelection.create([EditorSelection.cursor(workbookEntryScriptData.cursor?.textOffset ?? 0)]);
-        }
-
-        // Notify the CodeMirror extension
-        effects.push(
-            UpdateDashQLScript.of({
-                config: {
-                    showCompletionDetails: config?.settings?.showCompletionDetails ?? false,
-                },
-                scriptKey: workbookEntryScriptData.scriptKey,
-                targetScript: workbookEntryScriptData.script,
-                scriptBuffers: workbookEntryScriptData.processed,
-                scriptCursor: workbookEntryScriptData.cursor,
-                derivedFocus: workbook?.userFocus ?? null,
-
-                onScriptUpdate: updateScript,
-                onCursorUpdate: updateCursor,
-                onCompletionStart: startCompletion,
-                onCompletionPeek: peekCompletionCandidate,
-                onCompletionStop: stopCompletion,
-            }),
-        );
-        view.dispatch({ changes, effects, selection: selection ?? undefined });
     }, [
+        config,
         view,
-        workbookEntryIdx,
         workbookEntryScriptData,
         workbook?.connectionCatalog,
-        updateScript,
     ]);
-
-    // See: https://github.com/codemirror/basic-setup/blob/main/src/codemirror.ts
-    // We might want to add other plugins later.
-    const extensions = React.useMemo(() => {
-        /* XXX ANY CAST IS A HACK. Need to update @codemirror/view */
-        const keymapExtension = keymap.of([
-            ...defaultKeymap as any,
-            ...historyKeymap
-        ]);
-        return [
-            themes.xcode.xcodeLight,
-            lineNumbers(),
-            history(),
-            ...DashQLExtensions,
-            keymapExtension
-        ];
-    }, []);
 
     return (
         <div className={styles.editor_with_header}>
@@ -206,11 +74,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
             </div>
             <div className={styles.editor_with_loader}>
                 <div className={styles.editor}>
-                    <CodeMirror
-                        extensions={extensions}
-                        viewWasCreated={viewWasCreated}
-                        viewWillBeDestroyed={viewWillBeDestroyed}
-                    />
+                    <CodeMirror ref={setView} />
                 </div>
             </div>
             {isDebugBuild() && config?.settings?.showEditorStats && workbookEntryScriptData?.statistics &&
@@ -226,3 +90,108 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
+
+
+function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: ScriptData, modifyWorkbook: ModifyWorkbook, logger: Logger, config: AppConfig) {
+    const state = view.state.field(DashQLProcessor);
+    const changes: ChangeSpec[] = [];
+    const effects: StateEffect<any>[] = [];
+
+    // Script does not belong here?
+    // Create a new editor state and update the view.
+    // XXX Here's the place where we would restore a previous state, if one exists.
+    if (state.targetScript != null && state.targetScript != scriptData.script) {
+        // When that happens we have to reset the editor state.
+        // It means that someone gave us a new workbook script that requires a state update
+        const extensions = createCodeMirrorExtensions();
+        const newState = EditorState.create({ extensions });
+        view.setState(newState);
+    }
+
+    // Initial setup or unexpected script buffers?
+    // Then we reset everything to make sure the script is ok.
+    // XXX We could track a version counter to make sure we're referencing the same content.
+    if (
+        state.targetScript == null ||
+        state.scriptBuffers !== scriptData.processed
+    ) {
+        logger.info("replace editor script", {}, "editor");
+        changes.push({
+            from: 0,
+            to: view.state.doc.length,
+            insert: scriptData.script?.toString(),
+        });
+    }
+
+    // Did the cursor change?
+    let selection: EditorSelection | null = null;
+    if (state.scriptCursor !== scriptData.cursor) {
+        selection = EditorSelection.create([EditorSelection.cursor(scriptData.cursor?.textOffset ?? 0)]);
+    }
+
+    // Helper to update a script.
+    // Called when the script gets updated by the CodeMirror extension.
+    // Note that this is also called when the state is set up initially.
+    const updateScript = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, buffers: DashQLScriptBuffers, cursor: dashql.buffers.ScriptCursorT) => {
+        modifyWorkbook({
+            type: UPDATE_SCRIPT_ANALYSIS,
+            value: [scriptKey, buffers, cursor],
+        });
+    };
+
+    // Helper to update a script cursor.
+    // Called when the cursor gets updated by the CodeMirror extension.
+    // Note that this is also called when the state is set up initially.
+    const updateCursor = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, cursor: dashql.buffers.ScriptCursorT) => {
+        modifyWorkbook({
+            type: UPDATE_SCRIPT_CURSOR,
+            value: [scriptKey, cursor],
+        });
+    };
+    // Helper to start a completion.
+    // Called when the CodeMirror extension opens the completion dropdown.
+    const startCompletion = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.buffers.CompletionT) => {
+        modifyWorkbook({
+            type: COMPLETION_STARTED,
+            value: [scriptKey, completion],
+        });
+    };
+    // Helper to peek a completion candidate
+    // Called when the CodeMirror extension changes the selected completion.
+    const peekCompletionCandidate = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.buffers.CompletionT, candidateId: number) => {
+        modifyWorkbook({
+            type: COMPLETION_CHANGED,
+            value: [scriptKey, completion, candidateId],
+        });
+    };
+    // Helper to stop a completion.
+    // Called when the CodeMirror extension opens the completion dropdown.
+    const stopCompletion = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript) => {
+        modifyWorkbook({
+            type: COMPLETION_STOPPED,
+            value: scriptKey,
+        });
+    };
+
+
+    // Notify the CodeMirror extension
+    effects.push(
+        DashQLSyncEffect.of({
+            config: {
+                showCompletionDetails: config?.settings?.showCompletionDetails ?? false,
+            },
+            scriptKey: scriptData.scriptKey,
+            targetScript: scriptData.script,
+            scriptBuffers: scriptData.processed,
+            scriptCursor: scriptData.cursor,
+            derivedFocus: workbook?.userFocus ?? null,
+
+            onScriptUpdate: updateScript,
+            onCursorUpdate: updateCursor,
+            onCompletionStart: startCompletion,
+            onCompletionPeek: peekCompletionCandidate,
+            onCompletionStop: stopCompletion,
+        }),
+    );
+    view.dispatch({ changes, effects, selection: selection ?? undefined });
+}

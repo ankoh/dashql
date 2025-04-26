@@ -4,14 +4,14 @@ import { EditorView } from '@codemirror/view';
 import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
-import { DashQLEditorState, DashQLProcessor } from './dashql_processor.js';
+import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
 
 const COMPLETION_LIMIT = 32;
 
 /// A DashQL completion storing the backing completion buffer and a candidate
 interface DashQLCompletion extends Completion {
     /// The processor
-    state: DashQLEditorState;
+    state: DashQLProcessorState;
     /// The completion buffer
     /// XXX How do we clean this up after the completion ends?
     coreCompletion: dashql.buffers.CompletionT;
@@ -32,7 +32,7 @@ function updateCompletions(
 /// Preview a completion candidate
 const previewCompletion = (completion: Completion) => {
     const candidate = completion as DashQLCompletion;
-    candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.coreCompletion, candidate.candidateId);
+    candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.coreCompletion, candidate.candidateId);
     return null;
 };
 
@@ -97,7 +97,7 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
             }
             offset = processor.scriptCursor.scannerSymbolOffset;
             if (!processor.completionActive) {
-                processor.onCompletionStart(processor.scriptKey, completion);
+                processor.onCompletionStart(processor.scriptKey, processor.targetScript!, completion);
             }
         }
     }

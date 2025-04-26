@@ -1,87 +1,70 @@
 import * as React from 'react';
+import * as themes from './themes/index.js';
 
-import { EditorState, EditorStateConfig, Extension } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorState, Extension } from '@codemirror/state';
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
+import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { DashQLExtensions } from './dashql_extension.js';
 
 import { useLogger } from '../../platform/logger_provider.js';
 
 import './codemirror.css';
 
-export interface CodeMirrorProps
-    extends Omit<EditorStateConfig, 'doc' | 'extensions'>,
-    Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'placeholder'> {
-    /// Callback after view is initially created
-    viewWasCreated?: (view: EditorView) => void;
-    /// Callback before view is destroyed
-    viewWillBeDestroyed?: (view: EditorView) => void;
-
-    /// The codemirror extensions
-    extensions?: Extension[];
+export interface CodeMirrorProps {
     /// Root of the DOM where the editor is mounted
     root?: ShadowRoot | Document;
 }
 
-interface ViewMountState {
-    view: EditorView | null;
-    node: HTMLDivElement | null;
-    extensions: Extension[];
-    viewWasCreated: ((view: EditorView) => void) | null;
-    viewWillBeDestroyed: ((view: EditorView) => void) | null;
+export function createCodeMirrorExtensions(): Extension[] {
+    // See: https://github.com/codemirror/basic-setup/blob/main/src/codemirror.ts
+    // We might want to add other plugins later.
+    const keymapExtension = keymap.of([
+        ...defaultKeymap,
+        ...historyKeymap
+    ]);
+    const extensions: Extension[] = [
+        themes.xcode.xcodeLight,
+        lineNumbers(),
+        history(),
+        ...DashQLExtensions,
+        keymapExtension
+    ];
+    return extensions;
 }
 
-export const CodeMirror: React.FC<CodeMirrorProps> = (props: CodeMirrorProps) => {
+export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: CodeMirrorProps, ref) => {
     const logger = useLogger();
 
-    /// Maintain the view DOM node
-    const mount = React.useRef<ViewMountState>({
-        view: null,
-        node: null,
-        extensions: props.extensions ?? [],
-        viewWasCreated: props.viewWasCreated ?? null,
-        viewWillBeDestroyed: props.viewWillBeDestroyed ?? null,
-    });
-    // Make the ref callback dependency-less through RefObject + effect
+    const [node, setNode] = React.useState<HTMLDivElement | null>(null);
+
     React.useEffect(() => {
-        mount.current.extensions = props.extensions ?? [];
-        mount.current.viewWasCreated = props.viewWasCreated ?? null;
-        mount.current.viewWillBeDestroyed = props.viewWillBeDestroyed ?? null;
-    }, [props.extensions, props.viewWasCreated, props.viewWillBeDestroyed]);
-
-    const onRefChange = React.useCallback((node: HTMLDivElement) => {
-        // DOM node stayed the same, nothing to do.
-        if (node != null && node === mount.current!.node) {
-            return;
-        }
-
-        // Is there a view?
-        if (mount.current.view !== null) {
-            if (props.viewWillBeDestroyed) {
-                props.viewWillBeDestroyed(mount.current.view);
-            }
-            mount.current.view.destroy();
-            mount.current.view = null;
-        }
-        mount.current.node = node;
-
-        // Has the DOM node been unmounted?
-        // Then we don't need to create a new view.
-        if (node === null) {
-            logger.warn("target node was unmounted", {}, "codemirror");
-            return;
+        // Not mounted yet?
+        // Then do nothing.
+        if (node == null) {
+            return () => { };
         }
         logger.info("creating a new codemirror view", {}, "codemirror");
 
         // The DOM node has changed, create a new view
-        mount.current.view = new EditorView({
-            state: EditorState.create({
-                extensions: mount.current.extensions
-            }),
+        const extensions = createCodeMirrorExtensions();
+        const view = new EditorView({
+            state: EditorState.create({ extensions }),
             parent: node,
             root: props.root,
         });
-        if (props.viewWasCreated) {
-            props.viewWasCreated(mount.current.view);
+
+        // Forward the ref
+        if (typeof ref === 'function') {
+            ref(view);
+        } else if (ref) {
+            ref.current = view;
         }
-    }, []);
-    return <div style={{ width: '100%', height: '100%' }} ref={onRefChange}></div>;
-};
+
+        // Destroy the view when unmounting
+        return () => {
+            view.destroy();
+        };
+    }, [node, ref]);
+
+    return <div style={{ width: '100%', height: '100%' }} ref={setNode}></div>;
+});
