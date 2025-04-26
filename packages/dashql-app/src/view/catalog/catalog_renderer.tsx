@@ -121,6 +121,42 @@ class VirtualRenderingWindow {
     }
 }
 
+export interface RenderedPath {
+    key: string;
+    pathBefore: string;
+    pathAfter: string;
+}
+
+export interface RenderedNode {
+    key: string;
+    postionBefore: {
+        top: number;
+        left: number;
+    };
+    positionAfter: {
+        top: number;
+        left: number;
+    };
+    width: number;
+    height: number;
+}
+
+export interface RenderingState {
+    /// The rendered nodes
+    nodePositions: Map<string, RenderedNode>;
+    /// The rendered edges
+    edgePaths: Map<string, RenderedPath>;
+}
+
+export interface RenderingOutput {
+    /// The nodes
+    nodes: React.ReactElement[];
+    /// The edges
+    edges: React.ReactElement[];
+    /// The focused edges
+    edgesFocused: React.ReactElement[];
+}
+
 interface RenderingContext {
     /// The viewModel
     viewModel: CatalogViewModel;
@@ -136,12 +172,12 @@ interface RenderingContext {
     renderingWindow: VirtualRenderingWindow;
     /// The edge builder
     edgeBuilder: EdgePathBuilder;
+    /// The previous state
+    prevState: RenderingState;
+    /// The next pistate
+    nextState: RenderingState;
     /// The output nodes
-    outNodes: React.ReactElement[];
-    /// The output edges
-    outEdges: React.ReactElement[];
-    /// The output edges that are focused
-    outEdgesFocused: React.ReactElement[];
+    output: RenderingOutput;
 };
 
 const LEVEL_NAMES = [
@@ -242,10 +278,27 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     anyChildIsFocused ||= (level.entryFlags[entry.childBegin() + i] & PINNED_BY_FOCUS) != 0;
                 }
             }
-            // Output node
+            // Build the node key
             const thisKey = ctx.renderingPath.getKey(levelId);
             const thisName = ctx.snapshot.readName(entry.nameId());
-            ctx.outNodes.push(
+            // Resolve the previous node
+            const prevNodePosition = ctx.prevState.nodePositions.get(thisKey);
+            const newNodePosition: RenderedNode = {
+                key: thisKey,
+                postionBefore: prevNodePosition?.positionAfter ?? {
+                    top: 0,
+                    left: 0,
+                },
+                positionAfter: {
+                    top: thisPosY,
+                    left: positionX,
+                },
+                width: settings.nodeWidth,
+                height: settings.nodeHeight,
+            };
+            ctx.nextState.nodePositions.set(thisKey, newNodePosition);
+            // Output node
+            ctx.output.nodes.push(
                 <div
                     key={thisKey}
                     className={classNames(styles.node, {
@@ -259,8 +312,9 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     })}
                     style={{
                         position: 'absolute',
-                        top: thisPosY,
-                        left: positionX,
+                        top: 0,
+                        left: 0,
+                        transform: `translate(${positionX}px, ${thisPosY}px)`,
                         width: settings.nodeWidth,
                         height: settings.nodeHeight,
                     }}
@@ -330,12 +384,20 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     const edgeType = selectHorizontalEdgeType(fromX, fromY, toX, toY);
                     const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, fromX, fromY, toX, toY, settings.nodeWidth, settings.nodeHeight, toSettings.nodeWidth, toSettings.nodeHeight, 10, 10, 4);
                     const edgeKey = `${thisKey}:${i}`;
+                    // Resolve the previous path
+                    const prevPath = ctx.prevState.edgePaths.get(edgeKey);
+                    const nextPath: RenderedPath = {
+                        key: thisKey,
+                        pathBefore: prevPath?.pathAfter ?? "",
+                        pathAfter: edgePath
+                    };
+                    ctx.nextState.edgePaths.set(edgeKey, nextPath);
 
                     // Is his a focused edge?
                     const toEntryFlags = toFlags[toEntryId];
                     const pinnedByCompletion = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH | CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
                     if (((entryFlags & pinnedByCompletion) != 0) && ((toEntryFlags & pinnedByCompletion) != 0)) {
-                        ctx.outEdgesFocused.push(
+                        ctx.output.edgesFocused.push(
                             <path
                                 key={edgeKey}
                                 d={edgePath}
@@ -356,7 +418,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             </path>,
                         );
                     } else if (((entryFlags & PINNED_BY_FOCUS) != 0) && ((toEntryFlags & PINNED_BY_FOCUS) != 0)) {
-                        ctx.outEdgesFocused.push(
+                        ctx.output.edgesFocused.push(
                             <path
                                 key={edgeKey}
                                 d={edgePath}
@@ -368,7 +430,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             />,
                         );
                     } else {
-                        ctx.outEdges.push(
+                        ctx.output.edges.push(
                             <path
                                 key={edgeKey}
                                 d={edgePath}
@@ -397,7 +459,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             renderingEpochs[lastOverflowEntryId] = ctx.renderingEpoch;
             const key = ctx.renderingPath.getKeyPrefix(levelId);
             const overflowKey = `${key}:overflow`;
-            ctx.outNodes.push(
+            ctx.output.nodes.push(
                 <div
                     key={overflowKey}
 
@@ -420,7 +482,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 }
 
 /// A function to render a catalog
-export function renderCatalog(viewModel: CatalogViewModel, outNodes: React.ReactElement[], outEdges: React.ReactElement[], outEdgesFocused: React.ReactElement[]) {
+export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
     const ctx: RenderingContext = {
         viewModel,
         snapshot: viewModel.snapshot.read(),
@@ -429,10 +491,17 @@ export function renderCatalog(viewModel: CatalogViewModel, outNodes: React.React
         renderingPath: new RenderingPath(),
         renderingWindow: new VirtualRenderingWindow(viewModel.scrollBegin, viewModel.scrollEnd, viewModel.virtualScrollBegin, viewModel.virtualScrollEnd),
         edgeBuilder: new EdgePathBuilder(),
-        outNodes,
-        outEdges,
-        outEdgesFocused,
+        prevState: state,
+        nextState: {
+            nodePositions: new Map(),
+            edgePaths: new Map(),
+        },
+        output: {
+            nodes: [],
+            edges: [],
+            edgesFocused: []
+        }
     };
     renderEntriesAtLevel(ctx, 0, 0, viewModel.databaseEntries.entries.length(ctx.snapshot), null, false);
-    return outNodes;
+    return [ctx.nextState, ctx.output];
 }

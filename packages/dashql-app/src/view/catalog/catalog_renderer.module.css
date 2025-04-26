@@ -28,6 +28,8 @@
     border: var(--catalog_default_border_width) solid var(--border_color_primary);
     background-color: var(--catalog_node_inactive_bg);
 
+    transition: transform 0.2s ease-out;
+
     display: grid;
     grid-template-rows: 100%;
     grid-template-columns: 1fr max-content;
