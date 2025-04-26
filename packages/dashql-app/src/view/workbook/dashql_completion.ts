@@ -13,7 +13,6 @@ interface DashQLCompletion extends Completion {
     /// The processor
     state: DashQLProcessorState;
     /// The completion buffer
-    /// XXX How do we clean this up after the completion ends?
     coreCompletion: dashql.buffers.CompletionT;
     /// The candidate id
     candidateId: number;
@@ -36,7 +35,7 @@ const previewCompletion = (completion: Completion) => {
     return null;
 };
 
-const applyCompletion = (view: EditorView, completion: Completion, from: number, to: number) => {
+const applyCompletion = (view: EditorView, completion: Completion, _from: number, _to: number) => {
     const c = completion as DashQLCompletion;
     const candidate = c.coreCompletion.candidates[c.candidateId];
     if (!candidate.replaceTextAt) {
