@@ -631,6 +631,13 @@ export class CatalogViewModel {
         this.layoutPendingEntries();
     }
 
+    unpinFocusedByUser(): void {
+        const epoch = this.nextPinEpoch++;
+        // Unpin previous catalog objects
+        this.unpin(PINNED_BY_FOCUS, epoch);
+        // Now run all necessary layout updates
+        this.layoutPendingEntries();
+    }
 
     pinFocusedByUser(focus: UserFocus): void {
         const catalog = this.snapshot.read().catalogReader;

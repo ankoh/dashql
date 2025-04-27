@@ -213,16 +213,19 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             return {
                 ...state,
                 selectedWorkbookEntry: Math.max(Math.min(state.selectedWorkbookEntry + 1, state.workbookEntries.length - 1), 0),
+                userFocus: null,
             };
         case SELECT_PREV_ENTRY:
             return {
                 ...state,
-                selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0)
+                selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0),
+                userFocus: null,
             };
         case SELECT_ENTRY:
             return {
                 ...state,
                 selectedWorkbookEntry: Math.max(Math.min(action.value, state.workbookEntries.length - 1), 0),
+                userFocus: null,
             };
 
         case CATALOG_DID_UPDATE: {
@@ -573,7 +576,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             return {
                 ...state,
                 workbookEntries: newEntries,
-                selectedWorkbookEntry: newSelectedIndex
+                selectedWorkbookEntry: newSelectedIndex,
+                userFocus: null,
             };
         }
 
@@ -598,6 +602,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 ...state,
                 workbookEntries: newEntries,
                 selectedWorkbookEntry: newSelectedIndex,
+                userFocus: null,
             });
         }
 
@@ -653,6 +658,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 },
                 workbookEntries: [...state.workbookEntries, entry],
                 selectedWorkbookEntry: state.workbookEntries.length,
+                userFocus: null,
             };
         }
     }

@@ -93,31 +93,40 @@ export function CatalogViewer(props: Props) {
 
     // Update user focus
     React.useEffect(() => {
-        if (viewModel != null && workbook?.userFocus) {
-            // Pin focused elements
-            viewModel.pinFocusedByUser(workbook.userFocus);
-            // Get the number of focused levels
-            let renderColumns = true;
-            if (viewModel.getFirstUnfocusedLevel() == CatalogLevel.Column) {
-                renderColumns = false;
-            }
-            // Collapsing/expanding columns based on user-focus and jumping in the scroll container at the same time is racy
-            setRenderColumns(renderColumns);
+        if (viewModel != null) {
+            if (workbook?.userFocus == null) {
+                viewModel.unpinFocusedByUser();
+                if (!renderColumns) {
+                    setRenderColumns(true);
+                }
+            } else {
+                // Pin focused elements
+                viewModel.pinFocusedByUser(workbook.userFocus);
+                // Get the number of focused levels
+                let newRenderColumns = true;
+                if (viewModel.getFirstUnfocusedLevel() == CatalogLevel.Column) {
+                    newRenderColumns = false;
+                }
+                // Collapsing/expanding columns based on user-focus and jumping in the scroll container at the same time is racy
+                if (newRenderColumns != renderColumns) {
+                    setRenderColumns(newRenderColumns);
+                }
 
-            // Scroll to first focused entry
-            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused(renderColumns);
-            if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
-                const containerDiv = containerElement.current as HTMLDivElement;
-                const boardDiv = boardElement.current as HTMLDivElement;
-                const clientVerticalCenter = containerSize.height / 2;
-                scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter; // XXX Padding
+                // Scroll to first focused entry
+                let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused(newRenderColumns);
+                if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
+                    const containerDiv = containerElement.current as HTMLDivElement;
+                    const boardDiv = boardElement.current as HTMLDivElement;
+                    const clientVerticalCenter = containerSize.height / 2;
+                    scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter; // XXX Padding
 
-                const newViewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
-                // XXX Are browsers doing the right thing here?
-                //     Manual tests indicate that this is working...
-                //     We manually bump the minimum height to make sure there's enough room for scrollTop.
-                boardDiv.style.minHeight = `${newViewModelHeight}px`;
-                containerDiv.scrollTop = scrollToFocus;
+                    const newViewModelHeight = (newRenderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
+                    // XXX Are browsers doing the right thing here?
+                    //     Manual tests indicate that this is working...
+                    //     We manually bump the minimum height to make sure there's enough room for scrollTop.
+                    boardDiv.style.minHeight = `${newViewModelHeight}px`;
+                    containerDiv.scrollTop = scrollToFocus;
+                }
             }
 
             // This will trigger a rerender
