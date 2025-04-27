@@ -4,7 +4,8 @@ import * as dashql from '@ankoh/dashql-core';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'node:url';
-import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
+import { CatalogViewModel } from './catalog_view_model.js';
+import { DEFAULT_RENDERING_SETTINGS } from './catalog_viewer.js';
 
 const coreDistPath = path.resolve(fileURLToPath(new URL('../../../../dashql-core-bindings/dist', import.meta.url)));
 const wasmPath = path.resolve(coreDistPath, './dashql.wasm');
@@ -18,43 +19,6 @@ beforeAll(async () => {
     });
     expect(dql).not.toBeNull();
 });
-
-const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
-    virtual: {
-        prerenderSize: 200,
-        stepSize: 1,
-    },
-    levels: {
-        databases: {
-            nodeWidth: 160,
-            nodeHeight: 30,
-            maxUnpinnedChildren: 3,
-            rowGap: 8,
-            columnGap: 48,
-        },
-        schemas: {
-            nodeWidth: 160,
-            nodeHeight: 30,
-            maxUnpinnedChildren: 3,
-            rowGap: 8,
-            columnGap: 48,
-        },
-        tables: {
-            nodeWidth: 160,
-            nodeHeight: 30,
-            maxUnpinnedChildren: 5,
-            rowGap: 16,
-            columnGap: 48,
-        },
-        columns: {
-            nodeWidth: 160,
-            nodeHeight: 30,
-            maxUnpinnedChildren: 3,
-            rowGap: 8,
-            columnGap: 48,
-        },
-    }
-};
 
 describe('CatalogViewModel', () => {
     it('2 tables', () => {

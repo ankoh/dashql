@@ -4,8 +4,10 @@ import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, 
 
 /// The rendering settings for a catalog level
 export interface CatalogLevelRenderingSettings {
-    /// The width of a node
-    nodeWidth: number;
+    /// The width of an expaned node
+    nodeWidthExpanded: number;
+    /// The height of a collapsed node
+    nodeWidthCollapsed: number;
     /// The height of a node
     nodeHeight: number;
     /// The maximum children at this level
@@ -34,7 +36,16 @@ export interface CatalogRenderingSettings {
         tables: CatalogLevelRenderingSettings;
         /// The column settings
         columns: CatalogLevelRenderingSettings;
-    }
+    },
+}
+
+export function getCatalogLevelRenderingSettingsById(settings: CatalogRenderingSettings) {
+    return [
+        settings.levels.databases,
+        settings.levels.schemas,
+        settings.levels.tables,
+        settings.levels.columns,
+    ];
 }
 
 /// The flags for rendering catalog entries
@@ -134,8 +145,6 @@ interface CatalogLevelViewModel {
     entryFlags: Uint16Array;
     /// The subtree heights
     subtreeHeights: Float32Array;
-    /// The x offset
-    positionX: number;
     /// The y positions as written during rendering (if visible)
     positionsY: Float32Array;
     /// The epochs in which this node was rendered
@@ -174,8 +183,6 @@ export class CatalogViewModel {
 
     /// The total height of all nodes
     totalHeight: number;
-    /// The total width of all nodes
-    totalWidth: number;
 
     /// The pending layout updates
     pendingLayoutUpdates: PendingLayoutUpdates;
@@ -210,7 +217,6 @@ export class CatalogViewModel {
             },
             entryFlags: new Uint16Array(snap.catalogReader.databasesLength()),
             subtreeHeights: new Float32Array(snap.catalogReader.databasesLength()),
-            positionX: 0,
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.databasesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.databasesLength()),
@@ -226,7 +232,6 @@ export class CatalogViewModel {
             },
             entryFlags: new Uint16Array(snap.catalogReader.schemasLength()),
             subtreeHeights: new Float32Array(snap.catalogReader.schemasLength()),
-            positionX: 0,
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.schemasLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.schemasLength()),
@@ -242,7 +247,6 @@ export class CatalogViewModel {
             },
             entryFlags: new Uint16Array(snap.catalogReader.tablesLength()),
             subtreeHeights: new Float32Array(snap.catalogReader.tablesLength()),
-            positionX: 0,
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.tablesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.tablesLength()),
@@ -258,7 +262,6 @@ export class CatalogViewModel {
             },
             entryFlags: new Uint16Array(snap.catalogReader.columnsLength()),
             subtreeHeights: new Float32Array(snap.catalogReader.columnsLength()),
-            positionX: 0,
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.columnsLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.columnsLength()),
@@ -266,11 +269,7 @@ export class CatalogViewModel {
             pinnedEntries: new Set(),
             firstFocusedEntry: null,
         };
-        this.schemaEntries.positionX = settings.levels.databases.nodeWidth + settings.levels.databases.columnGap;
-        this.tableEntries.positionX = this.schemaEntries.positionX + settings.levels.schemas.nodeWidth + settings.levels.schemas.columnGap;
-        this.columnEntries.positionX = this.tableEntries.positionX + settings.levels.tables.nodeWidth + settings.levels.tables.columnGap;
 
-        this.totalWidth = 0;
         this.totalHeight = 0;
         this.pendingLayoutUpdates = new PendingLayoutUpdates();
 
@@ -366,7 +365,6 @@ export class CatalogViewModel {
         };
         CatalogViewModel.layoutEntriesAtLevel(ctx, this.levels, 0, 0, databaseCount);
         this.totalHeight = ctx.currentWriterY;
-        this.totalWidth = this.columnEntries.positionX + this.settings.levels.columns.nodeWidth + this.settings.levels.columns.columnGap;
     }
 
     /// Flush all pending layout updates
@@ -613,6 +611,16 @@ export class CatalogViewModel {
         this.unpin(PINNED_BY_FOCUS, epoch);
         // Now run all necessary layout updates
         this.layoutPendingEntries();
+    }
+
+    getPinnedLevels(): number {
+        let pinnedLevels = this.levels.length;
+        for (let i = 0; i < this.levels.length; ++i) {
+            if (this.levels[i].pinnedEntries.size == 0) {
+                pinnedLevels = i;
+            }
+        }
+        return pinnedLevels;
     }
 
     static searchEntryOffsetAtLevel(ctx: SearchContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number): [number, boolean] {

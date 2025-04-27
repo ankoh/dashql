@@ -221,34 +221,18 @@ export function buildEdgePath(
     fromHeight: number,
     toWidth: number,
     toHeight: number,
-    gridCellWidth: number,
-    gridCellHeight: number,
     cornerRadius: number,
 ): string {
     if (toX - fromX == 0 && toY - fromY == 0) {
         return '';
     }
-
     const r = cornerRadius;
-    const diffX = Math.abs(toX - fromX);
-    const diffY = Math.abs(toY - fromY);
-    let midX = fromX + (toX - fromX) / 2;
-    let midY = fromY + (toY - fromY) / 2;
-    midX = Math.round(midX / gridCellWidth) * gridCellWidth;
-    midY = Math.round(midY / gridCellHeight) * gridCellHeight;
 
-    const midXMinusR = () => midX - Math.min(diffX / 2, r);
-    const midXPlusR = () => midX + Math.min(diffX / 2, r);
-    const midYMinusR = () => midY - Math.min(diffY / 2, r);
-    const midYPlusR = () => midY + Math.min(diffY / 2, r);
-    const fromXPlusR = () => fromX + Math.min(diffX / 2, r);
-    const fromXMinusR = () => fromX - Math.min(diffX / 2, r);
-    const fromYPlusR = () => fromY + Math.min(diffY / 2, r);
-    const fromYMinusR = () => fromY - Math.min(diffY / 2, r);
-    const toXPlusR = () => toX + Math.min(diffX / 2, r);
-    const toXMinusR = () => toX - Math.min(diffX / 2, r);
-    const toYPlusR = () => toY + Math.min(diffY / 2, r);
-    const toYMinusR = () => toY - Math.min(diffY / 2, r);
+    // Note that North/South/East/West is a bit confusing here in the context of SVG:
+    //  - We use North as North relative to the target coordinate system.
+    //  - That means North == Larger Y, South == Smaller Y
+    //  - This breaks intuition in SVG since there (0, 0) is in the top-left!
+    //  - In SVG, don't assume that NORTH means an edge is going upwards!
 
     switch (type) {
         // DIRECT
@@ -275,158 +259,302 @@ export function buildEdgePath(
 
         // 1 TURN
 
-        case EdgeType.NorthEast:
-            builder.begin(fromX, fromY + fromHeight / 2);
-            builder.push(fromX, toYMinusR() - r);
+        //  +-B
+        //  |
+        //  A
+        case EdgeType.NorthEast: {
+            fromY += fromHeight / 2;
+            toX -= toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(fromX, toY - Math.min(diffY / 2, r) - r);
             builder.push(fromX, toY);
-            builder.push(fromXPlusR(), toY);
-            builder.push(toX - toWidth / 2, toY);
+            builder.push(fromX + Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.NorthWest:
-            builder.begin(fromX, fromY + fromHeight / 2);
-            builder.push(fromX, toYMinusR());
+        //  B-+
+        //    |
+        //    A
+        case EdgeType.NorthWest: {
+            fromY += fromHeight / 2;
+            toX += toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(fromX, toY - Math.min(diffY / 2, r));
             builder.push(fromX, toY);
-            builder.push(fromXMinusR(), toY);
-            builder.push(toX + toWidth / 2, toY);
+            builder.push(fromX - Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.SouthEast:
-            builder.begin(fromX, fromY - fromHeight / 2);
-            builder.push(fromX, toYPlusR());
+        //  A
+        //  |
+        //  +-B
+        case EdgeType.SouthEast: {
+            fromY += fromHeight / 2;
+            toX -= toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(fromX, toY + Math.min(diffY / 2, r));
             builder.push(fromX, toY);
-            builder.push(fromXPlusR(), toY);
-            builder.push(toX - toWidth / 2, toY);
+            builder.push(fromX + Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.SouthWest:
-            builder.begin(fromX, fromY - fromHeight / 2);
-            builder.push(fromX, toYPlusR());
+        //    A
+        //    |
+        //  B-+
+        case EdgeType.SouthWest: {
+            fromY -= fromHeight / 2;
+            toX += toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(fromX, toY + Math.min(diffY / 2, r));
             builder.push(fromX, toY);
-            builder.push(fromXMinusR(), toY);
-            builder.push(toX + toWidth / 2, toY);
+            builder.push(fromX - Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.EastNorth:
-            builder.begin(fromX + fromWidth / 2, fromY);
-            builder.push(toXMinusR(), fromY);
+        //    B
+        //    |
+        //  A-+
+        case EdgeType.EastNorth: {
+            fromX += fromWidth / 2;
+            toY -= toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(toX - Math.min(diffX / 2, r), fromY);
             builder.push(toX, fromY);
-            builder.push(toX, fromYPlusR());
-            builder.push(toX, toY - toHeight / 2);
+            builder.push(toX, fromY + Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.EastSouth:
-            builder.begin(fromX + fromWidth / 2, fromY);
-            builder.push(toXMinusR(), fromY);
+        //  A-+
+        //    |
+        //    B
+        case EdgeType.EastSouth: {
+            fromX += fromWidth / 2;
+            toY += toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(toX - Math.min(diffX / 2, r), fromY);
             builder.push(toX, fromY);
-            builder.push(toX, fromYMinusR());
-            builder.push(toX, toY + toHeight / 2);
+            builder.push(toX, fromY - Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.WestNorth:
-            builder.begin(fromX - fromWidth / 2, fromY);
-            builder.push(toXPlusR(), fromY);
+        //  B
+        //  |
+        //  +-A
+        case EdgeType.WestNorth: {
+            fromX -= fromWidth / 2;
+            toY -= toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(toX + Math.min(diffX / 2, r), fromY);
             builder.push(toX, fromY);
-            builder.push(toX, fromYPlusR());
-            builder.push(toX, toY - toHeight / 2);
+            builder.push(toX, fromY + Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
-        case EdgeType.WestSouth:
-            builder.begin(fromX - fromWidth / 2, fromY);
-            builder.push(toXPlusR(), fromY);
+        //  +-A
+        //  |
+        //  B
+        case EdgeType.WestSouth: {
+            fromX -= fromWidth / 2;
+            toY += toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            builder.begin(fromX, fromY);
+            builder.push(toX + Math.min(diffX / 2, r), fromY);
             builder.push(toX, fromY);
-            builder.push(toX, fromYMinusR());
-            builder.push(toX, toY + toHeight / 2);
+            builder.push(toX, fromY - Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build1Turn();
+        }
 
         // 2 TURNS
 
-        case EdgeType.EastNorthEast:
-            builder.begin(fromX + fromWidth / 2, fromY);
-            builder.push(midXMinusR(), fromY);
+        //   +-B
+        //   |
+        // A-+
+        case EdgeType.EastNorthEast: {
+            fromX += fromWidth / 2;
+            toX -= toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midX = fromX + diffX / 2;
+            builder.begin(fromX, fromY);
+            builder.push(midX - Math.min(diffX / 2, r), fromY);
             builder.push(midX, fromY);
-            builder.push(midX, fromYPlusR());
-            builder.push(midX, toYMinusR());
+            builder.push(midX, fromY + Math.min(diffY / 2, r));
+            builder.push(midX, toY - Math.min(diffY / 2, r));
             builder.push(midX, toY);
-            builder.push(midXPlusR(), toY);
-            builder.push(toX - toWidth / 2, toY);
+            builder.push(midX + Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.EastSouthEast:
-            builder.begin(fromX + fromWidth / 2, fromY);
-            builder.push(midXMinusR(), fromY);
+        // A-+
+        //   |
+        //   +-B
+        case EdgeType.EastSouthEast: {
+            fromX += fromWidth / 2;
+            toX -= toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midX = fromX + diffX / 2;
+            builder.begin(fromX, fromY);
+            builder.push(midX - Math.min(diffX / 2, r), fromY);
             builder.push(midX, fromY);
-            builder.push(midX, fromYMinusR());
-            builder.push(midX, toYPlusR());
+            builder.push(midX, fromY - Math.min(diffY / 2, r));
+            builder.push(midX, toY + Math.min(diffY / 2, r));
             builder.push(midX, toY);
-            builder.push(midXPlusR(), toY);
-            builder.push(toX - toWidth / 2, toY);
+            builder.push(midX + Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.SouthEastSouth:
-            builder.begin(fromX, fromY - fromHeight / 2);
-            builder.push(fromX, midYPlusR());
+        // A
+        // |
+        // +-+
+        //   |
+        //   B
+        case EdgeType.SouthEastSouth: {
+            fromY -= fromHeight / 2;
+            toY += toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midY = fromY - diffY / 2;
+            builder.begin(fromX, fromY);
+            builder.push(fromX, midY + Math.min(diffY / 2, r));
             builder.push(fromX, midY);
-            builder.push(fromXPlusR(), midY);
-            builder.push(toXMinusR(), midY);
+            builder.push(fromX + Math.min(diffX / 2, r), midY);
+            builder.push(toX - Math.min(diffX / 2, r), midY);
             builder.push(toX, midY);
-            builder.push(toX, midYMinusR());
-            builder.push(toX, toY + toHeight / 2);
+            builder.push(toX, midY - Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.SouthWestSouth:
-            builder.begin(fromX, fromY - fromHeight / 2);
-            builder.push(fromX, midYPlusR());
+        //   A
+        //   |
+        // +-+
+        // |
+        // B
+        case EdgeType.SouthWestSouth: {
+            fromY -= fromHeight / 2;
+            toY += toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midY = fromY - diffY / 2;
+            builder.begin(fromX, fromY);
+            builder.push(fromX, midY + Math.min(diffY / 2, r));
             builder.push(fromX, midY);
-            builder.push(fromXMinusR(), midY);
-            builder.push(toXPlusR(), midY);
+            builder.push(fromX - Math.min(diffX / 2, r), midY);
+            builder.push(toX + Math.min(diffX / 2, r), midY);
             builder.push(toX, midY);
-            builder.push(toX, midYMinusR());
-            builder.push(toX, toY + toHeight / 2);
+            builder.push(toX, midY - Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.WestNorthWest:
-            builder.begin(fromX - fromWidth / 2, fromY);
-            builder.push(midXPlusR(), fromY);
+        // B-+
+        //   |
+        //   +-A
+        case EdgeType.WestNorthWest: {
+            fromX -= fromWidth / 2;
+            toX += toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midX = fromX - diffX / 2;
+            builder.begin(fromX, fromY);
+            builder.push(midX + Math.min(diffX / 2, r), fromY);
             builder.push(midX, fromY);
-            builder.push(midX, fromYPlusR());
-            builder.push(midX, toYMinusR());
+            builder.push(midX, fromY + Math.min(diffY / 2, r));
+            builder.push(midX, toY - Math.min(diffY / 2, r));
             builder.push(midX, toY);
-            builder.push(midXMinusR(), toY);
-            builder.push(toX + toWidth / 2, toY);
+            builder.push(midX - Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.WestSouthWest:
-            builder.begin(fromX - fromWidth / 2, fromY);
-            builder.push(midXPlusR(), fromY);
+        //   +-A
+        //   |
+        // B-+
+        case EdgeType.WestSouthWest: {
+            fromX -= fromWidth / 2;
+            toX += toWidth / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midX = fromX - diffX / 2;
+            builder.begin(fromX, fromY);
+            builder.push(midX + Math.min(diffX / 2, r), fromY);
             builder.push(midX, fromY);
-            builder.push(midX, fromYMinusR());
-            builder.push(midX, toYPlusR());
+            builder.push(midX, fromY - Math.min(diffY / 2, r));
+            builder.push(midX, toY + Math.min(diffY / 2, r));
             builder.push(midX, toY);
-            builder.push(midXMinusR(), toY);
-            builder.push(toX + toWidth / 2, toY);
+            builder.push(midX - Math.min(diffX / 2, r), toY);
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.NorthEastNorth:
-            builder.begin(fromX, fromY + fromHeight / 2);
-            builder.push(fromX, midYMinusR());
+        //   B
+        //   |
+        // +-+
+        // |
+        // A
+        case EdgeType.NorthEastNorth: {
+            fromY += fromHeight / 2;
+            toY -= toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midY = fromY + diffY / 2;
+            builder.begin(fromX, fromY);
+            builder.push(fromX, midY - Math.min(diffY / 2, r));
             builder.push(fromX, midY);
-            builder.push(fromXPlusR(), midY);
-            builder.push(toXMinusR(), midY);
+            builder.push(fromX + Math.min(diffX / 2, r), midY);
+            builder.push(toX - Math.min(diffX / 2, r), midY);
             builder.push(toX, midY);
-            builder.push(toX, midYPlusR());
-            builder.push(toX, toY - toHeight / 2);
+            builder.push(toX, midY + Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
 
-        case EdgeType.NorthWestNorth:
-            builder.begin(fromX, fromY + fromHeight / 2);
-            builder.push(fromX, midYMinusR());
+        // B
+        // |
+        // +-+
+        //   |
+        //   A
+        case EdgeType.NorthWestNorth: {
+            fromY += fromHeight / 2;
+            toY -= toHeight / 2;
+            const diffX = Math.abs(toX - fromX);
+            const diffY = Math.abs(toY - fromY);
+            const midY = fromY + diffY / 2;
+            builder.begin(fromX, fromY);
+            builder.push(fromX, midY - Math.min(diffY / 2, r));
             builder.push(fromX, midY);
-            builder.push(fromXMinusR(), midY);
-            builder.push(toXPlusR(), midY);
+            builder.push(fromX - Math.min(diffX / 2, r), midY);
+            builder.push(toX + Math.min(diffX / 2, r), midY);
             builder.push(toX, midY);
-            builder.push(toX, midYPlusR());
-            builder.push(toX, toY - toHeight / 2);
+            builder.push(toX, midY + Math.min(diffY / 2, r));
+            builder.push(toX, toY);
             return builder.build2Turns();
+        }
     }
 }

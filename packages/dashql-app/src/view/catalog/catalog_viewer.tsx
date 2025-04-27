@@ -10,35 +10,39 @@ import { useThrottledMemo } from '../../utils/throttle.js';
 import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-const RENDERING_SETTINGS: CatalogRenderingSettings = {
+export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
         prerenderSize: 200,
         stepSize: 1,
     },
     levels: {
         databases: {
-            nodeWidth: 160,
+            nodeWidthExpanded: 160,
+            nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             rowGap: 8,
             columnGap: 48,
         },
         schemas: {
-            nodeWidth: 160,
+            nodeWidthExpanded: 160,
+            nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             rowGap: 8,
             columnGap: 48,
         },
         tables: {
-            nodeWidth: 160,
+            nodeWidthExpanded: 160,
+            nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 5,
             rowGap: 24,
             columnGap: 48,
         },
         columns: {
-            nodeWidth: 160,
+            nodeWidthExpanded: 160,
+            nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             rowGap: 8,
@@ -67,7 +71,7 @@ export function CatalogViewer(props: Props) {
     React.useEffect(() => {
         const snapshot = workbook?.connectionCatalog.createSnapshot() ?? null;
         if (snapshot) {
-            const state = new CatalogViewModel(snapshot, RENDERING_SETTINGS);
+            const state = new CatalogViewModel(snapshot, DEFAULT_RENDERING_SETTINGS);
             setViewModel(state);
         }
     }, [workbook?.connectionCatalog.snapshot]);
@@ -131,8 +135,8 @@ export function CatalogViewer(props: Props) {
 
         // Did the user scroll?
         if (scrollTop) {
-            let lb = Math.floor((scrollTop - RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
-            let ub = Math.ceil((scrollTop + containerSize.height + RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
+            let lb = Math.floor((scrollTop - DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
+            let ub = Math.ceil((scrollTop + containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             lb = Math.max(lb, 0);
             ub = Math.min(ub, viewModel.totalHeight);
             setRenderingWindow({
@@ -149,7 +153,7 @@ export function CatalogViewer(props: Props) {
             });
         } else {
             // The user didn't scoll, just render the container
-            let ub = Math.ceil((containerSize.height + RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
+            let ub = Math.ceil((containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             ub = Math.min(ub, viewModel.totalHeight);
             setRenderingWindow({
                 scroll: {
@@ -180,7 +184,8 @@ export function CatalogViewer(props: Props) {
             return {
                 nodes: [],
                 edges: [],
-                edgesFocused: []
+                edgesFocused: [],
+                totalWidth: 0,
             };
         }
         // Update the virtual window
@@ -197,7 +202,7 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModelVersion, renderingWindow]);
 
-    let totalWidth = viewModel?.totalWidth ?? 0;
+    let totalWidth = rendered?.totalWidth ?? 0;
     if (totalWidth == 0) {
         totalWidth = containerSize?.width ?? 0;
     }

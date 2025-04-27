@@ -168,6 +168,8 @@ export interface RenderingOutput {
     edges: React.ReactElement[];
     /// The focused edges
     edgesFocused: React.ReactElement[];
+    /// The total width
+    totalWidth: number;
 }
 
 interface RenderingContext {
@@ -177,7 +179,13 @@ interface RenderingContext {
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The rendering epoch
     renderingEpoch: number;
-    /// The current writer
+    /// Is the level expanded?
+    levelExpanded: boolean[];
+    /// The x-positions per level
+    levelPositionsX: number[];
+    /// The level widths
+    levelWidths: number[];
+    /// The current writer on the vertical axis
     currentWriterY: number;
     /// The rendering path
     renderingPath: RenderingPath;
@@ -224,7 +232,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const entries = thisLevel.entries;
     const scratchEntry = thisLevel.scratchEntry;
     const flags = thisLevel.entryFlags;
-    const positionX = thisLevel.positionX;
+    const levelPositionX = ctx.levelPositionsX[levelId];
+    const levelWidth = ctx.levelWidths[levelId];
     const positionsY = thisLevel.positionsY;
     const renderingEpochs = thisLevel.renderedInEpoch;
     const subtreeHeights = thisLevel.subtreeHeights;
@@ -318,18 +327,18 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     (entryIsPinned || entryIsFocused)
                         ? {
                             top: thisPosY,
-                            left: positionX + NODE_INITIAL_X_OFFSET,
+                            left: levelPositionX + NODE_INITIAL_X_OFFSET,
                             scale: NODE_INITIAL_SCALE,
                         }
                         : {
                             top: thisPosY,
-                            left: positionX,
+                            left: levelPositionX,
                             scale: 1.0,
                         }
                 ),
                 animate: {
                     top: thisPosY,
-                    left: positionX,
+                    left: levelPositionX,
                     scale: 1.0,
                 },
             };
@@ -349,7 +358,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     })}
                     style={{
                         position: 'absolute',
-                        width: settings.nodeWidth,
+                        width: levelWidth,
                         height: settings.nodeHeight,
                     }}
                     initial={newNodePosition.initial}
@@ -360,17 +369,19 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-catalog-object={entry.catalogObjectId()}
                 >
                     {
-                        thisName == ""
-                            ? (
-                                <div className={styles.node_label_empty}>
-                                    &lt;no {levelName}&gt;
-                                </div>
-                            )
-                            : (
-                                <div className={styles.node_label}>
-                                    {thisName}
-                                </div>
-                            )
+                        ctx.levelExpanded[levelId] && (
+                            thisName == ""
+                                ? (
+                                    <div className={styles.node_label_empty}>
+                                        &lt;no {levelName}&gt;
+                                    </div>
+                                )
+                                : (
+                                    <div className={styles.node_label}>
+                                        {thisName}
+                                    </div>
+                                )
+                        )
                     }
                     {((entryFlags & PINNED_BY_ANYTHING) != 0) && (
                         <div className={styles.node_count}>
@@ -403,13 +414,15 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             );
             // Draw edges to all children
             if (entry.childCount() > 0) {
-                const fromX = positionX + settings.nodeWidth / 2;
+                const fromX = levelPositionX + levelWidth / 2;
                 const fromY = thisPosY + settings.nodeHeight / 2;
+                const fromWidth = levelWidth;
                 const toSettings = ctx.viewModel.levels[levelId + 1].settings;
                 const toPositionsY = ctx.viewModel.levels[levelId + 1].positionsY;
-                const toX = ctx.viewModel.levels[levelId + 1].positionX + toSettings.nodeWidth / 2;
+                const toX = ctx.levelPositionsX[levelId + 1] + ctx.levelWidths[levelId + 1] / 2;
                 const toEpochs = ctx.viewModel.levels[levelId + 1].renderedInEpoch;
                 const toFlags = ctx.viewModel.levels[levelId + 1].entryFlags;
+                const toWidth = ctx.levelWidths[levelId + 1];
 
                 for (let i = 0; i < entry.childCount(); ++i) {
                     const toEntryId = entry.childBegin() + i;
@@ -419,7 +432,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     }
                     const toY = toPositionsY[toEntryId] + toSettings.nodeHeight / 2;
                     const edgeType = selectHorizontalEdgeType(fromX, fromY, toX, toY);
-                    const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, fromX, fromY, toX, toY, settings.nodeWidth, settings.nodeHeight, toSettings.nodeWidth, toSettings.nodeHeight, 10, 10, 4);
+                    const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, fromX, fromY, toX, toY, fromWidth, settings.nodeHeight, toWidth, toSettings.nodeHeight, 4);
                     const edgeKey = `${thisKey}:${i}`;
                     // Resolve the previous path
                     const prevPath = ctx.prevState.edgePaths.get(edgeKey);
@@ -517,12 +530,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 initial: prevNodePosition?.animate ?? (
                     {
                         top: thisPosY,
-                        left: positionX,
+                        left: levelPositionX,
                         scale: 1.0,
                     }),
                 animate: {
                     top: thisPosY,
-                    left: positionX,
+                    left: levelPositionX,
                     scale: 1.0,
                 },
             };
@@ -535,7 +548,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     className={classNames(styles.node, styles.node_overflow)}
                     style={{
                         position: 'absolute',
-                        width: settings.nodeWidth,
+                        width: levelWidth,
                         height: settings.nodeHeight,
                     }}
                     initial={newNodePosition.initial}
@@ -553,10 +566,46 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
 /// A function to render a catalog
 export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
+    // Determine which levels are expanded
+    const pinnedLevelCount = viewModel.getPinnedLevels();
+    let levelExpanded: boolean[] = [false, false, true, true];
+    if (pinnedLevelCount > 0) {
+        // Collapse ancestors
+        for (let i = 0; (i + 1) < pinnedLevelCount; ++i) {
+            levelExpanded[i] = false;
+        }
+        // Expand parent
+        if (pinnedLevelCount >= 2) {
+            levelExpanded[pinnedLevelCount - 2] = true;
+        }
+        // Expand last level
+        levelExpanded[pinnedLevelCount - 1] = true;
+        // Collapse children
+        for (let i = pinnedLevelCount; i < viewModel.levels.length; ++i) {
+            levelExpanded[i] = false;
+        }
+    }
+
+    // Compute x positions
+    let writerX = 0;
+    let levelPositionsX: number[] = [0, 0, 0, 0];
+    let levelWidths: number[] = [0, 0, 0, 0];
+    for (let i = 0; i < viewModel.levels.length; ++i) {
+        const settings = viewModel.levels[i].settings;
+        writerX += settings.columnGap;
+        levelPositionsX[i] = writerX;
+        const levelWidth = levelExpanded[i] ? settings.nodeWidthExpanded : settings.nodeWidthCollapsed;
+        levelWidths[i] = levelWidth;
+        writerX += levelWidth;
+    }
+
     const ctx: RenderingContext = {
         viewModel,
         snapshot: viewModel.snapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
+        levelExpanded,
+        levelPositionsX,
+        levelWidths,
         currentWriterY: 0,
         renderingPath: new RenderingPath(),
         renderingWindow: new VirtualRenderingWindow(viewModel.scrollBegin, viewModel.scrollEnd, viewModel.virtualScrollBegin, viewModel.virtualScrollEnd),
@@ -569,7 +618,8 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
         output: {
             nodes: [],
             edges: [],
-            edgesFocused: []
+            edgesFocused: [],
+            totalWidth: writerX,
         }
     };
     renderEntriesAtLevel(ctx, 0, 0, viewModel.databaseEntries.entries.length(ctx.snapshot), null, false);
