@@ -201,7 +201,7 @@ const LEVEL_NAMES = [
 const NODE_INITIAL_X_OFFSET = 8;
 const NODE_INITIAL_SCALE = 1.0;
 const NODE_TRANSITION = {
-    duration: 0.2,
+    duration: 0.3,
     ease: "easeInOut"
 };
 
@@ -209,7 +209,7 @@ const EDGE_INITIAL_SCALE = 0.5;
 const EDGE_INITIAL_PATH_LENGTH = 0.8;
 const EDGE_INITIAL_OPACITY = 0;
 const EDGE_TRANSITION = {
-    duration: 0.2,
+    duration: 0.3,
     ease: "easeInOut"
 };
 
