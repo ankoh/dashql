@@ -181,8 +181,6 @@ interface RenderingContext {
     renderingEpoch: number;
     /// Render Columns?
     renderColumns: boolean;
-    /// Is the level expanded?
-    levelExpanded: boolean[];
     /// The x-positions per level
     levelPositionsX: number[];
     /// The level widths
@@ -371,7 +369,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-catalog-object={entry.catalogObjectId()}
                 >
                     {
-                        ctx.levelExpanded[levelId] && (
+                        (
                             thisName == ""
                                 ? (
                                     <div className={styles.node_label_empty}>
@@ -559,7 +557,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-snapshot-entry={key}
                     data-snapshot-level={levelId.toString()}
                 >
-                    {ctx.levelExpanded[levelId] ? <>{overflowChildCount} more</> : <>...</>}
+                    {overflowChildCount} more
 
                 </motion.div>
             );
@@ -569,9 +567,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
 /// A function to render a catalog
 export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel, withColumns: boolean): [RenderingState, RenderingOutput] {
-    // Always expand all level for now
-    let levelExpanded: boolean[] = [true, true, true, true];
-
     // Compute x positions
     let writerX = 0;
     let levelPositionsX: number[] = [0, 0, 0, 0];
@@ -580,7 +575,7 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
         const settings = viewModel.levels[i].settings;
         writerX += settings.columnGap;
         levelPositionsX[i] = writerX;
-        const levelWidth = levelExpanded[i] ? settings.nodeWidthExpanded : settings.nodeWidthCollapsed;
+        const levelWidth = settings.nodeWidth;
         levelWidths[i] = levelWidth;
         writerX += levelWidth;
     }
@@ -590,7 +585,6 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
         snapshot: viewModel.snapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
         renderColumns: withColumns,
-        levelExpanded,
         levelPositionsX,
         levelWidths,
         currentWriterY: 0,

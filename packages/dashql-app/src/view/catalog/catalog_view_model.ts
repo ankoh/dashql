@@ -4,10 +4,8 @@ import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, 
 
 /// The rendering settings for a catalog level
 export interface CatalogLevelRenderingSettings {
-    /// The width of an expaned node
-    nodeWidthExpanded: number;
-    /// The height of a collapsed node
-    nodeWidthCollapsed: number;
+    /// The width of a node
+    nodeWidth: number;
     /// The height of a node
     nodeHeight: number;
     /// The maximum children at this level
