@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
+import { motion } from 'framer-motion';
 
 import { EdgePathBuilder, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
@@ -123,22 +124,32 @@ class VirtualRenderingWindow {
 
 export interface RenderedPath {
     key: string;
-    pathBefore: string;
-    pathAfter: string;
+    initial: {
+        d: string,
+        pathLength?: number,
+        scale?: number,
+        opacity?: number;
+    };
+    animate: {
+        d: string,
+        pathLength?: number,
+        scale?: number,
+        opacity?: number;
+    };
 }
 
 export interface RenderedNode {
     key: string;
-    postionBefore: {
+    initial: {
         top: number;
         left: number;
+        scale: number;
     };
-    positionAfter: {
+    animate: {
         top: number;
         left: number;
+        scale: number;
     };
-    width: number;
-    height: number;
 }
 
 export interface RenderingState {
@@ -186,6 +197,21 @@ const LEVEL_NAMES = [
     "table",
     "column"
 ];
+
+const NODE_INITIAL_X_OFFSET = 8;
+const NODE_INITIAL_SCALE = 1.0;
+const NODE_TRANSITION = {
+    duration: 0.2,
+    ease: "easeInOut"
+};
+
+const EDGE_INITIAL_SCALE = 0.5;
+const EDGE_INITIAL_PATH_LENGTH = 0.8;
+const EDGE_INITIAL_OPACITY = 0;
+const EDGE_TRANSITION = {
+    duration: 0.2,
+    ease: "easeInOut"
+};
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
 function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBegin: number, entriesCount: number, parentEntryId: number | null, parentIsFocused: boolean) {
@@ -285,21 +311,23 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const prevNodePosition = ctx.prevState.nodePositions.get(thisKey);
             const newNodePosition: RenderedNode = {
                 key: thisKey,
-                postionBefore: prevNodePosition?.positionAfter ?? {
-                    top: 0,
-                    left: 0,
-                },
-                positionAfter: {
+                initial: prevNodePosition?.animate
+                    ? prevNodePosition?.animate
+                    : {
+                        top: thisPosY,
+                        left: positionX + NODE_INITIAL_X_OFFSET,
+                        scale: NODE_INITIAL_SCALE,
+                    },
+                animate: {
                     top: thisPosY,
                     left: positionX,
+                    scale: 1.0,
                 },
-                width: settings.nodeWidth,
-                height: settings.nodeHeight,
             };
             ctx.nextState.nodePositions.set(thisKey, newNodePosition);
             // Output node
             ctx.output.nodes.push(
-                <div
+                <motion.div
                     key={thisKey}
                     className={classNames(styles.node, {
                         [styles.node_pinned_script_table_ref]: (entryFlags & CatalogRenderingFlag.SCRIPT_TABLE_REF) != 0,
@@ -312,12 +340,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     })}
                     style={{
                         position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        transform: `translate(${positionX}px, ${thisPosY}px)`,
                         width: settings.nodeWidth,
                         height: settings.nodeHeight,
                     }}
+                    initial={newNodePosition.initial}
+                    animate={newNodePosition.animate}
+                    transition={NODE_TRANSITION}
                     data-snapshot-entry={thisKey}
                     data-snapshot-level={levelId.toString()}
                     data-catalog-object={entry.catalogObjectId()}
@@ -362,7 +390,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             />
                         )}
                     </div>
-                </div>
+                </motion.div>
             );
             // Draw edges to all children
             if (entry.childCount() > 0) {
@@ -388,8 +416,20 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     const prevPath = ctx.prevState.edgePaths.get(edgeKey);
                     const nextPath: RenderedPath = {
                         key: thisKey,
-                        pathBefore: prevPath?.pathAfter ?? "",
-                        pathAfter: edgePath
+                        initial: prevPath?.animate
+                            ? prevPath!.animate
+                            : {
+                                d: edgePath,
+                                pathLength: EDGE_INITIAL_PATH_LENGTH,
+                                scale: EDGE_INITIAL_SCALE,
+                                opacity: EDGE_INITIAL_OPACITY,
+                            },
+                        animate: {
+                            d: edgePath,
+                            pathLength: 1.0,
+                            scale: 1.0,
+                            opacity: 1.0
+                        }
                     };
                     ctx.nextState.edgePaths.set(edgeKey, nextPath);
 
@@ -398,9 +438,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     const pinnedByCompletion = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH | CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
                     if (((entryFlags & pinnedByCompletion) != 0) && ((toEntryFlags & pinnedByCompletion) != 0)) {
                         ctx.output.edgesFocused.push(
-                            <path
+                            <motion.path
                                 key={edgeKey}
-                                d={edgePath}
+                                initial={nextPath.initial}
+                                animate={nextPath.animate}
+                                transition={EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -408,20 +450,15 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 strokeDasharray="10"
                                 strokeDashoffset="1"
                                 data-edge={edgeKey}
-                            >
-                                <animate
-                                    attributeName="stroke-dashoffset"
-                                    values="100;0"
-                                    dur="3s"
-                                    calcMode="linear"
-                                    repeatCount="indefinite" />
-                            </path>,
+                            />
                         );
                     } else if (((entryFlags & PINNED_BY_FOCUS) != 0) && ((toEntryFlags & PINNED_BY_FOCUS) != 0)) {
                         ctx.output.edgesFocused.push(
-                            <path
+                            <motion.path
                                 key={edgeKey}
-                                d={edgePath}
+                                initial={nextPath.initial}
+                                animate={nextPath.animate}
+                                transition={EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -431,9 +468,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         );
                     } else {
                         ctx.output.edges.push(
-                            <path
+                            <motion.path
                                 key={edgeKey}
-                                d={edgePath}
+                                initial={nextPath.initial}
+                                animate={nextPath.animate}
+                                transition={EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -459,23 +498,44 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             renderingEpochs[lastOverflowEntryId] = ctx.renderingEpoch;
             const key = ctx.renderingPath.getKeyPrefix(levelId);
             const overflowKey = `${key}:overflow`;
+
+            // Resolve the previous node
+            const prevNodePosition = ctx.prevState.nodePositions.get(overflowKey);
+            const newNodePosition: RenderedNode = {
+                key: overflowKey,
+                initial: prevNodePosition?.animate
+                    ? prevNodePosition?.animate
+                    : {
+                        top: thisPosY,
+                        left: positionX + NODE_INITIAL_X_OFFSET,
+                        scale: NODE_INITIAL_SCALE,
+                    },
+                animate: {
+                    top: thisPosY,
+                    left: positionX,
+                    scale: 1.0,
+                },
+            };
+            ctx.nextState.nodePositions.set(overflowKey, newNodePosition);
+
             ctx.output.nodes.push(
-                <div
+                <motion.div
                     key={overflowKey}
 
                     className={classNames(styles.node, styles.node_overflow)}
                     style={{
                         position: 'absolute',
-                        top: thisPosY,
-                        left: positionX,
                         width: settings.nodeWidth,
                         height: settings.nodeHeight,
                     }}
+                    initial={newNodePosition.initial}
+                    animate={newNodePosition.animate}
+                    transition={NODE_TRANSITION}
                     data-snapshot-entry={key}
                     data-snapshot-level={levelId.toString()}
                 >
                     {overflowChildCount} more
-                </div>
+                </motion.div>
             );
         }
     }
