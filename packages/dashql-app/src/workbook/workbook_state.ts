@@ -276,13 +276,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 };
 
                 // Update the user focus
-                console.log({
-                    userFocus: next.userFocus,
-                    cursor: copy.cursor,
-                });
                 if (next.userFocus != null && copy.cursor != null) {
                     next.userFocus = deriveFocusFromScriptCursor(scriptKey, copy, copy.cursor);
-                    console.log(next.userFocus);
                 }
                 return next;
             }
@@ -323,7 +318,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     next.userFocus = state.userFocus;
                 } else {
                     // Otherwise derive a new user focus
-                    console.log(cursor);
                     next.userFocus = deriveFocusFromScriptCursor(scriptKey, scriptData, cursor);
                 }
             }
