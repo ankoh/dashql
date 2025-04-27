@@ -639,9 +639,10 @@ export class CatalogViewModel {
         this.layoutPendingEntries();
     }
 
-    pinFocusedByUser(focus: UserFocus): void {
+    pinFocusedByUser(focus: UserFocus, clear: boolean = false): void {
         const catalog = this.snapshot.read().catalogReader;
         const epoch = this.nextPinEpoch++;
+        let focusedAnything = false;
 
         // Pin focused catalog objects
         for (const o of focus.catalogObjects) {
@@ -651,26 +652,32 @@ export class CatalogViewModel {
                 case FocusType.COMPLETION_CANDIDATE:
                     flagsTarget = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
                     flagsPath = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH;
+                    focusedAnything = true;
                     break;
                 case FocusType.CATALOG_ENTRY:
                     flagsTarget = CatalogRenderingFlag.FOCUS_CATALOG_ENTRY;
                     flagsPath = CatalogRenderingFlag.FOCUS_CATALOG_ENTRY_PATH;
+                    focusedAnything = true;
                     break;
                 case FocusType.TABLE_REF:
                     flagsTarget = CatalogRenderingFlag.FOCUS_TABLE_REF;
                     flagsPath = CatalogRenderingFlag.FOCUS_TABLE_REF_PATH;
+                    focusedAnything = true;
                     break;
                 case FocusType.COLUMN_REF:
                     flagsTarget = CatalogRenderingFlag.FOCUS_COLUMN_REF;
                     flagsPath = CatalogRenderingFlag.FOCUS_COLUMN_REF_PATH;
+                    focusedAnything = true;
                     break;
             }
             this.pinPath(catalog, epoch, flagsTarget, flagsPath, PINNED_BY_FOCUS, o);
         }
-        // Unpin previous catalog objects
-        this.unpin(PINNED_BY_FOCUS, epoch);
-        // Now run all necessary layout updates
-        this.layoutPendingEntries();
+        if (focusedAnything || clear) {
+            // Unpin previous catalog objects
+            this.unpin(PINNED_BY_FOCUS, epoch);
+            // Now run all necessary layout updates
+            this.layoutPendingEntries();
+        }
     }
 
     static searchEntryOffsetAtLevel(ctx: SearchContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number): [number, boolean] {
