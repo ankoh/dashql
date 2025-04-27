@@ -213,7 +213,7 @@ const EDGE_INITIAL_PATH_OFFSET = 1.0;
 const EDGE_INITIAL_OPACITY = 0.5;
 const EDGE_TRANSITION = {
     duration: 0.3,
-    ease: "easeIn"
+    ease: "easeInOut"
 };
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
