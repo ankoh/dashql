@@ -213,7 +213,7 @@ const EDGE_INITIAL_PATH_OFFSET = 1.0;
 const EDGE_INITIAL_OPACITY = 1.0;
 const EDGE_TRANSITION = {
     duration: 0.3,
-    ease: "easeInOut"
+    ease: "easeIn"
 };
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
@@ -425,15 +425,15 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     const prevPath = ctx.prevState.edgePaths.get(edgeKey);
                     const nextPath: RenderedPath = {
                         key: thisKey,
-                        initial: prevPath?.animate
-                            ? prevPath!.animate
-                            : {
+                        initial: prevPath?.animate ?? (
+                            {
                                 d: edgePath,
                                 pathLength: EDGE_INITIAL_PATH_LENGTH,
                                 pathOffset: EDGE_INITIAL_PATH_OFFSET,
                                 scale: EDGE_INITIAL_SCALE,
                                 opacity: EDGE_INITIAL_OPACITY,
-                            },
+                            }
+                        ),
                         animate: {
                             d: edgePath,
                             pathLength: 1.0,
