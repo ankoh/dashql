@@ -74,8 +74,14 @@ export function CatalogViewer(props: Props) {
         }
     }, [workbook?.connectionCatalog.snapshot]);
 
+    // Render with or without columns?
+    const [renderColumns, setRenderColumns] = React.useState<boolean>(true);
+    // Flipping column rendering will change the view model height and then trigger a rerender
+    const viewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
+
     // Load script refs
     const previousScript = React.useRef<dashql.DashQLScript | null>(null);
+    // Triggered whenever the catalog view model or the script buffers change
     React.useEffect(() => {
         if (!script) {
             return;
@@ -85,19 +91,17 @@ export function CatalogViewer(props: Props) {
             viewModel.pinScriptRefs(analyzed);
             setViewModelVersion(v => v + 1);
         }
+        // Script changed completey?
+        // Then reset also the column rendering
         if (previousScript.current !== script.script) {
             previousScript.current = script.script;
             viewModel?.unpinFocusedByUser();
+            setRenderColumns(true);
         }
 
     }, [viewModel, script?.processed]);
 
-    // Render with or without columns?
-    const [renderColumns, setRenderColumns] = React.useState<boolean>(true);
-    // Flipping column rendering will change the view model height and then trigger a rerender
-    const viewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
-
-    // Update user focus
+    // React to user focus changes
     React.useEffect(() => {
         if (viewModel != null && workbook?.userFocus) {
             // Pin focused elements
@@ -150,11 +154,10 @@ export function CatalogViewer(props: Props) {
     const scrollTop = useThrottledMemo(scrollTopRaw, [scrollTopRaw], 10);
 
     // Derive a virtual window from the scroll position and container size
-    const [renderingWindow, setRenderingWindow] = React.useState<RenderingWindow | null>(null);
-    React.useEffect(() => {
+    const renderingWindow = React.useMemo<RenderingWindow | null>(() => {
         // Skip if we don't know the container size yet
         if (!containerSize || !viewModel) {
-            return;
+            return null;
         }
 
         // Did the user scroll?
@@ -163,7 +166,7 @@ export function CatalogViewer(props: Props) {
             let ub = Math.ceil((scrollTop + containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             lb = Math.max(lb, 0);
             ub = Math.min(ub, viewModelHeight);
-            setRenderingWindow({
+            return {
                 scroll: {
                     top: scrollTop,
                     // Make sure we respect the top padding when computing the scroll window.
@@ -174,12 +177,12 @@ export function CatalogViewer(props: Props) {
                     top: lb,
                     height: ub - lb
                 }
-            });
+            };
         } else {
             // The user didn't scoll, just render the container
             let ub = Math.ceil((containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             ub = Math.min(ub, viewModelHeight);
-            setRenderingWindow({
+            return {
                 scroll: {
                     top: 0,
                     height: Math.max(containerSize.height, padding) - padding
@@ -188,14 +191,14 @@ export function CatalogViewer(props: Props) {
                     top: 0,
                     height: ub
                 }
-            })
+            };
         }
     }, [viewModel, scrollTop, containerSize]);
 
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
     // Memo must depend on scroll window and window size
-    const rendered = React.useMemo<RenderingOutput>(() => {
+    const renderedOutput = React.useMemo<RenderingOutput>(() => {
         // Is the rendering state empty?
         if (stateRef.current == null) {
             stateRef.current = {
@@ -226,7 +229,7 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModelVersion, renderingWindow]);
 
-    let totalWidth = rendered?.totalWidth ?? 0;
+    let totalWidth = renderedOutput?.totalWidth ?? 0;
     if (totalWidth == 0) {
         totalWidth = containerSize?.width ?? 0;
     }
@@ -254,20 +257,20 @@ export function CatalogViewer(props: Props) {
                             width={totalWidth}
                             height={totalHeight}
                             padding={padding}
-                            paths={rendered.edges ?? []}
+                            paths={renderedOutput.edges ?? []}
                         />
                         <EdgeLayer
                             className={styles.edge_layer_focused}
                             width={totalWidth}
                             height={totalHeight}
                             padding={padding}
-                            paths={rendered.edgesFocused ?? []}
+                            paths={renderedOutput.edgesFocused ?? []}
                         />
                         <NodeLayer
                             width={totalWidth}
                             height={totalHeight}
                             padding={padding}
-                            nodes={rendered.nodes ?? []}
+                            nodes={renderedOutput.nodes ?? []}
                         />
                     </div>
                 </div>
