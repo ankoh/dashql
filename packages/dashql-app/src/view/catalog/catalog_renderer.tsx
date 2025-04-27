@@ -127,12 +127,14 @@ export interface RenderedPath {
     initial: {
         d: string,
         pathLength?: number,
+        pathOffset?: number,
         scale?: number,
         opacity?: number;
     };
     animate: {
         d: string,
         pathLength?: number,
+        pathOffset?: number,
         scale?: number,
         opacity?: number;
     };
@@ -205,9 +207,10 @@ const NODE_TRANSITION = {
     ease: "easeInOut"
 };
 
-const EDGE_INITIAL_SCALE = 0.5;
-const EDGE_INITIAL_PATH_LENGTH = 0.8;
-const EDGE_INITIAL_OPACITY = 0;
+const EDGE_INITIAL_SCALE = 1.0;
+const EDGE_INITIAL_PATH_LENGTH = 0;
+const EDGE_INITIAL_PATH_OFFSET = 1.0;
+const EDGE_INITIAL_OPACITY = 1.0;
 const EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
@@ -311,13 +314,19 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const prevNodePosition = ctx.prevState.nodePositions.get(thisKey);
             const newNodePosition: RenderedNode = {
                 key: thisKey,
-                initial: prevNodePosition?.animate
-                    ? prevNodePosition?.animate
-                    : {
-                        top: thisPosY,
-                        left: positionX + NODE_INITIAL_X_OFFSET,
-                        scale: NODE_INITIAL_SCALE,
-                    },
+                initial: prevNodePosition?.animate ?? (
+                    (entryIsPinned || entryIsFocused)
+                        ? {
+                            top: thisPosY,
+                            left: positionX + NODE_INITIAL_X_OFFSET,
+                            scale: NODE_INITIAL_SCALE,
+                        }
+                        : {
+                            top: thisPosY,
+                            left: positionX,
+                            scale: 1.0,
+                        }
+                ),
                 animate: {
                     top: thisPosY,
                     left: positionX,
@@ -421,12 +430,14 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             : {
                                 d: edgePath,
                                 pathLength: EDGE_INITIAL_PATH_LENGTH,
+                                pathOffset: EDGE_INITIAL_PATH_OFFSET,
                                 scale: EDGE_INITIAL_SCALE,
                                 opacity: EDGE_INITIAL_OPACITY,
                             },
                         animate: {
                             d: edgePath,
                             pathLength: 1.0,
+                            pathOffset: 0.0,
                             scale: 1.0,
                             opacity: 1.0
                         }
@@ -503,13 +514,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const prevNodePosition = ctx.prevState.nodePositions.get(overflowKey);
             const newNodePosition: RenderedNode = {
                 key: overflowKey,
-                initial: prevNodePosition?.animate
-                    ? prevNodePosition?.animate
-                    : {
+                initial: prevNodePosition?.animate ?? (
+                    {
                         top: thisPosY,
-                        left: positionX + NODE_INITIAL_X_OFFSET,
-                        scale: NODE_INITIAL_SCALE,
-                    },
+                        left: positionX,
+                        scale: 1.0,
+                    }),
                 animate: {
                     top: thisPosY,
                     left: positionX,
