@@ -576,7 +576,7 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
     let writerX = 0;
     let levelPositionsX: number[] = [0, 0, 0, 0];
     let levelWidths: number[] = [0, 0, 0, 0];
-    for (let i = 0; i < viewModel.levels.length; ++i) {
+    for (let i = 0; i < (withColumns ? viewModel.levels.length : (viewModel.levels.length - 1)); ++i) {
         const settings = viewModel.levels[i].settings;
         writerX += settings.columnGap;
         levelPositionsX[i] = writerX;

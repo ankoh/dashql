@@ -21,7 +21,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
-            rowGap: 8,
+            rowGap: 24,
             columnGap: 48,
         },
         schemas: {
@@ -29,7 +29,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
-            rowGap: 8,
+            rowGap: 24,
             columnGap: 48,
         },
         tables: {
@@ -63,6 +63,7 @@ export function CatalogViewer(props: Props) {
     // Watch the container size
     const containerElement = React.useRef(null);
     const containerSize = observeSize(containerElement);
+    const boardElement = React.useRef(null);
     const padding = 20;
 
     // Maintain a catalog snapshot of the workbook
@@ -91,6 +92,7 @@ export function CatalogViewer(props: Props) {
 
     // Render with or without columns?
     const [renderColumns, setRenderColumns] = React.useState<boolean>(true);
+    // Flipping column rendering will change the view model height and then trigger a rerender
     const viewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
 
     // Update user focus
@@ -103,20 +105,26 @@ export function CatalogViewer(props: Props) {
             if (viewModel.getFirstUnfocusedLevel() == CatalogLevel.Column) {
                 renderColumns = false;
             }
-            // XXX This is racy
-            //     Collapsing columns based on user-focus and jumping in the scroll container at the same time...
+            // Collapsing/expanding columns based on user-focus and jumping in the scroll container at the same time is racy
             setRenderColumns(renderColumns);
 
             // Scroll to first focused entry
             let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused(renderColumns);
-            if (found && containerElement.current != null && containerSize != null) {
-                const divElem = containerElement.current as HTMLDivElement;
+            if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
+                const containerDiv = containerElement.current as HTMLDivElement;
+                const boardDiv = boardElement.current as HTMLDivElement;
                 const clientVerticalCenter = containerSize.height / 2;
                 scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter; // XXX Padding
 
-                divElem.scrollTop = scrollToFocus;
+                const newViewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
+                // XXX Are browsers doing the right thing here?
+                //     Manual tests indicate that this is working...
+                //     We manually bump the minimum height to make sure there's enough room for scrollTop.
+                boardDiv.style.minHeight = `${newViewModelHeight}px`;
+                containerDiv.scrollTop = scrollToFocus;
             }
 
+            // This will trigger a rerender
             setViewModelVersion(v => v + 1);
         }
     }, [viewModel, workbook?.userFocus]);
@@ -178,7 +186,7 @@ export function CatalogViewer(props: Props) {
                 }
             })
         }
-    }, [viewModel, viewModelHeight, scrollTop, containerSize]);
+    }, [viewModel, scrollTop, containerSize]);
 
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
@@ -224,9 +232,19 @@ export function CatalogViewer(props: Props) {
     }
     return (
         <div className={styles.root}>
-            <div className={styles.board_container} ref={containerElement} onScroll={handleScroll}>
+            <div
+                className={styles.board_container}
+                ref={containerElement}
+                onScroll={handleScroll}
+            >
                 <div className={styles.board_container_shadows}>
-                    <div className={styles.board}>
+                    <div
+                        className={styles.board}
+                        ref={boardElement}
+                        style={{
+                            minHeight: viewModelHeight
+                        }}
+                    >
                         <EdgeLayer
                             className={styles.edge_layer}
                             width={totalWidth}

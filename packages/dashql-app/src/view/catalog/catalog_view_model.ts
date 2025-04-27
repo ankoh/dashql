@@ -783,12 +783,14 @@ export class CatalogViewModel {
         return CatalogViewModel.searchEntryOffsetAtLevel(ctx, this.levels, 0, 0, databaseCount);
     }
 
+    /// Get the first level that is not focused.
     getFirstUnfocusedLevel(): number {
         let firstUnfocused = this.levels.length;
         for (let i = 0; i < this.levels.length; ++i) {
             const firstFocusedEntry = this.levels[i].firstFocusedEntry;
             if (firstFocusedEntry == null || (firstFocusedEntry.epoch + 1) != this.nextPinEpoch) {
                 firstUnfocused = i;
+                break;
             }
         }
         return firstUnfocused;
