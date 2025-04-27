@@ -557,7 +557,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-snapshot-entry={key}
                     data-snapshot-level={levelId.toString()}
                 >
-                    {overflowChildCount} more
+                    {ctx.levelExpanded[levelId] ? <>{overflowChildCount} more</> : <>...</>}
+
                 </motion.div>
             );
         }
@@ -567,22 +568,14 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 /// A function to render a catalog
 export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
     // Determine which levels are expanded
-    const pinnedLevelCount = viewModel.getPinnedLevels();
+    const focusedLevelCount = viewModel.getFocusedLevels();
     let levelExpanded: boolean[] = [false, false, true, true];
-    if (pinnedLevelCount > 0) {
-        // Collapse ancestors
-        for (let i = 0; (i + 1) < pinnedLevelCount; ++i) {
-            levelExpanded[i] = false;
-        }
-        // Expand parent
-        if (pinnedLevelCount >= 2) {
-            levelExpanded[pinnedLevelCount - 2] = true;
-        }
-        // Expand last level
-        levelExpanded[pinnedLevelCount - 1] = true;
-        // Collapse children
-        for (let i = pinnedLevelCount; i < viewModel.levels.length; ++i) {
-            levelExpanded[i] = false;
+    if (focusedLevelCount > 0) {
+        levelExpanded = [false, false, false, false];
+        const parentLevel = focusedLevelCount - 2;
+        const childLevel = focusedLevelCount;
+        for (let i = parentLevel; i < Math.min(levelExpanded.length, childLevel + 1); ++i) {
+            levelExpanded[i] = true;
         }
     }
 

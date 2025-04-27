@@ -39,15 +39,6 @@ export interface CatalogRenderingSettings {
     },
 }
 
-export function getCatalogLevelRenderingSettingsById(settings: CatalogRenderingSettings) {
-    return [
-        settings.levels.databases,
-        settings.levels.schemas,
-        settings.levels.tables,
-        settings.levels.columns,
-    ];
-}
-
 /// The flags for rendering catalog entries
 export enum CatalogRenderingFlag {
     DEFAULT = 0,
@@ -614,13 +605,26 @@ export class CatalogViewModel {
     }
 
     getPinnedLevels(): number {
-        let pinnedLevels = this.levels.length;
+        let firstUnpinned = this.levels.length;
         for (let i = 0; i < this.levels.length; ++i) {
             if (this.levels[i].pinnedEntries.size == 0) {
-                pinnedLevels = i;
+                firstUnpinned = i;
+                break;
             }
         }
-        return pinnedLevels;
+        return firstUnpinned;
+    }
+    getFocusedLevels(): number {
+        let firstUnfocused = this.levels.length;
+        let lastPinEpoch = this.nextPinEpoch - 1;
+        for (let i = 0; i < this.levels.length; ++i) {
+            const level = this.levels[i];
+            if (level.firstFocusedEntry == null || level.firstFocusedEntry.epoch != lastPinEpoch) {
+                firstUnfocused = i;
+                break;
+            }
+        }
+        return firstUnfocused;
     }
 
     static searchEntryOffsetAtLevel(ctx: SearchContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number): [number, boolean] {
