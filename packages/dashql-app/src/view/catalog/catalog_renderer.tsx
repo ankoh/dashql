@@ -567,17 +567,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
 /// A function to render a catalog
 export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
-    // Determine which levels are expanded
-    const focusedLevelCount = viewModel.getFocusedLevels();
-    let levelExpanded: boolean[] = [false, false, true, true];
-    if (focusedLevelCount > 0) {
-        levelExpanded = [false, false, false, false];
-        const parentLevel = focusedLevelCount - 2;
-        const childLevel = focusedLevelCount;
-        for (let i = parentLevel; i < Math.min(levelExpanded.length, childLevel + 1); ++i) {
-            levelExpanded[i] = true;
-        }
-    }
+    // Always expand all level for now
+    let levelExpanded: boolean[] = [true, true, true, true];
 
     // Compute x positions
     let writerX = 0;

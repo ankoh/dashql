@@ -604,29 +604,6 @@ export class CatalogViewModel {
         this.layoutPendingEntries();
     }
 
-    getPinnedLevels(): number {
-        let firstUnpinned = this.levels.length;
-        for (let i = 0; i < this.levels.length; ++i) {
-            if (this.levels[i].pinnedEntries.size == 0) {
-                firstUnpinned = i;
-                break;
-            }
-        }
-        return firstUnpinned;
-    }
-    getFocusedLevels(): number {
-        let firstUnfocused = this.levels.length;
-        let lastPinEpoch = this.nextPinEpoch - 1;
-        for (let i = 0; i < this.levels.length; ++i) {
-            const level = this.levels[i];
-            if (level.firstFocusedEntry == null || level.firstFocusedEntry.epoch != lastPinEpoch) {
-                firstUnfocused = i;
-                break;
-            }
-        }
-        return firstUnfocused;
-    }
-
     static searchEntryOffsetAtLevel(ctx: SearchContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number): [number, boolean] {
         const level = levels[levelId];
         const flags = level.entryFlags;
