@@ -383,7 +383,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 )
                         )
                     }
-                    {((entryFlags & PINNED_BY_ANYTHING) != 0) && (
+                    {(false /* XXX */ && (entryFlags & PINNED_BY_ANYTHING) != 0) && (
                         <div className={styles.node_count}>
                             {0}
                         </div>
