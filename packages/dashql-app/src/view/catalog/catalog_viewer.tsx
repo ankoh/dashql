@@ -7,7 +7,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
-import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
+import { CatalogLevel, CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
@@ -37,7 +37,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             nodeWidthCollapsed: 40,
             nodeHeight: 36,
             maxUnpinnedChildren: 5,
-            rowGap: 24,
+            rowGap: 8,
             columnGap: 48,
         },
         columns: {
@@ -89,14 +89,26 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModel, script?.processed]);
 
+    // Render with or without columns?
+    const [renderColumns, setRenderColumns] = React.useState<boolean>(true);
+    const viewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
+
     // Update user focus
     React.useEffect(() => {
         if (viewModel != null && workbook?.userFocus) {
             // Pin focused elements
             viewModel.pinFocusedByUser(workbook.userFocus);
+            // Get the number of focused levels
+            let renderColumns = true;
+            if (viewModel.getFirstUnfocusedLevel() == CatalogLevel.Column) {
+                renderColumns = false;
+            }
+            // XXX This is racy
+            //     Collapsing columns based on user-focus and jumping in the scroll container at the same time...
+            setRenderColumns(renderColumns);
 
             // Scroll to first focused entry
-            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();
+            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused(renderColumns);
             if (found && containerElement.current != null && containerSize != null) {
                 const divElem = containerElement.current as HTMLDivElement;
                 const clientVerticalCenter = containerSize.height / 2;
@@ -138,7 +150,7 @@ export function CatalogViewer(props: Props) {
             let lb = Math.floor((scrollTop - DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             let ub = Math.ceil((scrollTop + containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
             lb = Math.max(lb, 0);
-            ub = Math.min(ub, viewModel.totalHeight);
+            ub = Math.min(ub, viewModelHeight);
             setRenderingWindow({
                 scroll: {
                     top: scrollTop,
@@ -154,7 +166,7 @@ export function CatalogViewer(props: Props) {
         } else {
             // The user didn't scoll, just render the container
             let ub = Math.ceil((containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
-            ub = Math.min(ub, viewModel.totalHeight);
+            ub = Math.min(ub, viewModelHeight);
             setRenderingWindow({
                 scroll: {
                     top: 0,
@@ -166,7 +178,7 @@ export function CatalogViewer(props: Props) {
                 }
             })
         }
-    }, [viewModel, scrollTop, containerSize]);
+    }, [viewModel, viewModelHeight, scrollTop, containerSize]);
 
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
@@ -196,7 +208,7 @@ export function CatalogViewer(props: Props) {
             renderingWindow.virtual.top + renderingWindow.virtual.height
         );
         // Render the catalog
-        const [newState, output] = renderCatalog(stateRef.current, viewModel);
+        const [newState, output] = renderCatalog(stateRef.current, viewModel, renderColumns);
         stateRef.current = newState;
         return output;
 
@@ -206,7 +218,7 @@ export function CatalogViewer(props: Props) {
     if (totalWidth == 0) {
         totalWidth = containerSize?.width ?? 0;
     }
-    let totalHeight = viewModel?.totalHeight ?? 0;
+    let totalHeight = viewModelHeight;
     if (totalHeight == 0) {
         totalHeight = containerSize?.height ?? 0;
     }

@@ -111,21 +111,45 @@ class PendingLayoutUpdates {
     }
 }
 
+interface WriteHeads {
+    /// The writer for tracking the y-offset when the column level is collapsed
+    yWithoutColumns: number;
+    /// The writer for tracking the y-offset when the column level is expanded
+    yWithColumns: number;
+}
+
+
 interface LayoutContext {
     /// The snapshot
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The current writer
-    currentWriterY: number;
+    writers: WriteHeads;
 };
 
 interface SearchContext {
     /// The snapshot
     snapshot: dashql.DashQLCatalogSnapshotReader;
+    /// Are columns visible?
+    withColumns: boolean;
     /// The current writer
     currentWriterY: number;
     /// The current writer
     entryPath: number[];
 };
+
+interface SubtreeHeights {
+    /// The subtree heights when rendering without columns
+    withoutColumns: Float32Array;
+    /// The subtree heights when rendering with columns
+    withColumns: Float32Array;
+}
+
+export enum CatalogLevel {
+    Database = 0,
+    Schema = 1,
+    Table = 2,
+    Column = 3,
+}
 
 interface CatalogLevelViewModel {
     /// The rendering settings
@@ -135,7 +159,7 @@ interface CatalogLevelViewModel {
     /// The rendering flags
     entryFlags: Uint16Array;
     /// The subtree heights
-    subtreeHeights: Float32Array;
+    subtreeHeights: SubtreeHeights;
     /// The y positions as written during rendering (if visible)
     positionsY: Float32Array;
     /// The epochs in which this node was rendered
@@ -172,8 +196,10 @@ export class CatalogViewModel {
     /// The pin epoch counter
     nextPinEpoch: number;
 
-    /// The total height of all nodes
-    totalHeight: number;
+    /// The total height of all nodes when columns are shown
+    totalHeightWithColumns: number;
+    /// The total height of all nodes when columns are not shown
+    totalHeightWithoutColumns: number;
 
     /// The pending layout updates
     pendingLayoutUpdates: PendingLayoutUpdates;
@@ -207,7 +233,10 @@ export class CatalogViewModel {
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.databasesLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.databasesLength()),
-            subtreeHeights: new Float32Array(snap.catalogReader.databasesLength()),
+            subtreeHeights: {
+                withColumns: new Float32Array(snap.catalogReader.databasesLength()),
+                withoutColumns: new Float32Array(snap.catalogReader.databasesLength()),
+            },
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.databasesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.databasesLength()),
@@ -222,7 +251,10 @@ export class CatalogViewModel {
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.schemasLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.schemasLength()),
-            subtreeHeights: new Float32Array(snap.catalogReader.schemasLength()),
+            subtreeHeights: {
+                withColumns: new Float32Array(snap.catalogReader.schemasLength()),
+                withoutColumns: new Float32Array(snap.catalogReader.schemasLength()),
+            },
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.schemasLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.schemasLength()),
@@ -237,7 +269,10 @@ export class CatalogViewModel {
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.tablesLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.tablesLength()),
-            subtreeHeights: new Float32Array(snap.catalogReader.tablesLength()),
+            subtreeHeights: {
+                withColumns: new Float32Array(snap.catalogReader.tablesLength()),
+                withoutColumns: new Float32Array(snap.catalogReader.tablesLength()),
+            },
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.tablesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.tablesLength()),
@@ -252,7 +287,10 @@ export class CatalogViewModel {
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.columnsLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.columnsLength()),
-            subtreeHeights: new Float32Array(snap.catalogReader.columnsLength()),
+            subtreeHeights: {
+                withColumns: new Float32Array(snap.catalogReader.columnsLength()),
+                withoutColumns: new Float32Array(),
+            },
             scratchEntry: new dashql.buffers.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.columnsLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.columnsLength()),
@@ -261,7 +299,8 @@ export class CatalogViewModel {
             firstFocusedEntry: null,
         };
 
-        this.totalHeight = 0;
+        this.totalHeightWithoutColumns = 0;
+        this.totalHeightWithColumns = 0;
         this.pendingLayoutUpdates = new PendingLayoutUpdates();
 
         this.scrollBegin = 0;
@@ -320,29 +359,50 @@ export class CatalogViewModel {
             // Clear any previous overflow flags
             level.entryFlags[entryId] &= ~CatalogRenderingFlag.OVERFLOW;
 
-            // Add row gap when first
-            // We could also account for that in the end
-            ctx.currentWriterY += isFirstEntry ? 0 : level.settings.rowGap;
-            isFirstEntry = false;
-            // Remember own position
-            let thisPosY = ctx.currentWriterY;
-            // Render child columns
-            if (entry.childCount() > 0) {
-                this.layoutEntriesAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount());
+            // Special-case the last level since we skip writer updates there
+            if (levelId == CatalogLevel.Column) {
+                // Add row gap when first
+                // We could also account for that in the end
+                ctx.writers.yWithColumns += isFirstEntry ? 0 : level.settings.rowGap;
+                isFirstEntry = false;
+                // Bump writer
+                ctx.writers.yWithColumns += level.settings.nodeHeight;
+                // Store the subtree height
+                level.subtreeHeights.withColumns[entryId] = level.settings.nodeHeight;
+
+            } else {
+                // Add row gap when first
+                // We could also account for that in the end
+                ctx.writers.yWithColumns += isFirstEntry ? 0 : level.settings.rowGap;
+                ctx.writers.yWithoutColumns += isFirstEntry ? 0 : level.settings.rowGap;
+                isFirstEntry = false;
+                // Remember own position
+                let thisPosWithColumns = ctx.writers.yWithColumns;
+                let thisPosWithoutColumns = ctx.writers.yWithoutColumns;
+                // Render child columns
+                if (entry.childCount() > 0) {
+                    this.layoutEntriesAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount());
+                }
+                // Bump writer if the columns didn't already
+                ctx.writers.yWithColumns = Math.max(ctx.writers.yWithColumns, thisPosWithColumns + level.settings.nodeHeight);
+                ctx.writers.yWithoutColumns = Math.max(ctx.writers.yWithoutColumns, thisPosWithoutColumns + level.settings.nodeHeight);
+                // Store the subtree height
+                // Note that we deliberately do not include the entries row gap here.
+                // If we would, we couldn't update this easily from the children.
+                // (We would have to know if our parent is the child)
+                level.subtreeHeights.withColumns[entryId] = ctx.writers.yWithColumns - thisPosWithColumns;
+                level.subtreeHeights.withoutColumns[entryId] = ctx.writers.yWithoutColumns - thisPosWithoutColumns;
             }
-            // Bump writer if the columns didn't already
-            ctx.currentWriterY = Math.max(ctx.currentWriterY, thisPosY + level.settings.nodeHeight);
-            // Store the subtree height
-            // Note that we deliberately do not include the entries row gap here.
-            // If we would, we couldn't update this easily from the children.
-            // (We would have to know if our parent is the child)
-            level.subtreeHeights[entryId] = ctx.currentWriterY - thisPosY;
         }
 
         // Add space for the overflow node
         if (overflowChildCount > 0) {
-            ctx.currentWriterY += level.settings.rowGap;
-            ctx.currentWriterY += level.settings.nodeHeight;
+            ctx.writers.yWithColumns += level.settings.rowGap;
+            ctx.writers.yWithColumns += level.settings.nodeHeight;
+            if (levelId < CatalogLevel.Column) {
+                ctx.writers.yWithoutColumns += level.settings.rowGap;
+                ctx.writers.yWithoutColumns += level.settings.nodeHeight;
+            }
         }
     }
 
@@ -352,10 +412,14 @@ export class CatalogViewModel {
         const databaseCount = this.databaseEntries.entries.length(snap);
         const ctx: LayoutContext = {
             snapshot: snap,
-            currentWriterY: 0,
+            writers: {
+                yWithColumns: 0,
+                yWithoutColumns: 0,
+            },
         };
         CatalogViewModel.layoutEntriesAtLevel(ctx, this.levels, 0, 0, databaseCount);
-        this.totalHeight = ctx.currentWriterY;
+        this.totalHeightWithColumns = ctx.writers.yWithColumns;
+        this.totalHeightWithoutColumns = ctx.writers.yWithoutColumns;
     }
 
     /// Flush all pending layout updates
@@ -608,6 +672,7 @@ export class CatalogViewModel {
         const level = levels[levelId];
         const flags = level.entryFlags;
         const targetEntryId = ctx.entryPath[levelId];
+        const searchChildren = ctx.withColumns || ((levelId + 1) < CatalogLevel.Column);
         let isFirstEntry = true;
 
         for (const renderPinned of [true, false]) {
@@ -634,7 +699,7 @@ export class CatalogViewModel {
                 // Not there yet?
                 // Just add the subtree height
                 if (entryId < targetEntryId) {
-                    ctx.currentWriterY += level.subtreeHeights[entryId];
+                    ctx.currentWriterY += ctx.withColumns ? level.subtreeHeights.withColumns[entryId] : level.subtreeHeights.withoutColumns[entryId];
                     continue;
                 }
                 // Went past it?
@@ -652,7 +717,7 @@ export class CatalogViewModel {
                 // Read entry
                 const entry = level.entries.read(ctx.snapshot, entryId, level.scratchEntry)!;
                 // Do we have children?
-                if (entry.childCount() > 0) {
+                if (searchChildren && (entry.childCount() > 0)) {
                     // Then traverse down and search there
                     return CatalogViewModel.searchEntryOffsetAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount());
                 } else {
@@ -664,10 +729,11 @@ export class CatalogViewModel {
     }
 
     /// Search an entry offset
-    searchEntryOffset(snap: dashql.DashQLCatalogSnapshotReader, entryPath: number[]): [number, boolean] {
+    searchEntryOffset(snap: dashql.DashQLCatalogSnapshotReader, withColumns: boolean, entryPath: number[]): [number, boolean] {
         const databaseCount = this.databaseEntries.entries.length(snap);
         const ctx: SearchContext = {
             snapshot: snap,
+            withColumns,
             currentWriterY: 0,
             entryPath: entryPath
         };
@@ -675,7 +741,7 @@ export class CatalogViewModel {
     }
 
     /// Determine the offset of the first focused element
-    getOffsetOfFirstFocused(): [number, boolean] {
+    getOffsetOfFirstFocused(withColumns: boolean = true): [number, boolean] {
         const snap = this.snapshot.read();
         const levels = this.levels;
         let maxEpoch = 0;
@@ -709,10 +775,22 @@ export class CatalogViewModel {
         const databaseCount = this.databaseEntries.entries.length(snap);
         const ctx: SearchContext = {
             snapshot: snap,
+            withColumns,
             currentWriterY: 0,
             entryPath: entryPath
         };
         // Search the offset
         return CatalogViewModel.searchEntryOffsetAtLevel(ctx, this.levels, 0, 0, databaseCount);
+    }
+
+    getFirstUnfocusedLevel(): number {
+        let firstUnfocused = this.levels.length;
+        for (let i = 0; i < this.levels.length; ++i) {
+            const firstFocusedEntry = this.levels[i].firstFocusedEntry;
+            if (firstFocusedEntry == null || (firstFocusedEntry.epoch + 1) != this.nextPinEpoch) {
+                firstUnfocused = i;
+            }
+        }
+        return firstUnfocused;
     }
 }

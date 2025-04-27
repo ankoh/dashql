@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { EdgePathBuilder, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
 import { buildEdgePath, selectHorizontalEdgeType } from './graph_edges.js';
-import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS } from './catalog_view_model.js';
+import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, CatalogLevel } from './catalog_view_model.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -179,6 +179,8 @@ interface RenderingContext {
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The rendering epoch
     renderingEpoch: number;
+    /// Render Columns?
+    renderColumns: boolean;
     /// Is the level expanded?
     levelExpanded: boolean[];
     /// The x-positions per level
@@ -236,7 +238,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const levelWidth = ctx.levelWidths[levelId];
     const positionsY = thisLevel.positionsY;
     const renderingEpochs = thisLevel.renderedInEpoch;
-    const subtreeHeights = thisLevel.subtreeHeights;
+    const renderChildren = ctx.renderColumns || ((levelId + 1) < CatalogLevel.Column);
+    const subtreeHeights = ctx.renderColumns
+        ? thisLevel.subtreeHeights.withColumns
+        : thisLevel.subtreeHeights.withoutColumns;
 
     // Track overflow nodes
     let overflowChildCount = 0;
@@ -281,14 +286,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             if ((thisPosY + subtreeHeights[entryId]) <= ctx.renderingWindow.virtualScrollWindowBegin) {
                 ctx.currentWriterY += subtreeHeights[entryId];
                 centerInScrollWindow = thisPosY;
-            } else {
-                // Render children
-                if (entry.childCount() > 0) {
-                    ctx.renderingWindow.startRenderingChildren();
-                    renderEntriesAtLevel(ctx, levelId + 1, entry.childBegin(), entry.childCount(), entryId, entryIsFocused);
-                    const stats = ctx.renderingWindow.stopRenderingChildren();
-                    centerInScrollWindow = stats.centerInScrollWindow();
-                }
+            } else if (renderChildren && entry.childCount() > 0) {
+                ctx.renderingWindow.startRenderingChildren();
+                renderEntriesAtLevel(ctx, levelId + 1, entry.childBegin(), entry.childCount(), entryId, entryIsFocused);
+                const stats = ctx.renderingWindow.stopRenderingChildren();
+                centerInScrollWindow = stats.centerInScrollWindow();
             }
             // Bump writer if the columns didn't already
             ctx.currentWriterY = Math.max(ctx.currentWriterY, thisPosY + settings.nodeHeight);
@@ -310,7 +312,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             renderingEpochs[entryId] = ctx.renderingEpoch;
             // Determine if any child is focused
             let anyChildIsFocused = false;
-            if (entry.childCount() > 0) {
+            if (renderChildren && entry.childCount() > 0) {
                 for (let i = 0; i < entry.childCount(); ++i) {
                     const level = levels[levelId + 1];
                     anyChildIsFocused ||= (level.entryFlags[entry.childBegin() + i] & PINNED_BY_FOCUS) != 0;
@@ -399,7 +401,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.West}
                             />
                         )}
-                        {(entry.childCount() > 0) && (
+                        {renderChildren && (entry.childCount() > 0) && (
                             <div
                                 className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
@@ -566,7 +568,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 }
 
 /// A function to render a catalog
-export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
+export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel, withColumns: boolean): [RenderingState, RenderingOutput] {
     // Always expand all level for now
     let levelExpanded: boolean[] = [true, true, true, true];
 
@@ -587,6 +589,7 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
         viewModel,
         snapshot: viewModel.snapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
+        renderColumns: withColumns,
         levelExpanded,
         levelPositionsX,
         levelWidths,
