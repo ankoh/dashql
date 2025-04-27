@@ -213,6 +213,7 @@ export function CatalogViewer(props: Props) {
                 edges: [],
                 edgesFocused: [],
                 totalWidth: 0,
+                totalHeight: 0,
             };
         }
         // Update the virtual window
@@ -229,14 +230,8 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModelVersion, renderingWindow]);
 
-    let totalWidth = renderedOutput?.totalWidth ?? 0;
-    if (totalWidth == 0) {
-        totalWidth = containerSize?.width ?? 0;
-    }
-    let totalHeight = viewModelHeight;
-    if (totalHeight == 0) {
-        totalHeight = containerSize?.height ?? 0;
-    }
+    let totalWidth = renderedOutput?.totalWidth ?? containerSize?.width ?? 0;
+    let totalHeight = renderedOutput?.totalHeight ?? containerSize?.height ?? 0;
     return (
         <div className={styles.root}>
             <div

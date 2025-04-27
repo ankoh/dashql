@@ -170,6 +170,8 @@ export interface RenderingOutput {
     edgesFocused: React.ReactElement[];
     /// The total width
     totalWidth: number;
+    /// The total height
+    totalHeight: number;
 }
 
 interface RenderingContext {
@@ -601,6 +603,7 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
             edges: [],
             edgesFocused: [],
             totalWidth: writerX,
+            totalHeight: withColumns ? viewModel.totalHeightWithColumns : viewModel.totalHeightWithoutColumns
         }
     };
     renderEntriesAtLevel(ctx, 0, 0, viewModel.databaseEntries.entries.length(ctx.snapshot), null, false);
