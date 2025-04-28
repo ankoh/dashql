@@ -193,7 +193,7 @@ export function CatalogViewer(props: Props) {
                 }
             };
         }
-    }, [viewModel, scrollTop, containerSize]);
+    }, [viewModel, renderColumns, scrollTop, containerSize]);
 
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
