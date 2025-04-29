@@ -7,7 +7,12 @@ interface NodeLayerProps {
     className?: string;
     width: number;
     height: number;
-    padding: number;
+
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+
     nodes: React.ReactElement[];
 }
 
@@ -16,7 +21,10 @@ export function NodeLayer(props: NodeLayerProps) {
         <div
             className={classNames(styles.layer_container, props.className)}
             style={{
-                padding: props.padding,
+                paddingTop: props.paddingTop,
+                paddingRight: props.paddingRight,
+                paddingBottom: props.paddingBottom,
+                paddingLeft: props.paddingLeft,
             }}
         >
             <div

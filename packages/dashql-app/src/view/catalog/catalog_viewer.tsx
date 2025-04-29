@@ -61,7 +61,10 @@ export function CatalogViewer(props: Props) {
     const containerElement = React.useRef(null);
     const containerSize = observeSize(containerElement);
     const boardElement = React.useRef(null);
-    const padding = 20;
+    let paddingTop = 20;
+    let paddingBottom = 20;
+    const paddingRight = 20;
+    const paddingLeft = 20;
 
     // Maintain a catalog snapshot of the workbook
     const [viewModel, setViewModel] = React.useState<CatalogViewModel | null>(null);
@@ -149,7 +152,7 @@ export function CatalogViewer(props: Props) {
     const [scrollTopRaw, setScrollTop] = React.useState<number | null>(null);
     const handleScroll = (e: React.UIEvent<HTMLDivElement, UIEvent>) => {
         const scrollTop = (e.target as HTMLDivElement).scrollTop;
-        setScrollTop(Math.max(scrollTop, padding) - padding);
+        setScrollTop(Math.max(scrollTop, paddingTop) - paddingTop);
     };
     const scrollTop = useThrottledMemo(scrollTopRaw, [scrollTopRaw], 10);
 
@@ -171,7 +174,7 @@ export function CatalogViewer(props: Props) {
                     top: scrollTop,
                     // Make sure we respect the top padding when computing the scroll window.
                     // When we're on the "first page", we have to subtract the top padding from the container height.
-                    height: Math.max(containerSize.height - padding + Math.min(scrollTop, padding), 0)
+                    height: Math.max(containerSize.height - paddingTop + Math.min(scrollTop, paddingTop), 0)
                 },
                 virtual: {
                     top: lb,
@@ -185,7 +188,7 @@ export function CatalogViewer(props: Props) {
             return {
                 scroll: {
                     top: 0,
-                    height: Math.max(containerSize.height, padding) - padding
+                    height: Math.max(containerSize.height, paddingTop) - paddingTop
                 },
                 virtual: {
                     top: 0,
@@ -232,6 +235,10 @@ export function CatalogViewer(props: Props) {
 
     let totalWidth = renderedOutput?.totalWidth ?? containerSize?.width ?? 0;
     let totalHeight = renderedOutput?.totalHeight ?? containerSize?.height ?? 0;
+
+    // Adjust top padding
+    paddingTop = Math.max(Math.max((containerSize?.height ?? 0) - renderedOutput?.totalHeight, 0) / 2, 20);
+    paddingBottom = paddingTop;
     return (
         <div className={styles.root}>
             <div
@@ -251,20 +258,29 @@ export function CatalogViewer(props: Props) {
                             className={styles.edge_layer}
                             width={totalWidth}
                             height={totalHeight}
-                            padding={padding}
+                            paddingTop={paddingTop}
+                            paddingRight={paddingRight}
+                            paddingLeft={paddingLeft}
+                            paddingBottom={paddingBottom}
                             paths={renderedOutput.edges ?? []}
                         />
                         <EdgeLayer
                             className={styles.edge_layer_focused}
                             width={totalWidth}
                             height={totalHeight}
-                            padding={padding}
+                            paddingTop={paddingTop}
+                            paddingRight={paddingRight}
+                            paddingLeft={paddingLeft}
+                            paddingBottom={paddingBottom}
                             paths={renderedOutput.edgesFocused ?? []}
                         />
                         <NodeLayer
                             width={totalWidth}
                             height={totalHeight}
-                            padding={padding}
+                            paddingTop={paddingTop}
+                            paddingRight={paddingRight}
+                            paddingLeft={paddingLeft}
+                            paddingBottom={paddingBottom}
                             nodes={renderedOutput.nodes ?? []}
                         />
                     </div>
