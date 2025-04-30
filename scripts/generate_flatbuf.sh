@@ -56,12 +56,21 @@ if [ -f ${TS_OUT_PROTO_IDX} ]; then
     rm ${TS_OUT_PROTO_IDX}
 fi
 
-PROTO_INDEX="${TS_OUT_PROTO_BASE}/index.ts"
-echo "Generating $PROTO_INDEX"
-echo >${PROTO_INDEX}
-PROTO_FILES=$(ls ${TS_OUT_PROTO_BASE}/*.ts)
-for PROTO_FILE in ${PROTO_FILES}; do
-    IMPORT="$(basename $PROTO_FILE)"
-    if [ "${IMPORT}" = "index.ts" ]; then continue; fi
-    echo "export * from \"./${IMPORT%.*}.js\";" >>${PROTO_INDEX}
+# Necessary because flatc is buggy for namespaces with depth > 1:
+# https://github.com/google/flatbuffers/issues/7898
+
+PROTO_DIRS=$(ls -d ${TS_OUT_PROTO_BASE}/*/)
+for PROTO_SUBDIR_PATH in ${PROTO_DIRS}; do
+    PROTO_DIRNAME="$(basename $PROTO_SUBDIR_PATH)"
+    PROTO_SUBDIR="${TS_OUT_PROTO_BASE}/${PROTO_DIRNAME}"
+
+    echo "Generating $PROTO_INDEX"
+    PROTO_INDEX="${TS_OUT_PROTO_BASE}/${PROTO_DIRNAME}.ts"
+    echo >${PROTO_INDEX}
+
+    PROTO_FILES=$(ls ${PROTO_SUBDIR}/*.ts)
+    for PROTO_FILE in ${PROTO_FILES}; do
+        PROTO_FILENAME="$(basename $PROTO_FILE)"
+        echo "export * from \"./${PROTO_DIRNAME}/${PROTO_FILENAME%.*}.js\";" >>${PROTO_INDEX}
+    done
 done

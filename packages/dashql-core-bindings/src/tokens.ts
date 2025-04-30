@@ -1,4 +1,4 @@
-import * as proto from '../gen/dashql/buffers/index.js';
+import * as buffers from './buffers.js';
 
 interface Indexable<ValueType> {
     [index: number]: ValueType;
@@ -24,7 +24,7 @@ function lowerBound<ValueType, ArrayType extends Indexable<ValueType>>(
     return begin;
 }
 
-export function findClosestToken(hl: proto.ScannerTokens, pos: number): number | null {
+export function findClosestToken(hl: buffers.parser.ScannerTokens, pos: number): number | null {
     const offsets = hl.tokenOffsetsArray();
     if ((offsets?.length ?? 0) === 0) {
         return null;
@@ -41,7 +41,7 @@ export function findClosestToken(hl: proto.ScannerTokens, pos: number): number |
     }
 }
 
-export function findTokensInRange(hl: proto.ScannerTokens, begin: number, end: number) {
+export function findTokensInRange(hl: buffers.parser.ScannerTokens, begin: number, end: number) {
     const offsets = hl.tokenOffsetsArray();
     if ((offsets?.length ?? 0) === 0) {
         return [0, 0];
@@ -52,33 +52,33 @@ export function findTokensInRange(hl: proto.ScannerTokens, begin: number, end: n
     return [lb, ub];
 }
 
-export function getScannerTokenTypeName(token: proto.ScannerTokenType) {
+export function getScannerTokenTypeName(token: buffers.parser.ScannerTokenType) {
     switch (token) {
-        case proto.ScannerTokenType.NONE:
+        case buffers.parser.ScannerTokenType.NONE:
             return "none";
-        case proto.ScannerTokenType.KEYWORD:
+        case buffers.parser.ScannerTokenType.KEYWORD:
             return "keyword";
-        case proto.ScannerTokenType.LITERAL_BINARY:
+        case buffers.parser.ScannerTokenType.LITERAL_BINARY:
             return "literal(binary)";
-        case proto.ScannerTokenType.LITERAL_BOOLEAN:
+        case buffers.parser.ScannerTokenType.LITERAL_BOOLEAN:
             return "literal(boolean)";
-        case proto.ScannerTokenType.LITERAL_FLOAT:
+        case buffers.parser.ScannerTokenType.LITERAL_FLOAT:
             return "literal(float)";
-        case proto.ScannerTokenType.LITERAL_HEX:
+        case buffers.parser.ScannerTokenType.LITERAL_HEX:
             return "literal(hex)";
-        case proto.ScannerTokenType.LITERAL_INTEGER:
+        case buffers.parser.ScannerTokenType.LITERAL_INTEGER:
             return "literal(integer)";
-        case proto.ScannerTokenType.LITERAL_STRING:
+        case buffers.parser.ScannerTokenType.LITERAL_STRING:
             return "literal(string)";
-        case proto.ScannerTokenType.OPERATOR:
+        case buffers.parser.ScannerTokenType.OPERATOR:
             return "operator";
-        case proto.ScannerTokenType.IDENTIFIER:
+        case buffers.parser.ScannerTokenType.IDENTIFIER:
             return "identifier";
-        case proto.ScannerTokenType.COMMENT:
+        case buffers.parser.ScannerTokenType.COMMENT:
             return "comment";
-        case proto.ScannerTokenType.DOT:
+        case buffers.parser.ScannerTokenType.DOT:
             return "dot";
-        case proto.ScannerTokenType.DOT_TRAILING:
+        case buffers.parser.ScannerTokenType.DOT_TRAILING:
             return "dot(trailing)";
         default:
             return "?";

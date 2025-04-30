@@ -1,4 +1,4 @@
-import * as proto from '../gen/dashql/buffers/index.js';
+import * as buffers from './buffers.js';
 import * as flatbuffers from 'flatbuffers';
 
 interface DashQLModuleExports {
@@ -295,7 +295,7 @@ export class DashQL {
         const resultPtrU32 = resultPtr / 4;
         const heapU32 = new Uint32Array(this.memory.buffer);
         const statusCode = heapU32[resultPtrU32];
-        if (statusCode == proto.StatusCode.OK) {
+        if (statusCode == buffers.status.StatusCode.OK) {
             const ownerPtr = heapU32[resultPtrU32 + 3];
             return new Ptr(ptrType, this, resultPtr, ownerPtr);
         } else {
@@ -315,7 +315,7 @@ export class DashQL {
         const statusCode = heapU32[resultPtrU32];
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
-        if (statusCode == proto.StatusCode.OK) {
+        if (statusCode == buffers.status.StatusCode.OK) {
             return new FlatBufferPtr<T>(this, resultPtr, dataPtr, dataLength, factory);
         } else {
             const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
@@ -332,7 +332,7 @@ export class DashQL {
         const statusCode = heapU32[resultPtrU32];
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
-        if (statusCode == proto.StatusCode.OK) {
+        if (statusCode == buffers.status.StatusCode.OK) {
             this.instanceExports.dashql_delete_result(resultPtr);
         } else {
             const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
@@ -432,15 +432,15 @@ export class FlatBufferPtr<T extends FlatBufferObject<T>> {
 }
 
 export class ScannerError extends Error {
-    public scanned: FlatBufferPtr<proto.ScannedScript>;
-    constructor(scanned: FlatBufferPtr<proto.ScannedScript>, firstError: proto.Error) {
+    public scanned: FlatBufferPtr<buffers.parser.ScannedScript>;
+    constructor(scanned: FlatBufferPtr<buffers.parser.ScannedScript>, firstError: buffers.parser.Error) {
         super(firstError.message());
         this.scanned = scanned;
     }
 }
 export class ParserError extends Error {
-    public parsed: FlatBufferPtr<proto.ParsedScript>;
-    constructor(parsed: FlatBufferPtr<proto.ParsedScript>, firstError: proto.Error) {
+    public parsed: FlatBufferPtr<buffers.parser.ParsedScript>;
+    constructor(parsed: FlatBufferPtr<buffers.parser.ParsedScript>, firstError: buffers.parser.Error) {
         super(firstError.message());
         this.parsed = parsed;
     }
@@ -492,10 +492,10 @@ export class DashQLScript {
     }
     /// Scan the script.
     /// Use `throwOnError` with caution since you might leak other pointers!
-    public scan(throwOnError: boolean = false): FlatBufferPtr<proto.ScannedScript> {
+    public scan(throwOnError: boolean = false): FlatBufferPtr<buffers.parser.ScannedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const rawResultPtr = this.ptr.api.instanceExports.dashql_script_scan(scriptPtr);
-        const resultPtr = this.ptr.api.readFlatBufferResult<proto.ScannedScript>(rawResultPtr, () => new proto.ScannedScript());
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript>(rawResultPtr, () => new buffers.parser.ScannedScript());
         if (throwOnError) {
             const script = resultPtr.read();
             if (script.errorsLength() > 0) {
@@ -506,10 +506,10 @@ export class DashQLScript {
     }
     /// Parse the script.
     /// Use `throwOnError` with caution since you might leak other pointers!
-    public parse(throwOnError: boolean = false): FlatBufferPtr<proto.ParsedScript> {
+    public parse(throwOnError: boolean = false): FlatBufferPtr<buffers.parser.ParsedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const rawResultPtr = this.ptr.api.instanceExports.dashql_script_parse(scriptPtr);
-        const resultPtr = this.ptr.api.readFlatBufferResult<proto.ParsedScript>(rawResultPtr, () => new proto.ParsedScript());
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript>(rawResultPtr, () => new buffers.parser.ParsedScript());
         if (throwOnError) {
             const script = resultPtr.read();
             if (script.errorsLength() > 0) {
@@ -519,10 +519,10 @@ export class DashQLScript {
         return resultPtr;
     }
     /// Analyze the script (optionally with an external script)
-    public analyze(): FlatBufferPtr<proto.AnalyzedScript> {
+    public analyze(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_analyze(scriptPtr);
-        return this.ptr.api.readFlatBufferResult<proto.AnalyzedScript>(resultPtr, () => new proto.AnalyzedScript());
+        return this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript>(resultPtr, () => new buffers.analyzer.AnalyzedScript());
     }
     /// Pretty print the SQL string
     public format(): string {
@@ -534,35 +534,35 @@ export class DashQLScript {
         return text;
     }
     /// Move the cursor
-    public moveCursor(textOffset: number): FlatBufferPtr<proto.ScriptCursor> {
+    public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_move_cursor(scriptPtr, textOffset);
-        return this.ptr.api.readFlatBufferResult<proto.ScriptCursor>(resultPtr, () => new proto.ScriptCursor());
+        return this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor>(resultPtr, () => new buffers.cursor.ScriptCursor());
     }
     /// Complete at the cursor position
-    public completeAtCursor(limit: number): FlatBufferPtr<proto.Completion> {
+    public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit);
-        return this.ptr.api.readFlatBufferResult<proto.Completion>(resultPtr, () => new proto.Completion());
+        return this.ptr.api.readFlatBufferResult<buffers.completion.Completion>(resultPtr, () => new buffers.completion.Completion());
     }
     /// Get the script statistics.
     /// Timings are useless in some browsers today.
     /// For example, Firefox rounds to millisecond precision, so all our step timings will be 0 for most foundations.
     /// One way out might be COEP but we cannot easily set that with GitHub pages.
     /// https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#reduced_precision
-    public getStatistics(): FlatBufferPtr<proto.ScriptStatistics> {
+    public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_get_statistics(scriptPtr);
-        return this.ptr.api.readFlatBufferResult<proto.ScriptStatistics>(resultPtr, () => new proto.ScriptStatistics());
+        return this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics>(resultPtr, () => new buffers.statistics.ScriptStatistics());
     }
 }
 
 export class DashQLCatalogSnapshotReader {
-    public catalogReader: proto.FlatCatalog;
+    public catalogReader: buffers.catalog.FlatCatalog;
     nameDictionary: (string | null)[];
 
     /// Construct a snapshot reader with a name dictionary
-    constructor(catalog: proto.FlatCatalog, nameDictionary: (string | null)[]) {
+    constructor(catalog: buffers.catalog.FlatCatalog, nameDictionary: (string | null)[]) {
         this.catalogReader = catalog;
         this.nameDictionary = nameDictionary;
     }
@@ -578,10 +578,10 @@ export class DashQLCatalogSnapshotReader {
 }
 
 export class DashQLCatalogSnapshot {
-    snapshot: FlatBufferPtr<proto.FlatCatalog>;
+    snapshot: FlatBufferPtr<buffers.catalog.FlatCatalog>;
     nameDictionary: (string | null)[];
 
-    constructor(snapshot: FlatBufferPtr<proto.FlatCatalog>) {
+    constructor(snapshot: FlatBufferPtr<buffers.catalog.FlatCatalog>) {
         this.snapshot = snapshot;
         this.nameDictionary = [];
     }
@@ -626,16 +626,16 @@ export class DashQLCatalog {
         return this.ptr.api.instanceExports.dashql_catalog_contains_entry_id(catalogPtr, entryId);
     }
     /// Describe catalog entries
-    public describeEntries(): FlatBufferPtr<proto.CatalogEntries> {
+    public describeEntries(): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries(catalogPtr);
-        return this.ptr.api.readFlatBufferResult<proto.CatalogEntries>(result, () => new proto.CatalogEntries());
+        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(result, () => new buffers.catalog.CatalogEntries());
     }
     /// Describe catalog entries
-    public describeEntriesOf(id: number): FlatBufferPtr<proto.CatalogEntries> {
+    public describeEntriesOf(id: number): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries_of(catalogPtr, id);
-        return this.ptr.api.readFlatBufferResult<proto.CatalogEntries>(result, () => new proto.CatalogEntries());
+        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(result, () => new buffers.catalog.CatalogEntries());
     }
     /// Export a catalog snapshot
     public createSnapshot(): DashQLCatalogSnapshot {
@@ -644,7 +644,7 @@ export class DashQLCatalog {
         }
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_flatten(catalogPtr);
-        const snapshot = this.ptr.api.readFlatBufferResult<proto.FlatCatalog>(result, () => new proto.FlatCatalog());
+        const snapshot = this.ptr.api.readFlatBufferResult<buffers.catalog.FlatCatalog>(result, () => new buffers.catalog.FlatCatalog());
         this.snapshot = new DashQLCatalogSnapshot(snapshot);
         return this.snapshot;
     }
@@ -690,7 +690,7 @@ export class DashQLCatalog {
         this.ptr.api.readStatusResult(result);
     }
     /// Add a schema descriptor to a descriptor pool
-    public addSchemaDescriptorT(id: number, descriptor: proto.SchemaDescriptorT) {
+    public addSchemaDescriptorT(id: number, descriptor: buffers.catalog.SchemaDescriptorT) {
         this.deleteSnapshot();
         const builder = new flatbuffers.Builder();
         const descriptorOffset = descriptor.pack(builder);
@@ -712,7 +712,7 @@ export class DashQLCatalog {
         this.ptr.api.readStatusResult(result);
     }
     /// Add a schema descriptors to a descriptor pool
-    public addSchemaDescriptorsT(id: number, descriptor: proto.SchemaDescriptorsT) {
+    public addSchemaDescriptorsT(id: number, descriptor: buffers.catalog.SchemaDescriptorsT) {
         this.deleteSnapshot();
         const builder = new flatbuffers.Builder();
         const descriptorOffset = descriptor.pack(builder);
@@ -721,10 +721,10 @@ export class DashQLCatalog {
         this.addSchemaDescriptors(id, buffer);
     }
     /// Get the catalog statistics.
-    public getStatistics(): FlatBufferPtr<proto.CatalogStatistics> {
+    public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics> {
         const catalogPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_catalog_get_statistics(catalogPtr);
-        return this.ptr.api.readFlatBufferResult<proto.CatalogStatistics>(resultPtr, () => new proto.CatalogStatistics());
+        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(resultPtr, () => new buffers.catalog.CatalogStatistics());
     }
 }
 

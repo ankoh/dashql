@@ -1,7 +1,7 @@
-import * as proto from '../gen/dashql/buffers/index.js';
+import * as buffers from './buffers.js';
 
 /// Find lower bound among table refs for a table
-export function findScriptTableRefsLowerBound(script: proto.AnalyzedScript, tmp: proto.IndexedTableReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint) {
+export function findScriptTableRefsLowerBound(script: buffers.analyzer.AnalyzedScript, tmp: buffers.analyzer.IndexedTableReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint) {
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
@@ -31,7 +31,7 @@ export function findScriptTableRefsLowerBound(script: proto.AnalyzedScript, tmp:
 }
 
 /// Find upper bound among table refs for a table
-export function findScriptTableRefsUpperBound(script: proto.AnalyzedScript, tmp: proto.IndexedTableReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint) {
+export function findScriptTableRefsUpperBound(script: buffers.analyzer.AnalyzedScript, tmp: buffers.analyzer.IndexedTableReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint) {
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
@@ -61,7 +61,7 @@ export function findScriptTableRefsUpperBound(script: proto.AnalyzedScript, tmp:
 }
 
 /// Find equal range among table refs for a table
-export function findScriptTableRefsEqualRange(script: proto.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, tmp: proto.IndexedTableReference = new proto.IndexedTableReference()): [number, number] {
+export function findScriptTableRefsEqualRange(script: buffers.analyzer.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, tmp: buffers.analyzer.IndexedTableReference = new buffers.analyzer.IndexedTableReference()): [number, number] {
     const begin = 0;
     const end = script.tableReferencesByIdLength();
     const lb = findScriptTableRefsLowerBound(script, tmp, begin, end, targetDb, targetSchema ?? 0, targetTable ?? 0n);
@@ -70,7 +70,7 @@ export function findScriptTableRefsEqualRange(script: proto.AnalyzedScript, targ
 }
 
 /// Find lower bound among column refs for a table
-export function findScriptColumnRefsLowerBound(script: proto.AnalyzedScript, tmp: proto.IndexedColumnReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint, columnId: number) {
+export function findScriptColumnRefsLowerBound(script: buffers.analyzer.AnalyzedScript, tmp: buffers.analyzer.IndexedColumnReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint, columnId: number) {
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
@@ -107,7 +107,7 @@ export function findScriptColumnRefsLowerBound(script: proto.AnalyzedScript, tmp
 }
 
 /// Find upper bound among column refs for a table
-export function findScriptColumnRefsUpperBound(script: proto.AnalyzedScript, tmp: proto.IndexedColumnReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint, columnId: number) {
+export function findScriptColumnRefsUpperBound(script: buffers.analyzer.AnalyzedScript, tmp: buffers.analyzer.IndexedColumnReference, begin: number, end: number, targetDb: number, targetSchema: number, targetTable: bigint, columnId: number) {
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
@@ -144,7 +144,7 @@ export function findScriptColumnRefsUpperBound(script: proto.AnalyzedScript, tmp
 }
 
 /// Find equal range among table refs for a table column
-export function findScriptColumnRefsEqualRange(script: proto.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, columnId: number | null = null, tmp: proto.IndexedColumnReference = new proto.IndexedColumnReference()): [number, number] {
+export function findScriptColumnRefsEqualRange(script: buffers.analyzer.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, columnId: number | null = null, tmp: buffers.analyzer.IndexedColumnReference = new buffers.analyzer.IndexedColumnReference()): [number, number] {
     const begin = 0;
     const end = script.columnReferencesByIdLength();
     const lb = findScriptColumnRefsLowerBound(script, tmp, begin, end, targetDb, targetSchema ?? 0, targetTable ?? 0n, columnId ?? 0);
@@ -154,7 +154,7 @@ export function findScriptColumnRefsEqualRange(script: proto.AnalyzedScript, tar
 
 
 /// Find database by id
-export function findCatalogDatabaseById(catalog: proto.FlatCatalog, databaseId: number, tmp: proto.IndexedFlatDatabaseEntry = new proto.IndexedFlatDatabaseEntry()): number | null {
+export function findCatalogDatabaseById(catalog: buffers.catalog.FlatCatalog, databaseId: number, tmp: buffers.catalog.IndexedFlatDatabaseEntry = new buffers.catalog.IndexedFlatDatabaseEntry()): number | null {
     let begin = 0;
     let end = catalog.databasesByIdLength();
     while (begin < end) {
@@ -172,7 +172,7 @@ export function findCatalogDatabaseById(catalog: proto.FlatCatalog, databaseId: 
 }
 
 /// Find schema by id
-export function findCatalogSchemaById(catalog: proto.FlatCatalog, schemaId: number, tmp: proto.IndexedFlatSchemaEntry = new proto.IndexedFlatSchemaEntry()): number | null {
+export function findCatalogSchemaById(catalog: buffers.catalog.FlatCatalog, schemaId: number, tmp: buffers.catalog.IndexedFlatSchemaEntry = new buffers.catalog.IndexedFlatSchemaEntry()): number | null {
     let begin = 0;
     let end = catalog.schemasByIdLength();
     while (begin < end) {
@@ -190,7 +190,7 @@ export function findCatalogSchemaById(catalog: proto.FlatCatalog, schemaId: numb
 }
 
 /// Find table by id
-export function findCatalogTableById(catalog: proto.FlatCatalog, tableId: bigint, tmp: proto.IndexedFlatTableEntry = new proto.IndexedFlatTableEntry()): number | null {
+export function findCatalogTableById(catalog: buffers.catalog.FlatCatalog, tableId: bigint, tmp: buffers.catalog.IndexedFlatTableEntry = new buffers.catalog.IndexedFlatTableEntry()): number | null {
     let begin = 0;
     let end = catalog.tablesByIdLength();
     while (begin < end) {
