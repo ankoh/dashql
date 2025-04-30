@@ -3,6 +3,6 @@
 %type <WeakUniquePtr<NodeList>> vararg_fields;
 %type <WeakUniquePtr<NodeList>> vararg_key_path;
 %type <WeakUniquePtr<NodeList>> varargs;
-%type <buffers::Node> opt_vararg_field;
-%type <buffers::Node> vararg_key;
-%type <buffers::Node> vararg_value;
+%type <buffers::parser::Node> opt_vararg_field;
+%type <buffers::parser::Node> vararg_key;
+%type <buffers::parser::Node> vararg_value;

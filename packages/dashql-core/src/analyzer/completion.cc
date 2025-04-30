@@ -43,33 +43,33 @@ static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
 static_assert((NAME_TAG_UNLIKELY + KEYWORD_VERY_POPULAR) < NAME_TAG_LIKELY,
               "A very likely keyword prevalance doesn't outweigh a likely tag");
 
-using NameScoringTable = std::array<std::pair<buffers::NameTag, Completion::ScoreValueType>, 8>;
+using NameScoringTable = std::array<std::pair<buffers::analyzer::NameTag, Completion::ScoreValueType>, 8>;
 
 static constexpr NameScoringTable NAME_SCORE_DEFAULTS{{
-    {buffers::NameTag::NONE, NAME_TAG_IGNORE},
-    {buffers::NameTag::SCHEMA_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::DATABASE_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
-    {buffers::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::NONE, NAME_TAG_IGNORE},
+    {buffers::analyzer::NameTag::SCHEMA_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::DATABASE_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_TABLE_REF{{
-    {buffers::NameTag::NONE, NAME_TAG_IGNORE},
-    {buffers::NameTag::SCHEMA_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::DATABASE_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
-    {buffers::NameTag::TABLE_ALIAS, NAME_TAG_UNLIKELY},
-    {buffers::NameTag::COLUMN_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::NONE, NAME_TAG_IGNORE},
+    {buffers::analyzer::NameTag::SCHEMA_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::DATABASE_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_UNLIKELY},
 }};
 
 static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
-    {buffers::NameTag::NONE, NAME_TAG_IGNORE},
-    {buffers::NameTag::SCHEMA_NAME, NAME_TAG_UNLIKELY},
-    {buffers::NameTag::DATABASE_NAME, NAME_TAG_UNLIKELY},
-    {buffers::NameTag::TABLE_NAME, NAME_TAG_UNLIKELY},
-    {buffers::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
-    {buffers::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::NONE, NAME_TAG_IGNORE},
+    {buffers::analyzer::NameTag::SCHEMA_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::DATABASE_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::TABLE_NAME, NAME_TAG_UNLIKELY},
+    {buffers::analyzer::NameTag::TABLE_ALIAS, NAME_TAG_LIKELY},
+    {buffers::analyzer::NameTag::COLUMN_NAME, NAME_TAG_LIKELY},
 }};
 
 /// We use a prevalence score to rank keywords by popularity.
@@ -137,7 +137,7 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 
 }  // namespace
 
-std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::Location& name_path_loc) const {
+std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
     auto& nodes = cursor.script.parsed_script->nodes;
 
     std::optional<uint32_t> name_ast_node_id;
@@ -194,13 +194,14 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::Locati
     }
     // Is not an array?
     auto& node = nodes[*name_ast_node_id];
-    if (node.node_type() != buffers::NodeType::ARRAY) {
+    if (node.node_type() != buffers::parser::NodeType::ARRAY) {
         return {};
     }
     name_path_loc = node.location();
 
     // Get the child nodes
-    auto children = std::span<buffers::Node>{nodes}.subspan(node.children_begin_or_value(), node.children_count());
+    auto children =
+        std::span<buffers::parser::Node>{nodes}.subspan(node.children_begin_or_value(), node.children_count());
 
     // Collect the name path
     std::vector<NameComponent> components;
@@ -208,7 +209,7 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::Locati
         // A child is either a name, an index or a *.
         auto& child = children[i];
         switch (child.node_type()) {
-            case buffers::NodeType::NAME: {
+            case buffers::parser::NodeType::NAME: {
                 auto& name = cursor.script.scanned_script->GetNames().At(child.children_begin_or_value());
                 components.push_back(NameComponent{
                     .loc = child.location(),
@@ -217,21 +218,21 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::Locati
                 });
                 break;
             }
-            case buffers::NodeType::OBJECT_SQL_INDIRECTION_STAR:
+            case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_STAR:
                 components.push_back(NameComponent{
                     .loc = child.location(),
                     .type = NameComponentType::Star,
                     .name = std::nullopt,
                 });
                 break;
-            case buffers::NodeType::OBJECT_SQL_INDIRECTION_INDEX:
+            case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_INDEX:
                 components.push_back(NameComponent{
                     .loc = child.location(),
                     .type = NameComponentType::Index,
                     .name = std::nullopt,
                 });
                 break;
-            case buffers::NodeType::OBJECT_EXT_TRAILING_DOT:
+            case buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT:
                 components.push_back(NameComponent{
                     .loc = child.location(),
                     .type = NameComponentType::TrailingDot,
@@ -250,7 +251,7 @@ void Completion::FindCandidatesForNamePath() {
     // The cursor location
     auto cursor_location = cursor.scanner_location->text_offset;
     // Read the name path
-    sx::Location name_path_loc;
+    sx::parser::Location name_path_loc;
     auto name_path_buffer = ReadCursorNamePath(name_path_loc);
     std::span<Completion::NameComponent> name_path = name_path_buffer;
 
@@ -301,7 +302,7 @@ void Completion::FindCandidatesForNamePath() {
     name_path = name_path.subspan(0, name_count);
 
     // Determine text to replace
-    sx::Location replace_text_at{
+    sx::parser::Location replace_text_at{
         truncate_at, std::max<uint32_t>(name_path_loc.offset() + name_path_loc.length(), truncate_at) - truncate_at};
 
     // Is the path empty?
@@ -316,7 +317,7 @@ void Completion::FindCandidatesForNamePath() {
         CandidateTags candidate_tags;
         NameTags name_tags;
         const CatalogObject& object;
-        sx::Location replace_text_at;
+        sx::parser::Location replace_text_at;
     };
     // Collect all candidate strings
     std::vector<DotCandidate> dot_candidates;
@@ -345,12 +346,14 @@ void Completion::FindCandidatesForNamePath() {
 
                         // Store the candidate
                         auto& name = table.get().table_name.table_name.get();
-                        DotCandidate candidate{.name = name.text,
-                                               .candidate_tags = {buffers::CandidateTag::DOT_RESOLUTION_TABLE},
-                                               .name_tags = {buffers::NameTag::TABLE_NAME},
-                                               .object = table.get().CastToBase(),
-                                               .replace_text_at = replace_text_at};
-                        candidate.candidate_tags.AddIf(buffers::CandidateTag::THROUGH_CATALOG, through_catalog);
+                        DotCandidate candidate{
+                            .name = name.text,
+                            .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
+                            .name_tags = {buffers::analyzer::NameTag::TABLE_NAME},
+                            .object = table.get().CastToBase(),
+                            .replace_text_at = replace_text_at};
+                        candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
+                                                       through_catalog);
                         dot_candidates.push_back(std::move(candidate));
                     }
                 }
@@ -363,12 +366,14 @@ void Completion::FindCandidatesForNamePath() {
                     for (auto& [schema, through_catalog] : schemas) {
                         // Store the candidate
                         auto& name = schema.get().schema_name;
-                        DotCandidate candidate{.name = name,
-                                               .candidate_tags = {buffers::CandidateTag::DOT_RESOLUTION_SCHEMA},
-                                               .name_tags = NameTags{buffers::NameTag::SCHEMA_NAME},
-                                               .object = schema.get().CastToBase(),
-                                               .replace_text_at = replace_text_at};
-                        candidate.candidate_tags.AddIf(buffers::CandidateTag::THROUGH_CATALOG, through_catalog);
+                        DotCandidate candidate{
+                            .name = name,
+                            .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA},
+                            .name_tags = NameTags{buffers::analyzer::NameTag::SCHEMA_NAME},
+                            .object = schema.get().CastToBase(),
+                            .replace_text_at = replace_text_at};
+                        candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
+                                                       through_catalog);
                         dot_candidates.push_back(std::move(candidate));
                     }
                 }
@@ -387,12 +392,14 @@ void Completion::FindCandidatesForNamePath() {
                     // Add the tables as candidates
                     for (auto& [table, through_catalog] : tables) {
                         auto& name = table.get().table_name.table_name.get();
-                        DotCandidate candidate{.name = name,
-                                               .candidate_tags = {buffers::CandidateTag::DOT_RESOLUTION_TABLE},
-                                               .name_tags = NameTags{buffers::NameTag::TABLE_NAME},
-                                               .object = {table.get().CastToBase()},
-                                               .replace_text_at = replace_text_at};
-                        candidate.candidate_tags.AddIf(buffers::CandidateTag::THROUGH_CATALOG, through_catalog);
+                        DotCandidate candidate{
+                            .name = name,
+                            .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
+                            .name_tags = NameTags{buffers::analyzer::NameTag::TABLE_NAME},
+                            .object = {table.get().CastToBase()},
+                            .replace_text_at = replace_text_at};
+                        candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
+                                                       through_catalog);
                         dot_candidates.push_back(std::move(candidate));
                     }
                 }
@@ -427,13 +434,14 @@ void Completion::FindCandidatesForNamePath() {
                         // Register all column names as alias
                         for (auto& column : table_decl.table_columns) {
                             auto& name = column.column_name.get();
-                            DotCandidate candidate{.name = name,
-                                                   .candidate_tags = {buffers::CandidateTag::DOT_RESOLUTION_COLUMN},
-                                                   .name_tags = NameTags{buffers::NameTag::COLUMN_NAME},
-                                                   .object = {column.CastToBase()},
-                                                   .replace_text_at = replace_text_at};
+                            DotCandidate candidate{
+                                .name = name,
+                                .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN},
+                                .name_tags = NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                .object = {column.CastToBase()},
+                                .replace_text_at = replace_text_at};
                             candidate.candidate_tags.AddIf(
-                                buffers::CandidateTag::THROUGH_CATALOG,
+                                buffers::completion::CandidateTag::THROUGH_CATALOG,
                                 table_decl.catalog_table_id.GetContext() != script.GetCatalogEntryId());
                             dot_candidates.push_back(std::move(candidate));
                         }
@@ -461,10 +469,10 @@ void Completion::FindCandidatesForNamePath() {
                 // Check if we have a prefix
                 fuzzy_ci_string_view ci_name{dot_candidate.name.data(), dot_candidate.name.size()};
                 if (ci_name.starts_with(fuzzy_ci_string_view{last_text_prefix.data(), last_text_prefix.size()})) {
-                    dot_candidate.candidate_tags |= buffers::CandidateTag::PREFIX_MATCH;
+                    dot_candidate.candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
                 } else if (ci_name.find(fuzzy_ci_string_view{last_text_prefix.data(), last_text_prefix.size()}) !=
                            fuzzy_ci_string_view::npos) {
-                    dot_candidate.candidate_tags |= buffers::CandidateTag::SUBSTRING_MATCH;
+                    dot_candidate.candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 }
             }
             // No, do we know the candidate name already?
@@ -519,7 +527,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                          std::string_view keyword_text) -> std::pair<CandidateTags, uint32_t> {
         fuzzy_ci_string_view ci_keyword_text{keyword_text.data(), keyword_text.size()};
         using Relative = ScannedScript::LocationInfo::RelativePosition;
-        CandidateTags tags = buffers::CandidateTag::EXPECTED_PARSER_SYMBOL;
+        CandidateTags tags = buffers::completion::CandidateTag::EXPECTED_PARSER_SYMBOL;
 
         auto score = GetKeywordPrevalenceScore(expected);
 
@@ -536,10 +544,10 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 // Is substring?
                 if (auto pos = ci_keyword_text.find(ci_symbol_text, 0); pos != fuzzy_ci_string_view::npos) {
                     if (pos == 0) {
-                        tags |= buffers::CandidateTag::PREFIX_MATCH;
+                        tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
                         score += PREFIX_SCORE_MODIFIER;
                     } else {
-                        tags |= buffers::CandidateTag::SUBSTRING_MATCH;
+                        tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                         score += SUBSTRING_SCORE_MODIFIER;
                     }
                 }
@@ -591,18 +599,18 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
             continue;
         }
         // Determine the candidate tags
-        Completion::CandidateTags candidate_tags{buffers::CandidateTag::NAME_INDEX};
+        Completion::CandidateTags candidate_tags{buffers::completion::CandidateTag::NAME_INDEX};
         // Added through catalog?
-        candidate_tags.AddIf(buffers::CandidateTag::THROUGH_CATALOG, through_catalog);
+        candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG, through_catalog);
         // Is a prefix?
         switch (location->relative_pos) {
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
             case Relative::END_OF_SYMBOL:
                 if (fuzzy_ci_string_view{name_info.text.data(), name_info.text.size()}.starts_with(ci_prefix_text)) {
-                    candidate_tags |= buffers::CandidateTag::PREFIX_MATCH;
+                    candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
                 } else {
-                    candidate_tags |= buffers::CandidateTag::SUBSTRING_MATCH;
+                    candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 }
                 break;
             default:
@@ -687,8 +695,8 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
                 // Boost the table name as candidate (if any)
                 if (auto iter = candidate_objects_by_object.find(&table); iter != candidate_objects_by_object.end()) {
                     auto& co = iter->second.get();
-                    co.candidate_tags |= buffers::CandidateTag::RESOLVING_TABLE;
-                    co.candidate.candidate_tags |= buffers::CandidateTag::RESOLVING_TABLE;
+                    co.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
+                    co.candidate.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
                 }
                 // Promote column names in these tables
                 for (auto& peer_col : table.table_columns) {
@@ -696,8 +704,8 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
                     if (auto iter = candidate_objects_by_object.find(&peer_col);
                         iter != candidate_objects_by_object.end()) {
                         auto& co = iter->second.get();
-                        co.candidate_tags |= buffers::CandidateTag::UNRESOLVED_PEER;
-                        co.candidate.candidate_tags |= buffers::CandidateTag::UNRESOLVED_PEER;
+                        co.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
+                        co.candidate.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
                     }
                 }
             }
@@ -705,33 +713,33 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
     });
 }
 
-static const NameScoringTable& selectNameScoringTable(buffers::CompletionStrategy strategy) {
+static const NameScoringTable& selectNameScoringTable(buffers::completion::CompletionStrategy strategy) {
     switch (strategy) {
-        case buffers::CompletionStrategy::DEFAULT:
+        case buffers::completion::CompletionStrategy::DEFAULT:
             return NAME_SCORE_DEFAULTS;
-        case buffers::CompletionStrategy::TABLE_REF:
+        case buffers::completion::CompletionStrategy::TABLE_REF:
             return NAME_SCORE_TABLE_REF;
-        case buffers::CompletionStrategy::COLUMN_REF:
+        case buffers::completion::CompletionStrategy::COLUMN_REF:
             return NAME_SCORE_COLUMN_REF;
     }
 }
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
     Completion::ScoreValueType score = 0;
-    score += ((tags & buffers::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::DOT_RESOLUTION_TABLE) != 0) * DOT_TABLE_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::DOT_RESOLUTION_SCHEMA) != 0) * DOT_SCHEMA_SCORE_MODIFIER;
-    score += ((tags & buffers::CandidateTag::DOT_RESOLUTION_COLUMN) != 0) * DOT_COLUMN_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE) != 0) * DOT_TABLE_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA) != 0) * DOT_SCHEMA_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN) != 0) * DOT_COLUMN_SCORE_MODIFIER;
     return score;
 }
 
 void Completion::FlushCandidatesAndFinish() {
     // Helper to check if two locations overlap.
     // Two ranges overlap if the sum of their widths exceeds the (max - min).
-    auto intersects = [](const sx::Location& l, const sx::Location& r) {
+    auto intersects = [](const sx::parser::Location& l, const sx::parser::Location& r) {
         auto l_begin = l.offset();
         auto l_end = l_begin + l.length();
         auto r_begin = r.offset();
@@ -744,7 +752,7 @@ void Completion::FlushCandidatesAndFinish() {
     };
 
     // Find name if under cursor (if any)
-    sx::Location current_symbol_location;
+    sx::parser::Location current_symbol_location;
     if (auto& location = cursor.scanner_location; location.has_value()) {
         current_symbol_location = location->symbol.location;
     }
@@ -798,28 +806,29 @@ void Completion::FlushCandidatesAndFinish() {
     result_heap.Finish();
 }
 
-static buffers::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
+static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
     switch (cursor.context.index()) {
         case 1:
             assert(std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context));
-            return buffers::CompletionStrategy::TABLE_REF;
+            return buffers::completion::CompletionStrategy::TABLE_REF;
         case 2:
             assert(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context));
-            return buffers::CompletionStrategy::COLUMN_REF;
+            return buffers::completion::CompletionStrategy::COLUMN_REF;
         default:
-            return buffers::CompletionStrategy::DEFAULT;
+            return buffers::completion::CompletionStrategy::DEFAULT;
     }
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
     : cursor(cursor), strategy(selectStrategy(cursor)), result_heap(k) {}
 
-std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Completion::Compute(const ScriptCursor& cursor, size_t k) {
+std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
+                                                                                        size_t k) {
     auto completion = std::make_unique<Completion>(cursor, k);
 
     // Skip completion for the current symbol?
     if (doNotCompleteSymbol(cursor.scanner_location->symbol)) {
-        return {std::move(completion), buffers::StatusCode::OK};
+        return {std::move(completion), buffers::status::StatusCode::OK};
     }
 
     // Is the current symbol an inner dot?
@@ -830,14 +839,14 @@ std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Completion::Compute(
             case RelativePosition::END_OF_SYMBOL: {
                 completion->FindCandidatesForNamePath();
                 completion->FlushCandidatesAndFinish();
-                return {std::move(completion), buffers::StatusCode::OK};
+                return {std::move(completion), buffers::status::StatusCode::OK};
             }
 
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE:
                 // Don't complete the dot itself
-                return {std::move(completion), buffers::StatusCode::OK};
+                return {std::move(completion), buffers::status::StatusCode::OK};
         }
     }
 
@@ -849,13 +858,13 @@ std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Completion::Compute(
             case RelativePosition::END_OF_SYMBOL: {
                 completion->FindCandidatesForNamePath();
                 completion->FlushCandidatesAndFinish();
-                return {std::move(completion), buffers::StatusCode::OK};
+                return {std::move(completion), buffers::status::StatusCode::OK};
             }
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE: {
                 // Don't complete the dot itself
-                return {std::move(completion), buffers::StatusCode::OK};
+                return {std::move(completion), buffers::status::StatusCode::OK};
             }
         }
     }
@@ -894,7 +903,7 @@ std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Completion::Compute(
             case RelativePosition::MID_OF_SYMBOL: {
                 completion->FindCandidatesForNamePath();
                 completion->FlushCandidatesAndFinish();
-                return {std::move(completion), buffers::StatusCode::OK};
+                return {std::move(completion), buffers::status::StatusCode::OK};
             }
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::NEW_SYMBOL_BEFORE:
@@ -918,14 +927,14 @@ std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Completion::Compute(
     completion->FlushCandidatesAndFinish();
 
     // Register as normal completion
-    return {std::move(completion), buffers::StatusCode::OK};
+    return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
-flatbuffers::Offset<buffers::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
     auto& entries = result_heap.GetEntries();
 
     // Reservie for packed candidates
-    std::vector<flatbuffers::Offset<buffers::CompletionCandidate>> candidates;
+    std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidates;
     candidates.reserve(entries.size());
 
     // Pack candidates
@@ -938,14 +947,14 @@ flatbuffers::Offset<buffers::Completion> Completion::Pack(flatbuffers::FlatBuffe
 
         // Resolve the catalog objects
         size_t catalog_object_count = iter_entry->catalog_objects.GetSize();
-        std::vector<flatbuffers::Offset<buffers::CompletionCandidateObject>> catalog_objects;
+        std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidateObject>> catalog_objects;
         catalog_objects.reserve(catalog_object_count);
 
         // Pack the catalog objects
         for (auto& co : iter_entry->catalog_objects) {
             auto& o = co.catalog_object;
-            buffers::CompletionCandidateObjectBuilder obj{builder};
-            obj.add_object_type(static_cast<buffers::CompletionCandidateObjectType>(o.object_type));
+            buffers::completion::CompletionCandidateObjectBuilder obj{builder};
+            obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.object_type));
             obj.add_candidate_tags(co.candidate_tags);
             obj.add_score(co.score);
             switch (o.object_type) {
@@ -981,7 +990,7 @@ flatbuffers::Offset<buffers::Completion> Completion::Pack(flatbuffers::FlatBuffe
         }
         auto catalog_objects_ofs = builder.CreateVector(catalog_objects);
         auto completion_text_ofs = builder.CreateString(completion_text);
-        buffers::CompletionCandidateBuilder candidateBuilder{builder};
+        buffers::completion::CompletionCandidateBuilder candidateBuilder{builder};
         candidateBuilder.add_display_text(display_text_offset);
         candidateBuilder.add_completion_text(completion_text_ofs);
         candidateBuilder.add_candidate_tags(iter_entry->candidate_tags);
@@ -994,7 +1003,7 @@ flatbuffers::Offset<buffers::Completion> Completion::Pack(flatbuffers::FlatBuffe
     auto candidatesOfs = builder.CreateVector(candidates);
 
     // Pack completion table
-    buffers::CompletionBuilder completionBuilder{builder};
+    buffers::completion::CompletionBuilder completionBuilder{builder};
     completionBuilder.add_text_offset(cursor.text_offset);
     completionBuilder.add_strategy(strategy);
     completionBuilder.add_candidates(candidatesOfs);

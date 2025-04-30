@@ -46,7 +46,7 @@ class NameResolutionPass : public PassManager::LTRPass {
     /// The attribute index
     AttributeIndex& attribute_index;
     /// The ast
-    std::span<const buffers::Node> ast;
+    std::span<const buffers::parser::Node> ast;
 
     /// The empty name
     RegisteredName& empty_name;
@@ -64,20 +64,20 @@ class NameResolutionPass : public PassManager::LTRPass {
     IntrusiveList<AnalyzedScript::TableColumn> pending_columns_free_list;
 
     /// Merge child states into a destination state
-    std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::Node& node);
+    std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::parser::Node& node);
     /// Merge child states into a destination state
-    std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const sx::Node* node);
+    std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const sx::parser::Node* node);
     /// Merge child states into a destination state
-    std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::Node* column);
+    std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::parser::Node* column);
 
     /// Register a schema
     std::pair<CatalogDatabaseID, CatalogSchemaID> RegisterSchema(RegisteredName& database_name,
                                                                  RegisteredName& schema_name);
 
     /// Merge child states into a destination state
-    void MergeChildStates(NodeState& dst, const sx::Node& parent);
+    void MergeChildStates(NodeState& dst, const sx::parser::Node& parent);
     /// Merge child states into a destination state
-    void MergeChildStates(NodeState& dst, std::initializer_list<const buffers::Node*> children);
+    void MergeChildStates(NodeState& dst, std::initializer_list<const buffers::parser::Node*> children);
     /// Create a naming scope
     AnalyzedScript::NameScope& CreateScope(NodeState& target, uint32_t scope_root_node);
 
@@ -101,7 +101,7 @@ class NameResolutionPass : public PassManager::LTRPass {
     /// Prepare the analysis pass
     void Prepare() override;
     /// Visit a chunk of nodes
-    void Visit(std::span<buffers::Node> morsel) override;
+    void Visit(std::span<buffers::parser::Node> morsel) override;
     /// Finish the analysis pass
     void Finish() override;
 };

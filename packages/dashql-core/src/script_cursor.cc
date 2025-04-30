@@ -7,8 +7,8 @@ ScriptCursor::ScriptCursor(const Script& script, size_t text_offset)
     : script(script), text_offset(text_offset), context(std::monostate{}) {}
 
 /// Constructor
-std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> ScriptCursor::Place(const Script& script,
-                                                                                size_t text_offset) {
+std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCursor::Place(const Script& script,
+                                                                                          size_t text_offset) {
     auto cursor = std::make_unique<ScriptCursor>(script, text_offset);
 
     // Has the script been scanned?
@@ -46,12 +46,11 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> ScriptCursor::Plac
                         switch (nodes[node_id].node_type()) {
                             // Node is a column ref?
                             // Then we check all expressions in the innermost scope.
-                            case buffers::NodeType::OBJECT_SQL_COLUMN_REF: {
+                            case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
                                 matched = true;
                                 for (auto& expression : innermost_scope.expressions) {
                                     if (node_id == expression.ast_node_id && expression.IsColumnRef()) {
-                                        assert(expression.expression_id.GetContext() ==
-                                               analyzed->GetCatalogEntryId());
+                                        assert(expression.expression_id.GetContext() == analyzed->GetCatalogEntryId());
                                         cursor->context = ColumnRefContext{expression.expression_id.GetObject()};
                                     }
                                 }
@@ -59,7 +58,7 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> ScriptCursor::Plac
                             }
                             // Node is a table ref?
                             // Then we check all table refs in the innermost scope.
-                            case buffers::NodeType::OBJECT_SQL_TABLEREF: {
+                            case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
                                 matched = true;
                                 for (auto& table_ref : innermost_scope.table_references) {
                                     if (node_id == table_ref.ast_node_id) {
@@ -82,23 +81,24 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::StatusCode> ScriptCursor::Plac
             }
         }
     }
-    return {std::move(cursor), buffers::StatusCode::OK};
+    return {std::move(cursor), buffers::status::StatusCode::OK};
 }
 
 /// Pack the cursor info
-flatbuffers::Offset<buffers::ScriptCursor> ScriptCursor::Pack(flatbuffers::FlatBufferBuilder& builder) const {
-    auto out = std::make_unique<buffers::ScriptCursorT>();
+flatbuffers::Offset<buffers::cursor::ScriptCursor> ScriptCursor::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    auto out = std::make_unique<buffers::cursor::ScriptCursorT>();
     out->text_offset = text_offset;
     if (scanner_location) {
         auto& symbol = script.scanned_script->symbols[scanner_location->symbol_id];
         auto symbol_offset = symbol.location.offset();
         out->scanner_symbol_id = scanner_location->symbol_id;
-        out->scanner_relative_position = static_cast<buffers::RelativeSymbolPosition>(scanner_location->relative_pos);
+        out->scanner_relative_position =
+            static_cast<buffers::cursor::RelativeSymbolPosition>(scanner_location->relative_pos);
         out->scanner_symbol_offset = symbol_offset;
         out->scanner_symbol_kind = static_cast<uint32_t>(symbol.kind_);
     } else {
         out->scanner_symbol_id = std::numeric_limits<uint32_t>::max();
-        out->scanner_relative_position = buffers::RelativeSymbolPosition::NEW_SYMBOL_AFTER;
+        out->scanner_relative_position = buffers::cursor::RelativeSymbolPosition::NEW_SYMBOL_AFTER;
         out->scanner_symbol_offset = 0;
         out->scanner_symbol_kind = 0;
     }
@@ -114,20 +114,20 @@ flatbuffers::Offset<buffers::ScriptCursor> ScriptCursor::Pack(flatbuffers::FlatB
             break;
         case 1: {
             auto& table_ref = std::get<ScriptCursor::TableRefContext>(context);
-            buffers::ScriptCursorTableRefContextT ctx;
+            buffers::cursor::ScriptCursorTableRefContextT ctx;
             ctx.table_reference_id = table_ref.table_reference_id;
             out->context.Set(std::move(ctx));
             break;
         }
         case 2: {
             auto& column_ref = std::get<ScriptCursor::ColumnRefContext>(context);
-            buffers::ScriptCursorColumnRefContextT ctx;
+            buffers::cursor::ScriptCursorColumnRefContextT ctx;
             ctx.expression_id = column_ref.expression_id;
             out->context.Set(std::move(ctx));
             break;
         }
     }
-    return buffers::ScriptCursor::Pack(builder, out.get());
+    return buffers::cursor::ScriptCursor::Pack(builder, out.get());
 }
 
 }  // namespace dashql

@@ -1,1 +1,1 @@
-%type <buffers::Node> set_statement;
+%type <buffers::parser::Node> set_statement;

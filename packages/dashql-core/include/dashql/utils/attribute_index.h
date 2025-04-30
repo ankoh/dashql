@@ -27,12 +27,12 @@ struct AttributeIndex {
 
        protected:
         /// The state buffer
-        std::span<const buffers::Node*> attribute_index;
+        std::span<const buffers::parser::Node*> attribute_index;
         /// The indexed nodes
-        std::span<const buffers::Node> indexed_nodes;
+        std::span<const buffers::parser::Node> indexed_nodes;
 
         /// Constructor
-        AccessGuard(std::span<const buffers::Node*> attr_idx, std::span<const buffers::Node> idx_nodes)
+        AccessGuard(std::span<const buffers::parser::Node*> attr_idx, std::span<const buffers::parser::Node> idx_nodes)
             : attribute_index(attr_idx), indexed_nodes(idx_nodes) {}
         /// Clear the nodes
         inline void clear() {
@@ -50,20 +50,20 @@ struct AttributeIndex {
         /// Move assignment
         AccessGuard& operator=(AccessGuard&& other) = default;
         /// Access the index
-        const buffers::Node* operator[](buffers::AttributeKey key) const {
+        const buffers::parser::Node* operator[](buffers::parser::AttributeKey key) const {
             return attribute_index[static_cast<size_t>(key)];
         }
     };
 
    protected:
     /// The children pointers indexed by the attribute key
-    std::vector<const buffers::Node*> attribute_index;
+    std::vector<const buffers::parser::Node*> attribute_index;
 
    public:
     /// Constructor
-    AttributeIndex() { attribute_index.resize(static_cast<size_t>(buffers::AttributeKey::MAX) + 1, nullptr); }
+    AttributeIndex() { attribute_index.resize(static_cast<size_t>(buffers::parser::AttributeKey::MAX) + 1, nullptr); }
     /// Load into an attribute map
-    inline AccessGuard Load(std::span<const buffers::Node> children) {
+    inline AccessGuard Load(std::span<const buffers::parser::Node> children) {
         for (auto& node : children) {
             auto& slot = attribute_index[static_cast<size_t>(node.attribute_key())];
             assert(slot == nullptr);

@@ -12,16 +12,16 @@
 
 using namespace dashql;
 
-using ScannerToken = buffers::ScannerTokenType;
+using ScannerToken = buffers::parser::ScannerTokenType;
 
 namespace {
 
-constexpr auto OK = static_cast<uint32_t>(buffers::StatusCode::OK);
+constexpr auto OK = static_cast<uint32_t>(buffers::status::StatusCode::OK);
 
 static void match_tokens(const void* data, const std::vector<uint32_t>& offsets, const std::vector<uint32_t>& lengths,
                          const std::vector<ScannerToken>& types, const std::vector<uint32_t>& breaks) {
-    auto scanned = flatbuffers::GetRoot<buffers::ScannedScript>(data);
-    buffers::ScannedScriptT unpacked;
+    auto scanned = flatbuffers::GetRoot<buffers::parser::ScannedScript>(data);
+    buffers::parser::ScannedScriptT unpacked;
     scanned->UnPackTo(&unpacked);
     ASSERT_EQ(unpacked.tokens->token_offsets, offsets);
     ASSERT_EQ(unpacked.tokens->token_lengths, lengths);
@@ -39,7 +39,7 @@ TEST(ScannerTest, InsertChars) {
 
     size_t size = 0;
     auto add_char = [&](char c, std::vector<uint32_t> offsets, std::vector<uint32_t> lengths,
-                        std::vector<buffers::ScannerTokenType> types, std::vector<uint32_t> breaks) {
+                        std::vector<buffers::parser::ScannerTokenType> types, std::vector<uint32_t> breaks) {
         dashql_script_insert_char_at(script, size++, c);
         auto result = dashql_script_scan(script);
         ASSERT_EQ(result->status_code, OK);
@@ -68,13 +68,13 @@ TEST(ScannerTest, FindTokenAtOffset) {
         rope::Rope buffer{128};
         buffer.Insert(0, text);
         auto [scanned, status] = parser::Scanner::Scan(buffer, external_id);
-        ASSERT_EQ(status, buffers::StatusCode::OK);
+        ASSERT_EQ(status, buffers::status::StatusCode::OK);
         script = std::move(scanned);
     };
     // Test if token types match
-    auto test_tokens = [&](std::initializer_list<buffers::ScannerTokenType> tokens) {
+    auto test_tokens = [&](std::initializer_list<buffers::parser::ScannerTokenType> tokens) {
         auto packed = script->PackTokens();
-        std::vector<buffers::ScannerTokenType> have_types{std::move(tokens)};
+        std::vector<buffers::parser::ScannerTokenType> have_types{std::move(tokens)};
         ASSERT_EQ(packed->token_types, have_types);
     };
     // Test token at offset
@@ -208,7 +208,7 @@ TEST(ScannerTest, FindTokenInterleaved) {
     buffer.Insert(0, ss.str());
 
     auto [scanned, scannerStatus] = parser::Scanner::Scan(buffer, 1);
-    ASSERT_EQ(scannerStatus, buffers::StatusCode::OK);
+    ASSERT_EQ(scannerStatus, buffers::status::StatusCode::OK);
 
     for (size_t i = 0; i < n; ++i) {
         auto hit = scanned->FindSymbol(i * 2);
@@ -225,7 +225,7 @@ TEST(ScannerTest, TrailingComments) {
         --
     )SQL");
     auto [scanned, status] = parser::Scanner::Scan(buffer, 0);
-    ASSERT_EQ(status, buffers::StatusCode::OK);
+    ASSERT_EQ(status, buffers::status::StatusCode::OK);
     auto packed = scanned->PackTokens();
     ASSERT_EQ(packed->token_types.size(), 3);
 }

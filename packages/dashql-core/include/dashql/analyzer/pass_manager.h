@@ -16,7 +16,7 @@ class PassManager {
         /// Prepare the analysis pass
         virtual void Prepare() = 0;
         /// Visit a chunk of nodes
-        virtual void Visit(std::span<buffers::Node> morsel) = 0;
+        virtual void Visit(std::span<buffers::parser::Node> morsel) = 0;
         /// Finish the analysis pass
         virtual void Finish() = 0;
     };
@@ -28,7 +28,7 @@ class PassManager {
         /// Prepare the analysis pass
         virtual void Prepare() = 0;
         /// Visit a chunk of nodes
-        virtual void Visit(std::span<buffers::Node> morsel) = 0;
+        virtual void Visit(std::span<buffers::parser::Node> morsel) = 0;
         /// Finish the analysis pass
         virtual void Finish() = 0;
     };

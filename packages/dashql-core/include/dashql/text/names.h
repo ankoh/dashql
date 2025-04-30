@@ -11,7 +11,7 @@ namespace dashql {
 
 namespace sx = buffers;
 
-using NameTags = EnumBitset<uint8_t, buffers::NameTag, buffers::NameTag::MAX>;
+using NameTags = EnumBitset<uint8_t, buffers::analyzer::NameTag, buffers::analyzer::NameTag::MAX>;
 
 /// An indexed name id
 using RegisteredNameID = uint32_t;
@@ -23,7 +23,7 @@ struct RegisteredName {
     /// The text
     std::string_view text;
     /// The location (if any)
-    sx::Location location;
+    sx::parser::Location location;
     /// The occurences
     size_t occurrences;
     /// The coarse name tags resolved by the Analyzer.
@@ -64,8 +64,8 @@ struct NameRegistry {
     /// Get the name
     RegisteredName& At(RegisteredNameID name_id);
     /// Register a name
-    RegisteredName& Register(std::string_view s, sx::Location location = sx::Location(),
-                             sx::NameTag tag = sx::NameTag::NONE);
+    RegisteredName& Register(std::string_view s, sx::parser::Location location = sx::parser::Location(),
+                             sx::analyzer::NameTag tag = sx::analyzer::NameTag::NONE);
     /// Register a name
     RegisteredName& Register(std::string_view s, NameTags tags);
 };

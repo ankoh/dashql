@@ -41,7 +41,7 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     // Move cursor and get completion
     main_script.MoveCursor(cursor_pos);
     auto [completion, completion_status] = main_script.CompleteAtCursor(test->completion_limit);
-    ASSERT_EQ(completion_status, buffers::StatusCode::OK);
+    ASSERT_EQ(completion_status, buffers::status::StatusCode::OK);
     ASSERT_NE(completion, nullptr);
 
     auto completions = out.append_child("completions");

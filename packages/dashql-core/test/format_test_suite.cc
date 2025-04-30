@@ -149,8 +149,8 @@ TEST_P(FormatTestSuite, Test) {
     Catalog catalog;
     Script s{catalog};
     s.InsertTextAt(0, test.input);
-    ASSERT_EQ(s.Scan().second, buffers::StatusCode::OK);
-    ASSERT_EQ(s.Parse().second, buffers::StatusCode::OK);
+    ASSERT_EQ(s.Scan().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(s.Parse().second, buffers::status::StatusCode::OK);
     std::string actual = s.Format();
 
     if (update_expecteds) {

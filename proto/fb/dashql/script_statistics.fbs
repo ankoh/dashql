@@ -1,4 +1,4 @@
-namespace dashql.buffers;
+namespace dashql.buffers.statistics;
 
 struct ScriptProcessingTimings {
     /// The last duration of the scanner

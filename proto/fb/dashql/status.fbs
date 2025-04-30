@@ -1,4 +1,4 @@
-namespace dashql.buffers;
+namespace dashql.buffers.status;
 
 enum StatusCode: uint32 {
     OK = 1,

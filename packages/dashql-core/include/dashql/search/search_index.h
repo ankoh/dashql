@@ -17,7 +17,7 @@ struct FileSearchLabel {
     /// The label text
     std::string_view text;
     /// The location in the source file
-    sx::Location location;
+    sx::parser::Location location;
 };
 
 struct IndexedFile {

@@ -12,12 +12,12 @@ enum CatalogObjectType {
     TableDeclaration = 3,
     ColumnDeclaration = 4,
 };
-static_assert(static_cast<uint8_t>(buffers::CompletionCandidateObjectType::COLUMN) ==
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::COLUMN) ==
               CatalogObjectType::ColumnDeclaration);
-static_assert(static_cast<uint8_t>(buffers::CompletionCandidateObjectType::DATABASE) ==
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::DATABASE) ==
               CatalogObjectType::DatabaseReference);
-static_assert(static_cast<uint8_t>(buffers::CompletionCandidateObjectType::SCHEMA) == CatalogObjectType::SchemaReference);
-static_assert(static_cast<uint8_t>(buffers::CompletionCandidateObjectType::TABLE) == CatalogObjectType::TableDeclaration);
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::SCHEMA) == CatalogObjectType::SchemaReference);
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::TABLE) == CatalogObjectType::TableDeclaration);
 
 /// A catalog object
 struct CatalogObject : public IntrusiveListNode {

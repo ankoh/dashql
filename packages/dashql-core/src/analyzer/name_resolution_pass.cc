@@ -51,12 +51,12 @@ NameResolutionPass::NameResolutionPass(AnalyzedScript& analyzed, Catalog& catalo
       ast(parsed.nodes),
       empty_name(parsed.scanned_script->name_registry.Register("")) {
     node_states.resize(ast.size());
-    empty_name.coarse_analyzer_tags |= buffers::NameTag::DATABASE_NAME;
-    empty_name.coarse_analyzer_tags |= buffers::NameTag::SCHEMA_NAME;
+    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
+    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
 }
 
-std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePath(const sx::Node& node) {
-    if (node.node_type() != buffers::NodeType::ARRAY) {
+std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePath(const sx::parser::Node& node) {
+    if (node.node_type() != buffers::parser::NodeType::ARRAY) {
         return {};
     }
     name_path_buffer.clear();
@@ -66,11 +66,11 @@ std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePa
         // We only consider plan name paths for now and extend later.
         auto& child = children[i];
         // Skip over trailing dots
-        if (child.node_type() == buffers::NodeType::OBJECT_EXT_TRAILING_DOT) {
+        if (child.node_type() == buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT) {
             continue;
         }
         // Not a name?
-        if (child.node_type() != buffers::NodeType::NAME) {
+        if (child.node_type() != buffers::parser::NodeType::NAME) {
             name_path_buffer.clear();
             break;
         }
@@ -80,7 +80,8 @@ std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePa
     return std::span{name_path_buffer};
 }
 
-std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualifiedTableName(const sx::Node* node) {
+std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualifiedTableName(
+    const sx::parser::Node* node) {
     if (!node) {
         return std::nullopt;
     }
@@ -88,17 +89,17 @@ std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualif
     auto ast_node_id = node - ast.data();
     switch (name_path.size()) {
         case 3:
-            name_path[0].get().coarse_analyzer_tags |= sx::NameTag::DATABASE_NAME;
-            name_path[1].get().coarse_analyzer_tags |= sx::NameTag::SCHEMA_NAME;
-            name_path[2].get().coarse_analyzer_tags |= sx::NameTag::TABLE_NAME;
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::DATABASE_NAME;
+            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
+            name_path[2].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
             return AnalyzedScript::QualifiedTableName{ast_node_id, name_path[0], name_path[1], name_path[2]};
         case 2: {
-            name_path[0].get().coarse_analyzer_tags |= sx::NameTag::SCHEMA_NAME;
-            name_path[1].get().coarse_analyzer_tags |= sx::NameTag::TABLE_NAME;
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
+            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
             return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, name_path[0], name_path[1]};
         }
         case 1: {
-            name_path[0].get().coarse_analyzer_tags |= sx::NameTag::TABLE_NAME;
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
             return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, empty_name, name_path[0]};
         }
         default:
@@ -106,7 +107,8 @@ std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualif
     }
 }
 
-std::optional<AnalyzedScript::QualifiedColumnName> NameResolutionPass::ReadQualifiedColumnName(const sx::Node* node) {
+std::optional<AnalyzedScript::QualifiedColumnName> NameResolutionPass::ReadQualifiedColumnName(
+    const sx::parser::Node* node) {
     if (!node) {
         return std::nullopt;
     }
@@ -115,11 +117,11 @@ std::optional<AnalyzedScript::QualifiedColumnName> NameResolutionPass::ReadQuali
     // Build the qualified column name
     switch (name_path.size()) {
         case 2:
-            name_path[0].get().coarse_analyzer_tags |= sx::NameTag::TABLE_ALIAS;
-            name_path[1].get().coarse_analyzer_tags |= sx::NameTag::COLUMN_NAME;
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_ALIAS;
+            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
             return AnalyzedScript::QualifiedColumnName{ast_node_id, name_path[0], name_path[1]};
         case 1:
-            name_path[0].get().coarse_analyzer_tags |= sx::NameTag::COLUMN_NAME;
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
             return AnalyzedScript::QualifiedColumnName{ast_node_id, std::nullopt, name_path[0]};
         default:
             return std::nullopt;
@@ -155,14 +157,15 @@ std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema
     return {db_id, schema_id};
 }
 
-void NameResolutionPass::MergeChildStates(NodeState& dst, std::initializer_list<const buffers::Node*> children) {
-    for (const buffers::Node* child : children) {
+void NameResolutionPass::MergeChildStates(NodeState& dst,
+                                          std::initializer_list<const buffers::parser::Node*> children) {
+    for (const buffers::parser::Node* child : children) {
         if (!child) continue;
         dst.Merge(std::move(node_states[child - ast.data()]));
     }
 }
 
-void NameResolutionPass::MergeChildStates(NodeState& dst, const buffers::Node& parent) {
+void NameResolutionPass::MergeChildStates(NodeState& dst, const buffers::parser::Node& parent) {
     for (size_t i = 0; i < parent.children_count(); ++i) {
         auto child_id = parent.children_begin_or_value() + i;
         auto& child = node_states[parent.children_begin_or_value() + i];
@@ -216,9 +219,10 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             if (resolved_iter != scope.referenced_tables_by_name.end()) {
                 // Register an error
                 auto& error = analyzed.errors.emplace_back();
-                error.error_type = buffers::AnalyzerErrorType::DUPLICATE_TABLE_ALIAS;
+                error.error_type = buffers::analyzer::AnalyzerErrorType::DUPLICATE_TABLE_ALIAS;
                 error.ast_node_id = table_ref.ast_node_id;
-                error.location = std::make_unique<buffers::Location>(parsed.nodes[table_ref.ast_node_id].location());
+                error.location =
+                    std::make_unique<buffers::parser::Location>(parsed.nodes[table_ref.ast_node_id].location());
 
                 std::string tmp;
                 std::string_view alias_text = alias;
@@ -326,9 +330,10 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                 if (candidates.size() > 1) {
                     analyzed.errors.emplace_back();
                     auto& error = analyzed.errors.back();
-                    error.error_type = buffers::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
+                    error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
                     error.ast_node_id = expr.ast_node_id;
-                    error.location = std::make_unique<buffers::Location>(parsed.nodes[expr.ast_node_id].location());
+                    error.location =
+                        std::make_unique<buffers::parser::Location>(parsed.nodes[expr.ast_node_id].location());
 
                     // Construct the error message
                     // Note that we deliberately do not use std::stringstream here since clang is then baking in fd
@@ -404,7 +409,7 @@ void NameResolutionPass::ResolveNames() {
 void NameResolutionPass::Prepare() {}
 
 /// Visit a chunk of nodes
-void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
+void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
     // XXX What about:
     //  indirections? c_expr
     //  subquery with alias
@@ -413,20 +418,20 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
     size_t morsel_offset = morsel.data() - ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         // Resolve the node
-        buffers::Node& node = morsel[i];
+        buffers::parser::Node& node = morsel[i];
         NodeID node_id = morsel_offset + i;
         // Create empty node state
         NodeState& node_state = node_states[node_id];
 
         // Check node type
         switch (node.node_type()) {
-            case buffers::NodeType::OBJECT_SQL_COLUMN_DEF: {
+            case buffers::parser::NodeType::OBJECT_SQL_COLUMN_DEF: {
                 auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto attrs = attribute_index.Load(children);
-                auto column_def_node = attrs[buffers::AttributeKey::SQL_COLUMN_DEF_NAME];
-                if (column_def_node && column_def_node->node_type() == sx::NodeType::NAME) {
+                auto column_def_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_DEF_NAME];
+                if (column_def_node && column_def_node->node_type() == sx::parser::NodeType::NAME) {
                     auto& name = scanned.GetNames().At(column_def_node->children_begin_or_value());
-                    name.coarse_analyzer_tags |= sx::NameTag::COLUMN_NAME;
+                    name.coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
                     if (auto reused = pending_columns_free_list.PopFront()) {
                         *reused = AnalyzedScript::TableColumn(node_id, name);
                         node_state.table_columns.PushBack(*reused);
@@ -438,11 +443,11 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_COLUMN_REF: {
+            case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
                 // Read column ref path
                 auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto attrs = attribute_index.Load(children);
-                auto column_ref_node = attrs[buffers::AttributeKey::SQL_COLUMN_REF_PATH];
+                auto column_ref_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_REF_PATH];
                 auto column_name_node_id = static_cast<uint32_t>(column_ref_node - parsed.nodes.data());
                 auto column_name = ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
@@ -464,22 +469,22 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_TABLEREF: {
+            case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
                 // Read a table ref name
                 auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto attrs = attribute_index.Load(children);
                 // Only consider table refs with a name for now
-                if (auto name_node = attrs[buffers::AttributeKey::SQL_TABLEREF_NAME]) {
+                if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_NAME]) {
                     auto name_node_id = static_cast<uint32_t>(name_node - parsed.nodes.data());
                     auto name = ReadQualifiedTableName(name_node);
                     if (name.has_value()) {
                         // Read a table alias
                         std::string_view alias_str;
-                        auto alias_node = attrs[buffers::AttributeKey::SQL_TABLEREF_ALIAS];
+                        auto alias_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_ALIAS];
                         std::optional<std::reference_wrapper<RegisteredName>> alias_name = std::nullopt;
-                        if (alias_node && alias_node->node_type() == sx::NodeType::NAME) {
+                        if (alias_node && alias_node->node_type() == sx::parser::NodeType::NAME) {
                             auto& alias = scanned.GetNames().At(alias_node->children_begin_or_value());
-                            alias.coarse_analyzer_tags |= sx::NameTag::TABLE_ALIAS;
+                            alias.coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_ALIAS;
                             alias_str = alias;
                             alias_name = alias;
                         }
@@ -502,16 +507,16 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_RESULT_TARGET: {
+            case buffers::parser::NodeType::OBJECT_SQL_RESULT_TARGET: {
                 // // Read result target
                 // auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
                 // auto attrs = attribute_index.Load(children);
                 //
-                // if (auto star_node = attrs[buffers::AttributeKey::SQL_RESULT_TARGET_STAR]) {
+                // if (auto star_node = attrs[buffers::parser::AttributeKey::SQL_RESULT_TARGET_STAR]) {
                 //
                 // }
                 // // Specifies a target name?
-                // if (auto name_node = attrs[buffers::AttributeKey::SQL_RESULT_TARGET_NAME]) {
+                // if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_RESULT_TARGET_NAME]) {
                 // }
                 //
                 // XXX Register result targets
@@ -519,16 +524,17 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_SELECT: {
+            case buffers::parser::NodeType::OBJECT_SQL_SELECT: {
                 MergeChildStates(node_state, node);
                 CreateScope(node_state, node_id);
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_CREATE: {
+            case buffers::parser::NodeType::OBJECT_SQL_CREATE: {
                 auto attrs = attribute_index.Load(ast.subspan(node.children_begin_or_value(), node.children_count()));
-                const buffers::Node* name_node = attrs[buffers::AttributeKey::SQL_CREATE_TABLE_NAME];
-                const buffers::Node* elements_node = attrs[buffers::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
+                const buffers::parser::Node* name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
+                const buffers::parser::Node* elements_node =
+                    attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
                 // Read the name
                 auto table_name = ReadQualifiedTableName(name_node);
                 if (table_name.has_value()) {
@@ -572,11 +578,11 @@ void NameResolutionPass::Visit(std::span<buffers::Node> morsel) {
                 break;
             }
 
-            case buffers::NodeType::OBJECT_SQL_CREATE_AS: {
+            case buffers::parser::NodeType::OBJECT_SQL_CREATE_AS: {
                 auto attrs = attribute_index.Load(ast.subspan(node.children_begin_or_value(), node.children_count()));
-                auto name_node = attrs[buffers::AttributeKey::SQL_CREATE_TABLE_NAME];
-                auto columns_node = attrs[buffers::AttributeKey::SQL_CREATE_TABLE_NAME];
-                auto elements_node = attrs[buffers::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
+                auto name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
+                auto columns_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
+                auto elements_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
 
                 (void)name_node;
                 (void)columns_node;

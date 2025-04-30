@@ -11,7 +11,7 @@
 %define parse.lac full
 
 %locations
-%define api.location.type {buffers::Location}
+%define api.location.type {buffers::parser::Location}
 
 %parse-param    { dashql::parser::ParseContext& ctx }
 
@@ -40,11 +40,11 @@ namespace dashql { namespace parser { class ParseContext;  }}
     if (N) { \
         uint32_t o = YYRHSLOC(Rhs, 1).offset(); \
         uint32_t l = YYRHSLOC(Rhs, N).offset() + YYRHSLOC(Rhs, N).length() - YYRHSLOC(Rhs, 1).offset(); \
-        (Cur) = buffers::Location(o, l); \
+        (Cur) = buffers::parser::Location(o, l); \
     } else { \
         uint32_t o = YYRHSLOC(Rhs, 0).offset() + YYRHSLOC(Rhs, 0).length(); \
         uint32_t l = 0; \
-        (Cur) = buffers::Location(o, l); \
+        (Cur) = buffers::parser::Location(o, l); \
     } \
 }
 

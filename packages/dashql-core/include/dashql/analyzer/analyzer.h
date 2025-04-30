@@ -32,7 +32,7 @@ struct Analyzer {
     Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 
     /// Analyze a program
-    static std::pair<std::shared_ptr<AnalyzedScript>, buffers::StatusCode> Analyze(std::shared_ptr<ParsedScript> parsed,
+    static std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyze(std::shared_ptr<ParsedScript> parsed,
                                                                                  Catalog& catalog);
 };
 

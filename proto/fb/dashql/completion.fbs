@@ -1,6 +1,6 @@
 include "dashql/parsed_script.fbs";
 
-namespace dashql.buffers;
+namespace dashql.buffers.completion;
 
 enum CompletionCandidateObjectType: uint8 {
     NONE = 0,
@@ -53,7 +53,7 @@ table CompletionCandidate {
     /// The completion text, when selected
     completion_text: string;
     /// The text to replace when completing
-    replace_text_at: Location;
+    replace_text_at: parser.Location;
     /// The objects that this candidate references
     catalog_objects: [CompletionCandidateObject];
     /// The score

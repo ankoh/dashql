@@ -17,7 +17,7 @@ RegisteredName& NameRegistry::At(RegisteredNameID name) {
 }
 
 /// Register a name
-RegisteredName& NameRegistry::Register(std::string_view s, sx::Location location, sx::NameTag tag) {
+RegisteredName& NameRegistry::Register(std::string_view s, sx::parser::Location location, sx::analyzer::NameTag tag) {
     auto iter = names_by_text.find(s);
     if (iter != names_by_text.end()) {
         auto& name = iter->second.get();
@@ -44,7 +44,7 @@ RegisteredName& NameRegistry::Register(std::string_view text, NameTags tags) {
         fuzzy_ci_string_view ci_name{text.data(), text.size()};
         auto& name = names.Append(RegisteredName{.name_id = static_cast<uint32_t>(names.GetSize()),
                                                  .text = text,
-                                                 .location = sx::Location(),
+                                                 .location = sx::parser::Location(),
                                                  .occurrences = 1,
                                                  .coarse_analyzer_tags = tags,
                                                  .resolved_objects = {}});

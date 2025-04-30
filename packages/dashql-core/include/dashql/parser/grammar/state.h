@@ -58,7 +58,7 @@ struct NodeList {
         /// The next list element
         ListElement* prev = nullptr;
         /// The element node
-        buffers::Node node;
+        buffers::parser::Node node;
         /// Constructor
         ListElement() = default;
     };
@@ -92,15 +92,15 @@ struct NodeList {
     /// Is empty?
     inline bool empty() { return size() == 0; }
     /// Prepend a node
-    void push_front(buffers::Node node);
+    void push_front(buffers::parser::Node node);
     /// Append a node
-    void push_back(buffers::Node node);
+    void push_back(buffers::parser::Node node);
     /// Append a list of nodes
-    void append(std::initializer_list<buffers::Node> nodes);
+    void append(std::initializer_list<buffers::parser::Node> nodes);
     /// Append a list of nodes
     void append(WeakUniquePtr<NodeList>&& other);
     /// Write elements into span
-    void copy_into(std::span<buffers::Node> nodes);
+    void copy_into(std::span<buffers::parser::Node> nodes);
 };
 
 /// Helper for nary expressions
@@ -111,22 +111,22 @@ struct NAryExpression {
     /// The expression pool
     Pool& expression_pool;
     /// The location
-    buffers::Location location;
+    buffers::parser::Location location;
     /// The expression operator
-    buffers::ExpressionOperator op;
+    buffers::parser::ExpressionOperator op;
     /// The expression operator node
-    buffers::Node opNode;
+    buffers::parser::Node opNode;
     /// The arguments
     WeakUniquePtr<NodeList> args;
 
     /// Constructor
-    NAryExpression(Pool& pool, buffers::Location loc, buffers::ExpressionOperator op, buffers::Node node,
+    NAryExpression(Pool& pool, buffers::parser::Location loc, buffers::parser::ExpressionOperator op, buffers::parser::Node node,
                    WeakUniquePtr<NodeList> args);
     /// Destructor
     ~NAryExpression();
 };
 /// An expression is either a proto node with materialized children, or an n-ary expression that can be flattened
-using ExpressionVariant = std::variant<buffers::Node, WeakUniquePtr<NAryExpression>>;
+using ExpressionVariant = std::variant<buffers::parser::Node, WeakUniquePtr<NAryExpression>>;
 
 }  // namespace parser
 }  // namespace dashql

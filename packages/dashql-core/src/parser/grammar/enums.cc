@@ -7,13 +7,13 @@
 namespace dashql {
 namespace parser {
 
-const char* getEnumText(const buffers::Node& target) {
+const char* getEnumText(const buffers::parser::Node& target) {
     auto nt = target.node_type();
     auto v = static_cast<uint32_t>(target.children_begin_or_value());
     switch (nt) {
-#define X(ENUM_TYPE, TYPE_TABLE)     \
-    case buffers::NodeType::ENUM_TYPE: \
-        return buffers::TYPE_TABLE()->names[v];
+#define X(ENUM_TYPE, TYPE_TABLE)               \
+    case buffers::parser::NodeType::ENUM_TYPE: \
+        return buffers::parser::TYPE_TABLE()->names[v];
         X(ENUM_SQL_CHARACTER_TYPE, CharacterTypeTypeTable)
         X(ENUM_SQL_COLUMN_CONSTRAINT, ColumnConstraintTypeTable)
         X(ENUM_SQL_COMBINE_MODIFIER, CombineModifierTypeTable)
@@ -40,15 +40,15 @@ const char* getEnumText(const buffers::Node& target) {
         X(ENUM_SQL_WINDOW_RANGE_MODE, WindowRangeModeTypeTable)
 #undef X
 
-        case buffers::NodeType::ENUM_SQL_JOIN_TYPE: {
-            auto tt = buffers::JoinTypeTypeTable();
+        case buffers::parser::NodeType::ENUM_SQL_JOIN_TYPE: {
+            auto tt = buffers::parser::JoinTypeTypeTable();
             auto iter =
                 std::lower_bound(tt->values, tt->values + tt->num_elems, v, [](auto l, auto r) { return l < r; });
             if (iter >= (tt->values + tt->num_elems) || *iter != v) {
                 return "?";
             }
             auto idx = iter - tt->values;
-            return buffers::JoinTypeTypeTable()->names[idx];
+            return buffers::parser::JoinTypeTypeTable()->names[idx];
         }
 
         default:

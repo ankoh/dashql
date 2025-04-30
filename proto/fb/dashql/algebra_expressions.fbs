@@ -1,0 +1,118 @@
+include "dashql/parsed_script.fbs";
+include "dashql/parsed_script_enums.fbs";
+
+namespace dashql.buffers.algebra;
+
+enum LiteralType: uint8 {
+    NULL_ = 0,
+    INTEGER = 1,
+    FLOAT = 2,
+    STRING = 3,
+    INTERVAL = 4,
+}
+
+table Literal {
+    /// The literal type
+    literal_type: LiteralType;
+    /// The raw value as it was written in the text
+    raw_value: string;
+}
+
+enum UnaryFunction: uint8 {
+    UNKNOWN = 0,
+    NOT = 1,
+}
+
+table UnaryExpression {
+    /// The unary function
+    func: UnaryFunction;
+    /// The unary expression
+    input: uint32;
+}
+
+enum BinaryExpressionFunction: uint8 {
+    UNKNOWN = 0,
+    ADD = 1,
+    SUB = 2,
+    DIV = 3,
+    MUL = 4,
+}
+
+
+table BinaryExpression {
+}
+
+enum NaryExpressionFunction: uint8 {
+    AND = 0,
+    OR = 1,
+}
+
+table NaryExpression {
+    /// The expression function
+    func: NaryExpressionFunction;
+    /// The children
+    children: [uint32];
+}
+
+enum ComparisonFunction: uint8 {
+    EQUAL = 0,
+    NOT_EQUAL = 1,
+    IS = 2,
+    IS_NOT = 3,
+    LESS = 4,
+    LESS_OR_EQUAL = 5,
+    GREATER = 6,
+    GREATER_OR_EQUAL = 7
+}
+
+table Comparison {
+    /// The comparison function
+    func: ComparisonFunction;
+    /// The left child
+    left_child: uint32;
+    /// The right child
+    right_child: uint32;
+}
+
+table ResolvedColumnRefExpression {
+    // The column name
+    column_name: QualifiedColumnName;
+    // The unified database id across all catalog entries
+    catalog_database_id: uint32;
+    // The unified schema id across all catalog entries
+    catalog_schema_id: uint32;
+    // The external object id of the table that is referenced.
+    // <uint32, uint32> that may point into the catalog.
+    catalog_table_id: uint64;
+    // The id of the column that is referenced.
+    // This is just the index in the resolved table.
+    column_id: uint32;
+}
+
+table UnresolvedColumnRefExpression {
+    // The column name
+    column_name: QualifiedColumnName;
+}
+
+union ExpressionSubType {
+    Literal,
+    UnaryExpression,
+    BinaryExpression,
+    NaryExpression,
+    Comparison,
+    ResolvedColumnRefExpression,
+    UnresolvedColumnRefExpression
+}
+
+table Expression {
+    // The id of the AST node that created this expression
+    ast_node_id: uint32;
+    // The id of the statement that contains the expression
+    ast_statement_id: uint32;
+    // The root of the scope where this expression lives
+    ast_scope_root: uint32;
+    // The location
+    location: parser.Location;
+    /// The inner type
+    inner: ExpressionSubType;
+}

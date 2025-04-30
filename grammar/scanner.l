@@ -43,14 +43,14 @@ namespace sx = buffers;
     yyg->yy_hold_char = *yy_cp; \
     *yy_cp = '\0'; \
     yyg->yy_c_buf_p = yy_cp; \
-    loc = sx::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
+    loc = sx::parser::Location(yy_bp - YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, yyleng); \
 }
 
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION { \
     for (unsigned i = 0; i < yyleng; ++i) { \
         if (yytext[i] == '\n') { \
-            ctx.AddLineBreak(sx::Location(loc.offset() + i, 1)); \
+            ctx.AddLineBreak(sx::parser::Location(loc.offset() + i, 1)); \
         } \
     } \
 }
@@ -58,7 +58,7 @@ namespace sx = buffers;
 // Return EOF token in yyterminate
 #define yyterminate() return Parser::make_EOF(loc)
 
-using YYLTYPE = sx::Location;
+using YYLTYPE = sx::parser::Location;
 using YYSTYPE = dashql::parser::Parser::symbol_type;
 
 %}
@@ -317,7 +317,7 @@ other           .
 
 Scanner& ctx = *dashql_yyget_extra(yyscanner);
 
-sx::Location loc;
+sx::parser::Location loc;
 auto& ext_begin = ctx.ext_begin;
 auto& ext_depth = ctx.ext_depth;
 std::string_view input = ctx.GetInputData();
@@ -338,7 +338,7 @@ std::string_view input = ctx.GetInputData();
 
 {xbstart}       { ext_begin = loc; BEGIN(xb); }
 <xb>{quotestop} { BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, loc})); }
-<xb>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, buffers::Location(loc.offset(), loc.length() - 1)})); }
+<xb>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
 <xh>{xhinside}  |
 <xb>{xbinside} 
 <xh>{quotecontinue} |
@@ -346,13 +346,13 @@ std::string_view input = ctx.GetInputData();
 <xb><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated bit string literal"); BEGIN(INITIAL); }
 {xhstart}       { ext_begin = loc; BEGIN(xh); }
 <xh>{quotestop} { BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, loc})); }
-<xh>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, buffers::Location(loc.offset(), loc.length() - 1)})); }
+<xh>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
 <xh><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated hexadecimal bit string literal"); BEGIN(INITIAL); }
 
 
 {xqstart}       { ext_begin = loc; BEGIN(xq); }
 <xq>{quotestop} { BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, loc})); }
-<xq>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, buffers::Location(loc.offset(), loc.length() - 1)})); }
+<xq>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
 <xq>{xqdouble}
 <xq>{xqinside}
 <xq><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated quoted string"); BEGIN(INITIAL); }
@@ -372,7 +372,7 @@ std::string_view input = ctx.GetInputData();
 {raw_typecast}      { return Parser::make_TYPECAST(loc); }
 {raw_dot_dot}       { return Parser::make_DOT_DOT(loc); }
 {raw_dot}           { return Parser::make_DOT(loc); }
-{raw_dot_trailing}  { return Parser::make_DOT_TRAILING(buffers::Location(loc.offset(), 1)); }
+{raw_dot_trailing}  { return Parser::make_DOT_TRAILING(buffers::parser::Location(loc.offset(), 1)); }
 {colon_equals}      { return Parser::make_COLON_EQUALS(loc); }
 {equals_greater}    { return Parser::make_EQUALS_GREATER(loc); }
 {less_equals}       { return Parser::make_LESS_EQUALS(loc); }

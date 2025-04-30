@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dashql/catalog_object.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog_object.h"
 #include "dashql/script.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/topk.h"
@@ -12,7 +12,8 @@ struct Completion {
     /// A score value
     using ScoreValueType = uint32_t;
     /// A bitset for candidate tags
-    using CandidateTags = EnumBitset<uint16_t, buffers::CandidateTag, buffers::CandidateTag::MAX>;
+    using CandidateTags =
+        EnumBitset<uint16_t, buffers::completion::CandidateTag, buffers::completion::CandidateTag::MAX>;
 
     struct Candidate;
     /// A catalog object referenced by a completion candidate
@@ -37,7 +38,7 @@ struct Completion {
         /// The combined more fine-granular candidate tags
         CandidateTags candidate_tags;
         /// Replace text at a location
-        sx::Location replace_text_at;
+        sx::parser::Location replace_text_at;
         /// The catalog objects
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)
@@ -59,7 +60,7 @@ struct Completion {
     /// A name component
     struct NameComponent {
         /// The location
-        sx::Location loc;
+        sx::parser::Location loc;
         /// The component type
         NameComponentType type;
         /// The name (if any)
@@ -73,7 +74,7 @@ struct Completion {
     /// The script cursor
     const ScriptCursor& cursor;
     /// The completion strategy
-    const buffers::CompletionStrategy strategy;
+    const buffers::completion::CompletionStrategy strategy;
 
     /// The candidate buffer
     ChunkBuffer<Candidate, 16> candidates;
@@ -91,7 +92,7 @@ struct Completion {
     TopKHeap<Candidate> result_heap;
 
     /// Read the name path of the current cursor
-    std::vector<Completion::NameComponent> ReadCursorNamePath(sx::Location& name_path_loc) const;
+    std::vector<Completion::NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
     /// Complete after a dot
     void FindCandidatesForNamePath();
     /// Find the candidates in completion indexes
@@ -118,9 +119,10 @@ struct Completion {
     auto& GetHeap() const { return result_heap; }
 
     /// Pack the completion result
-    flatbuffers::Offset<buffers::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
     // Compute completion at a cursor
-    static std::pair<std::unique_ptr<Completion>, buffers::StatusCode> Compute(const ScriptCursor& cursor, size_t k);
+    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(const ScriptCursor& cursor,
+                                                                                       size_t k);
 };
 
 }  // namespace dashql

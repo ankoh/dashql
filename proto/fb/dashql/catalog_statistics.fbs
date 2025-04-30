@@ -1,4 +1,4 @@
-namespace dashql.buffers;
+namespace dashql.buffers.catalog;
 
 struct CatalogContentStatistics {
     /// The database count

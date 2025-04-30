@@ -141,14 +141,8 @@ export function CatalogViewer(props: Props) {
     }, [viewModel, workbook?.userFocus]);
 
     // Subscribe to scroll events
-    interface Range {
-        top: number;
-        height: number;
-    };
-    interface RenderingWindow {
-        scroll: Range;
-        virtual: Range;
-    };
+    interface Range { top: number; height: number; };
+    interface RenderingWindow { scroll: Range; virtual: Range; };
     const [scrollTopRaw, setScrollTop] = React.useState<number | null>(null);
     const handleScroll = (e: React.UIEvent<HTMLDivElement, UIEvent>) => {
         const scrollTop = (e.target as HTMLDivElement).scrollTop;

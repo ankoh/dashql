@@ -10,8 +10,8 @@ namespace {
 struct ExpectedScriptCursor {
     std::optional<std::string_view> scanner_token_text;
     std::optional<uint32_t> statement_id;
-    buffers::AttributeKey ast_attribute_key;
-    buffers::NodeType ast_node_type;
+    buffers::parser::AttributeKey ast_attribute_key;
+    buffers::parser::NodeType ast_node_type;
     std::optional<std::string_view> table_ref_name;
     std::optional<std::string_view> column_ref_name;
     std::vector<std::string> graph_from;
@@ -56,7 +56,7 @@ std::string print_name(const Script& script, const AnalyzedScript::QualifiedColu
 void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
     SCOPED_TRACE(std::string{"CURSOR "} + std::to_string(text_offset));
     auto [cursor, status] = script.MoveCursor(text_offset);
-    ASSERT_EQ(status, buffers::StatusCode::OK);
+    ASSERT_EQ(status, buffers::status::StatusCode::OK);
     // Check scanner token
     if (expected.scanner_token_text.has_value()) {
         ASSERT_TRUE(cursor->scanner_location.has_value());
@@ -71,8 +71,8 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
     // Check AST node type
     auto& ast_node = script.analyzed_script->parsed_script->nodes[*cursor->ast_node_id];
     ASSERT_EQ(ast_node.attribute_key(), expected.ast_attribute_key)
-        << buffers::EnumNameAttributeKey(ast_node.attribute_key());
-    ASSERT_EQ(ast_node.node_type(), expected.ast_node_type) << buffers::EnumNameNodeType(ast_node.node_type());
+        << buffers::parser::EnumNameAttributeKey(ast_node.attribute_key());
+    ASSERT_EQ(ast_node.node_type(), expected.ast_node_type) << buffers::parser::EnumNameNodeType(ast_node.node_type());
     // Check table reference
     if (expected.table_ref_name.has_value()) {
         ASSERT_TRUE(std::holds_alternative<ScriptCursor::TableRefContext>(cursor->context));
@@ -132,55 +132,55 @@ TEST(CursorTest, SimpleNoExternal) {
     Script script{catalog, 1};
     script.InsertTextAt(0, "select * from A b, C d where b.x = d.y");
     auto [scanned, scan_status] = script.Scan();
-    ASSERT_EQ(scan_status, buffers::StatusCode::OK);
+    ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
     auto [parsed, parse_status] = script.Parse();
-    ASSERT_EQ(parse_status, buffers::StatusCode::OK);
+    ASSERT_EQ(parse_status, buffers::status::StatusCode::OK);
     auto [analyzed, analysis_status] = script.Analyze();
-    ASSERT_EQ(analysis_status, buffers::StatusCode::OK);
+    ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
 
     test(script, 0,
          {
              .scanner_token_text = "select",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::OBJECT_SQL_SELECT,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::OBJECT_SQL_SELECT,
          });
     test(script, 9,
          {
              .scanner_token_text = "from",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::SQL_SELECT_FROM,
-             .ast_node_type = buffers::NodeType::ARRAY,
+             .ast_attribute_key = buffers::parser::AttributeKey::SQL_SELECT_FROM,
+             .ast_node_type = buffers::parser::NodeType::ARRAY,
          });
     test(script, 14,
          {
              .scanner_token_text = "A",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .table_ref_name = "a",
          });
     test(script, 16,
          {
              .scanner_token_text = "b",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::SQL_TABLEREF_ALIAS,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::SQL_TABLEREF_ALIAS,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .table_ref_name = "a",
          });
     test(script, 23,
          {
              .scanner_token_text = "where",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::OBJECT_SQL_SELECT,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::OBJECT_SQL_SELECT,
          });
     test(script, 29,
          {
              .scanner_token_text = "b",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .column_ref_name = "b.x",
              .graph_from = {"b.x"},
              .graph_to = {"d.y"},
@@ -189,8 +189,8 @@ TEST(CursorTest, SimpleNoExternal) {
          {
              .scanner_token_text = ".",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .column_ref_name = "b.x",
              .graph_from = {"b.x"},
              .graph_to = {"d.y"},
@@ -199,8 +199,8 @@ TEST(CursorTest, SimpleNoExternal) {
          {
              .scanner_token_text = "x",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .column_ref_name = "b.x",
              .graph_from = {"b.x"},
              .graph_to = {"d.y"},
@@ -209,8 +209,8 @@ TEST(CursorTest, SimpleNoExternal) {
          {
              .scanner_token_text = "=",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::SQL_EXPRESSION_ARGS,
-             .ast_node_type = buffers::NodeType::ARRAY,
+             .ast_attribute_key = buffers::parser::AttributeKey::SQL_EXPRESSION_ARGS,
+             .ast_node_type = buffers::parser::NodeType::ARRAY,
              .graph_from = {"b.x"},
              .graph_to = {"d.y"},
          });
@@ -221,18 +221,18 @@ TEST(CursorTest, TableRef) {
     Script script{catalog, 1};
     script.InsertTextAt(0, "select r_regionkey from region, n");
     auto [scanned, scan_status] = script.Scan();
-    ASSERT_EQ(scan_status, buffers::StatusCode::OK);
+    ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
     auto [parsed, parse_status] = script.Parse();
-    ASSERT_EQ(parse_status, buffers::StatusCode::OK);
+    ASSERT_EQ(parse_status, buffers::status::StatusCode::OK);
     auto [analyzed, analysis_status] = script.Analyze();
-    ASSERT_EQ(analysis_status, buffers::StatusCode::OK);
+    ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
 
     test(script, 32,
          {
              .scanner_token_text = "n",
              .statement_id = 0,
-             .ast_attribute_key = buffers::AttributeKey::NONE,
-             .ast_node_type = buffers::NodeType::NAME,
+             .ast_attribute_key = buffers::parser::AttributeKey::NONE,
+             .ast_node_type = buffers::parser::NodeType::NAME,
              .table_ref_name = "n",
          });
 }

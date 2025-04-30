@@ -30,11 +30,11 @@ class ParseContext {
     ChunkBuffer<Parser::symbol_type>::ConstTupleIterator symbol_iterator;
 
     /// The nodes
-    ChunkBuffer<buffers::Node> nodes;
+    ChunkBuffer<buffers::parser::Node> nodes;
     /// The statements
     std::vector<ParsedScript::Statement> statements;
     /// The errors
-    std::vector<std::pair<buffers::Location, std::string>> errors;
+    std::vector<std::pair<buffers::parser::Location, std::string>> errors;
 
     /// The current statement
     ParsedScript::Statement current_statement;
@@ -64,48 +64,48 @@ class ParseContext {
     }
 
     /// Create a list
-    WeakUniquePtr<NodeList> List(std::initializer_list<buffers::Node> nodes = {});
+    WeakUniquePtr<NodeList> List(std::initializer_list<buffers::parser::Node> nodes = {});
     /// Add a an array
-    buffers::Node Array(buffers::Location loc, WeakUniquePtr<NodeList>&& values, bool null_if_empty = true,
+    buffers::parser::Node Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values, bool null_if_empty = true,
                       bool shrink_location = false);
     /// Add a an array
-    buffers::Node Array(buffers::Location loc, std::span<ExpressionVariant> values, bool null_if_empty = true,
+    buffers::parser::Node Array(buffers::parser::Location loc, std::span<ExpressionVariant> values, bool null_if_empty = true,
                       bool shrink_location = false);
     /// Add a an array
-    inline buffers::Node Array(buffers::Location loc, std::initializer_list<buffers::Node> values, bool null_if_empty = true,
+    inline buffers::parser::Node Array(buffers::parser::Location loc, std::initializer_list<buffers::parser::Node> values, bool null_if_empty = true,
                              bool shrink_location = false) {
         return Array(loc, List(std::move(values)), null_if_empty, shrink_location);
     }
     /// Add an object
-    buffers::Node Object(buffers::Location loc, buffers::NodeType type, WeakUniquePtr<NodeList>&& attrs,
+    buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type, WeakUniquePtr<NodeList>&& attrs,
                        bool null_if_empty = true, bool shrink_location = false);
     /// Add a an object
-    inline buffers::Node Object(buffers::Location loc, buffers::NodeType type, std::initializer_list<buffers::Node> values = {},
+    inline buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type, std::initializer_list<buffers::parser::Node> values = {},
                               bool null_if_empty = true, bool shrink_location = false) {
         return Object(loc, type, List(std::move(values)), null_if_empty, shrink_location);
     }
     /// Add an expression
-    buffers::Node Expression(ExpressionVariant&& expr);
+    buffers::parser::Node Expression(ExpressionVariant&& expr);
     /// Flatten an expression
-    std::optional<ExpressionVariant> TryMerge(buffers::Location loc, buffers::Node opNode,
+    std::optional<ExpressionVariant> TryMerge(buffers::parser::Location loc, buffers::parser::Node opNode,
                                               std::span<ExpressionVariant> args);
 
     /// Create a name from a keyword
-    buffers::Node NameFromKeyword(buffers::Location loc, std::string_view text);
+    buffers::parser::Node NameFromKeyword(buffers::parser::Location loc, std::string_view text);
     /// Create a name from a string literal
-    buffers::Node NameFromStringLiteral(buffers::Location loc);
+    buffers::parser::Node NameFromStringLiteral(buffers::parser::Location loc);
     /// Mark a trailing dot
-    buffers::Node TrailingDot(buffers::Location loc);
+    buffers::parser::Node TrailingDot(buffers::parser::Location loc);
 
     /// Read a float type
-    buffers::NumericType ReadFloatType(buffers::Location bitsLoc);
+    buffers::parser::NumericType ReadFloatType(buffers::parser::Location bitsLoc);
 
     /// Add a node
-    NodeID AddNode(buffers::Node node);
+    NodeID AddNode(buffers::parser::Node node);
     /// Add an error
-    void AddError(buffers::Location loc, const std::string& message);
+    void AddError(buffers::parser::Location loc, const std::string& message);
     /// Add a statement
-    void AddStatement(buffers::Node node);
+    void AddStatement(buffers::parser::Node node);
     /// Reset a statement
     void ResetStatement();
 };

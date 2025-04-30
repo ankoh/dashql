@@ -1,6 +1,8 @@
-include "dashql/sql_enums.fbs";
+include "dashql/parsed_script.fbs";
+include "dashql/parsed_script_enums.fbs";
+include "dashql/algebra_expressions.fbs";
 
-namespace dashql.buffers;
+namespace dashql.buffers.analyzer;
 
 table DatabaseDeclaration {
     // The unified database id across all catalog entries
@@ -64,7 +66,7 @@ table Table {
     table_columns: [TableColumn];
 }
 
-table ResolvedRelationExpression {
+table ResolvedRelationName {
     // The name of the table that is referenced
     table_name: QualifiedTableName;
     // The resolved unified database id across all catalog entries
@@ -77,14 +79,14 @@ table ResolvedRelationExpression {
     catalog_table_id: uint64;
 }
 
-table UnresolvedRelationExpression {
+table UnresolvedRelationName {
     // The name of the table that is referenced
     table_name: QualifiedTableName;
 }
 
 union TableReferenceSubType {
-    ResolvedRelationExpression,
-    UnresolvedRelationExpression
+    ResolvedRelationName,
+    UnresolvedRelationName
 }
 
 table TableReference {
@@ -95,49 +97,41 @@ table TableReference {
     // The root of the scope where this table reference is live
     ast_scope_root: uint32;
     // The location
-    location: Location;
+    location: parser.Location;
     // The alias name
     alias_name: string;
     /// The inner type
     inner: TableReferenceSubType;
 }
 
-table ResolvedColumnRefExpression {
-    // The column name
-    column_name: QualifiedColumnName;
-    // The unified database id across all catalog entries
-    catalog_database_id: uint32;
-    // The unified schema id across all catalog entries
-    catalog_schema_id: uint32;
-    // The external object id of the table that is referenced.
-    // <uint32, uint32> that may point into the catalog.
-    catalog_table_id: uint64;
-    // The id of the column that is referenced.
-    // This is just the index in the resolved table.
-    column_id: uint32;
-}
-
-table UnresolvedColumnRefExpression {
-    // The column name
-    column_name: QualifiedColumnName;
-}
-
-union ExpressionSubType {
-    ResolvedColumnRefExpression,
-    UnresolvedColumnRefExpression
-}
-
-table Expression {
-    // The id of the AST node that created this column reference
+table TableRestriction {
+    // The id of the AST node that created this table reference
     ast_node_id: uint32;
-    // The id of the statement that contains the column reference
+    // The id of the statement that contains the table reference
     ast_statement_id: uint32;
     // The root of the scope where this table reference is live
     ast_scope_root: uint32;
     // The location
-    location: Location;
-    /// The inner type
-    inner: ExpressionSubType;
+    location: parser.Location;
+    /// The table reference that occurs in the restriction expression
+    table_reference_id: uint32;
+    /// The restriction expression
+    expression_id: uint32;
+}
+
+table TableColumnProjection {
+    // The id of the AST node that created this table reference
+    ast_node_id: uint32;
+    // The id of the statement that contains the table reference
+    ast_statement_id: uint32;
+    // The root of the scope where this table reference is live
+    ast_scope_root: uint32;
+    // The location
+    location: parser.Location;
+    /// The reference expression id
+    reference_expression_id: uint32;
+    /// The projection expression id
+    projection_expression_id: uint32;
 }
 
 struct IndexedTableReference {
@@ -199,10 +193,12 @@ table AnalyzerError {
     /// The ast node id
     ast_node_id: uint32;
     /// The text location, in case the user doesn't want to carry around the ast
-    location: Location;
+    location: parser.Location;
     /// The error message
     message: string;
 }
+
+table AnalyzerWarning {}
 
 table AnalyzedScript {
     /// The external id that the user specified for this catalog entry
@@ -210,15 +206,32 @@ table AnalyzedScript {
 
     /// The errors
     errors: [AnalyzerError];
+    /// The warnings
+    warnings: [AnalyzerWarning];
 
     /// The tables
     tables: [Table];
-    /// The table references in the statement
+    /// The table references
     table_references: [TableReference];
-    /// The expressions in the statement.
-    /// We're not indexing all expressions here, only those that are relevant for the analysis passes.
-    /// (Currently only name resolution)
-    expressions: [Expression];
+    /// The table restrictions.
+    /// We only track restrictions where single table columns are compared with simple constant expressions.
+    ///
+    /// Examples:
+    ///   `<table_ref> = <simple constant expression>`
+    ///   `<table_ref> != <simple constant expression>`
+    ///
+    table_restrictions: [TableRestriction];
+    /// The table column projections.
+    /// We only track projections of unaggregated base table columns in otherwise simple constant expressions.
+    ///
+    /// Examples:
+    ///   `json_value(<column_ref>, <path literal>)`
+    ///   `date_trunc('day', <column_ref>)`
+    ///   `to_char(<column_ref>, 'format')`
+    ///
+    table_column_projections: [TableColumnProjection];
+    /// A subset of expressions relevant for the analyzer output
+    expressions: [algebra.Expression];
 
     /// The name scopes
     name_scopes: [NameScope];

@@ -1,6 +1,6 @@
-include "dashql/sql_enums.fbs";
+include "dashql/parsed_script_enums.fbs";
 
-namespace dashql.buffers;
+namespace dashql.buffers.parser;
 
 struct Location { offset: uint32; length: uint32; }
 

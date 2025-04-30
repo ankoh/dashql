@@ -8,7 +8,7 @@ using namespace dashql;
 
 namespace {
 
-constexpr auto OK = static_cast<uint32_t>(buffers::StatusCode::OK);
+constexpr auto OK = static_cast<uint32_t>(buffers::status::StatusCode::OK);
 
 std::pair<std::string_view, std::unique_ptr<char[]>> copyText(std::string_view text) {
     auto buffer = std::unique_ptr<char[]>(new char[text.size()]);
@@ -45,7 +45,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
     dashql_catalog_load_script(catalog, external_script, 0);
 
     auto main_result = dashql_script_new(catalog, 1);
-    ASSERT_EQ(static_cast<buffers::StatusCode>(main_result->status_code), buffers::StatusCode::EXTERNAL_ID_COLLISION);
+    ASSERT_EQ(static_cast<buffers::status::StatusCode>(main_result->status_code), buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
 
     dashql_delete_result(main_result);
     dashql_delete_result(external_result);

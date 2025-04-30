@@ -13,7 +13,7 @@ void test_entries(std::initializer_list<SuffixTrie::StringView> entries_list,
                   std::initializer_list<SuffixTrie::StringView> suffixes_list) {
     std::vector<SuffixTrie::StringView> entries{entries_list};
     auto trie = SuffixTrie::BulkLoad(entries, [&](size_t i, auto& name) {
-        return SuffixTrie::Entry{name, i, buffers::NameTag::NONE};
+        return SuffixTrie::Entry{name, i, buffers::analyzer::NameTag::NONE};
     });
     std::vector<SuffixTrie::StringView> have;
     for (auto& entry : trie->GetEntries()) {
@@ -53,7 +53,7 @@ TEST(SuffixTrieTest, Prefixes0) {
     std::vector<SuffixTrie::StringView> entries;
     entries = {"foo", "bar"};
     auto trie = SuffixTrie::BulkLoad(entries, [&](size_t i, auto& name) {
-        return SuffixTrie::Entry{name, i, buffers::NameTag::NONE};
+        return SuffixTrie::Entry{name, i, buffers::analyzer::NameTag::NONE};
     });
     test_prefix(*trie, "f", {"foo"});
     test_prefix(*trie, "fo", {"foo"});
@@ -71,7 +71,7 @@ TEST(SuffixTrieTest, CaseSensitivity) {
     std::vector<SuffixTrie::StringView> entries;
     entries = {"Some", "CaSE", "SensitiVe", "sensitive"};
     auto trie = SuffixTrie::BulkLoad(entries, [&](size_t i, auto& name) {
-        return SuffixTrie::Entry{name, i, buffers::NameTag::NONE};
+        return SuffixTrie::Entry{name, i, buffers::analyzer::NameTag::NONE};
     });
     test_prefix(*trie, "Som", {"Some"});
     test_prefix(*trie, "som", {"Some"});
