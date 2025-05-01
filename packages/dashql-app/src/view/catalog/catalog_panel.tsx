@@ -145,19 +145,16 @@ export function CatalogPanel(_props: CatalogPanelProps) {
             <div className={styles.panel_container}>
                 <div className={styles.catalog_viewer}>
                     <CatalogViewer workbookId={workbook.workbookId} />
-                    {showRefreshView
-                        ? (
-                            <div className={styles.info_overlay}>
+                    <div className={styles.info_overlay}>
+                        {showRefreshView
+                            ? (
                                 <CatalogRefreshView conn={conn!} refresh={fullRefreshTask} />
-                            </div>
-                        )
-                        : (
-                            <div className={styles.info_overlay}>
+                            )
+                            : (
                                 <CatalogInfoView conn={conn!} entries={infoEntries} />
-                            </div>
-                        )
-                    }
-
+                            )
+                        }
+                    </div>
                 </div>
             </div>
         </div>

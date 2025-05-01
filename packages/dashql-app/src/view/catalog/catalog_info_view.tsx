@@ -1,6 +1,8 @@
 import * as React from "react";
 import * as styles from "./catalog_info_view.module.css";
 
+import { motion } from 'framer-motion';
+
 import { ConnectionState } from "../../connection/connection_state.js";
 import { formatTimeDifference } from "../../utils/format.js";
 import { SymbolIcon } from "../../view/foundations/symbol_icon.js";
@@ -89,6 +91,12 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
 
     return (
         <div className={styles.root}>
+            <motion.div
+                className={styles.root_background}
+                layoutId="catalog_info_background"
+                layout="size"
+                transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
+            />
             <div className={styles.header}>
                 <div
                     className={styles.header_title}
