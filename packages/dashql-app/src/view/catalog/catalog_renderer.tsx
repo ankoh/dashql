@@ -215,7 +215,19 @@ const EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
-const EDGE_DETAILS_TRANSITION = {
+
+const DETAILS_NODE_INITIAL_X_OFFSET = -8;
+const DETAILS_NODE_INITIAL_SCALE = 1.0;
+const DETAILS_NODE_TRANSITION = {
+    duration: 0.3,
+    ease: "easeInOut"
+};
+
+const DETAILS_EDGE_INITIAL_SCALE = 1.0;
+const DETAILS_EDGE_INITIAL_PATH_LENGTH = 0;
+const DETAILS_EDGE_INITIAL_PATH_OFFSET = 0;
+const DETAILS_EDGE_INITIAL_OPACITY = 0.5;
+const DETAILS_EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
@@ -520,8 +532,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     initial: prevNodePosition?.animate ?? (
                         {
                             top: detailsPositionY,
-                            left: detailsPositionX + NODE_INITIAL_X_OFFSET,
-                            scale: NODE_INITIAL_SCALE,
+                            left: detailsPositionX + DETAILS_NODE_INITIAL_X_OFFSET,
+                            scale: DETAILS_NODE_INITIAL_SCALE,
                         }
                     ),
                     animate: {
@@ -539,18 +551,15 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const edgeType = selectHorizontalEdgeType(edgeFromX, edgeFromY, edgeToX, edgeToY);
                 const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, edgeFromX, edgeFromY, edgeToX, edgeToY, levelWidth, settings.nodeHeight, detailsRendering.nodeWidth, settings.nodeHeight, 4);
 
-                const prevPath = ctx.prevState.edgePaths.get(detailsKey);
                 const nextPath: RenderedPath = {
                     key: detailsKey,
-                    initial: prevPath?.animate ?? (
-                        {
-                            d: edgePath,
-                            pathLength: EDGE_INITIAL_PATH_LENGTH,
-                            pathOffset: EDGE_INITIAL_PATH_OFFSET,
-                            scale: EDGE_INITIAL_SCALE,
-                            opacity: EDGE_INITIAL_OPACITY,
-                        }
-                    ),
+                    initial: {
+                        d: edgePath,
+                        pathLength: DETAILS_EDGE_INITIAL_PATH_LENGTH,
+                        pathOffset: DETAILS_EDGE_INITIAL_PATH_OFFSET,
+                        scale: DETAILS_EDGE_INITIAL_SCALE,
+                        opacity: DETAILS_EDGE_INITIAL_OPACITY,
+                    },
                     animate: {
                         d: edgePath,
                         pathLength: 1.0,
@@ -571,7 +580,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         }}
                         initial={newNodePosition.initial}
                         animate={newNodePosition.animate}
-                        transition={NODE_TRANSITION}
+                        transition={DETAILS_NODE_TRANSITION}
                     >
 
                         <div className={styles.node_ports}>
@@ -587,7 +596,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         key={detailsKey}
                         initial={nextPath.initial}
                         animate={nextPath.animate}
-                        transition={EDGE_DETAILS_TRANSITION}
+                        transition={DETAILS_EDGE_TRANSITION}
                         strokeWidth="2px"
                         stroke="currentcolor"
                         fill="transparent"
