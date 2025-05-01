@@ -1,3 +1,4 @@
+import * as dashql from '@ankoh/dashql-core';
 
 export enum AnnotationTag {
     None = 0,
@@ -8,10 +9,7 @@ export type AnnotationTags = number;
 
 export class CatalogAnnotationProvider {
 
-    public getTableAnnotationTags(): AnnotationTags {
-        return 0;
-    }
-    public getColumnAnnotationTags(): AnnotationTags {
+    public getAnnotationTags(_snap: dashql.DashQLCatalogSnapshotReader, _levelId: number, _entryId: number): AnnotationTags {
         return 0;
     }
 }

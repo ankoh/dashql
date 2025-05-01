@@ -50,7 +50,7 @@ export interface UserFocus {
     focusTarget: FocusTarget;
 
     /// The focused catalog objects
-    catalogObjects: (QualifiedCatalogObjectID & { focus: FocusType })[];
+    catalogObject: (QualifiedCatalogObjectID & { focus: FocusType }) | null;
     /// The column references
     scriptColumnRefs: Map<dashql.ContextObjectID.Value, FocusType>;
     /// The table references
@@ -86,7 +86,7 @@ export function deriveFocusFromScriptCursor(
             };
             const focus: UserFocus = {
                 focusTarget,
-                catalogObjects: [],
+                catalogObject: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -96,7 +96,7 @@ export function deriveFocusFromScriptCursor(
                 const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationReference;
 
                 // Focus in catalog
-                focus.catalogObjects = [{
+                focus.catalogObject = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
                         database: resolved.catalogDatabaseId(),
@@ -104,7 +104,7 @@ export function deriveFocusFromScriptCursor(
                         table: resolved.catalogTableId(),
                     },
                     focus: FocusType.TABLE_REF
-                }];
+                };
 
                 // Could we resolve the ref?
                 if (!dashql.ContextObjectID.isNull(resolved.catalogTableId())) {
@@ -152,7 +152,7 @@ export function deriveFocusFromScriptCursor(
             };
             const focus: UserFocus = {
                 focusTarget,
-                catalogObjects: [],
+                catalogObject: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -162,7 +162,7 @@ export function deriveFocusFromScriptCursor(
                 const resolved = sourceRef.inner(tmpResolvedColumnRef) as dashql.buffers.algebra.ResolvedColumnRefExpression;
 
                 // Focus in catalog
-                focus.catalogObjects = [{
+                focus.catalogObject = {
                     type: QUALIFIED_TABLE_COLUMN_ID,
                     value: {
                         database: resolved.catalogDatabaseId(),
@@ -171,7 +171,7 @@ export function deriveFocusFromScriptCursor(
                         column: resolved.columnId(),
                     },
                     focus: FocusType.COLUMN_REF
-                }];
+                };
 
                 // Could we resolve the ref?
                 if (!dashql.ContextObjectID.isNull(resolved.catalogTableId())) {
@@ -244,20 +244,20 @@ export function deriveFocusFromCatalogSelection(
         case QUALIFIED_SCHEMA_ID:
             return {
                 focusTarget: target,
-                catalogObjects: [{
+                catalogObject: {
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
-                }],
+                },
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
         case QUALIFIED_TABLE_ID: {
             const focus: UserFocus = {
                 focusTarget: target,
-                catalogObjects: [{
+                catalogObject: {
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
-                }],
+                },
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -303,10 +303,10 @@ export function deriveFocusFromCatalogSelection(
         case QUALIFIED_TABLE_COLUMN_ID: {
             const focus: UserFocus = {
                 focusTarget: target,
-                catalogObjects: [{
+                catalogObject: {
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
-                }],
+                },
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -374,7 +374,7 @@ export function deriveFocusFromCompletionCandidates(
     };
     const focus: UserFocus = {
         focusTarget,
-        catalogObjects: [],
+        catalogObject: null,
         scriptTableRefs: new Map(),
         scriptColumnRefs: new Map(),
     };
@@ -384,26 +384,26 @@ export function deriveFocusFromCompletionCandidates(
     for (const candidateObject of candidate.catalogObjects) {
         switch (candidateObject.objectType) {
             case dashql.buffers.completion.CompletionCandidateObjectType.DATABASE:
-                focus.catalogObjects.push({
+                focus.catalogObject = {
                     type: QUALIFIED_DATABASE_ID,
                     value: {
                         database: candidateObject.catalogDatabaseId
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
-                });
+                };
                 break;
             case dashql.buffers.completion.CompletionCandidateObjectType.SCHEMA:
-                focus.catalogObjects.push({
+                focus.catalogObject = {
                     type: QUALIFIED_SCHEMA_ID,
                     value: {
                         database: candidateObject.catalogDatabaseId,
                         schema: candidateObject.catalogSchemaId
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
-                });
+                };
                 break;
             case dashql.buffers.completion.CompletionCandidateObjectType.TABLE:
-                focus.catalogObjects.push({
+                focus.catalogObject = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
                         database: candidateObject.catalogDatabaseId,
@@ -411,10 +411,10 @@ export function deriveFocusFromCompletionCandidates(
                         table: candidateObject.catalogTableId
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
-                });
+                };
                 break;
             case dashql.buffers.completion.CompletionCandidateObjectType.COLUMN:
-                focus.catalogObjects.push({
+                focus.catalogObject = {
                     type: QUALIFIED_TABLE_COLUMN_ID,
                     value: {
                         database: candidateObject.catalogDatabaseId,
@@ -423,7 +423,7 @@ export function deriveFocusFromCompletionCandidates(
                         column: candidateObject.tableColumnId
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
-                });
+                };
                 break;
         }
     }

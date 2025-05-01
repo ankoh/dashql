@@ -645,10 +645,10 @@ export class CatalogViewModel {
         let focusedAnything = false;
 
         // Pin focused catalog objects
-        for (const o of focus.catalogObjects) {
+        if (focus.catalogObject != null) {
             let flagsTarget = 0;
             let flagsPath = 0;
-            switch (o.focus) {
+            switch (focus.catalogObject.focus) {
                 case FocusType.COMPLETION_CANDIDATE:
                     flagsTarget = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
                     flagsPath = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH;
@@ -670,7 +670,7 @@ export class CatalogViewModel {
                     focusedAnything = true;
                     break;
             }
-            this.pinPath(catalog, epoch, flagsTarget, flagsPath, PINNED_BY_FOCUS, o);
+            this.pinPath(catalog, epoch, flagsTarget, flagsPath, PINNED_BY_FOCUS, focus.catalogObject);
         }
         if (focusedAnything || clear) {
             // Unpin previous catalog objects

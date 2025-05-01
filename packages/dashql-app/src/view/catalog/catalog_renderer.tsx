@@ -238,7 +238,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const levelWidth = ctx.levelWidths[levelId];
     const positionsY = thisLevel.positionsY;
     const renderingEpochs = thisLevel.renderedInEpoch;
-    const renderChildren = ctx.renderColumns || ((levelId + 1) < CatalogLevel.Column);
+    const isLastLevel = levelId == CatalogLevel.Column || (!ctx.renderColumns && levelId == CatalogLevel.Table);
     const subtreeHeights = ctx.renderColumns
         ? thisLevel.subtreeHeights.withColumns
         : thisLevel.subtreeHeights.withoutColumns;
@@ -286,7 +286,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             if ((thisPosY + subtreeHeights[entryId]) <= ctx.renderingWindow.virtualScrollWindowBegin) {
                 ctx.currentWriterY += subtreeHeights[entryId];
                 centerInScrollWindow = thisPosY;
-            } else if (renderChildren && entry.childCount() > 0) {
+            } else if (!isLastLevel && entry.childCount() > 0) {
+                // Render children first
                 ctx.renderingWindow.startRenderingChildren();
                 renderEntriesAtLevel(ctx, levelId + 1, entry.childBegin(), entry.childCount(), entryId, entryIsFocused);
                 const stats = ctx.renderingWindow.stopRenderingChildren();
@@ -312,7 +313,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             renderingEpochs[entryId] = ctx.renderingEpoch;
             // Determine if any child is focused
             let anyChildIsFocused = false;
-            if (renderChildren && entry.childCount() > 0) {
+            if (!isLastLevel && entry.childCount() > 0) {
                 for (let i = 0; i < entry.childCount(); ++i) {
                     const level = levels[levelId + 1];
                     anyChildIsFocused ||= (level.entryFlags[entry.childBegin() + i] & PINNED_BY_FOCUS) != 0;
@@ -345,6 +346,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 },
             };
             ctx.nextState.nodePositions.set(thisKey, newNodePosition);
+
             // Output node
             ctx.output.nodes.push(
                 <motion.div
@@ -401,7 +403,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.West}
                             />
                         )}
-                        {renderChildren && (entry.childCount() > 0) && (
+                        {!isLastLevel && (entry.childCount() > 0) && (
                             <div
                                 className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
