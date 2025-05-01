@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { EdgePathBuilder, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
 import { buildEdgePath, selectHorizontalEdgeType } from './graph_edges.js';
-import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, CatalogLevel } from './catalog_view_model.js';
+import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS } from './catalog_view_model.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -168,10 +168,6 @@ export interface RenderingOutput {
     edges: React.ReactElement[];
     /// The focused edges
     edgesFocused: React.ReactElement[];
-    /// The total width
-    totalWidth: number;
-    /// The total height
-    totalHeight: number;
 }
 
 interface RenderingContext {
@@ -181,12 +177,6 @@ interface RenderingContext {
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The rendering epoch
     renderingEpoch: number;
-    /// Render Columns?
-    renderColumns: boolean;
-    /// The x-positions per level
-    levelPositionsX: number[];
-    /// The level widths
-    levelWidths: number[];
     /// The current writer on the vertical axis
     currentWriterY: number;
     /// The rendering path
@@ -225,6 +215,10 @@ const EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
+const EDGE_DETAILS_TRANSITION = {
+    duration: 0.3,
+    ease: "easeInOut"
+};
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
 function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBegin: number, entriesCount: number, parentEntryId: number | null, parentIsFocused: boolean) {
@@ -234,14 +228,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const entries = thisLevel.entries;
     const scratchEntry = thisLevel.scratchEntry;
     const flags = thisLevel.entryFlags;
-    const levelPositionX = ctx.levelPositionsX[levelId];
-    const levelWidth = ctx.levelWidths[levelId];
+    const levelPositionX = thisLevel.positionX;
+    const levelWidth = thisLevel.settings.nodeWidth;
+    const levelSubtreeHeights = thisLevel.subtreeHeights;
     const positionsY = thisLevel.positionsY;
     const renderingEpochs = thisLevel.renderedInEpoch;
-    const isLastLevel = levelId == CatalogLevel.Column || (!ctx.renderColumns && levelId == CatalogLevel.Table);
-    const subtreeHeights = ctx.renderColumns
-        ? thisLevel.subtreeHeights.withColumns
-        : thisLevel.subtreeHeights.withoutColumns;
+    const isLastLevel = (levelId + 1) >= ctx.viewModel.visibleLevels;
 
     // Track overflow nodes
     let overflowChildCount = 0;
@@ -283,8 +275,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             let centerInScrollWindow: number | null = null;
             // Is the subtree entirely below the virtual window?
             // Then we just skip rendering completely.
-            if ((thisPosY + subtreeHeights[entryId]) <= ctx.renderingWindow.virtualScrollWindowBegin) {
-                ctx.currentWriterY += subtreeHeights[entryId];
+            if ((thisPosY + levelSubtreeHeights[entryId]) <= ctx.renderingWindow.virtualScrollWindowBegin) {
+                ctx.currentWriterY += levelSubtreeHeights[entryId];
                 centerInScrollWindow = thisPosY;
             } else if (!isLastLevel && entry.childCount() > 0) {
                 // Render children first
@@ -422,12 +414,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const fromX = levelPositionX + levelWidth / 2;
                 const fromY = thisPosY + settings.nodeHeight / 2;
                 const fromWidth = levelWidth;
-                const toSettings = ctx.viewModel.levels[levelId + 1].settings;
-                const toPositionsY = ctx.viewModel.levels[levelId + 1].positionsY;
-                const toX = ctx.levelPositionsX[levelId + 1] + ctx.levelWidths[levelId + 1] / 2;
-                const toEpochs = ctx.viewModel.levels[levelId + 1].renderedInEpoch;
-                const toFlags = ctx.viewModel.levels[levelId + 1].entryFlags;
-                const toWidth = ctx.levelWidths[levelId + 1];
+                const toSettings = levels[levelId + 1].settings;
+                const toPositionsY = levels[levelId + 1].positionsY;
+                const toX = levels[levelId + 1].positionX + levels[levelId + 1].settings.nodeWidth / 2;
+                const toEpochs = levels[levelId + 1].renderedInEpoch;
+                const toFlags = levels[levelId + 1].entryFlags;
+                const toWidth = levels[levelId + 1].settings.nodeWidth;
 
                 for (let i = 0; i < entry.childCount(); ++i) {
                     const toEntryId = entry.childBegin() + i;
@@ -515,10 +507,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
             // XXX If the node is focused and the last level, we also emit the details node
             if (isLastLevel && ((entryFlags & PINNED_BY_FOCUS) != 0)) {
-                const detailsKey = `details`;
+                const detailsKey = "details";
 
                 const detailsRendering = ctx.viewModel.settings.details;
-                const detailsPositionX = ctx.levelPositionsX[levelId] + ctx.levelWidths[levelId] + detailsRendering.columnGap;
+                const detailsPositionX = ctx.viewModel.details.positionX;
                 const detailsPositionY = thisPosY;
 
                 // Resolve the previous details node
@@ -540,7 +532,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 };
                 ctx.nextState.nodePositions.set(detailsKey, newNodePosition);
 
-                const edgeFromX = ctx.levelPositionsX[levelId] + ctx.levelWidths[levelId] / 2;
+                const edgeFromX = levelPositionX + levelWidth / 2;
                 const edgeFromY = thisPosY + settings.nodeHeight / 2;
                 const edgeToX = detailsPositionX + detailsRendering.nodeWidth / 2;
                 const edgeToY = thisPosY + settings.nodeHeight / 2; // We want a horizontal line
@@ -549,7 +541,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
                 const prevPath = ctx.prevState.edgePaths.get(detailsKey);
                 const nextPath: RenderedPath = {
-                    key: "details",
+                    key: detailsKey,
                     initial: prevPath?.animate ?? (
                         {
                             d: edgePath,
@@ -570,7 +562,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 ctx.nextState.edgePaths.set(detailsKey, nextPath);
                 ctx.output.nodes.push(
                     <motion.div
-                        key="details"
+                        key={detailsKey}
                         className={classNames(styles.node, styles.node_details)}
                         style={{
                             position: 'absolute',
@@ -592,10 +584,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 );
                 ctx.output.edgesFocused.push(
                     <motion.path
-                        key="details"
+                        key={detailsKey}
                         initial={nextPath.initial}
                         animate={nextPath.animate}
-                        transition={EDGE_TRANSITION}
+                        transition={EDGE_DETAILS_TRANSITION}
                         strokeWidth="2px"
                         stroke="currentcolor"
                         fill="transparent"
@@ -664,27 +656,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 }
 
 /// A function to render a catalog
-export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel, withColumns: boolean): [RenderingState, RenderingOutput] {
-    // Compute x positions
-    let writerX = 0;
-    let levelPositionsX: number[] = [0, 0, 0, 0];
-    let levelWidths: number[] = [0, 0, 0, 0];
-    for (let i = 0; i < (withColumns ? viewModel.levels.length : (viewModel.levels.length - 1)); ++i) {
-        const settings = viewModel.levels[i].settings;
-        writerX += settings.columnGap;
-        levelPositionsX[i] = writerX;
-        const levelWidth = settings.nodeWidth;
-        levelWidths[i] = levelWidth;
-        writerX += levelWidth;
-    }
-
+export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
     const ctx: RenderingContext = {
         viewModel,
         snapshot: viewModel.snapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
-        renderColumns: withColumns,
-        levelPositionsX,
-        levelWidths,
         currentWriterY: 0,
         renderingPath: new RenderingPath(),
         renderingWindow: new VirtualRenderingWindow(viewModel.scrollBegin, viewModel.scrollEnd, viewModel.virtualScrollBegin, viewModel.virtualScrollEnd),
@@ -698,10 +674,13 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
             nodes: [],
             edges: [],
             edgesFocused: [],
-            totalWidth: writerX,
-            totalHeight: withColumns ? viewModel.totalHeightWithColumns : viewModel.totalHeightWithoutColumns
         }
     };
+    // Render the levels
     renderEntriesAtLevel(ctx, 0, 0, viewModel.databaseEntries.entries.length(ctx.snapshot), null, false);
+
+    // Render details node
+    // XXX
+
     return [ctx.nextState, ctx.output];
 }

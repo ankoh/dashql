@@ -8,7 +8,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
-import { CatalogLevel, CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
+import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
@@ -80,11 +80,7 @@ export function CatalogViewer(props: Props) {
             setViewModel(state);
         }
     }, [workbook?.connectionCatalog.snapshot]);
-
-    // Render with or without columns?
-    const [renderColumns, setRenderColumns] = React.useState<boolean>(true);
-    // Flipping column rendering will change the view model height and then trigger a rerender
-    const viewModelHeight = (renderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
+    const viewModelHeight = viewModel?.totalHeight ?? 0;
 
     // Load script refs
     const previousScript = React.useRef<dashql.DashQLScript | null>(null);
@@ -103,7 +99,6 @@ export function CatalogViewer(props: Props) {
         if (previousScript.current !== script.script) {
             previousScript.current = script.script;
             viewModel?.unpinFocusedByUser();
-            setRenderColumns(true);
         }
 
     }, [viewModel, script?.processed]);
@@ -113,28 +108,19 @@ export function CatalogViewer(props: Props) {
         if (viewModel != null && workbook?.userFocus) {
             // Pin focused elements
             viewModel.pinFocusedByUser(workbook.userFocus);
-            // Get the number of focused levels
-            let newRenderColumns = true;
-            if (viewModel.getFirstUnfocusedLevel() == CatalogLevel.Column) {
-                newRenderColumns = false;
-            }
-            // Collapsing/expanding columns based on user-focus and jumping in the scroll container at the same time is racy
-            if (newRenderColumns != renderColumns) {
-                setRenderColumns(newRenderColumns);
-            }
 
             // Scroll to first focused entry
-            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused(newRenderColumns);
+            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();
             if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
                 const containerDiv = containerElement.current as HTMLDivElement;
                 const boardDiv = boardElement.current as HTMLDivElement;
                 const clientVerticalCenter = containerSize.height / 2;
                 scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter; // XXX Padding
 
-                const newViewModelHeight = (newRenderColumns ? viewModel?.totalHeightWithColumns : viewModel?.totalHeightWithoutColumns) ?? 0;
                 // XXX Are browsers doing the right thing here?
                 //     Manual tests indicate that this is working...
                 //     We manually bump the minimum height to make sure there's enough room for scrollTop.
+                const newViewModelHeight = viewModel?.totalHeight ?? 0;
                 boardDiv.style.minHeight = `${newViewModelHeight}px`;
                 containerDiv.scrollTop = scrollToFocus;
             }
@@ -194,7 +180,7 @@ export function CatalogViewer(props: Props) {
                 }
             };
         }
-    }, [viewModel, renderColumns, scrollTop, containerSize]);
+    }, [viewModelVersion, scrollTop, containerSize]);
 
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
@@ -213,8 +199,6 @@ export function CatalogViewer(props: Props) {
                 nodes: [],
                 edges: [],
                 edgesFocused: [],
-                totalWidth: 0,
-                totalHeight: 0,
             };
         }
         // Update the virtual window
@@ -225,17 +209,17 @@ export function CatalogViewer(props: Props) {
             renderingWindow.virtual.top + renderingWindow.virtual.height
         );
         // Render the catalog
-        const [newState, output] = renderCatalog(stateRef.current, viewModel, renderColumns);
+        const [newState, output] = renderCatalog(stateRef.current, viewModel);
         stateRef.current = newState;
         return output;
 
     }, [viewModelVersion, renderingWindow]);
 
-    let totalWidth = renderedOutput?.totalWidth ?? containerSize?.width ?? 0;
-    let totalHeight = renderedOutput?.totalHeight ?? containerSize?.height ?? 0;
+    let totalWidth = viewModel?.totalWidth ?? containerSize?.width ?? 0;
+    let totalHeight = viewModel?.totalHeight ?? containerSize?.height ?? 0;
 
     // Adjust top padding
-    paddingTop = Math.max(Math.max((containerSize?.height ?? 0) - renderedOutput?.totalHeight, 0) / 2, 20);
+    paddingTop = Math.max(Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2, 20);
     paddingBottom = paddingTop;
     return (
         <div className={styles.root}>

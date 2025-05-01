@@ -57,7 +57,7 @@ describe('CatalogViewModel', () => {
 
         const catalogVM = new CatalogViewModel(snapshotPtr, DEFAULT_RENDERING_SETTINGS);
         catalogVM.layoutEntries();
-        expect(catalogVM.totalHeightWithColumns).toEqual(
+        expect(catalogVM.totalHeight).toEqual(
             // 2 times 3 tables with overflow node
             2 * ((3 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
                 (2 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap) +
@@ -78,7 +78,7 @@ describe('CatalogViewModel', () => {
         expect(analyzedReader.expressionsLength()).toEqual(1);
 
         catalogVM.pinScriptRefs(analyzedReader);
-        expect(catalogVM.totalHeightWithColumns).toEqual(
+        expect(catalogVM.totalHeight).toEqual(
             // 2 times 3 tables with overflow node
             2 * ((3 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
                 (2 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap) +
