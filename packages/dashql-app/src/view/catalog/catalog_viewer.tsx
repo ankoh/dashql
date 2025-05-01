@@ -22,7 +22,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             rowGap: 24,
-            columnGap: 48,
+            columnGap: 0,
         },
         schemas: {
             nodeWidth: 160,
@@ -215,8 +215,14 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModelVersion, renderingWindow]);
 
-    let totalWidth = viewModel?.totalWidth ?? containerSize?.width ?? 0;
-    let totalHeight = viewModel?.totalHeight ?? containerSize?.height ?? 0;
+    let totalWidth = containerSize?.width ?? 0;
+    let totalHeight = containerSize?.height ?? 0;
+    if (viewModel?.totalWidth) {
+        totalWidth = viewModel.totalWidth + paddingLeft + paddingRight;
+    }
+    if (viewModel?.totalHeight) {
+        totalHeight += viewModel.totalHeight + paddingTop + paddingBottom;
+    }
 
     // Adjust top padding
     paddingTop = Math.max(Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2, 20);
