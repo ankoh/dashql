@@ -64,8 +64,8 @@ for PROTO_SUBDIR_PATH in ${PROTO_DIRS}; do
     PROTO_DIRNAME="$(basename $PROTO_SUBDIR_PATH)"
     PROTO_SUBDIR="${TS_OUT_PROTO_BASE}/${PROTO_DIRNAME}"
 
-    echo "Generating $PROTO_INDEX"
     PROTO_INDEX="${TS_OUT_PROTO_BASE}/${PROTO_DIRNAME}.ts"
+    echo "Generating $PROTO_INDEX"
     echo >${PROTO_INDEX}
 
     PROTO_FILES=$(ls ${PROTO_SUBDIR}/*.ts)
