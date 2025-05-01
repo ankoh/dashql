@@ -45,6 +45,10 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             rowGap: 8,
             columnGap: 48,
         },
+    },
+    details: {
+        nodeWidth: 200,
+        columnGap: 48,
     }
 };
 
@@ -195,7 +199,7 @@ export function CatalogViewer(props: Props) {
     // The current state
     const stateRef = React.useRef<RenderingState | null>(null);
     // Memo must depend on scroll window and window size
-    const renderedOutput = React.useMemo<RenderingOutput>(() => {
+    const renderedOutput = React.useMemo<RenderingOutput>((): RenderingOutput => {
         // Is the rendering state empty?
         if (stateRef.current == null) {
             stateRef.current = {
@@ -275,7 +279,7 @@ export function CatalogViewer(props: Props) {
                             paddingRight={paddingRight}
                             paddingLeft={paddingLeft}
                             paddingBottom={paddingBottom}
-                            nodes={renderedOutput.nodes ?? []}
+                            nodes={renderedOutput.nodes}
                         />
                     </div>
                 </div>

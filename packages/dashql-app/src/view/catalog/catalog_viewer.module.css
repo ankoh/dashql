@@ -86,6 +86,7 @@
 }
 
 .layer_body {
+    grid-row: 1;
     grid-column: 2;
     position: relative;
 }

@@ -16,6 +16,14 @@ export interface CatalogLevelRenderingSettings {
     columnGap: number;
 }
 
+/// The rendering settings for catalog details
+export interface CatalogDetailsRenderingSettings {
+    /// The width of a node
+    nodeWidth: number;
+    /// The column gap left of this entry
+    columnGap: number;
+}
+
 export interface CatalogRenderingSettings {
     /// The virtualization settings
     virtual: {
@@ -35,6 +43,8 @@ export interface CatalogRenderingSettings {
         /// The column settings
         columns: CatalogLevelRenderingSettings;
     },
+    /// The details
+    details: CatalogDetailsRenderingSettings;
 }
 
 /// The flags for rendering catalog entries

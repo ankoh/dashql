@@ -418,6 +418,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             );
             // Draw edges to all children
             if (entry.childCount() > 0) {
+                // buildEdgePath is drawing from center points
                 const fromX = levelPositionX + levelWidth / 2;
                 const fromY = thisPosY + settings.nodeHeight / 2;
                 const fromWidth = levelWidth;
@@ -511,6 +512,99 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     }
                 }
             }
+
+            // XXX If the node is focused and the last level, we also emit the details node
+            if (isLastLevel && ((entryFlags & PINNED_BY_FOCUS) != 0)) {
+                const detailsKey = `details`;
+
+                const detailsRendering = ctx.viewModel.settings.details;
+                const detailsPositionX = ctx.levelPositionsX[levelId] + ctx.levelWidths[levelId] + detailsRendering.columnGap;
+                const detailsPositionY = thisPosY;
+
+                // Resolve the previous details node
+                const prevNodePosition = ctx.prevState.nodePositions.get(detailsKey);
+                const newNodePosition: RenderedNode = {
+                    key: detailsKey,
+                    initial: prevNodePosition?.animate ?? (
+                        {
+                            top: detailsPositionY,
+                            left: detailsPositionX + NODE_INITIAL_X_OFFSET,
+                            scale: NODE_INITIAL_SCALE,
+                        }
+                    ),
+                    animate: {
+                        top: detailsPositionY,
+                        left: detailsPositionX,
+                        scale: 1.0,
+                    },
+                };
+                ctx.nextState.nodePositions.set(detailsKey, newNodePosition);
+
+                const edgeFromX = ctx.levelPositionsX[levelId] + ctx.levelWidths[levelId] / 2;
+                const edgeFromY = thisPosY + settings.nodeHeight / 2;
+                const edgeToX = detailsPositionX + detailsRendering.nodeWidth / 2;
+                const edgeToY = thisPosY + settings.nodeHeight / 2; // We want a horizontal line
+                const edgeType = selectHorizontalEdgeType(edgeFromX, edgeFromY, edgeToX, edgeToY);
+                const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, edgeFromX, edgeFromY, edgeToX, edgeToY, levelWidth, settings.nodeHeight, detailsRendering.nodeWidth, settings.nodeHeight, 4);
+
+                const prevPath = ctx.prevState.edgePaths.get(detailsKey);
+                const nextPath: RenderedPath = {
+                    key: "details",
+                    initial: prevPath?.animate ?? (
+                        {
+                            d: edgePath,
+                            pathLength: EDGE_INITIAL_PATH_LENGTH,
+                            pathOffset: EDGE_INITIAL_PATH_OFFSET,
+                            scale: EDGE_INITIAL_SCALE,
+                            opacity: EDGE_INITIAL_OPACITY,
+                        }
+                    ),
+                    animate: {
+                        d: edgePath,
+                        pathLength: 1.0,
+                        pathOffset: 0.0,
+                        scale: 1.0,
+                        opacity: 1.0
+                    }
+                };
+                ctx.nextState.edgePaths.set(detailsKey, nextPath);
+                ctx.output.nodes.push(
+                    <motion.div
+                        key="details"
+                        className={classNames(styles.node, styles.node_details)}
+                        style={{
+                            position: 'absolute',
+                            width: detailsRendering.nodeWidth,
+                            height: '60px',
+                        }}
+                        initial={newNodePosition.initial}
+                        animate={newNodePosition.animate}
+                        transition={NODE_TRANSITION}
+                    >
+
+                        <div className={styles.node_ports}>
+                            <div
+                                className={styles.node_port_details}
+                                data-port={NodePort.West}
+                            />
+                        </div>
+                    </motion.div>
+                );
+                ctx.output.edgesFocused.push(
+                    <motion.path
+                        key="details"
+                        initial={nextPath.initial}
+                        animate={nextPath.animate}
+                        transition={EDGE_TRANSITION}
+                        strokeWidth="2px"
+                        stroke="currentcolor"
+                        fill="transparent"
+                        pointerEvents="stroke"
+                        data-edge="details"
+                    />,
+                );
+            }
+
         }
     }
 
