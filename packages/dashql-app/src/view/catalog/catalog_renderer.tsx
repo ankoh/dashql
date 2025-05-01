@@ -403,12 +403,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.West}
                             />
                         )}
-                        {!isLastLevel && (entry.childCount() > 0) && (
+                        {((entryFlags & PINNED_BY_FOCUS) || (!isLastLevel && (entry.childCount() > 0))) && (
                             <div
                                 className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
                                     [styles.node_port_border_focused]: entryIsFocused,
-                                    [styles.node_port_focused]: anyChildIsFocused,
+                                    [styles.node_port_focused]: isLastLevel || anyChildIsFocused,
                                 })}
                                 data-port={NodePort.East}
                             />
