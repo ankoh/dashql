@@ -56,14 +56,14 @@ export function CatalogPanel(_props: CatalogPanelProps) {
                     const analyzedPtr = analyzed.read();
                     const tableRef = analyzedPtr.tableReferences(tableRefId)!;
                     switch (tableRef.innerType()) {
-                        case dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName: {
-                            const inner = new dashql.buffers.analyzer.ResolvedRelationName();
-                            tableRef.inner(inner) as dashql.buffers.analyzer.ResolvedRelationName;
+                        case dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference: {
+                            const inner = new dashql.buffers.analyzer.ResolvedRelationReference();
+                            tableRef.inner(inner) as dashql.buffers.analyzer.ResolvedRelationReference;
                             const tableName = inner.tableName();
                             overlay.push(["Table", tableName?.tableName() ?? ""]);
                             break;
                         }
-                        case dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationName: {
+                        case dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference: {
                             overlay.push(["Table", "<unresolved>"]);
                             break;
                         }

@@ -66,7 +66,7 @@ table Table {
     table_columns: [TableColumn];
 }
 
-table ResolvedRelationName {
+table ResolvedRelationReference {
     // The name of the table that is referenced
     table_name: QualifiedTableName;
     // The resolved unified database id across all catalog entries
@@ -79,14 +79,14 @@ table ResolvedRelationName {
     catalog_table_id: uint64;
 }
 
-table UnresolvedRelationName {
+table UnresolvedRelationReference {
     // The name of the table that is referenced
     table_name: QualifiedTableName;
 }
 
 union TableReferenceSubType {
-    ResolvedRelationName,
-    UnresolvedRelationName
+    ResolvedRelationReference,
+    UnresolvedRelationReference
 }
 
 table TableReference {

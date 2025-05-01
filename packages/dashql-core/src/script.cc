@@ -316,22 +316,22 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         case 1: {
             auto& unresolved = std::get<AnalyzedScript::TableReference::UnresolvedRelationExpression>(inner);
             auto table_name_ofs = unresolved.table_name.Pack(builder);
-            buffers::analyzer::UnresolvedRelationNameBuilder out{builder};
+            buffers::analyzer::UnresolvedRelationReferenceBuilder out{builder};
             out.add_table_name(table_name_ofs);
             inner_ofs = out.Finish().Union();
-            inner_type = buffers::analyzer::TableReferenceSubType::UnresolvedRelationName;
+            inner_type = buffers::analyzer::TableReferenceSubType::UnresolvedRelationReference;
             break;
         }
         case 2: {
             auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(inner);
             auto table_name_ofs = resolved.selected.table_name.Pack(builder);
-            buffers::analyzer::ResolvedRelationNameBuilder out{builder};
+            buffers::analyzer::ResolvedRelationReferenceBuilder out{builder};
             out.add_table_name(table_name_ofs);
             out.add_catalog_database_id(resolved.selected.catalog_database_id);
             out.add_catalog_schema_id(resolved.selected.catalog_schema_id);
             out.add_catalog_table_id(resolved.selected.catalog_table_id.Pack());
             inner_ofs = out.Finish().Union();
-            inner_type = buffers::analyzer::TableReferenceSubType::ResolvedRelationName;
+            inner_type = buffers::analyzer::TableReferenceSubType::ResolvedRelationReference;
             break;
         }
     }

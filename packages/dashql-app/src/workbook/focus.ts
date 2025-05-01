@@ -68,7 +68,7 @@ export function deriveFocusFromScriptCursor(
     const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
     const tmpIndexedColumnRef = new dashql.buffers.analyzer.IndexedColumnReference();
     const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
-    const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationName();
+    const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationReference();
 
     let sourceAnalyzed = scriptData.processed.analyzed?.read(tmpSourceAnalyzed);
     if (sourceAnalyzed == null) {
@@ -92,8 +92,8 @@ export function deriveFocusFromScriptCursor(
             };
             // Is resolved?
             const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId)!;
-            if (sourceRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName) {
-                const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationName;
+            if (sourceRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference) {
+                const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationReference;
 
                 // Focus in catalog
                 focus.catalogObjects = [{

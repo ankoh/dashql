@@ -585,7 +585,7 @@ export class CatalogViewModel {
         const tmpTableRef = new dashql.buffers.analyzer.TableReference();
         const tmpExpression = new dashql.buffers.algebra.Expression();
         const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
-        const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationName();
+        const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationReference();
 
         // Allocate an epoch
         const epoch = this.nextPinEpoch++;
@@ -593,8 +593,8 @@ export class CatalogViewModel {
         // Pin table references
         for (let i = 0; i < script.tableReferencesLength(); ++i) {
             const tableRef = script.tableReferences(i, tmpTableRef)!;
-            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName) {
-                const resolved = tableRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationName;
+            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference) {
+                const resolved = tableRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationReference;
                 const objectId: QualifiedCatalogObjectID = {
                     type: QUALIFIED_TABLE_ID,
                     value: {

@@ -156,7 +156,7 @@ function buildDecorationsFromAnalysis(
         // Decorate unresolved tables
         for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
             const tableRef = analyzed.tableReferences(i)!;
-            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationName) {
+            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference) {
                 const loc = tableRef.location()!;
                 decorations.push({
                     from: loc.offset(),
