@@ -26,26 +26,26 @@ describe('Catalog Export', () => {
         catalog.addDescriptorPool(1, 10);
         catalog.addSchemaDescriptorT(
             1,
-            new dashql.buffers.SchemaDescriptorT('db1', 'schema1', [
-                new dashql.buffers.SchemaTableT(0, 'table1', [
-                    new dashql.buffers.SchemaTableColumnT('column1'),
-                    new dashql.buffers.SchemaTableColumnT('column2'),
-                    new dashql.buffers.SchemaTableColumnT('column3'),
+            new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema1', [
+                new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
+                    new dashql.buffers.catalog.SchemaTableColumnT('column1'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column2'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column3'),
                 ]),
-                new dashql.buffers.SchemaTableT(0, 'table2', [
-                    new dashql.buffers.SchemaTableColumnT('column1'),
-                    new dashql.buffers.SchemaTableColumnT('column2'),
-                    new dashql.buffers.SchemaTableColumnT('column3'),
+                new dashql.buffers.catalog.SchemaTableT(0, 'table2', [
+                    new dashql.buffers.catalog.SchemaTableColumnT('column1'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column2'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column3'),
                 ]),
             ])
         );
         catalog.addSchemaDescriptorT(
             1,
-            new dashql.buffers.SchemaDescriptorT('db1', 'schema2', [
-                new dashql.buffers.SchemaTableT(0, 'table1', [
-                    new dashql.buffers.SchemaTableColumnT('column1'),
-                    new dashql.buffers.SchemaTableColumnT('column2'),
-                    new dashql.buffers.SchemaTableColumnT('column3'),
+            new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema2', [
+                new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
+                    new dashql.buffers.catalog.SchemaTableColumnT('column1'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column2'),
+                    new dashql.buffers.catalog.SchemaTableColumnT('column3'),
                 ]),
             ]),
         );

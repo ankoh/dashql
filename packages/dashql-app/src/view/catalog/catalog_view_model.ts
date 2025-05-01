@@ -89,7 +89,7 @@ export const PINNED_BY_ANYTHING = PINNED_BY_SCRIPT | PINNED_BY_FOCUS;
 
 /// A span of catalog entries
 interface CatalogEntrySpan {
-    read(snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.FlatCatalogEntry): dashql.buffers.FlatCatalogEntry | null;
+    read(snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.catalog.FlatCatalogEntry): dashql.buffers.catalog.FlatCatalogEntry | null;
     length(snap: dashql.DashQLCatalogSnapshotReader): number;
 }
 
@@ -167,7 +167,7 @@ interface CatalogLevelViewModel {
     /// The epochs in which this node was pinned
     pinnedInEpoch: Uint32Array;
     /// The scratch catalog entry
-    scratchEntry: dashql.buffers.FlatCatalogEntry;
+    scratchEntry: dashql.buffers.catalog.FlatCatalogEntry;
     /// The first focused element
     firstFocusedEntry: { epoch: number, entryId: number } | null;
 }
@@ -212,11 +212,11 @@ export class CatalogViewModel {
     virtualScrollEnd: number;
 
     /// A temporary database object
-    tmpDatabaseEntry: dashql.buffers.IndexedFlatDatabaseEntry;
+    tmpDatabaseEntry: dashql.buffers.catalog.IndexedFlatDatabaseEntry;
     /// A temporary schema object
-    tmpSchemaEntry: dashql.buffers.IndexedFlatSchemaEntry;
+    tmpSchemaEntry: dashql.buffers.catalog.IndexedFlatSchemaEntry;
     /// A temporary table object
-    tmpTableEntry: dashql.buffers.IndexedFlatTableEntry;
+    tmpTableEntry: dashql.buffers.catalog.IndexedFlatTableEntry;
 
     constructor(snapshot: dashql.DashQLCatalogSnapshot, settings: CatalogRenderingSettings) {
         this.snapshot = snapshot;
@@ -227,7 +227,7 @@ export class CatalogViewModel {
         this.databaseEntries = {
             settings: settings.levels.databases,
             entries: {
-                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.FlatCatalogEntry) => snap.catalogReader.databases(index, obj),
+                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.catalog.FlatCatalogEntry) => snap.catalogReader.databases(index, obj),
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.databasesLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.databasesLength()),
@@ -235,7 +235,7 @@ export class CatalogViewModel {
                 withColumns: new Float32Array(snap.catalogReader.databasesLength()),
                 withoutColumns: new Float32Array(snap.catalogReader.databasesLength()),
             },
-            scratchEntry: new dashql.buffers.FlatCatalogEntry(),
+            scratchEntry: new dashql.buffers.catalog.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.databasesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.databasesLength()),
             pinnedEntries: new Set(),
@@ -245,7 +245,7 @@ export class CatalogViewModel {
         this.schemaEntries = {
             settings: settings.levels.schemas,
             entries: {
-                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.FlatCatalogEntry) => snap.catalogReader.schemas(index, obj),
+                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.catalog.FlatCatalogEntry) => snap.catalogReader.schemas(index, obj),
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.schemasLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.schemasLength()),
@@ -253,7 +253,7 @@ export class CatalogViewModel {
                 withColumns: new Float32Array(snap.catalogReader.schemasLength()),
                 withoutColumns: new Float32Array(snap.catalogReader.schemasLength()),
             },
-            scratchEntry: new dashql.buffers.FlatCatalogEntry(),
+            scratchEntry: new dashql.buffers.catalog.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.schemasLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.schemasLength()),
             pinnedEntries: new Set(),
@@ -263,7 +263,7 @@ export class CatalogViewModel {
         this.tableEntries = {
             settings: settings.levels.tables,
             entries: {
-                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.FlatCatalogEntry) => snap.catalogReader.tables(index, obj),
+                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.catalog.FlatCatalogEntry) => snap.catalogReader.tables(index, obj),
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.tablesLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.tablesLength()),
@@ -271,7 +271,7 @@ export class CatalogViewModel {
                 withColumns: new Float32Array(snap.catalogReader.tablesLength()),
                 withoutColumns: new Float32Array(snap.catalogReader.tablesLength()),
             },
-            scratchEntry: new dashql.buffers.FlatCatalogEntry(),
+            scratchEntry: new dashql.buffers.catalog.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.tablesLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.tablesLength()),
             pinnedInEpoch: new Uint32Array(snap.catalogReader.tablesLength()),
@@ -281,7 +281,7 @@ export class CatalogViewModel {
         this.columnEntries = {
             settings: settings.levels.columns,
             entries: {
-                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.FlatCatalogEntry) => snap.catalogReader.columns(index, obj),
+                read: (snap: dashql.DashQLCatalogSnapshotReader, index: number, obj?: dashql.buffers.catalog.FlatCatalogEntry) => snap.catalogReader.columns(index, obj),
                 length: (snap: dashql.DashQLCatalogSnapshotReader) => snap.catalogReader.columnsLength(),
             },
             entryFlags: new Uint16Array(snap.catalogReader.columnsLength()),
@@ -289,7 +289,7 @@ export class CatalogViewModel {
                 withColumns: new Float32Array(snap.catalogReader.columnsLength()),
                 withoutColumns: new Float32Array(),
             },
-            scratchEntry: new dashql.buffers.FlatCatalogEntry(),
+            scratchEntry: new dashql.buffers.catalog.FlatCatalogEntry(),
             positionsY: new Float32Array(snap.catalogReader.columnsLength()),
             renderedInEpoch: new Uint32Array(snap.catalogReader.columnsLength()),
             pinnedInEpoch: new Uint32Array(snap.catalogReader.columnsLength()),
@@ -306,9 +306,9 @@ export class CatalogViewModel {
         this.virtualScrollBegin = 0;
         this.virtualScrollEnd = 300;
 
-        this.tmpDatabaseEntry = new dashql.buffers.IndexedFlatDatabaseEntry();
-        this.tmpSchemaEntry = new dashql.buffers.IndexedFlatSchemaEntry();
-        this.tmpTableEntry = new dashql.buffers.IndexedFlatTableEntry();
+        this.tmpDatabaseEntry = new dashql.buffers.catalog.IndexedFlatDatabaseEntry();
+        this.tmpSchemaEntry = new dashql.buffers.catalog.IndexedFlatSchemaEntry();
+        this.tmpTableEntry = new dashql.buffers.catalog.IndexedFlatTableEntry();
 
         // Layout all entries.
         // This means users don't have to special-case the states without layout.
@@ -427,7 +427,7 @@ export class CatalogViewModel {
     }
 
     /// Pin an element
-    pinPath(catalog: dashql.buffers.FlatCatalog,
+    pinPath(catalog: dashql.buffers.catalog.FlatCatalog,
         epoch: number,
         flagsTarget: number,
         flagsPath: number,
@@ -580,12 +580,12 @@ export class CatalogViewModel {
 
 
     // Pin all script refs
-    pinScriptRefs(script: dashql.buffers.AnalyzedScript): void {
+    pinScriptRefs(script: dashql.buffers.analyzer.AnalyzedScript): void {
         const catalog = this.snapshot.read().catalogReader;
-        const tmpTableRef = new dashql.buffers.TableReference();
-        const tmpExpression = new dashql.buffers.Expression();
-        const tmpResolvedColumnRef = new dashql.buffers.ResolvedColumnRefExpression();
-        const tmpResolvedRelationExpr = new dashql.buffers.ResolvedRelationExpression();
+        const tmpTableRef = new dashql.buffers.analyzer.TableReference();
+        const tmpExpression = new dashql.buffers.algebra.Expression();
+        const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
+        const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationName();
 
         // Allocate an epoch
         const epoch = this.nextPinEpoch++;
@@ -593,8 +593,8 @@ export class CatalogViewModel {
         // Pin table references
         for (let i = 0; i < script.tableReferencesLength(); ++i) {
             const tableRef = script.tableReferences(i, tmpTableRef)!;
-            if (tableRef.innerType() == dashql.buffers.TableReferenceSubType.ResolvedRelationExpression) {
-                const resolved = tableRef.inner(tmpResolvedRelationExpr) as dashql.buffers.ResolvedRelationExpression;
+            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName) {
+                const resolved = tableRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationName;
                 const objectId: QualifiedCatalogObjectID = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
@@ -610,8 +610,8 @@ export class CatalogViewModel {
         // Pin resolved column references
         for (let i = 0; i < script.expressionsLength(); ++i) {
             const expr = script.expressions(i, tmpExpression)!;
-            if (expr.innerType() == dashql.buffers.ExpressionSubType.ResolvedColumnRefExpression) {
-                const resolved = expr.inner(tmpResolvedColumnRef) as dashql.buffers.ResolvedColumnRefExpression;
+            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression) {
+                const resolved = expr.inner(tmpResolvedColumnRef) as dashql.buffers.algebra.ResolvedColumnRefExpression;
                 const objectId: QualifiedCatalogObjectID = {
                     type: QUALIFIED_TABLE_COLUMN_ID,
                     value: {

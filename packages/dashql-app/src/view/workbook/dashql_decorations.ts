@@ -9,17 +9,17 @@ import { FocusType, UserFocus } from '../../workbook/focus.js';
 
 import './dashql_decorations.css';
 
-const PROTO_TAG_MAPPING: Map<dashql.buffers.ScannerTokenType, Tag> = new Map([
-    [dashql.buffers.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
-    [dashql.buffers.ScannerTokenType.OPERATOR, CODEMIRROR_TAGS.operator],
-    [dashql.buffers.ScannerTokenType.LITERAL_BINARY, CODEMIRROR_TAGS.literal],
-    [dashql.buffers.ScannerTokenType.LITERAL_BOOLEAN, CODEMIRROR_TAGS.bool],
-    [dashql.buffers.ScannerTokenType.LITERAL_FLOAT, CODEMIRROR_TAGS.float],
-    [dashql.buffers.ScannerTokenType.LITERAL_HEX, CODEMIRROR_TAGS.number],
-    [dashql.buffers.ScannerTokenType.LITERAL_STRING, CODEMIRROR_TAGS.string],
-    [dashql.buffers.ScannerTokenType.LITERAL_INTEGER, CODEMIRROR_TAGS.integer],
-    [dashql.buffers.ScannerTokenType.IDENTIFIER, CODEMIRROR_TAGS.name],
-    [dashql.buffers.ScannerTokenType.COMMENT, CODEMIRROR_TAGS.comment],
+const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new Map([
+    [dashql.buffers.parser.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
+    [dashql.buffers.parser.ScannerTokenType.OPERATOR, CODEMIRROR_TAGS.operator],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_BINARY, CODEMIRROR_TAGS.literal],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_BOOLEAN, CODEMIRROR_TAGS.bool],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_FLOAT, CODEMIRROR_TAGS.float],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_HEX, CODEMIRROR_TAGS.number],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_STRING, CODEMIRROR_TAGS.string],
+    [dashql.buffers.parser.ScannerTokenType.LITERAL_INTEGER, CODEMIRROR_TAGS.integer],
+    [dashql.buffers.parser.ScannerTokenType.IDENTIFIER, CODEMIRROR_TAGS.name],
+    [dashql.buffers.parser.ScannerTokenType.COMMENT, CODEMIRROR_TAGS.comment],
 ]);
 const CODEMIRROR_TAGS_USED: Set<Tag> = new Set();
 for (const [_token, tag] of PROTO_TAG_MAPPING) {
@@ -50,8 +50,8 @@ const ErrorDecoration = Decoration.mark({
 
 function buildDecorationsFromTokens(
     state: EditorState,
-    scanned: dashql.FlatBufferPtr<dashql.buffers.ScannedScript>,
-    tmp: dashql.buffers.ScannedScript = new dashql.buffers.ScannedScript(),
+    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript>,
+    tmp: dashql.buffers.parser.ScannedScript = new dashql.buffers.parser.ScannedScript(),
 ): DecorationSet {
     const decorations: Map<Tag, Decoration> = new Map();
     for (const tag of CODEMIRROR_TAGS_USED) {
@@ -94,9 +94,9 @@ function buildDecorationsFromErrors(
     const parsed = scriptBuffers.parsed?.read() ?? null;
     const analyzed = scriptBuffers.analyzed?.read() ?? null;
 
-    const tmpLoc = new dashql.buffers.Location();
-    const tmpError = new dashql.buffers.Error();
-    const tmpAnalyzerError = new dashql.buffers.AnalyzerError();
+    const tmpLoc = new dashql.buffers.parser.Location();
+    const tmpError = new dashql.buffers.parser.Error();
+    const tmpAnalyzerError = new dashql.buffers.analyzer.AnalyzerError();
 
     // Are there any scanner errors?
     if (scanned != null) {
@@ -156,7 +156,7 @@ function buildDecorationsFromAnalysis(
         // Decorate unresolved tables
         for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
             const tableRef = analyzed.tableReferences(i)!;
-            if (tableRef.innerType() == dashql.buffers.TableReferenceSubType.UnresolvedRelationExpression) {
+            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationName) {
                 const loc = tableRef.location()!;
                 decorations.push({
                     from: loc.offset(),
@@ -168,7 +168,7 @@ function buildDecorationsFromAnalysis(
         // Decorate unresolved columns
         for (let i = 0; i < analyzed.expressionsLength(); ++i) {
             const expr = analyzed.expressions(i)!;
-            if (expr.innerType() == dashql.buffers.ExpressionSubType.UnresolvedColumnRefExpression) {
+            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.UnresolvedColumnRefExpression) {
                 const loc = expr.location()!;
                 decorations.push({
                     from: loc.offset(),
@@ -200,10 +200,10 @@ function buildDecorationsFromFocus(
     if (parsed === null || analyzed === null) {
         return builder.finish();
     }
-    const tmpNamedExpr = new dashql.buffers.Expression();
-    const tmpTblRef = new dashql.buffers.TableReference();
-    const tmpNode = new dashql.buffers.Node();
-    const tmpLoc = new dashql.buffers.Location();
+    const tmpNamedExpr = new dashql.buffers.algebra.Expression();
+    const tmpTblRef = new dashql.buffers.analyzer.TableReference();
+    const tmpNode = new dashql.buffers.parser.Node();
+    const tmpLoc = new dashql.buffers.parser.Location();
 
     // Build decorations for column refs of targeting the primary table
     for (const [refId, focusType] of derivedFocus?.scriptColumnRefs ?? []) {
@@ -384,7 +384,7 @@ interface FocusDecorationState {
     scriptKey: DashQLScriptKey | null;
     decorations: DecorationSet;
     scriptBuffers: DashQLScriptBuffers;
-    scriptCursor: dashql.buffers.ScriptCursorT | null;
+    scriptCursor: dashql.buffers.cursor.ScriptCursorT | null;
     derivedFocus: UserFocus | null;
 }
 

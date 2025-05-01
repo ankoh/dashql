@@ -15,14 +15,14 @@ export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDet
     );
 
     // Translate tables
-    const tables: dashql.buffers.SchemaTableT[] = [];
+    const tables: dashql.buffers.catalog.SchemaTableT[] = [];
     if (metadata.metadata) {
         for (const entry of metadata.metadata) {
-            const table = new dashql.buffers.SchemaTableT();
+            const table = new dashql.buffers.catalog.SchemaTableT();
             table.tableName = entry.name;
             if (entry.fields) {
                 for (const field of entry.fields) {
-                    table.columns.push(new dashql.buffers.SchemaTableColumnT(field.name));
+                    table.columns.push(new dashql.buffers.catalog.SchemaTableColumnT(field.name));
                 }
             }
             tables.push(table);
@@ -31,6 +31,6 @@ export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDet
 
     catalog.dropDescriptorPool(42);
     catalog.addDescriptorPool(42, 100);
-    const descriptor = new dashql.buffers.SchemaDescriptorT('', '', tables);
+    const descriptor = new dashql.buffers.catalog.SchemaDescriptorT('', '', tables);
     catalog.addSchemaDescriptorT(42, descriptor);
 }

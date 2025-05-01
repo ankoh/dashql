@@ -56,14 +56,14 @@ export function CatalogPanel(_props: CatalogPanelProps) {
                     const analyzedPtr = analyzed.read();
                     const tableRef = analyzedPtr.tableReferences(tableRefId)!;
                     switch (tableRef.innerType()) {
-                        case dashql.buffers.TableReferenceSubType.ResolvedRelationExpression: {
-                            const inner = new dashql.buffers.ResolvedRelationExpression();
-                            tableRef.inner(inner) as dashql.buffers.ResolvedRelationExpression;
+                        case dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName: {
+                            const inner = new dashql.buffers.analyzer.ResolvedRelationName();
+                            tableRef.inner(inner) as dashql.buffers.analyzer.ResolvedRelationName;
                             const tableName = inner.tableName();
                             overlay.push(["Table", tableName?.tableName() ?? ""]);
                             break;
                         }
-                        case dashql.buffers.TableReferenceSubType.UnresolvedRelationExpression: {
+                        case dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationName: {
                             overlay.push(["Table", "<unresolved>"]);
                             break;
                         }
@@ -81,17 +81,17 @@ export function CatalogPanel(_props: CatalogPanelProps) {
                     const analyzedPtr = analyzed.read();
                     const expression = analyzedPtr.expressions(expressionId)!;
                     switch (expression.innerType()) {
-                        case dashql.buffers.ExpressionSubType.ResolvedColumnRefExpression: {
-                            const inner = new dashql.buffers.ResolvedColumnRefExpression();
-                            expression.inner(inner) as dashql.buffers.ResolvedColumnRefExpression;
+                        case dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression: {
+                            const inner = new dashql.buffers.algebra.ResolvedColumnRefExpression();
+                            expression.inner(inner) as dashql.buffers.algebra.ResolvedColumnRefExpression;
                             overlay.push(["Expression", "column reference"]);
                             const columnName = inner.columnName();
                             overlay.push(["Column", columnName?.columnName() ?? ""]);
                             break;
                         }
-                        case dashql.buffers.ExpressionSubType.UnresolvedColumnRefExpression: {
-                            const inner = new dashql.buffers.UnresolvedColumnRefExpression();
-                            expression.inner(inner) as dashql.buffers.UnresolvedColumnRefExpression;
+                        case dashql.buffers.algebra.ExpressionSubType.UnresolvedColumnRefExpression: {
+                            const inner = new dashql.buffers.algebra.UnresolvedColumnRefExpression();
+                            expression.inner(inner) as dashql.buffers.algebra.UnresolvedColumnRefExpression;
                             overlay.push(["Expression", "column reference"]);
                             overlay.push(["Column", "<unresolved>"]);
                             break;
@@ -102,13 +102,13 @@ export function CatalogPanel(_props: CatalogPanelProps) {
             }
             case FOCUSED_COMPLETION: {
                 switch (focusTarget.value.completion.strategy) {
-                    case dashql.buffers.CompletionStrategy.DEFAULT:
+                    case dashql.buffers.completion.CompletionStrategy.DEFAULT:
                         overlay.push(["Completion", "Default"]);
                         break;
-                    case dashql.buffers.CompletionStrategy.TABLE_REF:
+                    case dashql.buffers.completion.CompletionStrategy.TABLE_REF:
                         overlay.push(["Completion", "Table Reference"]);
                         break;
-                    case dashql.buffers.CompletionStrategy.COLUMN_REF:
+                    case dashql.buffers.completion.CompletionStrategy.COLUMN_REF:
                         overlay.push(["Completion", "Column Reference"]);
                         break;
                 }

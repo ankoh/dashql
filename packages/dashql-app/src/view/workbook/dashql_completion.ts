@@ -13,7 +13,7 @@ interface DashQLCompletion extends Completion {
     /// The processor
     state: DashQLProcessorState;
     /// The completion buffer
-    coreCompletion: dashql.buffers.CompletionT;
+    coreCompletion: dashql.buffers.completion.CompletionT;
     /// The candidate id
     candidateId: number;
 }
@@ -66,9 +66,9 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
     if (processor.targetScript !== null && processor.scriptCursor !== null) {
         const relativePos = processor.scriptCursor.scannerRelativePosition;
         const performCompletion =
-            relativePos == dashql.buffers.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
-            relativePos == dashql.buffers.RelativeSymbolPosition.MID_OF_SYMBOL ||
-            relativePos == dashql.buffers.RelativeSymbolPosition.END_OF_SYMBOL;
+            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
+            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
+            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
         if (performCompletion) {
             const completionBuffer = processor.targetScript.completeAtCursor(COMPLETION_LIMIT);
             const completion = completionBuffer.read().unpack();

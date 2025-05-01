@@ -15,7 +15,7 @@ export interface FocusedTableRef {
 
 export interface FocusedCompletion {
     /// The completion
-    completion: dashql.buffers.CompletionT;
+    completion: dashql.buffers.completion.CompletionT;
     /// The index of the selected completion candidate
     completionCandidateIndex: number;
 }
@@ -61,14 +61,14 @@ export interface UserFocus {
 export function deriveFocusFromScriptCursor(
     scriptKey: ScriptKey,
     scriptData: ScriptData,
-    cursor: dashql.buffers.ScriptCursorT,
+    cursor: dashql.buffers.cursor.ScriptCursorT,
 ): UserFocus | null {
-    const tmpSourceAnalyzed = new dashql.buffers.AnalyzedScript();
-    const tmpTargetAnalyzed = new dashql.buffers.AnalyzedScript();
-    const tmpIndexedTableRef = new dashql.buffers.IndexedTableReference();
-    const tmpIndexedColumnRef = new dashql.buffers.IndexedColumnReference();
-    const tmpResolvedColumnRef = new dashql.buffers.ResolvedColumnRefExpression();
-    const tmpResolvedRelationExpr = new dashql.buffers.ResolvedRelationExpression();
+    const tmpSourceAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
+    const tmpTargetAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
+    const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
+    const tmpIndexedColumnRef = new dashql.buffers.analyzer.IndexedColumnReference();
+    const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
+    const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationName();
 
     let sourceAnalyzed = scriptData.processed.analyzed?.read(tmpSourceAnalyzed);
     if (sourceAnalyzed == null) {
@@ -76,8 +76,8 @@ export function deriveFocusFromScriptCursor(
     }
 
     switch (cursor.contextType) {
-        case dashql.buffers.ScriptCursorContext.ScriptCursorTableRefContext: {
-            const context = cursor.context as dashql.buffers.ScriptCursorTableRefContextT;
+        case dashql.buffers.cursor.ScriptCursorContext.ScriptCursorTableRefContext: {
+            const context = cursor.context as dashql.buffers.cursor.ScriptCursorTableRefContextT;
             const focusTarget: FocusTarget = {
                 type: FOCUSED_TABLE_REF_ID,
                 value: {
@@ -92,8 +92,8 @@ export function deriveFocusFromScriptCursor(
             };
             // Is resolved?
             const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId)!;
-            if (sourceRef.innerType() == dashql.buffers.TableReferenceSubType.ResolvedRelationExpression) {
-                const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.ResolvedRelationExpression;
+            if (sourceRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationName) {
+                const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationName;
 
                 // Focus in catalog
                 focus.catalogObjects = [{
@@ -142,8 +142,8 @@ export function deriveFocusFromScriptCursor(
             }
             return focus;
         }
-        case dashql.buffers.ScriptCursorContext.ScriptCursorColumnRefContext: {
-            const context = cursor.context as dashql.buffers.ScriptCursorColumnRefContextT;
+        case dashql.buffers.cursor.ScriptCursorContext.ScriptCursorColumnRefContext: {
+            const context = cursor.context as dashql.buffers.cursor.ScriptCursorColumnRefContextT;
             const focusTarget: FocusTarget = {
                 type: FOCUSED_EXPRESSION_ID,
                 value: {
@@ -158,8 +158,8 @@ export function deriveFocusFromScriptCursor(
             };
             // Is resolved?
             const sourceRef = sourceAnalyzed.expressions(context.expressionId)!;
-            if (sourceRef.innerType() == dashql.buffers.ExpressionSubType.ResolvedColumnRefExpression) {
-                const resolved = sourceRef.inner(tmpResolvedColumnRef) as dashql.buffers.ResolvedColumnRefExpression;
+            if (sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression) {
+                const resolved = sourceRef.inner(tmpResolvedColumnRef) as dashql.buffers.algebra.ResolvedColumnRefExpression;
 
                 // Focus in catalog
                 focus.catalogObjects = [{
@@ -222,7 +222,7 @@ export function deriveFocusFromScriptCursor(
             return focus;
         }
 
-        case dashql.buffers.ScriptCursorContext.NONE:
+        case dashql.buffers.cursor.ScriptCursorContext.NONE:
             break;
     }
     return null;
@@ -235,9 +235,9 @@ export function deriveFocusFromCatalogSelection(
     },
     target: QualifiedCatalogObjectID
 ): UserFocus | null {
-    const tmpAnalyzed = new dashql.buffers.AnalyzedScript();
-    const tmpIndexedTableRef = new dashql.buffers.IndexedTableReference();
-    const tmpIndexedColumnRef = new dashql.buffers.IndexedColumnReference();
+    const tmpAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
+    const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
+    const tmpIndexedColumnRef = new dashql.buffers.analyzer.IndexedColumnReference();
 
     switch (target.type) {
         case QUALIFIED_DATABASE_ID:
@@ -383,7 +383,7 @@ export function deriveFocusFromCompletionCandidates(
     const candidate = scriptData.completion.candidates[scriptData.selectedCompletionCandidate ?? 0];
     for (const candidateObject of candidate.catalogObjects) {
         switch (candidateObject.objectType) {
-            case dashql.buffers.CompletionCandidateObjectType.DATABASE:
+            case dashql.buffers.completion.CompletionCandidateObjectType.DATABASE:
                 focus.catalogObjects.push({
                     type: QUALIFIED_DATABASE_ID,
                     value: {
@@ -392,7 +392,7 @@ export function deriveFocusFromCompletionCandidates(
                     focus: FocusType.COMPLETION_CANDIDATE
                 });
                 break;
-            case dashql.buffers.CompletionCandidateObjectType.SCHEMA:
+            case dashql.buffers.completion.CompletionCandidateObjectType.SCHEMA:
                 focus.catalogObjects.push({
                     type: QUALIFIED_SCHEMA_ID,
                     value: {
@@ -402,7 +402,7 @@ export function deriveFocusFromCompletionCandidates(
                     focus: FocusType.COMPLETION_CANDIDATE
                 });
                 break;
-            case dashql.buffers.CompletionCandidateObjectType.TABLE:
+            case dashql.buffers.completion.CompletionCandidateObjectType.TABLE:
                 focus.catalogObjects.push({
                     type: QUALIFIED_TABLE_ID,
                     value: {
@@ -413,7 +413,7 @@ export function deriveFocusFromCompletionCandidates(
                     focus: FocusType.COMPLETION_CANDIDATE
                 });
                 break;
-            case dashql.buffers.CompletionCandidateObjectType.COLUMN:
+            case dashql.buffers.completion.CompletionCandidateObjectType.COLUMN:
                 focus.catalogObjects.push({
                     type: QUALIFIED_TABLE_COLUMN_ID,
                     value: {

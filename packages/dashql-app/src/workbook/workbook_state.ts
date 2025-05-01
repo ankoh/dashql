@@ -74,11 +74,11 @@ export interface ScriptData {
     /// The analysis was done against an outdated catalog?
     outdatedAnalysis: boolean;
     /// The statistics
-    statistics: Immutable.List<core.FlatBufferPtr<core.buffers.ScriptStatistics>>;
+    statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
     /// The cursor
-    cursor: core.buffers.ScriptCursorT | null;
+    cursor: core.buffers.cursor.ScriptCursorT | null;
     /// The completion
-    completion: core.buffers.CompletionT | null;
+    completion: core.buffers.completion.CompletionT | null;
     /// The selected completion candidate
     selectedCompletionCandidate: number | null;
 }
@@ -110,11 +110,11 @@ export type WorkbookStateAction =
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
     | VariantKind<typeof UPDATE_SCRIPT, ScriptKey>
-    | VariantKind<typeof UPDATE_SCRIPT_ANALYSIS, [ScriptKey, DashQLScriptBuffers, core.buffers.ScriptCursorT]>
-    | VariantKind<typeof UPDATE_SCRIPT_CURSOR, [ScriptKey, core.buffers.ScriptCursorT]>
+    | VariantKind<typeof UPDATE_SCRIPT_ANALYSIS, [ScriptKey, DashQLScriptBuffers, core.buffers.cursor.ScriptCursorT]>
+    | VariantKind<typeof UPDATE_SCRIPT_CURSOR, [ScriptKey, core.buffers.cursor.ScriptCursorT]>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
-    | VariantKind<typeof COMPLETION_STARTED, [ScriptKey, core.buffers.CompletionT]>
-    | VariantKind<typeof COMPLETION_CHANGED, [ScriptKey, core.buffers.CompletionT, number]>
+    | VariantKind<typeof COMPLETION_STARTED, [ScriptKey, core.buffers.completion.CompletionT]>
+    | VariantKind<typeof COMPLETION_CHANGED, [ScriptKey, core.buffers.completion.CompletionT, number]>
     | VariantKind<typeof COMPLETION_STOPPED, ScriptKey>
     | VariantKind<typeof SCRIPT_LOADING_STARTED, ScriptKey>
     | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
@@ -712,8 +712,8 @@ function deleteDeadScripts(state: WorkbookState): WorkbookState {
 }
 
 function rotateStatistics(
-    log: Immutable.List<core.FlatBufferPtr<core.buffers.ScriptStatistics>>,
-    stats: core.FlatBufferPtr<core.buffers.ScriptStatistics> | null,
+    log: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>,
+    stats: core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics> | null,
 ) {
     if (stats == null) {
         return log;

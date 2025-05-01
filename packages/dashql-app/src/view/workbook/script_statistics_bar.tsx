@@ -33,7 +33,7 @@ const History: React.FC<HistoryProps> = (props: HistoryProps) => {
 
 interface Props {
     className?: string;
-    stats: Immutable.List<dashql.FlatBufferPtr<dashql.buffers.ScriptStatistics>> | null;
+    stats: Immutable.List<dashql.FlatBufferPtr<dashql.buffers.statistics.ScriptStatistics>> | null;
 }
 
 export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
@@ -42,20 +42,20 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
         return <div className={props.className}></div>;
     }
 
-    const protoStats = new dashql.buffers.ScriptStatistics();
-    const protoTimings = new dashql.buffers.ScriptProcessingTimings();
-    const protoMemory = new dashql.buffers.ScriptMemoryStatistics();
-    const protoProcessingMemory = new dashql.buffers.ScriptProcessingMemoryStatistics();
+    const protoStats = new dashql.buffers.statistics.ScriptStatistics();
+    const protoTimings = new dashql.buffers.statistics.ScriptProcessingTimings();
+    const protoMemory = new dashql.buffers.statistics.ScriptMemoryStatistics();
+    const protoProcessingMemory = new dashql.buffers.statistics.ScriptProcessingMemoryStatistics();
 
-    const computeTotalElapsed = (timings: dashql.buffers.ScriptProcessingTimings) =>
+    const computeTotalElapsed = (timings: dashql.buffers.statistics.ScriptProcessingTimings) =>
         timings.scannerLastElapsed() + timings.parserLastElapsed() + timings.analyzerLastElapsed();
-    const sumProcessingMemory = (mem: dashql.buffers.ScriptProcessingMemoryStatistics) =>
+    const sumProcessingMemory = (mem: dashql.buffers.statistics.ScriptProcessingMemoryStatistics) =>
         mem.scannerInputBytes() +
         mem.scannerNameDictionaryBytes() +
         mem.parserAstBytes() +
         mem.analyzerDescriptionBytes() +
         mem.analyzerNameIndexBytes();
-    const computeTotalMemory = (mem: dashql.buffers.ScriptMemoryStatistics) => {
+    const computeTotalMemory = (mem: dashql.buffers.statistics.ScriptMemoryStatistics) => {
         let total = mem.ropeBytes();
         total += sumProcessingMemory(mem.latestScript(protoProcessingMemory)!);
         return total;
