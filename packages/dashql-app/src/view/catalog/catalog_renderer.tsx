@@ -232,7 +232,7 @@ const LEVEL_NAMES = [
     "column"
 ];
 
-const DEFAULT_NODE_INITIAL_X_OFFSET = 8;
+const DEFAULT_NODE_INITIAL_X_OFFSET = -8;
 const DEFAULT_NODE_INITIAL_SCALE = 1.0;
 const DEFAULT_NODE_TRANSITION = {
     duration: 0.2,
@@ -273,7 +273,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const settings = thisLevel.settings;
     const stats = ctx.renderingWindow.stats;
     const isLastLevel = (levelId + 1) >= ctx.viewModel.visibleLevels;
-    let isFirst = true;
+    let isFirstEntry = true;
 
     // First render all pinned entries, then all unpinned
     for (const renderPinned of [true, false]) {
@@ -300,8 +300,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             // Update rendering path
             ctx.renderingPath.select(levelId, entryId);
             // Add row gap when first
-            ctx.currentWriterY += isFirst ? settings.levelGap : settings.rowGap;
-            isFirst = false;
+            ctx.currentWriterY += isFirstEntry ? settings.levelGap : settings.rowGap;
+            isFirstEntry = false;
             // Remember own position
             let thisPosY = ctx.currentWriterY;
             // Read the entry

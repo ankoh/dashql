@@ -756,7 +756,7 @@ export class CatalogViewModel {
 
                 // Add row gap when first
                 // We could also account for that in the end
-                ctx.currentWriterY += isFirstEntry ? 0 : level.settings.rowGap;
+                ctx.currentWriterY += isFirstEntry ? level.settings.levelGap : level.settings.rowGap;
                 isFirstEntry = false;
 
                 // Not there yet?
@@ -777,6 +777,8 @@ export class CatalogViewModel {
                     return [ctx.currentWriterY, true];
                 }
 
+                // Add the node height
+                ctx.currentWriterY += level.settings.nodeHeight;
                 // Read entry
                 const entry = level.entries.read(ctx.snapshot, entryId, level.scratchEntry)!;
                 // Do we have children?

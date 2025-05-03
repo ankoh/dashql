@@ -119,7 +119,7 @@ export function CatalogViewer(props: Props) {
                 const containerDiv = containerElement.current as HTMLDivElement;
                 const boardDiv = boardElement.current as HTMLDivElement;
                 const clientVerticalCenter = containerSize.height / 2;
-                scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter; // XXX Padding
+                scrollToFocus = paddingTop + Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter;
 
                 // XXX Are browsers doing the right thing here?
                 //     Manual tests indicate that this is working...
