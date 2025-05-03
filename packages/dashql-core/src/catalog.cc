@@ -605,13 +605,11 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 auto db_name = db_ref.database_name;
                 auto db_name_id = add_name(db_ref.database_name);
 
-                if (!database_node_map.contains(db_ref.catalog_database_id)) {
-                    auto& db_node = database_nodes.Append(DatabaseNode{db_ref.catalog_database_id, db_name_id});
-                    database_node_map.insert({db_ref.catalog_database_id, &db_node});
+                auto& db_node = database_nodes.Append(DatabaseNode{db_ref.catalog_database_id, db_name_id});
+                database_node_map.insert({db_ref.catalog_database_id, &db_node});
 
-                    auto db_name_unique = root.insert({db_name, db_node}).second;
-                    assert(db_name_unique);
-                }
+                auto db_name_unique = root.insert({db_name, db_node}).second;
+                assert(db_name_unique);
             }
         }
 
@@ -622,14 +620,12 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 auto schema_name = schema_ref.schema_name;
                 auto schema_name_id = add_name(schema_ref.schema_name);
 
-                if (!schema_node_map.contains(schema_ref.catalog_schema_id)) {
-                    auto& schema_node = schema_nodes.Append(SchemaNode{schema_ref.catalog_schema_id, schema_name_id});
-                    schema_node_map.insert({schema_ref.catalog_schema_id, &schema_node});
+                auto& schema_node = schema_nodes.Append(SchemaNode{schema_ref.catalog_schema_id, schema_name_id});
+                schema_node_map.insert({schema_ref.catalog_schema_id, &schema_node});
 
-                    auto& db_node = database_node_map.at(schema_ref.catalog_database_id);
-                    auto schema_name_unique = db_node->children.insert({schema_ref.schema_name, schema_node}).second;
-                    assert(schema_name_unique);
-                }
+                auto& db_node = database_node_map.at(schema_ref.catalog_database_id);
+                auto schema_name_unique = db_node->children.insert({schema_ref.schema_name, schema_node}).second;
+                assert(schema_name_unique);
             }
         }
     }
@@ -712,8 +708,9 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
         auto& [database_name, database_node] = *root_iter;
         // Write database node
         auto& db_node_ref = database_node.get();
-        database_entries[next_database_idx] = buffers::catalog::FlatCatalogEntry(
-            next_database_idx, 0, db_node_ref.database_id, db_node_ref.name_id, 0, db_node_ref.children.size());
+        database_entries[next_database_idx] =
+            buffers::catalog::FlatCatalogEntry(next_database_idx, 0, db_node_ref.database_id, db_node_ref.name_id,
+                                               next_schema_idx, db_node_ref.children.size());
         indexed_database_entries[next_database_idx] =
             buffers::catalog::IndexedFlatDatabaseEntry(db_node_ref.database_id, next_database_idx);
 

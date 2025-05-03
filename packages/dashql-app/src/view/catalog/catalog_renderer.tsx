@@ -3,10 +3,10 @@ import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
 import { motion } from 'framer-motion';
 
-import { EdgePathBuilder, NodePort } from './graph_edges.js';
+import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
-import { buildEdgePath, selectHorizontalEdgeType } from './graph_edges.js';
-import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS } from './catalog_view_model.js';
+import { buildEdgePathBetweenRectangles, selectHorizontalEdgeType } from './graph_edges.js';
+import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -54,25 +54,55 @@ class RenderingPath {
 }
 
 class VirtualRenderingWindowStats {
+    /// The tracker
+    renderingWindow: VirtualRenderingWindow;
     /// Minimum position in the scroll window
     minInScrollWindow: number;
     /// Maximum position in the scroll window
     maxInScrollWindow: number;
+    /// The node count
+    renderedNodes: number;
+    /// Overflowing nodes
+    overflowingNodes: number;
+    /// The last overflowing node
+    lastOverflowingNode: number | null;
+    /// The number of nodes that we skipped below the scroll window
+    nodesSkippedBelowWindow: number;
+    /// The number of nodes that we skipped above the scroll window
+    nodesSkippedAboveWindow: number;
 
-    constructor(tracker: VirtualRenderingWindow) {
-        this.minInScrollWindow = tracker.scrollWindowEnd;
-        this.maxInScrollWindow = tracker.scrollWindowBegin;
+    constructor(w: VirtualRenderingWindow) {
+        this.renderingWindow = w;
+        this.minInScrollWindow = w.scrollWindowEnd;
+        this.maxInScrollWindow = w.scrollWindowBegin;
+        this.renderedNodes = 0;
+        this.overflowingNodes = 0;
+        this.lastOverflowingNode = null;
+        this.nodesSkippedBelowWindow = 0;
+        this.nodesSkippedAboveWindow = 0;
     }
-    reset(tracker: VirtualRenderingWindow) {
-        this.minInScrollWindow = tracker.scrollWindowEnd;
-        this.maxInScrollWindow = tracker.scrollWindowBegin;
+    reset(w: VirtualRenderingWindow) {
+        this.renderingWindow = w;
+        this.minInScrollWindow = w.scrollWindowEnd;
+        this.maxInScrollWindow = w.scrollWindowBegin;
+        this.renderedNodes = 0;
+        this.overflowingNodes = 0;
+        this.lastOverflowingNode = null;
+        this.nodesSkippedBelowWindow = 0;
+        this.nodesSkippedAboveWindow = 0;
     }
-    centerInScrollWindow(): number | null {
-        if (this.minInScrollWindow <= this.maxInScrollWindow) {
-            return this.minInScrollWindow + (this.maxInScrollWindow - this.minInScrollWindow) / 2;
-        } else {
-            return null;
+    addRenderedNode(pos: number, height: number) {
+        this.renderedNodes += 1;
+        const begin = pos;
+        const end = pos + height;
+        if (end > this.renderingWindow.scrollWindowBegin && begin < this.renderingWindow.scrollWindowEnd) {
+            this.minInScrollWindow = Math.min(this.minInScrollWindow, begin);
+            this.maxInScrollWindow = Math.max(this.maxInScrollWindow, end);
         }
+    }
+    addOverflowingNode(entryId: number) {
+        this.overflowingNodes += 1;
+        this.lastOverflowingNode = entryId;
     }
 }
 
@@ -81,10 +111,14 @@ class VirtualRenderingWindow {
     scrollWindowBegin: number;
     /// The end offset of the actual scroll window
     scrollWindowEnd: number;
+    /// The height offset of the actual scroll window
+    scrollWindowHeight: number;
     /// The begin offset of the virtual scroll window
     virtualScrollWindowBegin: number;
     /// The end offset of the virtual scroll window
     virtualScrollWindowEnd: number;
+    /// The height of the virtual scroll window
+    virtualScrollWindowHeight: number;
     /// The statistics count
     statisticsCount: number;
     /// The rendering boundaries
@@ -93,8 +127,10 @@ class VirtualRenderingWindow {
     constructor(begin: number, end: number, virtualBegin: number, virtualEnd: number) {
         this.scrollWindowBegin = begin;
         this.scrollWindowEnd = end;
+        this.scrollWindowHeight = end - begin;
         this.virtualScrollWindowBegin = virtualBegin;
         this.virtualScrollWindowEnd = virtualEnd;
+        this.virtualScrollWindowHeight = virtualEnd - virtualBegin;
         this.statisticsCount = 1;
         this.statistics = [
             new VirtualRenderingWindowStats(this),
@@ -105,20 +141,16 @@ class VirtualRenderingWindow {
         ];
     }
     startRenderingChildren() {
-        this.statistics[this.statisticsCount].reset(this);
-        ++this.statisticsCount;
+        this.statistics[this.statisticsCount++].reset(this);
     }
     stopRenderingChildren(): VirtualRenderingWindowStats {
         return this.statistics[--this.statisticsCount];
     }
-    addNode(pos: number, height: number) {
-        const stats = this.statistics[this.statisticsCount - 1];
-        const begin = pos;
-        const end = pos + height;
-        if (end > this.scrollWindowBegin && begin < this.scrollWindowEnd) {
-            stats.minInScrollWindow = Math.min(stats.minInScrollWindow, begin);
-            stats.maxInScrollWindow = Math.max(stats.maxInScrollWindow, end);
-        }
+    get stats(): VirtualRenderingWindowStats {
+        return this.statistics[this.statisticsCount - 1];
+    }
+    getFractionOfScrollWindow(pos: number) {
+        return Math.min(Math.max(pos, this.scrollWindowBegin) - this.scrollWindowBegin, this.scrollWindowHeight) / this.scrollWindowHeight;
     }
 }
 
@@ -200,29 +232,22 @@ const LEVEL_NAMES = [
     "column"
 ];
 
-const NODE_INITIAL_X_OFFSET = 8;
-const NODE_INITIAL_SCALE = 1.0;
-const NODE_TRANSITION = {
+const DEFAULT_NODE_INITIAL_X_OFFSET = 8;
+const DEFAULT_NODE_INITIAL_SCALE = 1.0;
+const DEFAULT_NODE_TRANSITION = {
+    duration: 0.2,
+    ease: "easeInOut"
+};
+const DEFAULT_EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
-
-const EDGE_INITIAL_SCALE = 1.0;
-const EDGE_INITIAL_PATH_LENGTH = 0;
-const EDGE_INITIAL_PATH_OFFSET = 1.0;
-const EDGE_INITIAL_OPACITY = 0.5;
-const EDGE_TRANSITION = {
-    duration: 0.3,
-    ease: "easeInOut"
-};
-
 const DETAILS_NODE_INITIAL_X_OFFSET = -8;
 const DETAILS_NODE_INITIAL_SCALE = 1.0;
 const DETAILS_NODE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
-
 const DETAILS_EDGE_INITIAL_SCALE = 1.0;
 const DETAILS_EDGE_INITIAL_PATH_LENGTH = 0;
 const DETAILS_EDGE_INITIAL_PATH_OFFSET = 0;
@@ -236,27 +261,23 @@ const DETAILS_EDGE_TRANSITION = {
 function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBegin: number, entriesCount: number, parentEntryId: number | null, parentIsFocused: boolean) {
     const levels = ctx.viewModel.levels;
     const thisLevel = levels[levelId];
-    const settings = thisLevel.settings;
+    const thisLevelName = LEVEL_NAMES[levelId];
     const entries = thisLevel.entries;
-    const scratchEntry = thisLevel.scratchEntry;
     const flags = thisLevel.entryFlags;
     const levelPositionX = thisLevel.positionX;
-    const levelWidth = thisLevel.settings.nodeWidth;
     const levelSubtreeHeights = thisLevel.subtreeHeights;
+    const levelWidth = thisLevel.settings.nodeWidth;
     const positionsY = thisLevel.positionsY;
     const renderingEpochs = thisLevel.renderedInEpoch;
+    const scratchEntry = thisLevel.scratchEntry;
+    const settings = thisLevel.settings;
+    const stats = ctx.renderingWindow.stats;
     const isLastLevel = (levelId + 1) >= ctx.viewModel.visibleLevels;
 
-    // Track overflow nodes
-    let overflowChildCount = 0;
-    let lastOverflowEntryId = 0;
     let isFirst = true;
-
-    let levelName = LEVEL_NAMES[levelId];
 
     // First render all pinned entries, then all unpinned
     for (const renderPinned of [true, false]) {
-        overflowChildCount = 0;
         for (let i = 0; i < entriesCount; ++i) {
             // Resolve table
             const entryId = entriesBegin + i;
@@ -267,52 +288,54 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             if (entryIsPinned != renderPinned) {
                 continue;
             }
+            // Break if writer is larger than virtual window upper bound
+            if (ctx.currentWriterY >= ctx.renderingWindow.virtualScrollWindowEnd) {
+                stats.nodesSkippedAboveWindow += entriesCount - i;
+                break;
+            }
             // Skip overflow entries
             if ((entryFlags & CatalogRenderingFlag.OVERFLOW) != 0) {
-                ++overflowChildCount;
-                lastOverflowEntryId = entryId;
+                stats.addOverflowingNode(entryId);
                 continue;
             }
             // Update rendering path
             ctx.renderingPath.select(levelId, entryId);
             // Add row gap when first
-            ctx.currentWriterY += isFirst ? 0 : settings.rowGap;
+            ctx.currentWriterY += isFirst ? settings.levelGap : settings.rowGap;
             isFirst = false;
             // Remember own position
             let thisPosY = ctx.currentWriterY;
             // Read the entry
             const entry = entries.read(ctx.snapshot, entryId, scratchEntry)!;
-            // Track the center in the scroll window above the children.
-            // This position is the center above all rendered children.
-            let centerInScrollWindow: number | null = null;
             // Is the subtree entirely below the virtual window?
             // Then we just skip rendering completely.
+            let childStats: VirtualRenderingWindowStats | null = null;
+            let renderedAnyChildren = false;
             if ((thisPosY + levelSubtreeHeights[entryId]) <= ctx.renderingWindow.virtualScrollWindowBegin) {
+                // The subtree height includes the own node height
                 ctx.currentWriterY += levelSubtreeHeights[entryId];
-                centerInScrollWindow = thisPosY;
-            } else if (!isLastLevel && entry.childCount() > 0) {
-                // Render children first
-                ctx.renderingWindow.startRenderingChildren();
-                renderEntriesAtLevel(ctx, levelId + 1, entry.childBegin(), entry.childCount(), entryId, entryIsFocused);
-                const stats = ctx.renderingWindow.stopRenderingChildren();
-                centerInScrollWindow = stats.centerInScrollWindow();
+            } else {
+                // Add our own node height
+                ctx.currentWriterY += settings.nodeHeight;
+                // Then render the children
+                if (!isLastLevel && entry.childCount() > 0) {
+                    ctx.renderingWindow.startRenderingChildren();
+                    renderEntriesAtLevel(ctx, levelId + 1, entry.childBegin(), entry.childCount(), entryId, entryIsFocused);
+                    childStats = ctx.renderingWindow.stopRenderingChildren();
+                    renderedAnyChildren = childStats.renderedNodes > 0;
+                    // Truncate any stack items that children added
+                    ctx.renderingPath.truncate(levelId);
+                }
             }
-            // Bump writer if the columns didn't already
-            ctx.currentWriterY = Math.max(ctx.currentWriterY, thisPosY + settings.nodeHeight);
-            // Truncate any stack items that children added
-            ctx.renderingPath.truncate(levelId);
-            // Vertically center the node over all child nodes
-            thisPosY = centerInScrollWindow == null ? thisPosY : (centerInScrollWindow - settings.nodeHeight / 2);
-            // Break if lower bound is larger than virtual window
-            if (thisPosY >= ctx.renderingWindow.virtualScrollWindowEnd) {
-                break;
-            }
-            // Skip if upper bound is smaller than virtual window
-            if (ctx.currentWriterY < ctx.renderingWindow.virtualScrollWindowBegin) {
+            // Skip if writer is smaller than virtual window lower bound.
+            // Note that this means that all children are also smaller.
+            // IF any child is reaching into the scroll window, we'll render
+            if (ctx.currentWriterY < ctx.renderingWindow.virtualScrollWindowBegin && !renderedAnyChildren) {
+                stats.nodesSkippedBelowWindow += 1;
                 continue;
             }
             // Remember the node position
-            ctx.renderingWindow.addNode(thisPosY, settings.nodeHeight);
+            stats.addRenderedNode(thisPosY, settings.nodeHeight);
             positionsY[entryId] = thisPosY;
             renderingEpochs[entryId] = ctx.renderingEpoch;
             // Determine if any child is focused
@@ -331,17 +354,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const newNodePosition: RenderedNode = {
                 key: thisKey,
                 initial: prevNodePosition?.animate ?? (
-                    (entryIsPinned || entryIsFocused)
-                        ? {
-                            top: thisPosY,
-                            left: levelPositionX + NODE_INITIAL_X_OFFSET,
-                            scale: NODE_INITIAL_SCALE,
-                        }
-                        : {
-                            top: thisPosY,
-                            left: levelPositionX,
-                            scale: 1.0,
-                        }
+                    {
+                        top: thisPosY,
+                        left: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
+                        scale: DEFAULT_NODE_INITIAL_SCALE,
+                    }
                 ),
                 animate: {
                     top: thisPosY,
@@ -371,7 +388,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     }}
                     initial={newNodePosition.initial}
                     animate={newNodePosition.animate}
-                    transition={NODE_TRANSITION}
+                    transition={DEFAULT_NODE_TRANSITION}
                     data-snapshot-entry={thisKey}
                     data-snapshot-level={levelId.toString()}
                     data-catalog-object={entry.catalogObjectId()}
@@ -381,7 +398,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             thisName == ""
                                 ? (
                                     <div className={styles.node_label_empty}>
-                                        &lt;no {levelName}&gt;
+                                        &lt;no {thisLevelName}&gt;
                                     </div>
                                 )
                                 : (
@@ -407,7 +424,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.West}
                             />
                         )}
-                        {((entryFlags & PINNED_BY_FOCUS) || (!isLastLevel && (entry.childCount() > 0))) && (
+                        {((entryFlags & PINNED_BY_FOCUS_TARGET) != 0) && (
                             <div
                                 className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
@@ -423,9 +440,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             // Draw edges to all children
             if (entry.childCount() > 0) {
                 // buildEdgePath is drawing from center points
-                const fromX = levelPositionX + levelWidth / 2;
+                const fromX = levelPositionX + settings.childOffsetX / 2;
                 const fromY = thisPosY + settings.nodeHeight / 2;
-                const fromWidth = levelWidth;
+                // We want to start the edge in the mid of the child offset
+                const fromWidth = settings.childOffsetX;
                 const toSettings = levels[levelId + 1].settings;
                 const toPositionsY = levels[levelId + 1].positionsY;
                 const toX = levels[levelId + 1].positionX + levels[levelId + 1].settings.nodeWidth / 2;
@@ -437,11 +455,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     const toEntryId = entry.childBegin() + i;
                     // Don't draw an edge to nodes that were not rendered this epoch
                     if (toEpochs[toEntryId] != ctx.renderingEpoch) {
-                        continue;;
+                        continue;
                     }
                     const toY = toPositionsY[toEntryId] + toSettings.nodeHeight / 2;
-                    const edgeType = selectHorizontalEdgeType(fromX, fromY, toX, toY);
-                    const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, fromX, fromY, toX, toY, fromWidth, settings.nodeHeight, toWidth, toSettings.nodeHeight, 4);
+                    const edgePath = buildEdgePathBetweenRectangles(ctx.edgeBuilder, EdgeType.NorthEast, fromX, fromY, toX, toY, fromWidth, settings.nodeHeight, toWidth, toSettings.nodeHeight, 4);
                     const edgeKey = `${thisKey}:${i}`;
                     // Resolve the previous path
                     const prevPath = ctx.prevState.edgePaths.get(edgeKey);
@@ -450,18 +467,10 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         initial: prevPath?.animate ?? (
                             {
                                 d: edgePath,
-                                pathLength: EDGE_INITIAL_PATH_LENGTH,
-                                pathOffset: EDGE_INITIAL_PATH_OFFSET,
-                                scale: EDGE_INITIAL_SCALE,
-                                opacity: EDGE_INITIAL_OPACITY,
                             }
                         ),
                         animate: {
                             d: edgePath,
-                            pathLength: 1.0,
-                            pathOffset: 0.0,
-                            scale: 1.0,
-                            opacity: 1.0
                         }
                     };
                     ctx.nextState.edgePaths.set(edgeKey, nextPath);
@@ -475,7 +484,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 key={edgeKey}
                                 initial={nextPath.initial}
                                 animate={nextPath.animate}
-                                transition={EDGE_TRANSITION}
+                                transition={DEFAULT_EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -491,7 +500,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 key={edgeKey}
                                 initial={nextPath.initial}
                                 animate={nextPath.animate}
-                                transition={EDGE_TRANSITION}
+                                transition={DEFAULT_EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -505,7 +514,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 key={edgeKey}
                                 initial={nextPath.initial}
                                 animate={nextPath.animate}
-                                transition={EDGE_TRANSITION}
+                                transition={DEFAULT_EDGE_TRANSITION}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -515,6 +524,30 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         );
                     }
                 }
+            }
+
+            // Are there are any children that were not rendered because they were exceeding the upper window boundary?
+            // In that case, we draw a pseudo edge to hint that there are more.
+            if (childStats != null && childStats.nodesSkippedAboveWindow > 0) {
+                const edgeKey = `${thisKey}:bounds`;
+                const fromX = levelPositionX + settings.childOffsetX / 2;
+                const fromY = thisPosY + settings.nodeHeight;
+                ctx.edgeBuilder.begin(fromX, fromY);
+                ctx.edgeBuilder.push(fromX, fromY + ctx.viewModel.totalHeight);
+                const edgePath = ctx.edgeBuilder.buildDirect();
+                ctx.output.edges.push(
+                    <motion.path
+                        key={edgeKey}
+                        initial={{
+                            d: edgePath
+                        }}
+                        strokeWidth="2px"
+                        stroke="currentcolor"
+                        fill="transparent"
+                        pointerEvents="stroke"
+                        data-edge={edgeKey}
+                    />,
+                );
             }
 
             // XXX If the node is focused and the last level, we also emit the details node
@@ -549,7 +582,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const edgeToX = detailsPositionX + detailsRendering.nodeWidth / 2;
                 const edgeToY = thisPosY + settings.nodeHeight / 2; // We want a horizontal line
                 const edgeType = selectHorizontalEdgeType(edgeFromX, edgeFromY, edgeToX, edgeToY);
-                const edgePath = buildEdgePath(ctx.edgeBuilder, edgeType, edgeFromX, edgeFromY, edgeToX, edgeToY, levelWidth, settings.nodeHeight, detailsRendering.nodeWidth, settings.nodeHeight, 4);
+                const edgePath = buildEdgePathBetweenRectangles(ctx.edgeBuilder, edgeType, edgeFromX, edgeFromY, edgeToX, edgeToY, levelWidth, settings.nodeHeight, detailsRendering.nodeWidth, settings.nodeHeight, 4);
 
                 const nextPath: RenderedPath = {
                     key: detailsKey,
@@ -610,15 +643,17 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     }
 
     // Render overflow entry
-    if (overflowChildCount > 0) {
+    const overflowCount = stats.overflowingNodes;
+    if (overflowCount > 0) {
+        const lastOverflowingNode = stats.lastOverflowingNode!;
         ctx.currentWriterY += settings.rowGap;
         const thisPosY = ctx.currentWriterY;
         ctx.currentWriterY += settings.nodeHeight;
 
         if (ctx.currentWriterY > ctx.renderingWindow.virtualScrollWindowBegin && thisPosY < ctx.renderingWindow.virtualScrollWindowEnd) {
-            ctx.renderingWindow.addNode(thisPosY, settings.nodeHeight);
-            positionsY[lastOverflowEntryId] = thisPosY;
-            renderingEpochs[lastOverflowEntryId] = ctx.renderingEpoch;
+            stats.addRenderedNode(thisPosY, settings.nodeHeight);
+            positionsY[lastOverflowingNode!] = thisPosY;
+            renderingEpochs[lastOverflowingNode!] = ctx.renderingEpoch;
             const key = ctx.renderingPath.getKeyPrefix(levelId);
             const overflowKey = `${key}:overflow`;
 
@@ -629,7 +664,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 initial: prevNodePosition?.animate ?? (
                     {
                         top: thisPosY,
-                        left: levelPositionX,
+                        left: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
                         scale: 1.0,
                     }),
                 animate: {
@@ -652,11 +687,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     }}
                     initial={newNodePosition.initial}
                     animate={newNodePosition.animate}
-                    transition={NODE_TRANSITION}
+                    transition={DEFAULT_NODE_TRANSITION}
                     data-snapshot-entry={key}
                     data-snapshot-level={levelId.toString()}
                 >
-                    {overflowChildCount} more
+                    {overflowCount} more
 
                 </motion.div>
             );

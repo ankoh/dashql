@@ -210,20 +210,20 @@ export class EdgePathBuilder {
     }
 }
 
-export function buildEdgePath(
+export function buildEdgePathBetweenRectangles(
     builder: EdgePathBuilder,
     type: EdgeType,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
+    fromCenterX: number,
+    fromCenterY: number,
+    toCenterX: number,
+    toCenterY: number,
     fromWidth: number,
     fromHeight: number,
     toWidth: number,
     toHeight: number,
     cornerRadius: number,
 ): string {
-    if (toX - fromX == 0 && toY - fromY == 0) {
+    if (toCenterX - fromCenterX == 0 && toCenterY - fromCenterY == 0) {
         return '';
     }
     const r = cornerRadius;
@@ -238,23 +238,23 @@ export function buildEdgePath(
         // DIRECT
 
         case EdgeType.North:
-            builder.begin(fromX, fromY + fromHeight / 2);
-            builder.push(toX, toY - toHeight / 2);
+            builder.begin(fromCenterX, fromCenterY + fromHeight / 2);
+            builder.push(toCenterX, toCenterY - toHeight / 2);
             return builder.buildDirect();
 
         case EdgeType.South:
-            builder.begin(fromX, fromY - fromHeight / 2);
-            builder.push(toX, toY + toHeight / 2);
+            builder.begin(fromCenterX, fromCenterY - fromHeight / 2);
+            builder.push(toCenterX, toCenterY + toHeight / 2);
             return builder.buildDirect();
 
         case EdgeType.East:
-            builder.begin(fromX + fromWidth / 2, fromY);
-            builder.push(toX - toWidth / 2, toY);
+            builder.begin(fromCenterX + fromWidth / 2, fromCenterY);
+            builder.push(toCenterX - toWidth / 2, toCenterY);
             return builder.buildDirect();
 
         case EdgeType.West:
-            builder.begin(fromX - fromWidth / 2, fromY);
-            builder.push(toX + toWidth / 2, toY);
+            builder.begin(fromCenterX - fromWidth / 2, fromCenterY);
+            builder.push(toCenterX + toWidth / 2, toCenterY);
             return builder.buildDirect();
 
         // 1 TURN
@@ -263,15 +263,15 @@ export function buildEdgePath(
         //  |
         //  A
         case EdgeType.NorthEast: {
-            fromY += fromHeight / 2;
-            toX -= toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(fromX, toY - Math.min(diffY / 2, r) - r);
-            builder.push(fromX, toY);
-            builder.push(fromX + Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterY += fromHeight / 2;
+            toCenterX -= toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r) - r);
+            builder.push(fromCenterX, toCenterY);
+            builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -279,15 +279,15 @@ export function buildEdgePath(
         //    |
         //    A
         case EdgeType.NorthWest: {
-            fromY += fromHeight / 2;
-            toX += toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(fromX, toY - Math.min(diffY / 2, r));
-            builder.push(fromX, toY);
-            builder.push(fromX - Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterY += fromHeight / 2;
+            toCenterX += toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r));
+            builder.push(fromCenterX, toCenterY);
+            builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -295,15 +295,15 @@ export function buildEdgePath(
         //  |
         //  +-B
         case EdgeType.SouthEast: {
-            fromY += fromHeight / 2;
-            toX -= toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(fromX, toY + Math.min(diffY / 2, r));
-            builder.push(fromX, toY);
-            builder.push(fromX + Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterY += fromHeight / 2;
+            toCenterX -= toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
+            builder.push(fromCenterX, toCenterY);
+            builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -311,15 +311,15 @@ export function buildEdgePath(
         //    |
         //  B-+
         case EdgeType.SouthWest: {
-            fromY -= fromHeight / 2;
-            toX += toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(fromX, toY + Math.min(diffY / 2, r));
-            builder.push(fromX, toY);
-            builder.push(fromX - Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterY -= fromHeight / 2;
+            toCenterX += toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
+            builder.push(fromCenterX, toCenterY);
+            builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -327,15 +327,15 @@ export function buildEdgePath(
         //    |
         //  A-+
         case EdgeType.EastNorth: {
-            fromX += fromWidth / 2;
-            toY -= toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(toX - Math.min(diffX / 2, r), fromY);
-            builder.push(toX, fromY);
-            builder.push(toX, fromY + Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterX += fromWidth / 2;
+            toCenterY -= toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
+            builder.push(toCenterX, fromCenterY);
+            builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -343,15 +343,15 @@ export function buildEdgePath(
         //    |
         //    B
         case EdgeType.EastSouth: {
-            fromX += fromWidth / 2;
-            toY += toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(toX - Math.min(diffX / 2, r), fromY);
-            builder.push(toX, fromY);
-            builder.push(toX, fromY - Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterX += fromWidth / 2;
+            toCenterY += toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
+            builder.push(toCenterX, fromCenterY);
+            builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -359,15 +359,15 @@ export function buildEdgePath(
         //  |
         //  +-A
         case EdgeType.WestNorth: {
-            fromX -= fromWidth / 2;
-            toY -= toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(toX + Math.min(diffX / 2, r), fromY);
-            builder.push(toX, fromY);
-            builder.push(toX, fromY + Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterX -= fromWidth / 2;
+            toCenterY -= toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
+            builder.push(toCenterX, fromCenterY);
+            builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -375,15 +375,15 @@ export function buildEdgePath(
         //  |
         //  B
         case EdgeType.WestSouth: {
-            fromX -= fromWidth / 2;
-            toY += toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            builder.begin(fromX, fromY);
-            builder.push(toX + Math.min(diffX / 2, r), fromY);
-            builder.push(toX, fromY);
-            builder.push(toX, fromY - Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterX -= fromWidth / 2;
+            toCenterY += toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
+            builder.push(toCenterX, fromCenterY);
+            builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build1Turn();
         }
 
@@ -393,19 +393,19 @@ export function buildEdgePath(
         //   |
         // A-+
         case EdgeType.EastNorthEast: {
-            fromX += fromWidth / 2;
-            toX -= toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midX = fromX + diffX / 2;
-            builder.begin(fromX, fromY);
-            builder.push(midX - Math.min(diffX / 2, r), fromY);
-            builder.push(midX, fromY);
-            builder.push(midX, fromY + Math.min(diffY / 2, r));
-            builder.push(midX, toY - Math.min(diffY / 2, r));
-            builder.push(midX, toY);
-            builder.push(midX + Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterX += fromWidth / 2;
+            toCenterX -= toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midX = fromCenterX + diffX / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
+            builder.push(midX, fromCenterY);
+            builder.push(midX, fromCenterY + Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY - Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY);
+            builder.push(midX + Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -413,19 +413,19 @@ export function buildEdgePath(
         //   |
         //   +-B
         case EdgeType.EastSouthEast: {
-            fromX += fromWidth / 2;
-            toX -= toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midX = fromX + diffX / 2;
-            builder.begin(fromX, fromY);
-            builder.push(midX - Math.min(diffX / 2, r), fromY);
-            builder.push(midX, fromY);
-            builder.push(midX, fromY - Math.min(diffY / 2, r));
-            builder.push(midX, toY + Math.min(diffY / 2, r));
-            builder.push(midX, toY);
-            builder.push(midX + Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterX += fromWidth / 2;
+            toCenterX -= toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midX = fromCenterX + diffX / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
+            builder.push(midX, fromCenterY);
+            builder.push(midX, fromCenterY - Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY + Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY);
+            builder.push(midX + Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -435,19 +435,19 @@ export function buildEdgePath(
         //   |
         //   B
         case EdgeType.SouthEastSouth: {
-            fromY -= fromHeight / 2;
-            toY += toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midY = fromY - diffY / 2;
-            builder.begin(fromX, fromY);
-            builder.push(fromX, midY + Math.min(diffY / 2, r));
-            builder.push(fromX, midY);
-            builder.push(fromX + Math.min(diffX / 2, r), midY);
-            builder.push(toX - Math.min(diffX / 2, r), midY);
-            builder.push(toX, midY);
-            builder.push(toX, midY - Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterY -= fromHeight / 2;
+            toCenterY += toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midY = fromCenterY - diffY / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
+            builder.push(fromCenterX, midY);
+            builder.push(fromCenterX + Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX - Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX, midY);
+            builder.push(toCenterX, midY - Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -457,19 +457,19 @@ export function buildEdgePath(
         // |
         // B
         case EdgeType.SouthWestSouth: {
-            fromY -= fromHeight / 2;
-            toY += toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midY = fromY - diffY / 2;
-            builder.begin(fromX, fromY);
-            builder.push(fromX, midY + Math.min(diffY / 2, r));
-            builder.push(fromX, midY);
-            builder.push(fromX - Math.min(diffX / 2, r), midY);
-            builder.push(toX + Math.min(diffX / 2, r), midY);
-            builder.push(toX, midY);
-            builder.push(toX, midY - Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterY -= fromHeight / 2;
+            toCenterY += toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midY = fromCenterY - diffY / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
+            builder.push(fromCenterX, midY);
+            builder.push(fromCenterX - Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX + Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX, midY);
+            builder.push(toCenterX, midY - Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -477,19 +477,19 @@ export function buildEdgePath(
         //   |
         //   +-A
         case EdgeType.WestNorthWest: {
-            fromX -= fromWidth / 2;
-            toX += toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midX = fromX - diffX / 2;
-            builder.begin(fromX, fromY);
-            builder.push(midX + Math.min(diffX / 2, r), fromY);
-            builder.push(midX, fromY);
-            builder.push(midX, fromY + Math.min(diffY / 2, r));
-            builder.push(midX, toY - Math.min(diffY / 2, r));
-            builder.push(midX, toY);
-            builder.push(midX - Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterX -= fromWidth / 2;
+            toCenterX += toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midX = fromCenterX - diffX / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
+            builder.push(midX, fromCenterY);
+            builder.push(midX, fromCenterY + Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY - Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY);
+            builder.push(midX - Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -497,19 +497,19 @@ export function buildEdgePath(
         //   |
         // B-+
         case EdgeType.WestSouthWest: {
-            fromX -= fromWidth / 2;
-            toX += toWidth / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midX = fromX - diffX / 2;
-            builder.begin(fromX, fromY);
-            builder.push(midX + Math.min(diffX / 2, r), fromY);
-            builder.push(midX, fromY);
-            builder.push(midX, fromY - Math.min(diffY / 2, r));
-            builder.push(midX, toY + Math.min(diffY / 2, r));
-            builder.push(midX, toY);
-            builder.push(midX - Math.min(diffX / 2, r), toY);
-            builder.push(toX, toY);
+            fromCenterX -= fromWidth / 2;
+            toCenterX += toWidth / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midX = fromCenterX - diffX / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
+            builder.push(midX, fromCenterY);
+            builder.push(midX, fromCenterY - Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY + Math.min(diffY / 2, r));
+            builder.push(midX, toCenterY);
+            builder.push(midX - Math.min(diffX / 2, r), toCenterY);
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -519,19 +519,19 @@ export function buildEdgePath(
         // |
         // A
         case EdgeType.NorthEastNorth: {
-            fromY += fromHeight / 2;
-            toY -= toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midY = fromY + diffY / 2;
-            builder.begin(fromX, fromY);
-            builder.push(fromX, midY - Math.min(diffY / 2, r));
-            builder.push(fromX, midY);
-            builder.push(fromX + Math.min(diffX / 2, r), midY);
-            builder.push(toX - Math.min(diffX / 2, r), midY);
-            builder.push(toX, midY);
-            builder.push(toX, midY + Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterY += fromHeight / 2;
+            toCenterY -= toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midY = fromCenterY + diffY / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
+            builder.push(fromCenterX, midY);
+            builder.push(fromCenterX + Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX - Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX, midY);
+            builder.push(toCenterX, midY + Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
 
@@ -541,19 +541,19 @@ export function buildEdgePath(
         //   |
         //   A
         case EdgeType.NorthWestNorth: {
-            fromY += fromHeight / 2;
-            toY -= toHeight / 2;
-            const diffX = Math.abs(toX - fromX);
-            const diffY = Math.abs(toY - fromY);
-            const midY = fromY + diffY / 2;
-            builder.begin(fromX, fromY);
-            builder.push(fromX, midY - Math.min(diffY / 2, r));
-            builder.push(fromX, midY);
-            builder.push(fromX - Math.min(diffX / 2, r), midY);
-            builder.push(toX + Math.min(diffX / 2, r), midY);
-            builder.push(toX, midY);
-            builder.push(toX, midY + Math.min(diffY / 2, r));
-            builder.push(toX, toY);
+            fromCenterY += fromHeight / 2;
+            toCenterY -= toHeight / 2;
+            const diffX = Math.abs(toCenterX - fromCenterX);
+            const diffY = Math.abs(toCenterY - fromCenterY);
+            const midY = fromCenterY + diffY / 2;
+            builder.begin(fromCenterX, fromCenterY);
+            builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
+            builder.push(fromCenterX, midY);
+            builder.push(fromCenterX - Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX + Math.min(diffX / 2, r), midY);
+            builder.push(toCenterX, midY);
+            builder.push(toCenterX, midY + Math.min(diffY / 2, r));
+            builder.push(toCenterX, toCenterY);
             return builder.build2Turns();
         }
     }

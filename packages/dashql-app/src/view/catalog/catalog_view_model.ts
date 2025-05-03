@@ -10,10 +10,12 @@ export interface CatalogLevelRenderingSettings {
     nodeHeight: number;
     /// The maximum children at this level
     maxUnpinnedChildren: number;
+    /// The gap when switching levels
+    levelGap: number;
     /// The row gap
     rowGap: number;
-    /// The column gap left of this entry
-    columnGap: number;
+    /// The x-offset of the children
+    childOffsetX: number;
 }
 
 /// The rendering settings for catalog details
@@ -147,7 +149,8 @@ interface CatalogLevelViewModel {
     entries: CatalogEntrySpan;
     /// The rendering flags
     entryFlags: Uint16Array;
-    /// The subtree heights
+    /// The subtree heights.
+    /// Includes the entries themselves.
     subtreeHeights: Float32Array;
     /// The x position
     positionX: number;
@@ -236,7 +239,6 @@ export class CatalogViewModel {
         this.nextPinEpoch = 1;
         const snap = snapshot.read();
         let currentWriterX = 0;
-        currentWriterX += settings.levels.databases.columnGap;
         this.databaseEntries = {
             settings: settings.levels.databases,
             entries: {
@@ -253,8 +255,7 @@ export class CatalogViewModel {
             pinnedInEpoch: new Uint32Array(snap.catalogReader.databasesLength()),
             firstFocusedEntry: null,
         };
-        currentWriterX += settings.levels.databases.nodeWidth;
-        currentWriterX += settings.levels.schemas.columnGap;
+        currentWriterX += settings.levels.databases.childOffsetX;
         this.schemaEntries = {
             settings: settings.levels.schemas,
             entries: {
@@ -271,8 +272,7 @@ export class CatalogViewModel {
             pinnedInEpoch: new Uint32Array(snap.catalogReader.schemasLength()),
             firstFocusedEntry: null,
         };
-        currentWriterX += settings.levels.schemas.nodeWidth;
-        currentWriterX += settings.levels.tables.columnGap;
+        currentWriterX += settings.levels.schemas.childOffsetX;
         this.tableEntries = {
             settings: settings.levels.tables,
             entries: {
@@ -289,8 +289,7 @@ export class CatalogViewModel {
             pinnedEntries: new Set(),
             firstFocusedEntry: null,
         };
-        currentWriterX += settings.levels.tables.nodeWidth;
-        currentWriterX += settings.levels.columns.columnGap;
+        currentWriterX += settings.levels.tables.childOffsetX;
         this.columnEntries = {
             settings: settings.levels.columns,
             entries: {
@@ -307,6 +306,7 @@ export class CatalogViewModel {
             pinnedEntries: new Set(),
             firstFocusedEntry: null,
         };
+        currentWriterX += settings.levels.columns.childOffsetX;
         this.details = {
             settings: settings.details,
             positionX: 0,
@@ -380,25 +380,24 @@ export class CatalogViewModel {
 
             // Add row gap when first
             // We could also account for that in the end
-            ctx.currentWriterY += isFirstEntry ? 0 : level.settings.rowGap;
+            ctx.currentWriterY += isFirstEntry ? level.settings.levelGap : level.settings.rowGap;
             isFirstEntry = false;
 
             // Special-case the last level since we skip writer updates there
             if (isLastLevel) {
-                // Bump writer
+                // Add the own node
                 ctx.currentWriterY += level.settings.nodeHeight;
-                // Store the subtree height
+                // The subtree height includes the own node height
                 level.subtreeHeights[entryId] = level.settings.nodeHeight;
 
             } else {
-                // Remember own position
+                // Add the own position
                 let thisPos = ctx.currentWriterY;
+                ctx.currentWriterY += level.settings.nodeHeight;
                 // Render child columns
                 if (entry.childCount() > 0) {
                     this.layoutEntriesAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount());
                 }
-                // Bump writer if the columns didn't already
-                ctx.currentWriterY = Math.max(ctx.currentWriterY, thisPos + level.settings.nodeHeight);
                 // Store the subtree height
                 // Note that we deliberately do not include the entries row gap here.
                 // If we would, we couldn't update this easily from the children.
@@ -458,8 +457,7 @@ export class CatalogViewModel {
         // While doing so, update the total width if the details are visible
         let totalWidth = 0;
         for (let i = 0; i < visibleLevels; ++i) {
-            totalWidth += levels[i].settings.columnGap;
-            totalWidth += levels[i].settings.nodeWidth;
+            totalWidth += levels[i].settings.childOffsetX;
         }
         if (this.visibleDetails) {
             this.details.anchorPositionX = totalWidth;

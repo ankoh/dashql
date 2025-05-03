@@ -83,7 +83,8 @@ TEST(CatalogTest, Clear) {
         auto description = flatbuffers::GetRoot<buffers::catalog::CatalogEntries>(fb.GetBufferPointer());
         ASSERT_EQ(description->entries()->size(), 1);
         ASSERT_EQ(description->entries()->Get(0)->catalog_entry_id(), 1);
-        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_type(), buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
+        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_type(),
+                  buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
     }
     catalog.Clear();
     {
@@ -115,7 +116,8 @@ TEST(CatalogTest, SingleDescriptorPool) {
         auto description = flatbuffers::GetRoot<buffers::catalog::CatalogEntries>(fb.GetBufferPointer());
         ASSERT_EQ(description->entries()->size(), 1);
         ASSERT_EQ(description->entries()->Get(0)->catalog_entry_id(), 1);
-        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_type(), buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
+        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_type(),
+                  buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
     }
 
     Script script{catalog, 2};
@@ -192,6 +194,73 @@ TEST(CatalogTest, FlattenSingleDescriptorPool) {
     ASSERT_EQ(flat->tables()->size(), 2);
     ASSERT_EQ(flat->columns()->size(), 6);
     ASSERT_EQ(flat->name_dictionary()->size(), 8);
+}
+
+TEST(CatalogTest, FlattenMultipleDatabases) {
+    Catalog catalog;
+    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
+
+    {
+        auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
+            .database_name = "db1",
+            .schema_name = "schema1",
+            .tables = {SchemaTable{.table_name = "table1",
+                                   .table_columns = {SchemaTableColumn{.column_name = "column1"},
+                                                     SchemaTableColumn{.column_name = "column2"},
+                                                     SchemaTableColumn{.column_name = "column3"}}
+
+                       },
+                       SchemaTable{.table_name = "table2",
+                                   .table_columns = {SchemaTableColumn{.column_name = "column1"},
+                                                     SchemaTableColumn{.column_name = "column2"},
+                                                     SchemaTableColumn{.column_name = "column4"}}
+
+                       }},
+        });
+        auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+        ASSERT_EQ(status, buffers::status::StatusCode::OK);
+    }
+    {
+        auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
+            .database_name = "db2",
+            .schema_name = "schema1",
+            .tables = {SchemaTable{.table_name = "table1",
+                                   .table_columns = {SchemaTableColumn{.column_name = "column1"},
+                                                     SchemaTableColumn{.column_name = "column2"},
+                                                     SchemaTableColumn{.column_name = "column3"}}
+
+                       },
+                       SchemaTable{.table_name = "table2",
+                                   .table_columns = {SchemaTableColumn{.column_name = "column1"},
+                                                     SchemaTableColumn{.column_name = "column2"},
+                                                     SchemaTableColumn{.column_name = "column4"}}
+
+                       }},
+        });
+        auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+        ASSERT_EQ(status, buffers::status::StatusCode::OK) << static_cast<uint32_t>(status);
+    }
+
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(catalog.Flatten(fb));
+    auto flat = flatbuffers::GetRoot<buffers::catalog::FlatCatalog>(fb.GetBufferPointer());
+    ASSERT_EQ(flat->catalog_version(), catalog.GetVersion());
+    ASSERT_EQ(flat->databases()->size(), 2);
+    ASSERT_EQ(flat->schemas()->size(), 2);
+    ASSERT_EQ(flat->tables()->size(), 4);
+    ASSERT_EQ(flat->columns()->size(), 12);
+    ASSERT_EQ(flat->name_dictionary()->size(), 9);
+
+    ASSERT_EQ(flat->databases()->Get(0)->flat_entry_idx(), 0);
+    ASSERT_EQ(flat->databases()->Get(0)->child_begin(), 0);
+    ASSERT_EQ(flat->databases()->Get(0)->child_count(), 1);
+    ASSERT_EQ(flat->databases()->Get(1)->flat_entry_idx(), 1);
+    ASSERT_EQ(flat->databases()->Get(1)->child_begin(), 1);
+    ASSERT_EQ(flat->databases()->Get(1)->child_count(), 1);
+    ASSERT_EQ(flat->schemas()->Get(0)->flat_parent_idx(), 0);
+    ASSERT_EQ(flat->schemas()->Get(0)->flat_entry_idx(), 0);
+    ASSERT_EQ(flat->schemas()->Get(1)->flat_parent_idx(), 1);
+    ASSERT_EQ(flat->schemas()->Get(1)->flat_entry_idx(), 1);
 }
 
 constexpr std::string_view TPCH_SCHEMA = R"SQL(
