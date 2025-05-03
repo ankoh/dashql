@@ -550,7 +550,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             }
 
             // XXX If the node is focused and the last level, we also emit the details node
-            if (isLastLevel && ((entryFlags & PINNED_BY_FOCUS) != 0)) {
+            if (isLastLevel && ((entryFlags & PINNED_BY_FOCUS_TARGET) != 0)) {
                 const detailsKey = "details";
 
                 const detailsRendering = ctx.viewModel.settings.details;
