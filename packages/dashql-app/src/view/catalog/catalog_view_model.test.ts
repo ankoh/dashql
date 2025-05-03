@@ -58,11 +58,38 @@ describe('CatalogViewModel', () => {
         const catalogVM = new CatalogViewModel(snapshotPtr, DEFAULT_RENDERING_SETTINGS);
         catalogVM.layoutEntries();
         expect(catalogVM.totalHeight).toEqual(
-            // 2 times 3 tables with overflow node
-            2 * ((3 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-                (2 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap) +
-            // Row gap between tables
-            1 * DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap
+            // Database
+            DEFAULT_RENDERING_SETTINGS.levels.databases.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.databases.nodeHeight +
+            // Schema
+            DEFAULT_RENDERING_SETTINGS.levels.schemas.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.schemas.nodeHeight +
+            // Table1
+            DEFAULT_RENDERING_SETTINGS.levels.tables.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            // Table1 Columns
+            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table1 Overflow
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table2
+            DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            // Table2 Columns
+            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table2 Overflow
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight
         );
 
         const queryText = `
@@ -79,14 +106,41 @@ describe('CatalogViewModel', () => {
 
         catalogVM.pinScriptRefs(analyzedReader);
         expect(catalogVM.totalHeight).toEqual(
-            // 2 times 3 tables with overflow node
-            2 * ((3 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-                (2 + 1) * DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap) +
-            // Row gap between tables
-            1 * DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap +
-            // Newly pinned element
+            // Database
+            DEFAULT_RENDERING_SETTINGS.levels.databases.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.databases.nodeHeight +
+            // Schema
+            DEFAULT_RENDERING_SETTINGS.levels.schemas.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.schemas.nodeHeight +
+            // Table1
+            DEFAULT_RENDERING_SETTINGS.levels.tables.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            // Table1 Columns
+            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
             DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Newly pinned column col4
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table1 Overflow
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table2
+            DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            // Table2 Columns
+            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            // Table2 Overflow
+            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
+            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight
         );
     });
 });
