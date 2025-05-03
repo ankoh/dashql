@@ -273,7 +273,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
     const settings = thisLevel.settings;
     const stats = ctx.renderingWindow.stats;
     const isLastLevel = (levelId + 1) >= ctx.viewModel.visibleLevels;
-
     let isFirst = true;
 
     // First render all pinned entries, then all unpinned

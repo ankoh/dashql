@@ -47,7 +47,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             maxUnpinnedChildren: 3,
             levelGap: 8,
             rowGap: 8,
-            childOffsetX: 200,
+            childOffsetX: 0,
         },
     },
     details: {

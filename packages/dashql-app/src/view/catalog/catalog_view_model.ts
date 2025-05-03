@@ -456,8 +456,11 @@ export class CatalogViewModel {
         // Determine the total width.
         // While doing so, update the total width if the details are visible
         let totalWidth = 0;
-        for (let i = 0; i < visibleLevels; ++i) {
+        for (let i = 0; i < (visibleLevels - 1); ++i) {
             totalWidth += levels[i].settings.childOffsetX;
+        }
+        if (visibleLevels > 0) {
+            totalWidth += levels[visibleLevels - 1].settings.nodeWidth;
         }
         if (this.visibleDetails) {
             this.details.anchorPositionX = totalWidth;
