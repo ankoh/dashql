@@ -242,7 +242,7 @@ const DEFAULT_EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
-const DETAILS_NODE_INITIAL_X_OFFSET = -8;
+const DETAILS_NODE_INITIAL_X_OFFSET = 8;
 const DETAILS_NODE_INITIAL_SCALE = 1.0;
 const DETAILS_NODE_TRANSITION = {
     duration: 0.3,
@@ -721,9 +721,6 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
     };
     // Render the levels
     renderEntriesAtLevel(ctx, 0, 0, viewModel.databaseEntries.entries.length(ctx.snapshot), null, false);
-
-    // Render details node
-    // XXX
 
     return [ctx.nextState, ctx.output];
 }
