@@ -18,7 +18,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
     },
     levels: {
         databases: {
-            nodeWidth: 200,
+            nodeWidth: 240,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             levelGap: 8,
@@ -26,7 +26,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             childOffsetX: 48,
         },
         schemas: {
-            nodeWidth: 200,
+            nodeWidth: 240,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             levelGap: 8,
@@ -34,7 +34,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             childOffsetX: 48,
         },
         tables: {
-            nodeWidth: 200,
+            nodeWidth: 240,
             nodeHeight: 36,
             maxUnpinnedChildren: 5,
             levelGap: 8,
@@ -42,7 +42,7 @@ export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
             childOffsetX: 48,
         },
         columns: {
-            nodeWidth: 200,
+            nodeWidth: 240,
             nodeHeight: 36,
             maxUnpinnedChildren: 3,
             levelGap: 8,
