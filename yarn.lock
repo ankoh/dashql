@@ -86,7 +86,7 @@ __metadata:
     framer-motion: "npm:^12.9.4"
     html-webpack-plugin: "npm:^5.6.3"
     identity-obj-proxy: "npm:^3.0.0"
-    immutable: "npm:^5.1.1"
+    immutable: "npm:^5.1.2"
     jest: "npm:^29.7.0"
     lz-string: "npm:^1.5.0"
     mini-css-extract-plugin: "npm:^2.9.2"
@@ -7196,10 +7196,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"immutable@npm:^5.1.1":
-  version: 5.1.1
-  resolution: "immutable@npm:5.1.1"
-  checksum: 10c0/5fd129ee9e448884003cc4f9e43bb91bab3b39dfeb3b49ddfb8bd563e0620eb47ae1f5b3ef96615d3ec38b52ab9a966dcacf9e39df00ed1a8ad062ddfba01cdf
+"immutable@npm:^5.1.2":
+  version: 5.1.2
+  resolution: "immutable@npm:5.1.2"
+  checksum: 10c0/da5af92d2c70323c1f9a0e418832c9eef441feadaf6a295a4e07764bd2400c85186872e016071d9253549d58d364160d55dca8dcdf59fd4a6a06c6756fe61657
   languageName: node
   linkType: hard
 
