@@ -295,7 +295,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                             },
                             [TabKey.QueryResultView]: {
                                 tabId: TabKey.QueryResultView,
-                                icon: `${icons}#table`,
+                                icon: `${icons}#table_24`,
                                 labelShort: 'Data',
                                 disabled: tabState.current.enabledTabs < 3,
                             },
