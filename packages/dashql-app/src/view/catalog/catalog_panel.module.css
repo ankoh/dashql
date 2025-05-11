@@ -53,14 +53,3 @@
     background-color: hsl(208.5deg, 24.69%, 31.76%);
     border-radius: 8px;
 }
-
-.info_overlay {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-
-    border-radius: 8px;
-    overflow: hidden;
-
-    z-index: 200;
-}

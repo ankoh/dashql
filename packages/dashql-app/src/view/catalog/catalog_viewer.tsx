@@ -3,12 +3,19 @@ import * as dashql from '@ankoh/dashql-core';
 
 import * as styles from './catalog_viewer.module.css'
 
-import { renderCatalog, RenderingOutput, RenderingState } from './catalog_renderer.js';
-import { observeSize } from '../foundations/size_observer.js';
-import { EdgeLayer } from './edge_layer.js';
-import { NodeLayer } from './node_layer.js';
-import { useThrottledMemo } from '../../utils/throttle.js';
+import { CatalogInfoView } from './catalog_info_view.js';
+import { CatalogRefreshView } from './catalog_refresh_view.js';
 import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
+import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
+import { EdgeLayer } from './edge_layer.js';
+import { FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID } from '../../workbook/focus.js';
+import { NodeLayer } from './node_layer.js';
+import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { U32_MAX } from '../../utils/numeric_limits.js';
+import { observeSize } from '../foundations/size_observer.js';
+import { renderCatalog, RenderingOutput, RenderingState } from './catalog_renderer.js';
+import { useConnectionState } from '../../connection/connection_registry.js';
+import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
@@ -62,6 +69,7 @@ interface Props {
 
 export function CatalogViewer(props: Props) {
     const [workbook, _modifyWorkbook] = useWorkbookState(props.workbookId ?? null);
+    const [conn, _connDispatch] = useConnectionState(workbook?.connectionId ?? null);
     const workbookEntry = workbook?.workbookEntries[workbook.selectedWorkbookEntry];
     const script = workbookEntry ? workbook.scripts[workbookEntry.scriptKey] : null;
 
@@ -219,6 +227,26 @@ export function CatalogViewer(props: Props) {
 
     }, [viewModelVersion, renderingWindow]);
 
+
+    // Build the catalog info entries
+    const catalogInfoEntries = useCatalogInfoEntries(workbook, script);
+    // Resolve the latest full-refresh task
+    const fullRefreshTask = React.useMemo<CatalogUpdateTaskState | null>(() => {
+        const lastFullRefresh = conn?.catalogUpdates.lastFullRefresh ?? null;
+        if (lastFullRefresh != null) {
+            const task = conn!.catalogUpdates.tasksRunning.get(lastFullRefresh)
+                ?? conn!.catalogUpdates.tasksFinished.get(lastFullRefresh)
+                ?? null;
+            return task;
+        }
+        return null;
+    }, [conn?.catalogUpdates]);
+
+    // Show the catalog full refresh status until the latest refresh succeeded
+    const showRefreshView = fullRefreshTask != null
+        && fullRefreshTask.status != CatalogUpdateTaskStatus.SUCCEEDED;
+
+    // Determine layer width and height with the padding
     let totalWidth = containerSize?.width ?? 0;
     let totalHeight = containerSize?.height ?? 0;
     if (viewModel?.totalWidth) {
@@ -228,8 +256,8 @@ export function CatalogViewer(props: Props) {
         totalHeight += viewModel.totalHeight + paddingTop + paddingBottom;
     }
 
-    // Adjust top padding
-    paddingTop = Math.max(Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2, 20);
+    // Use padding to center the catalog if the view model is smaller than the container height.
+    paddingTop = Math.max(paddingTop, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
     paddingBottom = paddingTop;
     return (
         <div className={styles.root}>
@@ -278,6 +306,117 @@ export function CatalogViewer(props: Props) {
                     </div>
                 </div>
             </div>
+            <div className={styles.info_overlay}>
+                {showRefreshView
+                    ? (
+                        <CatalogRefreshView conn={conn!} refresh={fullRefreshTask} />
+                    )
+                    : (
+                        <CatalogInfoView conn={conn!} entries={catalogInfoEntries} />
+                    )
+                }
+            </div>
         </div>
     );
+}
+
+function useCatalogInfoEntries(workbook: WorkbookState | null, script: ScriptData | null) {
+    // Collect overlay metrics
+    return React.useMemo<[string, string][]>(() => {
+        const overlay: [string, string][] = [];
+
+        // Inspect the cursor
+        const cursor = script?.cursor;
+        if (cursor && cursor.scannerSymbolId != U32_MAX) {
+            const scanned = script.processed.scanned?.read();
+            const tokens = scanned?.tokens();
+            const tokenTypes = tokens?.tokenTypesArray();
+            if (tokenTypes && cursor.scannerSymbolId < tokenTypes.length) {
+                const tokenType = tokenTypes[cursor.scannerSymbolId];
+                const tokenTypeName = dashql.getScannerTokenTypeName(tokenType);
+
+                overlay.push([
+                    "Token",
+                    tokenTypeName
+                ]);
+            }
+        }
+
+        // Is there a user focus?
+        const focusTarget = workbook?.userFocus?.focusTarget;
+        switch (focusTarget?.type) {
+            case FOCUSED_TABLE_REF_ID: {
+                const tableRefObject = focusTarget.value.tableReference;
+                const scriptKey = dashql.ContextObjectID.getContext(tableRefObject);
+                const tableRefId = dashql.ContextObjectID.getObject(tableRefObject);
+                const scriptData = workbook?.scripts[scriptKey];
+                const analyzed = scriptData?.processed.analyzed;
+                if (analyzed) {
+                    const analyzedPtr = analyzed.read();
+                    const tableRef = analyzedPtr.tableReferences(tableRefId)!;
+                    switch (tableRef.innerType()) {
+                        case dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference: {
+                            const inner = new dashql.buffers.analyzer.ResolvedRelationReference();
+                            tableRef.inner(inner) as dashql.buffers.analyzer.ResolvedRelationReference;
+                            const tableName = inner.tableName();
+                            overlay.push(["Table", tableName?.tableName() ?? ""]);
+                            break;
+                        }
+                        case dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference: {
+                            overlay.push(["Table", "<unresolved>"]);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case FOCUSED_EXPRESSION_ID: {
+                const expressionObject = focusTarget.value.expression;
+                const scriptKey = dashql.ContextObjectID.getContext(expressionObject);
+                const expressionId = dashql.ContextObjectID.getObject(expressionObject);
+                const scriptData = workbook?.scripts[scriptKey];
+                const analyzed = scriptData?.processed.analyzed;
+                if (analyzed) {
+                    const analyzedPtr = analyzed.read();
+                    const expression = analyzedPtr.expressions(expressionId)!;
+                    switch (expression.innerType()) {
+                        case dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression: {
+                            const inner = new dashql.buffers.algebra.ResolvedColumnRefExpression();
+                            expression.inner(inner) as dashql.buffers.algebra.ResolvedColumnRefExpression;
+                            overlay.push(["Expression", "column reference"]);
+                            const columnName = inner.columnName();
+                            overlay.push(["Column", columnName?.columnName() ?? ""]);
+                            break;
+                        }
+                        case dashql.buffers.algebra.ExpressionSubType.UnresolvedColumnRefExpression: {
+                            const inner = new dashql.buffers.algebra.UnresolvedColumnRefExpression();
+                            expression.inner(inner) as dashql.buffers.algebra.UnresolvedColumnRefExpression;
+                            overlay.push(["Expression", "column reference"]);
+                            overlay.push(["Column", "<unresolved>"]);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case FOCUSED_COMPLETION: {
+                switch (focusTarget.value.completion.strategy) {
+                    case dashql.buffers.completion.CompletionStrategy.DEFAULT:
+                        overlay.push(["Completion", "Default"]);
+                        break;
+                    case dashql.buffers.completion.CompletionStrategy.TABLE_REF:
+                        overlay.push(["Completion", "Table Reference"]);
+                        break;
+                    case dashql.buffers.completion.CompletionStrategy.COLUMN_REF:
+                        overlay.push(["Completion", "Column Reference"]);
+                        break;
+                }
+                const completionCandidate = focusTarget.value.completion.candidates[focusTarget.value.completionCandidateIndex];
+                overlay.push(["Candidate Score", `${completionCandidate.score}`]);
+                break;
+            }
+        }
+
+        return overlay;
+    }, [workbook?.userFocus, script?.cursor]);
 }

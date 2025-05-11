@@ -16,6 +16,19 @@
     height: 100%;
 }
 
+
+.info_overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+
+    border-radius: 8px;
+    overflow: hidden;
+
+    z-index: 200;
+}
+
+
 .board_container {
     width: 100%;
     height: 100%;
