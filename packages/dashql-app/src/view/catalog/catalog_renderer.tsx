@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
 import { buildEdgePathBetweenRectangles, selectHorizontalEdgeType } from './graph_edges.js';
-import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
+import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_FOCUS_TARGET, PINNED_BY_COMPLETION } from './catalog_view_model.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -211,6 +211,8 @@ interface RenderingContext {
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The rendering epoch
     renderingEpoch: number;
+    /// The latest focus epoch
+    latestFocusEpoch: number | null;
     /// The current writer on the vertical axis
     currentWriterY: number;
     /// The rendering path
@@ -292,6 +294,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const entryFlags = flags[entryId];
             const entryIsPinned = (entryFlags & PINNED_BY_ANYTHING) != 0;
             const entryIsFocused = (entryFlags & PINNED_BY_FOCUS) != 0;
+            const entryIsFocusTarget = (entryFlags & PINNED_BY_FOCUS_TARGET) != 0 && thisLevel.pinnedInEpoch[entryId] == ctx.latestFocusEpoch;
+            const entryIsCompletion = (entryFlags & PINNED_BY_COMPLETION) != 0 && thisLevel.pinnedInEpoch[entryId] == ctx.latestFocusEpoch;
             // Quickly skip over irrelevant entries
             if (entryIsPinned != renderPinned) {
                 continue;
@@ -432,7 +436,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.West}
                             />
                         )}
-                        {((entryFlags & PINNED_BY_FOCUS_TARGET) != 0) && (
+                        {entryIsFocusTarget && (
                             <div
                                 className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
@@ -455,14 +459,15 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const toSettings = levels[levelId + 1].settings;
                 const toPositionsY = levels[levelId + 1].positionsY;
                 const toX = levels[levelId + 1].positionX + levels[levelId + 1].settings.nodeWidth / 2;
-                const toEpochs = levels[levelId + 1].renderedInEpoch;
+                const toRenderedInEpoch = levels[levelId + 1].renderedInEpoch;
+                const toPinnedInEpoch = levels[levelId + 1].pinnedInEpoch;
                 const toFlags = levels[levelId + 1].entryFlags;
                 const toWidth = levels[levelId + 1].settings.nodeWidth;
 
                 for (let i = 0; i < entry.childCount(); ++i) {
                     const toEntryId = entry.childBegin() + i;
                     // Don't draw an edge to nodes that were not rendered this epoch
-                    if (toEpochs[toEntryId] != ctx.renderingEpoch) {
+                    if (toRenderedInEpoch[toEntryId] != ctx.renderingEpoch) {
                         continue;
                     }
                     const toY = toPositionsY[toEntryId] + toSettings.nodeHeight / 2;
@@ -485,8 +490,8 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 
                     // Is his a focused edge?
                     const toEntryFlags = toFlags[toEntryId];
-                    const pinnedByCompletion = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH | CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
-                    if (((entryFlags & pinnedByCompletion) != 0) && ((toEntryFlags & pinnedByCompletion) != 0)) {
+                    const toIsCompletion = (toEntryFlags & PINNED_BY_COMPLETION) != 0 && toPinnedInEpoch[entryId] == ctx.latestFocusEpoch;
+                    if (entryIsCompletion && toIsCompletion) {
                         ctx.output.edgesFocused.push(
                             <motion.path
                                 key={edgeKey}
@@ -559,7 +564,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             }
 
             // XXX If the node is focused and the last level, we also emit the details node
-            if (isLastLevel && ((entryFlags & PINNED_BY_FOCUS_TARGET) != 0)) {
+            if (isLastLevel && entryIsFocusTarget) {
                 const detailsKey = "details";
 
                 const detailsRendering = ctx.viewModel.settings.details;
@@ -713,6 +718,7 @@ export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel
         viewModel,
         snapshot: viewModel.snapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
+        latestFocusEpoch: viewModel.latestFocusEpoch,
         currentWriterY: 0,
         renderingPath: new RenderingPath(),
         renderingWindow: new VirtualRenderingWindow(viewModel.scrollBegin, viewModel.scrollEnd, viewModel.virtualScrollBegin, viewModel.virtualScrollEnd),

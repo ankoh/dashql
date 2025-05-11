@@ -120,7 +120,7 @@ export function CatalogViewer(props: Props) {
     React.useEffect(() => {
         if (viewModel != null && workbook?.userFocus) {
             // Pin focused elements
-            viewModel.pinFocusedByUser(workbook.userFocus);
+            viewModel.pinFocusedByUser(workbook.userFocus, true);
 
             // Scroll to first focused entry
             let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();

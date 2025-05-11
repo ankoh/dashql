@@ -95,8 +95,11 @@ export const PINNED_BY_FOCUS =
     PINNED_BY_FOCUS_PATH
     ;
 
+
+export const PINNED_BY_COMPLETION = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH | CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
+
 /// Pinned by anything
-export const PINNED_BY_ANYTHING = PINNED_BY_SCRIPT | PINNED_BY_FOCUS;
+export const PINNED_BY_ANYTHING = PINNED_BY_SCRIPT | PINNED_BY_FOCUS | PINNED_BY_COMPLETION;
 
 
 /// A span of catalog entries
@@ -199,6 +202,8 @@ export class CatalogViewModel {
     /// The details
     details: CatalogDetailsViewModel;
 
+    /// The latest focus epoch
+    latestFocusEpoch: number | null;
     /// The next rendering epoch
     nextRenderingEpoch: number;
     /// The pin epoch counter
@@ -235,6 +240,7 @@ export class CatalogViewModel {
     constructor(snapshot: dashql.DashQLCatalogSnapshot, settings: CatalogRenderingSettings) {
         this.snapshot = snapshot;
         this.settings = settings;
+        this.latestFocusEpoch = null;
         this.nextRenderingEpoch = 100;
         this.nextPinEpoch = 1;
         const snap = snapshot.read();
@@ -531,7 +537,7 @@ export class CatalogViewModel {
 
                 // Update first focused (if appropriate)
                 const firstFocusedEntry = levels[i].firstFocusedEntry;
-                if ((flagsPath & PINNED_BY_FOCUS) != 0 && (firstFocusedEntry == null || firstFocusedEntry.epoch != epoch || entryId < firstFocusedEntry.entryId)) {
+                if ((flagsPath & PINNED_BY_FOCUS) != 0 && (firstFocusedEntry == null || firstFocusedEntry.epoch > epoch || (firstFocusedEntry.epoch == epoch && entryId < firstFocusedEntry.entryId))) {
                     levels[i].firstFocusedEntry = {
                         epoch,
                         entryId: entryId,
@@ -685,6 +691,7 @@ export class CatalogViewModel {
         const epoch = this.nextPinEpoch++;
         // Unpin previous catalog objects
         this.unpin(PINNED_BY_FOCUS, epoch);
+        this.latestFocusEpoch = null;
         // Now run all necessary layout updates
         this.layoutPendingEntries();
     }
@@ -692,6 +699,7 @@ export class CatalogViewModel {
     pinFocusedByUser(focus: UserFocus, clear: boolean = false): void {
         const catalog = this.snapshot.read().catalogReader;
         const epoch = this.nextPinEpoch++;
+        this.latestFocusEpoch = epoch;
         let focusedAnything = false;
 
         // Pin focused catalog objects
