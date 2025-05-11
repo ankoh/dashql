@@ -18,7 +18,12 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-export const DEFAULT_RENDERING_SETTINGS: CatalogRenderingSettings = {
+export const INFO_OVERLAY_WIDTH = 240;
+export const PADDING_LEFT = 20;
+export const PADDING_TOP = 20;
+export const PADDING_BOTTOM = 20;
+export const PADDING_RIGHT = 20;
+export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
         prerenderSize: 200,
         stepSize: 1,
@@ -77,10 +82,6 @@ export function CatalogViewer(props: Props) {
     const containerElement = React.useRef(null);
     const containerSize = observeSize(containerElement);
     const boardElement = React.useRef(null);
-    let paddingTop = 20;
-    let paddingBottom = 20;
-    const paddingRight = 20;
-    const paddingLeft = 20;
 
     // Maintain a catalog snapshot of the workbook
     const [viewModel, setViewModel] = React.useState<CatalogViewModel | null>(null);
@@ -88,7 +89,7 @@ export function CatalogViewer(props: Props) {
     React.useEffect(() => {
         const snapshot = workbook?.connectionCatalog.createSnapshot() ?? null;
         if (snapshot) {
-            const state = new CatalogViewModel(snapshot, DEFAULT_RENDERING_SETTINGS);
+            const state = new CatalogViewModel(snapshot, RENDERING_SETTINGS);
             setViewModel(state);
         }
     }, [workbook?.connectionCatalog.snapshot]);
@@ -148,7 +149,7 @@ export function CatalogViewer(props: Props) {
     const [scrollTopRaw, setScrollTop] = React.useState<number | null>(null);
     const handleScroll = (e: React.UIEvent<HTMLDivElement, UIEvent>) => {
         const scrollTop = (e.target as HTMLDivElement).scrollTop;
-        setScrollTop(Math.max(scrollTop, paddingTop) - paddingTop);
+        setScrollTop(Math.max(scrollTop, PADDING_TOP) - PADDING_BOTTOM);
     };
     const scrollTop = useThrottledMemo(scrollTopRaw, [scrollTopRaw], 10);
 
@@ -161,8 +162,8 @@ export function CatalogViewer(props: Props) {
 
         // Did the user scroll?
         if (scrollTop) {
-            let lb = Math.floor((scrollTop - DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
-            let ub = Math.ceil((scrollTop + containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
+            let lb = Math.floor((scrollTop - RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
+            let ub = Math.ceil((scrollTop + containerSize.height + RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
             lb = Math.max(lb, 0);
             ub = Math.min(ub, viewModelHeight);
             return {
@@ -170,7 +171,7 @@ export function CatalogViewer(props: Props) {
                     top: scrollTop,
                     // Make sure we respect the top padding when computing the scroll window.
                     // When we're on the "first page", we have to subtract the top padding from the container height.
-                    height: Math.max(containerSize.height - paddingTop + Math.min(scrollTop, paddingTop), 0)
+                    height: Math.max(containerSize.height - PADDING_TOP + Math.min(scrollTop, PADDING_TOP), 0)
                 },
                 virtual: {
                     top: lb,
@@ -179,12 +180,12 @@ export function CatalogViewer(props: Props) {
             };
         } else {
             // The user didn't scoll, just render the container
-            let ub = Math.ceil((containerSize.height + DEFAULT_RENDERING_SETTINGS.virtual.prerenderSize) / DEFAULT_RENDERING_SETTINGS.virtual.stepSize) * DEFAULT_RENDERING_SETTINGS.virtual.stepSize;
+            let ub = Math.ceil((containerSize.height + RENDERING_SETTINGS.virtual.prerenderSize) / RENDERING_SETTINGS.virtual.stepSize) * RENDERING_SETTINGS.virtual.stepSize;
             ub = Math.min(ub, viewModelHeight);
             return {
                 scroll: {
                     top: 0,
-                    height: Math.max(containerSize.height, paddingTop) - paddingTop
+                    height: Math.max(containerSize.height, PADDING_TOP) - PADDING_TOP
                 },
                 virtual: {
                     top: 0,
@@ -246,19 +247,23 @@ export function CatalogViewer(props: Props) {
     const showRefreshView = fullRefreshTask != null
         && fullRefreshTask.status != CatalogUpdateTaskStatus.SUCCEEDED;
 
+    // Should we always expand the info overlay?
+    const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT + INFO_OVERLAY_WIDTH + PADDING_LEFT;
+    const alwaysExpand = (containerSize?.width ?? 0) >= widthWhenExpanded;
+
     // Determine layer width and height with the padding
-    let totalWidth = containerSize?.width ?? 0;
-    let totalHeight = containerSize?.height ?? 0;
-    if (viewModel?.totalWidth) {
-        totalWidth = viewModel.totalWidth + paddingLeft + paddingRight;
-    }
-    if (viewModel?.totalHeight) {
-        totalHeight += viewModel.totalHeight + paddingTop + paddingBottom;
+    let paddingLeft = PADDING_LEFT;
+    let paddingRight = PADDING_RIGHT;
+    if (alwaysExpand) {
+        paddingLeft += PADDING_LEFT + INFO_OVERLAY_WIDTH;
     }
 
     // Use padding to center the catalog if the view model is smaller than the container height.
-    paddingTop = Math.max(paddingTop, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
-    paddingBottom = paddingTop;
+    const paddingTop = Math.max(PADDING_TOP, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
+    const paddingBottom = paddingTop;
+
+    let layerWidth = (viewModel?.totalWidth ?? 0) + paddingLeft + paddingRight;
+    let layerHeight = (viewModel?.totalHeight ?? 0) + paddingTop + paddingBottom;
     return (
         <div className={styles.root}>
             <div
@@ -276,8 +281,8 @@ export function CatalogViewer(props: Props) {
                     >
                         <EdgeLayer
                             className={styles.edge_layer}
-                            width={totalWidth}
-                            height={totalHeight}
+                            width={layerWidth}
+                            height={layerHeight}
                             paddingTop={paddingTop}
                             paddingRight={paddingRight}
                             paddingLeft={paddingLeft}
@@ -286,8 +291,8 @@ export function CatalogViewer(props: Props) {
                         />
                         <EdgeLayer
                             className={styles.edge_layer_focused}
-                            width={totalWidth}
-                            height={totalHeight}
+                            width={layerWidth}
+                            height={layerHeight}
                             paddingTop={paddingTop}
                             paddingRight={paddingRight}
                             paddingLeft={paddingLeft}
@@ -295,8 +300,8 @@ export function CatalogViewer(props: Props) {
                             paths={renderedOutput.edgesFocused ?? []}
                         />
                         <NodeLayer
-                            width={totalWidth}
-                            height={totalHeight}
+                            width={layerWidth}
+                            height={layerHeight}
                             paddingTop={paddingTop}
                             paddingRight={paddingRight}
                             paddingLeft={paddingLeft}
@@ -312,7 +317,7 @@ export function CatalogViewer(props: Props) {
                         <CatalogRefreshView conn={conn!} refresh={fullRefreshTask} />
                     )
                     : (
-                        <CatalogInfoView conn={conn!} entries={catalogInfoEntries} />
+                        <CatalogInfoView conn={conn!} entries={catalogInfoEntries} alwaysExpand={alwaysExpand} />
                     )
                 }
             </div>

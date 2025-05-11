@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'node:url';
 import { CatalogViewModel } from './catalog_view_model.js';
-import { DEFAULT_RENDERING_SETTINGS } from './catalog_viewer.js';
+import { RENDERING_SETTINGS } from './catalog_viewer.js';
 
 const coreDistPath = path.resolve(fileURLToPath(new URL('../../../../dashql-core-bindings/dist', import.meta.url)));
 const wasmPath = path.resolve(coreDistPath, './dashql.wasm');
@@ -55,41 +55,41 @@ describe('CatalogViewModel', () => {
         expect(snapshot.catalogReader.tablesLength()).toEqual(2);
         expect(snapshot.catalogReader.columnsLength()).toEqual(12);
 
-        const catalogVM = new CatalogViewModel(snapshotPtr, DEFAULT_RENDERING_SETTINGS);
+        const catalogVM = new CatalogViewModel(snapshotPtr, RENDERING_SETTINGS);
         catalogVM.layoutEntries();
         expect(catalogVM.totalHeight).toEqual(
             // Database
-            DEFAULT_RENDERING_SETTINGS.levels.databases.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.databases.nodeHeight +
+            RENDERING_SETTINGS.levels.databases.levelGap +
+            RENDERING_SETTINGS.levels.databases.nodeHeight +
             // Schema
-            DEFAULT_RENDERING_SETTINGS.levels.schemas.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.schemas.nodeHeight +
+            RENDERING_SETTINGS.levels.schemas.levelGap +
+            RENDERING_SETTINGS.levels.schemas.nodeHeight +
             // Table1
-            DEFAULT_RENDERING_SETTINGS.levels.tables.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            RENDERING_SETTINGS.levels.tables.levelGap +
+            RENDERING_SETTINGS.levels.tables.nodeHeight +
             // Table1 Columns
-            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.levelGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table1 Overflow
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table2
-            DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            RENDERING_SETTINGS.levels.tables.rowGap +
+            RENDERING_SETTINGS.levels.tables.nodeHeight +
             // Table2 Columns
-            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.levelGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table2 Overflow
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight
         );
 
         const queryText = `
@@ -107,40 +107,40 @@ describe('CatalogViewModel', () => {
         catalogVM.pinScriptRefs(analyzedReader);
         expect(catalogVM.totalHeight).toEqual(
             // Database
-            DEFAULT_RENDERING_SETTINGS.levels.databases.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.databases.nodeHeight +
+            RENDERING_SETTINGS.levels.databases.levelGap +
+            RENDERING_SETTINGS.levels.databases.nodeHeight +
             // Schema
-            DEFAULT_RENDERING_SETTINGS.levels.schemas.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.schemas.nodeHeight +
+            RENDERING_SETTINGS.levels.schemas.levelGap +
+            RENDERING_SETTINGS.levels.schemas.nodeHeight +
             // Table1
-            DEFAULT_RENDERING_SETTINGS.levels.tables.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            RENDERING_SETTINGS.levels.tables.levelGap +
+            RENDERING_SETTINGS.levels.tables.nodeHeight +
             // Table1 Columns
-            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.levelGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Newly pinned column col4
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table1 Overflow
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table2
-            DEFAULT_RENDERING_SETTINGS.levels.tables.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.tables.nodeHeight +
+            RENDERING_SETTINGS.levels.tables.rowGap +
+            RENDERING_SETTINGS.levels.tables.nodeHeight +
             // Table2 Columns
-            DEFAULT_RENDERING_SETTINGS.levels.columns.levelGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.levelGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight +
             // Table2 Overflow
-            DEFAULT_RENDERING_SETTINGS.levels.columns.rowGap +
-            DEFAULT_RENDERING_SETTINGS.levels.columns.nodeHeight
+            RENDERING_SETTINGS.levels.columns.rowGap +
+            RENDERING_SETTINGS.levels.columns.nodeHeight
         );
     });
 });

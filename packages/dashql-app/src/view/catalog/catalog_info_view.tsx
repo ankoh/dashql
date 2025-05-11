@@ -11,6 +11,7 @@ import { ButtonVariant, IconButton } from "../../view/foundations/button.js";
 interface CatalogInfoViewProps {
     conn: ConnectionState;
     entries: [string, string][];
+    alwaysExpand: boolean;
 }
 
 interface CatalogStats {
@@ -89,6 +90,13 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
     const [expanded, setExpanded] = React.useState<boolean>();
     const TriangleIcon = expanded ? CollapseIcon : ExpandIcon;
 
+    // Expand if we're forced
+    React.useEffect(() => {
+        if (props.alwaysExpand && !expanded) {
+            setExpanded(true);
+        }
+    }, [props.alwaysExpand]);
+
     return (
         <div className={styles.root}>
             <motion.div
@@ -100,26 +108,30 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
             <div className={styles.header}>
                 <div
                     className={styles.header_title}
-                    onClick={(ev: React.MouseEvent) => {
-                        ev.stopPropagation();
-                        setExpanded(e => !e);
-                    }}
-                >
-                    Catalog
-                </div>
-                <div className={styles.header_button}>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-labelledby="info-expand"
-                        aria-label={expanded ? "Hide Info" : "Show Info"}
-                        onClick={(ev: React.MouseEvent) => {
+                    onClick={props.alwaysExpand
+                        ? () => { }
+                        : (ev: React.MouseEvent) => {
                             ev.stopPropagation();
                             setExpanded(e => !e);
                         }}
-                    >
-                        <TriangleIcon />
-                    </IconButton>
+                >
+                    Catalog
                 </div>
+                {!props.alwaysExpand && (
+                    <div className={styles.header_button}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-labelledby="info-expand"
+                            aria-label={expanded ? "Hide Info" : "Show Info"}
+                            onClick={(ev: React.MouseEvent) => {
+                                ev.stopPropagation();
+                                setExpanded(e => !e);
+                            }}
+                        >
+                            <TriangleIcon />
+                        </IconButton>
+                    </div>
+                )}
             </div>
             {expanded && (
                 <>
