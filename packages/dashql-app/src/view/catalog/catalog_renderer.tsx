@@ -421,13 +421,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 )
                         )
                     }
-                    {((entryFlags & PINNED_BY_ANYTHING) != 0) &&
-                        <div className={styles.node_ref_icon_container}>
-                            <svg width="12px" height="12px">
-                                <use xlinkHref={`${symbols}#pin_16`} />
-                            </svg>
-                        </div>
-                    }
                     <div className={styles.node_ports}>
                         {(parentEntryId != null) && (
                             <div

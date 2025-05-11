@@ -35,7 +35,7 @@
     justify-items: center;
     column-gap: 8px;
 
-    padding: 0px 12px 0px 12px;
+    padding: 0px 10px 0px 10px;
     font-size: 0.85rem;
 }
 
@@ -47,13 +47,16 @@
     display: flex;
     align-items: center;
     justify-items: center;
+
+    padding: 4px;
+    border-radius: 4px;
+    background-color: hsl(210deg, 12%, 92%);
+}
+.node_pinned > .node_type_icon_container {
+    background-color: hsl(210deg, 12%, 44%);
+    color: white;
 }
 
-.node_ref_icon_container {
-    display: flex;
-    align-items: center;
-    justify-items: center;
-}
 
 .node_label {
     /* overflow-wrap: anywhere; */
