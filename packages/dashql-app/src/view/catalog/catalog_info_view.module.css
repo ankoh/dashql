@@ -1,5 +1,6 @@
 .root {
     position: relative;
+    max-width: 240px;
 }
 .root_background {
     position: absolute;
@@ -33,7 +34,7 @@
 
     padding: 8px 16px;
     display: grid;
-    grid-template-columns: 1fr max-content;
+    grid-template-columns: max-content 1fr;
     column-gap: 32px;
 
     font-weight: 400;
@@ -48,15 +49,20 @@
     grid-column: 2;
     text-align: right;
     font-weight: 500;
+    text-align: right;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 
 .additional_entries {
     border-top: 1px solid var(--border_color_primary);
+    width: 100%;
 
     padding: 8px 16px;
     display: grid;
-    grid-template-columns: 1fr max-content;
+    grid-template-columns: max-content 1fr;
     column-gap: 32px;
 
     font-weight: 400;
@@ -70,4 +76,7 @@
 .additional_entry_value {
     text-align: right;
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* overflow-wrap: anywhere; */
 }

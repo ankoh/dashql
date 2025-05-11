@@ -56,9 +56,12 @@
 }
 
 .node_label {
-    overflow-wrap: anywhere;
+    /* overflow-wrap: anywhere; */
     width: 100%;
     line-height: 2rex;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .node_label_empty {
     color: hsl(210deg, 12.68%, 64.16%);
