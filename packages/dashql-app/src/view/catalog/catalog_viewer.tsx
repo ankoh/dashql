@@ -262,8 +262,8 @@ export function CatalogViewer(props: Props) {
     const paddingTop = Math.max(PADDING_TOP, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
     const paddingBottom = paddingTop;
 
-    let layerWidth = (viewModel?.totalWidth ?? 0) + paddingLeft + paddingRight;
-    let layerHeight = (viewModel?.totalHeight ?? 0) + paddingTop + paddingBottom;
+    let layerWidth = viewModel?.totalWidth ?? 0;
+    let layerHeight = viewModel?.totalHeight ?? 0;
     return (
         <div className={styles.root}>
             <div

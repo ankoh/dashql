@@ -416,24 +416,23 @@ export class CatalogViewModel {
     /// Layout all entries
     layoutEntries() {
         // Find out how many levels are visible
-        const firstUnfocusedLevel = this.getFirstUnfocusedLevel();
+        const lastFocusedLevel = this.getLastFocusedLevel();
         let visibleLevels = 4;
         let visibleDetails = false;
-        switch (firstUnfocusedLevel) {
+        switch (lastFocusedLevel) {
             // Focusing nothing/db/schema will not display details and renders 4 levels
             case 0:
             case 1:
-            case 2:
                 visibleLevels = 4;
                 visibleDetails = false;
                 break;
             // Focusing a table with disable details and renders 3 levels
-            case 3:
+            case 2:
                 visibleLevels = 3;
                 visibleDetails = true;
                 break;
             // Focusing a column with disable details and renders 4 levels
-            case 4:
+            case 3:
                 visibleLevels = 4;
                 visibleDetails = true;
                 break;
@@ -849,15 +848,14 @@ export class CatalogViewModel {
     }
 
     /// Get the first level that is not focused.
-    protected getFirstUnfocusedLevel(): number {
-        let firstUnfocused = this.levels.length;
+    protected getLastFocusedLevel(): number | null {
+        let lastFocused = null;
         for (let i = 0; i < this.levels.length; ++i) {
             const firstFocusedEntry = this.levels[i].firstFocusedEntry;
-            if (firstFocusedEntry == null || (firstFocusedEntry.epoch + 1) != this.nextPinEpoch) {
-                firstUnfocused = i;
-                break;
+            if (firstFocusedEntry != null && (firstFocusedEntry.epoch + 1) == this.nextPinEpoch) {
+                lastFocused = i;
             }
         }
-        return firstUnfocused;
+        return lastFocused;
     }
 }
