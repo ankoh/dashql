@@ -90,12 +90,18 @@ export function CatalogInfoView(props: CatalogInfoViewProps) {
     const [expanded, setExpanded] = React.useState<boolean>();
     const TriangleIcon = expanded ? CollapseIcon : ExpandIcon;
 
-    // Expand if we're forced
+    // Expand if we're forced, auto-close if this changes
+    const prevAlwaysExpand = React.useRef<boolean | null>(null);
     React.useEffect(() => {
-        if (props.alwaysExpand && !expanded) {
+        const prev = prevAlwaysExpand.current;
+        prevAlwaysExpand.current = props.alwaysExpand;
+
+        if (prev != null && prev && !props.alwaysExpand && expanded) {
+            setExpanded(false);
+        } else if (props.alwaysExpand && !expanded) {
             setExpanded(true);
         }
-    }, [props.alwaysExpand]);
+    }, [props.alwaysExpand, expanded]);
 
     return (
         <div className={styles.root}>

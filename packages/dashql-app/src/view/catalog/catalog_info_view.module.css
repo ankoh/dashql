@@ -1,6 +1,6 @@
 .root {
     position: relative;
-    max-width: 240px;
+    width: 240px;
 }
 .root_background {
     position: absolute;
