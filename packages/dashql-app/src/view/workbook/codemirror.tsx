@@ -66,5 +66,6 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
         };
     }, [node, ref]);
 
+
     return <div style={{ width: '100%', height: '100%' }} ref={setNode}></div>;
 });
