@@ -99,7 +99,7 @@ export const PINNED_BY_FOCUS =
 export const PINNED_BY_COMPLETION = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH | CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
 
 /// Pinned by anything
-export const PINNED_BY_ANYTHING = PINNED_BY_SCRIPT | PINNED_BY_FOCUS | PINNED_BY_COMPLETION;
+export const PINNED_BY_ANYTHING = PINNED_BY_SCRIPT | PINNED_BY_FOCUS;
 
 
 /// A span of catalog entries
