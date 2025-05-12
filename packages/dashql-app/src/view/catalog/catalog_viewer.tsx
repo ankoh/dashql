@@ -102,16 +102,24 @@ export function CatalogViewer(props: Props) {
         if (!script) {
             return;
         }
-        if (viewModel != null && script.processed.analyzed != null) {
-            const analyzed = script.processed.analyzed.read();
-            viewModel.pinScriptRefs(analyzed);
-            setViewModelVersion(v => v + 1);
-        }
         // Script changed completey?
         // Then reset also the column rendering
         if (previousScript.current !== script.script) {
             previousScript.current = script.script;
             viewModel?.unpinFocusedByUser();
+        }
+        // Pin new script refs and restore user focus
+        if (viewModel != null && script.processed.analyzed != null) {
+            // Ping script refs
+            const analyzed = script.processed.analyzed.read();
+            viewModel.pinScriptRefs(analyzed);
+            // Restore the user focus.
+            // We need to do this in the same useEffect if we want to get rid of flickering
+            // XXX We'll double-pin focused now
+            if (workbook?.userFocus) {
+                viewModel.pinFocusedByUser(workbook.userFocus, true);
+            }
+            setViewModelVersion(v => v + 1);
         }
 
     }, [viewModel, script?.processed]);
