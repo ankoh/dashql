@@ -72,10 +72,8 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
             <div className={styles.headerbar}>
                 <div className={styles.script_title}>{workbookEntry?.title ?? "Script"}</div>
             </div>
-            <div className={styles.editor_with_loader}>
-                <div className={styles.editor}>
-                    <CodeMirror ref={setView} />
-                </div>
+            <div className={styles.editor}>
+                <CodeMirror ref={setView} />
             </div>
             {isDebugBuild() && config?.settings?.showEditorStats && workbookEntryScriptData?.statistics &&
                 <div className={styles.devtools_overlay}>
