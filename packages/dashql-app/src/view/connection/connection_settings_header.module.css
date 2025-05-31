@@ -1,6 +1,6 @@
 :root {
-    --connector_header_background: hsl(210, 29%, 97%);
-    --connector_status_background: hsl(210, 29%, 97%);
+    --connector_header_background: white;
+    --connector_status_background: white;
 }
 
 .container {

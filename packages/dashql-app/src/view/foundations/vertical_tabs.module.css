@@ -1,5 +1,5 @@
 :root {
-    --vtabs_body_background: hsl(210, 29%, 97%);
+    --vtabs_body_background: white;
     --vtabs_tabs_background: white;
     --vtabs_tabs_background_active: rgba(208,215,222,0.32);
     --vtabs_tabs_foreground_active: var(--base_color_black);

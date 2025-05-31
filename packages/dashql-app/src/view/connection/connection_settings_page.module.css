@@ -1,9 +1,9 @@
 :root {
-    --conns_body_background: hsl(210, 29%, 97%);
-    --conns_tabs_background: hsl(210, 29%, 97%);
-    --conns_tabs_background_active: hsl(210deg 17.5% 74.31% / 32%);
+    --conns_body_background: white;
+    --conns_tabs_background: white;
+    --conns_tabs_background_active: hsl(210, 29%, 97%);
     --conns_tabs_foreground_active: var(--base_color_black);
-    --conns_tabs_background_hover: hsl(210deg 17.5% 74.31% / 32%);
+    --conns_tabs_background_hover: hsl(210, 29%, 97%);
     --conns_tabs_disabled_color: hsl(210, 24%, 62%);
     --conns_tabs_indicator_color: rgb(254, 150, 0);
 }
