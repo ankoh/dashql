@@ -1,6 +1,7 @@
 :root {
     /* --workbook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
-    --workbook_body_background_color: white;
+    --workbook_body_background_color: hsl(210, 29%, 97%);
+    /* --workbook_body_background_color: white; */
 }
 
 

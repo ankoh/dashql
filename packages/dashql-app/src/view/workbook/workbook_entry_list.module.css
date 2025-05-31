@@ -1,5 +1,4 @@
 :root {
-    /* --workbook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
     --workbook_entry_list_left: 12px;
     --workbook_entry_list_right: 0px;
 }
@@ -55,7 +54,7 @@
 .entry_type_container {
     position: absolute;
     bottom: 2px;
-    right: 4px;
+    right: 0px;
     background-color: red;
     border-radius: 50%;
     width: 16px;

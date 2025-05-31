@@ -1,17 +1,17 @@
 :root {
-    --pagenav_body_background: hsl(210, 29%, 97%);
-    --pagenav_tabs_background: hsl(210, 29%, 97%);
-    --pagenav_tabs_background_active: hsl(210deg 17.5% 74.31% / 32%);
-    --pagenav_tabs_foreground_active: var(--base_color_black);
-    --pagenav_tabs_background_hover: hsl(210deg 17.5% 74.31% / 32%);
-    --pagenav_tabs_disabled_color: hsl(210, 24%, 62%);
-    --pagenav_tabs_indicator_color: rgb(254, 150, 0);
+    --vtabs_body_background: hsl(210, 29%, 97%);
+    --vtabs_tabs_background: white;
+    --vtabs_tabs_background_active: rgba(208,215,222,0.32);
+    --vtabs_tabs_foreground_active: var(--base_color_black);
+    --vtabs_tabs_background_hover: rgba(208,215,222,0.32);
+    --vtabs_tabs_disabled_color: hsl(210, 24%, 62%);
+    --vtabs_tabs_indicator_color: rgb(254, 150, 0);
 }
 
 .container {
     position: relative;
     box-sizing: border-box;
-    background-color: var(--pagenav_body_background);
+    background-color: var(--vtabs_body_background);
     width: 100%;
     height: 100%;
 
@@ -34,7 +34,7 @@
 .tabs {
     grid-row: 1;
     grid-column: 1;
-    background-color: var(--pagenav_tabs_background);
+    background-color: var(--vtabs_tabs_background);
     border-right: 1px solid var(--border_color_primary);
 
     display: flex;
@@ -74,7 +74,7 @@
     padding: 0px 8px;
 }
 .stacked_tab:hover > .stacked_tab_icon {
-    background-color: var(--pagenav_tabs_background_hover);
+    background-color: var(--vtabs_tabs_background_hover);
     border: 1px solid var(--border_color_primary);
 }
 .stacked_tab_disabled:hover > .stacked_tab_icon {
@@ -82,14 +82,14 @@
     border: 1px solid transparent !important;
 }
 .stacked_tab_disabled > .stacked_tab_icon {
-    color: var(--pagenav_tabs_disabled_color);
+    color: var(--vtabs_tabs_disabled_color);
 }
 .stacked_tab_disabled > .stacked_tab_label {
-    color: var(--pagenav_tabs_disabled_color);
+    color: var(--vtabs_tabs_disabled_color);
 }
 .stacked_tab_active > .stacked_tab_icon {
-    color: var(--pagenav_tabs_foreground_active);
-    background-color: var(--pagenav_tabs_background_active) !important;
+    color: var(--vtabs_tabs_foreground_active);
+    background-color: var(--vtabs_tabs_background_active) !important;
     border: 1px solid var(--border_color_primary);
 }
 
@@ -119,13 +119,13 @@
     white-space: nowrap;
 }
 .wide_tab:hover > .wide_tab_button {
-    background-color: var(--pagenav_tabs_background_hover);
+    background-color: var(--vtabs_tabs_background_hover);
 }
 .wide_tab_disabled:hover > .wide_tab_button {
     background-color: transparent !important;
 }
 .wide_tab_active > .wide_tab_button {
-    color: var(--pagenav_tabs_foreground_active);
-    background-color: var(--pagenav_tabs_background_active) !important;
+    color: var(--vtabs_tabs_foreground_active);
+    background-color: var(--vtabs_tabs_background_active) !important;
 }
 
