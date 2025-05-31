@@ -1,13 +1,18 @@
+:root {
+    /* --workbook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
+    --workbook_entry_list_left: 12px;
+    --workbook_entry_list_right: 0px;
+}
+
 .entry_list {
     display: flex;
     flex-direction: column;
     row-gap: 4px;
-    padding: 6px 0px;
 }
 
 .entry_container {
     position: relative;
-    padding: 4px 8px 4px 12px;
+    padding: 4px var(--workbook_entry_list_right) 4px var(--workbook_entry_list_left);
 }
 .entry_container.selected::before {
     content: '';
@@ -65,7 +70,7 @@
 
 .entry_list_modify_container {
     position: relative;
-    padding: 4px 8px 4px 12px;
+    padding: 4px var(--workbook_entry_list_right) 4px var(--workbook_entry_list_left);
 }
 .entry_add_button_container {}
 

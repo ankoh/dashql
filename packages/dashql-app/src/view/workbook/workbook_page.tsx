@@ -276,44 +276,54 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 <WorkbookEntryList workbook={workbook} modifyWorkbook={modifyWorkbook} />
             </div>
             <div className={styles.body_container}>
-                <div className={styles.editor_container}>
-                    <ScriptEditor className={styles.editor_card} workbookId={route.workbookId} />
+                <div className={styles.scriptmode_body_container}>
+                    <div className={styles.scriptmode_body_card}>
+                        <div className={styles.scriptmode_editor_container}>
+                            <div className={styles.scriptmode_editor_header}>
+                                Foo
+                            </div>
+                            <ScriptEditor className={styles.scriptmode_editor} workbookId={route.workbookId} />
+                        </div>
+                        <DragSizing
+                            className={styles.scriptmode_output_container}
+                            border={DragSizingBorder.Top}
+                        >
+                            <VerticalTabs
+                                className={styles.scriptmode_output}
+                                variant={VerticalTabVariant.Stacked}
+                                selectedTab={selectedTab}
+                                selectTab={selectTab}
+                                tabProps={{
+                                    [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
+                                    [TabKey.QueryStatusPanel]: {
+                                        tabId: TabKey.QueryStatusPanel,
+                                        icon: `${icons}#plan`,
+                                        labelShort: 'Status',
+                                        disabled: tabState.current.enabledTabs < 2,
+                                    },
+                                    [TabKey.QueryResultView]: {
+                                        tabId: TabKey.QueryResultView,
+                                        icon: `${icons}#table_24`,
+                                        labelShort: 'Data',
+                                        disabled: tabState.current.enabledTabs < 3,
+                                    },
+                                }}
+                                tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
+                                tabRenderers={{
+                                    [TabKey.Catalog]: _props => <CatalogPanel />,
+                                    [TabKey.QueryStatusPanel]: _props => (
+                                        <QueryStatusPanel query={activeQueryState} />
+                                    ),
+                                    [TabKey.QueryResultView]: _props => (
+                                        <QueryResultView query={activeQueryState} />
+                                    ),
+                                }}
+                            />
+                        </DragSizing>
+                    </div>
                 </div>
-                <DragSizing border={DragSizingBorder.Top} className={styles.output_container}>
-                    <VerticalTabs
-                        className={styles.output_card}
-                        variant={VerticalTabVariant.Stacked}
-                        selectedTab={selectedTab}
-                        selectTab={selectTab}
-                        tabProps={{
-                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
-                            [TabKey.QueryStatusPanel]: {
-                                tabId: TabKey.QueryStatusPanel,
-                                icon: `${icons}#plan`,
-                                labelShort: 'Status',
-                                disabled: tabState.current.enabledTabs < 2,
-                            },
-                            [TabKey.QueryResultView]: {
-                                tabId: TabKey.QueryResultView,
-                                icon: `${icons}#table_24`,
-                                labelShort: 'Data',
-                                disabled: tabState.current.enabledTabs < 3,
-                            },
-                        }}
-                        tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
-                        tabRenderers={{
-                            [TabKey.Catalog]: _props => <CatalogPanel />,
-                            [TabKey.QueryStatusPanel]: _props => (
-                                <QueryStatusPanel query={activeQueryState} />
-                            ),
-                            [TabKey.QueryResultView]: _props => (
-                                <QueryResultView query={activeQueryState} />
-                            ),
-                        }}
-                    />
-                </DragSizing>
             </div>
-            <div className={styles.action_sidebar}>
+            <div className={styles.body_action_sidebar}>
                 <ActionList.List aria-label="Actions">
                     <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
                     <ConnectionCommandList

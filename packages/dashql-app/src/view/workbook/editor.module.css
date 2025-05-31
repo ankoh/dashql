@@ -6,19 +6,6 @@
     --editor_deco_cursor_bg: hsl(210, 24%, 80%);
 }
 
-.container {
-    width: 100%;
-    height: 100%;
-}
-
-.editor_with_header {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
 .headerbar {
     grid-row: 1;
     grid-column: 1;
@@ -51,7 +38,9 @@
 }
 
 .editor {
-    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
     background-color: white;
     overflow: hidden;
 }

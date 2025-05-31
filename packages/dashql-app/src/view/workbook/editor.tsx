@@ -68,10 +68,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     ]);
 
     return (
-        <div className={styles.editor_with_header}>
-            <div className={styles.headerbar}>
-                <div className={styles.script_title}>{workbookEntry?.title ?? "Script"}</div>
-            </div>
+        <>
             <div className={styles.editor}>
                 <CodeMirror ref={setView} />
             </div>
@@ -85,7 +82,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
                     </div>
                 </div>
             }
-        </div>
+        </>
     );
 };
 
