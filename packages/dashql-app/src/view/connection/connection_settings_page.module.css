@@ -1,9 +1,9 @@
 :root {
-    --conns_body_background: white;
-    --conns_tabs_background: white;
-    --conns_tabs_background_active: hsl(210, 29%, 97%);
+    --conns_header_background: white;
+    --conns_body_background: hsl(210, 29%, 97%);
+    --conns_tabs_background_active: hsl(210, 20%, 92%);
     --conns_tabs_foreground_active: var(--base_color_black);
-    --conns_tabs_background_hover: hsl(210, 29%, 97%);
+    --conns_tabs_background_hover: hsl(210, 20%, 92%);
     --conns_tabs_disabled_color: hsl(210, 24%, 62%);
     --conns_tabs_indicator_color: rgb(254, 150, 0);
 }
@@ -11,7 +11,7 @@
 .container {
     position: relative;
     box-sizing: border-box;
-    background-color: var(--conns_body_background);
+    background-color: var(--conns_header_background);
     width: 100%;
     height: 100%;
 
@@ -56,25 +56,33 @@
 .connection_list {
     grid-row: 1;
     grid-column: 1;
-    background-color: var(--conns_tabs_background);
-    border-right: 1px solid var(--border_color_primary);
+    background-color: var(--conns_body_background);
+    padding: 12px 0px;
 
     height: 100%;
     overflow: auto;
 }
 
 .connection_section {
+    position: relative;
     display: flex;
     flex-direction: column;
     row-gap: 4px;
     overflow: auto;
     padding: 4px;
 }
-.connection_section:not(:first-child) {
-    border-top: 1px solid var(--border_color_primary);
+.connection_section:not(:first-child)::before {
+    content: '';
+    position: absolute;
+    top: 0px;
+    left: 8px;
+    right: 8px;
+    height: 1px;
+    background-color: var(--border_color_primary);
 }
 
 .connector_group {
+    position: relative;
 }
 
 .connector_group_head {
@@ -90,6 +98,7 @@
     background-color: var(--conns_tabs_background_active) !important;
     border: 1px solid var(--border_color_primary);
 }
+
 .connector_group_button {
     -webkit-appearance: none;
     background: none;
@@ -168,10 +177,20 @@
 .connection_settings_container {
     grid-row: 1;
     grid-column: 2;
+    background-color: var(--conns_body_background);
+    padding: 16px;
 
     position: relative;
     box-sizing: border-box;
     width: 100%;
     height: 100%;
+    overflow: auto;
+}
+
+.connection_settings_card {
+    border-radius: var(--border_radius);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--border_color_primary);
     overflow: hidden;
 }

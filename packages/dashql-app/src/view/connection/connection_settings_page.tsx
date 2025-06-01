@@ -205,7 +205,9 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                     </div>
                 </div>
                 <div className={styles.connection_settings_container}>
-                    {settings}
+                    <div className={styles.connection_settings_card}>
+                        {settings}
+                    </div>
                 </div>
             </div>
         </div >
