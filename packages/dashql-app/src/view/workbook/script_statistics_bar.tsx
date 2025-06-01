@@ -39,7 +39,16 @@ interface Props {
 export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
     const stats = props.stats ?? Immutable.List();
     if (stats.isEmpty()) {
-        return <div className={props.className}></div>;
+        return (
+            <div className={classNames(props.className, styles.container)}>
+                <div className={styles.metric_container}>
+                    <div className={styles.metric_last_reading}>- us</div>
+                </div>
+                <div className={styles.metric_container}>
+                    <div className={styles.metric_last_reading}>- bytes</div>
+                </div>
+            </div>
+        );
     }
 
     const protoStats = new dashql.buffers.statistics.ScriptStatistics();

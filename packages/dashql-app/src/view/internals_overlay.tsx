@@ -1,13 +1,14 @@
 import * as React from 'react';
 import * as icons from '../../static/svg/symbols.generated.svg';
 
-import { AnchoredOverlay } from './foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { VerticalTabs, VerticalTabVariant } from './foundations/vertical_tabs.js';
-import { OverlaySize } from './foundations/overlay.js';
+import { AnchoredOverlay } from './foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
+import { AppStats } from './app_stats_view.js';
 import { LogViewer } from './log_viewer.js';
+import { OverlaySize } from './foundations/overlay.js';
 import { QueryLogViewer } from './query_status/query_log_viewer.js';
+import { VerticalTabs, VerticalTabVariant } from './foundations/vertical_tabs.js';
 
 interface InternalsViewerProps {
     onClose: () => void;
@@ -17,6 +18,7 @@ enum TabKey {
     LogViewer = 0,
     QueryViewer = 1,
     AppSettings = 2,
+    AppStats = 3,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
@@ -40,6 +42,12 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     labelShort: 'Queries',
                     disabled: false,
                 },
+                [TabKey.AppStats]: {
+                    tabId: TabKey.AppStats,
+                    icon: `${icons}#stats_24`,
+                    labelShort: 'Statistics',
+                    disabled: false,
+                },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     icon: `${icons}#settings`,
@@ -47,13 +55,16 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     disabled: false,
                 },
             }}
-            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.AppSettings]}
+            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.AppStats, TabKey.AppSettings]}
             tabRenderers={{
                 [TabKey.LogViewer]: _props => (
                     <LogViewer onClose={props.onClose} />
                 ),
                 [TabKey.QueryViewer]: _props => (
                     <QueryLogViewer onClose={props.onClose} />
+                ),
+                [TabKey.AppStats]: _props => (
+                    <AppStats onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

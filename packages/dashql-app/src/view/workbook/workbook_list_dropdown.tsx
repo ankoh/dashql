@@ -27,10 +27,10 @@ export function WorkbookListDropdown(props: { className?: string; }) {
     const workbookRegistry = useWorkbookRegistry();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
-    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const workbookFileName = workbook?.workbookMetadata.fileName ?? "_";
-    const workbookConnection = workbook
-        ? conn.connectionMap.get(workbook.connectionId)
+    const [selectedWorkbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const workbookFileName = selectedWorkbook?.workbookMetadata.fileName ?? "_";
+    const workbookConnection = selectedWorkbook
+        ? conn.connectionMap.get(selectedWorkbook.connectionId)
         : null;
 
     const onWorkbookClick = React.useCallback((e: React.MouseEvent) => {
@@ -61,7 +61,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 className={props.className}
                 onClick={() => setIsOpen(true)}
                 variant={ButtonVariant.Invisible}
-                leadingVisual={() => (!workbook?.connectorInfo
+                leadingVisual={() => (!selectedWorkbook?.connectorInfo
                     ? <div />
                     : <Identicon
                         className={styles.workbook_icon}
@@ -80,9 +80,9 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 </div>
             </Button>
         );
-    }, [workbook?.connectorInfo, workbookFileName]);
+    }, [selectedWorkbook?.connectorInfo, workbookFileName]);
 
-    const Item = (props: { wi: number, w: WorkbookState, idx: number }) => {
+    const Item = (props: { w: WorkbookState, idx: number }) => {
         const connection = conn.connectionMap.get(props.w.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
@@ -153,8 +153,8 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             <ActionList.ListItem
                 tabIndex={0}
                 onClick={onWorkbookClick}
-                selected={props.wi === workbook?.workbookId}
-                data-item={props.wi.toString()}
+                selected={props.w.workbookId === selectedWorkbook?.workbookId}
+                data-item={props.w.workbookId.toString()}
             >
                 <ActionList.Leading>
                     <Identicon
@@ -181,9 +181,13 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         )
     };
 
-    const workbooks = React.useMemo(() => [...workbookRegistry.workbookMap.entries()].sort((l, r) => {
-        return l[1].connectorInfo.connectorType - r[1].connectorInfo.connectorType;
-    }), [workbookRegistry]);
+    // Collect the workbook states
+    let workbooks: WorkbookState[] = [];
+    for (const typeWorkbooks of workbookRegistry.workbooksByConnectionType) {
+        for (const workbookId of typeWorkbooks) {
+            workbooks.push(workbookRegistry.workbookMap.get(workbookId)!);
+        }
+    }
 
     return (
         <AnchoredOverlay
@@ -195,8 +199,8 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             <ActionList.List aria-label="Workbooks">
                 <ActionList.GroupHeading>Workbooks</ActionList.GroupHeading>
                 <>
-                    {workbooks.map(([wi, w]: [number, WorkbookState], idx: number) => (
-                        <Item key={wi} w={w} wi={wi} idx={idx} />
+                    {workbooks.map((w: WorkbookState, idx: number) => (
+                        <Item key={w.workbookId} w={w} idx={idx} />
                     ))}
                 </>
             </ActionList.List>

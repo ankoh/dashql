@@ -24,7 +24,7 @@ export function AppSettings(props: { onClose: () => void; }) {
         <div className={styles.settings_root}>
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
-                    <div className={styles.title}>Internals</div>
+                    <div className={styles.title}>App Settings</div>
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton

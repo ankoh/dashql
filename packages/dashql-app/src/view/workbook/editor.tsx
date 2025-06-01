@@ -8,8 +8,6 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 import { CodeMirror, createCodeMirrorExtensions } from './codemirror.js';
 import { DashQLProcessor, DashQLScriptBuffers, DashQLScriptKey, DashQLSyncEffect } from './dashql_processor.js';
 import { COMPLETION_CHANGED, COMPLETION_STARTED, COMPLETION_STOPPED, ScriptData, UPDATE_SCRIPT, UPDATE_SCRIPT_ANALYSIS, UPDATE_SCRIPT_CURSOR, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptStatisticsBar } from './script_statistics_bar.js';
-import { isDebugBuild } from '../../globals.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -72,16 +70,6 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
             <div className={styles.editor}>
                 <CodeMirror ref={setView} />
             </div>
-            {isDebugBuild() && config?.settings?.showEditorStats && workbookEntryScriptData?.statistics &&
-                <div className={styles.devtools_overlay}>
-                    <div className={styles.devtools_title}>
-                        Editor Perf
-                    </div>
-                    <div className={styles.script_stats}>
-                        <ScriptStatisticsBar stats={workbookEntryScriptData.statistics} />
-                    </div>
-                </div>
-            }
         </>
     );
 };
