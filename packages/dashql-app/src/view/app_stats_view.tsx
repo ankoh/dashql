@@ -28,6 +28,9 @@ export function AppStats(props: { onClose: () => void; }) {
         let out: React.ReactElement[] = [];
         for (const w of workbooks) {
             for (const s of Object.values(w.scripts)) {
+                if (s.statistics.isEmpty()) {
+                    continue;
+                }
                 const connState = connReg.connectionMap.get(w.connectionId)!;
                 const connSig = connState.connectionSignature.hash.asPrng();
                 const scriptSigHash = connState.connectionSignature.hash.clone();
