@@ -40,7 +40,7 @@ export function AppStats(props: { onClose: () => void; }) {
                 out.push(
                     <Identicon
                         key={i++}
-                        className={styles.analyzer_stats_icon_container}
+                        className={styles.script_stats_icon_container}
                         layers={[
                             connSig.next(),
                             connSig.next(),
@@ -49,7 +49,7 @@ export function AppStats(props: { onClose: () => void; }) {
                     />
                 );
                 out.push(
-                    <div key={i++} className={styles.analyzer_stats_metrics}>
+                    <div className={styles.script_stats_metrics_histogram}>
                         <ScriptStatisticsBar stats={s.statistics} />
                     </div>
                 );
@@ -75,11 +75,11 @@ export function AppStats(props: { onClose: () => void; }) {
                 </div>
             </div>
             <div className={styles.internals_container}>
-                <div className={styles.analyzer_stats_container}>
-                    <div className={styles.analyzer_stats_title}>
+                <div className={styles.script_stats_container}>
+                    <div className={styles.script_stats_topic}>
                         Script Processing
                     </div>
-                    <div className={styles.analyzer_stats_list}>
+                    <div className={styles.script_stats_list}>
                         {statsList}
                     </div>
                 </div>

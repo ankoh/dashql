@@ -71,23 +71,37 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
     };
 
     const last = stats.last()!.read(protoStats)!;
-    const lastTotalElapsed = computeTotalElapsed(last.timings(protoTimings)!);
+    const lastTimings = last.timings(protoTimings)!;
+    const lastElapsedScanner = lastTimings.scannerLastElapsed();
+    const lastElapsedParser = lastTimings.parserLastElapsed();
+    const lastElapsedAnalyzer = lastTimings.analyzerLastElapsed();
     const lastTotalMemory = computeTotalMemory(last.memory(protoMemory)!);
 
     const n = Math.min(stats.size, 20);
     const bufferSize = Math.max(n, 20);
-    const elapsedHistory = new Float64Array(bufferSize);
+    const elapsedScannerHistory = new Float64Array(bufferSize);
+    const elapsedParserHistory = new Float64Array(bufferSize);
+    const elapsedAnalyzerHistory = new Float64Array(bufferSize);
     const memoryHistory = new Float64Array(bufferSize);
-    let maxTotalElapsed = 0;
+    let maxElapsedScanner = 0;
+    let maxElapsedParser = 0;
+    let maxElapsedAnalyzer = 0;
     let maxTotalMemory = 0;
     let writer = 0;
     for (const reading of stats.toSeq().take(n)) {
         const stats = reading.read(protoStats)!;
-        const totalElapsed = computeTotalElapsed(stats.timings(protoTimings)!);
+        const timings = stats.timings(protoTimings)!;
         const totalMemory = computeTotalMemory(stats.memory(protoMemory)!);
-        elapsedHistory[writer] = totalElapsed;
+        const elapsedScanner = timings.scannerLastElapsed();
+        const elapsedParser = timings.parserLastElapsed();
+        const elapsedAnalyzer = timings.analyzerLastElapsed();
+        elapsedScannerHistory[writer] = elapsedScanner;
+        elapsedParserHistory[writer] = elapsedParser;
+        elapsedAnalyzerHistory[writer] = elapsedAnalyzer;
         memoryHistory[writer] = totalMemory;
-        maxTotalElapsed = Math.max(maxTotalElapsed, totalElapsed);
+        maxElapsedScanner = Math.max(maxElapsedScanner, elapsedScanner);
+        maxElapsedParser = Math.max(maxElapsedParser, elapsedParser);
+        maxElapsedAnalyzer = Math.max(maxElapsedAnalyzer, elapsedAnalyzer);
         maxTotalMemory = Math.max(maxTotalMemory, totalMemory);
         ++writer;
     }
@@ -95,12 +109,32 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
     return (
         <div className={classNames(props.className, styles.container)}>
             <div className={styles.metric_container}>
-                <History data={elapsedHistory} maximum={maxTotalElapsed} />
-                <div className={styles.metric_last_reading}>{formatNanoseconds(lastTotalElapsed)}</div>
+                <History data={memoryHistory} maximum={maxTotalMemory} />
+                <div className={styles.metric_text_overlay}>
+                    <div className={styles.metric_name}>M</div>
+                    <div className={styles.metric_last_reading}>{formatBytes(lastTotalMemory)}</div>
+                </div>
             </div>
             <div className={styles.metric_container}>
-                <History data={memoryHistory} maximum={maxTotalMemory} />
-                <div className={styles.metric_last_reading}>{formatBytes(lastTotalMemory)}</div>
+                <History data={elapsedScannerHistory} maximum={maxElapsedScanner} />
+                <div className={styles.metric_text_overlay}>
+                    <div className={styles.metric_name}>S</div>
+                    <div className={styles.metric_last_reading}>{formatNanoseconds(lastElapsedScanner)}</div>
+                </div>
+            </div>
+            <div className={styles.metric_container}>
+                <History data={elapsedParserHistory} maximum={maxElapsedParser} />
+                <div className={styles.metric_text_overlay}>
+                    <div className={styles.metric_name}>P</div>
+                    <div className={styles.metric_last_reading}>{formatNanoseconds(lastElapsedParser)}</div>
+                </div>
+            </div>
+            <div className={styles.metric_container}>
+                <History data={elapsedAnalyzerHistory} maximum={maxElapsedAnalyzer} />
+                <div className={styles.metric_text_overlay}>
+                    <div className={styles.metric_name}>A</div>
+                    <div className={styles.metric_last_reading}>{formatNanoseconds(lastElapsedAnalyzer)}</div>
+                </div>
             </div>
         </div>
     );
