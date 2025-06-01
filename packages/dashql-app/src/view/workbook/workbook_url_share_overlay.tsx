@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
 
 import * as styles from './workbook_url_share_overlay.module.css';
 

@@ -4,14 +4,15 @@ import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
-import { ButtonGroup, IconButton } from '@primer/react';
-import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
+import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
+import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -238,6 +239,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     if (route.workbookId === null) {
         return <div />;
     }
+    const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
     return (
         <div className={styles.page}>
             <div className={styles.header_container}>
@@ -251,17 +253,17 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 <div className={styles.header_action_container}>
                     <div>
                         <ButtonGroup className={theme.button_group}>
-                            <IconButton
+                            <IconButtonLegacy
                                 icon={PaperAirplaneIcon}
                                 aria-labelledby="execute-query"
                                 onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
                             />
-                            <IconButton
+                            <IconButtonLegacy
                                 icon={SyncIcon}
                                 aria-labelledby="refresh-schema"
                                 onClick={() => sessionCommand(WorkbookCommandType.RefreshCatalog)}
                             />
-                            <IconButton
+                            <IconButtonLegacy
                                 icon={LinkIcon}
                                 aria-labelledby="visit-github-repository"
                                 onClick={() => setSharingIsOpen(s => !s)}
@@ -269,7 +271,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                         </ButtonGroup>
                         <WorkbookURLShareOverlay isOpen={sharingIsOpen} setIsOpen={setSharingIsOpen} />
                     </div>
-                    <IconButton icon={ThreeBarsIcon} aria-labelledby="visit-github-repository" />
+                    <IconButtonLegacy icon={ThreeBarsIcon} aria-labelledby="visit-github-repository" />
                 </div>
             </div>
             <div className={styles.workbook_entry_sidebar}>
@@ -280,7 +282,17 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                     <div className={styles.scriptmode_body_card}>
                         <div className={styles.scriptmode_editor_container}>
                             <div className={styles.scriptmode_editor_header}>
-                                Foo
+                                <div className={styles.scriptmode_editor_header_title}>
+                                    Script
+                                </div>
+                                <IconButton
+                                    className={styles.scriptmode_editor_collapse_button}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="collapse"
+                                    aria-labelledby="collapse-entry"
+                                >
+                                    <ScreenNormalIcon size={16} />
+                                </IconButton>
                             </div>
                             <ScriptEditor className={styles.scriptmode_editor} workbookId={route.workbookId} />
                         </div>
