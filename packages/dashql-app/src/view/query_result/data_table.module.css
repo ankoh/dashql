@@ -1,9 +1,10 @@
 :root {
-    --data_table_bg_metadata: hsl(210, 29%, 96%);
-    --data_table_bg_corner: hsl(210, 29%, 98%);
-    --data_table_bg_header: hsl(210, 29%, 98%);
+    --data_table_bg_header: white;
+    --data_table_bg_metadata: white;
+    --data_table_bg_corner: white;
+    --data_table_bg_header: white;
     --data_table_bg_data: white;
-    --data_table_bg_plots: hsl(210, 29%, 98%);
+    --data_table_bg_plots: white;
     --data_table_bg_focus_primary: hsl(46deg, 36%, 90%);
     --data_table_bg_focus_secondary: hsl(46deg, 36%, 94%);
     --data_table_border_focus_primary: hsl(46deg, 36%, 60%);
@@ -21,7 +22,7 @@
 }
 
 .header_cell {
-    background-color: hsl(210, 29%, 98%);
+    background-color: var(--data_table_bg_header);
     border-right: 1px solid rgb(210, 210, 210);
     border-bottom: 1px solid rgb(210, 210, 210);
     box-sizing: border-box;
