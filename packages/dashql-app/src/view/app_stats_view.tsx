@@ -49,7 +49,7 @@ export function AppStats(props: { onClose: () => void; }) {
                     />
                 );
                 out.push(
-                    <div className={styles.script_stats_metrics_histogram}>
+                    <div key={i++} className={styles.script_stats_metrics_histogram}>
                         <ScriptStatisticsBar stats={s.statistics} />
                     </div>
                 );
