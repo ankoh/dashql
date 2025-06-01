@@ -57,7 +57,7 @@
     grid-row: 1;
     grid-column: 1;
     background-color: var(--conns_body_background);
-    padding: 12px 0px;
+    padding: 8px 0px;
 
     height: 100%;
     overflow: auto;
@@ -69,20 +69,21 @@
     flex-direction: column;
     row-gap: 4px;
     overflow: auto;
-    padding: 4px;
+    padding: 8px 0px;
 }
 .connection_section:not(:first-child)::before {
     content: '';
     position: absolute;
     top: 0px;
-    left: 8px;
-    right: 8px;
+    left: 16px;
+    right: 0px;
     height: 1px;
     background-color: var(--border_color_primary);
 }
 
 .connector_group {
     position: relative;
+    padding: 0px 0px 0px 16px;
 }
 
 .connector_group_head {
@@ -93,7 +94,7 @@
     background-color: var(--conns_tabs_background_hover);
     border: 1px solid var(--border_color_primary);
 }
-.connector_group_active > .connector_group_button {
+.connector_group_head.selected > .connector_group_button {
     color: var(--conns_tabs_foreground_active);
     background-color: var(--conns_tabs_background_active) !important;
     border: 1px solid var(--border_color_primary);
@@ -146,7 +147,7 @@
     background-color: var(--conns_tabs_background_hover);
     border: 1px solid var(--border_color_primary);
 }
-.connection_group_entry_active {
+.connection_group_entry.selected {
     background-color: var(--conns_tabs_background_active) !important;
     border: 1px solid var(--border_color_primary);
 }

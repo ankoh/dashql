@@ -30,7 +30,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
     return (
         <button
             className={classNames(styles.connection_group_entry, {
-                [styles.connection_group_entry_active]: props.selected
+                [styles.selected]: props.selected
             })}
             onClick={connState != null
                 ? () => navigate({
@@ -93,7 +93,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
         >
             <div
                 className={classNames(styles.connector_group_head, {
-                    [styles.connector_group_active]: defaultConnSelected
+                    [styles.selected]: defaultConnSelected
                 })}
                 data-tab={props.connector as number}
             >

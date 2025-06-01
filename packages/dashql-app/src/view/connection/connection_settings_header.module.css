@@ -14,6 +14,8 @@
     grid-template-rows: 56px;
 
     background-color: var(--connector_header_background);
+}
+.connector_header_container:not(:last-child) {
     border-bottom: 1px solid var(--border_color_primary);
 }
 
@@ -53,7 +55,6 @@
 
 .status_container {
     height: auto;
-    border-bottom: 1px solid var(--border_color_primary);
 }
 
 .status_section {

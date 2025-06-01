@@ -25,7 +25,7 @@
     --logo_color_salesforce: rgb(0, 161, 224);
 
     --log_border_color: rgb(208, 215, 222);
-    --log_background: white;
+    --log_background: hsl(210, 29%, 97%);
     --log_cell_background: white;
 
     --shadow_small: 0 1px 0 rgba(31, 35, 40, 0.04);
