@@ -15,14 +15,14 @@ import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
-import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ScriptEditor } from './editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/workbook_commands.js';
-import { WorkbookEntryList } from './workbook_entry_list.js';
+import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
@@ -294,6 +294,7 @@ const WorkbookEntryDetails: React.FC<ScriptModeProps> = (props: ScriptModeProps)
     );
 };
 
+
 interface Props { }
 
 export const WorkbookPage: React.FC<Props> = (_props: Props) => {
@@ -342,7 +343,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.workbook_entry_sidebar}>
-                <WorkbookEntryList workbook={workbook} modifyWorkbook={modifyWorkbook} />
+                <WorkbookEntryThumbnails workbook={workbook} modifyWorkbook={modifyWorkbook} />
             </div>
             <div className={styles.body_container}>
                 <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} />
