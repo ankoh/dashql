@@ -264,3 +264,35 @@
     overflow: auto;
     padding: 16px;
 }
+
+.collection_entry_list {
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.collection_entry_card {
+    border: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius);
+    background-color: white;
+}
+
+.collection_entry_header {
+    border-bottom: 1px solid var(--border_color_primary);
+    height: 40px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: max-content 1fr max-content;
+    align-items: center;
+    padding: 0px 4px;
+}
+.collection_entry_header_title {
+    grid-column: 1;
+    padding: 0px 8px;
+}
+.collection_entry_expand_button {
+    grid-column: 3;
+}
+.collection_body {
+    height: 48px;
+}

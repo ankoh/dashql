@@ -307,22 +307,30 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
     for (let wi = 0; wi < props.workbook.workbookEntries.length; ++wi) {
         // const entry = props.workbook.workbookEntries[wi];
         out.push(
-            <div key={wi}>
-                <IconButton
-                    className={styles.details_editor_collapse_button}
-                    variant={ButtonVariant.Invisible}
-                    aria-label="collapse"
-                    aria-labelledby="collapse-entry"
-                    onClick={props.showDetails}
-                >
-                    <ScreenFullIcon size={16} />
-                </IconButton>
+            <div key={wi} className={styles.collection_entry_card}>
+                <div key={wi} className={styles.collection_entry_header}>
+                    <div className={styles.collection_entry_header_title}>
+                        Foo
+                    </div>
+                    <IconButton
+                        className={styles.collection_entry_expand_button}
+                        variant={ButtonVariant.Invisible}
+                        aria-label="expand"
+                        aria-labelledby="expand-entry"
+                        onClick={props.showDetails}
+                    >
+                        <ScreenFullIcon size={16} />
+                    </IconButton>
+                </div>
+                <div className={styles.collection_body} />
             </div>
         );
     }
     return (
         <div className={styles.collection_body_container}>
-            {out}
+            <div className={styles.collection_entry_list}>
+                {out}
+            </div>
         </div>
     );
 };
