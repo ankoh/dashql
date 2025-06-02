@@ -152,14 +152,14 @@
 
 /* 
     The workbook page component has two modes.
-    In the ScriptMode, a single script is shown in an expanded detail view.
-    In the ListMode, the workbook entries are shown as scrollable list.
+    In the `details`-mode, a single script is shown in an expanded detail view.
+    In the `collection`-mode, the workbook entries are shown as scrollable list.
 */
 
-/* ScriptMode styles */
+/* DetailsMode styles */
 
 @media only screen and (max-width: 1100px) {
-    .scriptmode_body_container {
+    .details_body_container {
         position: absolute;
         top: 0;
         left: 0;
@@ -170,7 +170,7 @@
         background-color: var(--workbook_body_background_color);
     }
 
-    .scriptmode_body_card {
+    .details_body_card {
         height: 100%;
         width: 100%;
 
@@ -182,7 +182,7 @@
 }
 
 @media only screen and (min-width: 1100px) {
-    .scriptmode_body_container {
+    .details_body_container {
         position: absolute;
         top: 0;
         left: 0;
@@ -194,7 +194,7 @@
         background-color: var(--workbook_body_background_color);
     }
 
-    .scriptmode_body_card {
+    .details_body_card {
         height: 100%;
         width: 100%;
         border-width: 1px 1px 0px 1px;
@@ -209,19 +209,19 @@
     }
 }
 
-.scriptmode_output_container {
+.details_output_container {
     height: 55%;
 }
 
-.scriptmode_output_container {
+.details_output_container {
     height: 55%;
 }
 
-.scriptmode_output {
+.details_output {
     position: relative;
 }
 
-.scriptmode_editor_container {
+.details_editor_container {
     flex: 1;
     border-bottom: 1px solid var(--border_color_primary);
     width: 100%;
@@ -229,7 +229,7 @@
     overflow: hidden;
 }
 
-.scriptmode_editor_header {
+.details_editor_header {
     border-bottom: 1px solid var(--border_color_primary);
     height: 40px;
     width: 100%;
@@ -239,19 +239,19 @@
     padding: 0px 4px;
 }
 
-.scriptmode_editor_header_title {
+.details_editor_header_title {
     grid-column: 1;
     padding: 0px 8px;
 }
-.scriptmode_editor_collapse_button {
+.details_editor_collapse_button {
     grid-column: 3;
 }
 
-.scriptmode_editor {
+.details_editor {
     box-sizing: border-box;
     width: 100%;
     height: 100%;
     overflow: hidden;
 }
 
-/* ListMode styles */
+/* Collection styles */

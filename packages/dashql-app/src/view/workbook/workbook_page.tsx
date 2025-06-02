@@ -15,7 +15,7 @@ import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
-import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ScriptEditor } from './editor.js';
@@ -159,23 +159,22 @@ enum TabKey {
     QueryResultView = 2,
 }
 
+interface ScriptModeProps {
+    workbook: WorkbookState;
+    workbookEntryId: number;
+}
+
 interface TabState {
     enabledTabs: number;
 }
 
-interface Props { }
-
-export const WorkbookPage: React.FC<Props> = (_props: Props) => {
-    const route = useRouteContext();
-    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
+const WorkbookEntryDetails: React.FC<ScriptModeProps> = (props: ScriptModeProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
-    const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
 
-    // Resolve the editor query state (if any)
-    const workbookEntry = workbook?.workbookEntries[workbook.selectedWorkbookEntry];
+    // Resolve the query state (if any)
+    const workbookEntry = props.workbook.workbookEntries[props.workbook.selectedWorkbookEntry];
     const activeQueryId = workbookEntry?.queryId ?? null;
-    const activeQueryState = useQueryState(workbook?.connectionId ?? null, activeQueryId);
+    const activeQueryState = useQueryState(props.workbook?.connectionId ?? null, activeQueryId);
 
     // Determine selected tabs
     const tabState = React.useRef<TabState>({
@@ -234,12 +233,80 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
         prevStatus.current = [activeQueryId, status];
     }, [activeQueryId, activeQueryState?.status]);
 
+    const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
+    return (
+        <div className={styles.details_body_container}>
+            <div className={styles.details_body_card}>
+                <div className={styles.details_editor_container}>
+                    <div className={styles.details_editor_header}>
+                        <div className={styles.details_editor_header_title}>
+                            Script
+                        </div>
+                        <IconButton
+                            className={styles.details_editor_collapse_button}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="collapse"
+                            aria-labelledby="collapse-entry"
+                        >
+                            <ScreenNormalIcon size={16} />
+                        </IconButton>
+                    </div>
+                    <ScriptEditor className={styles.details_editor} workbookId={props.workbook.workbookId} />
+                </div>
+                <DragSizing
+                    className={styles.details_output_container}
+                    border={DragSizingBorder.Top}
+                >
+                    <VerticalTabs
+                        className={styles.details_output}
+                        variant={VerticalTabVariant.Stacked}
+                        selectedTab={selectedTab}
+                        selectTab={selectTab}
+                        tabProps={{
+                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
+                            [TabKey.QueryStatusPanel]: {
+                                tabId: TabKey.QueryStatusPanel,
+                                icon: `${icons}#plan`,
+                                labelShort: 'Status',
+                                disabled: tabState.current.enabledTabs < 2,
+                            },
+                            [TabKey.QueryResultView]: {
+                                tabId: TabKey.QueryResultView,
+                                icon: `${icons}#table_24`,
+                                labelShort: 'Data',
+                                disabled: tabState.current.enabledTabs < 3,
+                            },
+                        }}
+                        tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
+                        tabRenderers={{
+                            [TabKey.Catalog]: _props => <CatalogPanel />,
+                            [TabKey.QueryStatusPanel]: _props => (
+                                <QueryStatusPanel query={activeQueryState} />
+                            ),
+                            [TabKey.QueryResultView]: _props => (
+                                <QueryResultView query={activeQueryState} />
+                            ),
+                        }}
+                    />
+                </DragSizing>
+            </div>
+        </div>
+    );
+};
+
+interface Props { }
+
+export const WorkbookPage: React.FC<Props> = (_props: Props) => {
+    const route = useRouteContext();
+    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
+    const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
+    const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
+
     const sessionCommand = useWorkbookCommandDispatch();
 
-    if (route.workbookId === null) {
+    if (route.workbookId === null || workbook == null) {
         return <div />;
     }
-    const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
     return (
         <div className={styles.page}>
             <div className={styles.header_container}>
@@ -278,62 +345,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 <WorkbookEntryList workbook={workbook} modifyWorkbook={modifyWorkbook} />
             </div>
             <div className={styles.body_container}>
-                <div className={styles.scriptmode_body_container}>
-                    <div className={styles.scriptmode_body_card}>
-                        <div className={styles.scriptmode_editor_container}>
-                            <div className={styles.scriptmode_editor_header}>
-                                <div className={styles.scriptmode_editor_header_title}>
-                                    Script
-                                </div>
-                                <IconButton
-                                    className={styles.scriptmode_editor_collapse_button}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="collapse"
-                                    aria-labelledby="collapse-entry"
-                                >
-                                    <ScreenNormalIcon size={16} />
-                                </IconButton>
-                            </div>
-                            <ScriptEditor className={styles.scriptmode_editor} workbookId={route.workbookId} />
-                        </div>
-                        <DragSizing
-                            className={styles.scriptmode_output_container}
-                            border={DragSizingBorder.Top}
-                        >
-                            <VerticalTabs
-                                className={styles.scriptmode_output}
-                                variant={VerticalTabVariant.Stacked}
-                                selectedTab={selectedTab}
-                                selectTab={selectTab}
-                                tabProps={{
-                                    [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
-                                    [TabKey.QueryStatusPanel]: {
-                                        tabId: TabKey.QueryStatusPanel,
-                                        icon: `${icons}#plan`,
-                                        labelShort: 'Status',
-                                        disabled: tabState.current.enabledTabs < 2,
-                                    },
-                                    [TabKey.QueryResultView]: {
-                                        tabId: TabKey.QueryResultView,
-                                        icon: `${icons}#table_24`,
-                                        labelShort: 'Data',
-                                        disabled: tabState.current.enabledTabs < 3,
-                                    },
-                                }}
-                                tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
-                                tabRenderers={{
-                                    [TabKey.Catalog]: _props => <CatalogPanel />,
-                                    [TabKey.QueryStatusPanel]: _props => (
-                                        <QueryStatusPanel query={activeQueryState} />
-                                    ),
-                                    [TabKey.QueryResultView]: _props => (
-                                        <QueryResultView query={activeQueryState} />
-                                    ),
-                                }}
-                            />
-                        </DragSizing>
-                    </div>
-                </div>
+                <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} />
             </div>
             <div className={styles.body_action_sidebar}>
                 <ActionList.List aria-label="Actions">
