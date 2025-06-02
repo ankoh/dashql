@@ -255,3 +255,12 @@
 }
 
 /* Collection styles */
+
+
+.collection_body_container {
+    height: 100%;
+    width: 100%;
+    background-color: var(--workbook_body_background_color);
+    overflow: auto;
+    padding: 16px;
+}

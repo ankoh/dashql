@@ -159,16 +159,17 @@ enum TabKey {
     QueryResultView = 2,
 }
 
-interface ScriptModeProps {
-    workbook: WorkbookState;
-    workbookEntryId: number;
-}
-
 interface TabState {
     enabledTabs: number;
 }
 
-const WorkbookEntryDetails: React.FC<ScriptModeProps> = (props: ScriptModeProps) => {
+interface WorkbookEntryDetailsProps {
+    workbook: WorkbookState;
+    workbookEntryId: number;
+    hideDetails: () => void;
+}
+
+const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
 
     // Resolve the query state (if any)
@@ -247,6 +248,7 @@ const WorkbookEntryDetails: React.FC<ScriptModeProps> = (props: ScriptModeProps)
                             variant={ButtonVariant.Invisible}
                             aria-label="collapse"
                             aria-labelledby="collapse-entry"
+                            onClick={props.hideDetails}
                         >
                             <ScreenNormalIcon size={16} />
                         </IconButton>
@@ -294,6 +296,37 @@ const WorkbookEntryDetails: React.FC<ScriptModeProps> = (props: ScriptModeProps)
     );
 };
 
+interface WorkbookEntryListProps {
+    workbook: WorkbookState;
+    showDetails: () => void;
+}
+
+const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntryListProps) => {
+    const out: React.ReactElement[] = [];
+    const ScreenFullIcon: Icon = SymbolIcon("screen_full_16");
+    for (let wi = 0; wi < props.workbook.workbookEntries.length; ++wi) {
+        // const entry = props.workbook.workbookEntries[wi];
+        out.push(
+            <div key={wi}>
+                <IconButton
+                    className={styles.details_editor_collapse_button}
+                    variant={ButtonVariant.Invisible}
+                    aria-label="collapse"
+                    aria-labelledby="collapse-entry"
+                    onClick={props.showDetails}
+                >
+                    <ScreenFullIcon size={16} />
+                </IconButton>
+            </div>
+        );
+    }
+    return (
+        <div className={styles.collection_body_container}>
+            {out}
+        </div>
+    );
+};
+
 
 interface Props { }
 
@@ -302,6 +335,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
+    const [showDetails, setShowDetails] = React.useState<boolean>(true);
 
     const sessionCommand = useWorkbookCommandDispatch();
 
@@ -346,7 +380,11 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 <WorkbookEntryThumbnails workbook={workbook} modifyWorkbook={modifyWorkbook} />
             </div>
             <div className={styles.body_container}>
-                <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} />
+                {
+                    showDetails
+                        ? <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} hideDetails={() => setShowDetails(false)} />
+                        : <WorkbookEntryList workbook={workbook} showDetails={() => setShowDetails(true)} />
+                }
             </div>
             <div className={styles.body_action_sidebar}>
                 <ActionList.List aria-label="Actions">

@@ -8,6 +8,8 @@ export interface RouteContext {
     /// This is the focused workbook id on the workbook settings page.
     /// Note that the connection id might not match the workbook connection.
     workbookId: number | null;
+    /// Edit a workbook entry?
+    workbookEditMode: boolean | null;
     /// Is the setup done?
     setupDone: boolean;
 }
@@ -19,7 +21,7 @@ export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
     VariantKind<typeof CONNECTION_PATH, { connectionId: number }>
-    | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number }>
+    | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number, workbookEditMode: boolean }>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof SKIP_SETUP, null>
     ;
@@ -31,6 +33,7 @@ export function useRouteContext() {
         return {
             connectionId: null,
             workbookId: null,
+            workbookEditMode: null,
             setupDone: false,
         };
     } else {
@@ -47,24 +50,25 @@ export function useRouterNavigate() {
             case CONNECTION_PATH:
                 navigate("/connection", {
                     state: {
+                        ...context,
                         connectionId: route.value.connectionId,
-                        workbookId: context.workbookId,
-                        setupDone: context.setupDone,
                     }
                 });
                 break;
             case WORKBOOK_PATH:
                 navigate("/workbook", {
                     state: {
+                        ...context,
                         connectionId: route.value.connectionId,
                         workbookId: route.value.workbookId,
-                        setupDone: context.setupDone,
+                        workbookEditMode: route.value.workbookEditMode,
                     }
                 });
                 break;
             case SKIP_SETUP:
                 navigate(location.pathname, {
                     state: {
+                        ...context,
                         setupDone: true,
                     }
                 });
@@ -74,6 +78,7 @@ export function useRouterNavigate() {
                     state: {
                         connectionId: route.value.connectionId,
                         workbookId: route.value.workbookId,
+                        workbookEditMode: false,
                         setupDone: true,
                     }
                 });

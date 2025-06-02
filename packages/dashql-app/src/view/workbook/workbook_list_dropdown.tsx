@@ -43,8 +43,9 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 navigate({
                     type: WORKBOOK_PATH,
                     value: {
+                        connectionId: workbook.connectionId,
                         workbookId: workbookId,
-                        connectionId: workbook.connectionId
+                        workbookEditMode: false,
                     }
                 });
             }

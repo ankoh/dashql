@@ -412,8 +412,9 @@ export function FileLoader(props: Props) {
                 navigate({
                     type: WORKBOOK_PATH,
                     value: {
-                        workbookId: state.workbookId,
                         connectionId: state.connectionId,
+                        workbookId: state.workbookId,
+                        workbookEditMode: false,
                     }
                 });
             }

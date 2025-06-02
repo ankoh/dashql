@@ -105,7 +105,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                 type: WORKBOOK_PATH,
                 value: {
                     connectionId: props.connection.connectionId,
-                    workbookId: workbookId
+                    workbookId: workbookId,
+                    workbookEditMode: false,
                 }
             });
         }
