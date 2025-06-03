@@ -262,10 +262,10 @@ const DETAILS_EDGE_TRANSITION = {
 };
 
 const LEVEL_ICONS = [
-    `${symbols}#database`,
-    `${symbols}#namespace_24`,
-    `${symbols}#table_24`,
-    `${symbols}#columns_24`,
+    `#database`,
+    `#namespace_24`,
+    `#table_24`,
+    `#columns_24`,
 ];
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
@@ -407,7 +407,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 >
                     <div className={styles.node_type_icon_container}>
                         <svg width="12px" height="12px">
-                            <use xlinkHref={LEVEL_ICONS[levelId]} />
+                            <use xlinkHref={`${symbols}${LEVEL_ICONS[levelId]}`} />
                         </svg>
                     </div>
                     {
