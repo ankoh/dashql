@@ -6,6 +6,7 @@
     --conns_tabs_background_hover: hsl(210, 20%, 92%);
     --conns_tabs_disabled_color: hsl(210, 24%, 62%);
     --conns_tabs_indicator_color: rgb(254, 150, 0);
+    --conns_max_width: 1200px;
 }
 
 .container {
@@ -184,11 +185,18 @@
     position: relative;
     box-sizing: border-box;
     width: 100%;
-    height: 100%;
     overflow: auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .connection_settings_card {
+    width: 100%;
+    height: auto;
+    max-width: var(--conns_max_width);
+
     border-radius: var(--border_radius);
     border-width: 1px;
     border-style: solid;

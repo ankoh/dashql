@@ -2,6 +2,8 @@
     /* --workbook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
     --workbook_body_background_color: hsl(210, 29%, 97%);
     /* --workbook_body_background_color: white; */
+    --workbook_details_max_width: 1200px;
+    --workbook_list_entry_max_width: 900px;
 }
 
 
@@ -192,11 +194,16 @@
         width: 100%;
         padding: 16px 16px 0 16px;
         background-color: var(--workbook_body_background_color);
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .details_body_card {
         height: 100%;
         width: 100%;
+        max-width: var(--workbook_details_max_width);
         border-width: 1px 1px 0px 1px;
         border-style: solid;
         border-color: var(--log_border_color);
@@ -262,12 +269,13 @@
     width: 100%;
     background-color: var(--workbook_body_background_color);
     overflow: auto;
-    padding: 16px;
+    padding: 16px 16px 16px 16px;
 }
 
 .collection_entry_list {
     display: flex;
     flex-direction: column;
+    align-items: center;
     row-gap: 16px;
 }
 
@@ -275,6 +283,8 @@
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     background-color: white;
+    width: 100%;
+    max-width: var(--workbook_list_entry_max_width);
 }
 
 .collection_entry_header {
