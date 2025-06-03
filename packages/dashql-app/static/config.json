@@ -1,6 +1,6 @@
 {
     "settings": {
-        "enableScriptFiles": false,
+        "setupDemoConnection": true,
         "showCompletionDetails": false,
         "interfaceDebugMode": false
     },

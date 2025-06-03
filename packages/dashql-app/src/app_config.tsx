@@ -10,6 +10,7 @@ const CONFIG_URL = new URL('../static/config.json', import.meta.url);
 export interface AppSettings {
     showCompletionDetails?: boolean;
     interfaceDebugMode?: boolean;
+    setupDemoConnection?: boolean;
 }
 
 export interface AppConfig {

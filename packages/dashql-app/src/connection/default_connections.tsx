@@ -14,6 +14,7 @@ import { setupDemoConnection } from './demo/demo_connection_setup.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection_registry.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
+import { useAppConfig } from '../app_config.js';
 
 /// For now, we just set up connections.
 /// Our abstractions would allow for a more dynamic workbook management, but we don't have the UI for that.
@@ -37,6 +38,7 @@ export function useDefaultConnectionSetup() {
 
 export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const logger = useLogger();
+    const config = useAppConfig();
     const allocState = useConnectionStateAllocator();
     const setupCore = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
@@ -67,15 +69,15 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
             setDefaultConns(connections);
 
             // Now run through the demo connection
-            if (isDebugBuild()) {
+            if (config?.settings?.setupDemoConnection === undefined || config?.settings?.setupDemoConnection) {
                 // Create the default demo params
-                const params: DemoConnectionParams = {
+                const demoParams: DemoConnectionParams = {
                     channel: new DemoDatabaseChannel(),
                 };
                 // Curry the state dispatch
                 const dispatch = (action: ConnectionStateAction) => dynamicDispatch(demoConn.connectionId, action);
                 // Setup the demo connection
-                await setupDemoConnection(dispatch, logger, params, abort.signal);
+                await setupDemoConnection(dispatch, logger, demoParams, abort.signal);
                 // Create a fresh default connection.
                 // This means we actually set up 2 demo connections to mimic the default connection behavior of normal connectors
                 const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO, registry.connectionsBySignature));
