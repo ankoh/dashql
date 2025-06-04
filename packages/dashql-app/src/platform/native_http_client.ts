@@ -80,6 +80,14 @@ export class NativeHttpServerStream implements HttpFetchResult {
         }
     }
 
+    async text(): Promise<any> {
+        if (this.initialErrorBody != null) {
+            return this.initialErrorBody;
+        }
+        const buffer = await this.arrayBuffer();
+        return this.textDecoder.decode(buffer);
+    }
+
     /// Get the response as array buffer
     async arrayBuffer(): Promise<ArrayBuffer> {
         if (this.streamId == null) {

@@ -52,7 +52,7 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log a trace message
-    public trace(message: string, details: Record<string, string | null | undefined>, target?: string): void {
+    public trace(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Trace,
@@ -63,9 +63,12 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+        if (pipeToConsole) {
+            console.log(entry);
+        }
     }
     /// Log an debug message
-    public debug(message: string, details: Record<string, string | null | undefined>, target?: string): void {
+    public debug(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Debug,
@@ -76,6 +79,9 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+        if (pipeToConsole) {
+            console.log(entry);
+        }
     }
     /// Log an info message
     public info(message: string, details: Record<string, string | null | undefined>, target?: string): void {

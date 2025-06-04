@@ -11,6 +11,7 @@ export interface HttpFetchResult {
 
     arrayBuffer(): Promise<ArrayBuffer>;
     json(): Promise<any>;
+    text(): Promise<string>;
 }
 
 /// An abstract http client

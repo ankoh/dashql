@@ -282,10 +282,15 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                                 <IconButton
                                     variant={ButtonVariant.Invisible}
                                     aria-label="generate description"
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (ollamaClient != null) {
                                             const text = scriptData.script?.toString();
                                             console.log(text);
+                                            const prompt = `generate a short description of the following sql query: ${text}`;
+                                            // XXX
+                                            const cancel = new AbortController();
+                                            const response = await ollamaClient.generate("deepseek-r1:8b", prompt, cancel.signal);
+                                            setDescription(response);
                                         }
                                     }}
                                 >
