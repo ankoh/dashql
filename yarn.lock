@@ -47,8 +47,8 @@ __metadata:
     "@octokit/graphql": "npm:^8.2.2"
     "@primer/behaviors": "npm:^1.8.1"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
-    "@primer/react": "npm:^37.21.0"
-    "@primer/react-brand": "npm:^0.52.0"
+    "@primer/react": "npm:^37.25.0"
+    "@primer/react-brand": "npm:^0.54.2"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.5.0"
     "@tauri-apps/cli": "npm:^2.5.0"
@@ -1735,17 +1735,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oddbird/popover-polyfill@npm:0.5.2":
+"@oddbird/popover-polyfill@npm:0.5.2, @oddbird/popover-polyfill@npm:^0.5.2":
   version: 0.5.2
   resolution: "@oddbird/popover-polyfill@npm:0.5.2"
   checksum: 10c0/d9ed7ae0cb760f69ddf64edb0419a77ae74a3dee40dec5c991b84e7c679cdb92760616dd2de46c088fa53072eb4bf7f5d4db5e5d618d9e3e3c32e63a6625c210
-  languageName: node
-  linkType: hard
-
-"@oddbird/popover-polyfill@npm:^0.4.4":
-  version: 0.4.4
-  resolution: "@oddbird/popover-polyfill@npm:0.4.4"
-  checksum: 10c0/ab7d338b4cd473d49a14fc65335826ebb90b0fe1841e560ac11a50023739d42a605fcf5f88fae591fd30706e6e3aa5bc0eee5865d8f08486b669459f6ebcdee4
   languageName: node
   linkType: hard
 
@@ -1813,16 +1806,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/primitives@npm:9.x || 10.x":
-  version: 10.5.0
-  resolution: "@primer/primitives@npm:10.5.0"
-  checksum: 10c0/4d582e494618a5712250d3129b50a5a61aa7212d1741ab2bc060bda01939965d8336120f6a032ba3a6b8f8b38c957b8a2956f1f15a6690ac89ee9e0e9152a6ec
+"@primer/primitives@npm:10.x || 11.x":
+  version: 10.7.0
+  resolution: "@primer/primitives@npm:10.7.0"
+  checksum: 10c0/c4fb5dda44fc9584e4bd9cf18464741f6a5b617ee440e8b3a97c3b18ed6a7fd31e42d6557c7a53ac3f59877aabd8f9dbae56f8e8cab2770604d404cf71af6040
   languageName: node
   linkType: hard
 
-"@primer/react-brand@npm:^0.52.0":
-  version: 0.52.0
-  resolution: "@primer/react-brand@npm:0.52.0"
+"@primer/react-brand@npm:^0.54.2":
+  version: 0.54.2
+  resolution: "@primer/react-brand@npm:0.54.2"
   dependencies:
     "@oddbird/popover-polyfill": "npm:0.5.2"
     "@primer/behaviors": "npm:1.8.0"
@@ -1836,27 +1829,27 @@ __metadata:
       optional: true
     "@types/react-dom":
       optional: true
-  checksum: 10c0/f90a80190c48d02b7a125c9ed610bff35ec0850e61cb5931074fa97cf9cda31e1d73346c1ab8d5d6b3a4bc8a51c4c52f71806994362c11a67efa7a796c07c95a
+  checksum: 10c0/8407fc4ee1e536840c40459dd1c5d55f453db42c288c9d47be51f916a553fc5fb0cff155a28f7464167729e1e7ad8db3cfe171b96d1c51fdba495d8b892ae90e
   languageName: node
   linkType: hard
 
-"@primer/react@npm:^37.21.0":
-  version: 37.21.0
-  resolution: "@primer/react@npm:37.21.0"
+"@primer/react@npm:^37.25.0":
+  version: 37.25.0
+  resolution: "@primer/react@npm:37.25.0"
   dependencies:
     "@github/relative-time-element": "npm:^4.4.5"
     "@github/tab-container-element": "npm:4.8.2"
     "@lit-labs/react": "npm:1.2.1"
-    "@oddbird/popover-polyfill": "npm:^0.4.4"
+    "@oddbird/popover-polyfill": "npm:^0.5.2"
     "@primer/behaviors": "npm:^1.8.0"
     "@primer/live-region-element": "npm:^0.7.1"
     "@primer/octicons-react": "npm:^19.13.0"
-    "@primer/primitives": "npm:9.x || 10.x"
+    "@primer/primitives": "npm:10.x || 11.x"
     "@styled-system/css": "npm:^5.1.5"
     "@styled-system/props": "npm:^5.1.5"
     "@styled-system/theme-get": "npm:^5.1.2"
     "@types/react-is": "npm:^18.2.1"
-    "@types/styled-system": "npm:^5.1.12"
+    "@types/styled-system": "npm:^5.1.23"
     "@types/styled-system__css": "npm:^5.0.16"
     "@types/styled-system__theme-get": "npm:^5.0.1"
     clsx: "npm:^2.1.1"
@@ -1867,7 +1860,7 @@ __metadata:
     hsluv: "npm:1.0.1"
     lodash.isempty: "npm:^4.4.0"
     lodash.isobject: "npm:^3.0.2"
-    react-intersection-observer: "npm:^9.4.3"
+    react-intersection-observer: "npm:^9.16.0"
     react-is: "npm:^18.2.0"
     styled-system: "npm:^5.1.5"
     type-check: "npm:0.4.0"
@@ -1885,7 +1878,7 @@ __metadata:
       optional: true
     "@types/styled-components":
       optional: true
-  checksum: 10c0/377a45a279e1c8cd1ca6faa30fc44bae575b0892ce9b0ca4b0031e0745d564ef08259e118143553f9001d638da3678673aef94831b2e2080a13cfd14fb2fe3eb
+  checksum: 10c0/196c654fa1345c73df12c2a4b675d774c4c17ff3f651070b420b06252f02bcf6f1254d6960a8b41ccf0eb49f3ed1ab4ab1fa0984f2b33840d761b92444788057
   languageName: node
   linkType: hard
 
@@ -3075,12 +3068,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/styled-system@npm:^5.1.12":
-  version: 5.1.22
-  resolution: "@types/styled-system@npm:5.1.22"
+"@types/styled-system@npm:^5.1.23":
+  version: 5.1.23
+  resolution: "@types/styled-system@npm:5.1.23"
   dependencies:
     csstype: "npm:^3.0.2"
-  checksum: 10c0/f65a3783ef831b08e2e1169007ea43790c6bb2c642d403cc691d1702ec8b512b1192afcd0e7d5a96483e14b38dad6e4917741ca23d7a5dd4f2baced14b2d0c52
+  checksum: 10c0/aea3bf928c24a51c764624ea1a75d6107a7c9326d902d1107f25ebd2216a1884858575c58811b445ec5ba4b35f302109010cccb7ecd51bc99ccd529376534e38
   languageName: node
   linkType: hard
 
@@ -9544,16 +9537,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-intersection-observer@npm:^9.4.3":
-  version: 9.13.1
-  resolution: "react-intersection-observer@npm:9.13.1"
+"react-intersection-observer@npm:^9.16.0":
+  version: 9.16.0
+  resolution: "react-intersection-observer@npm:9.16.0"
   peerDependencies:
-    react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-    react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react: ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     react-dom:
       optional: true
-  checksum: 10c0/c64722db407e0ca83945bf97621ab4618fa74f3a70b528ff43988818d46feee8962bd12e70203d2d92b31030889a1f813d00e0aa3d781a7bc39fb293c277ee04
+  checksum: 10c0/2aee5103fb460c6e5a3ab5a4fdc8c69a5215e23699a12d7857f25ba765fed48eacbed94ca835d79edf00c0edcc9c4fbb5bb057a373402d0551718546810e0e48
   languageName: node
   linkType: hard
 
