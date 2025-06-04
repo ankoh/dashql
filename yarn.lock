@@ -30,7 +30,7 @@ __metadata:
     "@ankoh/dashql-core": "link:../dashql-core-bindings"
     "@ankoh/dashql-protobuf": "link:../dashql-protobuf"
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
-    "@bufbuild/protobuf": "npm:^2.3.0"
+    "@bufbuild/protobuf": "npm:^2.5.1"
     "@codemirror/autocomplete": "npm:^6.18.1"
     "@codemirror/commands": "npm:^6.6.2"
     "@codemirror/language": "npm:^6.10.3"
@@ -153,7 +153,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ankoh/dashql-protobuf@workspace:packages/dashql-protobuf"
   dependencies:
-    "@bufbuild/protobuf": "npm:^2.3.0"
+    "@bufbuild/protobuf": "npm:^2.5.1"
     "@connectrpc/connect": "npm:^2.0.2"
     "@connectrpc/connect-web": "npm:^2.0.2"
     "@types/node": "npm:^22.15.29"
@@ -569,66 +569,66 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-darwin-arm64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-darwin-arm64@npm:1.53.0"
+"@bufbuild/buf-darwin-arm64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-darwin-arm64@npm:1.54.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-darwin-x64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-darwin-x64@npm:1.53.0"
+"@bufbuild/buf-darwin-x64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-darwin-x64@npm:1.54.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-aarch64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-linux-aarch64@npm:1.53.0"
+"@bufbuild/buf-linux-aarch64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-linux-aarch64@npm:1.54.0"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-armv7@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-linux-armv7@npm:1.53.0"
+"@bufbuild/buf-linux-armv7@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-linux-armv7@npm:1.54.0"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-linux-x64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-linux-x64@npm:1.53.0"
+"@bufbuild/buf-linux-x64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-linux-x64@npm:1.54.0"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-win32-arm64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-win32-arm64@npm:1.53.0"
+"@bufbuild/buf-win32-arm64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-win32-arm64@npm:1.54.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf-win32-x64@npm:1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf-win32-x64@npm:1.53.0"
+"@bufbuild/buf-win32-x64@npm:1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf-win32-x64@npm:1.54.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@bufbuild/buf@npm:^1.53.0":
-  version: 1.53.0
-  resolution: "@bufbuild/buf@npm:1.53.0"
+"@bufbuild/buf@npm:^1.54.0":
+  version: 1.54.0
+  resolution: "@bufbuild/buf@npm:1.54.0"
   dependencies:
-    "@bufbuild/buf-darwin-arm64": "npm:1.53.0"
-    "@bufbuild/buf-darwin-x64": "npm:1.53.0"
-    "@bufbuild/buf-linux-aarch64": "npm:1.53.0"
-    "@bufbuild/buf-linux-armv7": "npm:1.53.0"
-    "@bufbuild/buf-linux-x64": "npm:1.53.0"
-    "@bufbuild/buf-win32-arm64": "npm:1.53.0"
-    "@bufbuild/buf-win32-x64": "npm:1.53.0"
+    "@bufbuild/buf-darwin-arm64": "npm:1.54.0"
+    "@bufbuild/buf-darwin-x64": "npm:1.54.0"
+    "@bufbuild/buf-linux-aarch64": "npm:1.54.0"
+    "@bufbuild/buf-linux-armv7": "npm:1.54.0"
+    "@bufbuild/buf-linux-x64": "npm:1.54.0"
+    "@bufbuild/buf-win32-arm64": "npm:1.54.0"
+    "@bufbuild/buf-win32-x64": "npm:1.54.0"
   dependenciesMeta:
     "@bufbuild/buf-darwin-arm64":
       optional: true
@@ -648,42 +648,42 @@ __metadata:
     buf: bin/buf
     protoc-gen-buf-breaking: bin/protoc-gen-buf-breaking
     protoc-gen-buf-lint: bin/protoc-gen-buf-lint
-  checksum: 10c0/4868c0effd495f6865a44aff6292166e288b053245ff4fdf5ae12304ed982f8ce7921babca9ca9d5c809768d091d856abcab9175d10ddda334ec41ad498893ef
+  checksum: 10c0/86fd468085a4c37d648d78970d899c3945a9595eec7efc346f0b00c2eaa78dddac41b395d756646baa1766729bd340025c18e505a837359becd786c0bb79e527
   languageName: node
   linkType: hard
 
-"@bufbuild/protobuf@npm:2.3.0, @bufbuild/protobuf@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "@bufbuild/protobuf@npm:2.3.0"
-  checksum: 10c0/ddd628ffa86fa9a64f7a434a13ebb73200a43ecbecc36001d8d73534c281cecaf2b4ec890a12810ac54302ae10a9fee794b438db91af54e268f8d6cdcdb82a49
+"@bufbuild/protobuf@npm:2.5.1, @bufbuild/protobuf@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "@bufbuild/protobuf@npm:2.5.1"
+  checksum: 10c0/dd3044160c6ed27db3d26999b6cf7c47178cd1d31abf156ca5902d3a3670b811a8018d3d4a3154dbc30d6a9f29402d16189e53a51dd437a8c59e6e56fc079b74
   languageName: node
   linkType: hard
 
-"@bufbuild/protoc-gen-es@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "@bufbuild/protoc-gen-es@npm:2.3.0"
+"@bufbuild/protoc-gen-es@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "@bufbuild/protoc-gen-es@npm:2.5.1"
   dependencies:
-    "@bufbuild/protobuf": "npm:^2.3.0"
-    "@bufbuild/protoplugin": "npm:2.3.0"
+    "@bufbuild/protobuf": "npm:^2.5.1"
+    "@bufbuild/protoplugin": "npm:2.5.1"
   peerDependencies:
-    "@bufbuild/protobuf": 2.3.0
+    "@bufbuild/protobuf": 2.5.1
   peerDependenciesMeta:
     "@bufbuild/protobuf":
       optional: true
   bin:
     protoc-gen-es: bin/protoc-gen-es
-  checksum: 10c0/389d0c13ccdaaeb8ada696b2c120c1b648f83c8078a6b0935913f8963f6cd4c51c674d42c94a15ac5046645c264c078ae869c4f5607b4a1623c8048d0b308cfd
+  checksum: 10c0/1c02ac9436e9f41ef44ea6493a2d6029bba3d193b459a66a0f31ecee9457e6bfabb35bca163a64bfbbae45c8fe01834b6304bcc65a5758b9f8a1da7d545de58b
   languageName: node
   linkType: hard
 
-"@bufbuild/protoplugin@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@bufbuild/protoplugin@npm:2.3.0"
+"@bufbuild/protoplugin@npm:2.5.1":
+  version: 2.5.1
+  resolution: "@bufbuild/protoplugin@npm:2.5.1"
   dependencies:
-    "@bufbuild/protobuf": "npm:2.3.0"
+    "@bufbuild/protobuf": "npm:2.5.1"
     "@typescript/vfs": "npm:^1.5.2"
     typescript: "npm:5.4.5"
-  checksum: 10c0/9e05bf1a7f069ab6cbfa8c3ebe6a191b5ec870c94fde8c5af563b4c89e3ba1e17996085a82a0ef875d61efb1a862c6a535974e8bab12b5cc790447fd780f0a4c
+  checksum: 10c0/21a2da963a1b5c1eca451e567690fe3f274dbb9e8b2a85726807daac9aded3b5c2b81d671ad5c38d5505d7b3ef358ac01aae9fc40f0f63e53a6632b8831aee32
   languageName: node
   linkType: hard
 
@@ -9553,8 +9553,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@bufbuild/buf": "npm:^1.53.0"
-    "@bufbuild/protoc-gen-es": "npm:^2.3.0"
+    "@bufbuild/buf": "npm:^1.54.0"
+    "@bufbuild/protoc-gen-es": "npm:^2.5.1"
     "@eslint/js": "npm:^9.28.0"
     "@tauri-apps/cli": "npm:^2.5.0"
     "@types/node": "npm:^22.15.29"
