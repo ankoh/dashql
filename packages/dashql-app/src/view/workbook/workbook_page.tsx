@@ -25,7 +25,7 @@ import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/
 import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
+import { WorkbookState, UPDATE_WORKBOOK_ENTRY } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useQueryState } from '../../connection/query_executor.js';
@@ -171,6 +171,9 @@ interface WorkbookEntryDetailsProps {
 
 const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
+    const [isEditingDescription, setIsEditingDescription] = React.useState<boolean>(false);
+    const [description, setDescription] = React.useState<string>("");
+    const [workbook, modifyWorkbook] = useWorkbookState(props.workbook.workbookId);
 
     // Resolve the query state (if any)
     const workbookEntry = props.workbook.workbookEntries[props.workbook.selectedWorkbookEntry];
@@ -235,6 +238,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     }, [activeQueryId, activeQueryState?.status]);
 
     const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
+    const SparklesIcon: Icon = SymbolIcon("sparkles_16");
     return (
         <div className={styles.details_body_container}>
             <div className={styles.details_body_card}>
@@ -246,12 +250,41 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                         <IconButton
                             className={styles.details_editor_collapse_button}
                             variant={ButtonVariant.Invisible}
+                            onClick={props.hideDetails}
                             aria-label="collapse"
                             aria-labelledby="collapse-entry"
-                            onClick={props.hideDetails}
                         >
                             <ScreenNormalIcon size={16} />
                         </IconButton>
+                    </div>
+                    <div className={styles.details_editor_description}>
+                        <div className={styles.description_edit_container}>
+                            <textarea
+                                className={styles.description_textarea}
+                                value={description}
+                                onFocus={_ => {
+                                    setIsEditingDescription(true);
+                                }}
+                                onChange={e => {
+                                    setDescription(e.target.value)
+                                }}
+                                onBlur={_ => {
+                                    setIsEditingDescription(false);
+                                    // XXX Save description
+                                }}
+                                placeholder="Add a description..."
+                            />
+                            <div className={styles.description_button_container}>
+                                <IconButton
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="generate description"
+                                    onClick={() => {
+                                    }}
+                                >
+                                    <SparklesIcon size={16} />
+                                </IconButton>
+                            </div>
+                        </div>
                     </div>
                     <ScriptEditor className={styles.details_editor} workbookId={props.workbook.workbookId} />
                 </div>
@@ -315,9 +348,9 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
                     <IconButton
                         className={styles.collection_entry_expand_button}
                         variant={ButtonVariant.Invisible}
+                        onClick={props.showDetails}
                         aria-label="expand"
                         aria-labelledby="expand-entry"
-                        onClick={props.showDetails}
                     >
                         <ScreenFullIcon size={16} />
                     </IconButton>

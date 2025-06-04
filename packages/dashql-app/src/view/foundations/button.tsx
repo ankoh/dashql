@@ -9,6 +9,7 @@ const BUTTON_VARIANT_CLASSNAME = [
     styles.button_variant_primary,
     styles.button_variant_danger,
     styles.button_variant_invisible,
+    styles.button_variant_invisible,
 ];
 const BUTTON_SIZE_CLASSNAME = [
     styles.button_size_small,

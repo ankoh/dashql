@@ -261,6 +261,40 @@
     overflow: hidden;
 }
 
+.details_editor_description {
+    padding: 4px;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.description_edit_container {
+    display: flex;
+    column-gap: 4px;
+    align-items: flex-start;
+}
+.description_textarea {
+    flex: 1;
+    min-height: 60px;
+    padding: 8px;
+    border: none;
+    border-radius: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    background-color: transparent;
+    color: var(--color-fg-muted);
+    outline: none;
+    overflow: hidden;
+}
+.description_textarea:focus {
+    outline: none;
+}
+.description_button_container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
+}
+
+
 /* Collection styles */
 
 

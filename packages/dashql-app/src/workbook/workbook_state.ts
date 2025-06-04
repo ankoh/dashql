@@ -102,6 +102,7 @@ export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
 export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_WORKBOOK_ENTRIES');
 export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_WORKBOOK_ENTRY');
 export const DELETE_WORKBOOK_ENTRY = Symbol('DELETE_WORKBOOK_ENTRY');
+export const UPDATE_WORKBOOK_ENTRY = Symbol('UPDATE_WORKBOOK_ENTRY');
 
 export type WorkbookStateAction =
     | VariantKind<typeof DESTROY, null>
@@ -123,6 +124,7 @@ export type WorkbookStateAction =
     | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
     | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_WORKBOOK_ENTRY, number>
+    | VariantKind<typeof UPDATE_WORKBOOK_ENTRY, { entryIndex: number, title: string | null }>
     ;
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
@@ -659,6 +661,20 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 workbookEntries: [...state.workbookEntries, entry],
                 selectedWorkbookEntry: state.workbookEntries.length,
                 userFocus: null,
+            };
+        }
+
+        case UPDATE_WORKBOOK_ENTRY: {
+            const { entryIndex, title } = action.value;
+            if (entryIndex >= state.workbookEntries.length) {
+                console.warn("update references invalid workbook entry");
+                return state;
+            }
+            const entries = [...state.workbookEntries];
+            entries[entryIndex] = { ...entries[entryIndex], title };
+            return {
+                ...state,
+                workbookEntries: entries
             };
         }
     }
