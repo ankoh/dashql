@@ -7,12 +7,12 @@ import * as icons from '../../../static/svg/symbols.generated.svg';
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
+import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
-import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -25,9 +25,10 @@ import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/
 import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { WorkbookState, UPDATE_WORKBOOK_ENTRY } from '../../workbook/workbook_state.js';
+import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
+import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
 
@@ -170,6 +171,8 @@ interface WorkbookEntryDetailsProps {
 }
 
 const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
+    const ollamaClient = useOllamaClient();
+
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
     const [isEditingDescription, setIsEditingDescription] = React.useState<boolean>(false);
     const [description, setDescription] = React.useState<string>("");
@@ -179,6 +182,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     const workbookEntry = props.workbook.workbookEntries[props.workbook.selectedWorkbookEntry];
     const activeQueryId = workbookEntry?.queryId ?? null;
     const activeQueryState = useQueryState(props.workbook?.connectionId ?? null, activeQueryId);
+    const scriptData = props.workbook.scripts[workbookEntry.scriptKey];
 
     // Determine selected tabs
     const tabState = React.useRef<TabState>({
@@ -279,6 +283,10 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                                     variant={ButtonVariant.Invisible}
                                     aria-label="generate description"
                                     onClick={() => {
+                                        if (ollamaClient != null) {
+                                            const text = scriptData.script?.toString();
+                                            console.log(text);
+                                        }
                                     }}
                                 >
                                     <SparklesIcon size={16} />

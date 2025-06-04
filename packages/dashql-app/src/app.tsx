@@ -12,7 +12,6 @@ import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
 import { DefaultConnectionProvider } from './connection/default_connections.js';
 import { DefaultWorkbookProvider } from './workbook/default_workbooks.js';
-import { WorkbookPage } from './view/workbook/workbook_page.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
@@ -23,6 +22,7 @@ import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper
 import { IdentInternalsPage } from './view/internals/ident_internals_page.js';
 import { LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
+import { OllamaClientProvider } from './platform/ollama_client_provider.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';
 import { PlatformTypeProvider } from './platform/platform_type.js';
 import { ProcessProvider } from './platform/process.js';
@@ -36,6 +36,7 @@ import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_con
 import { UIInternalsPage } from './view/internals/ui_internals_page.js';
 import { VersionCheck } from './platform/version_check.js';
 import { WorkbookCommands } from './workbook/workbook_commands.js';
+import { WorkbookPage } from './view/workbook/workbook_page.js';
 import { WorkbookStateRegistry } from './workbook/workbook_state_registry.js';
 import { isDebugBuild } from './globals.js';
 
@@ -98,17 +99,19 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                             <ProcessProvider>
                                 <VersionCheck>
                                     <HttpClientProvider>
-                                        <HyperDatabaseClientProvider>
-                                            <DashQLCoreProvider>
-                                                <DashQLComputeProvider>
-                                                    <WorkbookProviders>
-                                                        <PageStateProviders>
-                                                            {props.children}
-                                                        </PageStateProviders>
-                                                    </WorkbookProviders>
-                                                </DashQLComputeProvider>
-                                            </DashQLCoreProvider>
-                                        </HyperDatabaseClientProvider>
+                                        <OllamaClientProvider>
+                                            <HyperDatabaseClientProvider>
+                                                <DashQLCoreProvider>
+                                                    <DashQLComputeProvider>
+                                                        <WorkbookProviders>
+                                                            <PageStateProviders>
+                                                                {props.children}
+                                                            </PageStateProviders>
+                                                        </WorkbookProviders>
+                                                    </DashQLComputeProvider>
+                                                </DashQLCoreProvider>
+                                            </HyperDatabaseClientProvider>
+                                        </OllamaClientProvider>
                                     </HttpClientProvider>
                                 </VersionCheck>
                             </ProcessProvider>
