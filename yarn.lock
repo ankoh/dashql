@@ -63,7 +63,7 @@ __metadata:
     "@tauri-apps/plugin-updater": "npm:^2.7.1"
     "@testing-library/react": "npm:^16.3.0"
     "@types/d3": "npm:^7.4.3"
-    "@types/flatbuffers": "npm:^1.10.3"
+    "@types/flatbuffers": "npm:^2.0.1"
     "@types/fontfaceobserver": "npm:^2.1.3"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^22.15.30"
@@ -2784,10 +2784,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/flatbuffers@npm:^1.10.3":
-  version: 1.10.3
-  resolution: "@types/flatbuffers@npm:1.10.3"
-  checksum: 10c0/d9e321b0605e724c042cebce678e5fc6f3740218209f57b7bc1f584942825ef14b819118f9c41d99e913c0aae5556ea6815891da57ee9a919fb4cc924795d533
+"@types/flatbuffers@npm:^2.0.1":
+  version: 2.0.1
+  resolution: "@types/flatbuffers@npm:2.0.1"
+  dependencies:
+    flatbuffers: "npm:*"
+  checksum: 10c0/81d9e40741bf6dd0b8517475cba8748b53bcfc2ae08d9a5d5b7ad31240cd9ffa534b3d00f727ce24af7a5ee8bfd016ab886d280a918c025621f236c31c7cef71
   languageName: node
   linkType: hard
 
@@ -6315,17 +6317,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"flatbuffers@npm:*, flatbuffers@npm:^25.2.10":
+  version: 25.2.10
+  resolution: "flatbuffers@npm:25.2.10"
+  checksum: 10c0/2ea1ab805d4ec35fb61e7d3b69c90886e4a35683cd0460da667c234400b2fa2e3e79992a73848cf18d5995c8e7d9eaef0e54f0d0aec5192b17b0014113cf90b9
+  languageName: node
+  linkType: hard
+
 "flatbuffers@npm:^24.3.25":
   version: 24.3.25
   resolution: "flatbuffers@npm:24.3.25"
   checksum: 10c0/a40a1d46f6d474f1299091970700f36dc5bd86616b71cd99a1b6f521ca33b05f5d7623bd0ffadaa1e10fc63d6663aa3f9595f4916cd379e80c15787257e17a61
-  languageName: node
-  linkType: hard
-
-"flatbuffers@npm:^25.2.10":
-  version: 25.2.10
-  resolution: "flatbuffers@npm:25.2.10"
-  checksum: 10c0/2ea1ab805d4ec35fb61e7d3b69c90886e4a35683cd0460da667c234400b2fa2e3e79992a73848cf18d5995c8e7d9eaef0e54f0d0aec5192b17b0014113cf90b9
   languageName: node
   linkType: hard
 
