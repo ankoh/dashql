@@ -8,7 +8,6 @@ import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
-import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
@@ -28,6 +27,7 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
@@ -348,6 +348,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                                 <IconButton
                                     variant={ButtonVariant.Invisible}
                                     aria-label="generate description"
+                                    disabled={!isNativePlatform()}
                                     onClick={async () => {
                                         if (ollamaClient != null) {
                                             const text = scriptData.script?.toString();
