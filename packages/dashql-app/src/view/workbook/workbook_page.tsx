@@ -4,10 +4,10 @@ import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
-import { ToggleSwitch, ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
+import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
@@ -159,34 +159,53 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
+    const [pinned, setPinned] = React.useState<boolean>(true);
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor workbookId={props.workbook.workbookId} />
-            <DragSizing
-                border={DragSizingBorder.Top}
-                className={styles.catalog_overlay_container}
-                handlerClassName={styles.catalog_overlay_drag_resizing}
-            >
-                <div className={styles.catalog_overlay_header}>
-                    <div className={styles.catalog_overlay_header_icon}>
-                        <CatalogIcon />
-                    </div>
-                    <div className={styles.catalog_overlay_header_text}>
-                        Catalog
-                    </div>
-                    <IconButton
-                        className={styles.catalog_overlay_header_sync_toggle}
-                        variant={ButtonVariant.Invisible}
-                        aria-label="close-overlay"
-                        onClick={() => { }}
-                    >
-                        <PinSlashIcon />
-                    </IconButton>
-                </div>
-                <div className={styles.catalog_viewer}>
-                    <CatalogViewer workbookId={props.workbook.workbookId} />
-                </div>
-            </DragSizing>
+            {
+                pinned
+                    ? (
+                        <DragSizing
+                            border={DragSizingBorder.Top}
+                            className={styles.catalog_overlay_container}
+                            handlerClassName={styles.catalog_overlay_drag_resizing}
+                        >
+                            <div className={styles.catalog_overlay_header}>
+                                <div className={styles.catalog_overlay_header_icon}>
+                                    <CatalogIcon />
+                                </div>
+                                <div className={styles.catalog_overlay_header_text}>
+                                    Catalog
+                                </div>
+                                <IconButton
+                                    className={styles.catalog_overlay_header_sync_toggle}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="close-overlay"
+                                    onClick={() => {
+                                        setPinned(p => !p);
+                                    }}
+                                >
+                                    <PinSlashIcon />
+                                </IconButton>
+                            </div>
+                            <div className={styles.catalog_viewer}>
+                                <CatalogViewer workbookId={props.workbook.workbookId} />
+                            </div>
+                        </DragSizing>
+                    )
+                    : (
+                        <Button
+                            className={styles.catalog_overlay_bean}
+                            leadingVisual={() => <CatalogIcon />}
+                            onClick={() => {
+                                setPinned(p => !p);
+                            }}
+                        >
+                            Catalog
+                        </Button>
+                    )
+            }
         </div>
     );
 }
