@@ -5,10 +5,11 @@ import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
-import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
+import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
@@ -153,6 +154,36 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
         </>
     );
 };
+
+export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
+    const CatalogIcon = SymbolIcon("workflow_16");
+    return (
+        <div className={styles.details_editor_tabs_body}>
+            <ScriptEditor workbookId={props.workbook.workbookId} />
+            <div className={styles.catalog_overlay_container}>
+                <div className={styles.catalog_overlay_header}>
+                    <div className={styles.catalog_overlay_header_icon}>
+                        <CatalogIcon />
+                    </div>
+                    <div className={styles.catalog_overlay_header_text}>
+                        Catalog
+                    </div>
+                    <IconButton
+                        className={styles.catalog_overlay_header_close}
+                        variant={ButtonVariant.Invisible}
+                        aria-label="close-overlay"
+                        onClick={() => { }}
+                    >
+                        <XIcon />
+                    </IconButton>
+                </div>
+                <div className={styles.catalog_viewer}>
+                    <CatalogViewer workbookId={props.workbook.workbookId} />
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export function getStatusIndicatorText(status: IndicatorStatus) {
     switch (status) {
@@ -360,7 +391,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => <ScriptEditor className={styles.details_editor_tabs_body} workbookId={props.workbook.workbookId} />,
+                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
