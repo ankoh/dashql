@@ -344,7 +344,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                         selectTab={selectTab}
                         tabProps={{
                             [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
-                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
+                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#workflow_24`, labelShort: 'Catalog', disabled: false },
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
                                 icon: `${icons}#plan`,
