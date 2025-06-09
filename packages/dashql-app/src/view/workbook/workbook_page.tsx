@@ -4,7 +4,7 @@ import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
-import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
+import { ToggleSwitch, ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
@@ -12,6 +12,7 @@ import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
+import { DragSizing, DragSizingBorder } from '../../view/foundations/drag_sizing.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
@@ -157,10 +158,15 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
 
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
     const CatalogIcon = SymbolIcon("workflow_16");
+    const PinSlashIcon = SymbolIcon("pin_slash_16");
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor workbookId={props.workbook.workbookId} />
-            <div className={styles.catalog_overlay_container}>
+            <DragSizing
+                border={DragSizingBorder.Top}
+                className={styles.catalog_overlay_container}
+                handlerClassName={styles.catalog_overlay_drag_resizing}
+            >
                 <div className={styles.catalog_overlay_header}>
                     <div className={styles.catalog_overlay_header_icon}>
                         <CatalogIcon />
@@ -169,18 +175,18 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
                         Catalog
                     </div>
                     <IconButton
-                        className={styles.catalog_overlay_header_close}
+                        className={styles.catalog_overlay_header_sync_toggle}
                         variant={ButtonVariant.Invisible}
                         aria-label="close-overlay"
                         onClick={() => { }}
                     >
-                        <XIcon />
+                        <PinSlashIcon />
                     </IconButton>
                 </div>
                 <div className={styles.catalog_viewer}>
                     <CatalogViewer workbookId={props.workbook.workbookId} />
                 </div>
-            </div>
+            </DragSizing>
         </div>
     );
 }

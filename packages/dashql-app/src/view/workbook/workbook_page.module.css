@@ -357,6 +357,8 @@
     grid-tempate-rows: 32px calc(100% - 32px);
     grid-template-columns: 100%;
 }
+.catalog_overlay_drag_resizing {
+}
 
 .catalog_overlay_header {
     border-bottom: 1px solid var(--border_color_primary);
@@ -381,7 +383,7 @@
     grid-column: 2;
     display: grid;
 }
-.catalog_overlay_header_close {
+.catalog_overlay_header_sync_toggle {
     grid-column: 4;
 }
 

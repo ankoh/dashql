@@ -34,6 +34,7 @@ interface DragHandlerProps {
     onEnd: (e: MouseEvent | TouchEvent) => void;
     onUpdate: (e: MouseEvent | TouchEvent) => void;
     className?: string;
+    style?: React.CSSProperties;
     children?: React.ReactNode | undefined;
 }
 
@@ -97,9 +98,10 @@ function DragHandler(props: DragHandlerProps) {
         <div
             onMouseDown={onMouseDown}
             onTouchStart={onMouseDown}
-            className={classNames(styles.handler, {
+            className={classNames(props.className, styles.handler, {
                 [styles.dragging]: isDragging
             })}
+            style={props.style}
         >
             {props.children}
         </div>
@@ -257,6 +259,8 @@ export const DragSizing: React.FC<DragSizingProps> = props => {
                 {props.children}
             </div>
             <DragHandler
+                className={props.handlerClassName}
+                style={props.handlerStyle}
                 onStart={onStart}
                 onEnd={onEnd}
                 onUpdate={onUpdate}
