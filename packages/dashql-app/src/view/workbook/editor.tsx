@@ -66,11 +66,9 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     ]);
 
     return (
-        <>
-            <div className={styles.editor}>
-                <CodeMirror ref={setView} />
-            </div>
-        </>
+        <div className={styles.editor}>
+            <CodeMirror ref={setView} />
+        </div>
     );
 };
 

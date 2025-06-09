@@ -192,7 +192,7 @@
         bottom: 0;
         height: 100%;
         width: 100%;
-        padding: 16px 16px 0 16px;
+        padding: 16px 16px 16px 16px;
         background-color: var(--workbook_body_background_color);
 
         display: flex;
@@ -204,36 +204,20 @@
         height: 100%;
         width: 100%;
         max-width: var(--workbook_details_max_width);
-        border-width: 1px 1px 0px 1px;
-        border-style: solid;
-        border-color: var(--log_border_color);
-        border-radius: var(--border_radius) var(--border_radius) 0 0;
-
-        display: flex;
-        flex-direction: column;
-        background-color: white;
+        border-radius: var(--border_radius);
+        border: 1px solid var(--log_border_color);
         overflow: hidden;
     }
 }
 
-.details_output_container {
-    height: 55%;
-}
-
-.details_output_container {
-    height: 55%;
-}
-
-.details_output {
-    position: relative;
-}
-
 .details_editor_container {
-    flex: 1;
-    border-bottom: 1px solid var(--border_color_primary);
     width: 100%;
     height: 100%;
-    overflow: hidden;
+
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: max-content max-content 1fr;
+    background-color: white;
 }
 
 .details_editor_header {
@@ -259,14 +243,19 @@
     grid-column: 4;
 }
 
-.details_editor {
+.details_editor_tabs {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.details_editor_tabs_body {
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    overflow: hidden;
 }
 
-.details_editor_description {
+.details_description {
     padding: 4px;
     border-bottom: 1px solid var(--border_color_primary);
 }

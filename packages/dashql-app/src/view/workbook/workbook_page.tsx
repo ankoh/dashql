@@ -168,9 +168,10 @@ export function getStatusIndicatorText(status: IndicatorStatus) {
 }
 
 enum TabKey {
-    Catalog = 0,
-    QueryStatusPanel = 1,
-    QueryResultView = 2,
+    Editor = 0,
+    Catalog = 1,
+    QueryStatusPanel = 2,
+    QueryResultView = 3,
 }
 
 interface TabState {
@@ -186,7 +187,7 @@ interface WorkbookEntryDetailsProps {
 const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
     const ollamaClient = useOllamaClient();
 
-    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
+    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
     const [isEditingDescription, setIsEditingDescription] = React.useState<boolean>(false);
     const [description, setDescription] = React.useState<string>("");
     const [workbook, modifyWorkbook] = useWorkbookState(props.workbook.workbookId);
@@ -224,7 +225,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                 ctrlKey: true,
                 callback: () => {
                     selectTab(key => {
-                        const tabs = [TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView];
+                        const tabs = [TabKey.Editor, TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView];
                         return tabs[((key as number) + 1) % tabState.current.enabledTabs];
                     });
                 },
@@ -240,7 +241,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
         const status = activeQueryState?.status ?? null;
         switch (status) {
             case null:
-                selectTab(TabKey.Catalog);
+                selectTab(TabKey.Editor);
                 break;
             case QueryExecutionStatus.REQUESTED:
             case QueryExecutionStatus.PREPARING:
@@ -295,7 +296,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             <ScreenNormalIcon size={16} />
                         </IconButton>
                     </div>
-                    <div className={styles.details_editor_description}>
+                    <div className={styles.details_description}>
                         <div className={styles.description_edit_container}>
                             <textarea
                                 className={styles.description_textarea}
@@ -336,35 +337,36 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             </div>
                         </div>
                     </div>
-                    <ScriptEditor className={styles.details_editor} workbookId={props.workbook.workbookId} />
-                </div>
-                <DragSizing
-                    className={styles.details_output_container}
-                    border={DragSizingBorder.Top}
-                >
                     <VerticalTabs
-                        className={styles.details_output}
+                        className={styles.details_editor_tabs}
                         variant={VerticalTabVariant.Stacked}
                         selectedTab={selectedTab}
                         selectTab={selectTab}
                         tabProps={{
+                            [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
                             [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
                                 icon: `${icons}#plan`,
                                 labelShort: 'Status',
-                                disabled: tabState.current.enabledTabs < 2,
+                                disabled: tabState.current.enabledTabs < 3,
                             },
                             [TabKey.QueryResultView]: {
                                 tabId: TabKey.QueryResultView,
                                 icon: `${icons}#table_24`,
                                 labelShort: 'Data',
-                                disabled: tabState.current.enabledTabs < 3,
+                                disabled: tabState.current.enabledTabs < 4,
                             },
                         }}
-                        tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
+                        tabKeys={[
+                            TabKey.Editor,
+                            TabKey.Catalog,
+                            TabKey.QueryStatusPanel,
+                            TabKey.QueryResultView
+                        ]}
                         tabRenderers={{
-                            [TabKey.Catalog]: _props => <CatalogPanel />,
+                            [TabKey.Editor]: _props => <ScriptEditor className={styles.details_editor_tabs_body} workbookId={props.workbook.workbookId} />,
+                            [TabKey.Catalog]: _props => <CatalogPanel className={styles.details_editor_tabs_body} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
@@ -373,11 +375,12 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             ),
                         }}
                     />
-                </DragSizing>
+                </div>
             </div>
         </div>
     );
 };
+
 
 interface WorkbookEntryListProps {
     workbook: WorkbookState;
