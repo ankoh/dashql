@@ -241,17 +241,22 @@
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
+    column-gap: 8px;
 }
 
-.details_editor_header_title {
+.details_status_indicator_button {
     grid-column: 1;
-    padding: 0px 8px;
+}
+.details_status_indicator {
+}
+.details_status_text {
+    grid-column: 2;
 }
 .details_editor_collapse_button {
-    grid-column: 3;
+    grid-column: 4;
 }
 
 .details_editor {
@@ -273,12 +278,10 @@
 }
 .description_textarea {
     flex: 1;
-    min-height: 60px;
     padding: 8px;
     border: none;
     border-radius: 0;
     font-size: 14px;
-    line-height: 1.5;
     resize: none;
     background-color: transparent;
     color: var(--color-fg-muted);
@@ -326,16 +329,20 @@
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
 }
-.collection_entry_header_title {
+.collection_entry_status_indicator_button {
     grid-column: 1;
-    padding: 0px 8px;
+}
+.collection_entry_status_indicator {
+}
+.collection_entry_status_text {
+    grid-column: 2;
 }
 .collection_entry_expand_button {
-    grid-column: 3;
+    grid-column: 4;
 }
 .collection_body {
     height: 48px;

@@ -13,6 +13,8 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
+import { Identicon } from '../../view/foundations/identicon.js';
+import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -27,7 +29,7 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
-import { useConnectionState } from '../../connection/connection_registry.js';
+import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
@@ -154,6 +156,17 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
+export function getStatusIndicatorText(status: IndicatorStatus) {
+    switch (status) {
+        case IndicatorStatus.Failed:
+            break;
+        case IndicatorStatus.Skip:
+            break;
+        case IndicatorStatus.Succeeded:
+            break;
+    }
+}
+
 enum TabKey {
     Catalog = 0,
     QueryStatusPanel = 1,
@@ -192,6 +205,16 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     enabledTabs += +(activeQueryState != null);
     enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
     tabState.current.enabledTabs = enabledTabs;
+
+    // Auto-resizing text area
+    const descriptionInputRef = React.useRef<HTMLTextAreaElement>(null);
+    function adjustDescriptionInput() {
+        if (descriptionInputRef.current) {
+            descriptionInputRef.current.style.height = "inherit";
+            descriptionInputRef.current.style.height = `${descriptionInputRef.current.scrollHeight}px`;
+        }
+    }
+    React.useLayoutEffect(adjustDescriptionInput, []);
 
     // Register keyboard events
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
@@ -248,9 +271,20 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
             <div className={styles.details_body_card}>
                 <div className={styles.details_editor_container}>
                     <div className={styles.details_editor_header}>
-                        <div className={styles.details_editor_header_title}>
-                            Script
-                        </div>
+                        <IconButton
+                            className={styles.details_status_indicator_button}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="expand"
+                            aria-labelledby="expand-entry"
+                        >
+                            <StatusIndicator
+                                className={styles.details_status_indicator}
+                                fill="black"
+                                width={"16px"}
+                                height={"16px"}
+                                status={IndicatorStatus.Running}
+                            />
+                        </IconButton>
                         <IconButton
                             className={styles.details_editor_collapse_button}
                             variant={ButtonVariant.Invisible}
@@ -266,17 +300,20 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             <textarea
                                 className={styles.description_textarea}
                                 value={description}
+                                ref={descriptionInputRef}
                                 onFocus={_ => {
                                     setIsEditingDescription(true);
                                 }}
                                 onChange={e => {
-                                    setDescription(e.target.value)
+                                    setDescription(e.target.value);
+                                    adjustDescriptionInput();
                                 }}
                                 onBlur={_ => {
                                     setIsEditingDescription(false);
                                     // XXX Save description
                                 }}
                                 placeholder="Add a description..."
+                                rows={1}
                             />
                             <div className={styles.description_button_container}>
                                 <IconButton
@@ -355,9 +392,20 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
         out.push(
             <div key={wi} className={styles.collection_entry_card}>
                 <div key={wi} className={styles.collection_entry_header}>
-                    <div className={styles.collection_entry_header_title}>
-                        Foo
-                    </div>
+                    <IconButton
+                        className={styles.details_status_indicator_button}
+                        variant={ButtonVariant.Invisible}
+                        aria-label="expand"
+                        aria-labelledby="expand-entry"
+                    >
+                        <StatusIndicator
+                            className={styles.collection_entry_status_indicator_button}
+                            fill="black"
+                            width={"16px"}
+                            height={"16px"}
+                            status={IndicatorStatus.Running}
+                        />
+                    </IconButton>
                     <IconButton
                         className={styles.collection_entry_expand_button}
                         variant={ButtonVariant.Invisible}
