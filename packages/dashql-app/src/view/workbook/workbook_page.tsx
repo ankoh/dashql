@@ -12,8 +12,6 @@ import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
-import { Identicon } from '../../view/foundations/identicon.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
@@ -29,7 +27,7 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
-import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
+import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
@@ -169,9 +167,8 @@ export function getStatusIndicatorText(status: IndicatorStatus) {
 
 enum TabKey {
     Editor = 0,
-    Catalog = 1,
-    QueryStatusPanel = 2,
-    QueryResultView = 3,
+    QueryStatusPanel = 1,
+    QueryResultView = 2,
 }
 
 interface TabState {
@@ -225,7 +222,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                 ctrlKey: true,
                 callback: () => {
                     selectTab(key => {
-                        const tabs = [TabKey.Editor, TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView];
+                        const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView];
                         return tabs[((key as number) + 1) % tabState.current.enabledTabs];
                     });
                 },
@@ -281,9 +278,9 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             <StatusIndicator
                                 className={styles.details_status_indicator}
                                 fill="black"
-                                width={"16px"}
-                                height={"16px"}
-                                status={IndicatorStatus.Running}
+                                width={"14px"}
+                                height={"14px"}
+                                status={IndicatorStatus.Succeeded}
                             />
                         </IconButton>
                         <IconButton
@@ -344,29 +341,26 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                         selectTab={selectTab}
                         tabProps={{
                             [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
-                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#workflow_24`, labelShort: 'Catalog', disabled: false },
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
                                 icon: `${icons}#plan`,
                                 labelShort: 'Status',
-                                disabled: tabState.current.enabledTabs < 3,
+                                disabled: tabState.current.enabledTabs < 2,
                             },
                             [TabKey.QueryResultView]: {
                                 tabId: TabKey.QueryResultView,
                                 icon: `${icons}#table_24`,
                                 labelShort: 'Data',
-                                disabled: tabState.current.enabledTabs < 4,
+                                disabled: tabState.current.enabledTabs < 3,
                             },
                         }}
                         tabKeys={[
                             TabKey.Editor,
-                            TabKey.Catalog,
                             TabKey.QueryStatusPanel,
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
                             [TabKey.Editor]: _props => <ScriptEditor className={styles.details_editor_tabs_body} workbookId={props.workbook.workbookId} />,
-                            [TabKey.Catalog]: _props => <CatalogPanel className={styles.details_editor_tabs_body} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
@@ -404,9 +398,9 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
                         <StatusIndicator
                             className={styles.collection_entry_status_indicator_button}
                             fill="black"
-                            width={"16px"}
-                            height={"16px"}
-                            status={IndicatorStatus.Running}
+                            width={"14px"}
+                            height={"14px"}
+                            status={IndicatorStatus.Succeeded}
                         />
                     </IconButton>
                     <IconButton
