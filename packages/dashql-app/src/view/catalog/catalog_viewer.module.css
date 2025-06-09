@@ -4,7 +4,7 @@
     --catalog_edge_focus_color: hsl(212.44deg, 92.07%, 44.51%);
 
     --catalog_overlay_border: 1px solid hsl(208.5deg 24.69% 28.76%);
-    --catalog_overlay_background: hsl(208.5deg, 24.69%, 31.76%);
+    --catalog_overlay_background: hsla(208.5deg, 24.69%, 31.76%, 40%);
     /* --catalog_overlay_background: hsl(208.5deg, 24.69%, 23.76%); */
     /* --catalog_overlay_header_background: hsl(208.5deg, 24.69%, 31.76%); */
     --catalog_overlay_header_background: hsl(208.5deg 24.69% 40.76%);
@@ -14,7 +14,7 @@
     position: relative;
     width: 100%;
     height: 100%;
-    background-color: hsl(210, 29%, 97%);
+    background-color: hsla(210, 29%, 97%, 40%);
 }
 
 

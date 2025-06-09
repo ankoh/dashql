@@ -343,10 +343,11 @@
 .catalog_overlay_container {
     position: absolute;
     bottom: 20px;
-    right: 20px;
+    right: 32px;
     width: auto;
     max-width: calc(100% - 40px);
     height: 50%;
+    opacity: 0.975;
 
     border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
@@ -397,7 +398,7 @@
 .catalog_overlay_bean {
     position: absolute;
     top: 20px;
-    right: 20px;
+    right: 32px;
 }
 .catalog_overlay_header_icon {
     grid-column: 1;
