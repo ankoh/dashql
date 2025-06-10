@@ -192,7 +192,7 @@
         bottom: 0;
         height: 100%;
         width: 100%;
-        padding: 16px 16px 0 16px;
+        padding: 16px 16px 16px 16px;
         background-color: var(--workbook_body_background_color);
 
         display: flex;
@@ -204,36 +204,20 @@
         height: 100%;
         width: 100%;
         max-width: var(--workbook_details_max_width);
-        border-width: 1px 1px 0px 1px;
-        border-style: solid;
-        border-color: var(--log_border_color);
-        border-radius: var(--border_radius) var(--border_radius) 0 0;
-
-        display: flex;
-        flex-direction: column;
-        background-color: white;
+        border-radius: var(--border_radius);
+        border: 1px solid var(--log_border_color);
         overflow: hidden;
     }
 }
 
-.details_output_container {
-    height: 55%;
-}
-
-.details_output_container {
-    height: 55%;
-}
-
-.details_output {
-    position: relative;
-}
-
 .details_editor_container {
-    flex: 1;
-    border-bottom: 1px solid var(--border_color_primary);
     width: 100%;
     height: 100%;
-    overflow: hidden;
+
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: max-content max-content 1fr;
+    background-color: white;
 }
 
 .details_editor_header {
@@ -241,27 +225,37 @@
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
+    column-gap: 8px;
 }
 
-.details_editor_header_title {
+.details_status_indicator_button {
     grid-column: 1;
-    padding: 0px 8px;
+}
+.details_status_indicator {
+}
+.details_status_text {
+    grid-column: 2;
 }
 .details_editor_collapse_button {
-    grid-column: 3;
+    grid-column: 4;
 }
 
-.details_editor {
-    box-sizing: border-box;
+.details_editor_tabs {
+    position: relative;
     width: 100%;
     height: 100%;
-    overflow: hidden;
 }
 
-.details_editor_description {
+.details_editor_tabs_body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.details_description {
     padding: 4px;
     border-bottom: 1px solid var(--border_color_primary);
 }
@@ -273,12 +267,10 @@
 }
 .description_textarea {
     flex: 1;
-    min-height: 60px;
     padding: 8px;
     border: none;
     border-radius: 0;
     font-size: 14px;
-    line-height: 1.5;
     resize: none;
     background-color: transparent;
     color: var(--color-fg-muted);
@@ -326,17 +318,99 @@
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
 }
-.collection_entry_header_title {
+.collection_entry_status_indicator_button {
     grid-column: 1;
-    padding: 0px 8px;
+}
+.collection_entry_status_indicator {
+}
+.collection_entry_status_text {
+    grid-column: 2;
 }
 .collection_entry_expand_button {
-    grid-column: 3;
+    grid-column: 4;
 }
 .collection_body {
     height: 48px;
+}
+
+
+
+/* Catalog overlay */
+.catalog_overlay_container {
+    position: absolute;
+    bottom: 20px;
+    right: 32px;
+    width: auto;
+    max-width: calc(100% - 40px);
+    height: 45%;
+    opacity: 0.975;
+
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    background-color: white;
+    overflow: hidden;
+
+    display: grid;
+    grid-tempate-rows: 32px calc(100% - 32px);
+    grid-template-columns: 100%;
+}
+.catalog_overlay_drag_resizing {
+}
+
+.catalog_overlay_header {
+    border-bottom: 1px solid var(--border_color_primary);
+    display: grid;
+    grid-template-rows: 40px;
+    grid-template-columns: max-content max-content 1fr max-content;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0px 4px;
+}
+.catalog_overlay_header_icon {
+    grid-column: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+    padding-right: 4px;
+}
+.catalog_overlay_header_text {
+    grid-column: 2;
+    display: grid;
+}
+.catalog_overlay_header_sync_toggle {
+    grid-column: 4;
+}
+
+.catalog_viewer {
+    grid-row: 2;
+    height: 100%;
+    overflow: hidden;
+}
+
+
+.catalog_overlay_bean {
+    position: absolute;
+    top: 20px;
+    right: 32px;
+}
+.catalog_overlay_header_icon {
+    grid-column: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+    padding-right: 4px;
+}
+.catalog_overlay_header_text {
+    grid-column: 2;
+    display: grid;
 }

@@ -18,11 +18,10 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-export const INFO_OVERLAY_WIDTH = 240;
-export const PADDING_LEFT = 20;
+export const PADDING_LEFT = 40;
 export const PADDING_TOP = 20;
 export const PADDING_BOTTOM = 20;
-export const PADDING_RIGHT = 20;
+export const PADDING_RIGHT = 60;
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
         prerenderSize: 200,
@@ -256,15 +255,9 @@ export function CatalogViewer(props: Props) {
         && fullRefreshTask.status != CatalogUpdateTaskStatus.SUCCEEDED;
 
     // Should we always expand the info overlay?
-    const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT + INFO_OVERLAY_WIDTH + PADDING_LEFT;
-    const alwaysExpand = (containerSize?.width ?? 0) >= widthWhenExpanded;
-
-    // Determine layer width and height with the padding
+    const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT;
     let paddingLeft = PADDING_LEFT;
     let paddingRight = PADDING_RIGHT;
-    if (alwaysExpand) {
-        paddingLeft += PADDING_LEFT + INFO_OVERLAY_WIDTH;
-    }
 
     // Use padding to center the catalog if the view model is smaller than the container height.
     const paddingTop = Math.max(PADDING_TOP, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
@@ -273,7 +266,12 @@ export function CatalogViewer(props: Props) {
     let layerWidth = viewModel?.totalWidth ?? 0;
     let layerHeight = viewModel?.totalHeight ?? 0;
     return (
-        <div className={styles.root}>
+        <div
+            className={styles.root}
+            style={{
+                width: widthWhenExpanded
+            }}
+        >
             <div
                 className={styles.board_container}
                 ref={containerElement}
@@ -318,16 +316,6 @@ export function CatalogViewer(props: Props) {
                         />
                     </div>
                 </div>
-            </div>
-            <div className={styles.info_overlay}>
-                {showRefreshView
-                    ? (
-                        <CatalogRefreshView conn={conn!} refresh={fullRefreshTask} />
-                    )
-                    : (
-                        <CatalogInfoView conn={conn!} entries={catalogInfoEntries} alwaysExpand={alwaysExpand} />
-                    )
-                }
             </div>
         </div>
     );

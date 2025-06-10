@@ -34,6 +34,7 @@ interface DragHandlerProps {
     onEnd: (e: MouseEvent | TouchEvent) => void;
     onUpdate: (e: MouseEvent | TouchEvent) => void;
     className?: string;
+    style?: React.CSSProperties;
     children?: React.ReactNode | undefined;
 }
 
@@ -97,9 +98,10 @@ function DragHandler(props: DragHandlerProps) {
         <div
             onMouseDown={onMouseDown}
             onTouchStart={onMouseDown}
-            className={classNames(styles.handler, {
+            className={classNames(props.className, styles.handler, {
                 [styles.dragging]: isDragging
             })}
+            style={props.style}
         >
             {props.children}
         </div>
@@ -129,11 +131,15 @@ export interface DragSizingProps {
     children?: React.ReactNode | undefined;
 }
 
-export const DragSizing: React.FC<DragSizingProps> = props => {
+export const DragSizing = React.forwardRef<HTMLDivElement | null, DragSizingProps>((props: DragSizingProps, ref: React.Ref<HTMLDivElement | null>) => {
     // Maintain the drag state
     const positionWhenStarted = React.useRef<number | null>(null);
     const [sizeWhenStarted, setSizeWhenStarted] = React.useState<number | null>(null);
     const [currentDelta, setCurrentDelta] = React.useState<number>(0);
+
+    // Remember the forwarded div ref locally
+    const localRef = React.useRef<HTMLDivElement | null>(null);
+    React.useImperativeHandle(ref, () => localRef.current, []);
 
     // Determine the settings
     const config = React.useMemo(() => {
@@ -170,15 +176,13 @@ export const DragSizing: React.FC<DragSizingProps> = props => {
         return { getSize, setSize, getPosition, directionFactor };
     }, [props.border]);
 
-    const containerRef = React.useRef<HTMLDivElement>(null);
-
     // Drag start
     const onStart = React.useCallback(
         (event: MouseEvent | TouchEvent) => {
             event.stopPropagation();
             event.preventDefault();
             const normedEvent = normalizeMouseEvent(event);
-            const container = containerRef.current;
+            const container = localRef.current;
             if (!container) return;
 
             const boundingRect = container.getBoundingClientRect();
@@ -251,16 +255,18 @@ export const DragSizing: React.FC<DragSizingProps> = props => {
         <div
             className={classNames(containerStyle, props.className)}
             style={containerSize}
-            ref={containerRef}
+            ref={localRef}
         >
             <div className={styles.content}>
                 {props.children}
             </div>
             <DragHandler
+                className={props.handlerClassName}
+                style={props.handlerStyle}
                 onStart={onStart}
                 onEnd={onEnd}
                 onUpdate={onUpdate}
             />
         </div>
     );
-};
+});
