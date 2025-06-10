@@ -7,7 +7,7 @@ import * as icons from '../../../static/svg/symbols.generated.svg';
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
-import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
@@ -26,13 +26,14 @@ import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/
 import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
+import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
+import { EditorView } from '@codemirror/view';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -156,17 +157,55 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
-export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
+function checkOverlayPosition(view: EditorView, overlay: HTMLDivElement): void {
+    if (!view) { return; }
+
+    const pos = view.state.selection.main.head;
+    const cursorCoords = view.coordsAtPos(pos, -1);
+    if (!cursorCoords) return;
+
+    const editorRect = view.scrollDOM.getBoundingClientRect();
+    // const viewportTop = scrollerRect.top;
+    // const viewportHeight = scrollerRect.height;
+    // const cursorTop = cursorCoords.top;
+
+    const overlayRect = overlay.getBoundingClientRect();
+
+    console.log({
+        editorRect,
+        overlayRect,
+        cursorCoords,
+    })
+    // const cursorRelativeY = cursorTop - viewportTop;
+    // return cursorRelativeY < viewportHeight / 2;
+}
+
+export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
+
     const [pinned, setPinned] = React.useState<boolean>(true);
+    const [view, setView] = React.useState<EditorView | null>(null);
+    const overlay = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+        if (props.script.cursor && view && overlay.current) {
+            checkOverlayPosition(view, overlay.current);
+        }
+    }, [props.script.cursor, view]);
+
+
     return (
         <div className={styles.details_editor_tabs_body}>
-            <ScriptEditor workbookId={props.workbook.workbookId} />
+            <ScriptEditor
+                workbookId={props.workbook.workbookId}
+                setView={setView}
+            />
             {
                 pinned
                     ? (
                         <DragSizing
+                            ref={overlay}
                             border={DragSizingBorder.Top}
                             className={styles.catalog_overlay_container}
                             handlerClassName={styles.catalog_overlay_drag_resizing}
@@ -201,6 +240,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState }) {
                             onClick={() => {
                                 setPinned(p => !p);
                             }}
+                            size={ButtonSize.Medium}
                         >
                             Catalog
                         </Button>
@@ -417,7 +457,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} />,
+                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} script={scriptData} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
