@@ -18,6 +18,7 @@ import { Logger } from '../../platform/logger.js';
 interface Props {
     className?: string;
     workbookId: number;
+    setView?: (view: EditorView) => void;
 }
 
 export const ScriptEditor: React.FC<Props> = (props: Props) => {
@@ -64,6 +65,12 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
         workbookEntryScriptData,
         workbook?.connectionCatalog,
     ]);
+    // Update the view, if asked
+    React.useEffect(() => {
+        if (props.setView && view != null) {
+            props.setView(view);
+        }
+    }, [view, props.setView])
 
     return (
         <div className={styles.editor}>
