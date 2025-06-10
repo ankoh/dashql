@@ -5,14 +5,15 @@ import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
-import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
+import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
-import { CatalogPanel } from '../../view/catalog/catalog_panel.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { DragSizing, DragSizingBorder } from '../foundations/drag_sizing.js';
+import { DragSizing, DragSizingBorder } from '../../view/foundations/drag_sizing.js';
+import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
@@ -25,12 +26,14 @@ import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/
 import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
+import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
+import { EditorView } from '@codemirror/view';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -154,8 +157,112 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
+function checkOverlayPosition(view: EditorView, overlay: HTMLDivElement): void {
+    if (!view) { return; }
+
+    const pos = view.state.selection.main.head;
+    const cursorCoords = view.coordsAtPos(pos, -1);
+    if (!cursorCoords) return;
+
+    const editorRect = view.scrollDOM.getBoundingClientRect();
+    // const viewportTop = scrollerRect.top;
+    // const viewportHeight = scrollerRect.height;
+    // const cursorTop = cursorCoords.top;
+
+    const overlayRect = overlay.getBoundingClientRect();
+
+    console.log({
+        editorRect,
+        overlayRect,
+        cursorCoords,
+    })
+    // const cursorRelativeY = cursorTop - viewportTop;
+    // return cursorRelativeY < viewportHeight / 2;
+}
+
+export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
+    const CatalogIcon = SymbolIcon("workflow_16");
+    const PinSlashIcon = SymbolIcon("pin_slash_16");
+
+    const [pinned, setPinned] = React.useState<boolean>(true);
+    const [view, setView] = React.useState<EditorView | null>(null);
+    const overlay = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+        if (props.script.cursor && view && overlay.current) {
+            checkOverlayPosition(view, overlay.current);
+        }
+    }, [props.script.cursor, view]);
+
+
+    return (
+        <div className={styles.details_editor_tabs_body}>
+            <ScriptEditor
+                workbookId={props.workbook.workbookId}
+                setView={setView}
+            />
+            {
+                pinned
+                    ? (
+                        <DragSizing
+                            ref={overlay}
+                            border={DragSizingBorder.Top}
+                            className={styles.catalog_overlay_container}
+                            handlerClassName={styles.catalog_overlay_drag_resizing}
+                        >
+                            <div className={styles.catalog_overlay_header}>
+                                <div className={styles.catalog_overlay_header_icon}>
+                                    <CatalogIcon />
+                                </div>
+                                <div className={styles.catalog_overlay_header_text}>
+                                    Catalog
+                                </div>
+                                <IconButton
+                                    className={styles.catalog_overlay_header_sync_toggle}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="close-overlay"
+                                    onClick={() => {
+                                        setPinned(p => !p);
+                                    }}
+                                >
+                                    <PinSlashIcon />
+                                </IconButton>
+                            </div>
+                            <div className={styles.catalog_viewer}>
+                                <CatalogViewer workbookId={props.workbook.workbookId} />
+                            </div>
+                        </DragSizing>
+                    )
+                    : (
+                        <Button
+                            className={styles.catalog_overlay_bean}
+                            leadingVisual={() => <CatalogIcon />}
+                            onClick={() => {
+                                setPinned(p => !p);
+                            }}
+                            size={ButtonSize.Medium}
+                        >
+                            Catalog
+                        </Button>
+                    )
+            }
+        </div>
+    );
+}
+
+export function getStatusIndicatorText(status: IndicatorStatus) {
+    switch (status) {
+        case IndicatorStatus.Failed:
+            break;
+        case IndicatorStatus.Skip:
+            break;
+        case IndicatorStatus.Succeeded:
+            break;
+    }
+}
+
 enum TabKey {
-    Catalog = 0,
+    Editor = 0,
     QueryStatusPanel = 1,
     QueryResultView = 2,
 }
@@ -173,7 +280,7 @@ interface WorkbookEntryDetailsProps {
 const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
     const ollamaClient = useOllamaClient();
 
-    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Catalog);
+    const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
     const [isEditingDescription, setIsEditingDescription] = React.useState<boolean>(false);
     const [description, setDescription] = React.useState<string>("");
     const [workbook, modifyWorkbook] = useWorkbookState(props.workbook.workbookId);
@@ -193,6 +300,16 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
     tabState.current.enabledTabs = enabledTabs;
 
+    // Auto-resizing text area
+    const descriptionInputRef = React.useRef<HTMLTextAreaElement>(null);
+    function adjustDescriptionInput() {
+        if (descriptionInputRef.current) {
+            descriptionInputRef.current.style.height = "inherit";
+            descriptionInputRef.current.style.height = `${descriptionInputRef.current.scrollHeight}px`;
+        }
+    }
+    React.useLayoutEffect(adjustDescriptionInput, []);
+
     // Register keyboard events
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
@@ -201,7 +318,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                 ctrlKey: true,
                 callback: () => {
                     selectTab(key => {
-                        const tabs = [TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView];
+                        const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView];
                         return tabs[((key as number) + 1) % tabState.current.enabledTabs];
                     });
                 },
@@ -217,7 +334,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
         const status = activeQueryState?.status ?? null;
         switch (status) {
             case null:
-                selectTab(TabKey.Catalog);
+                selectTab(TabKey.Editor);
                 break;
             case QueryExecutionStatus.REQUESTED:
             case QueryExecutionStatus.PREPARING:
@@ -248,9 +365,20 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
             <div className={styles.details_body_card}>
                 <div className={styles.details_editor_container}>
                     <div className={styles.details_editor_header}>
-                        <div className={styles.details_editor_header_title}>
-                            Script
-                        </div>
+                        <IconButton
+                            className={styles.details_status_indicator_button}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="expand"
+                            aria-labelledby="expand-entry"
+                        >
+                            <StatusIndicator
+                                className={styles.details_status_indicator}
+                                fill="black"
+                                width={"14px"}
+                                height={"14px"}
+                                status={IndicatorStatus.Succeeded}
+                            />
+                        </IconButton>
                         <IconButton
                             className={styles.details_editor_collapse_button}
                             variant={ButtonVariant.Invisible}
@@ -261,27 +389,31 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             <ScreenNormalIcon size={16} />
                         </IconButton>
                     </div>
-                    <div className={styles.details_editor_description}>
+                    <div className={styles.details_description}>
                         <div className={styles.description_edit_container}>
                             <textarea
                                 className={styles.description_textarea}
                                 value={description}
+                                ref={descriptionInputRef}
                                 onFocus={_ => {
                                     setIsEditingDescription(true);
                                 }}
                                 onChange={e => {
-                                    setDescription(e.target.value)
+                                    setDescription(e.target.value);
+                                    adjustDescriptionInput();
                                 }}
                                 onBlur={_ => {
                                     setIsEditingDescription(false);
                                     // XXX Save description
                                 }}
                                 placeholder="Add a description..."
+                                rows={1}
                             />
                             <div className={styles.description_button_container}>
                                 <IconButton
                                     variant={ButtonVariant.Invisible}
                                     aria-label="generate description"
+                                    disabled={!isNativePlatform()}
                                     onClick={async () => {
                                         if (ollamaClient != null) {
                                             const text = scriptData.script?.toString();
@@ -299,19 +431,13 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             </div>
                         </div>
                     </div>
-                    <ScriptEditor className={styles.details_editor} workbookId={props.workbook.workbookId} />
-                </div>
-                <DragSizing
-                    className={styles.details_output_container}
-                    border={DragSizingBorder.Top}
-                >
                     <VerticalTabs
-                        className={styles.details_output}
+                        className={styles.details_editor_tabs}
                         variant={VerticalTabVariant.Stacked}
                         selectedTab={selectedTab}
                         selectTab={selectTab}
                         tabProps={{
-                            [TabKey.Catalog]: { tabId: TabKey.Catalog, icon: `${icons}#tables_connected`, labelShort: 'Catalog', disabled: false },
+                            [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
                             [TabKey.QueryStatusPanel]: {
                                 tabId: TabKey.QueryStatusPanel,
                                 icon: `${icons}#plan`,
@@ -325,9 +451,13 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                                 disabled: tabState.current.enabledTabs < 3,
                             },
                         }}
-                        tabKeys={[TabKey.Catalog, TabKey.QueryStatusPanel, TabKey.QueryResultView]}
+                        tabKeys={[
+                            TabKey.Editor,
+                            TabKey.QueryStatusPanel,
+                            TabKey.QueryResultView
+                        ]}
                         tabRenderers={{
-                            [TabKey.Catalog]: _props => <CatalogPanel />,
+                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} script={scriptData} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
@@ -336,11 +466,12 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             ),
                         }}
                     />
-                </DragSizing>
+                </div>
             </div>
         </div>
     );
 };
+
 
 interface WorkbookEntryListProps {
     workbook: WorkbookState;
@@ -355,9 +486,20 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
         out.push(
             <div key={wi} className={styles.collection_entry_card}>
                 <div key={wi} className={styles.collection_entry_header}>
-                    <div className={styles.collection_entry_header_title}>
-                        Foo
-                    </div>
+                    <IconButton
+                        className={styles.details_status_indicator_button}
+                        variant={ButtonVariant.Invisible}
+                        aria-label="expand"
+                        aria-labelledby="expand-entry"
+                    >
+                        <StatusIndicator
+                            className={styles.collection_entry_status_indicator_button}
+                            fill="black"
+                            width={"14px"}
+                            height={"14px"}
+                            status={IndicatorStatus.Succeeded}
+                        />
+                    </IconButton>
                     <IconButton
                         className={styles.collection_entry_expand_button}
                         variant={ButtonVariant.Invisible}
