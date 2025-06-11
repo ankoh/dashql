@@ -353,6 +353,9 @@
     background-color: white;
     overflow: hidden;
 
+    box-shadow: 0px 1px 1px 0px #25292e1a, 0px 3px 6px 0px #25292e1f;
+
+
     display: grid;
     grid-tempate-rows: 32px calc(100% - 32px);
     grid-template-columns: 100%;
