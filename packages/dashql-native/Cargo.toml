@@ -49,7 +49,7 @@ version = "0.1.14"
 features = ["server"]
 
 [dependencies.reqwest]
-version = "^0.12.19"
+version = "^0.12.20"
 features = ["stream"]
 
 [dependencies.tonic]
