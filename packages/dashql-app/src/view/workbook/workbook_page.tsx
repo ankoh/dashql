@@ -191,22 +191,28 @@ function positionOverlay(view: EditorView): OverlayLayout | null {
         // Show overlay at the bottom?
         overlayPos = OverlayPosition.Bottom;
         overlayHeight = Math.min(Math.max(cursorToBottom, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
-        preferCollapsed = cursorToBottom < (overlayHeight + OVERLAY_PADDING);
+        preferCollapsed = cursorToBottom < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
 
     } else {
         // Show overlay at the top
         overlayPos = OverlayPosition.Top;
         overlayHeight = Math.min(Math.max(cursorToTop, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
-        preferCollapsed = cursorToTop < (overlayHeight + OVERLAY_PADDING);
+        preferCollapsed = cursorToTop < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
     }
     return { position: overlayPos, height: overlayHeight, preferCollapsed };
+}
+
+enum PinState {
+    Auto,
+    ExplicitlyPinned,
+    ExplicitlyUnpinned
 }
 
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
 
-    const [pinned, setPinned] = React.useState<boolean>(true);
+    const [pinState, setPinState] = React.useState<PinState>(PinState.Auto);
     const [view, setView] = React.useState<EditorView | null>(null);
     const [overlayLayout, setOverlayLayout] = React.useState<OverlayLayout | null>(null);
 
@@ -220,6 +226,12 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
         }
     }, [props.script.cursor, view]);
 
+    React.useEffect(() => {
+        if (pinState != PinState.Auto) {
+            setPinState(PinState.Auto);
+        }
+    }, [props.script.cursor]);
+
     // Determine the overlay positioning classname
     let overlayPosition: OverlayPosition = OverlayPosition.Bottom;
     let overlayBorder: DragSizingBorder = DragSizingBorder.Top;
@@ -229,6 +241,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
         overlayPosition = OverlayPosition.Top;
         overlayPositionClass = styles.catalog_overlay_container_top;
     }
+    let showOverlay = pinState == PinState.ExplicitlyPinned || (pinState == PinState.Auto && !overlayLayout?.preferCollapsed);
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor
@@ -236,7 +249,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                 setView={setView}
             />
             {
-                pinned
+                showOverlay
                     ? (
                         <DragSizing
                             border={overlayBorder}
@@ -254,9 +267,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                                     className={styles.catalog_overlay_header_sync_toggle}
                                     variant={ButtonVariant.Invisible}
                                     aria-label="close-overlay"
-                                    onClick={() => {
-                                        setPinned(p => !p);
-                                    }}
+                                    onClick={() => setPinState(PinState.ExplicitlyUnpinned)}
                                 >
                                     <PinSlashIcon />
                                 </IconButton>
@@ -270,9 +281,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                         <Button
                             className={styles.catalog_overlay_bean}
                             leadingVisual={() => <CatalogIcon />}
-                            onClick={() => {
-                                setPinned(p => !p);
-                            }}
+                            onClick={() => setPinState(PinState.ExplicitlyPinned)}
                             size={ButtonSize.Medium}
                         >
                             Catalog
