@@ -342,7 +342,6 @@
 /* Catalog overlay */
 .catalog_overlay_container {
     position: absolute;
-    bottom: 20px;
     right: 32px;
     width: auto;
     max-width: calc(100% - 40px);
@@ -357,6 +356,12 @@
     display: grid;
     grid-tempate-rows: 32px calc(100% - 32px);
     grid-template-columns: 100%;
+}
+.catalog_overlay_container_top {
+    top: 20px;
+}
+.catalog_overlay_container_bottom {
+    bottom: 20px;
 }
 .catalog_overlay_drag_resizing {
 }

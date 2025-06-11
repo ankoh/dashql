@@ -131,7 +131,7 @@ export interface DragSizingProps {
     children?: React.ReactNode | undefined;
 }
 
-export const DragSizing = React.forwardRef<HTMLDivElement | null, DragSizingProps>((props: DragSizingProps, ref: React.Ref<HTMLDivElement | null>) => {
+export const DragSizing: React.FC<DragSizingProps> = ((props: DragSizingProps) => {
     // Maintain the drag state
     const positionWhenStarted = React.useRef<number | null>(null);
     const [sizeWhenStarted, setSizeWhenStarted] = React.useState<number | null>(null);
@@ -139,7 +139,6 @@ export const DragSizing = React.forwardRef<HTMLDivElement | null, DragSizingProp
 
     // Remember the forwarded div ref locally
     const localRef = React.useRef<HTMLDivElement | null>(null);
-    React.useImperativeHandle(ref, () => localRef.current, []);
 
     // Determine the settings
     const config = React.useMemo(() => {

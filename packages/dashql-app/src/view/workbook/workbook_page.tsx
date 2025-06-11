@@ -4,8 +4,9 @@ import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
+import { EditorView } from '@codemirror/view';
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
-import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon, XIcon } from '@primer/octicons-react';
+import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
@@ -19,6 +20,7 @@ import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
+import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { ScriptEditor } from './editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
@@ -26,14 +28,13 @@ import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/
 import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { classNames } from '../../utils/classnames.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
-import { EditorView } from '@codemirror/view';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -157,27 +158,48 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
-function checkOverlayPosition(view: EditorView, overlay: HTMLDivElement): void {
-    if (!view) { return; }
+enum OverlayPosition {
+    Top,
+    Bottom
+}
+interface OverlayLayout {
+    position: OverlayPosition;
+    height: number;
+    preferCollapsed: boolean;
+}
+
+const OVERLAY_HEIGHT_MIN = 300;
+const OVERLAY_HEIGHT_MAX = 600;
+const OVERLAY_PADDING = 20;
+
+function positionOverlay(view: EditorView): OverlayLayout | null {
+    if (!view) { return null; }
 
     const pos = view.state.selection.main.head;
     const cursorCoords = view.coordsAtPos(pos, -1);
-    if (!cursorCoords) return;
+    if (!cursorCoords) return null;
 
     const editorRect = view.scrollDOM.getBoundingClientRect();
-    // const viewportTop = scrollerRect.top;
-    // const viewportHeight = scrollerRect.height;
-    // const cursorTop = cursorCoords.top;
+    const cursorToTop = cursorCoords.top - editorRect.top;
+    const cursorToBottom = editorRect.bottom - cursorCoords.bottom;
 
-    const overlayRect = overlay.getBoundingClientRect();
+    let overlayPos: OverlayPosition = OverlayPosition.Bottom;
+    let overlayHeight: number = OVERLAY_HEIGHT_MIN;
+    let preferCollapsed: boolean = true;
 
-    console.log({
-        editorRect,
-        overlayRect,
-        cursorCoords,
-    })
-    // const cursorRelativeY = cursorTop - viewportTop;
-    // return cursorRelativeY < viewportHeight / 2;
+    if (cursorToBottom > cursorToTop) {
+        // Show overlay at the bottom?
+        overlayPos = OverlayPosition.Bottom;
+        overlayHeight = Math.min(Math.max(cursorToBottom, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
+        preferCollapsed = cursorToBottom < (overlayHeight + OVERLAY_PADDING);
+
+    } else {
+        // Show overlay at the top
+        overlayPos = OverlayPosition.Top;
+        overlayHeight = Math.min(Math.max(cursorToTop, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
+        preferCollapsed = cursorToTop < (overlayHeight + OVERLAY_PADDING);
+    }
+    return { position: overlayPos, height: overlayHeight, preferCollapsed };
 }
 
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
@@ -186,15 +208,27 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
 
     const [pinned, setPinned] = React.useState<boolean>(true);
     const [view, setView] = React.useState<EditorView | null>(null);
-    const overlay = React.useRef<HTMLDivElement | null>(null);
+    const [overlayLayout, setOverlayLayout] = React.useState<OverlayLayout | null>(null);
 
+    // Update the overlay
     React.useEffect(() => {
-        if (props.script.cursor && view && overlay.current) {
-            checkOverlayPosition(view, overlay.current);
+        if (props.script.cursor && view) {
+            const layout = positionOverlay(view);
+            if (layout != null) {
+                setOverlayLayout(layout);
+            }
         }
     }, [props.script.cursor, view]);
 
-
+    // Determine the overlay positioning classname
+    let overlayPosition: OverlayPosition = OverlayPosition.Bottom;
+    let overlayBorder: DragSizingBorder = DragSizingBorder.Top;
+    let overlayPositionClass = styles.catalog_overlay_container_bottom;
+    if (overlayLayout?.position == OverlayPosition.Top) {
+        overlayBorder = DragSizingBorder.Bottom;
+        overlayPosition = OverlayPosition.Top;
+        overlayPositionClass = styles.catalog_overlay_container_top;
+    }
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor
@@ -205,9 +239,8 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                 pinned
                     ? (
                         <DragSizing
-                            ref={overlay}
-                            border={DragSizingBorder.Top}
-                            className={styles.catalog_overlay_container}
+                            border={overlayBorder}
+                            className={classNames(styles.catalog_overlay_container, overlayPositionClass)}
                             handlerClassName={styles.catalog_overlay_drag_resizing}
                         >
                             <div className={styles.catalog_overlay_header}>
