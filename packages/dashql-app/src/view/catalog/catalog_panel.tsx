@@ -19,10 +19,8 @@ export function CatalogPanel(props: CatalogPanelProps) {
     }
     return (
         <div className={classNames(styles.root, props.className)}>
-            <div className={styles.panel_container}>
-                <div className={styles.catalog_viewer}>
-                    <CatalogViewer workbookId={workbook.workbookId} />
-                </div>
+            <div className={styles.catalog_viewer}>
+                <CatalogViewer workbookId={workbook.workbookId} />
             </div>
         </div>
     );

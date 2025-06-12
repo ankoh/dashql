@@ -256,24 +256,26 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                             className={classNames(styles.catalog_overlay_container, overlayPositionClass)}
                             handlerClassName={styles.catalog_overlay_drag_resizing}
                         >
-                            <div className={styles.catalog_overlay_header}>
-                                <div className={styles.catalog_overlay_header_icon}>
-                                    <CatalogIcon />
+                            <div className={styles.catalog_overlay_content}>
+                                <div className={styles.catalog_overlay_header}>
+                                    <div className={styles.catalog_overlay_header_icon}>
+                                        <CatalogIcon />
+                                    </div>
+                                    <div className={styles.catalog_overlay_header_text}>
+                                        Catalog
+                                    </div>
+                                    <IconButton
+                                        className={styles.catalog_overlay_header_sync_toggle}
+                                        variant={ButtonVariant.Invisible}
+                                        aria-label="close-overlay"
+                                        onClick={() => setPinState(PinState.ExplicitlyUnpinned)}
+                                    >
+                                        <PinSlashIcon />
+                                    </IconButton>
                                 </div>
-                                <div className={styles.catalog_overlay_header_text}>
-                                    Catalog
+                                <div className={styles.catalog_viewer}>
+                                    <CatalogViewer workbookId={props.workbook.workbookId} />
                                 </div>
-                                <IconButton
-                                    className={styles.catalog_overlay_header_sync_toggle}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="close-overlay"
-                                    onClick={() => setPinState(PinState.ExplicitlyUnpinned)}
-                                >
-                                    <PinSlashIcon />
-                                </IconButton>
-                            </div>
-                            <div className={styles.catalog_viewer}>
-                                <CatalogViewer workbookId={props.workbook.workbookId} />
                             </div>
                         </DragSizing>
                     )
