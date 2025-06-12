@@ -1,6 +1,6 @@
 :root {
     --catalog_title_fg: rgb(0, 0, 0);
-    --catalog_bg: hsla(210, 29%, 97%, 40%);
+    --catalog_bg: hsl(210, 29%, 97%);
     --catalog_node_bg: white;
     --catalog_node_inactive_bg: white;
     --catalog_card_port_bg: hsl(210deg, 12.68%, 84.16%);
