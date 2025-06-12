@@ -262,7 +262,6 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/text/names.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
-  ${CMAKE_SOURCE_DIR}/src/utils/suffix_trie.cc
 )
 
 if(WASM)
@@ -300,7 +299,6 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc
     ${CMAKE_SOURCE_DIR}/test/scanner_test.cc
     ${CMAKE_SOURCE_DIR}/test/script_test.cc
-    ${CMAKE_SOURCE_DIR}/test/suffix_trie_test.cc
     ${CMAKE_SOURCE_DIR}/test/topk_test.cc
     ${CMAKE_SOURCE_DIR}/test/unification_test.cc
   )
