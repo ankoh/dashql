@@ -3,6 +3,7 @@ import * as ActionList from '../foundations/action_list.js';
 import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import * as icons from '../../../static/svg/symbols.generated.svg';
+import * as core from '@ankoh/dashql-core';
 
 import { EditorView } from '@codemirror/view';
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
@@ -203,16 +204,17 @@ function positionOverlay(view: EditorView): OverlayLayout | null {
 }
 
 enum PinState {
-    Auto,
-    ExplicitlyPinned,
-    ExplicitlyUnpinned
+    Hide,
+    ShowIfSpace,
+    PinnedByUser,
+    UnpinnedByUser
 }
 
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
 
-    const [pinState, setPinState] = React.useState<PinState>(PinState.Auto);
+    const [pinState, setPinState] = React.useState<PinState>(PinState.Hide);
     const [view, setView] = React.useState<EditorView | null>(null);
     const [overlayLayout, setOverlayLayout] = React.useState<OverlayLayout | null>(null);
 
@@ -227,8 +229,14 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
     }, [props.script.cursor, view]);
 
     React.useEffect(() => {
-        if (pinState != PinState.Auto) {
-            setPinState(PinState.Auto);
+        if (props.script.cursor == null || props.script.cursor.contextType == core.buffers.cursor.ScriptCursorContext.NONE) {
+            if (pinState != PinState.PinnedByUser) {
+                setPinState(PinState.Hide);
+            }
+        } else {
+            if (pinState != PinState.PinnedByUser) {
+                setPinState(PinState.ShowIfSpace);
+            }
         }
     }, [props.script.cursor]);
 
@@ -241,7 +249,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
         overlayPosition = OverlayPosition.Top;
         overlayPositionClass = styles.catalog_overlay_container_top;
     }
-    let showOverlay = pinState == PinState.ExplicitlyPinned || (pinState == PinState.Auto && !overlayLayout?.preferCollapsed);
+    let showOverlay = pinState == PinState.PinnedByUser || (pinState == PinState.ShowIfSpace && !overlayLayout?.preferCollapsed);
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor
@@ -268,7 +276,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                                         className={styles.catalog_overlay_header_sync_toggle}
                                         variant={ButtonVariant.Invisible}
                                         aria-label="close-overlay"
-                                        onClick={() => setPinState(PinState.ExplicitlyUnpinned)}
+                                        onClick={() => setPinState(PinState.UnpinnedByUser)}
                                     >
                                         <PinSlashIcon />
                                     </IconButton>
@@ -283,7 +291,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                         <Button
                             className={styles.catalog_overlay_bean}
                             leadingVisual={() => <CatalogIcon />}
-                            onClick={() => setPinState(PinState.ExplicitlyPinned)}
+                            onClick={() => setPinState(PinState.PinnedByUser)}
                             size={ButtonSize.Medium}
                         >
                             Catalog
