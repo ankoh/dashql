@@ -217,6 +217,7 @@ function generateRandomFieldData(fieldSpec: FieldSpec, offset: number, n: number
         case arrow.Type.Duration:
         case arrow.Type.Interval:
         case arrow.Type.IntervalDayTime:
+        case arrow.Type.IntervalMonthDayNano:
         case arrow.Type.IntervalYearMonth:
             return generateRandomNumericData(
                 fieldSpec.type,
