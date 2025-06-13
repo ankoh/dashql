@@ -98,6 +98,11 @@ class NameResolutionPass : public PassManager::LTRPass {
     /// Constructor
     NameResolutionPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index);
 
+    /// Helper to determine if an ast node is a column ref
+    inline bool IsColumnRef(size_t ast_node_id) {
+        return ast[ast_node_id].node_type() == buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF;
+    }
+
     /// Prepare the analysis pass
     void Prepare() override;
     /// Visit a chunk of nodes
