@@ -8,13 +8,13 @@
 
 namespace dashql {
 
-/// This pass identifies restrictions of single columns that are potentially projected.
+/// This pass identifies restrictions of single columns that are optionally projected.
 /// It depends on name resolution, constexpr identification and projection identification.
 ///
 /// The node visiting logic is as follows:
 ///   - We filter nodes of type OBJECT_SQL_NARY_EXPRESSION
 ///   - We then check if the SQL_EXPRESSION_OPERATOR is a comparison
-///   - We then check if the children are projections and constexpr
+///   - We then check if the children are projections and constexprs
 ///   - If the comparison compares a single (projected) column with a constexpr, we emit a restriction
 ///
 /// We want to identify:
@@ -44,9 +44,11 @@ class IdentifyRestrictionsPass : public PassManager::LTRPass {
     /// The projection pass
     IdentifyProjectionsPass& identify_projections;
 
+   public:
     /// Constructor
     IdentifyRestrictionsPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index,
-                             NameResolutionPass& name_resolution_pass);
+                             NameResolutionPass& name_resolution, IdentifyConstExprsPass& identify_constants,
+                             IdentifyProjectionsPass& identify_projections);
 
     /// Prepare the analysis pass
     void Prepare();

@@ -40,6 +40,12 @@ enum BinaryExpressionFunction: uint8 {
 
 
 table BinaryExpression {
+    /// The binary function
+    func: BinaryExpressionFunction;
+    /// The left child
+    left_child: uint32;
+    /// The right child
+    right_child: uint32;
 }
 
 enum NaryExpressionFunction: uint8 {

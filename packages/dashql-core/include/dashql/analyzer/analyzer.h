@@ -1,13 +1,16 @@
 #pragma once
 
 #include "dashql/analyzer/pass_manager.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
 #include "dashql/utils/attribute_index.h"
 
 namespace dashql {
 
 struct NameResolutionPass;
+struct IdentifyConstExprsPass;
+struct IdentifyProjectionsPass;
+struct IdentifyRestrictionsPass;
 class AnalyzedScript;
 
 struct Analyzer {
@@ -26,14 +29,20 @@ struct Analyzer {
     PassManager pass_manager;
     /// The name resolution pass
     std::unique_ptr<NameResolutionPass> name_resolution;
+    /// The pass to identify constant expressions
+    std::unique_ptr<IdentifyConstExprsPass> identify_constants;
+    /// The pass to identify projections
+    std::unique_ptr<IdentifyProjectionsPass> identify_projections;
+    /// The pass to identify restrictions
+    std::unique_ptr<IdentifyRestrictionsPass> identify_restrictions;
 
    public:
     /// Constructor
     Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 
     /// Analyze a program
-    static std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyze(std::shared_ptr<ParsedScript> parsed,
-                                                                                 Catalog& catalog);
+    static std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyze(
+        std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 };
 
 }  // namespace dashql

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dashql/parser/parser.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/parser/parser.h"
 #include "dashql/script.h"
 
 namespace dashql {
@@ -41,7 +41,7 @@ class PassManager {
     /// Constructor
     PassManager(ParsedScript& parser);
     /// Execute a pass
-    void Execute(LTRPass& pass);
+    void Execute(std::initializer_list<std::reference_wrapper<LTRPass>> passes);
 };
 
 }  // namespace dashql

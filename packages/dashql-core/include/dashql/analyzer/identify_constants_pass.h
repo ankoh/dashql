@@ -12,6 +12,7 @@ namespace dashql {
 ///   - We check if the node type can be a constant expression
 ///   - If yes, we check if all input expressions are constant expressions
 ///   - If yes, we remember a new constant expression root
+///   - During finish, we then collect all constant expression roots that don't have a similar parent
 ///
 /// We want to identify:
 ///   - Constant literals: 'foo'
@@ -39,6 +40,7 @@ class IdentifyConstExprsPass : public PassManager::LTRPass {
     /// Sequence of constexpr root indices (contains children and parents)
     ChunkBuffer<size_t> constexpr_roots;
 
+   public:
     /// Constructor
     IdentifyConstExprsPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index);
 

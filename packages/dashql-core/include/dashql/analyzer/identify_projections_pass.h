@@ -15,6 +15,7 @@ namespace dashql {
 ///   - We check if the node type can be a projection
 ///   - We then check if the children are projections and constexprs
 ///   - If yes, we remember a new projection root
+///   - During finish, we then collect all constant expression roots that don't have a similar parent
 ///
 /// We want to identify column projections such as json_value() or regexp_extract().
 ///
@@ -44,9 +45,10 @@ class IdentifyProjectionsPass : public PassManager::LTRPass {
     /// Sequence of projection root indices (contains children and parents)
     ChunkBuffer<size_t> projection_roots;
 
+   public:
     /// Constructor
     IdentifyProjectionsPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index,
-                            NameResolutionPass& name_resolution_pass);
+                            NameResolutionPass& name_resolution, IdentifyConstExprsPass& identify_constants);
 
     /// Helper to determine if an ast node is a column ref
     inline bool IsProjection(size_t ast_node_id) { return projection_bitmap[ast_node_id]; }
