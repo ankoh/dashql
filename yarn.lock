@@ -56,11 +56,11 @@ __metadata:
     "@tauri-apps/plugin-dialog": "npm:^2.2.2"
     "@tauri-apps/plugin-fs": "npm:^2.3.0"
     "@tauri-apps/plugin-http": "npm:^2.4.4"
-    "@tauri-apps/plugin-log": "npm:^2.4.0"
-    "@tauri-apps/plugin-os": "npm:^2.2.1"
-    "@tauri-apps/plugin-process": "npm:^2.2.1"
-    "@tauri-apps/plugin-shell": "npm:^2.2.1"
-    "@tauri-apps/plugin-updater": "npm:^2.7.1"
+    "@tauri-apps/plugin-log": "npm:^2.5.0"
+    "@tauri-apps/plugin-os": "npm:^2.2.2"
+    "@tauri-apps/plugin-process": "npm:^2.2.2"
+    "@tauri-apps/plugin-shell": "npm:^2.2.2"
+    "@tauri-apps/plugin-updater": "npm:^2.8.1"
     "@testing-library/react": "npm:^16.3.0"
     "@types/d3": "npm:^7.4.3"
     "@types/flatbuffers": "npm:^2.0.1"
@@ -2540,48 +2540,48 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-log@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "@tauri-apps/plugin-log@npm:2.4.0"
+"@tauri-apps/plugin-log@npm:^2.5.0":
+  version: 2.5.0
+  resolution: "@tauri-apps/plugin-log@npm:2.5.0"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/6a26e01fe6ab585df474c6dc232bca077e8a87b5b297b6a2138d1805767b43a8973db11f9ea759c41c5eb9b232de7f725b47693295eb47363839f5b3ac95c11e
+  checksum: 10c0/e57a1d7984122b1681f9046f138bb100d4c8adb539e6f2d220c4bf396d66a544551ab4b90a162139c505f1137ce71e356da815b91ff9d1e6ed4d06e5a1337284
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-os@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@tauri-apps/plugin-os@npm:2.2.1"
+"@tauri-apps/plugin-os@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@tauri-apps/plugin-os@npm:2.2.2"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/bfd3e213f420cf56c8f4e569dcdf69c9b3d1ca5655b5f642926d5bf5a00855d6b088df2aef6a0ac99421bf5d321f1477f8a1adfa532a8e48d7bd08303cb45a4e
+  checksum: 10c0/0caff7b0790192456091362d1f5cb98630dea94806722422705dec444a7b6e8e2a51a3680e914a5e5943eb34bd9955bf6343708263638a28161caff1346eda5e
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-process@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@tauri-apps/plugin-process@npm:2.2.1"
+"@tauri-apps/plugin-process@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@tauri-apps/plugin-process@npm:2.2.2"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/2df6a5272ec0ec7d7d1bd285a796f7354c332105ad615672c0f843b1659fa4a57b7134113b59b11d9ab9a9b5556cfa9fcaddd92446cd84be953c7f6bcdd29730
+  checksum: 10c0/9621e042e50606cf94bf05c571d8391c83a6a040e262af472025fc1c0a90e262e2a34f9083d4bd62617a9865790f843c9a3ffaf7c0e04ca0e6337c8249e1f647
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-shell@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@tauri-apps/plugin-shell@npm:2.2.1"
+"@tauri-apps/plugin-shell@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@tauri-apps/plugin-shell@npm:2.2.2"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/2136cd66a37c980a8adb1103e5a30cbcfcf02b7d3dfdcbe0ec9f2bc1cc695ca86731bde7119c9cf086217114cdfd5f569b43e076c7525964f162976ab9d12d8c
+  checksum: 10c0/f03fc740b18da86781a5994da97959b425234e463ef12713bfc9c9538355a394b3e97a98e65d0f8ecc441ed7aafc435b989e3d931a201c99d4358cefcf086cdf
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-updater@npm:^2.7.1":
-  version: 2.7.1
-  resolution: "@tauri-apps/plugin-updater@npm:2.7.1"
+"@tauri-apps/plugin-updater@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "@tauri-apps/plugin-updater@npm:2.8.1"
   dependencies:
     "@tauri-apps/api": "npm:^2.0.0"
-  checksum: 10c0/5804e064579a9f4d61df2b1a828e7565ff1d9c9389b97924a97a5db09ca3e5d683cb14bcf80bfbf4e70b6310db44de276f41da98b4e30c3fa2bbbb435ff4b178
+  checksum: 10c0/0f36fd7a2461ec793f2ee1b82b453c67f9d054db0236556f0cbfd256d6ca13bd19a7824db08aa8a45f47a9f015cb3aad1f193cb5cbf05347d8757410cbc27090
   languageName: node
   linkType: hard
 
