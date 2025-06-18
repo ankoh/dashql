@@ -28,7 +28,8 @@ This encoding is compact and efficient for simple passes, but is not directly su
 make infra_macos          # Install dependencies to .infra, `infra_linux` for linux
 yarn install              # Install npm packages
 
-make proto                # Generate flatbuffers
+make protobuf             # Generate protocol buffers
+make flatbuf              # Generate flatbuffers
 
 make core_native_o0       # Build unoptimized native core library
 make core_native_o2       # Build optimized native core library with debug symbols
@@ -40,6 +41,8 @@ make snapshots            # Update snapshots
 make benchmark_pipeline   # Benchmark the processing pipeline
 
 make svg_symbols          # Update svg sprites used in the PWA
+
+make compute_wasm_o3      # Build wasm dataframe library
 make pwa_tests            # Run js tests of the PWA
 
 # PWA dev server, you will spend most time here during development
@@ -50,6 +53,8 @@ make pwa_tests            # Run js tests of the PWA
 #
 make pwa_dev              # Run the dev server of the PWA
 
+# Native app
+make pwa_reloc            # Build relocatable PWA
 make native_tests         # Run rust tests of native app
 make native_mac_o0        # Create a debug build packaged as .dmg, open devtools with (cmd + alt + i)
 make native_mac_universal # Create a universal build packaged as .dmg
