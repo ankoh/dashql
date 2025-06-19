@@ -18,6 +18,17 @@ table SchemaDeclaration {
     catalog_schema_id: uint32;
     // The schema name
     schema_name: string;
+
+}
+table QualifiedFunctionName {
+    // The node id
+    ast_node_id: uint32;
+    // The name of the database that owns the table (if any)
+    database_name: string;
+    // The name of the schema that holds the table (if any)
+    schema_name: string;
+    // The function name
+    function_name: string;
 }
 
 table QualifiedTableName {
@@ -104,7 +115,18 @@ table TableReference {
     inner: TableReferenceSubType;
 }
 
-table ColumnRestriction {
+struct ConstantExpression {
+    // The id of the AST node that created this constant expression
+    ast_node_id: uint32;
+    // The id of the statement that contains this constant expression
+    ast_statement_id: uint32;
+    // The location
+    location: parser.Location;
+    /// The restriction expression
+    expression_id: uint32;
+}
+
+struct ColumnRestriction {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -117,7 +139,7 @@ table ColumnRestriction {
     expression_id: uint32;
 }
 
-table ColumnTransform {
+struct ColumnTransform {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -169,6 +191,17 @@ table NameScope {
     table_references: [uint32];
 }
 
+table FunctionReference {
+    /// The ast node id
+    ast_node_id: uint32;
+    /// The ast statement id
+    ast_statement_id: uint32;
+    /// The function name
+    func_name: QualifiedFunctionName;
+    /// The expression id
+    expression_id: uint32;
+}
+
 enum NameTag: uint8 {
     NONE = 0,
     SCHEMA_NAME = 1,
@@ -209,9 +242,28 @@ table AnalyzedScript {
     tables: [Table];
     /// The table references
     table_references: [TableReference];
+    /// The indexed table references, sorted by (database_id, schema_id, table_id).
+    /// This allows resolving table references in logarithmic time using catalog ids.
+    table_references_by_id: [IndexedTableReference];
 
     /// A subset of expressions relevant for the analyzer output
     expressions: [algebra.Expression];
+    /// The indexed column references, sorted by (database_id, schema_id, table_id, column_id)
+    /// This allows resolving column references in logarithmic time using catalog ids.
+    column_references_by_id: [IndexedColumnReference];
+    /// The constant expressions.
+    /// We track constant expressions in the AST and emit an entry for the expression root.
+    constant_expressions: [ConstantExpression];
+    /// The column transforms.
+    /// We track projections of unaggregated base table columns in otherwise simple constant expressions.
+    ///
+    /// Examples:
+    ///   `<column_ref> + 1`
+    ///   `json_value(<column_ref>, <path literal>)`
+    ///   `date_trunc('day', <column_ref>)`
+    ///   `to_char(<column_ref>, 'format')`
+    ///
+    column_transforms: [ColumnTransform];
     /// The column restrictions.
     /// We only track restrictions where single table columns are compared with simple constant expressions.
     ///
@@ -220,23 +272,12 @@ table AnalyzedScript {
     ///   `<table_ref> != <simple constant expression>`
     ///
     column_restrictions: [ColumnRestriction];
-    /// The column transforms.
-    /// We only track projections of unaggregated base table columns in otherwise simple constant expressions.
-    ///
-    /// Examples:
-    ///   `json_value(<column_ref>, <path literal>)`
-    ///   `date_trunc('day', <column_ref>)`
-    ///   `to_char(<column_ref>, 'format')`
-    ///
-    column_transforms: [ColumnTransform];
 
     /// The name scopes
     name_scopes: [NameScope];
     /// The statement root scopes
     statement_root_scopes: [uint32];
 
-    /// The indexed table references, sorted by (database_id, schema_id, table_id)
-    table_references_by_id: [IndexedTableReference];
-    /// The indexed column references, sorted by (database_id, schema_id, table_id, column_id)
-    column_references_by_id: [IndexedColumnReference];
+    // The function references
+    function_references: [FunctionReference];
 }

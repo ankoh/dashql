@@ -101,6 +101,13 @@ table NaryExpression {
     projection_target_index: uint32;
 }
 
+table FunctionCallExpression {
+    /// The function name
+    func_name: QualifiedFunctionName;
+    /// The arguments
+    arguments: [uint32];
+}
+
 table ResolvedColumnRefExpression {
     // The root of the scope where this expression lives
     ast_scope_root: uint32;
@@ -126,13 +133,14 @@ table UnresolvedColumnRefExpression {
 }
 
 union ExpressionSubType {
+    ResolvedColumnRefExpression,
+    UnresolvedColumnRefExpression,
     Literal,
     UnaryExpression,
     BinaryExpression,
     NaryExpression,
     Comparison,
-    ResolvedColumnRefExpression,
-    UnresolvedColumnRefExpression
+    FunctionCallExpression
 }
 
 table Expression {
