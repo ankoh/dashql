@@ -227,6 +227,8 @@ class AnalyzedScript : public CatalogEntry {
             uint32_t column_name_ast_node_id;
             /// The column name, may refer to different catalog entry
             QualifiedColumnName column_name;
+            /// The AST scope root in the target script
+            std::optional<uint32_t> ast_scope_root;
         };
         /// A resolved column reference
         struct ResolvedColumnRef {
@@ -234,6 +236,8 @@ class AnalyzedScript : public CatalogEntry {
             uint32_t column_name_ast_node_id;
             /// The column name, may refer to different catalog entry
             QualifiedColumnName column_name;
+            /// The AST scope root in the target script
+            uint32_t ast_scope_root = 0;
             /// The resolved catalog database id
             CatalogDatabaseID catalog_database_id = 0;
             /// The resolved catalog schema id
@@ -241,7 +245,12 @@ class AnalyzedScript : public CatalogEntry {
             /// The resolved table id in the catalog
             ContextObjectID catalog_table_id;
             /// The resolved table column id
-            uint32_t table_column_id;
+            uint32_t table_column_id = 0;
+        };
+
+        struct Literal {
+            /// The literal type
+            buffers::algebra::LiteralType literal_type = buffers::algebra::LiteralType::NULL_;
         };
 
         /// The expression id as (entry_id, reference_index)
@@ -252,10 +261,8 @@ class AnalyzedScript : public CatalogEntry {
         std::optional<sx::parser::Location> location;
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
-        /// The AST scope root in the target script
-        std::optional<uint32_t> ast_scope_root;
         /// The inner expression type
-        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef> inner;
+        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal> inner;
 
         /// Constructor
         Expression() : inner(std::monostate{}) {}

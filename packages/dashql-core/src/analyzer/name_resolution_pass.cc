@@ -185,7 +185,8 @@ AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, ui
         root_scopes.erase(&child_scope);
     }
     for (auto& ref : target.column_references) {
-        ref.ast_scope_root = scope_root;
+        auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(ref.inner);
+        unresolved.ast_scope_root = scope_root;
     }
     for (auto& ref : target.table_references) {
         ref.ast_scope_root = scope_root;
@@ -363,9 +364,11 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
             if (table_column.has_value()) {
                 auto& resolved_column = table_column.value().get();
                 auto& resolved_table = resolved_column.table->get();
+                assert(unresolved.ast_scope_root.has_value());
                 expr.inner = AnalyzedScript::Expression::ResolvedColumnRef{
                     .column_name_ast_node_id = unresolved.column_name_ast_node_id,
                     .column_name = unresolved.column_name,
+                    .ast_scope_root = unresolved.ast_scope_root.value(),
                     .catalog_database_id = resolved_table.catalog_database_id,
                     .catalog_schema_id = resolved_table.catalog_schema_id,
                     .catalog_table_id = resolved_table.catalog_table_id,
@@ -457,11 +460,12 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                     n.expression_id =
                         ContextObjectID{catalog_entry_id, static_cast<uint32_t>(analyzed.expressions.GetSize() - 1)};
                     n.ast_node_id = node_id;
-                    n.location = parsed.nodes[node_id].location();
+                    n.location = node.location();
                     n.ast_statement_id = std::nullopt;
-                    n.ast_scope_root = std::nullopt;
-                    n.inner = AnalyzedScript::Expression::UnresolvedColumnRef{
-                        .column_name_ast_node_id = column_name_node_id, .column_name = column_name.value()};
+                    n.inner =
+                        AnalyzedScript::Expression::UnresolvedColumnRef{.column_name_ast_node_id = column_name_node_id,
+                                                                        .column_name = column_name.value(),
+                                                                        .ast_scope_root = std::nullopt};
                     node_state.column_references.PushBack(n);
                 }
                 // Column refs may be recursive

@@ -81,6 +81,8 @@ table Comparison {
 }
 
 table ResolvedColumnRefExpression {
+    // The root of the scope where this expression lives
+    ast_scope_root: uint32;
     // The column name
     column_name: QualifiedColumnName;
     // The unified database id across all catalog entries
@@ -96,6 +98,8 @@ table ResolvedColumnRefExpression {
 }
 
 table UnresolvedColumnRefExpression {
+    // The root of the scope where this expression lives
+    ast_scope_root: uint32;
     // The column name
     column_name: QualifiedColumnName;
 }
@@ -115,8 +119,6 @@ table Expression {
     ast_node_id: uint32;
     // The id of the statement that contains the expression
     ast_statement_id: uint32;
-    // The root of the scope where this expression lives
-    ast_scope_root: uint32;
     // The location
     location: parser.Location;
     /// The inner type

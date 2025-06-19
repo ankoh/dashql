@@ -341,7 +341,6 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     }
     buffers::analyzer::TableReferenceBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_scope_root(ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
     out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
     if (location.has_value()) {
         out.add_location(&location.value());
@@ -366,6 +365,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
             auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(inner);
             auto column_name_ofs = unresolved.column_name.Pack(builder);
             buffers::algebra::UnresolvedColumnRefExpressionBuilder out{builder};
+            out.add_ast_scope_root(unresolved.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
             out.add_column_name(column_name_ofs);
             inner_ofs = out.Finish().Union();
             inner_type = buffers::algebra::ExpressionSubType::UnresolvedColumnRefExpression;
@@ -375,6 +375,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
             auto& resolved = std::get<AnalyzedScript::Expression::ResolvedColumnRef>(inner);
             auto column_name_ofs = resolved.column_name.Pack(builder);
             buffers::algebra::ResolvedColumnRefExpressionBuilder out{builder};
+            out.add_ast_scope_root(resolved.ast_scope_root);
             out.add_column_name(column_name_ofs);
             out.add_catalog_database_id(resolved.catalog_database_id);
             out.add_catalog_schema_id(resolved.catalog_schema_id);
@@ -389,7 +390,6 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
     }
     buffers::algebra::ExpressionBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_scope_root(ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
     out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
     if (location.has_value()) {
         out.add_location(&location.value());
