@@ -228,10 +228,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(cmp.func)]);
                     xml_ref.append_attribute("left").set_value(cmp.left_expression_id);
                     xml_ref.append_attribute("right").set_value(cmp.right_expression_id);
-                    if (ref.is_constant) {
-                        xml_ref.append_attribute("const").set_value(ref.is_constant);
+                    if (ref.is_constant_expression) {
+                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
-                    if (ref.is_restriction) {
+                    if (ref.is_column_restriction) {
                         xml_ref.append_attribute("restrict").set_value(cmp.restriction_target_left ? "left" : "right");
                     }
                     break;
@@ -244,10 +244,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
                     xml_ref.append_attribute("left").set_value(binary.left_expression_id);
                     xml_ref.append_attribute("right").set_value(binary.right_expression_id);
-                    if (ref.is_constant) {
-                        xml_ref.append_attribute("const").set_value(ref.is_constant);
+                    if (ref.is_constant_expression) {
+                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
-                    if (ref.is_projection) {
+                    if (ref.is_column_transform) {
                         xml_ref.append_attribute("project").set_value(binary.projection_target_left ? "left" : "right");
                     }
                     break;

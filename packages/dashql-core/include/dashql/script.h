@@ -289,11 +289,11 @@ class AnalyzedScript : public CatalogEntry {
         std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, Comparison, BinaryExpression>
             inner;
         /// Is the expression a constant?
-        bool is_constant = false;
-        /// Is the expression a projection?
-        bool is_projection = false;
+        bool is_constant_expression = false;
+        /// Is the expression a column transform?
+        bool is_column_transform = false;
         /// Is the expression a restriction?
-        bool is_restriction = false;
+        bool is_column_restriction = false;
 
         /// Constructor
         Expression() : inner(std::monostate{}) {}
@@ -303,9 +303,9 @@ class AnalyzedScript : public CatalogEntry {
                    std::holds_alternative<ResolvedColumnRef>(inner);
         }
         // Check if the expression is a constant
-        inline bool IsConstant() const { return is_constant; }
-        // Check if the expression is a projection
-        inline bool IsProjection() const { return is_projection; }
+        inline bool IsConstantExpression() const { return is_constant_expression; }
+        // Check if the expression is a column transform
+        inline bool IsColumnTransform() const { return is_column_transform; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
@@ -354,16 +354,26 @@ class AnalyzedScript : public CatalogEntry {
     std::shared_ptr<ParsedScript> parsed_script;
     /// The catalog version
     Catalog::Version catalog_version;
+
     /// The analyzer errors
     std::vector<buffers::analyzer::AnalyzerErrorT> errors;
+
     /// The table references
     ChunkBuffer<TableReference, 16> table_references;
     /// The expressions
     ChunkBuffer<Expression, 16> expressions;
     /// The name scopes
     ChunkBuffer<NameScope, 16> name_scopes;
-    /// The name scopes by scope root
+
+    /// The name scopes by scope root.
+    /// Name scopes maintain intrusive lists with all column reference expressions.
     std::unordered_map<size_t, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
+    /// The constant expressions in the script
+    IntrusiveList<Expression> constant_expressions;
+    /// The column transforms in the script
+    IntrusiveList<Expression> column_transforms;
+    /// The column restrictions in the script
+    IntrusiveList<Expression> column_restrictions;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

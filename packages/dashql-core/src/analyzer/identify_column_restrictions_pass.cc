@@ -1,21 +1,22 @@
-#include "dashql/analyzer/identify_restrictions_pass.h"
+#include "dashql/analyzer/identify_column_restrictions_pass.h"
 
 #include "dashql/analyzer/analyzer.h"
-#include "dashql/analyzer/identify_projections_pass.h"
+#include "dashql/analyzer/identify_column_transforms_pass.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/ast_reader.h"
 
 namespace dashql {
 
-IdentifyRestrictionsPass::IdentifyRestrictionsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
-                                                   IdentifyConstExprsPass& identify_constants,
-                                                   IdentifyProjectionsPass& identify_projections)
+IdentifyColumnRestrictionsPass::IdentifyColumnRestrictionsPass(AnalyzerState& state,
+                                                               NameResolutionPass& name_resolution,
+                                                               IdentifyConstantExpressionsPass& identify_constants,
+                                                               IdentifyColumnTransformsPass& identify_projections)
     : PassManager::LTRPass(state),
       name_resolution(name_resolution),
       identify_constexprs(identify_constants),
       identify_projections(identify_projections) {}
 
-void IdentifyRestrictionsPass::Prepare() {}
+void IdentifyColumnRestrictionsPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
@@ -23,7 +24,7 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-void IdentifyRestrictionsPass::Visit(std::span<const Node> morsel) {
+void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> child_buffer;
 
     size_t morsel_offset = morsel.data() - state.ast.data();
@@ -51,11 +52,11 @@ void IdentifyRestrictionsPass::Visit(std::span<const Node> morsel) {
                     size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
                     auto* arg_expr = state.expression_index[arg_node_id];
                     if (!arg_expr) continue;
-                    if (arg_expr->IsProjection()) {
+                    if (arg_expr->IsColumnTransform()) {
                         child_buffer[i] = arg_expr;
                         ++arg_count_projection;
                         restriction_target_idx = i;
-                    } else if (arg_expr->IsConstant()) {
+                    } else if (arg_expr->IsConstantExpression()) {
                         child_buffer[i] = arg_expr;
                         ++arg_count_const;
                     }
@@ -84,9 +85,9 @@ void IdentifyRestrictionsPass::Visit(std::span<const Node> morsel) {
                             .restriction_target_left = restriction_target_idx == 0,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_restriction = true;
+                        n.is_column_restriction = true;
                         state.expression_index[node_id] = &n;
-                        restriction_list.PushBack(n);
+                        state.analyzed->column_restrictions.PushBack(n);
                         break;
                     }
                     default:
@@ -101,6 +102,6 @@ void IdentifyRestrictionsPass::Visit(std::span<const Node> morsel) {
     }
 }
 
-void IdentifyRestrictionsPass::Finish() {}
+void IdentifyColumnRestrictionsPass::Finish() {}
 
 }  // namespace dashql

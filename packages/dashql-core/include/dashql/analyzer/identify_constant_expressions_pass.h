@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dashql/analyzer/pass_manager.h"
-#include "dashql/script.h"
 
 namespace dashql {
 
@@ -18,13 +17,10 @@ namespace dashql {
 ///   - Constant casts: date 'foo'
 ///   - Constant function calls
 ///
-class IdentifyConstExprsPass : public PassManager::LTRPass {
-    /// List of identified constexprs
-    IntrusiveList<AnalyzedScript::Expression> constexpr_list;
-
+class IdentifyConstantExpressionsPass : public PassManager::LTRPass {
    public:
     /// Constructor
-    IdentifyConstExprsPass(AnalyzerState& state);
+    IdentifyConstantExpressionsPass(AnalyzerState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;

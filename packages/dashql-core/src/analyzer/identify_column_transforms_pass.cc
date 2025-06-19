@@ -1,14 +1,14 @@
-#include "dashql/analyzer/identify_projections_pass.h"
+#include "dashql/analyzer/identify_column_transforms_pass.h"
 
 #include "dashql/analyzer/analyzer.h"
 
 namespace dashql {
 
-IdentifyProjectionsPass::IdentifyProjectionsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
-                                                 IdentifyConstExprsPass& identify_constants)
+IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+                                                           IdentifyConstantExpressionsPass& identify_constants)
     : PassManager::LTRPass(state), name_resolution(name_resolution), identify_constexprs(identify_constants) {}
 
-void IdentifyProjectionsPass::Prepare() {}
+void IdentifyColumnTransformsPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
@@ -16,7 +16,7 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-void IdentifyProjectionsPass::Visit(std::span<const buffers::parser::Node> morsel) {
+void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> const_child_exprs;
     std::vector<const AnalyzedScript::Expression*> child_projections;
 
@@ -63,6 +63,6 @@ void IdentifyProjectionsPass::Visit(std::span<const buffers::parser::Node> morse
     }
 }
 
-void IdentifyProjectionsPass::Finish() {}
+void IdentifyColumnTransformsPass::Finish() {}
 
 }  // namespace dashql

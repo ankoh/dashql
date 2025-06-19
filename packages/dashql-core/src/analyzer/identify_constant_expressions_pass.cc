@@ -1,4 +1,4 @@
-#include "dashql/analyzer/identify_constexprs_pass.h"
+#include "dashql/analyzer/identify_constant_expressions_pass.h"
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
@@ -6,9 +6,9 @@
 
 namespace dashql {
 
-IdentifyConstExprsPass::IdentifyConstExprsPass(AnalyzerState& state) : PassManager::LTRPass(state) {}
+IdentifyConstantExpressionsPass::IdentifyConstantExpressionsPass(AnalyzerState& state) : PassManager::LTRPass(state) {}
 
-void IdentifyConstExprsPass::Prepare() {}
+void IdentifyConstantExpressionsPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
 using BinaryExpressionFunction = buffers::algebra::BinaryExpressionFunction;
@@ -18,7 +18,7 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel) {
+void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> child_buffer;
 
     size_t morsel_offset = morsel.data() - state.ast.data();
@@ -37,9 +37,9 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
                     .literal_type = getLiteralType(node.node_type()),
                     .raw_value = state.scanned.ReadTextAtLocation(node.location())};
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                n.is_constant = true;
+                n.is_constant_expression = true;
                 state.expression_index[node_id] = &n;
-                constexpr_list.PushBack(n);
+                state.analyzed->constant_expressions.PushBack(n);
                 break;
             }
 
@@ -61,7 +61,7 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
                 for (size_t i = 0; i < arg_nodes.size(); ++i) {
                     size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
                     auto* arg_expr = state.expression_index[arg_node_id];
-                    if (arg_expr && arg_expr->IsConstant()) {
+                    if (arg_expr && arg_expr->IsConstantExpression()) {
                         child_buffer[i] = arg_expr;
                     } else {
                         all_args_const = false;
@@ -90,9 +90,9 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
                             .projection_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_constant = true;
+                        n.is_constant_expression = true;
                         state.expression_index[node_id] = &n;
-                        constexpr_list.PushBack(n);
+                        state.analyzed->constant_expressions.PushBack(n);
                         break;
                     }
 
@@ -111,9 +111,9 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
                             .restriction_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_constant = true;
+                        n.is_constant_expression = true;
                         state.expression_index[node_id] = &n;
-                        constexpr_list.PushBack(n);
+                        state.analyzed->constant_expressions.PushBack(n);
                         break;
                     }
 
@@ -131,6 +131,6 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
     }
 }
 
-void IdentifyConstExprsPass::Finish() {}
+void IdentifyConstantExpressionsPass::Finish() {}
 
 }  // namespace dashql

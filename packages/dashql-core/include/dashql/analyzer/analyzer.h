@@ -10,9 +10,9 @@
 namespace dashql {
 
 struct NameResolutionPass;
-struct IdentifyConstExprsPass;
-struct IdentifyProjectionsPass;
-struct IdentifyRestrictionsPass;
+struct IdentifyColumnRestrictionsPass;
+struct IdentifyColumnTransformsPass;
+struct IdentifyConstantExpressionsPass;
 class ScannedScript;
 class ParsedScript;
 
@@ -60,11 +60,11 @@ struct Analyzer {
     /// The name resolution pass
     std::unique_ptr<NameResolutionPass> name_resolution;
     /// The pass to identify constant expressions
-    std::unique_ptr<IdentifyConstExprsPass> identify_constants;
+    std::unique_ptr<IdentifyConstantExpressionsPass> identify_constants;
     /// The pass to identify projections
-    std::unique_ptr<IdentifyProjectionsPass> identify_projections;
+    std::unique_ptr<IdentifyColumnTransformsPass> identify_projections;
     /// The pass to identify restrictions
-    std::unique_ptr<IdentifyRestrictionsPass> identify_restrictions;
+    std::unique_ptr<IdentifyColumnRestrictionsPass> identify_restrictions;
 
    public:
     /// Constructor

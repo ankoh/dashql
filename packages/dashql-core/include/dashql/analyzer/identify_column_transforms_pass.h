@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dashql/analyzer/identify_constexprs_pass.h"
+#include "dashql/analyzer/identify_constant_expressions_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"
 
@@ -17,19 +17,16 @@ namespace dashql {
 ///
 /// We want to identify column projections such as json_value() or regexp_extract().
 ///
-class IdentifyProjectionsPass : public PassManager::LTRPass {
+class IdentifyColumnTransformsPass : public PassManager::LTRPass {
     /// The name resolution pass
     NameResolutionPass& name_resolution;
     /// The constexprs pass
-    IdentifyConstExprsPass& identify_constexprs;
-
-    /// List of identified projections
-    IntrusiveList<AnalyzedScript::Expression> projection_list;
+    IdentifyConstantExpressionsPass& identify_constexprs;
 
    public:
     /// Constructor
-    IdentifyProjectionsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
-                            IdentifyConstExprsPass& identify_constants);
+    IdentifyColumnTransformsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+                                 IdentifyConstantExpressionsPass& identify_constants);
 
     /// Prepare the analysis pass
     void Prepare() override;
