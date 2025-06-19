@@ -1,7 +1,6 @@
 #include "dashql/analyzer/identify_constants_pass.h"
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/utils/string_trimming.h"
 
 namespace dashql {
 
@@ -21,10 +20,11 @@ void IdentifyConstExprsPass::Prepare() {}
 
 using NodeType = buffers::parser::NodeType;
 using LiteralType = buffers::algebra::LiteralType;
+
+// Helper to map a node type to a literal type
 constexpr LiteralType getLiteralType(NodeType nodeType) {
     return static_cast<LiteralType>(static_cast<size_t>(nodeType) - 5);
 }
-
 static_assert(getLiteralType(NodeType::LITERAL_NULL) == LiteralType::NULL_);
 static_assert(getLiteralType(NodeType::LITERAL_FLOAT) == LiteralType::FLOAT);
 static_assert(getLiteralType(NodeType::LITERAL_STRING) == LiteralType::STRING);
@@ -50,9 +50,6 @@ void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
                 n.ast_node_id = node_id;
                 n.location = node.location();
                 n.inner = AnalyzedScript::Expression::Literal{.literal_type = getLiteralType(node.node_type())};
-                analyzed.expressions.Append(AnalyzedScript::Expression{
-
-                });
                 break;
             }
             default:

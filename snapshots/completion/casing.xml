@@ -51,7 +51,7 @@
             </tables>
             <errors />
             <expressions>
-                <expr type="colref/unresolved" stmt="2" loc="135..138" text="cas" />
+                <expr id="0" type="colref/unresolved" stmt="2" loc="135..138" text="cas" />
             </expressions>
         </script>
         <cursor>

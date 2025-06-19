@@ -177,6 +177,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
         auto expr_node = out.append_child("expressions");
         script.expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& ref) {
             auto xml_ref = expr_node.append_child("expr");
+            xml_ref.append_attribute("id").set_value(i);
             switch (ref.inner.index()) {
                 case 0:
                     break;
@@ -194,7 +195,30 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                                     ? "colref/internal"
                                     : "colref/external";
                     xml_ref.append_attribute("type").set_value(type);
-                    xml_ref.append_attribute("id").set_value(catalog_id.c_str());
+                    xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
+                    break;
+                }
+                case 3: {
+                    auto& literal = std::get<AnalyzedScript::Expression::Literal>(ref.inner);
+                    std::string type_name = "literal/";
+                    switch (literal.literal_type) {
+                        case dashql::buffers::algebra::LiteralType::NULL_:
+                            type_name += "null";
+                            break;
+                        case dashql::buffers::algebra::LiteralType::INTERVAL:
+                            type_name += "interval";
+                            break;
+                        case dashql::buffers::algebra::LiteralType::INTEGER:
+                            type_name += "integer";
+                            break;
+                        case dashql::buffers::algebra::LiteralType::FLOAT:
+                            type_name += "float";
+                            break;
+                        case dashql::buffers::algebra::LiteralType::STRING:
+                            type_name += "string";
+                            break;
+                    }
+                    xml_ref.append_attribute("type").set_value(type_name.c_str());
                     break;
                 }
             }

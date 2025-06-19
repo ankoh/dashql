@@ -32,9 +32,9 @@ std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer
     Analyzer az{parsed, catalog};
     az.pass_manager.Execute({
         *az.name_resolution,
-        // *az.identify_constants,
-        // *az.identify_projections,
-        // *az.identify_restrictions,
+        *az.identify_constants,
+        *az.identify_projections,
+        *az.identify_restrictions,
     });
 
     // Build program

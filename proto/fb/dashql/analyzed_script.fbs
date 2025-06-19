@@ -109,8 +109,6 @@ table TableRestriction {
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
-    // The root of the scope where this table reference is live
-    ast_scope_root: uint32;
     // The location
     location: parser.Location;
     /// The table reference that occurs in the restriction expression
@@ -124,8 +122,6 @@ table TableColumnProjection {
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
     ast_statement_id: uint32;
-    // The root of the scope where this table reference is live
-    ast_scope_root: uint32;
     // The location
     location: parser.Location;
     /// The reference expression id

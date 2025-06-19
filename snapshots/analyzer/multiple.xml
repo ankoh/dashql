@@ -32,10 +32,10 @@
                 <tableref type="name/unresolved" stmt="1" loc="82..83" text="C" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr type="colref/external" id="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
-                <expr type="colref/external" id="256.65536.4294967297.0" stmt="1" loc="90..91" text="d" />
-                <expr type="colref/unresolved" stmt="1" loc="94..95" text="c" />
+                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
+                <expr id="2" type="colref/external" catalog="256.65536.4294967297.0" stmt="1" loc="90..91" text="d" />
+                <expr id="3" type="colref/unresolved" stmt="1" loc="94..95" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -73,10 +73,10 @@
                 <tableref type="name/unresolved" stmt="1" loc="105..106" text="C" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr type="colref/external" id="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
-                <expr type="colref/external" id="256.65536.4294967297.0" stmt="1" loc="113..114" text="d" />
-                <expr type="colref/unresolved" stmt="1" loc="117..118" text="c" />
+                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
+                <expr id="2" type="colref/external" catalog="256.65536.4294967297.0" stmt="1" loc="113..114" text="d" />
+                <expr id="3" type="colref/unresolved" stmt="1" loc="117..118" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>

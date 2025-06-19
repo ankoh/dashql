@@ -171,7 +171,7 @@ create table table3(attr3 integer);
                 <tableref type="name/unresolved" stmt="0" loc="35..38" text="tab" />
             </tablerefs>
             <expressions>
-                <expr type="colref/unresolved" stmt="0" loc="24..29" text="attr2" />
+                <expr id="0" type="colref/unresolved" stmt="0" loc="24..29" text="attr2" />
             </expressions>
         </script>
         <cursor>
@@ -212,8 +212,8 @@ create table table3(attr3 integer);
                 <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
-                <expr type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
+                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
+                <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
         </script>
         <cursor script="1">
@@ -254,8 +254,8 @@ create table table3(attr3 integer);
                 <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
             </tablerefs>
             <expressions>
-                <expr type="colref/external" id="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
-                <expr type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
+                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
+                <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
         </script>
         <cursor>

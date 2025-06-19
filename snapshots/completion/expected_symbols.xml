@@ -54,7 +54,7 @@
             </input>
             <errors />
             <expressions>
-                <expr type="colref/unresolved" stmt="0" loc="24..27" text="foo" />
+                <expr id="0" type="colref/unresolved" stmt="0" loc="24..27" text="foo" />
             </expressions>
         </script>
         <cursor>

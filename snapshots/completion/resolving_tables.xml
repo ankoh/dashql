@@ -21,7 +21,7 @@
                 <tableref type="name/unresolved" stmt="2" loc="162..163" text="s" />
             </tablerefs>
             <expressions>
-                <expr type="colref/unresolved" stmt="2" loc="150..156" text="juice0" />
+                <expr id="0" type="colref/unresolved" stmt="2" loc="150..156" text="juice0" />
             </expressions>
         </script>
         <cursor>
