@@ -175,7 +175,7 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                 test.script.input = main_node.child("input").last_child().value();
                 test.script.errors.append_copy(main_node.child("errors"));
                 test.script.tables.append_copy(main_node.child("tables"));
-                test.script.table_references.append_copy(main_node.child("tablerefs"));
+                test.script.table_references.append_copy(main_node.child("table-refs"));
                 test.script.expressions.append_copy(main_node.child("expressions"));
             }
 
@@ -188,7 +188,7 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                     entry.input = entry_node.child("input").last_child().value();
                     entry.errors.append_copy(entry_node.child("errors"));
                     entry.tables.append_copy(entry_node.child("tables"));
-                    entry.table_references.append_copy(entry_node.child("tablerefs"));
+                    entry.table_references.append_copy(entry_node.child("table-refs"));
                     entry.expressions.append_copy(entry_node.child("expressions"));
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;

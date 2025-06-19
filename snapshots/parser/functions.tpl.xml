@@ -1,0 +1,7 @@
+<parser-snapshots>
+    <parser-snapshot name="func_regexp_extract">
+        <input>
+            select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
+        </input>
+    </parser-snapshot>
+</parser-snapshots>

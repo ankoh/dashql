@@ -16,9 +16,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="2" loc="148..151" text="cas" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="2" loc="148..151" text="cas" />
+            </table-refs>
         </script>
         <cursor>
             <search text="from cas" index="8" />

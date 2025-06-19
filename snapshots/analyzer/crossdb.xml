@@ -24,10 +24,10 @@
                 select * from db1.schema1.A x, db2.schema2.A y where x.a = c;
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..46" text="db1.schema1.A x" />
-                <tableref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..63" text="db2.schema2.A y" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..46" text="db1.schema1.A x" />
+                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..63" text="db2.schema2.A y" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="70..73" text="x.a" />
                 <expr id="1" type="colref/external" catalog="257.65537.4294967297.0" stmt="0" loc="76..77" text="c" />
@@ -59,10 +59,10 @@
                 select * from db1.schema1.A x, db2.schema2.A where x.a = c;
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..46" text="db1.schema1.A x" />
-                <tableref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..61" text="db2.schema2.A" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..46" text="db1.schema1.A x" />
+                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..61" text="db2.schema2.A" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="68..71" text="x.a" />
                 <expr id="1" type="colref/external" catalog="257.65537.4294967297.0" stmt="0" loc="74..75" text="c" />
@@ -101,10 +101,10 @@
                 select * from db1.schema1.A, db2.schema2.B where a = c;
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <tableref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <table-ref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="66..67" text="a" />
                 <expr id="1" type="colref/external" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
@@ -143,10 +143,10 @@
                 select * from db1.schema1.A, db2.schema2.B where a = c;
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <tableref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <table-ref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="66..67" text="a" />
                 <expr id="1" type="colref/external" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
@@ -186,10 +186,10 @@
                 select * from db1.schema1.A where c = 1;
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="1" loc="88..101" text="db1.schema1.A" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="1" loc="88..101" text="db1.schema1.A" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="51..52" text="a" />
                 <expr id="1" type="colref/unresolved" stmt="1" loc="108..109" text="c" />

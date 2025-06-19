@@ -104,7 +104,7 @@ table TableReference {
     inner: TableReferenceSubType;
 }
 
-table TableRestriction {
+table ColumnRestriction {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -117,7 +117,7 @@ table TableRestriction {
     expression_id: uint32;
 }
 
-table TableColumnProjection {
+table ColumnTransform {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -209,15 +209,18 @@ table AnalyzedScript {
     tables: [Table];
     /// The table references
     table_references: [TableReference];
-    /// The table restrictions.
+
+    /// A subset of expressions relevant for the analyzer output
+    expressions: [algebra.Expression];
+    /// The column restrictions.
     /// We only track restrictions where single table columns are compared with simple constant expressions.
     ///
     /// Examples:
     ///   `<table_ref> = <simple constant expression>`
     ///   `<table_ref> != <simple constant expression>`
     ///
-    table_restrictions: [TableRestriction];
-    /// The table column projections.
+    column_restrictions: [ColumnRestriction];
+    /// The column transforms.
     /// We only track projections of unaggregated base table columns in otherwise simple constant expressions.
     ///
     /// Examples:
@@ -225,9 +228,7 @@ table AnalyzedScript {
     ///   `date_trunc('day', <column_ref>)`
     ///   `to_char(<column_ref>, 'format')`
     ///
-    table_column_projections: [TableColumnProjection];
-    /// A subset of expressions relevant for the analyzer output
-    expressions: [algebra.Expression];
+    column_transforms: [ColumnTransform];
 
     /// The name scopes
     name_scopes: [NameScope];

@@ -17,9 +17,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="2" loc="162..163" text="s" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="2" loc="162..163" text="s" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="2" loc="150..156" text="juice0" />
             </expressions>

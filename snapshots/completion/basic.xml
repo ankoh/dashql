@@ -32,9 +32,9 @@
                 select * from db
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..33" text="db" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..33" text="db" />
+            </table-refs>
         </script>
         <cursor>
             <search text="db" index="2" />
@@ -66,9 +66,9 @@
                 select * from sch
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..34" text="sch" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="sch" />
+            </table-refs>
         </script>
         <cursor>
             <search text="sch" index="3" />
@@ -100,9 +100,9 @@
                 select * from fo
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..33" text="fo" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..33" text="fo" />
+            </table-refs>
         </script>
         <cursor>
             <search text="fo" index="2" />
@@ -167,9 +167,9 @@ create table table3(attr3 integer);
                 select attr2 from tab
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="35..38" text="tab" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="35..38" text="tab" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="24..29" text="attr2" />
             </expressions>
@@ -208,9 +208,9 @@ create table table3(attr3 integer);
                 select external_name2 from external_name1 where external_
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
@@ -250,9 +250,9 @@ create table table3(attr3 integer);
                 select external_name2 from external_name1 where external_
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />

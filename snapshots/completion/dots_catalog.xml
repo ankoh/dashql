@@ -18,9 +18,9 @@
                 select * from dbname.
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..38" text="dbname." />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..38" text="dbname." />
+            </table-refs>
         </script>
         <cursor>
             <search text="dbname." index="7" />
@@ -50,9 +50,9 @@
                 select * from dbname.sch
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
+            </table-refs>
         </script>
         <cursor>
             <search text=".sch" index="0" />
@@ -78,9 +78,9 @@
                 select * from dbname.sch
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
+            </table-refs>
         </script>
         <cursor>
             <search text=".sch" index="1" />
@@ -110,9 +110,9 @@
                 select * from dbname."sch"
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..43" text="dbname.&quot;sch&quot;" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..43" text="dbname.&quot;sch&quot;" />
+            </table-refs>
         </script>
         <cursor>
             <search text="name." index="5" />
@@ -135,9 +135,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="1" loc="90..97" text="dbname." />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="1" loc="90..97" text="dbname." />
+            </table-refs>
         </script>
         <cursor>
             <search text="from dbname." index="12" />

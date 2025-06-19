@@ -11,9 +11,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="1" loc="90..108" text="dbname.schemaname." />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="1" loc="90..108" text="dbname.schemaname." />
+            </table-refs>
         </script>
         <cursor>
             <search text="from dbname.schemaname." index="23" />
@@ -36,9 +36,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="1" loc="88..111" text="dbname.sch..name.foo f" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="1" loc="88..111" text="dbname.sch..name.foo f" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="118..120" text="f." />
             </expressions>
@@ -64,9 +64,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="1" loc="81..97" text="schemaname.foo f" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="1" loc="81..97" text="schemaname.foo f" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="104..106" text="f." />
             </expressions>
@@ -92,9 +92,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="1" loc="70..75" text="foo f" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="1" loc="70..75" text="foo f" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="82..84" text="f." />
             </expressions>
@@ -128,9 +128,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="2" loc="139..148" text="foo alias" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="2" loc="139..148" text="foo alias" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="2" loc="155..161" text="alias." />
             </expressions>
@@ -170,10 +170,10 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="2" loc="139..144" text="foo f" />
-                <tableref type="name/internal" id="256.65536.1" stmt="2" loc="146..151" text="bar b" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="2" loc="139..144" text="foo f" />
+                <table-ref type="name/internal" id="256.65536.1" stmt="2" loc="146..151" text="bar b" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/internal" catalog="256.65536.1.2" stmt="2" loc="158..160" text="f." />
             </expressions>
@@ -213,10 +213,10 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="2" loc="139..144" text="foo f" />
-                <tableref type="name/internal" id="256.65536.1" stmt="2" loc="146..151" text="bar b" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="2" loc="139..144" text="foo f" />
+                <table-ref type="name/internal" id="256.65536.1" stmt="2" loc="146..151" text="bar b" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/internal" catalog="256.65536.0.1" stmt="2" loc="158..160" text="b." />
             </expressions>
@@ -252,9 +252,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="1" loc="98..103" text="foo f" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="1" loc="98..103" text="foo f" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="110..112" text="f." />
             </expressions>
@@ -287,9 +287,9 @@
                 </table>
             </tables>
             <errors />
-            <tablerefs>
-                <tableref type="name/internal" id="256.65536.0" stmt="1" loc="85..90" text="foo f" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/internal" id="256.65536.0" stmt="1" loc="85..90" text="foo f" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="97..101" text="f.ap" />
             </expressions>

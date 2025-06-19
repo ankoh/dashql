@@ -1,0 +1,19 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="func_regexp_extract">
+        <catalog />
+        <script id="0">
+            <input>
+                select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="96..99" text="foo" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="39..40" text="a" />
+                <expr id="1" type="literal/string" stmt="0" loc="42..86" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                <expr id="2" type="literal/integer" stmt="0" loc="88..89" text="1" />
+            </expressions>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>

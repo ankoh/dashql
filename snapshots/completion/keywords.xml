@@ -113,9 +113,9 @@
                 select * from a xx
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..35" text="a xx" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..35" text="a xx" />
+            </table-refs>
         </script>
         <cursor>
             <search text="xx" index="0" />
@@ -132,9 +132,9 @@
                 select * from a w
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..34" text="a w" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="a w" />
+            </table-refs>
         </script>
         <cursor>
             <search text="w" index="1" />
@@ -151,9 +151,9 @@
                 select * from a wh
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..35" text="a wh" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..35" text="a wh" />
+            </table-refs>
         </script>
         <cursor>
             <search text="wh" index="2" />
@@ -186,9 +186,9 @@
                 select * from foo gr
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..37" text="foo gr" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..37" text="foo gr" />
+            </table-refs>
         </script>
         <cursor>
             <search text="gr" index="1" />
@@ -249,9 +249,9 @@
                 select * from foo o
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" stmt="0" loc="31..36" text="foo o" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..36" text="foo o" />
+            </table-refs>
         </script>
         <cursor>
             <search text="foo o" index="5" />
@@ -284,9 +284,9 @@
                 select * from foo order
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/unresolved" loc="31..34" text="foo" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/unresolved" loc="31..34" text="foo" />
+            </table-refs>
         </script>
         <cursor>
             <search text="order" index="5" />

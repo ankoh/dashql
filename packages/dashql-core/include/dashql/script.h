@@ -364,10 +364,10 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<Expression, 16> expressions;
     /// The name scopes
     ChunkBuffer<NameScope, 16> name_scopes;
-
     /// The name scopes by scope root.
     /// Name scopes maintain intrusive lists with all column reference expressions.
     std::unordered_map<size_t, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
+
     /// The constant expressions in the script
     IntrusiveList<Expression> constant_expressions;
     /// The column transforms in the script

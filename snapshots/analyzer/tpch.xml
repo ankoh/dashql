@@ -336,17 +336,17 @@ limit
 	100
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="610..618" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="644..652" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="678..684" text="nation" />
-                <tableref type="name/external" id="256.65536.4294967303" stmt="0" loc="710..716" text="region" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="161..165" text="part" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="175..183" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="193..201" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="211..217" text="nation" />
-                <tableref type="name/external" id="256.65536.4294967303" stmt="0" loc="227..233" text="region" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="610..618" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="644..652" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="678..684" text="nation" />
+                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="710..716" text="region" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="161..165" text="part" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="175..183" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="193..201" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="211..217" text="nation" />
+                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="227..233" text="region" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="16..25" text="s_acctbal" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="35..41" text="s_name" />
@@ -565,11 +565,11 @@ limit
 	10
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="145..153" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="163..169" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="179..187" text="lineitem" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="145..153" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="163..169" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="179..187" text="lineitem" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="16..26" text="l_orderkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="63..73" text="l_discount" />
@@ -766,10 +766,10 @@ order by
         o_orderpriority
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="291..299" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="78..84" text="orders" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="291..299" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="78..84" text="orders" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="16..31" text="o_orderpriority" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="99..110" text="o_orderdate" />
@@ -957,14 +957,14 @@ order by
         revenue desc
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="96..104" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="114..120" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="130..138" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="148..156" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="166..172" text="nation" />
-                <tableref type="name/external" id="256.65536.4294967303" stmt="0" loc="182..188" text="region" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="96..104" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="114..120" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="130..138" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="148..156" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="166..172" text="nation" />
+                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="182..188" text="region" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="16..22" text="n_name" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="59..69" text="l_discount" />
@@ -1151,9 +1151,9 @@ where
         and l_quantity &lt; 24
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="74..82" text="lineitem" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="74..82" text="lineitem" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="38..48" text="l_discount" />
@@ -1361,14 +1361,14 @@ order by
         l_year
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="414..422" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="448..456" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="482..488" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="514..522" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="548..557" text="nation n1" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="583..592" text="nation n2" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="414..422" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="448..456" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="482..488" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="514..522" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="548..557" text="nation n1" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="583..592" text="nation n2" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..27" text="supp_nation" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="37..48" text="cust_nation" />
@@ -1599,16 +1599,16 @@ order by
         o_year
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="418..422" text="part" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="448..456" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="482..490" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="516..522" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="548..556" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="582..591" text="nation n1" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="617..626" text="nation n2" />
-                <tableref type="name/external" id="256.65536.4294967303" stmt="0" loc="652..658" text="region" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="418..422" text="part" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="448..456" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="482..490" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="516..522" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="548..556" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="582..591" text="nation n1" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="617..626" text="nation n2" />
+                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="652..658" text="region" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..22" text="o_year" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="62..68" text="nation" />
@@ -1830,14 +1830,14 @@ order by
         o_year desc
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="363..367" text="part" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="393..401" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="427..435" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="461..469" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="495..501" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="527..533" text="nation" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="363..367" text="part" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="393..401" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="427..435" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="461..469" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="495..501" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="527..533" text="nation" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..22" text="nation" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="32..38" text="o_year" />
@@ -2051,12 +2051,12 @@ limit
 	20
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="205..213" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="223..229" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="239..247" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="257..263" text="nation" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="205..213" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="223..229" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="239..247" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="257..263" text="nation" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="16..25" text="c_custkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="35..41" text="c_name" />
@@ -2268,14 +2268,14 @@ order by
         "value" desc
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="496..504" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="538..546" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="580..586" text="nation" />
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="93..101" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="111..119" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="129..135" text="nation" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="496..504" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="538..546" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="580..586" text="nation" />
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="93..101" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="111..119" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="129..135" text="nation" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="16..26" text="ps_partkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="40..53" text="ps_supplycost" />
@@ -2480,10 +2480,10 @@ order by
         l_shipmode
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="458..464" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="474..482" text="lineitem" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="458..464" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="474..482" text="lineitem" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="16..26" text="l_shipmode" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="66..81" text="o_orderpriority" />
@@ -2688,10 +2688,10 @@ order by
         c_count desc
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="222..230" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="247..253" text="orders" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="222..230" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="247..253" text="orders" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..23" text="c_count" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="116..125" text="c_custkey" />
@@ -2868,10 +2868,10 @@ where
         and l_shipdate &lt; date '1995-10-01'
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="248..256" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="266..270" text="part" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="248..256" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="266..270" text="part" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="55..61" text="p_type" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="128..138" text="l_discount" />
@@ -3070,12 +3070,12 @@ order by
 	s_suppkey
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="122..130" text="lineitem" />
-                <tableref type="name/unresolved" stmt="0" loc="417..424" text="revenue" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="303..311" text="supplier" />
-                <tableref type="name/unresolved" stmt="0" loc="314..321" text="revenue" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="122..130" text="lineitem" />
+                <table-ref type="name/unresolved" stmt="0" loc="417..424" text="revenue" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="303..311" text="supplier" />
+                <table-ref type="name/unresolved" stmt="0" loc="314..321" text="revenue" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="29..38" text="l_suppkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="84..94" text="l_discount" />
@@ -3277,11 +3277,11 @@ order by
         p_size
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="449..457" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="121..129" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="139..143" text="part" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="449..457" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="121..129" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="139..143" text="part" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="16..23" text="p_brand" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="33..39" text="p_type" />
@@ -3482,11 +3482,11 @@ where
         )
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="339..347" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="70..78" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="88..92" text="part" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="339..347" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="70..78" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="88..92" text="part" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="107..116" text="p_partkey" />
@@ -3688,12 +3688,12 @@ limit
 	100
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="319..327" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="143..151" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="161..167" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="177..185" text="lineitem" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="319..327" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="143..151" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="161..167" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="177..185" text="lineitem" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="16..22" text="c_name" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="32..41" text="c_custkey" />
@@ -3904,10 +3904,10 @@ where
         )
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="79..87" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="97..101" text="part" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="79..87" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="97..101" text="part" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="42..52" text="l_discount" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
@@ -4181,13 +4181,13 @@ order by
         s_name
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967296" stmt="0" loc="449..453" text="part" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="802..810" text="lineitem" />
-                <tableref type="name/external" id="256.65536.4294967298" stmt="0" loc="212..220" text="partsupp" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="55..63" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="73..79" text="nation" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="449..453" text="part" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="802..810" text="lineitem" />
+                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="212..220" text="partsupp" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="55..63" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="73..79" text="nation" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="32..41" text="s_address" />
@@ -4406,14 +4406,14 @@ limit
 	100
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="399..410" text="lineitem l2" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="673..684" text="lineitem l3" />
-                <tableref type="name/external" id="256.65536.4294967297" stmt="0" loc="65..73" text="supplier" />
-                <tableref type="name/external" id="256.65536.4294967301" stmt="0" loc="83..94" text="lineitem l1" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="104..110" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967302" stmt="0" loc="120..126" text="nation" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="399..410" text="lineitem l2" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="673..684" text="lineitem l3" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="65..73" text="supplier" />
+                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="83..94" text="lineitem l1" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="104..110" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="120..126" text="nation" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="141..150" text="s_suppkey" />
@@ -4632,11 +4632,11 @@ order by
         cntrycode
             </input>
             <errors />
-            <tablerefs>
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="658..666" text="customer" />
-                <tableref type="name/external" id="256.65536.4294967300" stmt="0" loc="1157..1163" text="orders" />
-                <tableref type="name/external" id="256.65536.4294967299" stmt="0" loc="280..288" text="customer" />
-            </tablerefs>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="658..666" text="customer" />
+                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="1157..1163" text="orders" />
+                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="280..288" text="customer" />
+            </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..25" text="cntrycode" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="68..77" text="c_acctbal" />

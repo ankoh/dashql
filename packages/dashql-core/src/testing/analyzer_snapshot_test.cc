@@ -90,7 +90,7 @@ void AnalyzerSnapshotTest::TestRegistrySnapshot(const std::vector<ScriptAnalysis
 
         ASSERT_TRUE(Matches(script_node.child("errors"), entry.errors));
         ASSERT_TRUE(Matches(script_node.child("tables"), entry.tables));
-        ASSERT_TRUE(Matches(script_node.child("tablerefs"), entry.table_references));
+        ASSERT_TRUE(Matches(script_node.child("table-refs"), entry.table_references));
         ASSERT_TRUE(Matches(script_node.child("expressions"), entry.expressions));
     }
 }
@@ -110,7 +110,7 @@ void AnalyzerSnapshotTest::TestMainScriptSnapshot(const ScriptAnalysisSnapshot& 
 
     ASSERT_TRUE(Matches(node.child("errors"), snap.errors));
     ASSERT_TRUE(Matches(node.child("tables"), snap.tables));
-    ASSERT_TRUE(Matches(node.child("tablerefs"), snap.table_references));
+    ASSERT_TRUE(Matches(node.child("table-refs"), snap.table_references));
     ASSERT_TRUE(Matches(node.child("expressions"), snap.expressions));
 }
 
@@ -138,9 +138,9 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
     }
     // Write table references
     if (!script.table_references.IsEmpty()) {
-        auto table_refs_node = out.append_child("tablerefs");
+        auto table_refs_node = out.append_child("table-refs");
         script.table_references.ForEach([&](size_t i, const AnalyzedScript::TableReference& ref) {
-            auto xml_ref = table_refs_node.append_child("tableref");
+            auto xml_ref = table_refs_node.append_child("table-ref");
             switch (ref.inner.index()) {
                 case 0:
                     break;
@@ -307,7 +307,7 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                 test.script.input = main_node.child("input").last_child().value();
                 test.script.errors.append_copy(main_node.child("errors"));
                 test.script.tables.append_copy(main_node.child("tables"));
-                test.script.table_references.append_copy(main_node.child("tablerefs"));
+                test.script.table_references.append_copy(main_node.child("table-refs"));
                 test.script.expressions.append_copy(main_node.child("expressions"));
             }
 
@@ -320,7 +320,7 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                     entry.input = entry_node.child("input").last_child().value();
                     entry.errors.append_copy(entry_node.child("errors"));
                     entry.tables.append_copy(entry_node.child("tables"));
-                    entry.table_references.append_copy(entry_node.child("tablerefs"));
+                    entry.table_references.append_copy(entry_node.child("table-refs"));
                     entry.expressions.append_copy(entry_node.child("expressions"));
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
