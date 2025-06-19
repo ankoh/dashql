@@ -30,31 +30,30 @@ void IdentifyProjectionsPass::Visit(std::span<const buffers::parser::Node> morse
                 auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto child_attrs = state.attribute_index.Load(children);
                 auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
-                if (op_node) {
-                    assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
+                if (!op_node) continue;
+                assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
-                    switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
-                        case buffers::parser::ExpressionOperator::PLUS:
-                        case buffers::parser::ExpressionOperator::MULTIPLY:
-                        case buffers::parser::ExpressionOperator::MINUS:
-                        case buffers::parser::ExpressionOperator::DIVIDE:
-                        case buffers::parser::ExpressionOperator::MODULUS:
-                        case buffers::parser::ExpressionOperator::XOR:
-                        case buffers::parser::ExpressionOperator::NEGATE:
-                        case buffers::parser::ExpressionOperator::NOT:
+                switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
+                    case buffers::parser::ExpressionOperator::PLUS:
+                    case buffers::parser::ExpressionOperator::MULTIPLY:
+                    case buffers::parser::ExpressionOperator::MINUS:
+                    case buffers::parser::ExpressionOperator::DIVIDE:
+                    case buffers::parser::ExpressionOperator::MODULUS:
+                    case buffers::parser::ExpressionOperator::XOR:
+                    case buffers::parser::ExpressionOperator::NEGATE:
+                    case buffers::parser::ExpressionOperator::NOT:
 
-                            break;
-                        case buffers::parser::ExpressionOperator::LIKE:
-                            break;
-                        case buffers::parser::ExpressionOperator::ILIKE:
-                            break;
-                        case buffers::parser::ExpressionOperator::NOT_LIKE:
-                            break;
-                        case buffers::parser::ExpressionOperator::NOT_ILIKE:
-                            break;
-                        default:
-                            break;
-                    }
+                        break;
+                    case buffers::parser::ExpressionOperator::LIKE:
+                        break;
+                    case buffers::parser::ExpressionOperator::ILIKE:
+                        break;
+                    case buffers::parser::ExpressionOperator::NOT_LIKE:
+                        break;
+                    case buffers::parser::ExpressionOperator::NOT_ILIKE:
+                        break;
+                    default:
+                        break;
                 }
                 break;
             }

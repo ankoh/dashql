@@ -304,6 +304,8 @@ class AnalyzedScript : public CatalogEntry {
         }
         // Check if the expression is a constant
         inline bool IsConstant() const { return is_constant; }
+        // Check if the expression is a projection
+        inline bool IsProjection() const { return is_projection; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };

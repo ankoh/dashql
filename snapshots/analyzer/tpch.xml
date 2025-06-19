@@ -387,6 +387,9 @@ limit
                 <expr id="36" type="literal/string" stmt="0" loc="460..468" text="'EUROPE'" />
                 <expr id="37" type="literal/string" stmt="0" loc="982..990" text="'EUROPE'" />
                 <expr id="38" type="literal/integer" stmt="0" loc="1091..1094" text="100" />
+                <expr id="39" type="comparison" op="EQUAL" left="28" right="37" restrict="left" stmt="0" loc="973..990" text="r_name = 'EUROPE'" />
+                <expr id="40" type="comparison" op="EQUAL" left="12" right="34" restrict="left" stmt="0" loc="318..329" text="p_size = 15" />
+                <expr id="41" type="comparison" op="EQUAL" left="18" right="36" restrict="left" stmt="0" loc="451..468" text="r_name = 'EUROPE'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -590,6 +593,7 @@ limit
                 <expr id="19" type="literal/string" stmt="0" loc="329..341" text="'1995-03-15'" />
                 <expr id="20" type="literal/string" stmt="0" loc="372..384" text="'1995-03-15'" />
                 <expr id="21" type="literal/integer" stmt="0" loc="516..518" text="10" />
+                <expr id="22" type="comparison" op="EQUAL" left="5" right="18" restrict="left" stmt="0" loc="202..227" text="c_mktsegme..'BUILDING'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -986,6 +990,7 @@ order by
                 <expr id="21" type="literal/string" stmt="0" loc="430..436" text="'ASIA'" />
                 <expr id="22" type="literal/string" stmt="0" loc="469..481" text="'1994-01-01'" />
                 <expr id="23" type="literal/string" stmt="0" loc="513..525" text="'1995-01-01'" />
+                <expr id="24" type="comparison" op="EQUAL" left="15" right="21" restrict="left" stmt="0" loc="421..436" text="r_name = 'ASIA'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -1165,6 +1170,7 @@ where
                 <expr id="12" type="binary" op="MINUS" left="8" right="9" const="true" stmt="0" loc="203..214" text="0.06 - 0.01" />
                 <expr id="13" type="binary" op="PLUS" left="10" right="11" const="true" stmt="0" loc="219..230" text="0.06 + 0.01" />
                 <expr id="14" type="literal/integer" stmt="0" loc="256..258" text="24" />
+                <expr id="15" type="comparison" op="LESS_THAN" left="5" right="14" restrict="left" stmt="0" loc="243..258" text="l_quantity &lt; 24" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -1401,6 +1407,10 @@ order by
                 <expr id="34" type="literal/string" stmt="0" loc="1062..1070" text="'FRANCE'" />
                 <expr id="35" type="literal/string" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="36" type="literal/string" stmt="0" loc="1172..1184" text="'1996-12-31'" />
+                <expr id="37" type="comparison" op="EQUAL" left="19" right="31" restrict="left" stmt="0" loc="940..960" text="n1.n_name ..= 'FRANCE'" />
+                <expr id="38" type="comparison" op="EQUAL" left="20" right="32" restrict="left" stmt="0" loc="965..986" text="n2.n_name .. 'GERMANY'" />
+                <expr id="39" type="comparison" op="EQUAL" left="21" right="33" restrict="left" stmt="0" loc="1024..1045" text="n1.n_name .. 'GERMANY'" />
+                <expr id="40" type="comparison" op="EQUAL" left="22" right="34" restrict="left" stmt="0" loc="1050..1070" text="n2.n_name ..= 'FRANCE'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -1634,6 +1644,9 @@ order by
                 <expr id="31" type="literal/string" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="32" type="literal/string" stmt="0" loc="1172..1184" text="'1996-12-31'" />
                 <expr id="33" type="literal/string" stmt="0" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
+                <expr id="34" type="comparison" op="EQUAL" left="1" right="27" restrict="left" stmt="0" loc="62..79" text="nation = 'BRAZIL'" />
+                <expr id="35" type="comparison" op="EQUAL" left="20" right="30" restrict="left" stmt="0" loc="1021..1039" text="r_name = 'AMERICA'" />
+                <expr id="36" type="comparison" op="EQUAL" left="24" right="33" restrict="left" stmt="0" loc="1213..1246" text="p_type = '..ZED STEEL'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -2076,6 +2089,7 @@ limit
                 <expr id="28" type="literal/string" stmt="0" loc="412..424" text="'1994-01-01'" />
                 <expr id="29" type="literal/string" stmt="0" loc="452..455" text="'R'" />
                 <expr id="30" type="literal/integer" stmt="0" loc="664..666" text="20" />
+                <expr id="31" type="comparison" op="EQUAL" left="15" right="29" restrict="left" stmt="0" loc="437..455" text="l_returnflag = 'R'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -2285,6 +2299,8 @@ order by
                 <expr id="19" type="literal/string" stmt="0" loc="232..241" text="'GERMANY'" />
                 <expr id="20" type="literal/float" stmt="0" loc="428..434" text="0.0001" />
                 <expr id="21" type="literal/string" stmt="0" loc="779..788" text="'GERMANY'" />
+                <expr id="22" type="comparison" op="EQUAL" left="7" right="19" restrict="left" stmt="0" loc="223..241" text="n_name = 'GERMANY'" />
+                <expr id="23" type="comparison" op="EQUAL" left="17" right="21" restrict="left" stmt="0" loc="770..788" text="n_name = 'GERMANY'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -2497,6 +2513,10 @@ order by
                 <expr id="25" type="literal/string" stmt="0" loc="556..562" text="'SHIP'" />
                 <expr id="26" type="literal/string" stmt="0" loc="677..689" text="'1994-01-01'" />
                 <expr id="27" type="literal/string" stmt="0" loc="723..735" text="'1995-01-01'" />
+                <expr id="28" type="comparison" op="EQUAL" left="1" right="16" restrict="left" stmt="0" loc="66..94" text="o_orderpri..'1-URGENT'" />
+                <expr id="29" type="comparison" op="EQUAL" left="2" right="17" restrict="left" stmt="0" loc="122..148" text="o_orderpri..= '2-HIGH'" />
+                <expr id="30" type="comparison" op="NOT_EQUAL" left="3" right="20" restrict="left" stmt="0" loc="274..303" text="o_orderpri..'1-URGENT'" />
+                <expr id="31" type="comparison" op="NOT_EQUAL" left="4" right="21" restrict="left" stmt="0" loc="332..359" text="o_orderpri..> '2-HIGH'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3293,6 +3313,7 @@ order by
                 <expr id="27" type="literal/integer" stmt="0" loc="308..310" text="36" />
                 <expr id="28" type="literal/integer" stmt="0" loc="312..313" text="9" />
                 <expr id="29" type="literal/string" stmt="0" loc="519..542" text="'%Customer..mplaints%'" />
+                <expr id="30" type="comparison" op="NOT_EQUAL" left="6" right="19" restrict="left" stmt="0" loc="193..214" text="p_brand &lt;>..'Brand#45'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3480,6 +3501,8 @@ where
                 <expr id="10" type="literal/string" stmt="0" loc="151..161" text="'Brand#23'" />
                 <expr id="11" type="literal/string" stmt="0" loc="188..197" text="'MED BOX'" />
                 <expr id="12" type="literal/float" stmt="0" loc="272..275" text="0.2" />
+                <expr id="13" type="comparison" op="EQUAL" left="3" right="10" restrict="left" stmt="0" loc="141..161" text="p_brand = ..'Brand#23'" />
+                <expr id="14" type="comparison" op="EQUAL" left="4" right="11" restrict="left" stmt="0" loc="174..197" text="p_containe.. 'MED BOX'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3958,6 +3981,18 @@ where
                 <expr id="69" type="literal/string" stmt="0" loc="1227..1232" text="'AIR'" />
                 <expr id="70" type="literal/string" stmt="0" loc="1234..1243" text="'AIR REG'" />
                 <expr id="71" type="literal/string" stmt="0" loc="1282..1301" text="'DELIVER IN PERSON'" />
+                <expr id="72" type="comparison" op="EQUAL" left="4" right="30" restrict="left" stmt="0" loc="176..196" text="p_brand = ..'Brand#12'" />
+                <expr id="73" type="comparison" op="GREATER_EQUAL" left="6" right="35" restrict="left" stmt="0" loc="295..310" text="l_quantity >= 1" />
+                <expr id="74" type="comparison" op="LESS_EQUAL" left="7" right="38" restrict="left" stmt="0" loc="315..335" text="l_quantity.. &lt;= 1 + 10" />
+                <expr id="75" type="comparison" op="EQUAL" left="10" right="43" restrict="left" stmt="0" loc="452..488" text="l_shipinst..IN PERSON'" />
+                <expr id="76" type="comparison" op="EQUAL" left="13" right="44" restrict="left" stmt="0" loc="578..598" text="p_brand = ..'Brand#23'" />
+                <expr id="77" type="comparison" op="GREATER_EQUAL" left="15" right="49" restrict="left" stmt="0" loc="700..716" text="l_quantity >= 10" />
+                <expr id="78" type="comparison" op="LESS_EQUAL" left="16" right="52" restrict="left" stmt="0" loc="721..742" text="l_quantity..&lt;= 10 + 10" />
+                <expr id="79" type="comparison" op="EQUAL" left="19" right="57" restrict="left" stmt="0" loc="860..896" text="l_shipinst..IN PERSON'" />
+                <expr id="80" type="comparison" op="EQUAL" left="22" right="58" restrict="left" stmt="0" loc="986..1006" text="p_brand = ..'Brand#34'" />
+                <expr id="81" type="comparison" op="GREATER_EQUAL" left="24" right="63" restrict="left" stmt="0" loc="1105..1121" text="l_quantity >= 20" />
+                <expr id="82" type="comparison" op="LESS_EQUAL" left="25" right="66" restrict="left" stmt="0" loc="1126..1147" text="l_quantity..&lt;= 20 + 10" />
+                <expr id="83" type="comparison" op="EQUAL" left="28" right="71" restrict="left" stmt="0" loc="1265..1301" text="l_shipinst..IN PERSON'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -4178,6 +4213,7 @@ order by
                 <expr id="21" type="literal/string" stmt="0" loc="1042..1054" text="'1994-01-01'" />
                 <expr id="22" type="literal/string" stmt="0" loc="1117..1129" text="'1995-01-01'" />
                 <expr id="23" type="literal/string" stmt="0" loc="1225..1233" text="'CANADA'" />
+                <expr id="24" type="comparison" op="EQUAL" left="17" right="23" restrict="left" stmt="0" loc="1216..1233" text="n_name = 'CANADA'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -4406,6 +4442,8 @@ limit
                 <expr id="24" type="literal/string" stmt="0" loc="233..236" text="'F'" />
                 <expr id="25" type="literal/string" stmt="0" loc="950..964" text="'SAUDI ARABIA'" />
                 <expr id="26" type="literal/integer" stmt="0" loc="1042..1045" text="100" />
+                <expr id="27" type="comparison" op="EQUAL" left="5" right="24" restrict="left" stmt="0" loc="217..236" text="o_orderstatus = 'F'" />
+                <expr id="28" type="comparison" op="EQUAL" left="20" right="25" restrict="left" stmt="0" loc="941..964" text="n_name = '..DI ARABIA'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -4634,6 +4672,7 @@ order by
                 <expr id="31" type="literal/string" stmt="0" loc="914..918" text="'30'" />
                 <expr id="32" type="literal/string" stmt="0" loc="920..924" text="'18'" />
                 <expr id="33" type="literal/string" stmt="0" loc="926..930" text="'17'" />
+                <expr id="34" type="comparison" op="GREATER_THAN" left="6" right="24" restrict="left" stmt="0" loc="745..761" text="c_acctbal > 0.00" />
             </expressions>
         </script>
     </analyzer-snapshot>

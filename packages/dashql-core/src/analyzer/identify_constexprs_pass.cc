@@ -18,54 +18,6 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-// Helper to map a node type to a literal type
-constexpr LiteralType getLiteralType(NodeType nodeType) {
-    assert(nodeType >= NodeType::LITERAL_NULL);
-    assert(nodeType <= NodeType::LITERAL_INTERVAL);
-    return static_cast<LiteralType>(static_cast<size_t>(nodeType) - 5);
-}
-static_assert(getLiteralType(NodeType::LITERAL_NULL) == LiteralType::NULL_);
-static_assert(getLiteralType(NodeType::LITERAL_FLOAT) == LiteralType::FLOAT);
-static_assert(getLiteralType(NodeType::LITERAL_STRING) == LiteralType::STRING);
-static_assert(getLiteralType(NodeType::LITERAL_INTEGER) == LiteralType::INTEGER);
-static_assert(getLiteralType(NodeType::LITERAL_INTERVAL) == LiteralType::INTERVAL);
-
-constexpr BinaryExpressionFunction getBinaryExpressionFunction(ExpressionOperator op) {
-    switch (op) {
-#define X(OP)                    \
-    case ExpressionOperator::OP: \
-        return BinaryExpressionFunction::OP;
-
-        X(PLUS)
-        X(MINUS)
-        X(MULTIPLY)
-        X(DIVIDE)
-        X(MODULUS)
-        X(XOR)
-#undef X
-        default:
-            return BinaryExpressionFunction::UNKNOWN;
-    }
-}
-
-constexpr ComparisonFunction getComparisonFunction(ExpressionOperator op) {
-    switch (op) {
-#define X(OP)                    \
-    case ExpressionOperator::OP: \
-        return ComparisonFunction::OP;
-
-        X(EQUAL)
-        X(NOT_EQUAL)
-        X(LESS_EQUAL)
-        X(LESS_THAN)
-        X(GREATER_EQUAL)
-        X(GREATER_THAN)
-#undef X
-        default:
-            return ComparisonFunction::UNKNOWN;
-    }
-}
-
 void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> child_buffer;
 
@@ -96,84 +48,82 @@ void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel
                 auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto child_attrs = state.attribute_index.Load(children);
                 auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
-                if (op_node) {
-                    assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
+                if (!op_node) continue;
 
-                    // Are all children const?
-                    auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], state.ast);
-                    bool all_args_const = true;
-                    if (child_buffer.size() < arg_nodes.size()) {
-                        child_buffer.resize(arg_nodes.size());
-                    }
-                    for (size_t i = 0; i < arg_nodes.size(); ++i) {
-                        size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
-                        auto* arg_expr = state.expression_index[arg_node_id];
-                        if (arg_expr && arg_expr->IsConstant()) {
-                            child_buffer[i] = arg_expr;
-                        } else {
-                            all_args_const = false;
-                        }
-                    }
-                    auto child_expressions = std::span{child_buffer}.subspan(0, arg_nodes.size());
-                    if (all_args_const) {
-                        // Translate the expression type
-                        ExpressionOperator op_type =
-                            static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-                        switch (op_type) {
-                            // Binary expressions
-                            case ExpressionOperator::PLUS:
-                            case ExpressionOperator::MINUS:
-                            case ExpressionOperator::MULTIPLY:
-                            case ExpressionOperator::DIVIDE:
-                            case ExpressionOperator::MODULUS:
-                            case ExpressionOperator::XOR:
-                            case ExpressionOperator::AND:
-                            case ExpressionOperator::OR: {
-                                assert(child_expressions.size() == 2);
-                                AnalyzedScript::Expression::BinaryExpression inner{
-                                    .func = getBinaryExpressionFunction(op_type),
-                                    .left_expression_id = child_expressions[0]->expression_id.GetObject(),
-                                    .right_expression_id = child_expressions[1]->expression_id.GetObject(),
-                                    .projection_target_left = false,
-                                };
-                                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                                n.is_constant = true;
-                                state.expression_index[node_id] = &n;
-                                constexpr_list.PushBack(n);
-                                break;
-                            }
+                assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
-                            // Comparisons
-                            case ExpressionOperator::EQUAL:
-                            case ExpressionOperator::NOT_EQUAL:
-                            case ExpressionOperator::LESS_THAN:
-                            case ExpressionOperator::LESS_EQUAL:
-                            case ExpressionOperator::GREATER_THAN:
-                            case ExpressionOperator::GREATER_EQUAL: {
-                                assert(child_expressions.size() == 2);
-                                AnalyzedScript::Expression::Comparison inner{
-                                    .func = getComparisonFunction(op_type),
-                                    .left_expression_id = child_expressions[0]->expression_id.GetObject(),
-                                    .right_expression_id = child_expressions[1]->expression_id.GetObject(),
-                                    .restriction_target_left = false,
-                                };
-                                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                                n.is_constant = true;
-                                state.expression_index[node_id] = &n;
-                                constexpr_list.PushBack(n);
-                                break;
-                            }
-
-                            // Unary expressions
-                            case ExpressionOperator::NEGATE:
-                            case ExpressionOperator::NOT:
-                                break;
-                            default:
-                                break;
-                        }
+                // Are all children const?
+                auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], state.ast);
+                bool all_args_const = true;
+                if (child_buffer.size() < arg_nodes.size()) {
+                    child_buffer.resize(arg_nodes.size());
+                }
+                for (size_t i = 0; i < arg_nodes.size(); ++i) {
+                    size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
+                    auto* arg_expr = state.expression_index[arg_node_id];
+                    if (arg_expr && arg_expr->IsConstant()) {
+                        child_buffer[i] = arg_expr;
+                    } else {
+                        all_args_const = false;
                     }
                 }
-                break;
+                auto child_expressions = std::span{child_buffer}.subspan(0, arg_nodes.size());
+                if (!all_args_const) continue;
+
+                // Translate the expression type
+                ExpressionOperator op_type = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+                switch (op_type) {
+                    // Binary expressions
+                    case ExpressionOperator::PLUS:
+                    case ExpressionOperator::MINUS:
+                    case ExpressionOperator::MULTIPLY:
+                    case ExpressionOperator::DIVIDE:
+                    case ExpressionOperator::MODULUS:
+                    case ExpressionOperator::XOR:
+                    case ExpressionOperator::AND:
+                    case ExpressionOperator::OR: {
+                        assert(child_expressions.size() == 2);
+                        AnalyzedScript::Expression::BinaryExpression inner{
+                            .func = readBinaryExpressionFunction(op_type),
+                            .left_expression_id = child_expressions[0]->expression_id.GetObject(),
+                            .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                            .projection_target_left = false,
+                        };
+                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                        n.is_constant = true;
+                        state.expression_index[node_id] = &n;
+                        constexpr_list.PushBack(n);
+                        break;
+                    }
+
+                    // Comparisons
+                    case ExpressionOperator::EQUAL:
+                    case ExpressionOperator::NOT_EQUAL:
+                    case ExpressionOperator::LESS_THAN:
+                    case ExpressionOperator::LESS_EQUAL:
+                    case ExpressionOperator::GREATER_THAN:
+                    case ExpressionOperator::GREATER_EQUAL: {
+                        assert(child_expressions.size() == 2);
+                        AnalyzedScript::Expression::Comparison inner{
+                            .func = readComparisonFunction(op_type),
+                            .left_expression_id = child_expressions[0]->expression_id.GetObject(),
+                            .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                            .restriction_target_left = false,
+                        };
+                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                        n.is_constant = true;
+                        state.expression_index[node_id] = &n;
+                        constexpr_list.PushBack(n);
+                        break;
+                    }
+
+                    // Unary expressions
+                    case ExpressionOperator::NEGATE:
+                    case ExpressionOperator::NOT:
+                        break;
+                    default:
+                        break;
+                }
             }
             default:
                 break;

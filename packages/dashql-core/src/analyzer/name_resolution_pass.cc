@@ -451,7 +451,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .column_name = column_name.value(),
                         .ast_scope_root = std::nullopt};
                     auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(unresolved));
+                    n.is_projection = true;
                     node_state.column_references.PushBack(n);
+                    state.expression_index[node_id] = &n;
                 }
                 // Column refs may be recursive
                 MergeChildStates(node_state, node);
