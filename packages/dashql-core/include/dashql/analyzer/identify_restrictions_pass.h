@@ -4,7 +4,6 @@
 #include "dashql/analyzer/identify_projections_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"
-#include "dashql/utils/attribute_index.h"
 
 namespace dashql {
 
@@ -22,21 +21,6 @@ namespace dashql {
 ///   - Restrictions with projections like: json_value() = <constant>
 ///
 class IdentifyRestrictionsPass : public PassManager::LTRPass {
-    /// The scanned program
-    ScannedScript& scanned;
-    /// The parsed program
-    ParsedScript& parsed;
-    /// The analyzed program
-    AnalyzedScript& analyzed;
-    /// The external id of the current script
-    const CatalogEntryID catalog_entry_id;
-    /// The catalog
-    Catalog& catalog;
-    /// The attribute index
-    AttributeIndex& attribute_index;
-    /// The ast
-    std::span<const buffers::parser::Node> ast;
-
     /// The name resolution pass
     NameResolutionPass& name_resolution;
     /// The constexprs pass
@@ -44,18 +28,20 @@ class IdentifyRestrictionsPass : public PassManager::LTRPass {
     /// The projection pass
     IdentifyProjectionsPass& identify_projections;
 
+    /// List of identified restrictions
+    IntrusiveList<AnalyzedScript::Expression> restriction_list;
+
    public:
     /// Constructor
-    IdentifyRestrictionsPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index,
-                             NameResolutionPass& name_resolution, IdentifyConstExprsPass& identify_constants,
-                             IdentifyProjectionsPass& identify_projections);
+    IdentifyRestrictionsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+                             IdentifyConstExprsPass& identify_constants, IdentifyProjectionsPass& identify_projections);
 
     /// Prepare the analysis pass
-    void Prepare();
+    void Prepare() override;
     /// Visit a chunk of nodes
-    void Visit(std::span<buffers::parser::Node> morsel);
+    void Visit(std::span<const buffers::parser::Node> morsel) override;
     /// Finish the analysis pass
-    void Finish();
+    void Finish() override;
 };
 
 }  // namespace dashql

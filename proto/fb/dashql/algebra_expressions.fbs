@@ -28,6 +28,10 @@ table UnaryExpression {
     func: UnaryFunction;
     /// The unary expression
     input: uint32;
+    /// Is the expression constant?
+    is_constant: bool;
+    /// Is the expression projecting?
+    is_projection: bool;
 }
 
 enum BinaryExpressionFunction: uint8 {
@@ -38,15 +42,7 @@ enum BinaryExpressionFunction: uint8 {
     DIVIDE = 5,
     MODULUS = 6,
     XOR = 7,
-    LESS_THAN = 8,
-    LESS_EQUAL = 9,
-    GREATER_THAN = 10,
-    GREATER_EQUAL = 11,
-    NOT_EQUAL = 12,
-    AND = 13,
-    OR = 14,
 }
-
 
 table BinaryExpression {
     /// The binary function
@@ -55,7 +51,39 @@ table BinaryExpression {
     left_child: uint32;
     /// The right child
     right_child: uint32;
+    /// Is the expression constant?
+    is_constant: bool;
+    /// Is the expression projecting?
+    is_projection: bool;
+    /// Is the projection target left?
+    projection_target_left: bool;
 }
+
+enum ComparisonFunction: uint8 {
+    UNKNOWN = 0,
+    EQUAL = 1,
+    NOT_EQUAL = 2,
+    LESS_THAN = 3,
+    LESS_EQUAL = 4,
+    GREATER_THAN = 5,
+    GREATER_EQUAL = 6,
+}
+
+table Comparison {
+    /// The comparison function
+    func: ComparisonFunction;
+    /// The left child
+    left_child: uint32;
+    /// The right child
+    right_child: uint32;
+    /// Is the comparison constant?
+    is_constant: bool;
+    /// Is this comparison a restriction?
+    is_restriction: bool;
+    /// Is the restriction target left?
+    restriction_target_left: bool;
+}
+
 
 enum NaryExpressionFunction: uint8 {
     AND = 0,
@@ -67,26 +95,10 @@ table NaryExpression {
     func: NaryExpressionFunction;
     /// The children
     children: [uint32];
-}
-
-enum ComparisonFunction: uint8 {
-    EQUAL = 0,
-    NOT_EQUAL = 1,
-    IS = 2,
-    IS_NOT = 3,
-    LESS = 4,
-    LESS_OR_EQUAL = 5,
-    GREATER = 6,
-    GREATER_OR_EQUAL = 7
-}
-
-table Comparison {
-    /// The comparison function
-    func: ComparisonFunction;
-    /// The left child
-    left_child: uint32;
-    /// The right child
-    right_child: uint32;
+    /// Is the comparison constant?
+    is_constant: bool;
+    /// The projection target index
+    projection_target_index: uint32;
 }
 
 table ResolvedColumnRefExpression {
@@ -132,4 +144,8 @@ table Expression {
     location: parser.Location;
     /// The inner type
     inner: ExpressionSubType;
+    /// Is the expression constant?
+    is_constexpr: bool;
+    /// Is a projection?
+    is_projection: bool;
 }

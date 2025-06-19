@@ -5,13 +5,13 @@
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/buffers/index_generated.h"
-#include "dashql/external.h"
 #include "dashql/script.h"
 #include "dashql/text/names.h"
-#include "dashql/utils/attribute_index.h"
 #include "dashql/utils/intrusive_list.h"
 
 namespace dashql {
+
+struct AnalyzerState;
 
 class NameResolutionPass : public PassManager::LTRPass {
    protected:
@@ -33,27 +33,8 @@ class NameResolutionPass : public PassManager::LTRPass {
     };
 
    protected:
-    /// The scanned program
-    ScannedScript& scanned;
-    /// The parsed program
-    ParsedScript& parsed;
-    /// The analyzed program
-    AnalyzedScript& analyzed;
-    /// The external id of the current script
-    const CatalogEntryID catalog_entry_id;
-    /// The catalog
-    Catalog& catalog;
-    /// The attribute index
-    AttributeIndex& attribute_index;
-    /// The ast
-    std::span<const buffers::parser::Node> ast;
-
-    /// The empty name
-    RegisteredName& empty_name;
-
     /// The state of all nodes
     std::vector<NodeState> node_states;
-
     /// The root scopes
     ankerl::unordered_dense::set<AnalyzedScript::NameScope*> root_scopes;
     /// The temporary name path buffer
@@ -96,17 +77,12 @@ class NameResolutionPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    NameResolutionPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index);
-
-    /// Helper to determine if an ast node is a column ref
-    inline bool IsColumnRef(size_t ast_node_id) {
-        return ast[ast_node_id].node_type() == buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF;
-    }
+    NameResolutionPass(AnalyzerState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;
     /// Visit a chunk of nodes
-    void Visit(std::span<buffers::parser::Node> morsel) override;
+    void Visit(std::span<const buffers::parser::Node> morsel) override;
     /// Finish the analysis pass
     void Finish() override;
 };

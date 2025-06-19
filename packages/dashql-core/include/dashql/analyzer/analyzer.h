@@ -3,6 +3,8 @@
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/script.h"
+#include "dashql/text/names.h"
 #include "dashql/utils/attribute_index.h"
 
 namespace dashql {
@@ -11,20 +13,48 @@ struct NameResolutionPass;
 struct IdentifyConstExprsPass;
 struct IdentifyProjectionsPass;
 struct IdentifyRestrictionsPass;
-class AnalyzedScript;
+class ScannedScript;
+class ParsedScript;
+
+/// The state state is shared between the passes
+struct AnalyzerState {
+    /// Contains an entry for every ast node, storing an expression pointer if the ast node has been translated.
+    using ExpressionIndex = std::vector<const AnalyzedScript::Expression*>;
+
+    /// The scanned program (input)
+    ScannedScript& scanned;
+    /// The parsed program (input)
+    ParsedScript& parsed;
+    /// The parsed ast
+    std::span<const buffers::parser::Node> ast;
+    /// The analyzed program (output)
+    std::shared_ptr<AnalyzedScript> analyzed;
+
+    /// The external id of the current script
+    const CatalogEntryID catalog_entry_id;
+    /// The catalog
+    Catalog& catalog;
+
+    /// The attribute index
+    AttributeIndex attribute_index;
+    /// The expression index.
+    ExpressionIndex expression_index;
+
+    /// A dummy emtpy registered name.
+    /// Used to construct qualified column and table identifiers and fill the prefix.
+    RegisteredName& empty_name;
+
+    /// Constructor
+    AnalyzerState(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+};
 
 struct Analyzer {
     friend class AnalyzedScript;
 
    protected:
-    /// The catalog
-    Catalog& catalog;
-    /// The parsed program
-    const std::shared_ptr<ParsedScript> parsed;
-    /// The parsed program
-    std::shared_ptr<AnalyzedScript> analyzed;
-    /// The attribute index
-    AttributeIndex attribute_index;
+    /// The shared analysis state
+    AnalyzerState state;
+
     /// The pass manager
     PassManager pass_manager;
     /// The name resolution pass
@@ -39,6 +69,8 @@ struct Analyzer {
    public:
     /// Constructor
     Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+    /// Run the analyzer
+    std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Execute();
 
     /// Analyze a program
     static std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyze(

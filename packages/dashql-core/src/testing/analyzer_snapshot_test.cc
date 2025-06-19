@@ -3,7 +3,6 @@
 #include <format>
 #include <fstream>
 
-#include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/testing/xml_tests.h"
@@ -222,6 +221,22 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     break;
                 }
                 case 4: {
+                    auto& cmp = std::get<AnalyzedScript::Expression::Comparison>(ref.inner);
+                    xml_ref.append_attribute("type").set_value("comparison");
+
+                    auto* op_tt = buffers::algebra::ComparisonFunctionTypeTable();
+                    xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(cmp.func)]);
+                    xml_ref.append_attribute("left").set_value(cmp.left_expression_id);
+                    xml_ref.append_attribute("right").set_value(cmp.right_expression_id);
+                    if (ref.is_constant) {
+                        xml_ref.append_attribute("const").set_value(ref.is_constant);
+                    }
+                    if (ref.is_restriction) {
+                        xml_ref.append_attribute("restrict").set_value(cmp.restriction_target_left ? "left" : "right");
+                    }
+                    break;
+                }
+                case 5: {
                     auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(ref.inner);
                     xml_ref.append_attribute("type").set_value("binary");
 
@@ -229,6 +244,12 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
                     xml_ref.append_attribute("left").set_value(binary.left_expression_id);
                     xml_ref.append_attribute("right").set_value(binary.right_expression_id);
+                    if (ref.is_constant) {
+                        xml_ref.append_attribute("const").set_value(ref.is_constant);
+                    }
+                    if (ref.is_projection) {
+                        xml_ref.append_attribute("project").set_value(binary.projection_target_left ? "left" : "right");
+                    }
                     break;
                 }
             }

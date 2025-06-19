@@ -1,25 +1,18 @@
 #include "dashql/analyzer/identify_constexprs_pass.h"
 
+#include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/ast_reader.h"
 
 namespace dashql {
 
-IdentifyConstExprsPass::IdentifyConstExprsPass(AnalyzedScript& analyzed, Catalog& catalog,
-                                               AttributeIndex& attribute_index)
-    : scanned(*analyzed.parsed_script->scanned_script),
-      parsed(*analyzed.parsed_script),
-      analyzed(analyzed),
-      catalog_entry_id(parsed.external_id),
-      catalog(catalog),
-      attribute_index(attribute_index),
-      ast(parsed.nodes),
-      constexpr_map(),
-      constexpr_list() {}
+IdentifyConstExprsPass::IdentifyConstExprsPass(AnalyzerState& state) : PassManager::LTRPass(state) {}
 
-void IdentifyConstExprsPass::Prepare() { constexpr_map.resize(ast.size(), nullptr); }
+void IdentifyConstExprsPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
+using BinaryExpressionFunction = buffers::algebra::BinaryExpressionFunction;
+using ComparisonFunction = buffers::algebra::ComparisonFunction;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
 using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
@@ -37,8 +30,6 @@ static_assert(getLiteralType(NodeType::LITERAL_STRING) == LiteralType::STRING);
 static_assert(getLiteralType(NodeType::LITERAL_INTEGER) == LiteralType::INTEGER);
 static_assert(getLiteralType(NodeType::LITERAL_INTERVAL) == LiteralType::INTERVAL);
 
-using BinaryExpressionFunction = buffers::algebra::BinaryExpressionFunction;
-
 constexpr BinaryExpressionFunction getBinaryExpressionFunction(ExpressionOperator op) {
     switch (op) {
 #define X(OP)                    \
@@ -51,25 +42,36 @@ constexpr BinaryExpressionFunction getBinaryExpressionFunction(ExpressionOperato
         X(DIVIDE)
         X(MODULUS)
         X(XOR)
-        X(LESS_THAN)
-        X(LESS_EQUAL)
-        X(GREATER_THAN)
-        X(GREATER_EQUAL)
-        X(NOT_EQUAL)
-        X(AND)
-        X(OR)
 #undef X
         default:
             return BinaryExpressionFunction::UNKNOWN;
     }
 }
 
-void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
-    std::vector<const AnalyzedScript::Expression*> child_expressions_buffer;
+constexpr ComparisonFunction getComparisonFunction(ExpressionOperator op) {
+    switch (op) {
+#define X(OP)                    \
+    case ExpressionOperator::OP: \
+        return ComparisonFunction::OP;
 
-    size_t morsel_offset = morsel.data() - ast.data();
+        X(EQUAL)
+        X(NOT_EQUAL)
+        X(LESS_EQUAL)
+        X(LESS_THAN)
+        X(GREATER_EQUAL)
+        X(GREATER_THAN)
+#undef X
+        default:
+            return ComparisonFunction::UNKNOWN;
+    }
+}
+
+void IdentifyConstExprsPass::Visit(std::span<const buffers::parser::Node> morsel) {
+    std::vector<const AnalyzedScript::Expression*> child_buffer;
+
+    size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
-        buffers::parser::Node& node = morsel[i];
+        const buffers::parser::Node& node = morsel[i];
         NodeID node_id = morsel_offset + i;
 
         switch (node.node_type()) {
@@ -79,33 +81,40 @@ void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
             case NodeType::LITERAL_INTERVAL:
             case NodeType::LITERAL_NULL:
             case NodeType::LITERAL_STRING: {
-                AnalyzedScript::Expression::Literal inner{.literal_type = getLiteralType(node.node_type()),
-                                                          .raw_value = scanned.ReadTextAtLocation(node.location())};
-                auto& n = analyzed.AddExpression(node_id, node.location(), std::move(inner));
-                constexpr_map[node_id] = &n;
+                AnalyzedScript::Expression::Literal inner{
+                    .literal_type = getLiteralType(node.node_type()),
+                    .raw_value = state.scanned.ReadTextAtLocation(node.location())};
+                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                n.is_constant = true;
+                state.expression_index[node_id] = &n;
                 constexpr_list.PushBack(n);
                 break;
             }
 
             // N-ary expressions
             case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-                auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto child_attrs = attribute_index.Load(children);
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto child_attrs = state.attribute_index.Load(children);
                 auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
                 if (op_node) {
                     assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                     // Are all children const?
-                    auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], ast);
+                    auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], state.ast);
                     bool all_args_const = true;
-                    if (child_expressions_buffer.size() < arg_nodes.size()) {
-                        child_expressions_buffer.resize(arg_nodes.size());
+                    if (child_buffer.size() < arg_nodes.size()) {
+                        child_buffer.resize(arg_nodes.size());
                     }
                     for (size_t i = 0; i < arg_nodes.size(); ++i) {
-                        child_expressions_buffer[i] = GetConstExpr(arg_nodes[i]);
-                        all_args_const &= child_expressions_buffer[i] != nullptr;
+                        size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
+                        auto* arg_expr = state.expression_index[arg_node_id];
+                        if (arg_expr && arg_expr->IsConstant()) {
+                            child_buffer[i] = arg_expr;
+                        } else {
+                            all_args_const = false;
+                        }
                     }
-                    auto child_expressions = std::span{child_expressions_buffer}.subspan(0, arg_nodes.size());
+                    auto child_expressions = std::span{child_buffer}.subspan(0, arg_nodes.size());
                     if (all_args_const) {
                         // Translate the expression type
                         ExpressionOperator op_type =
@@ -118,11 +127,6 @@ void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
                             case ExpressionOperator::DIVIDE:
                             case ExpressionOperator::MODULUS:
                             case ExpressionOperator::XOR:
-                            case ExpressionOperator::LESS_THAN:
-                            case ExpressionOperator::LESS_EQUAL:
-                            case ExpressionOperator::GREATER_THAN:
-                            case ExpressionOperator::GREATER_EQUAL:
-                            case ExpressionOperator::NOT_EQUAL:
                             case ExpressionOperator::AND:
                             case ExpressionOperator::OR: {
                                 assert(child_expressions.size() == 2);
@@ -130,9 +134,32 @@ void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
                                     .func = getBinaryExpressionFunction(op_type),
                                     .left_expression_id = child_expressions[0]->expression_id.GetObject(),
                                     .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                                    .projection_target_left = false,
                                 };
-                                auto& n = analyzed.AddExpression(node_id, node.location(), std::move(inner));
-                                constexpr_map[node_id] = &n;
+                                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                                n.is_constant = true;
+                                state.expression_index[node_id] = &n;
+                                constexpr_list.PushBack(n);
+                                break;
+                            }
+
+                            // Comparisons
+                            case ExpressionOperator::EQUAL:
+                            case ExpressionOperator::NOT_EQUAL:
+                            case ExpressionOperator::LESS_THAN:
+                            case ExpressionOperator::LESS_EQUAL:
+                            case ExpressionOperator::GREATER_THAN:
+                            case ExpressionOperator::GREATER_EQUAL: {
+                                assert(child_expressions.size() == 2);
+                                AnalyzedScript::Expression::Comparison inner{
+                                    .func = getComparisonFunction(op_type),
+                                    .left_expression_id = child_expressions[0]->expression_id.GetObject(),
+                                    .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                                    .restriction_target_left = false,
+                                };
+                                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                                n.is_constant = true;
+                                state.expression_index[node_id] = &n;
                                 constexpr_list.PushBack(n);
                                 break;
                             }
@@ -148,7 +175,6 @@ void IdentifyConstExprsPass::Visit(std::span<buffers::parser::Node> morsel) {
                 }
                 break;
             }
-
             default:
                 break;
         }

@@ -254,14 +254,27 @@ class AnalyzedScript : public CatalogEntry {
             /// The raw value
             std::string_view raw_value;
         };
+        /// A comparison
+        struct Comparison {
+            /// The comparison function
+            buffers::algebra::ComparisonFunction func = buffers::algebra::ComparisonFunction::UNKNOWN;
+            /// The expression id of the left child
+            uint32_t left_expression_id = 0;
+            /// The expression id of the right child
+            uint32_t right_expression_id = 0;
+            /// Is the restriction target left?
+            bool restriction_target_left = false;
+        };
         /// A binary expression
         struct BinaryExpression {
             /// The binary expression function
-            buffers::algebra::BinaryExpressionFunction func;
+            buffers::algebra::BinaryExpressionFunction func = buffers::algebra::BinaryExpressionFunction::UNKNOWN;
             /// The expression id of the left child
-            uint32_t left_expression_id;
+            uint32_t left_expression_id = 0;
             /// The expression id of the right child
-            uint32_t right_expression_id;
+            uint32_t right_expression_id = 0;
+            /// Is the projection target the left child?
+            bool projection_target_left = true;
         };
 
         /// The expression id as (entry_id, reference_index)
@@ -273,15 +286,24 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
-        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, BinaryExpression> inner;
+        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, Comparison, BinaryExpression>
+            inner;
+        /// Is the expression a constant?
+        bool is_constant = false;
+        /// Is the expression a projection?
+        bool is_projection = false;
+        /// Is the expression a restriction?
+        bool is_restriction = false;
 
         /// Constructor
         Expression() : inner(std::monostate{}) {}
         // Check if the expression is a column ref
-        inline bool IsColumnRef() {
+        inline bool IsColumnRef() const {
             return std::holds_alternative<UnresolvedColumnRef>(inner) ||
                    std::holds_alternative<ResolvedColumnRef>(inner);
         }
+        // Check if the expression is a constant
+        inline bool IsConstant() const { return is_constant; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };

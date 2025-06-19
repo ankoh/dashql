@@ -6,6 +6,7 @@
 #include <optional>
 #include <stack>
 
+#include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/external.h"
@@ -41,26 +42,15 @@ void NameResolutionPass::NodeState::Clear() {
 }
 
 /// Constructor
-NameResolutionPass::NameResolutionPass(AnalyzedScript& analyzed, Catalog& catalog, AttributeIndex& attribute_index)
-    : scanned(*analyzed.parsed_script->scanned_script),
-      parsed(*analyzed.parsed_script),
-      analyzed(analyzed),
-      catalog_entry_id(parsed.external_id),
-      catalog(catalog),
-      attribute_index(attribute_index),
-      ast(parsed.nodes),
-      empty_name(parsed.scanned_script->name_registry.Register("")) {
-    node_states.resize(ast.size());
-    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
-    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
-}
+NameResolutionPass::NameResolutionPass(AnalyzerState& state)
+    : PassManager::LTRPass(state), node_states(state.ast.size()) {}
 
 std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePath(const sx::parser::Node& node) {
     if (node.node_type() != buffers::parser::NodeType::ARRAY) {
         return {};
     }
     name_path_buffer.clear();
-    auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
+    auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
     for (size_t i = 0; i != children.size(); ++i) {
         // A child is either a name, an indirection or an operator (*).
         // We only consider plan name paths for now and extend later.
@@ -74,7 +64,7 @@ std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePa
             name_path_buffer.clear();
             break;
         }
-        auto& name = scanned.GetNames().At(child.children_begin_or_value());
+        auto& name = state.scanned.GetNames().At(child.children_begin_or_value());
         name_path_buffer.push_back(name);
     }
     return std::span{name_path_buffer};
@@ -86,7 +76,7 @@ std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualif
         return std::nullopt;
     }
     auto name_path = ReadNamePath(*node);
-    auto ast_node_id = node - ast.data();
+    auto ast_node_id = node - state.ast.data();
     switch (name_path.size()) {
         case 3:
             name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::DATABASE_NAME;
@@ -96,11 +86,11 @@ std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualif
         case 2: {
             name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
             name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, name_path[0], name_path[1]};
+            return AnalyzedScript::QualifiedTableName{ast_node_id, state.empty_name, name_path[0], name_path[1]};
         }
         case 1: {
             name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, empty_name, empty_name, name_path[0]};
+            return AnalyzedScript::QualifiedTableName{ast_node_id, state.empty_name, state.empty_name, name_path[0]};
         }
         default:
             return std::nullopt;
@@ -113,7 +103,7 @@ std::optional<AnalyzedScript::QualifiedColumnName> NameResolutionPass::ReadQuali
         return std::nullopt;
     }
     auto name_path = ReadNamePath(*node);
-    auto ast_node_id = node - ast.data();
+    auto ast_node_id = node - state.ast.data();
     // Build the qualified column name
     switch (name_path.size()) {
         case 2:
@@ -134,22 +124,23 @@ std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema
     // Register the database
     CatalogDatabaseID db_id = 0;
     CatalogSchemaID schema_id = 0;
-    auto db_ref_iter = analyzed.databases_by_name.find(database_name);
-    if (db_ref_iter == analyzed.databases_by_name.end()) {
-        db_id = catalog.AllocateDatabaseId(database_name);
-        auto& db = analyzed.database_references.Append(CatalogEntry::DatabaseReference{db_id, database_name, ""});
-        analyzed.databases_by_name.insert({db.database_name, db});
+    auto db_ref_iter = state.analyzed->databases_by_name.find(database_name);
+    if (db_ref_iter == state.analyzed->databases_by_name.end()) {
+        db_id = state.catalog.AllocateDatabaseId(database_name);
+        auto& db =
+            state.analyzed->database_references.Append(CatalogEntry::DatabaseReference{db_id, database_name, ""});
+        state.analyzed->databases_by_name.insert({db.database_name, db});
         database_name.resolved_objects.PushBack(db.CastToBase());
     } else {
         db_id = db_ref_iter->second.get().catalog_database_id;
     }
     // Register the schema
-    auto schema_ref_iter = analyzed.schemas_by_qualified_name.find({database_name, schema_name});
-    if (schema_ref_iter == analyzed.schemas_by_qualified_name.end()) {
-        schema_id = catalog.AllocateSchemaId(database_name, schema_name);
-        auto& schema = analyzed.schema_references.Append(
+    auto schema_ref_iter = state.analyzed->schemas_by_qualified_name.find({database_name, schema_name});
+    if (schema_ref_iter == state.analyzed->schemas_by_qualified_name.end()) {
+        schema_id = state.catalog.AllocateSchemaId(database_name, schema_name);
+        auto& schema = state.analyzed->schema_references.Append(
             CatalogEntry::SchemaReference{db_id, schema_id, database_name, schema_name});
-        analyzed.schemas_by_qualified_name.insert({{database_name, schema_name}, schema});
+        state.analyzed->schemas_by_qualified_name.insert({{database_name, schema_name}, schema});
         schema_name.resolved_objects.PushBack(schema.CastToBase());
     } else {
         schema_id = schema_ref_iter->second.get().catalog_schema_id;
@@ -161,7 +152,7 @@ void NameResolutionPass::MergeChildStates(NodeState& dst,
                                           std::initializer_list<const buffers::parser::Node*> children) {
     for (const buffers::parser::Node* child : children) {
         if (!child) continue;
-        dst.Merge(std::move(node_states[child - ast.data()]));
+        dst.Merge(std::move(node_states[child - state.ast.data()]));
     }
 }
 
@@ -174,12 +165,12 @@ void NameResolutionPass::MergeChildStates(NodeState& dst, const buffers::parser:
 }
 
 AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, uint32_t scope_root) {
-    auto& scope =
-        analyzed.name_scopes.Append(AnalyzedScript::NameScope{.name_scope_id = analyzed.name_scopes.GetSize(),
-                                                              .ast_node_id = scope_root,
-                                                              .parent_scope = nullptr,
-                                                              .child_scopes = target.child_scopes.CastAsBase()});
-    analyzed.name_scopes_by_root_node.insert({scope_root, scope});
+    auto& scope = state.analyzed->name_scopes.Append(
+        AnalyzedScript::NameScope{.name_scope_id = state.analyzed->name_scopes.GetSize(),
+                                  .ast_node_id = scope_root,
+                                  .parent_scope = nullptr,
+                                  .child_scopes = target.child_scopes.CastAsBase()});
+    state.analyzed->name_scopes_by_root_node.insert({scope_root, scope});
     for (auto& child_scope : target.child_scopes) {
         child_scope.parent_scope = &scope;
         root_scopes.erase(&child_scope);
@@ -219,11 +210,11 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             auto resolved_iter = scope.referenced_tables_by_name.find(alias);
             if (resolved_iter != scope.referenced_tables_by_name.end()) {
                 // Register an error
-                auto& error = analyzed.errors.emplace_back();
+                auto& error = state.analyzed->errors.emplace_back();
                 error.error_type = buffers::analyzer::AnalyzerErrorType::DUPLICATE_TABLE_ALIAS;
                 error.ast_node_id = table_ref.ast_node_id;
                 error.location =
-                    std::make_unique<buffers::parser::Location>(parsed.nodes[table_ref.ast_node_id].location());
+                    std::make_unique<buffers::parser::Location>(state.parsed.nodes[table_ref.ast_node_id].location());
 
                 std::string tmp;
                 std::string_view alias_text = alias;
@@ -236,12 +227,12 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
 
         // Try to resolve in the own script
         std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>> resolved_tables;
-        analyzed.ResolveTable(table_name, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
+        state.analyzed->ResolveTable(table_name, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
 
         // Didn't find anything?
         // Then resolve through the catalog
         if (resolved_tables.size() == 0) {
-            catalog.ResolveTable(table_name, catalog_entry_id, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
+            state.catalog.ResolveTable(table_name, state.catalog_entry_id, resolved_tables, MAX_TABLE_REF_AMBIGUITY);
         }
 
         // Found something?
@@ -329,12 +320,12 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                 }
                 // Is the column ref ambiguous?
                 if (candidates.size() > 1) {
-                    analyzed.errors.emplace_back();
-                    auto& error = analyzed.errors.back();
+                    state.analyzed->errors.emplace_back();
+                    auto& error = state.analyzed->errors.back();
                     error.error_type = buffers::analyzer::AnalyzerErrorType::COLUMN_REF_AMBIGUOUS;
                     error.ast_node_id = expr.ast_node_id;
                     error.location =
-                        std::make_unique<buffers::parser::Location>(parsed.nodes[expr.ast_node_id].location());
+                        std::make_unique<buffers::parser::Location>(state.parsed.nodes[expr.ast_node_id].location());
 
                     // Construct the error message
                     // Note that we deliberately do not use std::stringstream here since clang is then baking in fd
@@ -387,8 +378,8 @@ void NameResolutionPass::ResolveNames() {
     // Create column ref maps
     ColumnRefsByAlias tmp_refs_by_alias;
     ColumnRefsByAlias tmp_refs_by_name;
-    tmp_refs_by_alias.reserve(analyzed.expressions.GetSize());
-    tmp_refs_by_name.reserve(analyzed.expressions.GetSize());
+    tmp_refs_by_alias.reserve(state.analyzed->expressions.GetSize());
+    tmp_refs_by_name.reserve(state.analyzed->expressions.GetSize());
 
     // Recursively traverse down the scopes
     std::stack<std::reference_wrapper<AnalyzedScript::NameScope>> pending_scopes;
@@ -412,16 +403,16 @@ void NameResolutionPass::ResolveNames() {
 void NameResolutionPass::Prepare() {}
 
 /// Visit a chunk of nodes
-void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
+void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
     // XXX What about:
     //  indirections? c_expr
     //  subquery with alias
 
     // Scan nodes in morsel
-    size_t morsel_offset = morsel.data() - ast.data();
+    size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         // Resolve the node
-        buffers::parser::Node& node = morsel[i];
+        const buffers::parser::Node& node = morsel[i];
         NodeID node_id = morsel_offset + i;
         // Create empty node state
         NodeState& node_state = node_states[node_id];
@@ -429,11 +420,11 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
         // Check node type
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_DEF: {
-                auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = attribute_index.Load(children);
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto attrs = state.attribute_index.Load(children);
                 auto column_def_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_DEF_NAME];
                 if (column_def_node && column_def_node->node_type() == sx::parser::NodeType::NAME) {
-                    auto& name = scanned.GetNames().At(column_def_node->children_begin_or_value());
+                    auto& name = state.scanned.GetNames().At(column_def_node->children_begin_or_value());
                     name.coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
                     if (auto reused = pending_columns_free_list.PopFront()) {
                         *reused = AnalyzedScript::TableColumn(node_id, name);
@@ -448,10 +439,10 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
 
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
                 // Read column ref path
-                auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = attribute_index.Load(children);
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto attrs = state.attribute_index.Load(children);
                 auto column_ref_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_REF_PATH];
-                auto column_name_node_id = static_cast<uint32_t>(column_ref_node - parsed.nodes.data());
+                auto column_name_node_id = static_cast<uint32_t>(column_ref_node - state.parsed.nodes.data());
                 auto column_name = ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
                     // Add column reference
@@ -459,7 +450,7 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                         .column_name_ast_node_id = column_name_node_id,
                         .column_name = column_name.value(),
                         .ast_scope_root = std::nullopt};
-                    auto& n = analyzed.AddExpression(node_id, node.location(), std::move(unresolved));
+                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(unresolved));
                     node_state.column_references.PushBack(n);
                 }
                 // Column refs may be recursive
@@ -469,11 +460,11 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
 
             case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
                 // Read a table ref name
-                auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = attribute_index.Load(children);
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto attrs = state.attribute_index.Load(children);
                 // Only consider table refs with a name for now
                 if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_NAME]) {
-                    auto name_node_id = static_cast<uint32_t>(name_node - parsed.nodes.data());
+                    auto name_node_id = static_cast<uint32_t>(name_node - state.parsed.nodes.data());
                     auto name = ReadQualifiedTableName(name_node);
                     if (name.has_value()) {
                         // Read a table alias
@@ -481,18 +472,19 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                         auto alias_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_ALIAS];
                         std::optional<std::reference_wrapper<RegisteredName>> alias_name = std::nullopt;
                         if (alias_node && alias_node->node_type() == sx::parser::NodeType::NAME) {
-                            auto& alias = scanned.GetNames().At(alias_node->children_begin_or_value());
+                            auto& alias = state.scanned.GetNames().At(alias_node->children_begin_or_value());
                             alias.coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_ALIAS;
                             alias_str = alias;
                             alias_name = alias;
                         }
                         // Add table reference
-                        auto& n = analyzed.table_references.Append(AnalyzedScript::TableReference(alias_name));
-                        n.buffer_index = analyzed.table_references.GetSize() - 1;
-                        n.table_reference_id = ContextObjectID{
-                            catalog_entry_id, static_cast<uint32_t>(analyzed.table_references.GetSize() - 1)};
+                        auto& n = state.analyzed->table_references.Append(AnalyzedScript::TableReference(alias_name));
+                        n.buffer_index = state.analyzed->table_references.GetSize() - 1;
+                        n.table_reference_id =
+                            ContextObjectID{state.catalog_entry_id,
+                                            static_cast<uint32_t>(state.analyzed->table_references.GetSize() - 1)};
                         n.ast_node_id = node_id;
-                        n.location = parsed.nodes[node_id].location();
+                        n.location = state.parsed.nodes[node_id].location();
                         n.ast_statement_id = std::nullopt;
                         n.ast_scope_root = std::nullopt;
                         n.inner = AnalyzedScript::TableReference::UnresolvedRelationExpression{
@@ -529,7 +521,8 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE: {
-                auto attrs = attribute_index.Load(ast.subspan(node.children_begin_or_value(), node.children_count()));
+                auto attrs = state.attribute_index.Load(
+                    state.ast.subspan(node.children_begin_or_value(), node.children_count()));
                 const buffers::parser::Node* name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
                 const buffers::parser::Node* elements_node =
                     attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
@@ -539,8 +532,8 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                     // Register the database
                     auto [db_id, schema_id] = RegisterSchema(table_name->database_name, table_name->schema_name);
                     // Determine the catalog table id
-                    ContextObjectID catalog_table_id{catalog_entry_id,
-                                                     static_cast<uint32_t>(analyzed.table_declarations.GetSize())};
+                    ContextObjectID catalog_table_id{
+                        state.catalog_entry_id, static_cast<uint32_t>(state.analyzed->table_declarations.GetSize())};
                     // Merge child states
                     MergeChildStates(node_state, {elements_node});
                     // Collect all columns
@@ -555,7 +548,8 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                     // Create the scope
                     CreateScope(node_state, node_id);
                     // Build the table
-                    auto& n = analyzed.table_declarations.Append(AnalyzedScript::TableDeclaration(table_name.value()));
+                    auto& n =
+                        state.analyzed->table_declarations.Append(AnalyzedScript::TableDeclaration(table_name.value()));
                     n.catalog_table_id = catalog_table_id;
                     n.catalog_database_id = db_id;
                     n.catalog_schema_id = schema_id;
@@ -577,7 +571,8 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE_AS: {
-                auto attrs = attribute_index.Load(ast.subspan(node.children_begin_or_value(), node.children_count()));
+                auto attrs = state.attribute_index.Load(
+                    state.ast.subspan(node.children_begin_or_value(), node.children_count()));
                 auto name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
                 auto columns_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
                 auto elements_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
@@ -598,12 +593,12 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
 
 /// Finish the analysis pass
 void NameResolutionPass::Finish() {
-    for (auto& table_chunk : analyzed.table_declarations.GetChunks()) {
+    for (auto& table_chunk : state.analyzed->table_declarations.GetChunks()) {
         for (auto& table : table_chunk) {
-            analyzed.tables_by_qualified_name.insert({table.table_name, table});
-            analyzed.tables_by_unqualified_name.insert({table.table_name.table_name.get().text, table});
+            state.analyzed->tables_by_qualified_name.insert({table.table_name, table});
+            state.analyzed->tables_by_unqualified_name.insert({table.table_name.table_name.get().text, table});
             if (table.table_name.schema_name.get() != "") {
-                analyzed.tables_by_unqualified_schema.insert(
+                state.analyzed->tables_by_unqualified_schema.insert(
                     {{table.table_name.schema_name.get(), table.table_name.database_name.get()}, table});
             }
         }
@@ -613,23 +608,23 @@ void NameResolutionPass::Finish() {
     ResolveNames();
 
     // Bail out if there are no statements
-    if (!parsed.statements.empty()) {
+    if (!state.parsed.statements.empty()) {
         // Helper to assign statement ids
         auto assign_statment_ids = [&](auto& chunks) {
             uint32_t statement_id = 0;
-            size_t statement_begin = parsed.statements[0].nodes_begin;
-            size_t statement_end = statement_begin + parsed.statements[0].node_count;
+            size_t statement_begin = state.parsed.statements[0].nodes_begin;
+            size_t statement_end = statement_begin + state.parsed.statements[0].node_count;
             for (auto& chunk : chunks) {
                 for (auto& ref : chunk) {
                     // Search first statement that might include the node
-                    while (statement_end <= ref.ast_node_id && statement_id < parsed.statements.size()) {
+                    while (statement_end <= ref.ast_node_id && statement_id < state.parsed.statements.size()) {
                         ++statement_id;
-                        statement_begin = parsed.statements[statement_id].nodes_begin;
-                        statement_end = statement_begin + parsed.statements[statement_id].node_count;
+                        statement_begin = state.parsed.statements[statement_id].nodes_begin;
+                        statement_end = statement_begin + state.parsed.statements[statement_id].node_count;
                     }
                     // There is none?
                     // Abort, all other refs won't match either
-                    if (statement_id == parsed.statements.size()) {
+                    if (statement_id == state.parsed.statements.size()) {
                         break;
                     }
                     // The statement includes the node?
@@ -641,16 +636,16 @@ void NameResolutionPass::Finish() {
                 }
             }
         };
-        assign_statment_ids(analyzed.table_references.GetChunks());
-        assign_statment_ids(analyzed.expressions.GetChunks());
-        assign_statment_ids(analyzed.name_scopes.GetChunks());
+        assign_statment_ids(state.analyzed->table_references.GetChunks());
+        assign_statment_ids(state.analyzed->expressions.GetChunks());
+        assign_statment_ids(state.analyzed->name_scopes.GetChunks());
     }
 
     // Index the table declarations
-    analyzed.table_declarations.ForEach([&](size_t ti, auto& table) {
+    state.analyzed->table_declarations.ForEach([&](size_t ti, auto& table) {
         for (size_t i = 0; i < table.table_columns.size(); ++i) {
             auto& column = table.table_columns[i];
-            analyzed.table_columns_by_name.insert({column.column_name.get().text, column});
+            state.analyzed->table_columns_by_name.insert({column.column_name.get().text, column});
         }
     });
 }

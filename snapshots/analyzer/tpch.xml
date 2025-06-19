@@ -1162,8 +1162,8 @@ where
                 <expr id="9" type="literal/float" stmt="0" loc="210..214" text="0.01" />
                 <expr id="10" type="literal/float" stmt="0" loc="219..223" text="0.06" />
                 <expr id="11" type="literal/float" stmt="0" loc="226..230" text="0.01" />
-                <expr id="12" type="binary" op="MINUS" left="8" right="9" stmt="0" loc="203..214" text="0.06 - 0.01" />
-                <expr id="13" type="binary" op="PLUS" left="10" right="11" stmt="0" loc="219..230" text="0.06 + 0.01" />
+                <expr id="12" type="binary" op="MINUS" left="8" right="9" const="true" stmt="0" loc="203..214" text="0.06 - 0.01" />
+                <expr id="13" type="binary" op="PLUS" left="10" right="11" const="true" stmt="0" loc="219..230" text="0.06 + 0.01" />
                 <expr id="14" type="literal/integer" stmt="0" loc="256..258" text="24" />
             </expressions>
         </script>
@@ -3924,7 +3924,7 @@ where
                 <expr id="35" type="literal/integer" stmt="0" loc="309..310" text="1" />
                 <expr id="36" type="literal/integer" stmt="0" loc="329..330" text="1" />
                 <expr id="37" type="literal/integer" stmt="0" loc="333..335" text="10" />
-                <expr id="38" type="binary" op="PLUS" left="36" right="37" stmt="0" loc="329..335" text="1 + 10" />
+                <expr id="38" type="binary" op="PLUS" left="36" right="37" const="true" stmt="0" loc="329..335" text="1 + 10" />
                 <expr id="39" type="literal/integer" stmt="0" loc="371..372" text="1" />
                 <expr id="40" type="literal/integer" stmt="0" loc="377..378" text="5" />
                 <expr id="41" type="literal/string" stmt="0" loc="414..419" text="'AIR'" />
@@ -3938,7 +3938,7 @@ where
                 <expr id="49" type="literal/integer" stmt="0" loc="714..716" text="10" />
                 <expr id="50" type="literal/integer" stmt="0" loc="735..737" text="10" />
                 <expr id="51" type="literal/integer" stmt="0" loc="740..742" text="10" />
-                <expr id="52" type="binary" op="PLUS" left="50" right="51" stmt="0" loc="735..742" text="10 + 10" />
+                <expr id="52" type="binary" op="PLUS" left="50" right="51" const="true" stmt="0" loc="735..742" text="10 + 10" />
                 <expr id="53" type="literal/integer" stmt="0" loc="778..779" text="1" />
                 <expr id="54" type="literal/integer" stmt="0" loc="784..786" text="10" />
                 <expr id="55" type="literal/string" stmt="0" loc="822..827" text="'AIR'" />
@@ -3952,7 +3952,7 @@ where
                 <expr id="63" type="literal/integer" stmt="0" loc="1119..1121" text="20" />
                 <expr id="64" type="literal/integer" stmt="0" loc="1140..1142" text="20" />
                 <expr id="65" type="literal/integer" stmt="0" loc="1145..1147" text="10" />
-                <expr id="66" type="binary" op="PLUS" left="64" right="65" stmt="0" loc="1140..1147" text="20 + 10" />
+                <expr id="66" type="binary" op="PLUS" left="64" right="65" const="true" stmt="0" loc="1140..1147" text="20 + 10" />
                 <expr id="67" type="literal/integer" stmt="0" loc="1183..1184" text="1" />
                 <expr id="68" type="literal/integer" stmt="0" loc="1189..1191" text="15" />
                 <expr id="69" type="literal/string" stmt="0" loc="1227..1232" text="'AIR'" />

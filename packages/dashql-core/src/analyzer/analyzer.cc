@@ -8,37 +8,51 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/script.h"
+#include "dashql/utils/attribute_index.h"
 
 namespace dashql {
 
-Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
-    : parsed(parsed),
+AnalyzerState::AnalyzerState(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
+    : scanned(*parsed->scanned_script),
+      parsed(*parsed),
+      ast(parsed->GetNodes()),
       analyzed(std::make_shared<AnalyzedScript>(parsed, catalog)),
+      catalog_entry_id(parsed->external_id),
       catalog(catalog),
-      pass_manager(*parsed),
-      name_resolution(std::make_unique<NameResolutionPass>(*analyzed, catalog, attribute_index)),
-      identify_constants(std::make_unique<IdentifyConstExprsPass>(*analyzed, catalog, attribute_index)),
-      identify_projections(std::make_unique<IdentifyProjectionsPass>(*analyzed, catalog, attribute_index,
-                                                                     *name_resolution, *identify_constants)),
-      identify_restrictions(std::make_unique<IdentifyRestrictionsPass>(
-          *analyzed, catalog, attribute_index, *name_resolution, *identify_constants, *identify_projections)) {}
+      attribute_index(),
+      expression_index(ast.size(), nullptr),
+      empty_name(parsed->scanned_script->name_registry.Register("")) {
+    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
+    empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
+}
+
+Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
+    : state(parsed, catalog),
+      pass_manager(),
+      name_resolution(std::make_unique<NameResolutionPass>(state)),
+      identify_constants(std::make_unique<IdentifyConstExprsPass>(state)),
+      identify_projections(std::make_unique<IdentifyProjectionsPass>(state, *name_resolution, *identify_constants)),
+      identify_restrictions(std::make_unique<IdentifyRestrictionsPass>(state, *name_resolution, *identify_constants,
+                                                                       *identify_projections)) {}
+
+std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer::Execute() {
+    std::initializer_list<std::reference_wrapper<PassManager::LTRPass>> scan1{
+        *name_resolution,
+        *identify_constants,
+        *identify_projections,
+        *identify_restrictions,
+    };
+    pass_manager.Execute(state, scan1);
+    return {state.analyzed, buffers::status::StatusCode::OK};
+}
 
 std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer::Analyze(
     std::shared_ptr<ParsedScript> parsed, Catalog& catalog) {
     if (parsed == nullptr) {
         return {nullptr, buffers::status::StatusCode::ANALYZER_INPUT_NOT_PARSED};
     }
-    // Run analysis passes
     Analyzer az{parsed, catalog};
-    az.pass_manager.Execute({
-        *az.name_resolution,
-        *az.identify_constants,
-        *az.identify_projections,
-        *az.identify_restrictions,
-    });
-
-    // Build program
-    return {az.analyzed, buffers::status::StatusCode::OK};
+    return az.Execute();
 }
 
 }  // namespace dashql
