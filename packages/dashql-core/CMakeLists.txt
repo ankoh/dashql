@@ -248,7 +248,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/analyzer/completion.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/name_resolution_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/pass_manager.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/identify_constants_pass.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/identify_constexprs_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_projections_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_restrictions_pass.cc
   ${CMAKE_SOURCE_DIR}/src/api.cc

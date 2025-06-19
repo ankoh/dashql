@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dashql/analyzer/identify_constants_pass.h"
+#include "dashql/analyzer/identify_constexprs_pass.h"
 #include "dashql/analyzer/identify_projections_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"

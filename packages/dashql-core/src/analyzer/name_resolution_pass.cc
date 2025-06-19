@@ -455,17 +455,11 @@ void NameResolutionPass::Visit(std::span<buffers::parser::Node> morsel) {
                 auto column_name = ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
                     // Add column reference
-                    auto& n = analyzed.expressions.Append(AnalyzedScript::Expression());
-                    n.buffer_index = analyzed.expressions.GetSize() - 1;
-                    n.expression_id =
-                        ContextObjectID{catalog_entry_id, static_cast<uint32_t>(analyzed.expressions.GetSize() - 1)};
-                    n.ast_node_id = node_id;
-                    n.location = node.location();
-                    n.ast_statement_id = std::nullopt;
-                    n.inner =
-                        AnalyzedScript::Expression::UnresolvedColumnRef{.column_name_ast_node_id = column_name_node_id,
-                                                                        .column_name = column_name.value(),
-                                                                        .ast_scope_root = std::nullopt};
+                    AnalyzedScript::Expression::UnresolvedColumnRef unresolved{
+                        .column_name_ast_node_id = column_name_node_id,
+                        .column_name = column_name.value(),
+                        .ast_scope_root = std::nullopt};
+                    auto& n = analyzed.AddExpression(node_id, node.location(), std::move(unresolved));
                     node_state.column_references.PushBack(n);
                 }
                 // Column refs may be recursive

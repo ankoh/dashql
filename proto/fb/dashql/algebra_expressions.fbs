@@ -32,10 +32,19 @@ table UnaryExpression {
 
 enum BinaryExpressionFunction: uint8 {
     UNKNOWN = 0,
-    ADD = 1,
-    SUB = 2,
-    DIV = 3,
-    MUL = 4,
+    PLUS = 1,
+    MINUS = 2,
+    MULTIPLY = 4,
+    DIVIDE = 5,
+    MODULUS = 6,
+    XOR = 7,
+    LESS_THAN = 8,
+    LESS_EQUAL = 9,
+    GREATER_THAN = 10,
+    GREATER_EQUAL = 11,
+    NOT_EQUAL = 12,
+    AND = 13,
+    OR = 14,
 }
 
 

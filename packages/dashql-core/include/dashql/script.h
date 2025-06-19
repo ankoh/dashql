@@ -247,10 +247,21 @@ class AnalyzedScript : public CatalogEntry {
             /// The resolved table column id
             uint32_t table_column_id = 0;
         };
-
+        /// A literal
         struct Literal {
             /// The literal type
             buffers::algebra::LiteralType literal_type = buffers::algebra::LiteralType::NULL_;
+            /// The raw value
+            std::string_view raw_value;
+        };
+        /// A binary expression
+        struct BinaryExpression {
+            /// The binary expression function
+            buffers::algebra::BinaryExpressionFunction func;
+            /// The expression id of the left child
+            uint32_t left_expression_id;
+            /// The expression id of the right child
+            uint32_t right_expression_id;
         };
 
         /// The expression id as (entry_id, reference_index)
@@ -262,7 +273,7 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
-        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal> inner;
+        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, BinaryExpression> inner;
 
         /// Constructor
         Expression() : inner(std::monostate{}) {}
@@ -337,6 +348,18 @@ class AnalyzedScript : public CatalogEntry {
    public:
     /// Constructor
     AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+
+    /// Helper to add an expression
+    template <typename Inner> Expression& AddExpression(size_t node_id, Location location, Inner&& inner) {
+        auto& n = expressions.Append(AnalyzedScript::Expression());
+        n.buffer_index = expressions.GetSize() - 1;
+        n.expression_id = ContextObjectID{catalog_entry_id, static_cast<uint32_t>(expressions.GetSize() - 1)};
+        n.ast_node_id = node_id;
+        n.ast_statement_id = std::nullopt;
+        n.location = location;
+        n.inner = inner;
+        return n;
+    }
 
     /// Describe the catalog entry
     virtual flatbuffers::Offset<buffers::catalog::CatalogEntry> DescribeEntry(

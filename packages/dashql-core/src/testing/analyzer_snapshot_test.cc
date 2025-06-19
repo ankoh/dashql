@@ -221,6 +221,16 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("type").set_value(type_name.c_str());
                     break;
                 }
+                case 4: {
+                    auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(ref.inner);
+                    xml_ref.append_attribute("type").set_value("binary");
+
+                    auto* op_tt = buffers::algebra::BinaryExpressionFunctionTypeTable();
+                    xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
+                    xml_ref.append_attribute("left").set_value(binary.left_expression_id);
+                    xml_ref.append_attribute("right").set_value(binary.right_expression_id);
+                    break;
+                }
             }
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);

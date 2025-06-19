@@ -2,7 +2,6 @@
 
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/utils/attribute_index.h"
-#include "dashql/utils/chunk_buffer.h"
 
 namespace dashql {
 
@@ -36,16 +35,20 @@ class IdentifyConstExprsPass : public PassManager::LTRPass {
     std::span<const buffers::parser::Node> ast;
 
     /// Bitmap indicating that a node is const
-    std::vector<bool> constexpr_bitmap;
-    /// Sequence of constexpr root indices (contains children and parents)
-    ChunkBuffer<size_t> constexpr_roots;
+    std::vector<const AnalyzedScript::Expression*> constexpr_map;
+    /// List of identified constexprs
+    IntrusiveList<AnalyzedScript::Expression> constexpr_list;
 
    public:
     /// Constructor
     IdentifyConstExprsPass(AnalyzedScript& script, Catalog& registry, AttributeIndex& attribute_index);
 
     /// Helper to determine if an ast node is a column ref
-    inline bool IsConstExpr(size_t ast_node_id) { return constexpr_bitmap[ast_node_id]; }
+    inline const AnalyzedScript::Expression* GetConstExpr(size_t ast_node_id) { return constexpr_map[ast_node_id]; }
+    /// Helper to determine if an ast node is a column ref
+    inline const AnalyzedScript::Expression* GetConstExpr(const buffers::parser::Node& node) {
+        return constexpr_map[&node - ast.data()];
+    }
 
     /// Prepare the analysis pass
     void Prepare();

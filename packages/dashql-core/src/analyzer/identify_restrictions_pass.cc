@@ -22,26 +22,32 @@ IdentifyRestrictionsPass::IdentifyRestrictionsPass(AnalyzedScript& analyzed, Cat
 
 void IdentifyRestrictionsPass::Prepare() {}
 
-void IdentifyRestrictionsPass::Visit(std::span<buffers::parser::Node> morsel) {
+using AttributeKey = buffers::parser::AttributeKey;
+using ExpressionOperator = buffers::parser::ExpressionOperator;
+using LiteralType = buffers::algebra::LiteralType;
+using Node = buffers::parser::Node;
+using NodeType = buffers::parser::NodeType;
+
+void IdentifyRestrictionsPass::Visit(std::span<Node> morsel) {
     size_t morsel_offset = morsel.data() - ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         buffers::parser::Node& node = morsel[i];
         NodeID node_id = morsel_offset + i;
 
         switch (node.node_type()) {
-            case buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION: {
+            case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
                 auto children = ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto child_attrs = attribute_index.Load(children);
-                auto op_node = child_attrs[buffers::parser::AttributeKey::SQL_EXPRESSION_OPERATOR];
+                auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
                 if (op_node) {
-                    assert(op_node->node_type() == buffers::parser::NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
-                    switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
-                        case buffers::parser::ExpressionOperator::EQUAL:
-                        case buffers::parser::ExpressionOperator::NOT_EQUAL:
-                        case buffers::parser::ExpressionOperator::GREATER_EQUAL:
-                        case buffers::parser::ExpressionOperator::GREATER_THAN:
-                        case buffers::parser::ExpressionOperator::LESS_EQUAL:
-                        case buffers::parser::ExpressionOperator::LESS_THAN:
+                    assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
+                    switch (static_cast<ExpressionOperator>(op_node->children_begin_or_value())) {
+                        case ExpressionOperator::EQUAL:
+                        case ExpressionOperator::NOT_EQUAL:
+                        case ExpressionOperator::GREATER_EQUAL:
+                        case ExpressionOperator::GREATER_THAN:
+                        case ExpressionOperator::LESS_EQUAL:
+                        case ExpressionOperator::LESS_THAN:
                             break;
                         default:
                             break;

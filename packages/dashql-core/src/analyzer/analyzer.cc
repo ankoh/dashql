@@ -1,6 +1,6 @@
 #include "dashql/analyzer/analyzer.h"
 
-#include "dashql/analyzer/identify_constants_pass.h"
+#include "dashql/analyzer/identify_constexprs_pass.h"
 #include "dashql/analyzer/identify_projections_pass.h"
 #include "dashql/analyzer/identify_restrictions_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
