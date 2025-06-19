@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include "dashql/buffers/index_generated.h"
 
 namespace dashql {
