@@ -83,17 +83,15 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
             case 0:
                 FAIL();
             case 1: {
-                auto& unresolved =
-                    std::get<AnalyzedScript::TableReference::UnresolvedRelationExpression>(table_ref.inner);
-                auto table_name = print_name(script, unresolved.table_name);
-                ASSERT_EQ(table_name, expected.table_ref_name);
-                break;
-            }
-            case 2: {
-                auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(table_ref.inner);
-                auto table_name = print_name(script, resolved.selected.table_name);
-                ASSERT_EQ(table_name, expected.table_ref_name);
-                break;
+                auto& rel_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(table_ref.inner);
+                if (!rel_expr.resolved_relation.has_value()) {
+                    auto table_name = print_name(script, rel_expr.table_name);
+                    ASSERT_EQ(table_name, expected.table_ref_name);
+                } else {
+                    auto& resolved = rel_expr.resolved_relation.value();
+                    auto table_name = print_name(script, resolved.table_name);
+                    ASSERT_EQ(table_name, expected.table_ref_name);
+                }
             }
         }
 
@@ -110,15 +108,9 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
             case 0:
                 FAIL();
             case 1: {
-                auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(column_ref.inner);
-                auto column_name = print_name(script, unresolved.column_name);
-                ASSERT_EQ(column_name, expected.column_ref_name);
-                break;
-            }
-            case 2: {
-                auto& resolved = std::get<AnalyzedScript::Expression::ResolvedColumnRef>(column_ref.inner);
-                auto column_name = print_name(script, resolved.column_name);
-                ASSERT_EQ(column_name, expected.column_ref_name);
+                auto& col_ref = std::get<AnalyzedScript::Expression::ColumnRef>(column_ref.inner);
+                auto table_name = print_name(script, col_ref.column_name);
+                ASSERT_EQ(table_name, expected.column_ref_name);
                 break;
             }
         }

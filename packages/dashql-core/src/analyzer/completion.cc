@@ -146,44 +146,17 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser
             assert(std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context));
             auto& ctx = std::get<ScriptCursor::TableRefContext>(cursor.context);
             auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
-            switch (tableref.inner.index()) {
-                case 1: {
-                    assert(std::holds_alternative<AnalyzedScript::TableReference::UnresolvedRelationExpression>(
-                        tableref.inner));
-                    auto& unresolved =
-                        std::get<AnalyzedScript::TableReference::UnresolvedRelationExpression>(tableref.inner);
-                    name_ast_node_id = unresolved.table_name_ast_node_id;
-                    break;
-                }
-                case 2: {
-                    assert(std::holds_alternative<AnalyzedScript::TableReference::ResolvedRelationExpression>(
-                        tableref.inner));
-                    auto& resolved =
-                        std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(tableref.inner);
-                    name_ast_node_id = resolved.table_name_ast_node_id;
-                    break;
-                }
-            }
+            assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
+            name_ast_node_id =
+                std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name_ast_node_id;
             break;
         }
         case 2: {
             assert(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context));
             auto& ctx = std::get<ScriptCursor::ColumnRefContext>(cursor.context);
             auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
-            switch (expr.inner.index()) {
-                case 1: {
-                    assert(std::holds_alternative<AnalyzedScript::Expression::UnresolvedColumnRef>(expr.inner));
-                    auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(expr.inner);
-                    name_ast_node_id = unresolved.column_name_ast_node_id;
-                    break;
-                }
-                case 2: {
-                    assert(std::holds_alternative<AnalyzedScript::Expression::ResolvedColumnRef>(expr.inner));
-                    auto& resolved = std::get<AnalyzedScript::Expression::ResolvedColumnRef>(expr.inner);
-                    name_ast_node_id = resolved.column_name_ast_node_id;
-                    break;
-                }
-            }
+            assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
+            name_ast_node_id = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name_ast_node_id;
             break;
         }
     }
@@ -683,8 +656,9 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
     // XXX Don't search all unresolved expressions but only the unresolved ones in the current statement
     analyzed_script.expressions.ForEach([&](size_t i, AnalyzedScript::Expression& expr) {
         // Is unresolved?
-        if (auto* unresolved = std::get_if<AnalyzedScript::Expression::UnresolvedColumnRef>(&expr.inner)) {
-            auto& column_name = unresolved->column_name.column_name.get();
+        if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            column_ref && !column_ref->resolved_column.has_value()) {
+            auto& column_name = column_ref->column_name.column_name.get();
             tmp_columns.clear();
             // Resolve all table columns that would match the unresolved name?
             cursor.script.analyzed_script->ResolveTableColumnsWithCatalog(column_name, tmp_columns);

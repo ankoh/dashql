@@ -145,21 +145,20 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                 case 0:
                     break;
                 case 1: {
-                    auto& unresolved =
-                        std::get<AnalyzedScript::TableReference::UnresolvedRelationExpression>(ref.inner);
-                    xml_ref.append_attribute("type").set_value("name/unresolved");
-                    break;
-                }
-                case 2: {
-                    auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(ref.inner);
-                    std::string catalog_id =
-                        std::format("{}.{}.{}", resolved.selected.catalog_database_id,
-                                    resolved.selected.catalog_schema_id, resolved.selected.catalog_table_id.Pack());
-                    auto type = is_main && resolved.selected.catalog_table_id.GetContext() == script.GetCatalogEntryId()
-                                    ? "name/internal"
-                                    : "name/external";
-                    xml_ref.append_attribute("type").set_value(type);
-                    xml_ref.append_attribute("id").set_value(catalog_id.c_str());
+                    auto& relation_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(ref.inner);
+                    if (!relation_expr.resolved_relation.has_value()) {
+                        xml_ref.append_attribute("type").set_value("name/unresolved");
+                    } else {
+                        auto& resolved = relation_expr.resolved_relation.value();
+                        std::string catalog_id =
+                            std::format("{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
+                                        resolved.catalog_table_id.Pack());
+                        auto type = is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId()
+                                        ? "name/internal"
+                                        : "name/external";
+                        xml_ref.append_attribute("type").set_value(type);
+                        xml_ref.append_attribute("id").set_value(catalog_id.c_str());
+                    }
                     break;
                 }
             }
@@ -181,23 +180,24 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                 case 0:
                     break;
                 case 1: {
-                    auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(ref.inner);
-                    xml_ref.append_attribute("type").set_value("colref/unresolved");
+                    auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(ref.inner);
+                    if (!column_ref.resolved_column.has_value()) {
+                        xml_ref.append_attribute("type").set_value("colref/unresolved");
+                    } else {
+                        auto& resolved = column_ref.resolved_column.value();
+                        std::string catalog_id =
+                            std::format("{}.{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
+                                        resolved.catalog_table_id.Pack(), resolved.table_column_id);
+                        auto type = (is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId())
+                                        ? "colref/internal"
+                                        : "colref/external";
+                        xml_ref.append_attribute("type").set_value(type);
+                        xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
+                        break;
+                    }
                     break;
                 }
                 case 2: {
-                    auto& resolved = std::get<AnalyzedScript::Expression::ResolvedColumnRef>(ref.inner);
-                    std::string catalog_id =
-                        std::format("{}.{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
-                                    resolved.catalog_table_id.Pack(), resolved.table_column_id);
-                    auto type = (is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId())
-                                    ? "colref/internal"
-                                    : "colref/external";
-                    xml_ref.append_attribute("type").set_value(type);
-                    xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
-                    break;
-                }
-                case 3: {
                     auto& literal = std::get<AnalyzedScript::Expression::Literal>(ref.inner);
                     std::string type_name = "literal/";
                     switch (literal.literal_type) {
@@ -220,7 +220,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("type").set_value(type_name.c_str());
                     break;
                 }
-                case 4: {
+                case 3: {
                     auto& cmp = std::get<AnalyzedScript::Expression::Comparison>(ref.inner);
                     xml_ref.append_attribute("type").set_value("comparison");
 
@@ -236,7 +236,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     }
                     break;
                 }
-                case 5: {
+                case 4: {
                     auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(ref.inner);
                     xml_ref.append_attribute("type").set_value("binary");
 

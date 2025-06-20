@@ -108,11 +108,7 @@ table FunctionCallExpression {
     arguments: [uint32];
 }
 
-table ResolvedColumnRefExpression {
-    // The root of the scope where this expression lives
-    ast_scope_root: uint32;
-    // The column name
-    column_name: QualifiedColumnName;
+table ResolvedColumn {
     // The unified database id across all catalog entries
     catalog_database_id: uint32;
     // The unified schema id across all catalog entries
@@ -125,16 +121,17 @@ table ResolvedColumnRefExpression {
     column_id: uint32;
 }
 
-table UnresolvedColumnRefExpression {
+table ColumnRefExpression {
     // The root of the scope where this expression lives
     ast_scope_root: uint32;
     // The column name
     column_name: QualifiedColumnName;
+    // The resolved column
+    resolved_column: ResolvedColumn;
 }
 
 union ExpressionSubType {
-    ResolvedColumnRefExpression,
-    UnresolvedColumnRefExpression,
+    ColumnRefExpression,
     Literal,
     UnaryExpression,
     BinaryExpression,

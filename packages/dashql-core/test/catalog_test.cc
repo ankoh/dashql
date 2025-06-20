@@ -128,13 +128,15 @@ TEST(CatalogTest, SingleDescriptorPool) {
         auto [analyzed, analysis_status] = script.Analyze();
         ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
         ASSERT_EQ(analyzed->table_references.GetSize(), 1);
-        ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::ResolvedRelationExpression>(
+        ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(
             analyzed->table_references[0].inner));
-        auto& resolved =
-            std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(analyzed->table_references[0].inner);
-        ASSERT_FALSE(resolved.selected.catalog_table_id.IsNull());
-        ASSERT_EQ(resolved.selected.catalog_table_id.GetContext(), 1);
-        ASSERT_EQ(resolved.selected.catalog_table_id.GetObject(), 0);
+        auto& rel_expr =
+            std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
+        ASSERT_TRUE(rel_expr.resolved_relation.has_value());
+        auto& resolved = rel_expr.resolved_relation.value();
+        ASSERT_FALSE(resolved.catalog_table_id.IsNull());
+        ASSERT_EQ(resolved.catalog_table_id.GetContext(), 1);
+        ASSERT_EQ(resolved.catalog_table_id.GetObject(), 0);
     }
     {
         script.ReplaceText("select * from db1.schema1.table2");
@@ -143,8 +145,11 @@ TEST(CatalogTest, SingleDescriptorPool) {
         auto [analyzed, analysis_status] = script.Analyze();
         ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
         ASSERT_EQ(analyzed->table_references.GetSize(), 1);
-        ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::UnresolvedRelationExpression>(
+        ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(
             analyzed->table_references[0].inner));
+        auto& rel_expr =
+            std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
+        ASSERT_TRUE(!rel_expr.resolved_relation.has_value());
     }
 }
 

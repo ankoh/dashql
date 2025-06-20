@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <unordered_set>
+#include <variant>
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/completion.h"
@@ -332,30 +333,17 @@ flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> AnalyzedScript::Qu
 /// Pack as FlatBuffer
 flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableReference::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {
-    std::optional<buffers::analyzer::TableReferenceSubType> inner_type;
-    flatbuffers::Offset<void> inner_ofs;
-    switch (inner.index()) {
-        case 1: {
-            auto& unresolved = std::get<AnalyzedScript::TableReference::UnresolvedRelationExpression>(inner);
-            auto table_name_ofs = unresolved.table_name.Pack(builder);
-            buffers::analyzer::UnresolvedRelationReferenceBuilder out{builder};
-            out.add_table_name(table_name_ofs);
-            inner_ofs = out.Finish().Union();
-            inner_type = buffers::analyzer::TableReferenceSubType::UnresolvedRelationReference;
-            break;
-        }
-        case 2: {
-            auto& resolved = std::get<AnalyzedScript::TableReference::ResolvedRelationExpression>(inner);
-            auto table_name_ofs = resolved.selected.table_name.Pack(builder);
-            buffers::analyzer::ResolvedRelationReferenceBuilder out{builder};
-            out.add_table_name(table_name_ofs);
-            out.add_catalog_database_id(resolved.selected.catalog_database_id);
-            out.add_catalog_schema_id(resolved.selected.catalog_schema_id);
-            out.add_catalog_table_id(resolved.selected.catalog_table_id.Pack());
-            inner_ofs = out.Finish().Union();
-            inner_type = buffers::analyzer::TableReferenceSubType::ResolvedRelationReference;
-            break;
-        }
+    auto& relation_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(inner);
+    auto table_name_ofs = relation_expr.table_name.Pack(builder);
+
+    flatbuffers::Offset<buffers::analyzer::ResolvedRelation> resolved_ofs;
+    if (relation_expr.resolved_relation.has_value()) {
+        auto& resolved = relation_expr.resolved_relation.value();
+        buffers::analyzer::ResolvedRelationBuilder resolved_builder{builder};
+        resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
+        resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
+        resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
+        resolved_ofs = resolved_builder.Finish();
     }
     flatbuffers::Offset<flatbuffers::String> alias_name_ofs;
     if (alias_name.has_value()) {
@@ -367,12 +355,12 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     if (location.has_value()) {
         out.add_location(&location.value());
     }
+    out.add_table_name(table_name_ofs);
     if (alias_name.has_value()) {
         out.add_alias_name(alias_name_ofs);
     }
-    if (inner_type.has_value()) {
-        out.add_inner_type(inner_type.value());
-        out.add_inner(inner_ofs);
+    if (!resolved_ofs.IsNull()) {
+        out.add_resolved_relation(resolved_ofs);
     }
     return out.Finish();
 }
@@ -383,28 +371,28 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
     std::optional<buffers::algebra::ExpressionSubType> inner_type;
     flatbuffers::Offset<void> inner_ofs;
     switch (inner.index()) {
+        // Column reference
         case 1: {
-            auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(inner);
-            auto column_name_ofs = unresolved.column_name.Pack(builder);
-            buffers::algebra::UnresolvedColumnRefExpressionBuilder out{builder};
-            out.add_ast_scope_root(unresolved.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
+            assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(inner));
+            auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(inner);
+            auto column_name_ofs = column_ref.column_name.Pack(builder);
+
+            flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
+            if (column_ref.resolved_column.has_value()) {
+                auto& resolved = column_ref.resolved_column.value();
+                buffers::algebra::ResolvedColumnBuilder resolved_builder{builder};
+                resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
+                resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
+                resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
+                resolved_builder.add_column_id(resolved.table_column_id);
+            }
+            buffers::algebra::ColumnRefExpressionBuilder out{builder};
+            out.add_ast_scope_root(column_ref.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
             out.add_column_name(column_name_ofs);
+            if (!resolved_ofs.IsNull()) {
+                out.add_resolved_column(resolved_ofs);
+            }
             inner_ofs = out.Finish().Union();
-            inner_type = buffers::algebra::ExpressionSubType::UnresolvedColumnRefExpression;
-            break;
-        }
-        case 2: {
-            auto& resolved = std::get<AnalyzedScript::Expression::ResolvedColumnRef>(inner);
-            auto column_name_ofs = resolved.column_name.Pack(builder);
-            buffers::algebra::ResolvedColumnRefExpressionBuilder out{builder};
-            out.add_ast_scope_root(resolved.ast_scope_root);
-            out.add_column_name(column_name_ofs);
-            out.add_catalog_database_id(resolved.catalog_database_id);
-            out.add_catalog_schema_id(resolved.catalog_schema_id);
-            out.add_catalog_table_id(resolved.catalog_table_id.Pack());
-            out.add_column_id(resolved.table_column_id);
-            inner_ofs = out.Finish().Union();
-            inner_type = buffers::algebra::ExpressionSubType::ResolvedColumnRefExpression;
             break;
         }
         default:
@@ -541,12 +529,13 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         std::vector<buffers::analyzer::IndexedTableReference> table_refs_by_id;
         table_refs_by_id.reserve(table_references.GetSize());
         table_references.ForEach([&](size_t ref_id, TableReference& ref) {
-            if (auto* resolved = std::get_if<TableReference::ResolvedRelationExpression>(&ref.inner)) {
-                assert(resolved->selected.catalog_database_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved->selected.catalog_schema_id != std::numeric_limits<uint32_t>::max());
-                table_refs_by_id.emplace_back(resolved->selected.catalog_database_id,
-                                              resolved->selected.catalog_schema_id,
-                                              resolved->selected.catalog_table_id.Pack(), ref_id);
+            if (auto* table_ref = std::get_if<TableReference::RelationExpression>(&ref.inner);
+                table_ref && table_ref->resolved_relation.has_value()) {
+                auto& resolved = table_ref->resolved_relation.value();
+                assert(resolved.catalog_database_id != std::numeric_limits<uint32_t>::max());
+                assert(resolved.catalog_schema_id != std::numeric_limits<uint32_t>::max());
+                table_refs_by_id.emplace_back(resolved.catalog_database_id, resolved.catalog_schema_id,
+                                              resolved.catalog_table_id.Pack(), ref_id);
             }
         });
         std::sort(table_refs_by_id.begin(), table_refs_by_id.end(),
@@ -564,12 +553,14 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         std::vector<buffers::analyzer::IndexedColumnReference> column_refs_by_id;
         column_refs_by_id.reserve(expressions.GetSize());
         expressions.ForEach([&](size_t ref_id, Expression& ref) {
-            if (auto* resolved = std::get_if<AnalyzedScript::Expression::ResolvedColumnRef>(&ref.inner)) {
-                assert(resolved->catalog_database_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved->catalog_schema_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved->table_column_id);
-                column_refs_by_id.emplace_back(resolved->catalog_database_id, resolved->catalog_schema_id,
-                                               resolved->catalog_table_id.Pack(), resolved->table_column_id, ref_id);
+            if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&ref.inner);
+                column_ref && column_ref->resolved_column.has_value()) {
+                auto& resolved = column_ref->resolved_column.value();
+                assert(resolved.catalog_database_id != std::numeric_limits<uint32_t>::max());
+                assert(resolved.catalog_schema_id != std::numeric_limits<uint32_t>::max());
+                assert(resolved.table_column_id);
+                column_refs_by_id.emplace_back(resolved.catalog_database_id, resolved.catalog_schema_id,
+                                               resolved.catalog_table_id.Pack(), resolved.table_column_id, ref_id);
             }
         });
         std::sort(column_refs_by_id.begin(), column_refs_by_id.end(),

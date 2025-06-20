@@ -172,13 +172,7 @@ class AnalyzedScript : public CatalogEntry {
    public:
     /// A table reference
     struct TableReference : public IntrusiveListNode {
-        /// An unresolved column reference
-        struct UnresolvedRelationExpression {
-            /// The AST node id of the name path
-            uint32_t table_name_ast_node_id;
-            /// The table name, may refer to different catalog entry
-            QualifiedTableName table_name;
-        };
+        /// A resolved table entry
         struct ResolvedTableEntry {
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
@@ -189,14 +183,16 @@ class AnalyzedScript : public CatalogEntry {
             /// The resolved table id in the catalog
             ContextObjectID catalog_table_id;
         };
-        /// A resolved column reference
-        struct ResolvedRelationExpression {
+        /// A relation expression
+        struct RelationExpression {
             /// The AST node id of the name path
             uint32_t table_name_ast_node_id;
-            /// The best match
-            ResolvedTableEntry selected;
+            /// The table name, may refer to different catalog entry
+            QualifiedTableName table_name;
+            /// THe resolved relation
+            std::optional<ResolvedTableEntry> resolved_relation;
             /// The ambiguous matches (if any)
-            std::vector<ResolvedTableEntry> alternatives;
+            std::vector<ResolvedTableEntry> resolved_alternatives;
         };
 
         /// The table reference id
@@ -212,7 +208,7 @@ class AnalyzedScript : public CatalogEntry {
         /// The alias name, may refer to different catalog entry
         std::optional<std::reference_wrapper<RegisteredName>> alias_name;
         /// The inner relation type
-        std::variant<std::monostate, UnresolvedRelationExpression, ResolvedRelationExpression> inner;
+        std::variant<std::monostate, RelationExpression> inner;
 
         /// Constructor
         TableReference(std::optional<std::reference_wrapper<RegisteredName>> alias_name) : alias_name(alias_name) {}
@@ -221,23 +217,8 @@ class AnalyzedScript : public CatalogEntry {
     };
     /// An expression
     struct Expression : public IntrusiveListNode {
-        /// An unresolved column reference
-        struct UnresolvedColumnRef {
-            /// The AST node id of the name path
-            uint32_t column_name_ast_node_id;
-            /// The column name, may refer to different catalog entry
-            QualifiedColumnName column_name;
-            /// The AST scope root in the target script
-            std::optional<uint32_t> ast_scope_root;
-        };
         /// A resolved column reference
-        struct ResolvedColumnRef {
-            /// The AST node id of the name path
-            uint32_t column_name_ast_node_id;
-            /// The column name, may refer to different catalog entry
-            QualifiedColumnName column_name;
-            /// The AST scope root in the target script
-            uint32_t ast_scope_root = 0;
+        struct ResolvedColumn {
             /// The resolved catalog database id
             CatalogDatabaseID catalog_database_id = 0;
             /// The resolved catalog schema id
@@ -246,6 +227,17 @@ class AnalyzedScript : public CatalogEntry {
             ContextObjectID catalog_table_id;
             /// The resolved table column id
             uint32_t table_column_id = 0;
+        };
+        /// An unresolved column reference
+        struct ColumnRef {
+            /// The AST node id of the name path
+            uint32_t column_name_ast_node_id;
+            /// The column name, may refer to different catalog entry
+            QualifiedColumnName column_name;
+            /// The AST scope root in the target script
+            std::optional<uint32_t> ast_scope_root;
+            /// The resolved column
+            std::optional<ResolvedColumn> resolved_column;
         };
         /// A literal
         struct Literal {
@@ -293,9 +285,7 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
-        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, Comparison, BinaryExpression,
-                     FunctionCallExpression>
-            inner;
+        std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression> inner;
         /// Is the expression a constant?
         bool is_constant_expression = false;
         /// Is the expression a column transform?
@@ -306,10 +296,7 @@ class AnalyzedScript : public CatalogEntry {
         /// Constructor
         Expression() : inner(std::monostate{}) {}
         // Check if the expression is a column ref
-        inline bool IsColumnRef() const {
-            return std::holds_alternative<UnresolvedColumnRef>(inner) ||
-                   std::holds_alternative<ResolvedColumnRef>(inner);
-        }
+        inline bool IsColumnRef() const { return std::holds_alternative<ColumnRef>(inner); }
         // Check if the expression is a constant
         inline bool IsConstantExpression() const { return is_constant_expression; }
         // Check if the expression is a column transform

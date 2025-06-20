@@ -103,8 +103,8 @@ AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, ui
         root_scopes.erase(&child_scope);
     }
     for (auto& ref : target.column_references) {
-        auto& unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(ref.inner);
-        unresolved.ast_scope_root = scope_root;
+        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(ref.inner);
+        column_ref.ast_scope_root = scope_root;
     }
     for (auto& ref : target.table_references) {
         ref.ast_scope_root = scope_root;
@@ -125,12 +125,12 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
     for (auto& table_ref : scope.table_references) {
         // TODO Matches a view or CTE?
 
-        auto* unresolved = std::get_if<AnalyzedScript::TableReference::UnresolvedRelationExpression>(&table_ref.inner);
-        if (!unresolved) {
+        auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
+        if (!rel_expr) {
             continue;
         }
         // Copy table name so that we can override the unresolved expression
-        auto table_name = unresolved->table_name;
+        auto table_name = rel_expr->table_name;
         // Helper to register a name
         auto register_name = [&](std::string_view alias, const AnalyzedScript::TableDeclaration& table) {
             // Already exists in this scope?
@@ -169,29 +169,23 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             auto& best_match = resolved_tables.front().get();
 
             // Store resolved relation expression
-            AnalyzedScript::TableReference::ResolvedRelationExpression resolved{
-                .table_name_ast_node_id = unresolved->table_name_ast_node_id,
-                .selected =
-                    {
-                        .table_name = best_match.table_name,
-                        .catalog_database_id = best_match.catalog_database_id,
-                        .catalog_schema_id = best_match.catalog_schema_id,
-                        .catalog_table_id = best_match.catalog_table_id,
-                    },
-                .alternatives = {}};
+            rel_expr->resolved_relation = AnalyzedScript::TableReference::ResolvedTableEntry{
+                .table_name = best_match.table_name,
+                .catalog_database_id = best_match.catalog_database_id,
+                .catalog_schema_id = best_match.catalog_schema_id,
+                .catalog_table_id = best_match.catalog_table_id,
+            };
 
             // Store ambiguous matches
             for (size_t i = 1; i < resolved_tables.size(); ++i) {
                 auto& match = resolved_tables[i].get();
-                resolved.alternatives.push_back({
+                rel_expr->resolved_alternatives.push_back({
                     .table_name = match.table_name,
                     .catalog_database_id = match.catalog_database_id,
                     .catalog_schema_id = match.catalog_schema_id,
                     .catalog_table_id = match.catalog_table_id,
                 });
             }
-
-            table_ref.inner = std::move(resolved);
 
             // Register the table either using the alias or the table name
             std::string_view alias = table_ref.alias_name.has_value() ? table_ref.alias_name->get().text
@@ -208,7 +202,8 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                                                   ColumnRefsByName& refs_by_name) {
     std::list<std::reference_wrapper<AnalyzedScript::Expression>> unresolved_columns;
     for (auto& expr : scope.expressions) {
-        if (std::holds_alternative<AnalyzedScript::Expression::UnresolvedColumnRef>(expr.inner)) {
+        if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            col_ref != nullptr && !col_ref->resolved_column.has_value()) {
             unresolved_columns.push_back(expr);
         }
     }
@@ -216,14 +211,14 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
     for (auto target_scope = &scope; target_scope != nullptr; target_scope = target_scope->parent_scope) {
         for (auto iter = unresolved_columns.begin(); iter != unresolved_columns.end();) {
             auto& expr = iter->get();
-            auto unresolved = std::get<AnalyzedScript::Expression::UnresolvedColumnRef>(expr.inner);
-            std::string_view column_name = unresolved.column_name.column_name.get();
+            auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
+            std::string_view column_name = column_ref.column_name.column_name.get();
 
             // Try to resolve a table
             std::optional<std::reference_wrapper<AnalyzedScript::TableColumn>> table_column;
-            if (unresolved.column_name.table_alias.has_value()) {
+            if (column_ref.column_name.table_alias.has_value()) {
                 // Do we know the name in this scope?
-                std::string_view table_alias = unresolved.column_name.table_alias->get();
+                std::string_view table_alias = column_ref.column_name.table_alias->get();
                 auto table_iter = target_scope->referenced_tables_by_name.find(table_alias);
                 if (table_iter != target_scope->referenced_tables_by_name.end()) {
                     // Is the table known in that table?
@@ -282,11 +277,9 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
             if (table_column.has_value()) {
                 auto& resolved_column = table_column.value().get();
                 auto& resolved_table = resolved_column.table->get();
-                assert(unresolved.ast_scope_root.has_value());
-                expr.inner = AnalyzedScript::Expression::ResolvedColumnRef{
-                    .column_name_ast_node_id = unresolved.column_name_ast_node_id,
-                    .column_name = unresolved.column_name,
-                    .ast_scope_root = unresolved.ast_scope_root.value(),
+                assert(column_ref.ast_scope_root.has_value());
+                auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
+                column_ref.resolved_column = AnalyzedScript::Expression::ResolvedColumn{
                     .catalog_database_id = resolved_table.catalog_database_id,
                     .catalog_schema_id = resolved_table.catalog_schema_id,
                     .catalog_table_id = resolved_table.catalog_table_id,
@@ -373,11 +366,13 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto column_name = state.ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
                     // Add column reference
-                    AnalyzedScript::Expression::UnresolvedColumnRef unresolved{
+                    AnalyzedScript::Expression::ColumnRef column_ref{
                         .column_name_ast_node_id = column_name_node_id,
                         .column_name = column_name.value(),
-                        .ast_scope_root = std::nullopt};
-                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(unresolved));
+                        .ast_scope_root = std::nullopt,
+                        .resolved_column = std::nullopt,
+                    };
+                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
                     n.is_column_transform = true;
                     node_state.column_references.PushBack(n);
                     state.expression_index[node_id] = &n;
@@ -416,8 +411,12 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         n.location = state.parsed.nodes[node_id].location();
                         n.ast_statement_id = std::nullopt;
                         n.ast_scope_root = std::nullopt;
-                        n.inner = AnalyzedScript::TableReference::UnresolvedRelationExpression{
-                            .table_name_ast_node_id = name_node_id, .table_name = name.value()};
+                        n.inner = AnalyzedScript::TableReference::RelationExpression{
+                            .table_name_ast_node_id = name_node_id,
+                            .table_name = name.value(),
+                            .resolved_relation = std::nullopt,
+                            .resolved_alternatives = {},
+                        };
                         node_state.table_references.PushBack(n);
                     }
                 }
