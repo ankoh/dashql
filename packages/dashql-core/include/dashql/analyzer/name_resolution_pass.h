@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <stack>
 
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/buffers/index_generated.h"
