@@ -56,7 +56,7 @@ struct AnalysisState {
     std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::parser::Node* column);
 
     /// Helper to read expression arguments
-    inline std::span<const buffers::parser::Node> readExpressionArgs(const buffers::parser::Node& args_node) {
+    inline std::span<const buffers::parser::Node> ReadArgExpressions(const buffers::parser::Node& args_node) {
         // Ensured by caller
         assert(args_node.attribute_key() == buffers::parser::AttributeKey::SQL_EXPRESSION_ARGS ||
                args_node.attribute_key() == buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS);
@@ -66,19 +66,19 @@ struct AnalysisState {
         return ast.subspan(args_node.children_begin_or_value(), args_node.children_count());
     }
     /// Helper to read expression arguments
-    inline std::span<const buffers::parser::Node> readExpressionArgs(const buffers::parser::Node* args_node) {
-        return !args_node ? std::span<const buffers::parser::Node>{} : readExpressionArgs(*args_node);
+    inline std::span<const buffers::parser::Node> ReadArgExpressions(const buffers::parser::Node* args_node) {
+        return !args_node ? std::span<const buffers::parser::Node>{} : ReadArgExpressions(*args_node);
     }
 
     // Helper to read a literal type
-    static constexpr buffers::algebra::LiteralType getLiteralType(buffers::parser::NodeType nodeType) {
+    static constexpr buffers::algebra::LiteralType GetLiteralType(buffers::parser::NodeType nodeType) {
         assert(nodeType >= buffers::parser::NodeType::LITERAL_NULL);
         assert(nodeType <= buffers::parser::NodeType::LITERAL_INTERVAL);
         return static_cast<buffers::algebra::LiteralType>(static_cast<size_t>(nodeType) - 5);
     }
 
     // Helper to read a binary expression function
-    static constexpr buffers::algebra::BinaryExpressionFunction readBinaryExpressionFunction(
+    static constexpr buffers::algebra::BinaryExpressionFunction ReadBinaryExpressionFunction(
         buffers::parser::ExpressionOperator op) {
         switch (op) {
 #define X(OP)                                     \
@@ -97,7 +97,7 @@ struct AnalysisState {
     }
 
     // Helper to read a comparison function
-    static constexpr buffers::algebra::ComparisonFunction readComparisonFunction(
+    static constexpr buffers::algebra::ComparisonFunction ReadComparisonFunction(
         buffers::parser::ExpressionOperator op) {
         switch (op) {
 #define X(OP)                                     \
@@ -117,15 +117,15 @@ struct AnalysisState {
     }
 };
 
-static_assert(AnalysisState::getLiteralType(buffers::parser::NodeType::LITERAL_NULL) ==
+static_assert(AnalysisState::GetLiteralType(buffers::parser::NodeType::LITERAL_NULL) ==
               buffers::algebra::LiteralType::NULL_);
-static_assert(AnalysisState::getLiteralType(buffers::parser::NodeType::LITERAL_FLOAT) ==
+static_assert(AnalysisState::GetLiteralType(buffers::parser::NodeType::LITERAL_FLOAT) ==
               buffers::algebra::LiteralType::FLOAT);
-static_assert(AnalysisState::getLiteralType(buffers::parser::NodeType::LITERAL_STRING) ==
+static_assert(AnalysisState::GetLiteralType(buffers::parser::NodeType::LITERAL_STRING) ==
               buffers::algebra::LiteralType::STRING);
-static_assert(AnalysisState::getLiteralType(buffers::parser::NodeType::LITERAL_INTEGER) ==
+static_assert(AnalysisState::GetLiteralType(buffers::parser::NodeType::LITERAL_INTEGER) ==
               buffers::algebra::LiteralType::INTEGER);
-static_assert(AnalysisState::getLiteralType(buffers::parser::NodeType::LITERAL_INTERVAL) ==
+static_assert(AnalysisState::GetLiteralType(buffers::parser::NodeType::LITERAL_INTERVAL) ==
               buffers::algebra::LiteralType::INTERVAL);
 
 }  // namespace dashql

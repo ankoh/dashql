@@ -40,7 +40,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = state.readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgExpressions(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
                 size_t arg_count_const = 0;
                 size_t arg_count_projection = 0;
                 size_t restriction_target_idx = 0;
@@ -78,7 +78,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                     case ExpressionOperator::GREATER_EQUAL: {
                         assert(child_exprs.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
-                            .func = AnalysisState::readComparisonFunction(op_type),
+                            .func = AnalysisState::ReadComparisonFunction(op_type),
                             .left_expression_id = child_exprs[0]->expression_id.GetObject(),
                             .right_expression_id = child_exprs[1]->expression_id.GetObject(),
                             .restriction_target_left = restriction_target_idx == 0,

@@ -47,7 +47,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
             case NodeType::LITERAL_NULL:
             case NodeType::LITERAL_STRING: {
                 AnalyzedScript::Expression::Literal inner{
-                    .literal_type = AnalysisState::getLiteralType(node.node_type()),
+                    .literal_type = AnalysisState::GetLiteralType(node.node_type()),
                     .raw_value = state.scanned.ReadTextAtLocation(node.location())};
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
@@ -66,7 +66,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = state.readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgExpressions(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
                 auto maybe_const_args = readConstExprs(arg_nodes);
                 if (!maybe_const_args.has_value()) continue;
                 auto& const_args = maybe_const_args.value();
@@ -85,7 +85,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     case ExpressionOperator::OR: {
                         assert(const_args.size() == 2);
                         AnalyzedScript::Expression::BinaryExpression inner{
-                            .func = AnalysisState::readBinaryExpressionFunction(op_type),
+                            .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
                             .left_expression_id = const_args[0]->expression_id.GetObject(),
                             .right_expression_id = const_args[1]->expression_id.GetObject(),
                             .projection_target_left = false,
@@ -106,7 +106,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     case ExpressionOperator::GREATER_EQUAL: {
                         assert(const_args.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
-                            .func = AnalysisState::readComparisonFunction(op_type),
+                            .func = AnalysisState::ReadComparisonFunction(op_type),
                             .left_expression_id = const_args[0]->expression_id.GetObject(),
                             .right_expression_id = const_args[1]->expression_id.GetObject(),
                             .restriction_target_left = false,
@@ -139,7 +139,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 }
 
                 // Are all children const?
-                auto arg_nodes = state.readExpressionArgs(args_attr);
+                auto arg_nodes = state.ReadArgExpressions(args_attr);
                 auto maybe_const_args = readConstExprs(arg_nodes);
                 if (!maybe_const_args.has_value()) continue;
                 auto& const_args = maybe_const_args.value();
