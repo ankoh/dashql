@@ -48,9 +48,9 @@ class CatalogEntry {
 
     using NameSearchIndex = btree::multimap<fuzzy_ci_string_view, std::reference_wrapper<const RegisteredName>>;
 
-    /// A key for a qualified table name
     /// A qualified table name
     struct QualifiedTableName {
+        /// A key for a qualified table name
         using Key = std::tuple<std::string_view, std::string_view, std::string_view>;
 
         /// The AST node id in the target script
@@ -102,6 +102,41 @@ class CatalogEntry {
             return {table_alias.has_value() ? table_alias.value().get().text : "", column_name.get().text};
         }
     };
+    /// A qualified function name
+    struct QualifiedFunctionName {
+        /// A key for a qualified table name
+        using Key = std::tuple<std::string_view, std::string_view, std::string_view>;
+
+        /// The AST node id in the target script
+        std::optional<uint32_t> ast_node_id;
+        /// The database name, may refer to different context
+        std::reference_wrapper<RegisteredName> database_name;
+        /// The schema name, may refer to different context
+        std::reference_wrapper<RegisteredName> schema_name;
+        /// The function name, may refer to different context
+        std::reference_wrapper<RegisteredName> function_name;
+        /// Constructor
+        QualifiedFunctionName(std::optional<uint32_t> ast_node_id, RegisteredName& database_name,
+                              RegisteredName& schema_name, RegisteredName& function_name)
+            : ast_node_id(ast_node_id),
+              database_name(database_name),
+              schema_name(schema_name),
+              function_name(function_name) {}
+        /// Copy assignment
+        QualifiedFunctionName& operator=(const QualifiedFunctionName& other) {
+            ast_node_id = other.ast_node_id;
+            database_name = other.database_name;
+            schema_name = other.schema_name;
+            function_name = other.function_name;
+            return *this;
+        }
+        /// Pack as FlatBuffer
+        flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> Pack(
+            flatbuffers::FlatBufferBuilder& builder) const;
+        /// Construct a key
+        operator Key() { return {database_name.get(), schema_name.get(), function_name.get()}; }
+    };
+
     /// Forward declare the table
     struct TableDeclaration;
     /// A table column

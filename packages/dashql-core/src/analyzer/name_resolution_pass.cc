@@ -4,8 +4,8 @@
 #include <functional>
 #include <iterator>
 #include <optional>
-#include <stack>
 
+#include "dashql/analyzer/analysis_state.h"
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
@@ -42,81 +42,8 @@ void NameResolutionPass::NodeState::Clear() {
 }
 
 /// Constructor
-NameResolutionPass::NameResolutionPass(AnalyzerState& state)
+NameResolutionPass::NameResolutionPass(AnalysisState& state)
     : PassManager::LTRPass(state), node_states(state.ast.size()) {}
-
-std::span<std::reference_wrapper<RegisteredName>> NameResolutionPass::ReadNamePath(const sx::parser::Node& node) {
-    if (node.node_type() != buffers::parser::NodeType::ARRAY) {
-        return {};
-    }
-    name_path_buffer.clear();
-    auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-    for (size_t i = 0; i != children.size(); ++i) {
-        // A child is either a name, an indirection or an operator (*).
-        // We only consider plan name paths for now and extend later.
-        auto& child = children[i];
-        // Skip over trailing dots
-        if (child.node_type() == buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT) {
-            continue;
-        }
-        // Not a name?
-        if (child.node_type() != buffers::parser::NodeType::NAME) {
-            name_path_buffer.clear();
-            break;
-        }
-        auto& name = state.scanned.GetNames().At(child.children_begin_or_value());
-        name_path_buffer.push_back(name);
-    }
-    return std::span{name_path_buffer};
-}
-
-std::optional<AnalyzedScript::QualifiedTableName> NameResolutionPass::ReadQualifiedTableName(
-    const sx::parser::Node* node) {
-    if (!node) {
-        return std::nullopt;
-    }
-    auto name_path = ReadNamePath(*node);
-    auto ast_node_id = node - state.ast.data();
-    switch (name_path.size()) {
-        case 3:
-            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::DATABASE_NAME;
-            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
-            name_path[2].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, name_path[0], name_path[1], name_path[2]};
-        case 2: {
-            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
-            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, state.empty_name, name_path[0], name_path[1]};
-        }
-        case 1: {
-            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_NAME;
-            return AnalyzedScript::QualifiedTableName{ast_node_id, state.empty_name, state.empty_name, name_path[0]};
-        }
-        default:
-            return std::nullopt;
-    }
-}
-
-std::optional<AnalyzedScript::QualifiedColumnName> NameResolutionPass::ReadQualifiedColumnName(
-    const sx::parser::Node* node) {
-    if (!node) {
-        return std::nullopt;
-    }
-    auto name_path = ReadNamePath(*node);
-    auto ast_node_id = node - state.ast.data();
-    // Build the qualified column name
-    switch (name_path.size()) {
-        case 2:
-            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_ALIAS;
-            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
-            return AnalyzedScript::QualifiedColumnName{ast_node_id, name_path[0], name_path[1]};
-        case 1:
-            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
-            return AnalyzedScript::QualifiedColumnName{ast_node_id, std::nullopt, name_path[0]};
-        default:
-            return std::nullopt;
-    }
-}
 
 /// Register a schema
 std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema(RegisteredName& database_name,
@@ -443,7 +370,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto attrs = state.attribute_index.Load(children);
                 auto column_ref_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_REF_PATH];
                 auto column_name_node_id = static_cast<uint32_t>(column_ref_node - state.parsed.nodes.data());
-                auto column_name = ReadQualifiedColumnName(column_ref_node);
+                auto column_name = state.ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
                     // Add column reference
                     AnalyzedScript::Expression::UnresolvedColumnRef unresolved{
@@ -467,7 +394,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 // Only consider table refs with a name for now
                 if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_NAME]) {
                     auto name_node_id = static_cast<uint32_t>(name_node - state.parsed.nodes.data());
-                    auto name = ReadQualifiedTableName(name_node);
+                    auto name = state.ReadQualifiedTableName(name_node);
                     if (name.has_value()) {
                         // Read a table alias
                         std::string_view alias_str;
@@ -529,7 +456,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 const buffers::parser::Node* elements_node =
                     attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
                 // Read the name
-                auto table_name = ReadQualifiedTableName(name_node);
+                auto table_name = state.ReadQualifiedTableName(name_node);
                 if (table_name.has_value()) {
                     // Register the database
                     auto [db_id, schema_id] = RegisterSchema(table_name->database_name, table_name->schema_name);

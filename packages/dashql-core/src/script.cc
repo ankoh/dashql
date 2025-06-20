@@ -307,6 +307,28 @@ flatbuffers::Offset<buffers::analyzer::QualifiedColumnName> AnalyzedScript::Qual
     return out.Finish();
 }
 
+flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> AnalyzedScript::QualifiedFunctionName::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
+    flatbuffers::Offset<flatbuffers::String> database_name_ofs;
+    flatbuffers::Offset<flatbuffers::String> schema_name_ofs;
+    flatbuffers::Offset<flatbuffers::String> function_name_ofs;
+    if (!database_name.get().text.empty()) {
+        database_name_ofs = builder.CreateString(database_name.get().text);
+    }
+    if (!schema_name.get().text.empty()) {
+        schema_name_ofs = builder.CreateString(schema_name.get().text);
+    }
+    if (!function_name.get().text.empty()) {
+        function_name_ofs = builder.CreateString(function_name.get().text);
+    }
+    buffers::analyzer::QualifiedFunctionNameBuilder out{builder};
+    out.add_ast_node_id(ast_node_id.value_or(PROTO_NULL_U32));
+    out.add_database_name(database_name_ofs);
+    out.add_schema_name(schema_name_ofs);
+    out.add_function_name(function_name_ofs);
+    return out.Finish();
+}
+
 /// Pack as FlatBuffer
 flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableReference::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {

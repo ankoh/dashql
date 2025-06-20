@@ -4,7 +4,7 @@
 
 namespace dashql {
 
-IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalysisState& state, NameResolutionPass& name_resolution,
                                                            IdentifyConstantExpressionsPass& identify_constants)
     : PassManager::LTRPass(state), name_resolution(name_resolution), identify_constexprs(identify_constants) {}
 

@@ -2,7 +2,6 @@
 
 #include <functional>
 
-#include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/pass_manager.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
@@ -11,7 +10,7 @@
 
 namespace dashql {
 
-struct AnalyzerState;
+struct AnalysisState;
 
 class NameResolutionPass : public PassManager::LTRPass {
    protected:
@@ -44,13 +43,6 @@ class NameResolutionPass : public PassManager::LTRPass {
     /// The temporary free-list for pending table columns
     IntrusiveList<AnalyzedScript::TableColumn> pending_columns_free_list;
 
-    /// Merge child states into a destination state
-    std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::parser::Node& node);
-    /// Merge child states into a destination state
-    std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const sx::parser::Node* node);
-    /// Merge child states into a destination state
-    std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::parser::Node* column);
-
     /// Register a schema
     std::pair<CatalogDatabaseID, CatalogSchemaID> RegisterSchema(RegisteredName& database_name,
                                                                  RegisteredName& schema_name);
@@ -77,7 +69,7 @@ class NameResolutionPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    NameResolutionPass(AnalyzerState& state);
+    NameResolutionPass(AnalysisState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;

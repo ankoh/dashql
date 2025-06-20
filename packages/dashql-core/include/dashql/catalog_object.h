@@ -16,8 +16,10 @@ static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjec
               CatalogObjectType::ColumnDeclaration);
 static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::DATABASE) ==
               CatalogObjectType::DatabaseReference);
-static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::SCHEMA) == CatalogObjectType::SchemaReference);
-static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::TABLE) == CatalogObjectType::TableDeclaration);
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::SCHEMA) ==
+              CatalogObjectType::SchemaReference);
+static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjectType::TABLE) ==
+              CatalogObjectType::TableDeclaration);
 
 /// A catalog object
 struct CatalogObject : public IntrusiveListNode {

@@ -276,6 +276,13 @@ class AnalyzedScript : public CatalogEntry {
             /// Is the projection target the left child?
             bool projection_target_left = true;
         };
+        /// A function call expression
+        struct FunctionCallExpression {
+            /// The qualified function name
+            QualifiedFunctionName name;
+            /// The argument expression ids
+            std::vector<size_t> argument_expression_ids;
+        };
 
         /// The expression id as (entry_id, reference_index)
         ContextObjectID expression_id;
@@ -286,7 +293,8 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
-        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, Comparison, BinaryExpression>
+        std::variant<std::monostate, UnresolvedColumnRef, ResolvedColumnRef, Literal, Comparison, BinaryExpression,
+                     FunctionCallExpression>
             inner;
         /// Is the expression a constant?
         bool is_constant_expression = false;

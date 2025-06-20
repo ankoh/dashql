@@ -1,23 +1,23 @@
 #include "dashql/analyzer/pass_manager.h"
 
-#include "dashql/analyzer/analyzer.h"
+#include "dashql/analyzer/analysis_state.h"
 
 namespace dashql {
 
 /// Constructor
-PassManager::LTRPass::LTRPass(AnalyzerState& state) : state(state) {}
+PassManager::LTRPass::LTRPass(AnalysisState& state) : state(state) {}
 /// Destructor
 PassManager::LTRPass::~LTRPass() {}
 
 /// Constructor
-PassManager::RTLPass::RTLPass(AnalyzerState& state) : state(state) {}
+PassManager::RTLPass::RTLPass(AnalysisState& state) : state(state) {}
 /// Destructor
 PassManager::RTLPass::~RTLPass() {}
 
 /// Constructor
 PassManager::PassManager() {}
 /// Execute DFS post-order passes
-void PassManager::Execute(AnalyzerState& state, std::initializer_list<std::reference_wrapper<LTRPass>> passes) {
+void PassManager::Execute(AnalysisState& state, std::initializer_list<std::reference_wrapper<LTRPass>> passes) {
     // Prepare all passes
     for (auto& pass : passes) {
         pass.get().Prepare();

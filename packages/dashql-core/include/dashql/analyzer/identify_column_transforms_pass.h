@@ -25,7 +25,7 @@ class IdentifyColumnTransformsPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    IdentifyColumnTransformsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+    IdentifyColumnTransformsPass(AnalysisState& state, NameResolutionPass& name_resolution,
                                  IdentifyConstantExpressionsPass& identify_constants);
 
     /// Prepare the analysis pass

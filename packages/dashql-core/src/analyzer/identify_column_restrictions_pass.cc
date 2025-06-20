@@ -3,11 +3,10 @@
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/identify_column_transforms_pass.h"
 #include "dashql/buffers/index_generated.h"
-#include "dashql/utils/ast_reader.h"
 
 namespace dashql {
 
-IdentifyColumnRestrictionsPass::IdentifyColumnRestrictionsPass(AnalyzerState& state,
+IdentifyColumnRestrictionsPass::IdentifyColumnRestrictionsPass(AnalysisState& state,
                                                                NameResolutionPass& name_resolution,
                                                                IdentifyConstantExpressionsPass& identify_constants,
                                                                IdentifyColumnTransformsPass& identify_projections)
@@ -41,7 +40,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], state.ast);
+                auto arg_nodes = state.readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
                 size_t arg_count_const = 0;
                 size_t arg_count_projection = 0;
                 size_t restriction_target_idx = 0;
@@ -61,7 +60,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         ++arg_count_const;
                     }
                 }
-                auto child_expressions = std::span{child_buffer}.subspan(0, arg_nodes.size());
+                auto child_exprs = std::span{child_buffer}.subspan(0, arg_nodes.size());
 
                 // Is restriction?
                 bool is_restriction =
@@ -77,11 +76,11 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                     case ExpressionOperator::LESS_EQUAL:
                     case ExpressionOperator::GREATER_THAN:
                     case ExpressionOperator::GREATER_EQUAL: {
-                        assert(child_expressions.size() == 2);
+                        assert(child_exprs.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
-                            .func = readComparisonFunction(op_type),
-                            .left_expression_id = child_expressions[0]->expression_id.GetObject(),
-                            .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                            .func = AnalysisState::readComparisonFunction(op_type),
+                            .left_expression_id = child_exprs[0]->expression_id.GetObject(),
+                            .right_expression_id = child_exprs[1]->expression_id.GetObject(),
                             .restriction_target_left = restriction_target_idx == 0,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));

@@ -2,11 +2,10 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
-#include "dashql/utils/ast_reader.h"
 
 namespace dashql {
 
-IdentifyConstantExpressionsPass::IdentifyConstantExpressionsPass(AnalyzerState& state) : PassManager::LTRPass(state) {}
+IdentifyConstantExpressionsPass::IdentifyConstantExpressionsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
 
 void IdentifyConstantExpressionsPass::Prepare() {}
 
@@ -18,9 +17,23 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Node> morsel) {
-    std::vector<const AnalyzedScript::Expression*> child_buffer;
+std::optional<std::span<const AnalyzedScript::Expression*>> IdentifyConstantExpressionsPass::readConstExprs(
+    std::span<const buffers::parser::Node> nodes) {
+    if (tmp_expressions.size() < nodes.size()) {
+        tmp_expressions.resize(nodes.size(), nullptr);
+    }
+    bool all_args_const = true;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        size_t arg_node_id = (nodes.data() - state.ast.data()) + i;
+        auto* arg_expr = state.expression_index[arg_node_id];
+        auto* const_expr = (arg_expr && arg_expr->IsConstantExpression()) ? arg_expr : nullptr;
+        all_args_const &= const_expr != nullptr;
+        tmp_expressions[i] = const_expr;
+    }
+    return !all_args_const ? std::nullopt : std::optional{std::span{tmp_expressions}.subspan(0, nodes.size())};
+}
 
+void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
@@ -34,7 +47,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
             case NodeType::LITERAL_NULL:
             case NodeType::LITERAL_STRING: {
                 AnalyzedScript::Expression::Literal inner{
-                    .literal_type = getLiteralType(node.node_type()),
+                    .literal_type = AnalysisState::getLiteralType(node.node_type()),
                     .raw_value = state.scanned.ReadTextAtLocation(node.location())};
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
@@ -53,22 +66,10 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS], state.ast);
-                bool all_args_const = true;
-                if (child_buffer.size() < arg_nodes.size()) {
-                    child_buffer.resize(arg_nodes.size());
-                }
-                for (size_t i = 0; i < arg_nodes.size(); ++i) {
-                    size_t arg_node_id = (arg_nodes.data() - state.ast.data()) + i;
-                    auto* arg_expr = state.expression_index[arg_node_id];
-                    if (arg_expr && arg_expr->IsConstantExpression()) {
-                        child_buffer[i] = arg_expr;
-                    } else {
-                        all_args_const = false;
-                    }
-                }
-                auto child_expressions = std::span{child_buffer}.subspan(0, arg_nodes.size());
-                if (!all_args_const) continue;
+                auto arg_nodes = state.readExpressionArgs(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto maybe_const_args = readConstExprs(arg_nodes);
+                if (!maybe_const_args.has_value()) continue;
+                auto& const_args = maybe_const_args.value();
 
                 // Translate the expression type
                 ExpressionOperator op_type = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
@@ -82,11 +83,11 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     case ExpressionOperator::XOR:
                     case ExpressionOperator::AND:
                     case ExpressionOperator::OR: {
-                        assert(child_expressions.size() == 2);
+                        assert(const_args.size() == 2);
                         AnalyzedScript::Expression::BinaryExpression inner{
-                            .func = readBinaryExpressionFunction(op_type),
-                            .left_expression_id = child_expressions[0]->expression_id.GetObject(),
-                            .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                            .func = AnalysisState::readBinaryExpressionFunction(op_type),
+                            .left_expression_id = const_args[0]->expression_id.GetObject(),
+                            .right_expression_id = const_args[1]->expression_id.GetObject(),
                             .projection_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
@@ -103,11 +104,11 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     case ExpressionOperator::LESS_EQUAL:
                     case ExpressionOperator::GREATER_THAN:
                     case ExpressionOperator::GREATER_EQUAL: {
-                        assert(child_expressions.size() == 2);
+                        assert(const_args.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
-                            .func = readComparisonFunction(op_type),
-                            .left_expression_id = child_expressions[0]->expression_id.GetObject(),
-                            .right_expression_id = child_expressions[1]->expression_id.GetObject(),
+                            .func = AnalysisState::readComparisonFunction(op_type),
+                            .left_expression_id = const_args[0]->expression_id.GetObject(),
+                            .right_expression_id = const_args[1]->expression_id.GetObject(),
                             .restriction_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
@@ -125,6 +126,29 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                         break;
                 }
             }
+            // Function call expression
+            case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto child_attrs = state.attribute_index.Load(children);
+
+                // Get name and argument attributes
+                auto name_attr = child_attrs[AttributeKey::SQL_FUNCTION_NAME];
+                auto args_attr = child_attrs[AttributeKey::SQL_FUNCTION_ARGUMENTS];
+                if (node.children_count() != 2 || !name_attr || !args_attr) {
+                    continue;
+                }
+
+                // Are all children const?
+                auto arg_nodes = state.readExpressionArgs(args_attr);
+                auto maybe_const_args = readConstExprs(arg_nodes);
+                if (!maybe_const_args.has_value()) continue;
+                auto& const_args = maybe_const_args.value();
+
+                // XXX Read a function name
+                // XXX Check function arguments
+                break;
+            }
+
             default:
                 break;
         }

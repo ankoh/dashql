@@ -244,6 +244,7 @@ add_custom_command(
 set(LIB_SRC
   ${SCANNER_OUT}
   ${PARSER_OUT}
+  ${CMAKE_SOURCE_DIR}/src/analyzer/analysis_state.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/completion.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/name_resolution_pass.cc

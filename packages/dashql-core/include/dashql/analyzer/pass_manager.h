@@ -6,7 +6,7 @@
 
 namespace dashql {
 
-struct AnalyzerState;
+struct AnalysisState;
 
 class PassManager {
    public:
@@ -14,9 +14,9 @@ class PassManager {
     /// Scans the AST node buffer from left to right.
     struct LTRPass {
         /// The state
-        AnalyzerState& state;
+        AnalysisState& state;
         /// Constructor
-        LTRPass(AnalyzerState& state);
+        LTRPass(AnalysisState& state);
 
         /// Destructor
         virtual ~LTRPass();
@@ -31,9 +31,9 @@ class PassManager {
     /// Scans the AST node buffer from right to left.
     struct RTLPass {
         /// The state
-        AnalyzerState& state;
+        AnalysisState& state;
         /// Constructor
-        RTLPass(AnalyzerState& state);
+        RTLPass(AnalysisState& state);
 
         /// Destructor
         virtual ~RTLPass();
@@ -49,7 +49,7 @@ class PassManager {
     /// Constructor
     PassManager();
     /// Execute a pass
-    void Execute(AnalyzerState& state, std::initializer_list<std::reference_wrapper<LTRPass>> passes);
+    void Execute(AnalysisState& state, std::initializer_list<std::reference_wrapper<LTRPass>> passes);
 };
 
 }  // namespace dashql

@@ -30,7 +30,7 @@ class IdentifyColumnRestrictionsPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    IdentifyColumnRestrictionsPass(AnalyzerState& state, NameResolutionPass& name_resolution,
+    IdentifyColumnRestrictionsPass(AnalysisState& state, NameResolutionPass& name_resolution,
                                    IdentifyConstantExpressionsPass& identify_constants,
                                    IdentifyColumnTransformsPass& identify_projections);
 

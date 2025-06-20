@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dashql/analyzer/pass_manager.h"
+#include "dashql/script.h"
 
 namespace dashql {
 
@@ -18,9 +19,17 @@ namespace dashql {
 ///   - Constant function calls
 ///
 class IdentifyConstantExpressionsPass : public PassManager::LTRPass {
+    /// Temporary buffer for expression pointers
+    std::vector<const AnalyzedScript::Expression*> tmp_expressions;
+
+    /// Helper to read constant expressions.
+    /// Returns a nullopt if any of the nodes is not a constant expression
+    std::optional<std::span<const AnalyzedScript::Expression*>> readConstExprs(
+        std::span<const buffers::parser::Node> nodes);
+
    public:
     /// Constructor
-    IdentifyConstantExpressionsPass(AnalyzerState& state);
+    IdentifyConstantExpressionsPass(AnalysisState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;
