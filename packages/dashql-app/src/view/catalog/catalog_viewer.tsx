@@ -355,18 +355,12 @@ function useCatalogInfoEntries(workbook: WorkbookState | null, script: ScriptDat
                 if (analyzed) {
                     const analyzedPtr = analyzed.read();
                     const tableRef = analyzedPtr.tableReferences(tableRefId)!;
-                    switch (tableRef.innerType()) {
-                        case dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference: {
-                            const inner = new dashql.buffers.analyzer.ResolvedRelationReference();
-                            tableRef.inner(inner) as dashql.buffers.analyzer.ResolvedRelationReference;
-                            const tableName = inner.tableName();
-                            overlay.push(["Table", tableName?.tableName() ?? ""]);
-                            break;
-                        }
-                        case dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference: {
-                            overlay.push(["Table", "<unresolved>"]);
-                            break;
-                        }
+                    const resolved = tableRef.resolvedRelation()!;
+                    if (resolved == null) {
+                        overlay.push(["Table", "<unresolved>"]);
+                    } else {
+                        const tableName = resolved.tableName();
+                        overlay.push(["Table", tableName?.tableName() ?? ""]);
                     }
                 }
                 break;
@@ -381,19 +375,18 @@ function useCatalogInfoEntries(workbook: WorkbookState | null, script: ScriptDat
                     const analyzedPtr = analyzed.read();
                     const expression = analyzedPtr.expressions(expressionId)!;
                     switch (expression.innerType()) {
-                        case dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression: {
-                            const inner = new dashql.buffers.algebra.ResolvedColumnRefExpression();
-                            expression.inner(inner) as dashql.buffers.algebra.ResolvedColumnRefExpression;
-                            overlay.push(["Expression", "column reference"]);
-                            const columnName = inner.columnName();
-                            overlay.push(["Column", columnName?.columnName() ?? ""]);
-                            break;
-                        }
-                        case dashql.buffers.algebra.ExpressionSubType.UnresolvedColumnRefExpression: {
-                            const inner = new dashql.buffers.algebra.UnresolvedColumnRefExpression();
-                            expression.inner(inner) as dashql.buffers.algebra.UnresolvedColumnRefExpression;
-                            overlay.push(["Expression", "column reference"]);
-                            overlay.push(["Column", "<unresolved>"]);
+                        case dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression: {
+                            const inner = new dashql.buffers.algebra.ColumnRefExpression();
+                            expression.inner(inner) as dashql.buffers.algebra.ColumnRefExpression;
+                            const resolved = inner.resolvedColumn();
+                            if (resolved == null) {
+                                overlay.push(["Expression", "column reference"]);
+                                overlay.push(["Column", "<unresolved>"]);
+                            } else {
+                                overlay.push(["Expression", "column reference"]);
+                                const columnName = inner.columnName();
+                                overlay.push(["Column", columnName?.columnName() ?? ""]);
+                            }
                             break;
                         }
                     }

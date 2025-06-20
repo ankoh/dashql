@@ -67,8 +67,10 @@ export function deriveFocusFromScriptCursor(
     const tmpTargetAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
     const tmpIndexedColumnRef = new dashql.buffers.analyzer.IndexedColumnReference();
-    const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
-    const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationReference();
+    const tmpColumnRef = new dashql.buffers.algebra.ColumnRefExpression();
+    const tmpResolvedColumn = new dashql.buffers.algebra.ResolvedColumn();
+    const tmpTableRef = new dashql.buffers.analyzer.TableReference();
+    const tmpResolvedRelation = new dashql.buffers.analyzer.ResolvedRelation();
 
     let sourceAnalyzed = scriptData.processed.analyzed?.read(tmpSourceAnalyzed);
     if (sourceAnalyzed == null) {
@@ -91,32 +93,31 @@ export function deriveFocusFromScriptCursor(
                 scriptColumnRefs: new Map(),
             };
             // Is resolved?
-            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId)!;
-            if (sourceRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference) {
-                const resolved = sourceRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationReference;
-
+            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId, tmpTableRef)!;
+            const resolvedRelation = sourceRef.resolvedRelation(tmpResolvedRelation);
+            if (resolvedRelation != null) {
                 // Focus in catalog
                 focus.catalogObject = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
-                        database: resolved.catalogDatabaseId(),
-                        schema: resolved.catalogSchemaId(),
-                        table: resolved.catalogTableId(),
+                        database: resolvedRelation.catalogDatabaseId(),
+                        schema: resolvedRelation.catalogSchemaId(),
+                        table: resolvedRelation.catalogTableId(),
                     },
                     focus: FocusType.TABLE_REF
                 };
 
                 // Could we resolve the ref?
-                if (!dashql.ContextObjectID.isNull(resolved.catalogTableId())) {
+                if (!dashql.ContextObjectID.isNull(resolvedRelation.catalogTableId())) {
                     // Read the analyzed script
                     const targetAnalyzed = scriptData.processed.analyzed?.read(tmpTargetAnalyzed);
                     if (targetAnalyzed != null) {
                         // Find table refs for table
                         const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
                             targetAnalyzed,
-                            resolved.catalogDatabaseId(),
-                            resolved.catalogSchemaId(),
-                            resolved.catalogTableId()
+                            resolvedRelation.catalogDatabaseId(),
+                            resolvedRelation.catalogSchemaId(),
+                            resolvedRelation.catalogTableId()
                         );
                         for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
                             const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
@@ -124,12 +125,13 @@ export function deriveFocusFromScriptCursor(
                             const focusType = (tableRefId == context.tableReferenceId) ? FocusType.TABLE_REF_UNDER_CURSOR : FocusType.TABLE_REF_OF_TARGET_TABLE;
                             focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), focusType);
                         }
+
                         // Find column refs for table
                         const [begin1, end1] = dashql.findScriptColumnRefsEqualRange(
                             targetAnalyzed,
-                            resolved.catalogDatabaseId(),
-                            resolved.catalogSchemaId(),
-                            resolved.catalogTableId()
+                            resolvedRelation.catalogDatabaseId(),
+                            resolvedRelation.catalogSchemaId(),
+                            resolvedRelation.catalogTableId()
                         );
                         for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
                             const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
@@ -156,65 +158,71 @@ export function deriveFocusFromScriptCursor(
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
+
             // Is resolved?
             const sourceRef = sourceAnalyzed.expressions(context.expressionId)!;
-            if (sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression) {
-                const resolved = sourceRef.inner(tmpResolvedColumnRef) as dashql.buffers.algebra.ResolvedColumnRefExpression;
+            if (sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
+                const columnRef: dashql.buffers.algebra.ColumnRefExpression = sourceRef.inner(tmpColumnRef)!;
 
-                // Focus in catalog
-                focus.catalogObject = {
-                    type: QUALIFIED_TABLE_COLUMN_ID,
-                    value: {
-                        database: resolved.catalogDatabaseId(),
-                        schema: resolved.catalogSchemaId(),
-                        table: resolved.catalogTableId(),
-                        column: resolved.columnId(),
-                    },
-                    focus: FocusType.COLUMN_REF
-                };
+                const resolvedColumn = columnRef.resolvedColumn(tmpResolvedColumn);
+                if (resolvedColumn != null) {
+                    // Focus in catalog
+                    focus.catalogObject = {
+                        type: QUALIFIED_TABLE_COLUMN_ID,
+                        value: {
+                            database: resolvedColumn.catalogDatabaseId(),
+                            schema: resolvedColumn.catalogSchemaId(),
+                            table: resolvedColumn.catalogTableId(),
+                            column: resolvedColumn.columnId(),
+                        },
+                        focus: FocusType.COLUMN_REF
+                    };
 
-                // Could we resolve the ref?
-                if (!dashql.ContextObjectID.isNull(resolved.catalogTableId())) {
-                    // Read the analyzed script
-                    const targetAnalyzed = scriptData.processed.analyzed?.read(tmpTargetAnalyzed);
-                    if (targetAnalyzed != null) {
-                        // Find table refs for table
-                        const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
-                            targetAnalyzed,
-                            resolved.catalogDatabaseId(),
-                            resolved.catalogSchemaId(),
-                            resolved.catalogTableId(),
-                        );
-                        for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
-                            const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
-                            const tableRefId = indexEntry.tableReferenceId();
-                            focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), FocusType.TABLE_REF_OF_TARGET_COLUMN);
-                        }
-                        // Find column refs for table
-                        const [begin1, end1] = dashql.findScriptColumnRefsEqualRange(
-                            targetAnalyzed,
-                            resolved.catalogDatabaseId(),
-                            resolved.catalogSchemaId(),
-                            resolved.catalogTableId(),
-                        );
-                        for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
-                            const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
-                            const columnRefId = indexEntry.expressionId();
-                            focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), FocusType.COLUMN_REF_OF_TARGET_TABLE);
-                        }
-                        // Find column refs for table
-                        const [begin2, end2] = dashql.findScriptColumnRefsEqualRange(
-                            targetAnalyzed,
-                            resolved.catalogDatabaseId(),
-                            resolved.catalogSchemaId(),
-                            resolved.catalogTableId(),
-                            resolved.columnId(),
-                        );
-                        for (let indexEntryId = begin2; indexEntryId < end2; ++indexEntryId) {
-                            const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
-                            const columnRefId = indexEntry.expressionId();
-                            const focusType = (columnRefId == context.expressionId) ? FocusType.COLUMN_REF_UNDER_CURSOR : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
-                            focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), focusType);
+                    // Could we resolve the ref?
+                    if (!dashql.ContextObjectID.isNull(resolvedColumn.catalogTableId())) {
+                        // Read the analyzed script
+                        const targetAnalyzed = scriptData.processed.analyzed?.read(tmpTargetAnalyzed);
+                        if (targetAnalyzed != null) {
+                            // Find table refs for table
+                            const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
+                                targetAnalyzed,
+                                resolvedColumn.catalogDatabaseId(),
+                                resolvedColumn.catalogSchemaId(),
+                                resolvedColumn.catalogTableId(),
+                            );
+                            for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
+                                const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
+                                const tableRefId = indexEntry.tableReferenceId();
+                                focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), FocusType.TABLE_REF_OF_TARGET_COLUMN);
+                            }
+
+                            // Find column refs for table
+                            const [begin1, end1] = dashql.findScriptColumnRefsEqualRange(
+                                targetAnalyzed,
+                                resolvedColumn.catalogDatabaseId(),
+                                resolvedColumn.catalogSchemaId(),
+                                resolvedColumn.catalogTableId(),
+                            );
+                            for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
+                                const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                                const columnRefId = indexEntry.expressionId();
+                                focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), FocusType.COLUMN_REF_OF_TARGET_TABLE);
+                            }
+
+                            // Find column refs for table
+                            const [begin2, end2] = dashql.findScriptColumnRefsEqualRange(
+                                targetAnalyzed,
+                                resolvedColumn.catalogDatabaseId(),
+                                resolvedColumn.catalogSchemaId(),
+                                resolvedColumn.catalogTableId(),
+                                resolvedColumn.columnId(),
+                            );
+                            for (let indexEntryId = begin2; indexEntryId < end2; ++indexEntryId) {
+                                const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                                const columnRefId = indexEntry.expressionId();
+                                const focusType = (columnRefId == context.expressionId) ? FocusType.COLUMN_REF_UNDER_CURSOR : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
+                                focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), focusType);
+                            }
                         }
                     }
                 }

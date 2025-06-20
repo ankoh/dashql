@@ -387,6 +387,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
                 resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
                 resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
                 resolved_builder.add_column_id(resolved.table_column_id);
+                resolved_ofs = resolved_builder.Finish();
             }
             buffers::algebra::ColumnRefExpressionBuilder out{builder};
             out.add_ast_scope_root(column_ref.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
@@ -394,6 +395,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
             if (!resolved_ofs.IsNull()) {
                 out.add_resolved_column(resolved_ofs);
             }
+            inner_type = buffers::algebra::ExpressionSubType::ColumnRefExpression;
             inner_ofs = out.Finish().Union();
             break;
         }

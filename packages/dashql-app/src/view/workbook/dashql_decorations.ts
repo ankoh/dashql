@@ -154,9 +154,10 @@ function buildDecorationsFromAnalysis(
 
     if (analyzed !== null) {
         // Decorate unresolved tables
+        const tmpTableRef = new dashql.buffers.analyzer.TableReference();
         for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
-            const tableRef = analyzed.tableReferences(i)!;
-            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference) {
+            const tableRef = analyzed.tableReferences(i, tmpTableRef)!;
+            if (tableRef.resolvedRelation() == null) {
                 const loc = tableRef.location()!;
                 decorations.push({
                     from: loc.offset(),
@@ -166,15 +167,19 @@ function buildDecorationsFromAnalysis(
             }
         }
         // Decorate unresolved columns
+        const tmpColRef = new dashql.buffers.algebra.ColumnRefExpression();
         for (let i = 0; i < analyzed.expressionsLength(); ++i) {
             const expr = analyzed.expressions(i)!;
-            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.UnresolvedColumnRefExpression) {
-                const loc = expr.location()!;
-                decorations.push({
-                    from: loc.offset(),
-                    to: loc.offset() + loc.length(),
-                    decoration: UnresolvedColumnReferenceDecoration,
-                });
+            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
+                const colRef: dashql.buffers.algebra.ColumnRefExpression = expr.inner(tmpColRef)!;
+                if (colRef.resolvedColumn() == null) {
+                    const loc = expr.location()!;
+                    decorations.push({
+                        from: loc.offset(),
+                        to: loc.offset() + loc.length(),
+                        decoration: UnresolvedColumnReferenceDecoration,
+                    });
+                }
             }
         }
     }
