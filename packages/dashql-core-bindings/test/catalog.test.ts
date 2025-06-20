@@ -68,11 +68,10 @@ describe('Catalog Tests ', () => {
 
         // The analyzed script contains an unresolved table ref
         let tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.innerType()).toEqual(dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference);
+        expect(tableRef.resolvedRelation()).toBeNull();
 
         // Check the table name
-        const unresolved = tableRef.inner(new dashql.buffers.analyzer.UnresolvedRelationReference());
-        const tableName = unresolved.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
+        const tableName = tableRef.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
         expect(tableName.databaseName()).toEqual('db1');
         expect(tableName.schemaName()).toEqual('schema1');
         expect(tableName.tableName()).toEqual('table1');
@@ -96,10 +95,10 @@ describe('Catalog Tests ', () => {
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
         tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.innerType()).toEqual(dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference);
+        expect(tableRef.resolvedRelation()).not.toBeNull();
 
         // Make sure we set some values for the resolved table
-        const resolved = tableRef.inner(new dashql.buffers.analyzer.ResolvedRelationReference());
+        const resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
@@ -126,11 +125,10 @@ describe('Catalog Tests ', () => {
 
         // The analyzed script contains an unresolved table ref
         let tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.innerType()).toEqual(dashql.buffers.analyzer.TableReferenceSubType.UnresolvedRelationReference);
+        expect(tableRef.resolvedRelation()).toBeNull();
 
         // Check the table name
-        const unresolved = tableRef.inner(new dashql.buffers.analyzer.UnresolvedRelationReference());
-        const tableName = unresolved.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
+        const tableName = tableRef.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
         expect(tableName.databaseName()).toEqual('db1');
         expect(tableName.schemaName()).toEqual('schema1');
         expect(tableName.tableName()).toEqual('table1');
@@ -163,19 +161,19 @@ describe('Catalog Tests ', () => {
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
         tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.innerType()).toEqual(dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference);
+        expect(tableRef.resolvedRelation()).not.toBeNull();
 
         // Make sure we set some values for the resolved table
-        let resolved = tableRef.inner(new dashql.buffers.analyzer.ResolvedRelationReference());
+        let resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         tableRef = analyzed.tableReferences(1)!;
-        expect(tableRef.innerType()).toEqual(dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference);
+        expect(tableRef.resolvedRelation()).not.toBeNull();
 
         // Make sure we set some values for the second resolved table
-        resolved = tableRef.inner(new dashql.buffers.analyzer.ResolvedRelationReference());
+        resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();

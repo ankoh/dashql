@@ -339,10 +339,12 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     flatbuffers::Offset<buffers::analyzer::ResolvedRelation> resolved_ofs;
     if (relation_expr.resolved_relation.has_value()) {
         auto& resolved = relation_expr.resolved_relation.value();
+        auto resolved_table_name = resolved.table_name.Pack(builder);
         buffers::analyzer::ResolvedRelationBuilder resolved_builder{builder};
         resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
         resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
         resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
+        resolved_builder.add_table_name(resolved_table_name);
         resolved_ofs = resolved_builder.Finish();
     }
     flatbuffers::Offset<flatbuffers::String> alias_name_ofs;

@@ -639,9 +639,10 @@ export class CatalogViewModel {
     pinScriptRefs(script: dashql.buffers.analyzer.AnalyzedScript): void {
         const catalog = this.snapshot.read().catalogReader;
         const tmpTableRef = new dashql.buffers.analyzer.TableReference();
+        const tmpResolvedRelation = new dashql.buffers.analyzer.ResolvedRelation();
         const tmpExpression = new dashql.buffers.algebra.Expression();
-        const tmpResolvedColumnRef = new dashql.buffers.algebra.ResolvedColumnRefExpression();
-        const tmpResolvedRelationExpr = new dashql.buffers.analyzer.ResolvedRelationReference();
+        const tmpColumnRef = new dashql.buffers.algebra.ColumnRefExpression();
+        const tmpResolvedColumn = new dashql.buffers.algebra.ResolvedColumn();
 
         // Allocate an epoch
         const epoch = this.nextPinEpoch++;
@@ -649,36 +650,36 @@ export class CatalogViewModel {
         // Pin table references
         for (let i = 0; i < script.tableReferencesLength(); ++i) {
             const tableRef = script.tableReferences(i, tmpTableRef)!;
-            if (tableRef.innerType() == dashql.buffers.analyzer.TableReferenceSubType.ResolvedRelationReference) {
-                const resolved = tableRef.inner(tmpResolvedRelationExpr) as dashql.buffers.analyzer.ResolvedRelationReference;
-                const objectId: QualifiedCatalogObjectID = {
-                    type: QUALIFIED_TABLE_ID,
-                    value: {
-                        database: resolved.catalogDatabaseId(),
-                        schema: resolved.catalogSchemaId(),
-                        table: resolved.catalogTableId(),
-                    }
-                };
-                this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_TABLE_REF, CatalogRenderingFlag.SCRIPT_TABLE_REF_PATH, PINNED_BY_SCRIPT, objectId);
-            }
+            const resolved = tableRef.resolvedRelation(tmpResolvedRelation);
+            if (resolved == null) continue;
+            const objectId: QualifiedCatalogObjectID = {
+                type: QUALIFIED_TABLE_ID,
+                value: {
+                    database: resolved.catalogDatabaseId(),
+                    schema: resolved.catalogSchemaId(),
+                    table: resolved.catalogTableId(),
+                }
+            };
+            this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_TABLE_REF, CatalogRenderingFlag.SCRIPT_TABLE_REF_PATH, PINNED_BY_SCRIPT, objectId);
         }
 
         // Pin resolved column references
         for (let i = 0; i < script.expressionsLength(); ++i) {
             const expr = script.expressions(i, tmpExpression)!;
-            if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ResolvedColumnRefExpression) {
-                const resolved = expr.inner(tmpResolvedColumnRef) as dashql.buffers.algebra.ResolvedColumnRefExpression;
-                const objectId: QualifiedCatalogObjectID = {
-                    type: QUALIFIED_TABLE_COLUMN_ID,
-                    value: {
-                        database: resolved.catalogDatabaseId(),
-                        schema: resolved.catalogSchemaId(),
-                        table: resolved.catalogTableId(),
-                        column: resolved.columnId(),
-                    }
-                };
-                this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_COLUMN_REF, CatalogRenderingFlag.SCRIPT_COLUMN_REF_PATH, PINNED_BY_SCRIPT, objectId);
-            }
+            if (expr.innerType() != dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) continue;
+            const columnRef = expr.inner(tmpColumnRef);
+            const resolved = columnRef.resolvedColumn(tmpResolvedColumn)!;
+            if (resolved == null) continue;
+            const objectId: QualifiedCatalogObjectID = {
+                type: QUALIFIED_TABLE_COLUMN_ID,
+                value: {
+                    database: resolved.catalogDatabaseId(),
+                    schema: resolved.catalogSchemaId(),
+                    table: resolved.catalogTableId(),
+                    column: resolved.columnId(),
+                }
+            };
+            this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_COLUMN_REF, CatalogRenderingFlag.SCRIPT_COLUMN_REF_PATH, PINNED_BY_SCRIPT, objectId);
         }
 
         // Unpin all entries were pinned with the same flags in a previous epoch

@@ -126,7 +126,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
         // TODO Matches a view or CTE?
 
         auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
-        if (!rel_expr) {
+        if (!rel_expr || rel_expr->resolved_relation.has_value()) {
             continue;
         }
         // Copy table name so that we can override the unresolved expression
