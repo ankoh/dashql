@@ -512,6 +512,22 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 break;
             }
 
+            case buffers::parser::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
+                // Read column ref path
+                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
+                auto attrs = state.attribute_index.Load(children);
+                auto func_name_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_NAME];
+                auto func_name_node_id = static_cast<uint32_t>(func_name_node - state.parsed.nodes.data());
+                auto func_name = state.ReadQualifiedColumnName(func_name_node);
+                if (func_name.has_value()) {
+                    // Register the function expression
+                    // XXX
+                }
+                // Column refs may be recursive
+                MergeChildStates(node_state, node);
+                break;
+            }
+
             // By default, merge child states into the node state
             default:
                 MergeChildStates(node_state, node);

@@ -48,12 +48,14 @@ struct AnalysisState {
     /// Constructor
     AnalysisState(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 
-    /// Merge child states into a destination state
+    /// Helper to read a name path
     std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::parser::Node& node);
-    /// Merge child states into a destination state
+    /// Helper to read a qualified table name
     std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const sx::parser::Node* node);
-    /// Merge child states into a destination state
+    /// Helper to read a qualified column name
     std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::parser::Node* column);
+    /// Helper to read a qualified function name
+    std::optional<AnalyzedScript::QualifiedFunctionName> ReadQualifiedFunctionName(const sx::parser::Node* node);
 
     /// Helper to read expression arguments
     inline std::span<const buffers::parser::Node> ReadArgExpressions(const buffers::parser::Node& args_node) {

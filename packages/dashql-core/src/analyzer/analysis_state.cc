@@ -94,4 +94,31 @@ std::optional<AnalyzedScript::QualifiedColumnName> AnalysisState::ReadQualifiedC
     }
 }
 
+std::optional<AnalyzedScript::QualifiedFunctionName> AnalysisState::ReadQualifiedFunctionName(
+    const sx::parser::Node* node) {
+    if (!node) {
+        return std::nullopt;
+    }
+    auto name_path = ReadNamePath(*node);
+    auto ast_node_id = node - ast.data();
+    switch (name_path.size()) {
+        case 3:
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::DATABASE_NAME;
+            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
+            name_path[2].get().coarse_analyzer_tags |= sx::analyzer::NameTag::FUNCTION_NAME;
+            return AnalyzedScript::QualifiedFunctionName{ast_node_id, name_path[0], name_path[1], name_path[2]};
+        case 2: {
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::SCHEMA_NAME;
+            name_path[1].get().coarse_analyzer_tags |= sx::analyzer::NameTag::FUNCTION_NAME;
+            return AnalyzedScript::QualifiedFunctionName{ast_node_id, empty_name, name_path[0], name_path[1]};
+        }
+        case 1: {
+            name_path[0].get().coarse_analyzer_tags |= sx::analyzer::NameTag::FUNCTION_NAME;
+            return AnalyzedScript::QualifiedFunctionName{ast_node_id, empty_name, empty_name, name_path[0]};
+        }
+        default:
+            return std::nullopt;
+    }
+}
+
 }  // namespace dashql
