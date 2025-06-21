@@ -66,7 +66,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = state.ReadArgExpressions(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgNodes(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
                 auto maybe_const_args = readConstExprs(arg_nodes);
                 if (!maybe_const_args.has_value()) continue;
                 auto& const_args = maybe_const_args.value();
@@ -139,7 +139,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 }
 
                 // Are all children const?
-                auto arg_nodes = state.ReadArgExpressions(args_attr);
+                auto arg_nodes = state.ReadArgNodes(args_attr);
                 auto maybe_const_args = readConstExprs(arg_nodes);
                 if (!maybe_const_args.has_value()) continue;
                 auto& const_args = maybe_const_args.value();

@@ -40,7 +40,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = state.ReadArgExpressions(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgNodes(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
                 size_t arg_count_const = 0;
                 size_t arg_count_projection = 0;
                 size_t restriction_target_idx = 0;

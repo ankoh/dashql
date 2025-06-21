@@ -79,7 +79,7 @@ std::optional<AnalyzedScript::QualifiedColumnName> AnalysisState::ReadQualifiedC
         return std::nullopt;
     }
     auto name_path = ReadNamePath(*node);
-    auto ast_node_id = node - ast.data();
+    uint32_t ast_node_id = node - ast.data();
     // Build the qualified column name
     switch (name_path.size()) {
         case 2:

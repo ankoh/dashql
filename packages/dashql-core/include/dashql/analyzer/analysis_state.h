@@ -58,7 +58,7 @@ struct AnalysisState {
     std::optional<AnalyzedScript::QualifiedFunctionName> ReadQualifiedFunctionName(const sx::parser::Node* node);
 
     /// Helper to read expression arguments
-    inline std::span<const buffers::parser::Node> ReadArgExpressions(const buffers::parser::Node& args_node) {
+    inline std::span<const buffers::parser::Node> ReadArgNodes(const buffers::parser::Node& args_node) {
         // Ensured by caller
         assert(args_node.attribute_key() == buffers::parser::AttributeKey::SQL_EXPRESSION_ARGS ||
                args_node.attribute_key() == buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS);
@@ -68,8 +68,8 @@ struct AnalysisState {
         return ast.subspan(args_node.children_begin_or_value(), args_node.children_count());
     }
     /// Helper to read expression arguments
-    inline std::span<const buffers::parser::Node> ReadArgExpressions(const buffers::parser::Node* args_node) {
-        return !args_node ? std::span<const buffers::parser::Node>{} : ReadArgExpressions(*args_node);
+    inline std::span<const buffers::parser::Node> ReadArgNodes(const buffers::parser::Node* args_node) {
+        return !args_node ? std::span<const buffers::parser::Node>{} : ReadArgNodes(*args_node);
     }
 
     // Helper to read a literal type

@@ -4,6 +4,7 @@
 #include <functional>
 #include <iterator>
 #include <optional>
+#include <variant>
 
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/analyzer/analyzer.h"
@@ -103,6 +104,7 @@ AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, ui
         root_scopes.erase(&child_scope);
     }
     for (auto& ref : target.column_references) {
+        assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(ref.inner));
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(ref.inner);
         column_ref.ast_scope_root = scope_root;
     }
@@ -367,7 +369,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 if (column_name.has_value()) {
                     // Add column reference
                     AnalyzedScript::Expression::ColumnRef column_ref{
-                        .column_name_ast_node_id = column_name_node_id,
                         .column_name = column_name.value(),
                         .ast_scope_root = std::nullopt,
                         .resolved_column = std::nullopt,
@@ -516,11 +517,30 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto attrs = state.attribute_index.Load(children);
                 auto func_name_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_NAME];
+                auto func_args_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS];
                 auto func_name_node_id = static_cast<uint32_t>(func_name_node - state.parsed.nodes.data());
-                auto func_name = state.ReadQualifiedColumnName(func_name_node);
+                auto func_name = state.ReadQualifiedFunctionName(func_name_node);
                 if (func_name.has_value()) {
-                    // Register the function expression
-                    // XXX
+                    // Add column reference
+                    AnalyzedScript::Expression::FunctionCallExpression column_ref{
+                        .function_name = func_name.value(),
+                        .argument_expression_ids = {},
+                    };
+                    // Get the function arguments
+                    if (func_args_node) {
+                        auto func_args = state.ReadArgNodes(*func_args_node);
+                        column_ref.argument_expression_ids.resize(func_args.size(), std::nullopt);
+                        for (size_t i = 0; i < func_args.size(); ++i) {
+                            auto arg_node_id = (func_args.data() - state.ast.data()) + i;
+                            if (auto expr = state.expression_index[arg_node_id]; expr != nullptr) {
+                                column_ref.argument_expression_ids[i] = expr->expression_id.GetObject();
+                            }
+                        }
+                    }
+                    // Add function call expression
+                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
+                    n.is_column_transform = true;
+                    state.expression_index[node_id] = &n;
                 }
                 // Column refs may be recursive
                 MergeChildStates(node_state, node);

@@ -80,6 +80,21 @@ class CatalogEntry {
         flatbuffers::Offset<buffers::analyzer::QualifiedTableName> Pack(flatbuffers::FlatBufferBuilder& builder) const;
         /// Construct a key
         operator Key() { return {database_name.get(), schema_name.get(), table_name.get()}; }
+        /// Get debug string
+        inline std::string getDebugString() const {
+            std::string out;
+            if (!database_name.get().text.empty()) {
+                out += database_name.get().text;
+                out += ".";
+                out += schema_name.get().text;
+                out += ".";
+            } else if (!schema_name.get().text.empty()) {
+                out += schema_name.get().text;
+                out += ".";
+            }
+            out += table_name.get().text;
+            return out;
+        }
     };
     /// A qualified column name
     struct QualifiedColumnName {
@@ -91,8 +106,7 @@ class CatalogEntry {
         /// The column name
         std::reference_wrapper<RegisteredName> column_name;
         /// Constructor
-        QualifiedColumnName(std::optional<uint32_t> ast_node_id,
-                            std::optional<std::reference_wrapper<RegisteredName>> table_alias,
+        QualifiedColumnName(uint32_t ast_node_id, std::optional<std::reference_wrapper<RegisteredName>> table_alias,
                             RegisteredName& column_name)
             : ast_node_id(ast_node_id), table_alias(table_alias), column_name(column_name) {}
         /// Pack as FlatBuffer
@@ -135,6 +149,21 @@ class CatalogEntry {
             flatbuffers::FlatBufferBuilder& builder) const;
         /// Construct a key
         operator Key() { return {database_name.get(), schema_name.get(), function_name.get()}; }
+        /// Get debug string
+        inline std::string getDebugString() const {
+            std::string out;
+            if (!database_name.get().text.empty()) {
+                out += database_name.get().text;
+                out += ".";
+                out += schema_name.get().text;
+                out += ".";
+            } else if (!schema_name.get().text.empty()) {
+                out += schema_name.get().text;
+                out += ".";
+            }
+            out += function_name.get().text;
+            return out;
+        }
     };
 
     /// Forward declare the table

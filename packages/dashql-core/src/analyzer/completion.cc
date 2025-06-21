@@ -156,7 +156,7 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser
             auto& ctx = std::get<ScriptCursor::ColumnRefContext>(cursor.context);
             auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
             assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
-            name_ast_node_id = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name_ast_node_id;
+            name_ast_node_id = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
             break;
         }
     }

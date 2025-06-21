@@ -252,6 +252,12 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     }
                     break;
                 }
+                case 5: {
+                    auto& func = std::get<AnalyzedScript::Expression::FunctionCallExpression>(ref.inner);
+                    xml_ref.append_attribute("type").set_value("func");
+                    auto func_name = func.function_name.getDebugString();
+                    xml_ref.append_attribute("name").set_value(func_name.c_str());
+                }
             }
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);

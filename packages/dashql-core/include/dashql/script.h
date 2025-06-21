@@ -230,8 +230,6 @@ class AnalyzedScript : public CatalogEntry {
         };
         /// An unresolved column reference
         struct ColumnRef {
-            /// The AST node id of the name path
-            uint32_t column_name_ast_node_id;
             /// The column name, may refer to different catalog entry
             QualifiedColumnName column_name;
             /// The AST scope root in the target script
@@ -271,9 +269,10 @@ class AnalyzedScript : public CatalogEntry {
         /// A function call expression
         struct FunctionCallExpression {
             /// The qualified function name
-            QualifiedFunctionName name;
-            /// The argument expression ids
-            std::vector<size_t> argument_expression_ids;
+            QualifiedFunctionName function_name;
+            /// The argument expression ids.
+            /// Args are populated if they are a a constexpr or a column transform.
+            std::vector<std::optional<size_t>> argument_expression_ids;
         };
 
         /// The expression id as (entry_id, reference_index)
