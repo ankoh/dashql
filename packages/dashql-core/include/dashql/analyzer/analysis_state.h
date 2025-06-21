@@ -18,7 +18,7 @@ class ParsedScript;
 /// The state state is shared between the passes
 struct AnalysisState {
     /// Contains an entry for every ast node, storing an expression pointer if the ast node has been translated.
-    using ExpressionIndex = std::vector<const AnalyzedScript::Expression*>;
+    using ExpressionIndex = std::vector<AnalyzedScript::Expression*>;
 
     /// The scanned program (input)
     ScannedScript& scanned;

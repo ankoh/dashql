@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <span>
 #include <vector>
 
 namespace dashql {
@@ -75,9 +76,9 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
     size_t total_value_count;
 
     /// Grow the buffer
-    void grow() {
+    void grow(size_t min_next_size = 0) {
         auto chunk_size = next_chunk_size;
-        next_chunk_size = next_chunk_size * 5 / 4;
+        next_chunk_size = std::max<size_t>(min_next_size, next_chunk_size * 5 / 4);
         std::vector<T> nodes;
         nodes.reserve(chunk_size);
         buffers.push_back(std::move(nodes));
@@ -155,6 +156,22 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         last->push_back(std::move(value));
         ++total_value_count;
         return last->back();
+    }
+    /// Append multiple nodes
+    std::span<T> EmplaceBackN(size_t n) {
+        if (n == 0) return {};
+        auto* last = &buffers.back();
+        if ((last->capacity() - last->size()) < n) {
+            grow(n);
+            last = &buffers.back();
+        }
+        for (size_t i = 0; i < n; ++i) {
+            last->emplace_back();
+        }
+        total_value_count += n;
+        T* last_ptr = &last->back();
+        last_ptr -= n - 1;
+        return std::span<T>{last_ptr, n};
     }
     /// Apply a function for each value
     template <typename F> void ForEach(F fn) {

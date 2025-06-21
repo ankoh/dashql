@@ -53,6 +53,8 @@ struct AttributeIndex {
         const buffers::parser::Node* operator[](buffers::parser::AttributeKey key) const {
             return attribute_index[static_cast<size_t>(key)];
         }
+        /// Get the number of indexed nodes
+        std::span<const buffers::parser::Node> GetIndexedNodes() const { return indexed_nodes; }
     };
 
    protected:

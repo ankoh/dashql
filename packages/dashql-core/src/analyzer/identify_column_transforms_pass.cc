@@ -16,6 +16,35 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
+std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>>
+IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser::Node> nodes) {
+    if (tmp_expressions.size() < nodes.size()) {
+        tmp_expressions.resize(nodes.size(), nullptr);
+    }
+    size_t arg_count_const = 0;
+    size_t arg_count_transform = 0;
+    size_t transform_target_idx = 0;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        size_t arg_node_id = (nodes.data() - state.ast.data()) + i;
+        auto* arg_expr = state.expression_index[arg_node_id];
+        if (!arg_expr) continue;
+        if (arg_expr->IsColumnTransform()) {
+            tmp_expressions[i] = arg_expr;
+            ++arg_count_transform;
+            transform_target_idx = i;
+        } else if (arg_expr->IsConstantExpression()) {
+            tmp_expressions[i] = arg_expr;
+            ++arg_count_const;
+        }
+    }
+    // Is a transform?
+    // There must be at most 1 child transform, the rest must be const
+    bool is_transform = arg_count_transform == 1 && ((arg_count_transform + arg_count_const) == nodes.size());
+    auto args = std::span{tmp_expressions}.subspan(0, nodes.size());
+    std::pair<std::span<AnalyzedScript::Expression*>, size_t> result{args, transform_target_idx};
+    return (!is_transform) ? std::nullopt : std::optional{result};
+}
+
 void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> const_child_exprs;
     std::vector<const AnalyzedScript::Expression*> child_projections;
@@ -42,19 +71,25 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                     case buffers::parser::ExpressionOperator::XOR:
                     case buffers::parser::ExpressionOperator::NEGATE:
                     case buffers::parser::ExpressionOperator::NOT:
-
-                        break;
                     case buffers::parser::ExpressionOperator::LIKE:
-                        break;
                     case buffers::parser::ExpressionOperator::ILIKE:
-                        break;
                     case buffers::parser::ExpressionOperator::NOT_LIKE:
-                        break;
                     case buffers::parser::ExpressionOperator::NOT_ILIKE:
-                        break;
                     default:
                         break;
                 }
+                break;
+            }
+
+            case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
+                // Did name resolution create a function expression?
+                // Skip the node, if not
+                auto& expr = state.expression_index[node_id];
+                if (!expr) continue;
+                assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
+                auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
+
+                // XXX
                 break;
             }
             default:

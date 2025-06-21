@@ -252,8 +252,6 @@ class AnalyzedScript : public CatalogEntry {
             uint32_t left_expression_id = 0;
             /// The expression id of the right child
             uint32_t right_expression_id = 0;
-            /// Is the restriction target left?
-            bool restriction_target_left = false;
         };
         /// A binary expression
         struct BinaryExpression {
@@ -263,16 +261,22 @@ class AnalyzedScript : public CatalogEntry {
             uint32_t left_expression_id = 0;
             /// The expression id of the right child
             uint32_t right_expression_id = 0;
-            /// Is the projection target the left child?
-            bool projection_target_left = true;
+        };
+        /// A function argument expression?
+        struct FunctionArgument {
+            /// The ast node id of the argument
+            uint32_t ast_node_id = 0;
+            /// The expression id (if mapped)
+            std::optional<uint32_t> expression_id = 0;
+            /// The name (if the argument is named)
+            std::optional<std::reference_wrapper<RegisteredName>> name;
         };
         /// A function call expression
         struct FunctionCallExpression {
             /// The qualified function name
             QualifiedFunctionName function_name;
-            /// The argument expression ids.
-            /// Args are populated if they are a a constexpr or a column transform.
-            std::vector<std::optional<size_t>> argument_expression_ids;
+            /// The arguments (if any)
+            std::span<FunctionArgument> arguments;
         };
 
         /// The expression id as reference_index
@@ -285,6 +289,10 @@ class AnalyzedScript : public CatalogEntry {
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
         std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression> inner;
+        /// Is the transform target index
+        std::optional<size_t> restriction_target_index = std::nullopt;
+        /// Is the transform target index
+        std::optional<size_t> transform_target_index = std::nullopt;
         /// Is the expression a constant?
         bool is_constant_expression = false;
         /// Is the expression a column transform?
@@ -385,6 +393,9 @@ class AnalyzedScript : public CatalogEntry {
         n.ast_node_id = node_id;
         n.ast_statement_id = std::nullopt;
         n.location = location;
+        n.is_constant_expression = false;
+        n.is_column_transform = false;
+        n.is_column_restriction = false;
         n.inner = inner;
         return n;
     }

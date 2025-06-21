@@ -20,12 +20,11 @@ namespace dashql {
 ///
 class IdentifyConstantExpressionsPass : public PassManager::LTRPass {
     /// Temporary buffer for expression pointers
-    std::vector<const AnalyzedScript::Expression*> tmp_expressions;
+    std::vector<AnalyzedScript::Expression*> tmp_expressions;
 
     /// Helper to read constant expressions.
     /// Returns a nullopt if any of the nodes is not a constant expression
-    std::optional<std::span<const AnalyzedScript::Expression*>> readConstExprs(
-        std::span<const buffers::parser::Node> nodes);
+    std::optional<std::span<AnalyzedScript::Expression*>> readConstExprs(std::span<const buffers::parser::Node> nodes);
 
    public:
     /// Constructor

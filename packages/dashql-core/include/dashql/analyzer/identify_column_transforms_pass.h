@@ -23,6 +23,15 @@ class IdentifyColumnTransformsPass : public PassManager::LTRPass {
     /// The constexprs pass
     IdentifyConstantExpressionsPass& identify_constexprs;
 
+    /// Temporary buffer for expression pointers
+    std::vector<AnalyzedScript::Expression*> tmp_expressions;
+
+    /// Helper to read restriction arguments.
+    /// Returns mapped expressions and the index of the transform target (the column transform / column ref)
+    /// Returns a nullopt if more than one column is referenced.
+    std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>> readTransformArgs(
+        std::span<const buffers::parser::Node> nodes);
+
    public:
     /// Constructor
     IdentifyColumnTransformsPass(AnalysisState& state, NameResolutionPass& name_resolution,

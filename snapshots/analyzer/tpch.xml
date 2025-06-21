@@ -368,7 +368,7 @@ limit
                 <expr id="17" type="colref/external" catalog="256.65536.4294967303.2" stmt="0" loc="427..438" text="r_regionkey" />
                 <expr id="18" type="colref/external" catalog="256.65536.4294967303.1" stmt="0" loc="451..457" text="r_name" />
                 <expr id="19" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="550..563" text="ps_supplycost" />
-                <expr id="20" type="func" name="min" stmt="0" loc="546..564" text="min(ps_supplycost)" />
+                <expr id="20" type="func" name="min" const="true" stmt="0" loc="546..564" text="min(ps_supplycost)" />
                 <expr id="21" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="763..772" text="p_partkey" />
                 <expr id="22" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="775..785" text="ps_partkey" />
                 <expr id="23" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="814..823" text="s_suppkey" />
@@ -575,7 +575,7 @@ limit
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="16..26" text="l_orderkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="63..73" text="l_discount" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="40..55" text="l_extendedprice" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="36..75" text="sum(l_exte..discount))" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="36..75" text="sum(l_exte..discount))" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="96..107" text="o_orderdate" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967300.7" stmt="0" loc="117..131" text="o_shippriority" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967299.4" stmt="0" loc="202..214" text="c_mktsegment" />
@@ -774,7 +774,7 @@ order by
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="16..31" text="o_orderpriority" />
-                <expr id="1" type="func" name="count" stmt="0" loc="41..49" text="count(*)" />
+                <expr id="1" type="func" name="count" const="true" stmt="0" loc="41..49" text="count(*)" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="99..110" text="o_orderdate" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="144..155" text="o_orderdate" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="346..356" text="l_orderkey" />
@@ -972,7 +972,7 @@ order by
                 <expr id="0" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="16..22" text="n_name" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="59..69" text="l_discount" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="36..51" text="l_extendedprice" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="32..71" text="sum(l_exte..discount))" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="32..71" text="sum(l_exte..discount))" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="203..212" text="c_custkey" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="215..224" text="o_custkey" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="237..247" text="l_orderkey" />
@@ -1161,7 +1161,7 @@ where
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="38..48" text="l_discount" />
-                <expr id="2" type="func" name="sum" stmt="0" loc="16..49" text="sum(l_exte.._discount)" />
+                <expr id="2" type="func" name="sum" const="true" stmt="0" loc="16..49" text="sum(l_exte.._discount)" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="97..107" text="l_shipdate" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="141..151" text="l_shipdate" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="184..194" text="l_discount" />
@@ -1379,7 +1379,7 @@ order by
                 <expr id="1" type="colref/unresolved" stmt="0" loc="37..48" text="cust_nation" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="58..64" text="l_year" />
                 <expr id="3" type="colref/unresolved" stmt="0" loc="78..84" text="volume" />
-                <expr id="4" type="func" name="sum" stmt="0" loc="74..85" text="sum(volume)" />
+                <expr id="4" type="func" name="sum" const="true" stmt="0" loc="74..85" text="sum(volume)" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="159..168" text="n1.n_name" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="209..218" text="n2.n_name" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="277..287" text="l_shipdate" />
@@ -1620,8 +1620,8 @@ order by
                 <expr id="1" type="colref/unresolved" stmt="0" loc="62..68" text="nation" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="85..91" text="volume" />
                 <expr id="3" type="colref/unresolved" stmt="0" loc="134..140" text="volume" />
-                <expr id="4" type="func" name="sum" stmt="0" loc="32..127" text="sum(case&#10; ..      end)" />
-                <expr id="5" type="func" name="sum" stmt="0" loc="130..141" text="sum(volume)" />
+                <expr id="4" type="func" name="sum" const="true" stmt="0" loc="32..127" text="sum(case&#10; ..      end)" />
+                <expr id="5" type="func" name="sum" const="true" stmt="0" loc="130..141" text="sum(volume)" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="235..246" text="o_orderdate" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="306..316" text="l_discount" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="283..298" text="l_extendedprice" />
@@ -1647,14 +1647,15 @@ order by
                 <expr id="28" type="colref/unresolved" stmt="0" loc="1313..1319" text="o_year" />
                 <expr id="29" type="literal/string" stmt="0" loc="71..79" text="'BRAZIL'" />
                 <expr id="30" type="literal/integer" stmt="0" loc="113..114" text="0" />
-                <expr id="31" type="literal/integer" stmt="0" loc="302..303" text="1" />
-                <expr id="32" type="literal/string" stmt="0" loc="1030..1039" text="'AMERICA'" />
-                <expr id="33" type="literal/string" stmt="0" loc="1150..1162" text="'1995-01-01'" />
-                <expr id="34" type="literal/string" stmt="0" loc="1172..1184" text="'1996-12-31'" />
-                <expr id="35" type="literal/string" stmt="0" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
-                <expr id="36" type="comparison" op="EQUAL" left="1" right="29" restrict="left" stmt="0" loc="62..79" text="nation = 'BRAZIL'" />
-                <expr id="37" type="comparison" op="EQUAL" left="22" right="32" restrict="left" stmt="0" loc="1021..1039" text="r_name = 'AMERICA'" />
-                <expr id="38" type="comparison" op="EQUAL" left="26" right="35" restrict="left" stmt="0" loc="1213..1246" text="p_type = '..ZED STEEL'" />
+                <expr id="31" type="binary" op="MODULUS" left="4" right="5" const="true" stmt="0" loc="32..141" text="sum(case&#10; ..um(volume)" />
+                <expr id="32" type="literal/integer" stmt="0" loc="302..303" text="1" />
+                <expr id="33" type="literal/string" stmt="0" loc="1030..1039" text="'AMERICA'" />
+                <expr id="34" type="literal/string" stmt="0" loc="1150..1162" text="'1995-01-01'" />
+                <expr id="35" type="literal/string" stmt="0" loc="1172..1184" text="'1996-12-31'" />
+                <expr id="36" type="literal/string" stmt="0" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
+                <expr id="37" type="comparison" op="EQUAL" left="1" right="29" restrict="left" stmt="0" loc="62..79" text="nation = 'BRAZIL'" />
+                <expr id="38" type="comparison" op="EQUAL" left="22" right="33" restrict="left" stmt="0" loc="1021..1039" text="r_name = 'AMERICA'" />
+                <expr id="39" type="comparison" op="EQUAL" left="26" right="36" restrict="left" stmt="0" loc="1213..1246" text="p_type = '..ZED STEEL'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -1850,7 +1851,7 @@ order by
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..22" text="nation" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="32..38" text="o_year" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="52..58" text="amount" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="48..59" text="sum(amount)" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="48..59" text="sum(amount)" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="136..142" text="n_name" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="196..207" text="o_orderdate" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="267..277" text="l_discount" />
@@ -2071,7 +2072,7 @@ limit
                 <expr id="1" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="35..41" text="c_name" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="78..88" text="l_discount" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="55..70" text="l_extendedprice" />
-                <expr id="4" type="func" name="sum" stmt="0" loc="51..90" text="sum(l_exte..discount))" />
+                <expr id="4" type="func" name="sum" const="true" stmt="0" loc="51..90" text="sum(l_exte..discount))" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="111..120" text="c_acctbal" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="130..136" text="n_name" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967299.1" stmt="0" loc="146..155" text="c_address" />
@@ -2290,7 +2291,7 @@ order by
                 <expr id="0" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="16..26" text="ps_partkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="40..53" text="ps_supplycost" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="56..67" text="ps_availqty" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="36..68" text="sum(ps_sup.._availqty)" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="36..68" text="sum(ps_sup.._availqty)" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="150..160" text="ps_suppkey" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="163..172" text="s_suppkey" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="185..196" text="s_nationkey" />
@@ -2301,19 +2302,20 @@ order by
                 <expr id="11" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="313..324" text="ps_availqty" />
                 <expr id="12" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="397..410" text="ps_supplycost" />
                 <expr id="13" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="413..424" text="ps_availqty" />
-                <expr id="14" type="func" name="sum" stmt="0" loc="393..425" text="sum(ps_sup.._availqty)" />
+                <expr id="14" type="func" name="sum" const="true" stmt="0" loc="393..425" text="sum(ps_sup.._availqty)" />
                 <expr id="15" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="649..659" text="ps_suppkey" />
                 <expr id="16" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="662..671" text="s_suppkey" />
                 <expr id="17" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="708..719" text="s_nationkey" />
                 <expr id="18" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="722..733" text="n_nationkey" />
                 <expr id="19" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="770..776" text="n_name" />
-                <expr id="20" type="func" name="sum" stmt="0" loc="293..325" text="sum(ps_sup.._availqty)" />
+                <expr id="20" type="func" name="sum" const="true" stmt="0" loc="293..325" text="sum(ps_sup.._availqty)" />
                 <expr id="21" type="colref/unresolved" stmt="0" loc="824..831" text="&quot;value&quot;" />
                 <expr id="22" type="literal/string" stmt="0" loc="232..241" text="'GERMANY'" />
                 <expr id="23" type="literal/float" stmt="0" loc="428..434" text="0.0001" />
-                <expr id="24" type="literal/string" stmt="0" loc="779..788" text="'GERMANY'" />
-                <expr id="25" type="comparison" op="EQUAL" left="8" right="22" restrict="left" stmt="0" loc="223..241" text="n_name = 'GERMANY'" />
-                <expr id="26" type="comparison" op="EQUAL" left="19" right="24" restrict="left" stmt="0" loc="770..788" text="n_name = 'GERMANY'" />
+                <expr id="24" type="binary" op="DIVIDE" left="14" right="23" const="true" stmt="0" loc="393..434" text="sum(ps_sup..) * 0.0001" />
+                <expr id="25" type="literal/string" stmt="0" loc="779..788" text="'GERMANY'" />
+                <expr id="26" type="comparison" op="EQUAL" left="8" right="22" restrict="left" stmt="0" loc="223..241" text="n_name = 'GERMANY'" />
+                <expr id="27" type="comparison" op="EQUAL" left="19" right="25" restrict="left" stmt="0" loc="770..788" text="n_name = 'GERMANY'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -2501,10 +2503,10 @@ order by
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="16..26" text="l_shipmode" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="66..81" text="o_orderpriority" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="122..137" text="o_orderpriority" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="36..215" text="sum(case&#10; ..      end)" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="36..215" text="sum(case&#10; ..      end)" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="274..289" text="o_orderpriority" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="332..347" text="o_orderpriority" />
-                <expr id="6" type="func" name="sum" stmt="0" loc="244..426" text="sum(case&#10; ..      end)" />
+                <expr id="6" type="func" name="sum" const="true" stmt="0" loc="244..426" text="sum(case&#10; ..      end)" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="497..507" text="o_orderkey" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="510..520" text="l_orderkey" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="533..543" text="l_shipmode" />
@@ -2709,10 +2711,10 @@ order by
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..23" text="c_count" />
-                <expr id="1" type="func" name="count" stmt="0" loc="33..41" text="count(*)" />
+                <expr id="1" type="func" name="count" const="true" stmt="0" loc="33..41" text="count(*)" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="116..125" text="c_custkey" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="157..167" text="o_orderkey" />
-                <expr id="4" type="func" name="count" stmt="0" loc="151..168" text="count(o_orderkey)" />
+                <expr id="4" type="func" name="count" const="true" stmt="0" loc="151..168" text="count(o_orderkey)" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="289..298" text="c_custkey" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="301..310" text="o_custkey" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967300.1" stmt="0" loc="347..356" text="o_comment" />
@@ -2893,10 +2895,10 @@ where
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="55..61" text="p_type" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="128..138" text="l_discount" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="105..120" text="l_extendedprice" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="25..175" text="sum(case&#10; ..      end)" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="25..175" text="sum(case&#10; ..      end)" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="205..215" text="l_discount" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="182..197" text="l_extendedprice" />
-                <expr id="6" type="func" name="sum" stmt="0" loc="178..217" text="sum(l_exte..discount))" />
+                <expr id="6" type="func" name="sum" const="true" stmt="0" loc="178..217" text="sum(l_exte..discount))" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="285..294" text="l_partkey" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="297..306" text="p_partkey" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="319..329" text="l_shipdate" />
@@ -2906,8 +2908,10 @@ where
                 <expr id="13" type="literal/integer" stmt="0" loc="161..162" text="0" />
                 <expr id="14" type="literal/float" stmt="0" loc="16..22" text="100.00" />
                 <expr id="15" type="literal/integer" stmt="0" loc="201..202" text="1" />
-                <expr id="16" type="literal/string" stmt="0" loc="338..350" text="'1995-09-01'" />
-                <expr id="17" type="literal/string" stmt="0" loc="381..393" text="'1995-10-01'" />
+                <expr id="16" type="binary" op="DIVIDE" left="14" right="3" const="true" stmt="0" loc="16..175" text="100.00 * s..      end)" />
+                <expr id="17" type="binary" op="MODULUS" left="16" right="6" const="true" stmt="0" loc="16..217" text="100.00 * s..discount))" />
+                <expr id="18" type="literal/string" stmt="0" loc="338..350" text="'1995-09-01'" />
+                <expr id="19" type="literal/string" stmt="0" loc="381..393" text="'1995-10-01'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3099,7 +3103,7 @@ order by
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="29..38" text="l_suppkey" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="84..94" text="l_discount" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="61..76" text="l_extendedprice" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="57..96" text="sum(l_exte..discount))" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="57..96" text="sum(l_exte..discount))" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="140..150" text="l_shipdate" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="178..188" text="l_shipdate" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="221..230" text="l_suppkey" />
@@ -3111,7 +3115,7 @@ order by
                 <expr id="12" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="329..338" text="s_suppkey" />
                 <expr id="13" type="colref/unresolved" stmt="0" loc="341..352" text="supplier_no" />
                 <expr id="14" type="colref/unresolved" stmt="0" loc="392..405" text="total_revenue" />
-                <expr id="15" type="func" name="max" stmt="0" loc="388..406" text="max(total_revenue)" />
+                <expr id="15" type="func" name="max" const="true" stmt="0" loc="388..406" text="max(total_revenue)" />
                 <expr id="16" type="colref/unresolved" stmt="0" loc="358..371" text="total_revenue" />
                 <expr id="17" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="438..447" text="s_suppkey" />
                 <expr id="18" type="literal/integer" stmt="0" loc="80..81" text="1" />
@@ -3308,7 +3312,7 @@ order by
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="33..39" text="p_type" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="49..55" text="p_size" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="80..90" text="ps_suppkey" />
-                <expr id="4" type="func" name="count" stmt="0" loc="65..91" text="count(dist..s_suppkey)" />
+                <expr id="4" type="func" name="count" const="true" stmt="0" loc="65..91" text="count(dist..s_suppkey)" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="158..167" text="p_partkey" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="170..180" text="ps_partkey" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="193..200" text="p_brand" />
@@ -3511,22 +3515,24 @@ where
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
-                <expr id="1" type="func" name="sum" stmt="0" loc="16..36" text="sum(l_exte..ndedprice)" />
+                <expr id="1" type="func" name="sum" const="true" stmt="0" loc="16..36" text="sum(l_exte..ndedprice)" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="107..116" text="p_partkey" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="119..128" text="l_partkey" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="141..148" text="p_brand" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="174..185" text="p_container" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="282..292" text="l_quantity" />
-                <expr id="7" type="func" name="avg" stmt="0" loc="278..293" text="avg(l_quantity)" />
+                <expr id="7" type="func" name="avg" const="true" stmt="0" loc="278..293" text="avg(l_quantity)" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="394..403" text="l_partkey" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="406..415" text="p_partkey" />
                 <expr id="10" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="210..220" text="l_quantity" />
                 <expr id="11" type="literal/float" stmt="0" loc="39..42" text="7.0" />
-                <expr id="12" type="literal/string" stmt="0" loc="151..161" text="'Brand#23'" />
-                <expr id="13" type="literal/string" stmt="0" loc="188..197" text="'MED BOX'" />
-                <expr id="14" type="literal/float" stmt="0" loc="272..275" text="0.2" />
-                <expr id="15" type="comparison" op="EQUAL" left="4" right="12" restrict="left" stmt="0" loc="141..161" text="p_brand = ..'Brand#23'" />
-                <expr id="16" type="comparison" op="EQUAL" left="5" right="13" restrict="left" stmt="0" loc="174..197" text="p_containe.. 'MED BOX'" />
+                <expr id="12" type="binary" op="MODULUS" left="1" right="11" const="true" stmt="0" loc="16..42" text="sum(l_exte..ice) / 7.0" />
+                <expr id="13" type="literal/string" stmt="0" loc="151..161" text="'Brand#23'" />
+                <expr id="14" type="literal/string" stmt="0" loc="188..197" text="'MED BOX'" />
+                <expr id="15" type="literal/float" stmt="0" loc="272..275" text="0.2" />
+                <expr id="16" type="binary" op="DIVIDE" left="15" right="7" const="true" stmt="0" loc="272..293" text="0.2 * avg(.._quantity)" />
+                <expr id="17" type="comparison" op="EQUAL" left="4" right="13" restrict="left" stmt="0" loc="141..161" text="p_brand = ..'Brand#23'" />
+                <expr id="18" type="comparison" op="EQUAL" left="5" right="14" restrict="left" stmt="0" loc="174..197" text="p_containe.. 'MED BOX'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3725,11 +3731,11 @@ limit
                 <expr id="3" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="71..82" text="o_orderdate" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967300.8" stmt="0" loc="92..104" text="o_totalprice" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="118..128" text="l_quantity" />
-                <expr id="6" type="func" name="sum" stmt="0" loc="114..129" text="sum(l_quantity)" />
+                <expr id="6" type="func" name="sum" const="true" stmt="0" loc="114..129" text="sum(l_quantity)" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="263..273" text="l_orderkey" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="377..387" text="l_orderkey" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="431..441" text="l_quantity" />
-                <expr id="10" type="func" name="sum" stmt="0" loc="427..442" text="sum(l_quantity)" />
+                <expr id="10" type="func" name="sum" const="true" stmt="0" loc="427..442" text="sum(l_quantity)" />
                 <expr id="11" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="200..210" text="o_orderkey" />
                 <expr id="12" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="471..480" text="c_custkey" />
                 <expr id="13" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="483..492" text="o_custkey" />
@@ -3743,8 +3749,8 @@ limit
                 <expr id="21" type="colref/external" catalog="256.65536.4294967300.8" stmt="0" loc="652..664" text="o_totalprice" />
                 <expr id="22" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="679..690" text="o_orderdate" />
                 <expr id="23" type="literal/integer" stmt="0" loc="445..448" text="300" />
-                <expr id="24" type="literal/integer" stmt="0" loc="698..701" text="100" />
-                <expr id="25" type="comparison" op="GREATER_THAN" left="10" right="23" restrict="left" stmt="0" loc="427..448" text="sum(l_quan..ity) > 300" />
+                <expr id="24" type="comparison" op="GREATER_THAN" left="10" right="23" const="true" stmt="0" loc="427..448" text="sum(l_quan..ity) > 300" />
+                <expr id="25" type="literal/integer" stmt="0" loc="698..701" text="100" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -3938,7 +3944,7 @@ where
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="42..52" text="l_discount" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
-                <expr id="2" type="func" name="sum" stmt="0" loc="16..54" text="sum(l_exte..discount))" />
+                <expr id="2" type="func" name="sum" const="true" stmt="0" loc="16..54" text="sum(l_exte..discount))" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="134..143" text="p_partkey" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="146..155" text="l_partkey" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="176..183" text="p_brand" />
@@ -4224,7 +4230,7 @@ order by
                 <expr id="4" type="colref/external" catalog="256.65536.4294967296.4" stmt="0" loc="532..538" text="p_name" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="267..277" text="ps_partkey" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="713..723" text="l_quantity" />
-                <expr id="7" type="func" name="sum" stmt="0" loc="709..724" text="sum(l_quantity)" />
+                <expr id="7" type="func" name="sum" const="true" stmt="0" loc="709..724" text="sum(l_quantity)" />
                 <expr id="8" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="889..898" text="l_partkey" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="901..911" text="ps_partkey" />
                 <expr id="10" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="956..965" text="l_suppkey" />
@@ -4239,10 +4245,11 @@ order by
                 <expr id="19" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="1251..1257" text="s_name" />
                 <expr id="20" type="literal/string" stmt="0" loc="544..553" text="'forest%'" />
                 <expr id="21" type="literal/float" stmt="0" loc="703..706" text="0.5" />
-                <expr id="22" type="literal/string" stmt="0" loc="1042..1054" text="'1994-01-01'" />
-                <expr id="23" type="literal/string" stmt="0" loc="1117..1129" text="'1995-01-01'" />
-                <expr id="24" type="literal/string" stmt="0" loc="1225..1233" text="'CANADA'" />
-                <expr id="25" type="comparison" op="EQUAL" left="18" right="24" restrict="left" stmt="0" loc="1216..1233" text="n_name = 'CANADA'" />
+                <expr id="22" type="binary" op="DIVIDE" left="21" right="7" const="true" stmt="0" loc="703..724" text="0.5 * sum(.._quantity)" />
+                <expr id="23" type="literal/string" stmt="0" loc="1042..1054" text="'1994-01-01'" />
+                <expr id="24" type="literal/string" stmt="0" loc="1117..1129" text="'1995-01-01'" />
+                <expr id="25" type="literal/string" stmt="0" loc="1225..1233" text="'CANADA'" />
+                <expr id="26" type="comparison" op="EQUAL" left="18" right="25" restrict="left" stmt="0" loc="1216..1233" text="n_name = 'CANADA'" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -4445,7 +4452,7 @@ limit
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
-                <expr id="1" type="func" name="count" stmt="0" loc="32..40" text="count(*)" />
+                <expr id="1" type="func" name="count" const="true" stmt="0" loc="32..40" text="count(*)" />
                 <expr id="2" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="141..150" text="s_suppkey" />
                 <expr id="3" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="153..165" text="l1.l_suppkey" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="178..188" text="o_orderkey" />
@@ -4669,14 +4676,14 @@ order by
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..25" text="cntrycode" />
-                <expr id="1" type="func" name="count" stmt="0" loc="35..43" text="count(*)" />
+                <expr id="1" type="func" name="count" const="true" stmt="0" loc="35..43" text="count(*)" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="68..77" text="c_acctbal" />
-                <expr id="3" type="func" name="sum" stmt="0" loc="64..78" text="sum(c_acctbal)" />
+                <expr id="3" type="func" name="sum" const="true" stmt="0" loc="64..78" text="sum(c_acctbal)" />
                 <expr id="4" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="165..172" text="c_phone" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="225..234" text="c_acctbal" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="345..352" text="c_phone" />
                 <expr id="7" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="570..579" text="c_acctbal" />
-                <expr id="8" type="func" name="avg" stmt="0" loc="566..580" text="avg(c_acctbal)" />
+                <expr id="8" type="func" name="avg" const="true" stmt="0" loc="566..580" text="avg(c_acctbal)" />
                 <expr id="9" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="745..754" text="c_acctbal" />
                 <expr id="10" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="816..823" text="c_phone" />
                 <expr id="11" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="473..482" text="c_acctbal" />

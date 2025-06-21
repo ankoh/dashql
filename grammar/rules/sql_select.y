@@ -1491,7 +1491,7 @@ sql_func_application:
   | sql_func_name LRB STAR RRB {
         $$ = ctx.List({
             Attr(Key::SQL_FUNCTION_NAME, ctx.Array(@1, std::move($1))),
-            Attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.Array(@3, { Operator(@3) })), // XXX
+            Attr(Key::SQL_FUNCTION_ARGUMENTS_STAR, Bool(@3, true)),
         });
     }
     ;

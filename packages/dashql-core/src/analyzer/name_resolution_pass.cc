@@ -513,36 +513,18 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
-                // Read column ref path
                 auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
                 auto attrs = state.attribute_index.Load(children);
                 auto func_name_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_NAME];
-                auto func_args_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS];
                 auto func_name_node_id = static_cast<uint32_t>(func_name_node - state.parsed.nodes.data());
                 auto func_name = state.ReadQualifiedFunctionName(func_name_node);
                 if (func_name.has_value()) {
-                    // Add column reference
-                    AnalyzedScript::Expression::FunctionCallExpression column_ref{
+                    AnalyzedScript::Expression::FunctionCallExpression func_call{
                         .function_name = func_name.value(),
-                        .argument_expression_ids = {},
                     };
-                    // Get the function arguments
-                    if (func_args_node) {
-                        auto func_args = state.ReadArgNodes(*func_args_node);
-                        column_ref.argument_expression_ids.resize(func_args.size(), std::nullopt);
-                        for (size_t i = 0; i < func_args.size(); ++i) {
-                            auto arg_node_id = (func_args.data() - state.ast.data()) + i;
-                            if (auto expr = state.expression_index[arg_node_id]; expr != nullptr) {
-                                column_ref.argument_expression_ids[i] = expr->expression_id;
-                            }
-                        }
-                    }
-                    // Add function call expression
-                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
-                    n.is_column_transform = true;
+                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(func_call));
                     state.expression_index[node_id] = &n;
                 }
-                // Column refs may be recursive
                 MergeChildStates(node_state, node);
                 break;
             }

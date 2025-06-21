@@ -28,6 +28,15 @@ class IdentifyColumnRestrictionsPass : public PassManager::LTRPass {
     /// The projection pass
     IdentifyColumnTransformsPass& identify_projections;
 
+    /// Temporary buffer for expression pointers
+    std::vector<AnalyzedScript::Expression*> tmp_expressions;
+
+    /// Helper to read restriction arguments.
+    /// Returns mapped expressions and the index of the restriction target (the column transform / column ref)
+    /// Returns a nullopt if more than one column is referenced.
+    std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>> readRestrictionArgs(
+        std::span<const buffers::parser::Node> nodes);
+
    public:
     /// Constructor
     IdentifyColumnRestrictionsPass(AnalysisState& state, NameResolutionPass& name_resolution,

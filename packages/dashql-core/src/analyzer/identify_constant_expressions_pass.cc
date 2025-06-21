@@ -1,5 +1,7 @@
 #include "dashql/analyzer/identify_constant_expressions_pass.h"
 
+#include <variant>
+
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 
@@ -17,7 +19,7 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-std::optional<std::span<const AnalyzedScript::Expression*>> IdentifyConstantExpressionsPass::readConstExprs(
+std::optional<std::span<AnalyzedScript::Expression*>> IdentifyConstantExpressionsPass::readConstExprs(
     std::span<const buffers::parser::Node> nodes) {
     if (tmp_expressions.size() < nodes.size()) {
         tmp_expressions.resize(nodes.size(), nullptr);
@@ -88,7 +90,6 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                             .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
                             .left_expression_id = const_args[0]->expression_id,
                             .right_expression_id = const_args[1]->expression_id,
-                            .projection_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
@@ -109,7 +110,6 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                             .func = AnalysisState::ReadComparisonFunction(op_type),
                             .left_expression_id = const_args[0]->expression_id,
                             .right_expression_id = const_args[1]->expression_id,
-                            .restriction_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
@@ -125,27 +125,11 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     default:
                         break;
                 }
+                break;
             }
             // Function call expression
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto child_attrs = state.attribute_index.Load(children);
-
-                // Get name and argument attributes
-                auto name_attr = child_attrs[AttributeKey::SQL_FUNCTION_NAME];
-                auto args_attr = child_attrs[AttributeKey::SQL_FUNCTION_ARGUMENTS];
-                if (node.children_count() != 2 || !name_attr || !args_attr) {
-                    continue;
-                }
-
-                // Are all children const?
-                auto arg_nodes = state.ReadArgNodes(args_attr);
-                auto maybe_const_args = readConstExprs(arg_nodes);
-                if (!maybe_const_args.has_value()) continue;
-                auto& const_args = maybe_const_args.value();
-
-                // XXX Read a function name
-                // XXX Check function arguments
+                // XXX
                 break;
             }
 

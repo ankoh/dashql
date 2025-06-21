@@ -232,7 +232,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                         xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
                     if (ref.is_column_restriction) {
-                        xml_ref.append_attribute("restrict").set_value(cmp.restriction_target_left ? "left" : "right");
+                        xml_ref.append_attribute("restrict").set_value(ref.restriction_target_index.value());
                     }
                     break;
                 }
@@ -248,7 +248,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                         xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
                     if (ref.is_column_transform) {
-                        xml_ref.append_attribute("project").set_value(binary.projection_target_left ? "left" : "right");
+                        xml_ref.append_attribute("transform").set_value(ref.transform_target_index.value());
                     }
                     break;
                 }
@@ -257,6 +257,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("type").set_value("func");
                     auto func_name = func.function_name.getDebugString();
                     xml_ref.append_attribute("name").set_value(func_name.c_str());
+                    if (ref.is_constant_expression) {
+                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
+                    }
+                    if (ref.is_column_transform) {
+                        xml_ref.append_attribute("transform").set_value(ref.transform_target_index.value());
+                    }
+                    break;
                 }
             }
             if (ref.ast_statement_id.has_value()) {
