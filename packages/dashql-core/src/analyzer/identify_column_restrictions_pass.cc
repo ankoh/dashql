@@ -79,8 +79,8 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         assert(child_exprs.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
                             .func = AnalysisState::ReadComparisonFunction(op_type),
-                            .left_expression_id = child_exprs[0]->expression_id.GetObject(),
-                            .right_expression_id = child_exprs[1]->expression_id.GetObject(),
+                            .left_expression_id = child_exprs[0]->expression_id,
+                            .right_expression_id = child_exprs[1]->expression_id,
                             .restriction_target_left = restriction_target_idx == 0,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));

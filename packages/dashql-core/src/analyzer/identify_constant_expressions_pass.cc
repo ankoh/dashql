@@ -86,8 +86,8 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                         assert(const_args.size() == 2);
                         AnalyzedScript::Expression::BinaryExpression inner{
                             .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
-                            .left_expression_id = const_args[0]->expression_id.GetObject(),
-                            .right_expression_id = const_args[1]->expression_id.GetObject(),
+                            .left_expression_id = const_args[0]->expression_id,
+                            .right_expression_id = const_args[1]->expression_id,
                             .projection_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
@@ -107,8 +107,8 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                         assert(const_args.size() == 2);
                         AnalyzedScript::Expression::Comparison inner{
                             .func = AnalysisState::ReadComparisonFunction(op_type),
-                            .left_expression_id = const_args[0]->expression_id.GetObject(),
-                            .right_expression_id = const_args[1]->expression_id.GetObject(),
+                            .left_expression_id = const_args[0]->expression_id,
+                            .right_expression_id = const_args[1]->expression_id,
                             .restriction_target_left = false,
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));

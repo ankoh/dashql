@@ -533,7 +533,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         for (size_t i = 0; i < func_args.size(); ++i) {
                             auto arg_node_id = (func_args.data() - state.ast.data()) + i;
                             if (auto expr = state.expression_index[arg_node_id]; expr != nullptr) {
-                                column_ref.argument_expression_ids[i] = expr->expression_id.GetObject();
+                                column_ref.argument_expression_ids[i] = expr->expression_id;
                             }
                         }
                     }

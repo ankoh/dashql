@@ -50,8 +50,7 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
                                 matched = true;
                                 for (auto& expression : innermost_scope.expressions) {
                                     if (node_id == expression.ast_node_id && expression.IsColumnRef()) {
-                                        assert(expression.expression_id.GetContext() == analyzed->GetCatalogEntryId());
-                                        cursor->context = ColumnRefContext{expression.expression_id.GetObject()};
+                                        cursor->context = ColumnRefContext{expression.expression_id};
                                     }
                                 }
                                 break;

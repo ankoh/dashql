@@ -275,8 +275,8 @@ class AnalyzedScript : public CatalogEntry {
             std::vector<std::optional<size_t>> argument_expression_ids;
         };
 
-        /// The expression id as (entry_id, reference_index)
-        ContextObjectID expression_id;
+        /// The expression id as reference_index
+        uint32_t expression_id;
         /// The AST node id in the target script
         uint32_t ast_node_id;
         /// The location in the target script
@@ -381,7 +381,7 @@ class AnalyzedScript : public CatalogEntry {
     template <typename Inner> Expression& AddExpression(size_t node_id, Location location, Inner&& inner) {
         auto& n = expressions.Append(AnalyzedScript::Expression());
         n.buffer_index = expressions.GetSize() - 1;
-        n.expression_id = ContextObjectID{catalog_entry_id, static_cast<uint32_t>(expressions.GetSize() - 1)};
+        n.expression_id = static_cast<uint32_t>(expressions.GetSize() - 1);
         n.ast_node_id = node_id;
         n.ast_statement_id = std::nullopt;
         n.location = location;
