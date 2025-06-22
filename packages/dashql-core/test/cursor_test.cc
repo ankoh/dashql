@@ -84,11 +84,11 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
                 FAIL();
             case 1: {
                 auto& rel_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(table_ref.inner);
-                if (!rel_expr.resolved_relation.has_value()) {
+                if (!rel_expr.resolved_table.has_value()) {
                     auto table_name = print_name(script, rel_expr.table_name);
                     ASSERT_EQ(table_name, expected.table_ref_name);
                 } else {
-                    auto& resolved = rel_expr.resolved_relation.value();
+                    auto& resolved = rel_expr.resolved_table.value();
                     auto table_name = print_name(script, resolved.table_name);
                     ASSERT_EQ(table_name, expected.table_ref_name);
                 }

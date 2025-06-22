@@ -355,7 +355,7 @@ function useCatalogInfoEntries(workbook: WorkbookState | null, script: ScriptDat
                 if (analyzed) {
                     const analyzedPtr = analyzed.read();
                     const tableRef = analyzedPtr.tableReferences(tableRefId)!;
-                    const resolved = tableRef.resolvedRelation()!;
+                    const resolved = tableRef.resolvedTable()!;
                     if (resolved == null) {
                         overlay.push(["Table", "<unresolved>"]);
                     } else {

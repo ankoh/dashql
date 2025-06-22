@@ -146,10 +146,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     break;
                 case 1: {
                     auto& relation_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(ref.inner);
-                    if (!relation_expr.resolved_relation.has_value()) {
+                    if (!relation_expr.resolved_table.has_value()) {
                         xml_ref.append_attribute("type").set_value("name/unresolved");
                     } else {
-                        auto& resolved = relation_expr.resolved_relation.value();
+                        auto& resolved = relation_expr.resolved_table.value();
                         std::string catalog_id =
                             std::format("{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
                                         resolved.catalog_table_id.Pack());

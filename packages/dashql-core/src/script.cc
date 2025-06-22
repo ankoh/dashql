@@ -336,11 +336,11 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     auto& relation_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(inner);
     auto table_name_ofs = relation_expr.table_name.Pack(builder);
 
-    flatbuffers::Offset<buffers::analyzer::ResolvedRelation> resolved_ofs;
-    if (relation_expr.resolved_relation.has_value()) {
-        auto& resolved = relation_expr.resolved_relation.value();
+    flatbuffers::Offset<buffers::analyzer::ResolvedTable> resolved_ofs;
+    if (relation_expr.resolved_table.has_value()) {
+        auto& resolved = relation_expr.resolved_table.value();
         auto resolved_table_name = resolved.table_name.Pack(builder);
-        buffers::analyzer::ResolvedRelationBuilder resolved_builder{builder};
+        buffers::analyzer::ResolvedTableBuilder resolved_builder{builder};
         resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
         resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
         resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
@@ -362,7 +362,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         out.add_alias_name(alias_name_ofs);
     }
     if (!resolved_ofs.IsNull()) {
-        out.add_resolved_relation(resolved_ofs);
+        out.add_resolved_table(resolved_ofs);
     }
     return out.Finish();
 }
@@ -534,8 +534,8 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         table_refs_by_id.reserve(table_references.GetSize());
         table_references.ForEach([&](size_t ref_id, TableReference& ref) {
             if (auto* table_ref = std::get_if<TableReference::RelationExpression>(&ref.inner);
-                table_ref && table_ref->resolved_relation.has_value()) {
-                auto& resolved = table_ref->resolved_relation.value();
+                table_ref && table_ref->resolved_table.has_value()) {
+                auto& resolved = table_ref->resolved_table.value();
                 assert(resolved.catalog_database_id != std::numeric_limits<uint32_t>::max());
                 assert(resolved.catalog_schema_id != std::numeric_limits<uint32_t>::max());
                 table_refs_by_id.emplace_back(resolved.catalog_database_id, resolved.catalog_schema_id,

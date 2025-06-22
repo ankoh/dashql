@@ -70,7 +70,7 @@ export function deriveFocusFromScriptCursor(
     const tmpColumnRef = new dashql.buffers.algebra.ColumnRefExpression();
     const tmpResolvedColumn = new dashql.buffers.algebra.ResolvedColumn();
     const tmpTableRef = new dashql.buffers.analyzer.TableReference();
-    const tmpResolvedRelation = new dashql.buffers.analyzer.ResolvedRelation();
+    const tmpResolvedTable = new dashql.buffers.analyzer.ResolvedTable();
 
     let sourceAnalyzed = scriptData.processed.analyzed?.read(tmpSourceAnalyzed);
     if (sourceAnalyzed == null) {
@@ -94,30 +94,30 @@ export function deriveFocusFromScriptCursor(
             };
             // Is resolved?
             const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId, tmpTableRef)!;
-            const resolvedRelation = sourceRef.resolvedRelation(tmpResolvedRelation);
-            if (resolvedRelation != null) {
+            const resolvedTable = sourceRef.resolvedTable(tmpResolvedTable);
+            if (resolvedTable != null) {
                 // Focus in catalog
                 focus.catalogObject = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
-                        database: resolvedRelation.catalogDatabaseId(),
-                        schema: resolvedRelation.catalogSchemaId(),
-                        table: resolvedRelation.catalogTableId(),
+                        database: resolvedTable.catalogDatabaseId(),
+                        schema: resolvedTable.catalogSchemaId(),
+                        table: resolvedTable.catalogTableId(),
                     },
                     focus: FocusType.TABLE_REF
                 };
 
                 // Could we resolve the ref?
-                if (!dashql.ContextObjectID.isNull(resolvedRelation.catalogTableId())) {
+                if (!dashql.ContextObjectID.isNull(resolvedTable.catalogTableId())) {
                     // Read the analyzed script
                     const targetAnalyzed = scriptData.processed.analyzed?.read(tmpTargetAnalyzed);
                     if (targetAnalyzed != null) {
                         // Find table refs for table
                         const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
                             targetAnalyzed,
-                            resolvedRelation.catalogDatabaseId(),
-                            resolvedRelation.catalogSchemaId(),
-                            resolvedRelation.catalogTableId()
+                            resolvedTable.catalogDatabaseId(),
+                            resolvedTable.catalogSchemaId(),
+                            resolvedTable.catalogTableId()
                         );
                         for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
                             const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
@@ -129,9 +129,9 @@ export function deriveFocusFromScriptCursor(
                         // Find column refs for table
                         const [begin1, end1] = dashql.findScriptColumnRefsEqualRange(
                             targetAnalyzed,
-                            resolvedRelation.catalogDatabaseId(),
-                            resolvedRelation.catalogSchemaId(),
-                            resolvedRelation.catalogTableId()
+                            resolvedTable.catalogDatabaseId(),
+                            resolvedTable.catalogSchemaId(),
+                            resolvedTable.catalogTableId()
                         );
                         for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
                             const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;

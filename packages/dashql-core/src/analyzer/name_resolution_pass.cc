@@ -128,7 +128,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
         // TODO Matches a view or CTE?
 
         auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
-        if (!rel_expr || rel_expr->resolved_relation.has_value()) {
+        if (!rel_expr || rel_expr->resolved_table.has_value()) {
             continue;
         }
         // Copy table name so that we can override the unresolved expression
@@ -171,7 +171,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             auto& best_match = resolved_tables.front().get();
 
             // Store resolved relation expression
-            rel_expr->resolved_relation = AnalyzedScript::TableReference::ResolvedTableEntry{
+            rel_expr->resolved_table = AnalyzedScript::TableReference::ResolvedTableEntry{
                 .table_name = best_match.table_name,
                 .catalog_database_id = best_match.catalog_database_id,
                 .catalog_schema_id = best_match.catalog_schema_id,
@@ -415,7 +415,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         n.ast_scope_root = std::nullopt;
                         n.inner = AnalyzedScript::TableReference::RelationExpression{
                             .table_name = name.value(),
-                            .resolved_relation = std::nullopt,
+                            .resolved_table = std::nullopt,
                             .resolved_alternatives = {},
                         };
                         node_state.table_references.PushBack(n);

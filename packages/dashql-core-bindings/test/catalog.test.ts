@@ -68,7 +68,7 @@ describe('Catalog Tests ', () => {
 
         // The analyzed script contains an unresolved table ref
         let tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.resolvedRelation()).toBeNull();
+        expect(tableRef.resolvedTable()).toBeNull();
 
         // Check the table name
         const tableName = tableRef.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
@@ -95,10 +95,10 @@ describe('Catalog Tests ', () => {
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
         tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.resolvedRelation()).not.toBeNull();
+        expect(tableRef.resolvedTable()).not.toBeNull();
 
         // Make sure we set some values for the resolved table
-        const resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
+        const resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
@@ -125,7 +125,7 @@ describe('Catalog Tests ', () => {
 
         // The analyzed script contains an unresolved table ref
         let tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.resolvedRelation()).toBeNull();
+        expect(tableRef.resolvedTable()).toBeNull();
 
         // Check the table name
         const tableName = tableRef.tableName(new dashql.buffers.analyzer.QualifiedTableName())!;
@@ -161,19 +161,19 @@ describe('Catalog Tests ', () => {
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
         tableRef = analyzed.tableReferences(0)!;
-        expect(tableRef.resolvedRelation()).not.toBeNull();
+        expect(tableRef.resolvedTable()).not.toBeNull();
 
         // Make sure we set some values for the resolved table
-        let resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
+        let resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         tableRef = analyzed.tableReferences(1)!;
-        expect(tableRef.resolvedRelation()).not.toBeNull();
+        expect(tableRef.resolvedTable()).not.toBeNull();
 
         // Make sure we set some values for the second resolved table
-        resolved = tableRef.resolvedRelation(new dashql.buffers.analyzer.ResolvedRelation())!;
+        resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();

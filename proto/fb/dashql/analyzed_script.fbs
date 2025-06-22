@@ -77,7 +77,7 @@ table Table {
     table_columns: [TableColumn];
 }
 
-table ResolvedRelation {
+table ResolvedTable {
     // The resolved unified database id across all catalog entries
     catalog_database_id: uint32;
     // The resolved unified schema id across all catalog entries
@@ -104,7 +104,7 @@ table TableReference {
     // The alias name
     alias_name: string;
     /// The resolved relation
-    resolved_relation: ResolvedRelation;
+    resolved_table: ResolvedTable;
 }
 
 table FunctionReference {

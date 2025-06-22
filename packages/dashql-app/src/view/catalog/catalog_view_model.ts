@@ -639,7 +639,7 @@ export class CatalogViewModel {
     pinScriptRefs(script: dashql.buffers.analyzer.AnalyzedScript): void {
         const catalog = this.snapshot.read().catalogReader;
         const tmpTableRef = new dashql.buffers.analyzer.TableReference();
-        const tmpResolvedRelation = new dashql.buffers.analyzer.ResolvedRelation();
+        const tmpResolvedTable = new dashql.buffers.analyzer.ResolvedTable();
         const tmpExpression = new dashql.buffers.algebra.Expression();
         const tmpColumnRef = new dashql.buffers.algebra.ColumnRefExpression();
         const tmpResolvedColumn = new dashql.buffers.algebra.ResolvedColumn();
@@ -650,7 +650,7 @@ export class CatalogViewModel {
         // Pin table references
         for (let i = 0; i < script.tableReferencesLength(); ++i) {
             const tableRef = script.tableReferences(i, tmpTableRef)!;
-            const resolved = tableRef.resolvedRelation(tmpResolvedRelation);
+            const resolved = tableRef.resolvedTable(tmpResolvedTable);
             if (resolved == null) continue;
             const objectId: QualifiedCatalogObjectID = {
                 type: QUALIFIED_TABLE_ID,

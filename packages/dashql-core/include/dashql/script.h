@@ -189,7 +189,7 @@ class AnalyzedScript : public CatalogEntry {
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
             /// THe resolved relation
-            std::optional<ResolvedTableEntry> resolved_relation;
+            std::optional<ResolvedTableEntry> resolved_table;
             /// The ambiguous matches (if any)
             std::vector<ResolvedTableEntry> resolved_alternatives;
         };

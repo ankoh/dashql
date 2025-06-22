@@ -132,8 +132,8 @@ TEST(CatalogTest, SingleDescriptorPool) {
             analyzed->table_references[0].inner));
         auto& rel_expr =
             std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
-        ASSERT_TRUE(rel_expr.resolved_relation.has_value());
-        auto& resolved = rel_expr.resolved_relation.value();
+        ASSERT_TRUE(rel_expr.resolved_table.has_value());
+        auto& resolved = rel_expr.resolved_table.value();
         ASSERT_FALSE(resolved.catalog_table_id.IsNull());
         ASSERT_EQ(resolved.catalog_table_id.GetContext(), 1);
         ASSERT_EQ(resolved.catalog_table_id.GetObject(), 0);
@@ -149,7 +149,7 @@ TEST(CatalogTest, SingleDescriptorPool) {
             analyzed->table_references[0].inner));
         auto& rel_expr =
             std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
-        ASSERT_TRUE(!rel_expr.resolved_relation.has_value());
+        ASSERT_TRUE(!rel_expr.resolved_table.has_value());
     }
 }
 
