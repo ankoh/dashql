@@ -31,7 +31,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="42..43" text="a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="46..47" text="2" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="42..47" text="a = 2" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="42..47" text="a = 2" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -65,7 +65,7 @@
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="57..58" text="a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="61..62" text="2" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="57..62" text="a = 2" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="57..62" text="a = 2" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -101,8 +101,8 @@
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="72..73" text="a" />
                 <expr id="2" type="literal/integer" stmt="0" loc="61..62" text="2" />
                 <expr id="3" type="literal/integer" stmt="0" loc="76..77" text="3" />
-                <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="left" stmt="0" loc="57..62" text="a = 2" />
-                <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="left" stmt="0" loc="72..77" text="a = 3" />
+                <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="0" stmt="0" loc="57..62" text="a = 2" />
+                <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="1" stmt="0" loc="72..77" text="a = 3" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -214,7 +214,7 @@
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="41..46" text="foo.a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="49..50" text="1" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="41..50" text="foo.a = 1" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="41..50" text="foo.a = 1" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -244,7 +244,7 @@
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="foo.a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="56..57" text="1" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="48..57" text="foo.a = 1" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..57" text="foo.a = 1" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -277,7 +277,7 @@
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="53..58" text="foo.a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="61..62" text="1" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="53..62" text="foo.a = 1" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="53..62" text="foo.a = 1" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -306,7 +306,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="43..48" text="foo.a" />
                 <expr id="1" type="literal/integer" stmt="0" loc="51..52" text="1" />
-                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="left" stmt="0" loc="43..52" text="foo.a = 1" />
+                <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="43..52" text="foo.a = 1" />
             </expressions>
         </script>
     </analyzer-snapshot>

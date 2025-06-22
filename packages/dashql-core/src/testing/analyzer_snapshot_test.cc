@@ -232,7 +232,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                         xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
                     if (ref.is_column_restriction) {
-                        xml_ref.append_attribute("restrict").set_value(ref.restriction_target_index.value());
+                        xml_ref.append_attribute("restrict").set_value(ref.restriction_target_id.value());
                     }
                     break;
                 }
@@ -248,20 +248,33 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                         xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
                     if (ref.is_column_transform) {
-                        xml_ref.append_attribute("transform").set_value(ref.transform_target_index.value());
+                        xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
                     }
                     break;
                 }
                 case 5: {
                     auto& func = std::get<AnalyzedScript::Expression::FunctionCallExpression>(ref.inner);
                     xml_ref.append_attribute("type").set_value("func");
-                    auto func_name = func.function_name.getDebugString();
-                    xml_ref.append_attribute("name").set_value(func_name.c_str());
+                    switch (func.function_name.index()) {
+                        case 0: {
+                            auto known = std::get<buffers::parser::KnownFunction>(func.function_name);
+                            auto known_name =
+                                buffers::parser::KnownFunctionTypeTable()->names[static_cast<size_t>(known)];
+                            xml_ref.append_attribute("known").set_value(known_name);
+                            break;
+                        }
+                        case 1: {
+                            auto func_name =
+                                std::get<CatalogEntry::QualifiedFunctionName>(func.function_name).getDebugString();
+                            xml_ref.append_attribute("name").set_value(func_name.c_str());
+                            break;
+                        }
+                    }
                     if (ref.is_constant_expression) {
                         xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
                     }
                     if (ref.is_column_transform) {
-                        xml_ref.append_attribute("transform").set_value(ref.transform_target_index.value());
+                        xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
                     }
                     break;
                 }

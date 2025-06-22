@@ -89,7 +89,40 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                 assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
                 auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
 
-                // XXX
+                // Skip functions with any modifier
+                if (func_expr.function_call_modifiers != 0) continue;
+
+                switch (func_expr.arguments.index()) {
+                    case 1: {
+                        auto func_args =
+                            std::get<std::span<AnalyzedScript::Expression::FunctionArgument>>(func_expr.arguments);
+
+                        // Are all function call arguments constant or a single transform?
+                        size_t arg_count_const = 0;
+                        size_t arg_count_transform = 0;
+                        uint32_t transform_target_id = 0;
+                        for (size_t i = 0; i < func_args.size(); ++i) {
+                            auto& arg = func_args[i];
+                            auto* arg_expr = state.expression_index[arg.value_ast_node_id];
+                            if (!arg_expr) break;
+
+                            arg.expression_id = arg_expr->expression_id;
+                            arg_count_const += arg_expr->is_constant_expression;
+                            if (arg_expr->is_column_transform) {
+                                arg_count_transform += 1;
+                                transform_target_id = arg_expr->expression_id;
+                            }
+                        }
+
+                        // Is a column transform?
+                        expr->is_column_transform =
+                            arg_count_transform == 1 && ((arg_count_transform + arg_count_const) == func_args.size());
+                        if (expr->is_column_transform) {
+                            expr->transform_target_id = transform_target_id;
+                        }
+                        break;
+                    }
+                }
                 break;
             }
             default:

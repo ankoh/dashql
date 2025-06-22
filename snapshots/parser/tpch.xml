@@ -25,7 +25,7 @@ order by
         </input>
         <expected>
             <statements>
-                <statement type="SELECT" begin="0" count="158">
+                <statement type="SELECT" begin="0" count="157">
                     <node type="OBJECT_SQL_SELECT" loc="1..555" text="select&#10;   ..linestatus">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="12..387" text="l_returnfl..ount_order">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="12..24" text="l_returnflag">
@@ -214,9 +214,7 @@ order by
                                     <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="364..369" text="count">
                                         <node type="NAME" loc="364..369" text="count" />
                                     </node>
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="370..371" text="*">
-                                        <node type="OPERATOR" loc="370..371" text="*" />
-                                    </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS_STAR" type="BOOL" value="true" />
                                 </node>
                                 <node key="SQL_RESULT_TARGET_NAME" type="NAME" loc="376..387" text="count_order" />
                             </node>
@@ -1061,7 +1059,7 @@ order by
         </input>
         <expected>
             <statements>
-                <statement type="SELECT" begin="0" count="81">
+                <statement type="SELECT" begin="0" count="80">
                     <node type="OBJECT_SQL_SELECT" loc="1..502" text="select&#10;   ..erpriority">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="16..64" text="o_orderpri..rder_count">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="16..31" text="o_orderpriority">
@@ -1076,9 +1074,7 @@ order by
                                     <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="41..46" text="count">
                                         <node type="NAME" loc="41..46" text="count" />
                                     </node>
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="47..48" text="*">
-                                        <node type="OPERATOR" loc="47..48" text="*" />
-                                    </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS_STAR" type="BOOL" value="true" />
                                 </node>
                                 <node key="SQL_RESULT_TARGET_NAME" type="NAME" loc="53..64" text="order_count" />
                             </node>
@@ -3920,7 +3916,7 @@ order by
         </input>
         <expected>
             <statements>
-                <statement type="SELECT" begin="0" count="85">
+                <statement type="SELECT" begin="0" count="84">
                     <node type="OBJECT_SQL_SELECT" loc="1..545" text="select&#10;   ..count desc">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="16..53" text="c_count,&#10; ..s custdist">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="16..23" text="c_count">
@@ -3935,9 +3931,7 @@ order by
                                     <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="33..38" text="count">
                                         <node type="NAME" loc="33..38" text="count" />
                                     </node>
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="39..40" text="*">
-                                        <node type="OPERATOR" loc="39..40" text="*" />
-                                    </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS_STAR" type="BOOL" value="true" />
                                 </node>
                                 <node key="SQL_RESULT_TARGET_NAME" type="NAME" loc="45..53" text="custdist" />
                             </node>
@@ -6258,7 +6252,7 @@ limit
         </input>
         <expected>
             <statements>
-                <statement type="SELECT" begin="0" count="185">
+                <statement type="SELECT" begin="0" count="184">
                     <node type="OBJECT_SQL_SELECT" loc="1..1045" text="select&#10;   ..limit&#10;&#09;100">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="16..51" text="s_name,&#10;  ..as numwait">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="16..22" text="s_name">
@@ -6273,9 +6267,7 @@ limit
                                     <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="32..37" text="count">
                                         <node type="NAME" loc="32..37" text="count" />
                                     </node>
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="38..39" text="*">
-                                        <node type="OPERATOR" loc="38..39" text="*" />
-                                    </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS_STAR" type="BOOL" value="true" />
                                 </node>
                                 <node key="SQL_RESULT_TARGET_NAME" type="NAME" loc="44..51" text="numwait" />
                             </node>
@@ -6650,7 +6642,7 @@ order by
         </input>
         <expected>
             <statements>
-                <statement type="SELECT" begin="0" count="151">
+                <statement type="SELECT" begin="0" count="150">
                     <node type="OBJECT_SQL_SELECT" loc="1..1365" text="select&#10;   .. cntrycode">
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="16..92" text="cntrycode,..totacctbal">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="16..25" text="cntrycode">
@@ -6665,9 +6657,7 @@ order by
                                     <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="35..40" text="count">
                                         <node type="NAME" loc="35..40" text="count" />
                                     </node>
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="41..42" text="*">
-                                        <node type="OPERATOR" loc="41..42" text="*" />
-                                    </node>
+                                    <node key="SQL_FUNCTION_ARGUMENTS_STAR" type="BOOL" value="true" />
                                 </node>
                                 <node key="SQL_RESULT_TARGET_NAME" type="NAME" loc="47..54" text="numcust" />
                             </node>

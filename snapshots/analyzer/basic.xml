@@ -152,7 +152,7 @@
                 <expr id="5" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="68..69" text="d" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="74..75" text="d" />
                 <expr id="7" type="literal/integer" stmt="0" loc="78..80" text="42" />
-                <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="left" stmt="0" loc="74..80" text="d = 42" />
+                <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
         </script>
     </analyzer-snapshot>

@@ -252,6 +252,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_column_restrictions_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_column_transforms_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_constant_expressions_pass.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/identify_function_calls_pass.cc
   ${CMAKE_SOURCE_DIR}/src/api.cc
   ${CMAKE_SOURCE_DIR}/src/catalog.cc
   ${CMAKE_SOURCE_DIR}/src/parser/grammar/enums.cc

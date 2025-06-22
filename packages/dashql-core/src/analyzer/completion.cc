@@ -148,7 +148,7 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser
             auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
             assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
             name_ast_node_id =
-                std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name_ast_node_id;
+                std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name.ast_node_id;
             break;
         }
         case 2: {

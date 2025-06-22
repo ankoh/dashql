@@ -12,6 +12,7 @@ struct NameResolutionPass;
 struct IdentifyColumnRestrictionsPass;
 struct IdentifyColumnTransformsPass;
 struct IdentifyConstantExpressionsPass;
+struct IdentifyFunctionCallsPass;
 class ScannedScript;
 class ParsedScript;
 
@@ -26,6 +27,8 @@ struct Analyzer {
     PassManager pass_manager;
     /// The name resolution pass
     std::unique_ptr<NameResolutionPass> name_resolution;
+    /// The pass to identify function calls
+    std::unique_ptr<IdentifyFunctionCallsPass> identify_function_calls;
     /// The pass to identify constant expressions
     std::unique_ptr<IdentifyConstantExpressionsPass> identify_constants;
     /// The pass to identify projections

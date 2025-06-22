@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -185,8 +186,6 @@ class AnalyzedScript : public CatalogEntry {
         };
         /// A relation expression
         struct RelationExpression {
-            /// The AST node id of the name path
-            uint32_t table_name_ast_node_id;
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
             /// THe resolved relation
@@ -215,6 +214,7 @@ class AnalyzedScript : public CatalogEntry {
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::TableReference> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
+
     /// An expression
     struct Expression : public IntrusiveListNode {
         /// A resolved column reference
@@ -266,17 +266,44 @@ class AnalyzedScript : public CatalogEntry {
         struct FunctionArgument {
             /// The ast node id of the argument
             uint32_t ast_node_id = 0;
-            /// The expression id (if mapped)
-            std::optional<uint32_t> expression_id = 0;
+            /// The ast node id of the argument value
+            uint32_t value_ast_node_id = 0;
             /// The name (if the argument is named)
             std::optional<std::reference_wrapper<RegisteredName>> name;
+            /// The expression id (if mapped)
+            std::optional<uint32_t> expression_id = 0;
         };
+        struct FunctionCastArguments {};
         /// A function call expression
         struct FunctionCallExpression {
+            /// Generic argument list
+            using GenericArguments = std::span<FunctionArgument>;
+            /// CAST arguments
+            struct CastArguments {};
+            /// EXTRACT arguments
+            struct ExtractArguments {};
+            /// OVERLAY arguments
+            struct OverlayArguments {};
+            /// POSITION arguments
+            struct PositionArguments {};
+            /// SUBSTRING arguments
+            struct SubstringArguments {};
+            /// TRIM arguments
+            struct TrimArguments {
+                buffers::parser::TrimDirection direction;
+            };
+            /// TREAT arguments
+            struct TreatArguments {};
+
             /// The qualified function name
-            QualifiedFunctionName function_name;
+            std::variant<buffers::parser::KnownFunction, QualifiedFunctionName> function_name =
+                buffers::parser::KnownFunction::CURRENT_TIME;
+            /// The type modifiers
+            uint8_t function_call_modifiers = 0;
             /// The arguments (if any)
-            std::span<FunctionArgument> arguments;
+            std::variant<std::monostate, GenericArguments, CastArguments, ExtractArguments, OverlayArguments,
+                         PositionArguments, SubstringArguments, TrimArguments, TreatArguments>
+                arguments = std::monostate{};
         };
 
         /// The expression id as reference_index
@@ -290,9 +317,9 @@ class AnalyzedScript : public CatalogEntry {
         /// The inner expression type
         std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression> inner;
         /// Is the transform target index
-        std::optional<size_t> restriction_target_index = std::nullopt;
+        std::optional<uint32_t> restriction_target_id = std::nullopt;
         /// Is the transform target index
-        std::optional<size_t> transform_target_index = std::nullopt;
+        std::optional<uint32_t> transform_target_id = std::nullopt;
         /// Is the expression a constant?
         bool is_constant_expression = false;
         /// Is the expression a column transform?
@@ -308,9 +335,13 @@ class AnalyzedScript : public CatalogEntry {
         inline bool IsConstantExpression() const { return is_constant_expression; }
         // Check if the expression is a column transform
         inline bool IsColumnTransform() const { return is_column_transform; }
+        // Check if the expression is a column restriction
+        inline bool IsColumnRestriction() const { return is_column_restriction; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
+    static_assert(std::is_trivially_destructible_v<Expression>, "Expressions should remain destructable");
+
     /// A result target
     struct ResultTarget {
         /// A star result target
@@ -364,6 +395,8 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<TableReference, 16> table_references;
     /// The expressions
     ChunkBuffer<Expression, 16> expressions;
+    /// The function arguments (referenced by function call expressions)
+    ChunkBuffer<Expression::FunctionArgument, 16> function_arguments;
     /// The name scopes
     ChunkBuffer<NameScope, 16> name_scopes;
     /// The name scopes by scope root.

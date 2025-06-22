@@ -129,10 +129,37 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
             }
             // Function call expression
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
-                // XXX
+                // Did name resolution create a function expression?
+                // Skip the node, if not
+                auto& expr = state.expression_index[node_id];
+                if (!expr) continue;
+                assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
+                auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
+
+                // Skip functions with any modifiers
+                if (func_expr.function_call_modifiers != 0) continue;
+
+                // Are all function call arguments constant?
+                switch (func_expr.arguments.index()) {
+                    case 1: {
+                        for (auto& arg :
+                             std::get<std::span<AnalyzedScript::Expression::FunctionArgument>>(func_expr.arguments)) {
+                            auto* arg_expr = state.expression_index[arg.value_ast_node_id];
+                            if (!arg_expr) {
+                                expr->is_constant_expression = false;
+                                break;
+                            } else {
+                                arg.expression_id = arg_expr->expression_id;
+                                expr->is_constant_expression &= arg_expr->is_constant_expression;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
                 break;
             }
-
             default:
                 break;
         }

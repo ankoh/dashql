@@ -4,4 +4,14 @@
             select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
         </input>
     </parser-snapshot>
+    <parser-snapshot name="func_restrict_time">
+        <input>
+            select * from foo where event_timestamp > current_timestamp - interval '30 days'
+        </input>
+    </parser-snapshot>
+    <parser-snapshot name="func_restrict_time_minus_interval">
+        <input>
+            select * from foo where event_timestamp > current_timestamp - interval '30 days'
+        </input>
+    </parser-snapshot>
 </parser-snapshots>

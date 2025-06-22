@@ -2,6 +2,7 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/identify_column_transforms_pass.h"
+#include "dashql/analyzer/identify_constant_expressions_pass.h"
 #include "dashql/buffers/index_generated.h"
 
 namespace dashql {
@@ -91,7 +92,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_restriction = true;
-                        n.restriction_target_index = restriction_target_idx;
+                        n.restriction_target_id = arg_exprs[restriction_target_idx]->expression_id;
                         state.expression_index[node_id] = &n;
                         state.analyzed->column_restrictions.PushBack(n);
                         break;

@@ -195,8 +195,8 @@
                 <expr id="1" type="colref/unresolved" stmt="1" loc="108..109" text="c" />
                 <expr id="2" type="literal/integer" loc="55..56" text="1" />
                 <expr id="3" type="literal/integer" stmt="1" loc="112..113" text="1" />
-                <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="left" loc="51..56" text="a = 1" />
-                <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="left" stmt="1" loc="108..113" text="c = 1" />
+                <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="0" loc="51..56" text="a = 1" />
+                <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="1" stmt="1" loc="108..113" text="c = 1" />
             </expressions>
         </script>
     </analyzer-snapshot>

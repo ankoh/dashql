@@ -682,9 +682,13 @@ std::unique_ptr<buffers::statistics::ScriptMemoryStatistics> Script::GetMemorySt
             }
         }
         size_t analyzer_description_bytes =
+            analyzed->database_references.GetSize() * sizeof(CatalogEntry::DatabaseReference) +
+            analyzed->schema_references.GetSize() * sizeof(CatalogEntry::SchemaReference) +
             analyzed->table_declarations.GetSize() * sizeof(CatalogEntry::TableDeclaration) + table_column_bytes +
             analyzed->table_references.GetSize() * sizeof(decltype(analyzed->table_references)::value_type) +
-            analyzed->expressions.GetSize() * sizeof(decltype(analyzed->expressions)::value_type);
+            analyzed->expressions.GetSize() * sizeof(decltype(analyzed->expressions)::value_type) +
+            analyzed->function_arguments.GetSize() * sizeof(decltype(analyzed->function_arguments)::value_type) +
+            analyzed->name_scopes.GetSize() * sizeof(decltype(analyzed->name_scopes)::value_type);
         size_t analyzer_name_index_bytes = 0;
         size_t analyzer_name_search_index_size = 0;
         if (auto& index = analyzed->name_search_index) {

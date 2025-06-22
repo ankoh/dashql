@@ -28,10 +28,6 @@ table UnaryExpression {
     func: UnaryFunction;
     /// The unary expression
     input: uint32;
-    /// Is the expression constant?
-    is_constant: bool;
-    /// Is the expression projecting?
-    is_projection: bool;
 }
 
 enum BinaryExpressionFunction: uint8 {
@@ -51,12 +47,6 @@ table BinaryExpression {
     left_child: uint32;
     /// The right child
     right_child: uint32;
-    /// Is the expression constant?
-    is_constant: bool;
-    /// Is the expression projecting?
-    is_projection: bool;
-    /// Is the projection target left?
-    projection_target_left: bool;
 }
 
 enum ComparisonFunction: uint8 {
@@ -97,13 +87,23 @@ table NaryExpression {
     children: [uint32];
     /// Is the comparison constant?
     is_constant: bool;
-    /// The projection target index
-    projection_target_index: uint32;
+}
+
+enum FunctionCallModifier: uint8 {
+    NONE = 0,
+    ARGS_STAR = 1,
+    ARGS_ALL = 2,
+    ARGS_DISTINCT = 4,
+    VARIADIC = 8,
+    OVER = 16,
+    WITHIN_GROUP = 32,
 }
 
 table FunctionCallExpression {
     /// The function name
     func_name: QualifiedFunctionName;
+    /// The fucntion modifier bits
+    func_call_modifiers: uint8;
     /// The arguments
     arguments: [uint32];
 }
@@ -151,6 +151,12 @@ table Expression {
     inner: ExpressionSubType;
     /// Is the expression constant?
     is_constexpr: bool;
-    /// Is a projection?
-    is_projection: bool;
+    /// Is a column transform?
+    is_column_transform: bool;
+    /// Is a column restriction?
+    is_column_restriction: bool;
+    /// The expression id of the (immediate) transform target
+    column_transform_target_id: uint32;
+    /// The expression id of the (immedate) restriction target
+    column_restriction_target_id: uint32;
 }

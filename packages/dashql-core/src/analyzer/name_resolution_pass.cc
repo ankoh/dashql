@@ -374,6 +374,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .resolved_column = std::nullopt,
                     };
                     auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
+                    // Mark column refs as (identity) transform
                     n.is_column_transform = true;
                     node_state.column_references.PushBack(n);
                     state.expression_index[node_id] = &n;
@@ -413,7 +414,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         n.ast_statement_id = std::nullopt;
                         n.ast_scope_root = std::nullopt;
                         n.inner = AnalyzedScript::TableReference::RelationExpression{
-                            .table_name_ast_node_id = name_node_id,
                             .table_name = name.value(),
                             .resolved_relation = std::nullopt,
                             .resolved_alternatives = {},
@@ -509,23 +509,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 (void)name_node;
                 (void)columns_node;
                 (void)elements_node;
-                break;
-            }
-
-            case buffers::parser::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = state.attribute_index.Load(children);
-                auto func_name_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_NAME];
-                auto func_name_node_id = static_cast<uint32_t>(func_name_node - state.parsed.nodes.data());
-                auto func_name = state.ReadQualifiedFunctionName(func_name_node);
-                if (func_name.has_value()) {
-                    AnalyzedScript::Expression::FunctionCallExpression func_call{
-                        .function_name = func_name.value(),
-                    };
-                    auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(func_call));
-                    state.expression_index[node_id] = &n;
-                }
-                MergeChildStates(node_state, node);
                 break;
             }
 
