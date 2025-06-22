@@ -177,6 +177,9 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                 test.script.tables.append_copy(main_node.child("tables"));
                 test.script.table_references.append_copy(main_node.child("table-refs"));
                 test.script.expressions.append_copy(main_node.child("expressions"));
+                test.script.constant_expressions.append_copy(main_node.child("constants"));
+                test.script.column_transforms.append_copy(main_node.child("column-transforms"));
+                test.script.column_resrictions.append_copy(main_node.child("column-restrictions"));
             }
 
             // Read catalog
@@ -190,6 +193,9 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                     entry.tables.append_copy(entry_node.child("tables"));
                     entry.table_references.append_copy(entry_node.child("table-refs"));
                     entry.expressions.append_copy(entry_node.child("expressions"));
+                    entry.constant_expressions.append_copy(entry_node.child("constants"));
+                    entry.column_transforms.append_copy(entry_node.child("column-transforms"));
+                    entry.column_resrictions.append_copy(entry_node.child("column-restrictions"));
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
                 }
