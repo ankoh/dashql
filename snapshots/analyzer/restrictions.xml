@@ -1,0 +1,38 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="restrict_time">
+        <catalog />
+        <script id="0">
+            <input>
+                select * from foo where event_timestamp &gt; current_timestamp - interval '30 days'
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="foo" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="41..56" text="event_timestamp" />
+                <expr id="1" type="func" known="CURRENT_TIMESTAMP" stmt="0" loc="59..76" text="current_timestamp" />
+                <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
+                <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
+            </expressions>
+        </script>
+    </analyzer-snapshot>
+    <analyzer-snapshot name="restrict_time_minus_interval">
+        <catalog />
+        <script id="0">
+            <input>
+                select * from foo where event_timestamp &gt; current_timestamp - interval '30 days'
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="foo" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="41..56" text="event_timestamp" />
+                <expr id="1" type="func" known="CURRENT_TIMESTAMP" stmt="0" loc="59..76" text="current_timestamp" />
+                <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
+                <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
+            </expressions>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>

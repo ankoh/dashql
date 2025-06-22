@@ -1,0 +1,18 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="restrict_time">
+        <catalog />
+        <script>
+            <input>
+                select * from foo where event_timestamp > current_timestamp - interval '30 days'
+            </input>
+        </script>
+    </analyzer-snapshot>
+    <analyzer-snapshot name="restrict_time_minus_interval">
+        <catalog />
+        <script>
+            <input>
+                select * from foo where event_timestamp > current_timestamp - interval '30 days'
+            </input>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>

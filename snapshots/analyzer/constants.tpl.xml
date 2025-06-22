@@ -1,0 +1,10 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="constants_time">
+        <catalog />
+        <script>
+            <input>
+                select interval '30 days'
+            </input>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>
