@@ -4,6 +4,8 @@
 
 namespace dashql {
 
+static constexpr size_t MORSEL_SIZE = 1024;
+
 /// Constructor
 PassManager::LTRPass::LTRPass(AnalysisState& state) : state(state) {}
 /// Destructor
@@ -25,7 +27,7 @@ void PassManager::Execute(AnalysisState& state, std::initializer_list<std::refer
     // Scan all nodes
     auto iter = 0;
     while (iter != state.ast.size()) {
-        size_t morsel_size = std::min<size_t>(state.ast.size() - iter, 1024);
+        size_t morsel_size = std::min<size_t>(state.ast.size() - iter, MORSEL_SIZE);
         for (auto& pass : passes) {
             pass.get().Visit(state.ast.subspan(iter, morsel_size));
         }
