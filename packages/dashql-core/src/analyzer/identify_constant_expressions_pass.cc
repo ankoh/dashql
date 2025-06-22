@@ -75,11 +75,31 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                     .interval = std::nullopt,
                 };
 
+                // Has an interval specified?
                 if (interval_node) {
                     assert(interval_node->node_type() == NodeType::OBJECT_SQL_INTERVAL_TYPE);
-                    auto interval_children = state.GetChildren(*interval_node);
+                    auto [type_attr, precision_attr] =
+                        state.GetAttributes<AttributeKey::SQL_INTERVAL_TYPE, AttributeKey::SQL_INTERVAL_PRECISION>(
+                            *interval_node);
+                    assert(type_attr != nullptr);
+                    auto interval_type =
+                        static_cast<buffers::parser::IntervalType>(type_attr->children_begin_or_value());
+                    std::optional<size_t> precision_expression = std::nullopt;
+                    if (precision_attr) {
+                        if (auto expr = state.expression_index[state.GetNodeId(*precision_attr)]) {
+                            precision_expression = inner.interval->precision_expression;
+                        }
+                    }
+                    inner.interval = AnalyzedScript::Expression::IntervalType{
+                        .interval_type = interval_type,
+                        .precision_expression = precision_expression,
+                    };
                 }
 
+                auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                n.is_constant_expression = true;
+                state.expression_index[node_id] = &n;
+                state.analyzed->constant_expressions.PushBack(n);
                 break;
             }
 

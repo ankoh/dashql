@@ -228,12 +228,6 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(cmp.func)]);
                     xml_ref.append_attribute("left").set_value(cmp.left_expression_id);
                     xml_ref.append_attribute("right").set_value(cmp.right_expression_id);
-                    if (ref.is_constant_expression) {
-                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
-                    }
-                    if (ref.is_column_restriction) {
-                        xml_ref.append_attribute("restrict").set_value(ref.restriction_target_id.value());
-                    }
                     break;
                 }
                 case 4: {
@@ -244,12 +238,6 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
                     xml_ref.append_attribute("left").set_value(binary.left_expression_id);
                     xml_ref.append_attribute("right").set_value(binary.right_expression_id);
-                    if (ref.is_constant_expression) {
-                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
-                    }
-                    if (ref.is_column_transform) {
-                        xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
-                    }
                     break;
                 }
                 case 5: {
@@ -270,14 +258,22 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             break;
                         }
                     }
-                    if (ref.is_constant_expression) {
-                        xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
-                    }
-                    if (ref.is_column_transform) {
-                        xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
-                    }
                     break;
                 }
+                case 6: {
+                    auto& func = std::get<AnalyzedScript::Expression::ConstIntervalCast>(ref.inner);
+                    xml_ref.append_attribute("type").set_value("constcast/interval");
+                    break;
+                }
+            }
+            if (ref.is_constant_expression) {
+                xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
+            }
+            if (ref.is_column_restriction && ref.restriction_target_id.has_value()) {
+                xml_ref.append_attribute("restrict").set_value(ref.restriction_target_id.value());
+            }
+            if (ref.is_column_transform && ref.transform_target_id.has_value()) {
+                xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
             }
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);

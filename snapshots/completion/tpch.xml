@@ -93,53 +93,53 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
                 </tables>
                 <errors />
                 <expressions>
-                    <expr id="0" type="literal/integer" stmt="0" loc="63..65" text="55" />
-                    <expr id="1" type="literal/integer" stmt="0" loc="89..91" text="25" />
-                    <expr id="2" type="literal/integer" stmt="0" loc="116..118" text="10" />
-                    <expr id="3" type="literal/integer" stmt="0" loc="145..147" text="25" />
-                    <expr id="4" type="literal/integer" stmt="0" loc="201..203" text="10" />
-                    <expr id="5" type="literal/integer" stmt="0" loc="237..239" text="12" />
-                    <expr id="6" type="literal/integer" stmt="0" loc="240..241" text="2" />
-                    <expr id="7" type="literal/integer" stmt="0" loc="271..273" text="23" />
-                    <expr id="8" type="literal/integer" stmt="1" loc="374..376" text="25" />
-                    <expr id="9" type="literal/integer" stmt="1" loc="406..408" text="40" />
-                    <expr id="10" type="literal/integer" stmt="1" loc="463..465" text="15" />
-                    <expr id="11" type="literal/integer" stmt="1" loc="495..497" text="12" />
-                    <expr id="12" type="literal/integer" stmt="1" loc="498..499" text="2" />
-                    <expr id="13" type="literal/integer" stmt="1" loc="529..532" text="101" />
-                    <expr id="14" type="literal/integer" stmt="2" loc="703..705" text="12" />
-                    <expr id="15" type="literal/integer" stmt="2" loc="706..707" text="2" />
-                    <expr id="16" type="literal/integer" stmt="2" loc="738..741" text="199" />
-                    <expr id="17" type="literal/integer" stmt="3" loc="857..859" text="25" />
-                    <expr id="18" type="literal/integer" stmt="3" loc="889..891" text="40" />
-                    <expr id="19" type="literal/integer" stmt="3" loc="946..948" text="15" />
-                    <expr id="20" type="literal/integer" stmt="3" loc="978..980" text="12" />
-                    <expr id="21" type="literal/integer" stmt="3" loc="981..982" text="2" />
-                    <expr id="22" type="literal/integer" stmt="3" loc="1012..1014" text="10" />
-                    <expr id="23" type="literal/integer" stmt="3" loc="1044..1047" text="117" />
-                    <expr id="24" type="literal/integer" stmt="4" loc="1182..1183" text="1" />
-                    <expr id="25" type="literal/integer" stmt="4" loc="1216..1218" text="12" />
-                    <expr id="26" type="literal/integer" stmt="4" loc="1219..1220" text="2" />
-                    <expr id="27" type="literal/integer" stmt="4" loc="1280..1282" text="15" />
-                    <expr id="28" type="literal/integer" stmt="4" loc="1307..1309" text="15" />
-                    <expr id="29" type="literal/integer" stmt="4" loc="1372..1374" text="79" />
-                    <expr id="30" type="literal/integer" stmt="5" loc="1571..1573" text="12" />
-                    <expr id="31" type="literal/integer" stmt="5" loc="1574..1575" text="2" />
-                    <expr id="32" type="literal/integer" stmt="5" loc="1611..1613" text="12" />
-                    <expr id="33" type="literal/integer" stmt="5" loc="1614..1615" text="2" />
-                    <expr id="34" type="literal/integer" stmt="5" loc="1646..1648" text="12" />
-                    <expr id="35" type="literal/integer" stmt="5" loc="1649..1650" text="2" />
-                    <expr id="36" type="literal/integer" stmt="5" loc="1676..1678" text="12" />
-                    <expr id="37" type="literal/integer" stmt="5" loc="1679..1680" text="2" />
-                    <expr id="38" type="literal/integer" stmt="5" loc="1710..1711" text="1" />
-                    <expr id="39" type="literal/integer" stmt="5" loc="1741..1742" text="1" />
-                    <expr id="40" type="literal/integer" stmt="5" loc="1857..1859" text="25" />
-                    <expr id="41" type="literal/integer" stmt="5" loc="1887..1889" text="10" />
-                    <expr id="42" type="literal/integer" stmt="5" loc="1919..1921" text="44" />
-                    <expr id="43" type="literal/integer" stmt="6" loc="2036..2038" text="25" />
-                    <expr id="44" type="literal/integer" stmt="6" loc="2098..2101" text="152" />
-                    <expr id="45" type="literal/integer" stmt="7" loc="2204..2206" text="25" />
-                    <expr id="46" type="literal/integer" stmt="7" loc="2236..2239" text="152" />
+                    <expr id="0" type="literal/integer" const="true" stmt="0" loc="63..65" text="55" />
+                    <expr id="1" type="literal/integer" const="true" stmt="0" loc="89..91" text="25" />
+                    <expr id="2" type="literal/integer" const="true" stmt="0" loc="116..118" text="10" />
+                    <expr id="3" type="literal/integer" const="true" stmt="0" loc="145..147" text="25" />
+                    <expr id="4" type="literal/integer" const="true" stmt="0" loc="201..203" text="10" />
+                    <expr id="5" type="literal/integer" const="true" stmt="0" loc="237..239" text="12" />
+                    <expr id="6" type="literal/integer" const="true" stmt="0" loc="240..241" text="2" />
+                    <expr id="7" type="literal/integer" const="true" stmt="0" loc="271..273" text="23" />
+                    <expr id="8" type="literal/integer" const="true" stmt="1" loc="374..376" text="25" />
+                    <expr id="9" type="literal/integer" const="true" stmt="1" loc="406..408" text="40" />
+                    <expr id="10" type="literal/integer" const="true" stmt="1" loc="463..465" text="15" />
+                    <expr id="11" type="literal/integer" const="true" stmt="1" loc="495..497" text="12" />
+                    <expr id="12" type="literal/integer" const="true" stmt="1" loc="498..499" text="2" />
+                    <expr id="13" type="literal/integer" const="true" stmt="1" loc="529..532" text="101" />
+                    <expr id="14" type="literal/integer" const="true" stmt="2" loc="703..705" text="12" />
+                    <expr id="15" type="literal/integer" const="true" stmt="2" loc="706..707" text="2" />
+                    <expr id="16" type="literal/integer" const="true" stmt="2" loc="738..741" text="199" />
+                    <expr id="17" type="literal/integer" const="true" stmt="3" loc="857..859" text="25" />
+                    <expr id="18" type="literal/integer" const="true" stmt="3" loc="889..891" text="40" />
+                    <expr id="19" type="literal/integer" const="true" stmt="3" loc="946..948" text="15" />
+                    <expr id="20" type="literal/integer" const="true" stmt="3" loc="978..980" text="12" />
+                    <expr id="21" type="literal/integer" const="true" stmt="3" loc="981..982" text="2" />
+                    <expr id="22" type="literal/integer" const="true" stmt="3" loc="1012..1014" text="10" />
+                    <expr id="23" type="literal/integer" const="true" stmt="3" loc="1044..1047" text="117" />
+                    <expr id="24" type="literal/integer" const="true" stmt="4" loc="1182..1183" text="1" />
+                    <expr id="25" type="literal/integer" const="true" stmt="4" loc="1216..1218" text="12" />
+                    <expr id="26" type="literal/integer" const="true" stmt="4" loc="1219..1220" text="2" />
+                    <expr id="27" type="literal/integer" const="true" stmt="4" loc="1280..1282" text="15" />
+                    <expr id="28" type="literal/integer" const="true" stmt="4" loc="1307..1309" text="15" />
+                    <expr id="29" type="literal/integer" const="true" stmt="4" loc="1372..1374" text="79" />
+                    <expr id="30" type="literal/integer" const="true" stmt="5" loc="1571..1573" text="12" />
+                    <expr id="31" type="literal/integer" const="true" stmt="5" loc="1574..1575" text="2" />
+                    <expr id="32" type="literal/integer" const="true" stmt="5" loc="1611..1613" text="12" />
+                    <expr id="33" type="literal/integer" const="true" stmt="5" loc="1614..1615" text="2" />
+                    <expr id="34" type="literal/integer" const="true" stmt="5" loc="1646..1648" text="12" />
+                    <expr id="35" type="literal/integer" const="true" stmt="5" loc="1649..1650" text="2" />
+                    <expr id="36" type="literal/integer" const="true" stmt="5" loc="1676..1678" text="12" />
+                    <expr id="37" type="literal/integer" const="true" stmt="5" loc="1679..1680" text="2" />
+                    <expr id="38" type="literal/integer" const="true" stmt="5" loc="1710..1711" text="1" />
+                    <expr id="39" type="literal/integer" const="true" stmt="5" loc="1741..1742" text="1" />
+                    <expr id="40" type="literal/integer" const="true" stmt="5" loc="1857..1859" text="25" />
+                    <expr id="41" type="literal/integer" const="true" stmt="5" loc="1887..1889" text="10" />
+                    <expr id="42" type="literal/integer" const="true" stmt="5" loc="1919..1921" text="44" />
+                    <expr id="43" type="literal/integer" const="true" stmt="6" loc="2036..2038" text="25" />
+                    <expr id="44" type="literal/integer" const="true" stmt="6" loc="2098..2101" text="152" />
+                    <expr id="45" type="literal/integer" const="true" stmt="7" loc="2204..2206" text="25" />
+                    <expr id="46" type="literal/integer" const="true" stmt="7" loc="2236..2239" text="152" />
                 </expressions>
             </script>
         </catalog>
@@ -259,53 +259,53 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
                 </tables>
                 <errors />
                 <expressions>
-                    <expr id="0" type="literal/integer" stmt="0" loc="63..65" text="55" />
-                    <expr id="1" type="literal/integer" stmt="0" loc="89..91" text="25" />
-                    <expr id="2" type="literal/integer" stmt="0" loc="116..118" text="10" />
-                    <expr id="3" type="literal/integer" stmt="0" loc="145..147" text="25" />
-                    <expr id="4" type="literal/integer" stmt="0" loc="201..203" text="10" />
-                    <expr id="5" type="literal/integer" stmt="0" loc="237..239" text="12" />
-                    <expr id="6" type="literal/integer" stmt="0" loc="240..241" text="2" />
-                    <expr id="7" type="literal/integer" stmt="0" loc="271..273" text="23" />
-                    <expr id="8" type="literal/integer" stmt="1" loc="374..376" text="25" />
-                    <expr id="9" type="literal/integer" stmt="1" loc="406..408" text="40" />
-                    <expr id="10" type="literal/integer" stmt="1" loc="463..465" text="15" />
-                    <expr id="11" type="literal/integer" stmt="1" loc="495..497" text="12" />
-                    <expr id="12" type="literal/integer" stmt="1" loc="498..499" text="2" />
-                    <expr id="13" type="literal/integer" stmt="1" loc="529..532" text="101" />
-                    <expr id="14" type="literal/integer" stmt="2" loc="703..705" text="12" />
-                    <expr id="15" type="literal/integer" stmt="2" loc="706..707" text="2" />
-                    <expr id="16" type="literal/integer" stmt="2" loc="738..741" text="199" />
-                    <expr id="17" type="literal/integer" stmt="3" loc="857..859" text="25" />
-                    <expr id="18" type="literal/integer" stmt="3" loc="889..891" text="40" />
-                    <expr id="19" type="literal/integer" stmt="3" loc="946..948" text="15" />
-                    <expr id="20" type="literal/integer" stmt="3" loc="978..980" text="12" />
-                    <expr id="21" type="literal/integer" stmt="3" loc="981..982" text="2" />
-                    <expr id="22" type="literal/integer" stmt="3" loc="1012..1014" text="10" />
-                    <expr id="23" type="literal/integer" stmt="3" loc="1044..1047" text="117" />
-                    <expr id="24" type="literal/integer" stmt="4" loc="1182..1183" text="1" />
-                    <expr id="25" type="literal/integer" stmt="4" loc="1216..1218" text="12" />
-                    <expr id="26" type="literal/integer" stmt="4" loc="1219..1220" text="2" />
-                    <expr id="27" type="literal/integer" stmt="4" loc="1280..1282" text="15" />
-                    <expr id="28" type="literal/integer" stmt="4" loc="1307..1309" text="15" />
-                    <expr id="29" type="literal/integer" stmt="4" loc="1372..1374" text="79" />
-                    <expr id="30" type="literal/integer" stmt="5" loc="1571..1573" text="12" />
-                    <expr id="31" type="literal/integer" stmt="5" loc="1574..1575" text="2" />
-                    <expr id="32" type="literal/integer" stmt="5" loc="1611..1613" text="12" />
-                    <expr id="33" type="literal/integer" stmt="5" loc="1614..1615" text="2" />
-                    <expr id="34" type="literal/integer" stmt="5" loc="1646..1648" text="12" />
-                    <expr id="35" type="literal/integer" stmt="5" loc="1649..1650" text="2" />
-                    <expr id="36" type="literal/integer" stmt="5" loc="1676..1678" text="12" />
-                    <expr id="37" type="literal/integer" stmt="5" loc="1679..1680" text="2" />
-                    <expr id="38" type="literal/integer" stmt="5" loc="1710..1711" text="1" />
-                    <expr id="39" type="literal/integer" stmt="5" loc="1741..1742" text="1" />
-                    <expr id="40" type="literal/integer" stmt="5" loc="1857..1859" text="25" />
-                    <expr id="41" type="literal/integer" stmt="5" loc="1887..1889" text="10" />
-                    <expr id="42" type="literal/integer" stmt="5" loc="1919..1921" text="44" />
-                    <expr id="43" type="literal/integer" stmt="6" loc="2036..2038" text="25" />
-                    <expr id="44" type="literal/integer" stmt="6" loc="2098..2101" text="152" />
-                    <expr id="45" type="literal/integer" stmt="7" loc="2204..2206" text="25" />
-                    <expr id="46" type="literal/integer" stmt="7" loc="2236..2239" text="152" />
+                    <expr id="0" type="literal/integer" const="true" stmt="0" loc="63..65" text="55" />
+                    <expr id="1" type="literal/integer" const="true" stmt="0" loc="89..91" text="25" />
+                    <expr id="2" type="literal/integer" const="true" stmt="0" loc="116..118" text="10" />
+                    <expr id="3" type="literal/integer" const="true" stmt="0" loc="145..147" text="25" />
+                    <expr id="4" type="literal/integer" const="true" stmt="0" loc="201..203" text="10" />
+                    <expr id="5" type="literal/integer" const="true" stmt="0" loc="237..239" text="12" />
+                    <expr id="6" type="literal/integer" const="true" stmt="0" loc="240..241" text="2" />
+                    <expr id="7" type="literal/integer" const="true" stmt="0" loc="271..273" text="23" />
+                    <expr id="8" type="literal/integer" const="true" stmt="1" loc="374..376" text="25" />
+                    <expr id="9" type="literal/integer" const="true" stmt="1" loc="406..408" text="40" />
+                    <expr id="10" type="literal/integer" const="true" stmt="1" loc="463..465" text="15" />
+                    <expr id="11" type="literal/integer" const="true" stmt="1" loc="495..497" text="12" />
+                    <expr id="12" type="literal/integer" const="true" stmt="1" loc="498..499" text="2" />
+                    <expr id="13" type="literal/integer" const="true" stmt="1" loc="529..532" text="101" />
+                    <expr id="14" type="literal/integer" const="true" stmt="2" loc="703..705" text="12" />
+                    <expr id="15" type="literal/integer" const="true" stmt="2" loc="706..707" text="2" />
+                    <expr id="16" type="literal/integer" const="true" stmt="2" loc="738..741" text="199" />
+                    <expr id="17" type="literal/integer" const="true" stmt="3" loc="857..859" text="25" />
+                    <expr id="18" type="literal/integer" const="true" stmt="3" loc="889..891" text="40" />
+                    <expr id="19" type="literal/integer" const="true" stmt="3" loc="946..948" text="15" />
+                    <expr id="20" type="literal/integer" const="true" stmt="3" loc="978..980" text="12" />
+                    <expr id="21" type="literal/integer" const="true" stmt="3" loc="981..982" text="2" />
+                    <expr id="22" type="literal/integer" const="true" stmt="3" loc="1012..1014" text="10" />
+                    <expr id="23" type="literal/integer" const="true" stmt="3" loc="1044..1047" text="117" />
+                    <expr id="24" type="literal/integer" const="true" stmt="4" loc="1182..1183" text="1" />
+                    <expr id="25" type="literal/integer" const="true" stmt="4" loc="1216..1218" text="12" />
+                    <expr id="26" type="literal/integer" const="true" stmt="4" loc="1219..1220" text="2" />
+                    <expr id="27" type="literal/integer" const="true" stmt="4" loc="1280..1282" text="15" />
+                    <expr id="28" type="literal/integer" const="true" stmt="4" loc="1307..1309" text="15" />
+                    <expr id="29" type="literal/integer" const="true" stmt="4" loc="1372..1374" text="79" />
+                    <expr id="30" type="literal/integer" const="true" stmt="5" loc="1571..1573" text="12" />
+                    <expr id="31" type="literal/integer" const="true" stmt="5" loc="1574..1575" text="2" />
+                    <expr id="32" type="literal/integer" const="true" stmt="5" loc="1611..1613" text="12" />
+                    <expr id="33" type="literal/integer" const="true" stmt="5" loc="1614..1615" text="2" />
+                    <expr id="34" type="literal/integer" const="true" stmt="5" loc="1646..1648" text="12" />
+                    <expr id="35" type="literal/integer" const="true" stmt="5" loc="1649..1650" text="2" />
+                    <expr id="36" type="literal/integer" const="true" stmt="5" loc="1676..1678" text="12" />
+                    <expr id="37" type="literal/integer" const="true" stmt="5" loc="1679..1680" text="2" />
+                    <expr id="38" type="literal/integer" const="true" stmt="5" loc="1710..1711" text="1" />
+                    <expr id="39" type="literal/integer" const="true" stmt="5" loc="1741..1742" text="1" />
+                    <expr id="40" type="literal/integer" const="true" stmt="5" loc="1857..1859" text="25" />
+                    <expr id="41" type="literal/integer" const="true" stmt="5" loc="1887..1889" text="10" />
+                    <expr id="42" type="literal/integer" const="true" stmt="5" loc="1919..1921" text="44" />
+                    <expr id="43" type="literal/integer" const="true" stmt="6" loc="2036..2038" text="25" />
+                    <expr id="44" type="literal/integer" const="true" stmt="6" loc="2098..2101" text="152" />
+                    <expr id="45" type="literal/integer" const="true" stmt="7" loc="2204..2206" text="25" />
+                    <expr id="46" type="literal/integer" const="true" stmt="7" loc="2236..2239" text="152" />
                 </expressions>
             </script>
         </catalog>

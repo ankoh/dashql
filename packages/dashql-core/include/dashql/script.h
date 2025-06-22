@@ -309,8 +309,8 @@ class AnalyzedScript : public CatalogEntry {
         struct IntervalType {
             /// The interval type
             dashql::buffers::parser::IntervalType interval_type;
-            /// The interval precision
-            std::optional<int32_t> precision;
+            /// The expression for the interval precision (if any)
+            std::optional<int32_t> precision_expression;
         };
         /// A constant interval cast
         struct ConstIntervalCast {
@@ -329,7 +329,9 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST statement id in the target script
         std::optional<uint32_t> ast_statement_id;
         /// The inner expression type
-        std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression> inner;
+        std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression,
+                     ConstIntervalCast>
+            inner;
         /// Is the transform target index
         std::optional<uint32_t> restriction_target_id = std::nullopt;
         /// Is the transform target index
@@ -443,7 +445,7 @@ class AnalyzedScript : public CatalogEntry {
         n.is_constant_expression = false;
         n.is_column_transform = false;
         n.is_column_restriction = false;
-        n.inner = inner;
+        n.inner = std::move(inner);
         return n;
     }
 

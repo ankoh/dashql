@@ -151,7 +151,7 @@
                 <expr id="4" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="64..65" text="a" />
                 <expr id="5" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="68..69" text="d" />
                 <expr id="6" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="74..75" text="d" />
-                <expr id="7" type="literal/integer" stmt="0" loc="78..80" text="42" />
+                <expr id="7" type="literal/integer" const="true" stmt="0" loc="78..80" text="42" />
                 <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
         </script>
@@ -188,7 +188,7 @@
             <expressions>
                 <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="47..48" text="d" />
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr id="2" type="literal/integer" stmt="0" loc="51..53" text="42" />
+                <expr id="2" type="literal/integer" const="true" stmt="0" loc="51..53" text="42" />
             </expressions>
         </script>
     </analyzer-snapshot>
