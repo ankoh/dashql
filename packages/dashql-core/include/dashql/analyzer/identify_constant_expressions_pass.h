@@ -19,6 +19,9 @@ namespace dashql {
 ///   - Constant function calls
 ///
 class IdentifyConstantExpressionsPass : public PassManager::LTRPass {
+    /// The identified constant expressions.
+    /// Are appended to the analyzed script during Finish.
+    IntrusiveList<AnalyzedScript::Expression> constants;
     /// Temporary buffer for expression pointers
     std::vector<AnalyzedScript::Expression*> tmp_expressions;
 

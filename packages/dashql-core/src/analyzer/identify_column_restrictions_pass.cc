@@ -1,20 +1,11 @@
 #include "dashql/analyzer/identify_column_restrictions_pass.h"
 
 #include "dashql/analyzer/analyzer.h"
-#include "dashql/analyzer/identify_column_transforms_pass.h"
-#include "dashql/analyzer/identify_constant_expressions_pass.h"
 #include "dashql/buffers/index_generated.h"
 
 namespace dashql {
 
-IdentifyColumnRestrictionsPass::IdentifyColumnRestrictionsPass(AnalysisState& state,
-                                                               NameResolutionPass& name_resolution,
-                                                               IdentifyConstantExpressionsPass& identify_constants,
-                                                               IdentifyColumnTransformsPass& identify_projections)
-    : PassManager::LTRPass(state),
-      name_resolution(name_resolution),
-      identify_constexprs(identify_constants),
-      identify_projections(identify_projections) {}
+IdentifyColumnRestrictionsPass::IdentifyColumnRestrictionsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
 
 void IdentifyColumnRestrictionsPass::Prepare() {}
 
@@ -93,7 +84,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         n.is_column_restriction = true;
                         n.restriction_target_id = arg_exprs[restriction_target_idx]->expression_id;
                         state.expression_index[node_id] = &n;
-                        state.analyzed->column_restrictions.PushBack(n);
+                        restrictions.PushBack(n);
                         break;
                     }
                     default:
@@ -109,6 +100,6 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
     }
 }
 
-void IdentifyColumnRestrictionsPass::Finish() {}
+void IdentifyColumnRestrictionsPass::Finish() { state.analyzed->column_restrictions.Append(std::move(restrictions)); }
 
 }  // namespace dashql

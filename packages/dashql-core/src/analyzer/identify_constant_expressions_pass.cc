@@ -54,7 +54,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
                 state.expression_index[node_id] = &n;
-                state.analyzed->constant_expressions.PushBack(n);
+                constants.PushBack(n);
                 break;
             }
 
@@ -157,7 +157,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
                         state.expression_index[node_id] = &n;
-                        state.analyzed->constant_expressions.PushBack(n);
+                        constants.PushBack(n);
                         break;
                     }
 
@@ -196,6 +196,9 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                                 expr->is_constant_expression &= arg_expr->is_constant_expression;
                             }
                         }
+                        if (expr->is_constant_expression) {
+                            constants.PushBack(*expr);
+                        }
                         break;
                     }
                     default:
@@ -209,6 +212,9 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
     }
 }
 
-void IdentifyConstantExpressionsPass::Finish() {}
+void IdentifyConstantExpressionsPass::Finish() {
+    // XXX Remove constants that have a constant parent
+    state.analyzed->constant_expressions.Append(std::move(constants));
+}
 
 }  // namespace dashql

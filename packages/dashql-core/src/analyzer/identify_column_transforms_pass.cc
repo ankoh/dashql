@@ -4,9 +4,7 @@
 
 namespace dashql {
 
-IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalysisState& state, NameResolutionPass& name_resolution,
-                                                           IdentifyConstantExpressionsPass& identify_constants)
-    : PassManager::LTRPass(state), name_resolution(name_resolution), identify_constexprs(identify_constants) {}
+IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
 
 void IdentifyColumnTransformsPass::Prepare() {}
 
@@ -118,6 +116,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         if (expr->is_column_transform) {
                             expr->transform_target_id = transform_target_id;
                         }
+                        transforms.PushBack(*expr);
                         break;
                     }
                 }
@@ -129,6 +128,9 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
     }
 }
 
-void IdentifyColumnTransformsPass::Finish() {}
+void IdentifyColumnTransformsPass::Finish() {
+    // XXX Remove transforms that have a parent transforms
+    state.analyzed->column_transforms.Append(std::move(transforms));
+}
 
 }  // namespace dashql

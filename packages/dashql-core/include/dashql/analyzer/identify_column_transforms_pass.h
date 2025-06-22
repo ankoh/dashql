@@ -1,6 +1,5 @@
 #pragma once
 
-#include "dashql/analyzer/identify_constant_expressions_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"
 
@@ -18,11 +17,9 @@ namespace dashql {
 /// We want to identify column projections such as json_value() or regexp_extract().
 ///
 class IdentifyColumnTransformsPass : public PassManager::LTRPass {
-    /// The name resolution pass
-    NameResolutionPass& name_resolution;
-    /// The constexprs pass
-    IdentifyConstantExpressionsPass& identify_constexprs;
-
+    /// The identified transforms.
+    /// Are appended to the analyzed script during Finish.
+    IntrusiveList<AnalyzedScript::Expression> transforms;
     /// Temporary buffer for expression pointers
     std::vector<AnalyzedScript::Expression*> tmp_expressions;
 
@@ -34,8 +31,7 @@ class IdentifyColumnTransformsPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    IdentifyColumnTransformsPass(AnalysisState& state, NameResolutionPass& name_resolution,
-                                 IdentifyConstantExpressionsPass& identify_constants);
+    IdentifyColumnTransformsPass(AnalysisState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;
