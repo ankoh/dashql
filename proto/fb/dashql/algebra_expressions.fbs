@@ -18,6 +18,23 @@ table Literal {
     raw_value: string;
 }
 
+table ConstTypeCast {
+    
+}
+
+table ConstFunctionCast {
+    
+}
+
+table ConstIntervalCast {
+    /// The id of the value expression
+    value_expression: uint32;
+    /// The interval type
+    interval_type: dashql.buffers.parser.IntervalType;
+    /// The interval precision
+    interval_precision: uint32;
+}
+
 enum UnaryFunction: uint8 {
     UNKNOWN = 0,
     NOT = 1,
@@ -137,7 +154,10 @@ union ExpressionSubType {
     BinaryExpression,
     NaryExpression,
     Comparison,
-    FunctionCallExpression
+    FunctionCallExpression,
+    ConstTypeCast,
+    ConstIntervalCast,
+    ConstFunctionCast,
 }
 
 table Expression {

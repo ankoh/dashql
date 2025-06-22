@@ -25,7 +25,7 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     size_t arg_count_transform = 0;
     size_t transform_target_idx = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = (nodes.data() - state.ast.data()) + i;
+        size_t arg_node_id = state.GetNodeId(nodes[i]);
         auto* arg_expr = state.expression_index[arg_node_id];
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
@@ -52,13 +52,11 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
     size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
-        NodeID node_id = morsel_offset + i;
+        size_t node_id = state.GetNodeId(node);
 
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto child_attrs = state.attribute_index.Load(children);
-                auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
+                auto [op_node] = state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR>(node);
                 if (!op_node) continue;
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 

@@ -305,6 +305,20 @@ class AnalyzedScript : public CatalogEntry {
                          PositionArguments, SubstringArguments, TrimArguments, TreatArguments>
                 arguments = std::monostate{};
         };
+        /// An interval type
+        struct IntervalType {
+            /// The interval type
+            dashql::buffers::parser::IntervalType interval_type;
+            /// The interval precision
+            std::optional<int32_t> precision;
+        };
+        /// A constant interval cast
+        struct ConstIntervalCast {
+            /// The expression id of the value
+            uint32_t value_expression_id;
+            // The interval type (if not in the value text)
+            std::optional<IntervalType> interval;
+        };
 
         /// The expression id as reference_index
         uint32_t expression_id;

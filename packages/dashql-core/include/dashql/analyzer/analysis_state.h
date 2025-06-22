@@ -4,7 +4,7 @@
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/text/names.h"
-#include "dashql/utils/attribute_index.h"
+#include "dashql/utils/ast_attributes.h"
 
 namespace dashql {
 
@@ -34,8 +34,6 @@ struct AnalysisState {
     /// The catalog
     Catalog& catalog;
 
-    /// The attribute index
-    AttributeIndex attribute_index;
     /// The expression index.
     ExpressionIndex expression_index;
 
@@ -47,6 +45,27 @@ struct AnalysisState {
 
     /// Constructor
     AnalysisState(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+
+    /// Get the children of an object
+    std::span<const buffers::parser::Node> GetChildren(const sx::parser::Node& node) {
+        assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
+        return ast.subspan(node.children_begin_or_value(), node.children_count());
+    }
+    /// Get the attributes of an object
+    template <buffers::parser::AttributeKey... keys>
+    AttributeLookupResult<keys...> GetAttributes(const sx::parser::Node& node) {
+        assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
+        return LookupAttributes<keys...>(ast.subspan(node.children_begin_or_value(), node.children_count()));
+    }
+    //    /// Get the attributes of an object
+    //    template <buffers::parser::AttributeKey keys_head, buffers::parser::AttributeKey... keys_tail>
+    //    AttributeLookupResult<keys_head, keys_tail...> GetAttributes(const sx::parser::Node& node) {
+    //        assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
+    //        return LookupAttributes<keys_head, keys_tail...>(
+    //            ast.subspan(node.children_begin_or_value(), node.children_count()));
+    //    }
+    /// Get the id of a node in the ast
+    uint32_t GetNodeId(const sx::parser::Node& node) { return &node - ast.data(); }
 
     /// Helper to read a name path
     std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::parser::Node& node);

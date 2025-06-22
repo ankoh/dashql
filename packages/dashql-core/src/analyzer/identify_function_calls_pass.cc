@@ -26,8 +26,12 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
         NodeID node_id = morsel_offset + i;
 
         if (node.node_type() == NodeType::OBJECT_SQL_FUNCTION_EXPRESSION) {
-            auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-            auto attrs = state.attribute_index.Load(children);
+            auto [attr_star, attr_all, attr_distinct, attr_variadic, attr_over, attr_within_group, attr_name,
+                  attr_args] =
+                state.GetAttributes<AttributeKey::SQL_FUNCTION_ARGUMENTS_STAR, AttributeKey::SQL_FUNCTION_ALL,
+                                    AttributeKey::SQL_FUNCTION_DISTINCT, AttributeKey::SQL_FUNCTION_VARIADIC,
+                                    AttributeKey::SQL_FUNCTION_OVER, AttributeKey::SQL_FUNCTION_WITHIN_GROUP,
+                                    AttributeKey::SQL_FUNCTION_NAME, AttributeKey::SQL_FUNCTION_ARGUMENTS>(node);
 
             AnalyzedScript::Expression::FunctionCallExpression func_call{
                 .function_name = buffers::parser::KnownFunction::CURRENT_TIME,
@@ -37,44 +41,31 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
 
             // Check type modifers
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS_STAR] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_STAR)
-                    : 0;
+                (attr_star) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_STAR) : 0;
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ALL] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_ALL)
-                    : 0;
+                (attr_all) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_ALL) : 0;
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_DISTINCT] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_DISTINCT)
-                    : 0;
+                (attr_distinct) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::ARGS_DISTINCT) : 0;
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_VARIADIC] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::VARIADIC)
-                    : 0;
+                (attr_variadic) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::VARIADIC) : 0;
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_OVER] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::OVER)
-                    : 0;
+                (attr_over) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::OVER) : 0;
             func_call.function_call_modifiers |=
-                (attrs[buffers::parser::AttributeKey::SQL_FUNCTION_WITHIN_GROUP] != nullptr)
-                    ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::WITHIN_GROUP)
-                    : 0;
+                (attr_within_group) ? static_cast<uint8_t>(buffers::algebra::FunctionCallModifier::WITHIN_GROUP) : 0;
 
             // Must have a function name, read it
-            auto func_name_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_NAME];
-            assert(func_name_node != nullptr);
-            auto func_name_node_id = static_cast<uint32_t>(func_name_node - state.parsed.nodes.data());
-            switch (func_name_node->node_type()) {
+            assert(attr_name != nullptr);
+            auto func_name_node_id = static_cast<uint32_t>(attr_name - state.parsed.nodes.data());
+            switch (attr_name->node_type()) {
                 // Is a known function?
                 case buffers::parser::NodeType::ENUM_SQL_KNOWN_FUNCTION: {
                     func_call.function_name =
-                        static_cast<buffers::parser::KnownFunction>(func_name_node->children_begin_or_value());
+                        static_cast<buffers::parser::KnownFunction>(attr_name->children_begin_or_value());
                     break;
                 }
                 // Is a qualified function name?
                 case buffers::parser::NodeType::ARRAY: {
-                    auto func_name = state.ReadQualifiedFunctionName(func_name_node);
+                    auto func_name = state.ReadQualifiedFunctionName(attr_name);
                     assert(func_name.has_value());
                     func_call.function_name = func_name.value();
                     break;
@@ -86,29 +77,28 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
             }
 
             // Are there function arguments?
-            if (auto func_args_node = attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARGUMENTS]) {
-                assert(func_args_node->node_type() == sx::parser::NodeType::ARRAY);
-                auto args = state.analyzed->function_arguments.EmplaceBackN(func_args_node->children_count());
+            if (attr_args) {
+                assert(attr_args->node_type() == sx::parser::NodeType::ARRAY);
+                auto args = state.analyzed->function_arguments.EmplaceBackN(attr_args->children_count());
 
                 // Unpack the function arguments
-                for (size_t i = 0; i < func_args_node->children_count(); ++i) {
-                    auto func_arg_node_id = func_args_node->children_begin_or_value() + i;
+                for (size_t i = 0; i < attr_args->children_count(); ++i) {
+                    auto func_arg_node_id = attr_args->children_begin_or_value() + i;
                     args[i].ast_node_id = func_arg_node_id;
 
                     // Get function arguments
                     auto& func_arg_node = state.ast[func_arg_node_id];
                     assert(func_arg_node.node_type() == sx::parser::NodeType::OBJECT_SQL_FUNCTION_ARG);
-                    auto func_arg_attr_span =
-                        state.ast.subspan(func_arg_node.children_begin_or_value(), func_arg_node.children_count());
-                    auto func_arg_attrs = state.attribute_index.Load(func_arg_attr_span);
+                    auto [arg_value, arg_name] =
+                        state.GetAttributes<AttributeKey::SQL_FUNCTION_ARG_VALUE, AttributeKey::SQL_FUNCTION_ARG_NAME>(
+                            func_arg_node);
 
                     // Always has a value, read it
-                    auto* arg_value = func_arg_attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARG_VALUE];
                     assert(arg_value != nullptr);
                     args[i].value_ast_node_id = arg_value - state.ast.data();
 
                     // Has a name?
-                    if (auto* arg_name = func_arg_attrs[buffers::parser::AttributeKey::SQL_FUNCTION_ARG_NAME]) {
+                    if (arg_name) {
                         assert(arg_name->node_type() == buffers::parser::NodeType::NAME);
                         args[i].name = state.scanned.GetNames().At(arg_name->children_begin_or_value());
                     }

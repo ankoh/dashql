@@ -33,7 +33,7 @@ IdentifyColumnRestrictionsPass::readRestrictionArgs(std::span<const buffers::par
     size_t arg_count_projection = 0;
     size_t restriction_target_idx = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = (nodes.data() - state.ast.data()) + i;
+        size_t arg_node_id = state.GetNodeId(nodes[i]);
         auto* arg_expr = state.expression_index[arg_node_id];
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
@@ -59,18 +59,17 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
     size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
-        NodeID node_id = morsel_offset + i;
+        size_t node_id = state.GetNodeId(node);
 
         switch (node.node_type()) {
             case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto child_attrs = state.attribute_index.Load(children);
-                auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
+                auto [op_node, args_node] =
+                    state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
                 if (!op_node) continue;
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Read restriction arguments
-                auto arg_nodes = state.ReadArgNodes(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgNodes(args_node);
                 auto maybe_arg_exprs = readRestrictionArgs(arg_nodes);
                 if (!maybe_arg_exprs) continue;
                 auto [arg_exprs, restriction_target_idx] = maybe_arg_exprs.value();

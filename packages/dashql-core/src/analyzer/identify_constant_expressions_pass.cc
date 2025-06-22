@@ -26,7 +26,7 @@ std::optional<std::span<AnalyzedScript::Expression*>> IdentifyConstantExpression
     }
     bool all_args_const = true;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = (nodes.data() - state.ast.data()) + i;
+        size_t arg_node_id = state.GetNodeId(nodes[i]);
         auto* arg_expr = state.expression_index[arg_node_id];
         auto* const_expr = (arg_expr && arg_expr->IsConstantExpression()) ? arg_expr : nullptr;
         all_args_const &= const_expr != nullptr;
@@ -39,7 +39,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
     size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
-        NodeID node_id = morsel_offset + i;
+        size_t node_id = state.GetNodeId(node);
 
         switch (node.node_type()) {
             // Base case, literals
@@ -58,17 +58,41 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 break;
             }
 
+            // interval '30 days'
+            case NodeType::OBJECT_SQL_CONST_INTERVAL_CAST: {
+                auto [value_node, interval_node] =
+                    state.GetAttributes<AttributeKey::SQL_CONST_CAST_VALUE, AttributeKey::SQL_CONST_CAST_INTERVAL>(
+                        node);
+
+                // Check if the value is constant
+                if (!value_node) continue;
+                auto value_node_id = state.GetNodeId(*value_node);
+                auto* value_expr = state.expression_index[value_node_id];
+                if (!value_expr || !value_expr->IsConstantExpression()) continue;
+
+                AnalyzedScript::Expression::ConstIntervalCast inner{
+                    .value_expression_id = value_expr->expression_id,
+                    .interval = std::nullopt,
+                };
+
+                if (interval_node) {
+                    assert(interval_node->node_type() == NodeType::OBJECT_SQL_INTERVAL_TYPE);
+                    auto interval_children = state.GetChildren(*interval_node);
+                }
+
+                break;
+            }
+
             // N-ary expressions
             case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto child_attrs = state.attribute_index.Load(children);
-                auto op_node = child_attrs[AttributeKey::SQL_EXPRESSION_OPERATOR];
+                auto [op_node, args_node] =
+                    state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
                 if (!op_node) continue;
 
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
-                auto arg_nodes = state.ReadArgNodes(child_attrs[AttributeKey::SQL_EXPRESSION_ARGS]);
+                auto arg_nodes = state.ReadArgNodes(args_node);
                 auto maybe_const_args = readConstExprs(arg_nodes);
                 if (!maybe_const_args.has_value()) continue;
                 auto& const_args = maybe_const_args.value();

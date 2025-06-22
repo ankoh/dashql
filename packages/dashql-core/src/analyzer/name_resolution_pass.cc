@@ -12,9 +12,12 @@
 #include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
+#include "dashql/utils/ast_attributes.h"
 #include "dashql/utils/intrusive_list.h"
 
 namespace dashql {
+
+using AttributeKey = buffers::parser::AttributeKey;
 
 /// Helper to merge two vectors
 template <typename T> static void merge(std::vector<T>& left, std::vector<T>&& right) {
@@ -342,9 +345,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
         // Check node type
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_DEF: {
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = state.attribute_index.Load(children);
-                auto column_def_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_DEF_NAME];
+                auto [column_def_node] = state.GetAttributes<AttributeKey::SQL_COLUMN_DEF_NAME>(node);
                 if (column_def_node && column_def_node->node_type() == sx::parser::NodeType::NAME) {
                     auto& name = state.scanned.GetNames().At(column_def_node->children_begin_or_value());
                     name.coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
@@ -361,9 +362,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
 
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
                 // Read column ref path
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = state.attribute_index.Load(children);
-                auto column_ref_node = attrs[buffers::parser::AttributeKey::SQL_COLUMN_REF_PATH];
+                auto [column_ref_node] = state.GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
                 auto column_name_node_id = static_cast<uint32_t>(column_ref_node - state.parsed.nodes.data());
                 auto column_name = state.ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
@@ -386,16 +385,15 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
 
             case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
                 // Read a table ref name
-                auto children = state.ast.subspan(node.children_begin_or_value(), node.children_count());
-                auto attrs = state.attribute_index.Load(children);
+                auto [name_node, alias_node] =
+                    state.GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
                 // Only consider table refs with a name for now
-                if (auto name_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_NAME]) {
+                if (name_node) {
                     auto name_node_id = static_cast<uint32_t>(name_node - state.parsed.nodes.data());
                     auto name = state.ReadQualifiedTableName(name_node);
                     if (name.has_value()) {
                         // Read a table alias
                         std::string_view alias_str;
-                        auto alias_node = attrs[buffers::parser::AttributeKey::SQL_TABLEREF_ALIAS];
                         std::optional<std::reference_wrapper<RegisteredName>> alias_name = std::nullopt;
                         if (alias_node && alias_node->node_type() == sx::parser::NodeType::NAME) {
                             auto& alias = state.scanned.GetNames().At(alias_node->children_begin_or_value());
@@ -450,11 +448,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE: {
-                auto attrs = state.attribute_index.Load(
-                    state.ast.subspan(node.children_begin_or_value(), node.children_count()));
-                const buffers::parser::Node* name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
-                const buffers::parser::Node* elements_node =
-                    attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
+                auto [name_node, elements_node] =
+                    state.GetAttributes<AttributeKey::SQL_CREATE_TABLE_NAME, AttributeKey::SQL_CREATE_TABLE_ELEMENTS>(
+                        node);
                 // Read the name
                 auto table_name = state.ReadQualifiedTableName(name_node);
                 if (table_name.has_value()) {
@@ -500,14 +496,11 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_CREATE_AS: {
-                auto attrs = state.attribute_index.Load(
-                    state.ast.subspan(node.children_begin_or_value(), node.children_count()));
-                auto name_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
-                auto columns_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME];
-                auto elements_node = attrs[buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS];
+                auto [name_node, elements_node] =
+                    state.GetAttributes<buffers::parser::AttributeKey::SQL_CREATE_TABLE_NAME,
+                                        buffers::parser::AttributeKey::SQL_CREATE_TABLE_ELEMENTS>(node);
 
                 (void)name_node;
-                (void)columns_node;
                 (void)elements_node;
                 break;
             }

@@ -4,7 +4,6 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/script.h"
-#include "dashql/utils/attribute_index.h"
 
 namespace dashql {
 
@@ -15,7 +14,6 @@ AnalysisState::AnalysisState(std::shared_ptr<ParsedScript> parsed, Catalog& cata
       analyzed(std::make_shared<AnalyzedScript>(parsed, catalog)),
       catalog_entry_id(parsed->external_id),
       catalog(catalog),
-      attribute_index(),
       expression_index(ast.size(), nullptr),
       empty_name(parsed->scanned_script->name_registry.Register("")) {
     empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
