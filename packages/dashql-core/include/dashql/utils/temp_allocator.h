@@ -57,7 +57,7 @@ template <class T, size_t InitialSize = 128> class TempNodePool {
             node->next = GetAllocationMarker();
             return &node->data;
         }
-        auto &node = node_buffer.Append(Node{});
+        auto &node = node_buffer.PushBack(Node{});
         node.next = GetAllocationMarker();
         return static_cast<void *>(&node.data);
     }

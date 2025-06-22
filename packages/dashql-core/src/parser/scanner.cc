@@ -2,10 +2,10 @@
 
 #include <charconv>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/external.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/utils/string_conversion.h"
 #include "dashql/utils/string_trimming.h"
@@ -18,7 +18,9 @@ namespace dashql {
 namespace parser {
 
 /// Add an error
-void Scanner::AddError(buffers::parser::Location location, const char* message) { output->errors.push_back({location, message}); }
+void Scanner::AddError(buffers::parser::Location location, const char* message) {
+    output->errors.push_back({location, message});
+}
 /// Add an error
 void Scanner::AddError(buffers::parser::Location location, std::string&& message) {
     output->errors.push_back({location, std::move(message)});
@@ -105,7 +107,7 @@ Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::Location loc)
 
 /// Scan input and produce all tokens
 std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::Scan(const rope::Rope& text,
-                                                                           CatalogEntryID external_id) {
+                                                                                     CatalogEntryID external_id) {
     // Function to get next token
     auto next = [](void* scanner_state_ptr, std::optional<Parser::symbol_type>& lookahead_symbol) {
         // Have lookahead?
@@ -181,7 +183,7 @@ std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::
     std::optional<Parser::symbol_type> lookahead_symbol;
     while (true) {
         auto token = next(scanner.scanner_state_ptr, lookahead_symbol);
-        scanner.output->symbols.Append(token);
+        scanner.output->symbols.PushBack(token);
         if (token.kind() == Parser::symbol_kind::S_YYEOF) break;
     }
 

@@ -9,7 +9,7 @@ namespace {
 TEST(ChunkBufferTest, Sequence) {
     ChunkBuffer<uint32_t> tree;
     for (size_t i = 0; i < 1024; ++i) {
-        tree.Append(i);
+        tree.PushBack(i);
         ASSERT_EQ(tree[i], i);
     }
     ASSERT_EQ(tree.GetSize(), 1024);

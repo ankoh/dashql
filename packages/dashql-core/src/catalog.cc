@@ -370,7 +370,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
         if (db_ref_iter == databases_by_name.end()) {
             db_id = catalog.AllocateDatabaseId(db_name);
             if (!databases_by_name.contains({db_name})) {
-                auto& db = database_references.Append(CatalogEntry::DatabaseReference{db_id, db_name, ""});
+                auto& db = database_references.PushBack(CatalogEntry::DatabaseReference{db_id, db_name, ""});
                 databases_by_name.insert({db.database_name, db});
                 db_name.resolved_objects.PushBack(db.CastToBase());
             }
@@ -384,7 +384,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             schema_id = catalog.AllocateSchemaId(db_name.text, schema_name.text);
             if (!schemas_by_qualified_name.contains({db_name, schema_name})) {
                 auto& schema =
-                    schema_references.Append(CatalogEntry::SchemaReference{db_id, schema_id, db_name, schema_name});
+                    schema_references.PushBack(CatalogEntry::SchemaReference{db_id, schema_id, db_name, schema_name});
                 schemas_by_qualified_name.insert({{db_name, schema_name}, schema});
                 schema_name.resolved_objects.PushBack(schema.CastToBase());
             }
@@ -443,7 +443,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             std::sort(columns.begin(), columns.end(),
                       [&](TableColumn& l, TableColumn& r) { return l.column_index < r.column_index; });
             // Create the table
-            auto& t = table_declarations.Append(
+            auto& t = table_declarations.PushBack(
                 AnalyzedScript::TableDeclaration(QualifiedTableName{std::nullopt, db_name, schema_name, table_name}));
             t.catalog_database_id = db_id;
             t.catalog_schema_id = schema_id;
@@ -605,7 +605,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 auto db_name = db_ref.database_name;
                 auto db_name_id = add_name(db_ref.database_name);
 
-                auto& db_node = database_nodes.Append(DatabaseNode{db_ref.catalog_database_id, db_name_id});
+                auto& db_node = database_nodes.PushBack(DatabaseNode{db_ref.catalog_database_id, db_name_id});
                 database_node_map.insert({db_ref.catalog_database_id, &db_node});
 
                 auto db_name_unique = root.insert({db_name, db_node}).second;
@@ -620,7 +620,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 auto schema_name = schema_ref.schema_name;
                 auto schema_name_id = add_name(schema_ref.schema_name);
 
-                auto& schema_node = schema_nodes.Append(SchemaNode{schema_ref.catalog_schema_id, schema_name_id});
+                auto& schema_node = schema_nodes.PushBack(SchemaNode{schema_ref.catalog_schema_id, schema_name_id});
                 schema_node_map.insert({schema_ref.catalog_schema_id, &schema_node});
 
                 auto& db_node = database_node_map.at(schema_ref.catalog_database_id);
@@ -656,13 +656,13 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 if (entry.table_columns.size() > 0) {
                     auto& first_column = entry.table_columns[0];
                     auto first_column_name_id = add_name(first_column.column_name.get().text);
-                    auto& first_column_node = column_nodes.Append(ColumnNode{0, first_column_name_id});
+                    auto& first_column_node = column_nodes.PushBack(ColumnNode{0, first_column_name_id});
                     columns_begin = column_nodes.GetIteratorAtLast();
 
                     for (uint32_t column_id = 1; column_id < entry.table_columns.size(); ++column_id) {
                         auto& column = entry.table_columns[column_id];
                         auto column_name_id = add_name(column.column_name.get().text);
-                        column_nodes.Append(ColumnNode{column_id, column_name_id});
+                        column_nodes.PushBack(ColumnNode{column_id, column_name_id});
                     }
                 }
                 auto column_count = entry.table_columns.size();
@@ -670,7 +670,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 // Get the table declaration
                 auto table_name_id = add_name(table_name.get().text);
                 auto& table_node =
-                    table_nodes.Append(TableNode{entry.catalog_table_id, table_name_id, columns_begin, column_count});
+                    table_nodes.PushBack(TableNode{entry.catalog_table_id, table_name_id, columns_begin, column_count});
                 schema_node->children.insert({table_name.get().text, table_node});
                 ++effective_table_count;
             }

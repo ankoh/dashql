@@ -1,8 +1,8 @@
 #include "dashql/parser/parse_context.h"
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/utils/string_trimming.h"
 
 namespace dashql {
@@ -32,8 +32,8 @@ WeakUniquePtr<NodeList> ParseContext::List(std::initializer_list<buffers::parser
 /// Process a new node
 NodeID ParseContext::AddNode(buffers::parser::Node node) {
     auto node_id = nodes.GetSize();
-    nodes.Append(buffers::parser::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
-                             node.children_begin_or_value(), node.children_count()));
+    nodes.PushBack(buffers::parser::Node(node.location(), node.node_type(), node.attribute_key(), node_id,
+                                         node.children_begin_or_value(), node.children_count()));
 
     // Set parent reference
     if (node.node_type() == buffers::parser::NodeType::ARRAY ||
@@ -41,7 +41,7 @@ NodeID ParseContext::AddNode(buffers::parser::Node node) {
         nodes.ForEachIn(node.children_begin_or_value(), node.children_count(),
                         [node_id](size_t child_id, buffers::parser::Node& n) {
                             n = buffers::parser::Node(n.location(), n.node_type(), n.attribute_key(), node_id,
-                                            n.children_begin_or_value(), n.children_count());
+                                                      n.children_begin_or_value(), n.children_count());
                         });
     }
     return node_id;
@@ -87,8 +87,8 @@ std::optional<ExpressionVariant> ParseContext::TryMerge(buffers::parser::Locatio
 }
 
 /// Add an array
-buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values, bool null_if_empty,
-                                bool shrink_location) {
+buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values,
+                                          bool null_if_empty, bool shrink_location) {
     auto begin = nodes.GetSize();
     for (auto iter = values->front(); iter; iter = iter->next) {
         if (iter->node.node_type() == buffers::parser::NodeType::NONE) continue;
@@ -105,12 +105,13 @@ buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, WeakUni
         auto lstEnd = lst.location().offset() + lst.location().length();
         loc = buffers::parser::Location(fstBegin, lstEnd - fstBegin);
     }
-    return buffers::parser::Node(loc, buffers::parser::NodeType::ARRAY, buffers::parser::AttributeKey::NONE, NO_PARENT, begin, n);
+    return buffers::parser::Node(loc, buffers::parser::NodeType::ARRAY, buffers::parser::AttributeKey::NONE, NO_PARENT,
+                                 begin, n);
 }
 
 /// Add an array
-buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, std::span<ExpressionVariant> exprs, bool null_if_empty,
-                                bool shrink_location) {
+buffers::parser::Node ParseContext::Array(buffers::parser::Location loc, std::span<ExpressionVariant> exprs,
+                                          bool null_if_empty, bool shrink_location) {
     auto nodes = List();
     for (auto& expr : exprs) {
         nodes->push_back(Expression(std::move(expr)));
@@ -138,7 +139,8 @@ buffers::parser::Node ParseContext::Expression(ExpressionVariant&& expr) {
 /// Read a name from a keyword
 buffers::parser::Node ParseContext::NameFromKeyword(buffers::parser::Location loc, std::string_view text) {
     auto id = program.RegisterKeywordAsName(text, loc);
-    return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT, id, 0);
+    return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT,
+                                 id, 0);
 }
 
 /// Read a name from a string literal
@@ -146,13 +148,15 @@ buffers::parser::Node ParseContext::NameFromStringLiteral(buffers::parser::Locat
     auto text = program.ReadTextAtLocation(loc);
     auto trimmed = trim_view(text, is_no_double_quote);
     auto& name = program.name_registry.Register(trimmed, loc);
-    return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT, name.name_id, 0);
+    return buffers::parser::Node(loc, buffers::parser::NodeType::NAME, buffers::parser::AttributeKey::NONE, NO_PARENT,
+                                 name.name_id, 0);
 }
 
 /// Mark a trailing dot
 buffers::parser::Node ParseContext::TrailingDot(buffers::parser::Location loc) {
     AddError(loc, "name has a trailing dot");
-    return buffers::parser::Node(loc, buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT, buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
+    return buffers::parser::Node(loc, buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT,
+                                 buffers::parser::AttributeKey::NONE, NO_PARENT, 0, 0);
 }
 
 /// Read a float type
@@ -173,8 +177,9 @@ buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Locati
 }
 
 /// Add an object
-buffers::parser::Node ParseContext::Object(buffers::parser::Location loc, buffers::parser::NodeType type, WeakUniquePtr<NodeList>&& attr_list,
-                                 bool null_if_empty, bool shrink_location) {
+buffers::parser::Node ParseContext::Object(buffers::parser::Location loc, buffers::parser::NodeType type,
+                                           WeakUniquePtr<NodeList>&& attr_list, bool null_if_empty,
+                                           bool shrink_location) {
     // Add the nodes
     auto begin = nodes.GetSize();
     for (auto iter = attr_list->first_element; iter; iter = iter->next) {
@@ -242,7 +247,9 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
 void ParseContext::ResetStatement() { current_statement.nodes_begin = nodes.GetSize(); }
 
 /// Add an error
-void ParseContext::AddError(buffers::parser::Location loc, const std::string& message) { errors.push_back({loc, message}); }
+void ParseContext::AddError(buffers::parser::Location loc, const std::string& message) {
+    errors.push_back({loc, message});
+}
 
 }  // namespace parser
 }  // namespace dashql

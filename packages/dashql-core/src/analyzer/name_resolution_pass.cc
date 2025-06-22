@@ -59,7 +59,7 @@ std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema
     if (db_ref_iter == state.analyzed->databases_by_name.end()) {
         db_id = state.catalog.AllocateDatabaseId(database_name);
         auto& db =
-            state.analyzed->database_references.Append(CatalogEntry::DatabaseReference{db_id, database_name, ""});
+            state.analyzed->database_references.PushBack(CatalogEntry::DatabaseReference{db_id, database_name, ""});
         state.analyzed->databases_by_name.insert({db.database_name, db});
         database_name.resolved_objects.PushBack(db.CastToBase());
     } else {
@@ -69,7 +69,7 @@ std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema
     auto schema_ref_iter = state.analyzed->schemas_by_qualified_name.find({database_name, schema_name});
     if (schema_ref_iter == state.analyzed->schemas_by_qualified_name.end()) {
         schema_id = state.catalog.AllocateSchemaId(database_name, schema_name);
-        auto& schema = state.analyzed->schema_references.Append(
+        auto& schema = state.analyzed->schema_references.PushBack(
             CatalogEntry::SchemaReference{db_id, schema_id, database_name, schema_name});
         state.analyzed->schemas_by_qualified_name.insert({{database_name, schema_name}, schema});
         schema_name.resolved_objects.PushBack(schema.CastToBase());
@@ -96,7 +96,7 @@ void NameResolutionPass::MergeChildStates(NodeState& dst, const buffers::parser:
 }
 
 AnalyzedScript::NameScope& NameResolutionPass::CreateScope(NodeState& target, uint32_t scope_root) {
-    auto& scope = state.analyzed->name_scopes.Append(
+    auto& scope = state.analyzed->name_scopes.PushBack(
         AnalyzedScript::NameScope{.name_scope_id = state.analyzed->name_scopes.GetSize(),
                                   .ast_node_id = scope_root,
                                   .parent_scope = nullptr,
@@ -353,7 +353,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         *reused = AnalyzedScript::TableColumn(node_id, name);
                         node_state.table_columns.PushBack(*reused);
                     } else {
-                        auto& node = pending_columns.Append(AnalyzedScript::TableColumn(node_id, name));
+                        auto& node = pending_columns.PushBack(AnalyzedScript::TableColumn(node_id, name));
                         node_state.table_columns.PushBack(node);
                     }
                 }
@@ -402,7 +402,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                             alias_name = alias;
                         }
                         // Add table reference
-                        auto& n = state.analyzed->table_references.Append(AnalyzedScript::TableReference(alias_name));
+                        auto& n = state.analyzed->table_references.PushBack(AnalyzedScript::TableReference(alias_name));
                         n.buffer_index = state.analyzed->table_references.GetSize() - 1;
                         n.table_reference_id =
                             ContextObjectID{state.catalog_entry_id,
@@ -473,8 +473,8 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     // Create the scope
                     CreateScope(node_state, node_id);
                     // Build the table
-                    auto& n =
-                        state.analyzed->table_declarations.Append(AnalyzedScript::TableDeclaration(table_name.value()));
+                    auto& n = state.analyzed->table_declarations.PushBack(
+                        AnalyzedScript::TableDeclaration(table_name.value()));
                     n.catalog_table_id = catalog_table_id;
                     n.catalog_database_id = db_id;
                     n.catalog_schema_id = schema_id;

@@ -146,8 +146,8 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         buffers[0].clear();
         offsets[0] = 0;
     }
-    /// Append a node
-    T& Append(T value) {
+    /// Push a node
+    T& PushBack(T value) {
         auto* last = &buffers.back();
         if (last->size() == last->capacity()) {
             grow();

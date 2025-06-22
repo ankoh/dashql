@@ -455,7 +455,7 @@ void Completion::FindCandidatesForNamePath() {
                 // Fix text replacement
                 existing.replace_text_at = replace_text_at;
                 // Allocate the candidate object
-                auto& co = candidate_objects.Append(CandidateCatalogObject{
+                auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = existing,
                     .candidate_tags = dot_candidate.candidate_tags,
                     .catalog_object = dot_candidate.object,
@@ -468,7 +468,7 @@ void Completion::FindCandidatesForNamePath() {
 
             } else {
                 // Allocate the candidate
-                auto& c = candidates.Append(Candidate{
+                auto& c = candidates.PushBack(Candidate{
                     .name = dot_candidate.name,
                     .coarse_name_tags = dot_candidate.name_tags,
                     .candidate_tags = dot_candidate.candidate_tags,
@@ -478,7 +478,7 @@ void Completion::FindCandidatesForNamePath() {
                 candidates_by_name.insert({c.name, c});
 
                 // Allocate the candidate object
-                auto& co = candidate_objects.Append(CandidateCatalogObject{
+                auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = c,
                     .candidate_tags = dot_candidate.candidate_tags,
                     .catalog_object = dot_candidate.object,
@@ -597,7 +597,7 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
             candidate->coarse_name_tags |= name_info.coarse_analyzer_tags;
             candidate->candidate_tags |= candidate_tags;
         } else {
-            candidate = &candidates.Append(Candidate{
+            candidate = &candidates.PushBack(Candidate{
                 .name = name_info.text,
                 .coarse_name_tags = name_info.coarse_analyzer_tags,
                 .candidate_tags = candidate_tags,
@@ -617,7 +617,7 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 continue;
             } else {
                 // Allocate the catalog object
-                auto& co = candidate_objects.Append(CandidateCatalogObject{
+                auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = *candidate,
                     .candidate_tags = candidate_tags,
                     .catalog_object = o,

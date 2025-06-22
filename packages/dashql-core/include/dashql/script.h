@@ -436,7 +436,7 @@ class AnalyzedScript : public CatalogEntry {
 
     /// Helper to add an expression
     template <typename Inner> Expression& AddExpression(size_t node_id, Location location, Inner&& inner) {
-        auto& n = expressions.Append(AnalyzedScript::Expression());
+        auto& n = expressions.PushBack(AnalyzedScript::Expression());
         n.buffer_index = expressions.GetSize() - 1;
         n.expression_id = static_cast<uint32_t>(expressions.GetSize() - 1);
         n.ast_node_id = node_id;
