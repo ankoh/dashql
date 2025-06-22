@@ -158,7 +158,7 @@
                 <constant expr="7" loc="78..80" text="42" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="8" loc="74..80" text="d = 42" />
+                <restriction expr="8" loc="74..80" text="d = 42" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>

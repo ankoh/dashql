@@ -184,7 +184,11 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
 
                 // Are all function call arguments constant?
                 switch (func_expr.arguments.index()) {
+                    case 0:
+                        expr->is_constant_expression = true;
+                        break;
                     case 1: {
+                        expr->is_constant_expression = true;
                         for (auto& arg :
                              std::get<std::span<AnalyzedScript::Expression::FunctionArgument>>(func_expr.arguments)) {
                             auto* arg_expr = state.expression_index[arg.value_ast_node_id];

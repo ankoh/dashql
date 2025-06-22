@@ -11,13 +11,19 @@
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="41..56" text="event_timestamp" />
-                <expr id="1" type="func" known="CURRENT_TIMESTAMP" stmt="0" loc="59..76" text="current_timestamp" />
+                <expr id="1" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="59..76" text="current_timestamp" />
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
+                <expr id="4" type="binary" op="MINUS" left="1" right="3" const="true" stmt="0" loc="59..97" text="current_ti.. '30 days'" />
+                <expr id="5" type="comparison" op="GREATER_THAN" left="0" right="4" restrict="0" stmt="0" loc="41..97" text="event_time.. '30 days'" />
             </expressions>
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'" />
+                <constant expr="4" loc="59..97" text="current_ti.. '30 days'" />
             </constants>
+            <column-restrictions>
+                <restriction expr="5" loc="41..97" text="event_time.. '30 days'" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="restrict_time_minus_interval">
@@ -32,13 +38,19 @@
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="41..56" text="event_timestamp" />
-                <expr id="1" type="func" known="CURRENT_TIMESTAMP" stmt="0" loc="59..76" text="current_timestamp" />
+                <expr id="1" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="59..76" text="current_timestamp" />
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
+                <expr id="4" type="binary" op="MINUS" left="1" right="3" const="true" stmt="0" loc="59..97" text="current_ti.. '30 days'" />
+                <expr id="5" type="comparison" op="GREATER_THAN" left="0" right="4" restrict="0" stmt="0" loc="41..97" text="event_time.. '30 days'" />
             </expressions>
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'" />
+                <constant expr="4" loc="59..97" text="current_ti.. '30 days'" />
             </constants>
+            <column-restrictions>
+                <restriction expr="5" loc="41..97" text="event_time.. '30 days'" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

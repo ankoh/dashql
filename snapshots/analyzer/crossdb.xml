@@ -203,8 +203,8 @@
                 <constant expr="3" loc="112..113" text="1" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="4" loc="51..56" text="a = 1" />
-                <column-restriction expr="5" loc="108..113" text="c = 1" />
+                <restriction expr="4" loc="51..56" text="a = 1" />
+                <restriction expr="5" loc="108..113" text="c = 1" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>

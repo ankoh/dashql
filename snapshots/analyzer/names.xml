@@ -37,7 +37,7 @@
                 <constant expr="1" loc="46..47" text="2" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="42..47" text="a = 2" />
+                <restriction expr="2" loc="42..47" text="a = 2" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -77,7 +77,7 @@
                 <constant expr="1" loc="61..62" text="2" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="57..62" text="a = 2" />
+                <restriction expr="2" loc="57..62" text="a = 2" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -121,8 +121,8 @@
                 <constant expr="3" loc="76..77" text="3" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="4" loc="57..62" text="a = 2" />
-                <column-restriction expr="5" loc="72..77" text="a = 3" />
+                <restriction expr="4" loc="57..62" text="a = 2" />
+                <restriction expr="5" loc="72..77" text="a = 3" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -240,7 +240,7 @@
                 <constant expr="1" loc="49..50" text="1" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="41..50" text="foo.a = 1" />
+                <restriction expr="2" loc="41..50" text="foo.a = 1" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -276,7 +276,7 @@
                 <constant expr="1" loc="56..57" text="1" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="48..57" text="foo.a = 1" />
+                <restriction expr="2" loc="48..57" text="foo.a = 1" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -315,7 +315,7 @@
                 <constant expr="1" loc="61..62" text="1" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="53..62" text="foo.a = 1" />
+                <restriction expr="2" loc="53..62" text="foo.a = 1" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -350,7 +350,7 @@
                 <constant expr="1" loc="51..52" text="1" />
             </constants>
             <column-restrictions>
-                <column-restriction expr="2" loc="43..52" text="foo.a = 1" />
+                <restriction expr="2" loc="43..52" text="foo.a = 1" />
             </column-restrictions>
         </script>
     </analyzer-snapshot>

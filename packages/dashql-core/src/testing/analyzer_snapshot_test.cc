@@ -303,7 +303,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
     if (!script.column_transforms.IsEmpty()) {
         auto list_node = out.append_child("column-transforms");
         for (auto& transform : script.column_transforms) {
-            auto xml_ref = list_node.append_child("column-transforms");
+            auto xml_ref = list_node.append_child("transform");
             xml_ref.append_attribute("expr").set_value(transform.expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[transform.ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
@@ -313,7 +313,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
     if (!script.column_restrictions.IsEmpty()) {
         auto list_node = out.append_child("column-restrictions");
         for (auto& restriction : script.column_restrictions) {
-            auto xml_ref = list_node.append_child("column-restriction");
+            auto xml_ref = list_node.append_child("restriction");
             xml_ref.append_attribute("expr").set_value(restriction.expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[restriction.ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());

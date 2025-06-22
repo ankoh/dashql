@@ -20,7 +20,7 @@
                 <constant expr="3" loc="88..89" text="1" />
             </constants>
             <column-transforms>
-                <column-transforms expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)" />
+                <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)" />
             </column-transforms>
         </script>
     </analyzer-snapshot>
