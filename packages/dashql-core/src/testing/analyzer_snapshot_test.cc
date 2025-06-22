@@ -92,6 +92,9 @@ void AnalyzerSnapshotTest::TestRegistrySnapshot(const std::vector<ScriptAnalysis
         ASSERT_TRUE(Matches(script_node.child("tables"), entry.tables));
         ASSERT_TRUE(Matches(script_node.child("table-refs"), entry.table_references));
         ASSERT_TRUE(Matches(script_node.child("expressions"), entry.expressions));
+        ASSERT_TRUE(Matches(script_node.child("constants"), entry.constant_expressions));
+        ASSERT_TRUE(Matches(script_node.child("column-transforms"), entry.column_transforms));
+        ASSERT_TRUE(Matches(script_node.child("column-restrictions"), entry.column_resrictions));
     }
 }
 
@@ -112,6 +115,9 @@ void AnalyzerSnapshotTest::TestMainScriptSnapshot(const ScriptAnalysisSnapshot& 
     ASSERT_TRUE(Matches(node.child("tables"), snap.tables));
     ASSERT_TRUE(Matches(node.child("table-refs"), snap.table_references));
     ASSERT_TRUE(Matches(node.child("expressions"), snap.expressions));
+    ASSERT_TRUE(Matches(node.child("constants"), snap.constant_expressions));
+    ASSERT_TRUE(Matches(node.child("column-transforms"), snap.column_transforms));
+    ASSERT_TRUE(Matches(node.child("column-restrictions"), snap.column_resrictions));
 }
 
 void operator<<(std::ostream& out, const AnalyzerSnapshotTest& p) { out << p.name; }
@@ -282,6 +288,37 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                           script.parsed_script->scanned_script->GetInput());
         });
     }
+
+    // Write constant expressions
+    if (!script.constant_expressions.IsEmpty()) {
+        auto list_node = out.append_child("constants");
+        for (auto& constant : script.constant_expressions) {
+            auto xml_ref = list_node.append_child("constant");
+            xml_ref.append_attribute("expr").set_value(constant.expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[constant.ast_node_id].location(),
+                          script.parsed_script->scanned_script->GetInput());
+        }
+    }
+    // Write transforms
+    if (!script.column_transforms.IsEmpty()) {
+        auto list_node = out.append_child("column-transforms");
+        for (auto& transform : script.column_transforms) {
+            auto xml_ref = list_node.append_child("column-transforms");
+            xml_ref.append_attribute("expr").set_value(transform.expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[transform.ast_node_id].location(),
+                          script.parsed_script->scanned_script->GetInput());
+        }
+    }
+    // Write restrictions
+    if (!script.column_restrictions.IsEmpty()) {
+        auto list_node = out.append_child("column-restrictions");
+        for (auto& restriction : script.column_restrictions) {
+            auto xml_ref = list_node.append_child("column-restriction");
+            xml_ref.append_attribute("expr").set_value(restriction.expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[restriction.ast_node_id].location(),
+                          script.parsed_script->scanned_script->GetInput());
+        }
+    }
 }
 
 // The files
@@ -331,6 +368,9 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                 test.script.tables.append_copy(main_node.child("tables"));
                 test.script.table_references.append_copy(main_node.child("table-refs"));
                 test.script.expressions.append_copy(main_node.child("expressions"));
+                test.script.constant_expressions.append_copy(main_node.child("constants"));
+                test.script.column_transforms.append_copy(main_node.child("column-transforms"));
+                test.script.column_resrictions.append_copy(main_node.child("column-restrictions"));
             }
 
             // Read catalog entries
@@ -344,6 +384,9 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                     entry.tables.append_copy(entry_node.child("tables"));
                     entry.table_references.append_copy(entry_node.child("table-refs"));
                     entry.expressions.append_copy(entry_node.child("expressions"));
+                    entry.constant_expressions.append_copy(entry_node.child("constants"));
+                    entry.column_transforms.append_copy(entry_node.child("column-transforms"));
+                    entry.column_resrictions.append_copy(entry_node.child("column-restrictions"));
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
                 }

@@ -100,6 +100,16 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
     }
 }
 
-void IdentifyColumnRestrictionsPass::Finish() { state.analyzed->column_restrictions.Append(std::move(restrictions)); }
+void IdentifyColumnRestrictionsPass::Finish() {
+    // Filter all nodes that don't have a restriction parent
+    restrictions.Filter([&](AnalyzedScript::Expression& expr) {
+        const buffers::parser::Node& node = state.ast[expr.ast_node_id];
+        auto& parent_expr = state.expression_index[node.parent()];
+        return !parent_expr || !parent_expr->is_column_restriction;
+    });
+
+    // Add the restrictions
+    state.analyzed->column_restrictions.Append(std::move(restrictions));
+}
 
 }  // namespace dashql

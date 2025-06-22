@@ -198,6 +198,14 @@
                 <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="0" loc="51..56" text="a = 1" />
                 <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="1" stmt="1" loc="108..113" text="c = 1" />
             </expressions>
+            <constants>
+                <constant expr="2" loc="55..56" text="1" />
+                <constant expr="3" loc="112..113" text="1" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="4" loc="51..56" text="a = 1" />
+                <column-restriction expr="5" loc="108..113" text="c = 1" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

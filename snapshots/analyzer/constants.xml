@@ -10,6 +10,9 @@
                 <expr id="0" type="literal/string" const="true" stmt="0" loc="33..42" text="'30 days'" />
                 <expr id="1" type="constcast/interval" const="true" stmt="0" loc="24..42" text="interval '30 days'" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="24..42" text="interval '30 days'" />
+            </constants>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

@@ -54,6 +54,8 @@ struct IntrusiveList {
        public:
         /// Constructor
         Iterator(DerivedType* node) : node(node) {}
+        /// Constructor
+        explicit Iterator(const Iterator& other) : node(other.node) {}
         /// Get the index in the underlying buffer
         inline size_t GetBufferIndex() const { return node->buffer_index; }
         /// Get the node
@@ -94,6 +96,24 @@ struct IntrusiveList {
    public:
     /// Constructor
     IntrusiveList() = default;
+    /// Copy Constructor
+    IntrusiveList(const IntrusiveList& other) = default;
+
+    /// Copy assignment
+    IntrusiveList& operator=(const IntrusiveList& other) {
+        first = other.first;
+        last = other.last;
+        size = other.size;
+        return *this;
+    }
+    /// Move assignment
+    IntrusiveList& operator=(IntrusiveList&& other) {
+        first = other.first;
+        last = other.last;
+        size = other.size;
+        other.Clear();
+        return *this;
+    }
 
     /// Cast to base
     IntrusiveList<IntrusiveListNode>& CastAsBase() {
@@ -115,6 +135,8 @@ struct IntrusiveList {
 
     /// Get the size of the list
     size_t GetSize() const { return size; }
+    /// Is the list empty?
+    bool IsEmpty() const { return size == 0; }
     /// Append a list
     void Append(IntrusiveList<DerivedType>&& other) {
         if (other.size == 0) {
@@ -176,6 +198,7 @@ struct IntrusiveList {
             first = static_cast<DerivedType*>(out->next);
             last = (out == last) ? first : last;
             --size;
+            out->next = nullptr;
             return out;
         }
     }
@@ -185,6 +208,17 @@ struct IntrusiveList {
         last = nullptr;
         size = 0;
     }
+    /// Filter list nodes where the predicate is true
+    template <typename Fn> void Filter(Fn f) {
+        IntrusiveList out;
+        while (DerivedType* next = PopFront()) {
+            if (f(*next)) {
+                out.PushBack(*next);
+            }
+        }
+        *this = std::move(out);
+    }
+
     /// Flatten the list into a vector
     std::vector<DerivedType> Flatten() {
         std::vector<DerivedType> buffer;

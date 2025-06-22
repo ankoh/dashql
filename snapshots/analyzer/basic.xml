@@ -154,6 +154,12 @@
                 <expr id="7" type="literal/integer" const="true" stmt="0" loc="78..80" text="42" />
                 <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
+            <constants>
+                <constant expr="7" loc="78..80" text="42" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="8" loc="74..80" text="d = 42" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="edges_3">
@@ -190,6 +196,9 @@
                 <expr id="1" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
                 <expr id="2" type="literal/integer" const="true" stmt="0" loc="51..53" text="42" />
             </expressions>
+            <constants>
+                <constant expr="2" loc="51..53" text="42" />
+            </constants>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="edges_4">

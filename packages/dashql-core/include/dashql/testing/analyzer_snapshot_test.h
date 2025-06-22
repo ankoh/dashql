@@ -31,6 +31,12 @@ struct AnalyzerSnapshotTest {
         pugi::xml_document table_references;
         /// The expressions
         pugi::xml_document expressions;
+        /// The constants
+        pugi::xml_document constant_expressions;
+        /// The column transforms
+        pugi::xml_document column_transforms;
+        /// The column restrictions
+        pugi::xml_document column_resrictions;
     };
 
     /// The name

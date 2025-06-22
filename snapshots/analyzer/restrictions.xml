@@ -15,6 +15,9 @@
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
             </expressions>
+            <constants>
+                <constant expr="3" loc="79..97" text="interval '30 days'" />
+            </constants>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="restrict_time_minus_interval">
@@ -33,6 +36,9 @@
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
             </expressions>
+            <constants>
+                <constant expr="3" loc="79..97" text="interval '30 days'" />
+            </constants>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

@@ -15,6 +15,13 @@
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="42..86" text="'[0-9a-zA-..a-zA-Z]+)'" />
                 <expr id="3" type="literal/integer" const="true" stmt="0" loc="88..89" text="1" />
             </expressions>
+            <constants>
+                <constant expr="2" loc="42..86" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                <constant expr="3" loc="88..89" text="1" />
+            </constants>
+            <column-transforms>
+                <column-transforms expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)" />
+            </column-transforms>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="func_restrict_time">
@@ -33,6 +40,9 @@
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
             </expressions>
+            <constants>
+                <constant expr="3" loc="79..97" text="interval '30 days'" />
+            </constants>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="func_restrict_time_minus_interval">
@@ -51,6 +61,9 @@
                 <expr id="2" type="literal/string" const="true" stmt="0" loc="88..97" text="'30 days'" />
                 <expr id="3" type="constcast/interval" const="true" stmt="0" loc="79..97" text="interval '30 days'" />
             </expressions>
+            <constants>
+                <constant expr="3" loc="79..97" text="interval '30 days'" />
+            </constants>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

@@ -99,7 +99,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
                 state.expression_index[node_id] = &n;
-                state.analyzed->constant_expressions.PushBack(n);
+                constants.PushBack(n);
                 break;
             }
 
@@ -137,7 +137,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
                         state.expression_index[node_id] = &n;
-                        state.analyzed->constant_expressions.PushBack(n);
+                        constants.PushBack(n);
                         break;
                     }
 
@@ -213,7 +213,14 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
 }
 
 void IdentifyConstantExpressionsPass::Finish() {
-    // XXX Remove constants that have a constant parent
+    // Filter all nodes that don't have a constant parent
+    constants.Filter([&](AnalyzedScript::Expression& expr) {
+        const buffers::parser::Node& node = state.ast[expr.ast_node_id];
+        auto* parent_expr = state.expression_index[node.parent()];
+        return !parent_expr || !parent_expr->is_constant_expression;
+    });
+
+    // Add the constants
     state.analyzed->constant_expressions.Append(std::move(constants));
 }
 

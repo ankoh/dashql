@@ -33,6 +33,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="46..47" text="2" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="42..47" text="a = 2" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="46..47" text="2" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="42..47" text="a = 2" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_columnref_ambiguous_scope_overrules">
@@ -67,6 +73,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="61..62" text="2" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="57..62" text="a = 2" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="61..62" text="2" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="57..62" text="a = 2" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_columnref_ambiguous_correctly_scoped">
@@ -104,6 +116,14 @@
                 <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="0" stmt="0" loc="57..62" text="a = 2" />
                 <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="1" stmt="0" loc="72..77" text="a = 3" />
             </expressions>
+            <constants>
+                <constant expr="2" loc="61..62" text="2" />
+                <constant expr="3" loc="76..77" text="3" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="4" loc="57..62" text="a = 2" />
+                <column-restriction expr="5" loc="72..77" text="a = 3" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_duplicate_tableref">
@@ -216,6 +236,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="49..50" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="41..50" text="foo.a = 1" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="49..50" text="1" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="41..50" text="foo.a = 1" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_tablename_as_alias_with_cross_join">
@@ -246,6 +272,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="56..57" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..57" text="foo.a = 1" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="56..57" text="1" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="48..57" text="foo.a = 1" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_tablename_as_alias_but_duplicate">
@@ -279,6 +311,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="61..62" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="53..62" text="foo.a = 1" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="61..62" text="1" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="53..62" text="foo.a = 1" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="names_unresolved_tablename_as_alias_with_tableref_alias">
@@ -308,6 +346,12 @@
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="51..52" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="43..52" text="foo.a = 1" />
             </expressions>
+            <constants>
+                <constant expr="1" loc="51..52" text="1" />
+            </constants>
+            <column-restrictions>
+                <column-restriction expr="2" loc="43..52" text="foo.a = 1" />
+            </column-restrictions>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>
