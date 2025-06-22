@@ -36,35 +36,16 @@ constexpr AttributeLookupResult<keys...> LookupAttributes(std::span<const buffer
     requires(sizeof...(keys) >= 2)
 {
     constexpr size_t N = sizeof...(keys);
-    constexpr buffers::parser::AttributeKey MIN_KEY = std::min<buffers::parser::AttributeKey>({keys...});
-    constexpr buffers::parser::AttributeKey MAX_KEY = std::max<buffers::parser::AttributeKey>({keys...});
-    constexpr size_t ATTR_DIST = static_cast<size_t>(MAX_KEY) - static_cast<size_t>(MIN_KEY) + 1;
-
-    // If the N is small, we'll just allocate a lookup table on the stack
-    if constexpr (ATTR_DIST < 16) {
-        std::array<const buffers::parser::Node*, ATTR_DIST> lookup{};
-        lookup.fill(nullptr);
-        for (auto& child : children) {
-            if (child.attribute_key() < MIN_KEY || child.attribute_key() > MAX_KEY) continue;
-            lookup[static_cast<size_t>(child.attribute_key()) - static_cast<size_t>(MIN_KEY)] = &child;
+    frozen::unordered_map<buffers::parser::AttributeKey, const buffers::parser::Node*, N> lookup{{keys, nullptr}...};
+    for (auto& child : children) {
+        auto iter = lookup.find(child.attribute_key());
+        if (iter != lookup.end()) {
+            iter->second = &child;
         }
-        return [&]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::make_tuple(lookup[static_cast<size_t>(NthValue<I, keys...>) - static_cast<size_t>(MIN_KEY)]...);
-        }(std::make_index_sequence<N>{});
-    } else {
-        // Otherwise, we'll construct a compile-time hash-table
-        frozen::unordered_map<buffers::parser::AttributeKey, const buffers::parser::Node*, N> lookup{
-            {keys, nullptr}...};
-        for (auto& child : children) {
-            auto iter = lookup.find(child.attribute_key());
-            if (iter != lookup.end()) {
-                iter->second = &child;
-            }
-        }
-        return [&]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::make_tuple(lookup.at(NthValue<I, keys...>)...);
-        }(std::make_index_sequence<N>{});
     }
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return std::make_tuple(lookup.at(NthValue<I, keys...>)...);
+    }(std::make_index_sequence<N>{});
 }
 
 }  // namespace dashql

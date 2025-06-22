@@ -108,7 +108,6 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
                 auto [op_node, args_node] =
                     state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
                 if (!op_node) continue;
-
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
                 // Are all children const?
