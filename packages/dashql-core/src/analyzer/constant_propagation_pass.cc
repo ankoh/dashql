@@ -1,4 +1,4 @@
-#include "dashql/analyzer/identify_constant_expressions_pass.h"
+#include "dashql/analyzer/constant_propagation_pass.h"
 
 #include <variant>
 
@@ -7,9 +7,9 @@
 
 namespace dashql {
 
-IdentifyConstantExpressionsPass::IdentifyConstantExpressionsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
+ConstantPropagationPass::ConstantPropagationPass(AnalysisState& state) : PassManager::LTRPass(state) {}
 
-void IdentifyConstantExpressionsPass::Prepare() {}
+void ConstantPropagationPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
 using BinaryExpressionFunction = buffers::algebra::BinaryExpressionFunction;
@@ -19,7 +19,7 @@ using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 
-std::optional<std::span<AnalyzedScript::Expression*>> IdentifyConstantExpressionsPass::readConstExprs(
+std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::readConstExprs(
     std::span<const buffers::parser::Node> nodes) {
     if (tmp_expressions.size() < nodes.size()) {
         tmp_expressions.resize(nodes.size(), nullptr);
@@ -35,7 +35,7 @@ std::optional<std::span<AnalyzedScript::Expression*>> IdentifyConstantExpression
     return !all_args_const ? std::nullopt : std::optional{std::span{tmp_expressions}.subspan(0, nodes.size())};
 }
 
-void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Node> morsel) {
+void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morsel) {
     size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
@@ -216,7 +216,7 @@ void IdentifyConstantExpressionsPass::Visit(std::span<const buffers::parser::Nod
     }
 }
 
-void IdentifyConstantExpressionsPass::Finish() {
+void ConstantPropagationPass::Finish() {
     // Filter all nodes that don't have a constant parent
     constants.Filter([&](AnalyzedScript::Expression& expr) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
