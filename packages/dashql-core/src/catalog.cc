@@ -994,7 +994,7 @@ buffers::status::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
         }
     }
 
-    // Erase previous database that's no longer part of the new database.
+    // Erase previous databases that are no longer part of the new databases.
     // We deliberately cleanup the dead databases after cleaning up dead schemas.
     // Otherwise we're keeping databases alive through schema references that are just to be deleted.
     for (auto iter = prev_databases.begin(); iter != prev_databases.end(); ++iter) {

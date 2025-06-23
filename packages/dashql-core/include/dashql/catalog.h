@@ -514,7 +514,16 @@ class Catalog {
     /// Ordered by <database, schema>
     btree::map<std::pair<std::string_view, std::string_view>, std::unique_ptr<SchemaDeclaration>> schemas;
 
-    /// Update a script entry
+    /// Update a script entry.
+    /// Updating a script performs work in the order of |databases + schemas| in the script.
+    /// NOT in |tables| or |columns| or |names|
+    ///
+    /// It is not super cheap, but still significantly cheaper than the analysis passes.
+    /// Updating a script regularly if it contains table declarations is not a problem.
+    ///
+    /// The most important architectural decision is that each CatalogEntry maintains own
+    /// search indexes. The completion is actually paying |catalog_entries| since we're checking
+    /// the name index of every qualifying catalog entry during completion.
     buffers::status::StatusCode UpdateScript(ScriptEntry& entry);
 
    public:
