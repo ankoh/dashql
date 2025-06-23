@@ -20,6 +20,7 @@ struct AnalysisState {
     /// Contains an entry for every ast node, storing an expression pointer if the ast node has been translated.
     using ExpressionIndex = std::vector<AnalyzedScript::Expression*>;
 
+   public:
     /// The scanned program (input)
     ScannedScript& scanned;
     /// The parsed program (input)
@@ -34,40 +35,69 @@ struct AnalysisState {
     /// The catalog
     Catalog& catalog;
 
-    /// The expression index.
-    ExpressionIndex expression_index;
-
     /// A dummy emtpy registered name.
     /// Used to construct qualified column and table identifiers and fill the prefix.
     RegisteredName& empty_name;
     /// The temporary name path buffer
     std::vector<std::reference_wrapper<RegisteredName>> name_path_buffer;
 
+   protected:
+    /// The expression index.
+    ExpressionIndex expression_index;
+
+   public:
     /// Constructor
     AnalysisState(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 
     /// Get the children of an object
-    std::span<const buffers::parser::Node> GetChildren(const sx::parser::Node& node) {
+    std::span<const buffers::parser::Node> GetChildren(const buffers::parser::Node& node) {
         assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
         return ast.subspan(node.children_begin_or_value(), node.children_count());
     }
     /// Get the attributes of an object
     template <buffers::parser::AttributeKey... keys>
-    AttributeLookupResult<keys...> GetAttributes(const sx::parser::Node& node) {
+    AttributeLookupResult<keys...> GetAttributes(const buffers::parser::Node& node) {
         assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
         return LookupAttributes<keys...>(ast.subspan(node.children_begin_or_value(), node.children_count()));
     }
     /// Get the id of a node in the ast
-    uint32_t GetNodeId(const sx::parser::Node& node) { return &node - ast.data(); }
+    uint32_t GetNodeId(const buffers::parser::Node& node) { return &node - ast.data(); }
+    /// Get the analyzed node (if any).
+    template <typename Mapped>
+    Mapped* GetAnalyzed(const buffers::parser::Node& node)
+        requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
+    {
+        if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {
+            return expression_index[GetNodeId(node)];
+        }
+    }
+    /// Get the analyzed node (if any).
+    template <typename Mapped>
+    Mapped* GetAnalyzed(uint32_t node_id)
+        requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
+    {
+        if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {
+            return expression_index[node_id];
+        }
+    }
+    /// Set the analyzed node (if any).
+    template <typename Mapped>
+    void SetAnalyzed(const buffers::parser::Node& node, Mapped& mapped)
+        requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
+    {
+        if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {
+            expression_index[GetNodeId(node)] = &mapped;
+        }
+    }
 
     /// Helper to read a name path
-    std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const sx::parser::Node& node);
+    std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const buffers::parser::Node& node);
     /// Helper to read a qualified table name
-    std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const sx::parser::Node* node);
+    std::optional<AnalyzedScript::QualifiedTableName> ReadQualifiedTableName(const buffers::parser::Node* node);
     /// Helper to read a qualified column name
-    std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const sx::parser::Node* column);
+    std::optional<AnalyzedScript::QualifiedColumnName> ReadQualifiedColumnName(const buffers::parser::Node* column);
     /// Helper to read a qualified function name
-    std::optional<AnalyzedScript::QualifiedFunctionName> ReadQualifiedFunctionName(const sx::parser::Node* node);
+    std::optional<AnalyzedScript::QualifiedFunctionName> ReadQualifiedFunctionName(const buffers::parser::Node* node);
 
     /// Helper to read expression arguments
     inline std::span<const buffers::parser::Node> ReadArgNodes(const buffers::parser::Node& args_node) {

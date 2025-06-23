@@ -346,9 +346,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_DEF: {
                 auto [column_def_node] = state.GetAttributes<AttributeKey::SQL_COLUMN_DEF_NAME>(node);
-                if (column_def_node && column_def_node->node_type() == sx::parser::NodeType::NAME) {
+                if (column_def_node && column_def_node->node_type() == buffers::parser::NodeType::NAME) {
                     auto& name = state.scanned.GetNames().At(column_def_node->children_begin_or_value());
-                    name.coarse_analyzer_tags |= sx::analyzer::NameTag::COLUMN_NAME;
+                    name.coarse_analyzer_tags |= buffers::analyzer::NameTag::COLUMN_NAME;
                     if (auto reused = pending_columns_free_list.PopFront()) {
                         *reused = AnalyzedScript::TableColumn(node_id, name);
                         node_state.table_columns.PushBack(*reused);
@@ -376,7 +376,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     // Mark column refs as (identity) transform
                     n.is_column_transform = true;
                     node_state.column_references.PushBack(n);
-                    state.expression_index[node_id] = &n;
+                    state.SetAnalyzed(node, n);
                 }
                 // Column refs may be recursive
                 MergeChildStates(node_state, node);
@@ -395,9 +395,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         // Read a table alias
                         std::string_view alias_str;
                         std::optional<std::reference_wrapper<RegisteredName>> alias_name = std::nullopt;
-                        if (alias_node && alias_node->node_type() == sx::parser::NodeType::NAME) {
+                        if (alias_node && alias_node->node_type() == buffers::parser::NodeType::NAME) {
                             auto& alias = state.scanned.GetNames().At(alias_node->children_begin_or_value());
-                            alias.coarse_analyzer_tags |= sx::analyzer::NameTag::TABLE_ALIAS;
+                            alias.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_ALIAS;
                             alias_str = alias;
                             alias_name = alias;
                         }

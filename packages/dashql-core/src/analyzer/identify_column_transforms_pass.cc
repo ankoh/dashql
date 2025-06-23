@@ -24,7 +24,7 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     size_t transform_target_idx = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
         size_t arg_node_id = state.GetNodeId(nodes[i]);
-        auto* arg_expr = state.expression_index[arg_node_id];
+        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg_node_id);
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
             tmp_expressions[i] = arg_expr;
@@ -65,8 +65,10 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                     case buffers::parser::ExpressionOperator::DIVIDE:
                     case buffers::parser::ExpressionOperator::MODULUS:
                     case buffers::parser::ExpressionOperator::XOR:
+                        break;
                     case buffers::parser::ExpressionOperator::NEGATE:
                     case buffers::parser::ExpressionOperator::NOT:
+                        break;
                     case buffers::parser::ExpressionOperator::LIKE:
                     case buffers::parser::ExpressionOperator::ILIKE:
                     case buffers::parser::ExpressionOperator::NOT_LIKE:
@@ -80,7 +82,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
                 // Did name resolution create a function expression?
                 // Skip the node, if not
-                auto& expr = state.expression_index[node_id];
+                auto* expr = state.GetAnalyzed<AnalyzedScript::Expression>(node);
                 if (!expr) continue;
                 assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
                 auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
@@ -99,7 +101,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         uint32_t transform_target_id = 0;
                         for (size_t i = 0; i < func_args.size(); ++i) {
                             auto& arg = func_args[i];
-                            auto* arg_expr = state.expression_index[arg.value_ast_node_id];
+                            auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg.value_ast_node_id);
                             if (!arg_expr) break;
 
                             arg.expression_id = arg_expr->expression_id;
@@ -132,7 +134,7 @@ void IdentifyColumnTransformsPass::Finish() {
     // Filter all nodes that don't have a transform parent
     transforms.Filter([&](AnalyzedScript::Expression& expr) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
-        auto& parent_expr = state.expression_index[node.parent()];
+        auto* parent_expr = state.GetAnalyzed<AnalyzedScript::Expression>(node.parent());
         return !parent_expr || !parent_expr->is_column_transform;
     });
 

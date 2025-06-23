@@ -14,8 +14,8 @@ AnalysisState::AnalysisState(std::shared_ptr<ParsedScript> parsed, Catalog& cata
       analyzed(std::make_shared<AnalyzedScript>(parsed, catalog)),
       catalog_entry_id(parsed->external_id),
       catalog(catalog),
-      expression_index(ast.size(), nullptr),
-      empty_name(parsed->scanned_script->name_registry.Register("")) {
+      empty_name(parsed->scanned_script->name_registry.Register("")),
+      expression_index(parsed->GetNodes().size(), nullptr) {
     empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::DATABASE_NAME;
     empty_name.coarse_analyzer_tags |= buffers::analyzer::NameTag::SCHEMA_NAME;
 }

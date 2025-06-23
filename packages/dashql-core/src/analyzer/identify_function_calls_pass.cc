@@ -78,7 +78,7 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
 
             // Are there function arguments?
             if (attr_args) {
-                assert(attr_args->node_type() == sx::parser::NodeType::ARRAY);
+                assert(attr_args->node_type() == buffers::parser::NodeType::ARRAY);
                 auto args = state.analyzed->function_arguments.EmplaceBackN(attr_args->children_count());
 
                 // Unpack the function arguments
@@ -88,7 +88,7 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
 
                     // Get function arguments
                     auto& func_arg_node = state.ast[func_arg_node_id];
-                    assert(func_arg_node.node_type() == sx::parser::NodeType::OBJECT_SQL_FUNCTION_ARG);
+                    assert(func_arg_node.node_type() == buffers::parser::NodeType::OBJECT_SQL_FUNCTION_ARG);
                     auto [arg_value, arg_name] =
                         state.GetAttributes<AttributeKey::SQL_FUNCTION_ARG_VALUE, AttributeKey::SQL_FUNCTION_ARG_NAME>(
                             func_arg_node);
@@ -108,7 +108,7 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
             }
 
             auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(func_call));
-            state.expression_index[node_id] = &n;
+            state.SetAnalyzed(node, n);
         }
     }
 }

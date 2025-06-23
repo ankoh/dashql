@@ -24,8 +24,7 @@ IdentifyColumnRestrictionsPass::readRestrictionArgs(std::span<const buffers::par
     size_t arg_count_projection = 0;
     size_t restriction_target_idx = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = state.GetNodeId(nodes[i]);
-        auto* arg_expr = state.expression_index[arg_node_id];
+        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(nodes[i]);
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
             tmp_expressions[i] = arg_expr;
@@ -83,7 +82,7 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_restriction = true;
                         n.restriction_target_id = arg_exprs[restriction_target_idx]->expression_id;
-                        state.expression_index[node_id] = &n;
+                        state.SetAnalyzed(node, n);
                         restrictions.PushBack(n);
                         break;
                     }
@@ -104,7 +103,7 @@ void IdentifyColumnRestrictionsPass::Finish() {
     // Filter all nodes that don't have a restriction parent
     restrictions.Filter([&](AnalyzedScript::Expression& expr) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
-        auto& parent_expr = state.expression_index[node.parent()];
+        auto* parent_expr = state.GetAnalyzed<AnalyzedScript::Expression>(node.parent());
         return !parent_expr || !parent_expr->is_column_restriction;
     });
 

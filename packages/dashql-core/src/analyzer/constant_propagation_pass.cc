@@ -27,7 +27,7 @@ std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::r
     bool all_args_const = true;
     for (size_t i = 0; i < nodes.size(); ++i) {
         size_t arg_node_id = state.GetNodeId(nodes[i]);
-        auto* arg_expr = state.expression_index[arg_node_id];
+        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg_node_id);
         auto* const_expr = (arg_expr && arg_expr->IsConstantExpression()) ? arg_expr : nullptr;
         all_args_const &= const_expr != nullptr;
         tmp_expressions[i] = const_expr;
@@ -53,7 +53,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     .raw_value = state.scanned.ReadTextAtLocation(node.location())};
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
-                state.expression_index[node_id] = &n;
+                state.SetAnalyzed(node, n);
                 constants.PushBack(n);
                 break;
             }
@@ -67,7 +67,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                 // Check if the value is constant
                 if (!value_node) continue;
                 auto value_node_id = state.GetNodeId(*value_node);
-                auto* value_expr = state.expression_index[value_node_id];
+                auto* value_expr = state.GetAnalyzed<AnalyzedScript::Expression>(value_node_id);
                 if (!value_expr || !value_expr->IsConstantExpression()) continue;
 
                 AnalyzedScript::Expression::ConstIntervalCast inner{
@@ -86,7 +86,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         static_cast<buffers::parser::IntervalType>(type_attr->children_begin_or_value());
                     std::optional<size_t> precision_expression = std::nullopt;
                     if (precision_attr) {
-                        if (auto expr = state.expression_index[state.GetNodeId(*precision_attr)]) {
+                        if (auto expr = state.GetAnalyzed<AnalyzedScript::Expression>(*precision_attr)) {
                             precision_expression = inner.interval->precision_expression;
                         }
                     }
@@ -98,7 +98,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
 
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
-                state.expression_index[node_id] = &n;
+                state.SetAnalyzed(node, n);
                 constants.PushBack(n);
                 break;
             }
@@ -136,7 +136,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
-                        state.expression_index[node_id] = &n;
+                        state.SetAnalyzed(node, n);
                         constants.PushBack(n);
                         break;
                     }
@@ -156,7 +156,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
-                        state.expression_index[node_id] = &n;
+                        state.SetAnalyzed(node, n);
                         constants.PushBack(n);
                         break;
                     }
@@ -174,7 +174,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
                 // Did name resolution create a function expression?
                 // Skip the node, if not
-                auto& expr = state.expression_index[node_id];
+                auto* expr = state.GetAnalyzed<AnalyzedScript::Expression>(node_id);
                 if (!expr) continue;
                 assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
                 auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
@@ -191,7 +191,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         expr->is_constant_expression = true;
                         for (auto& arg :
                              std::get<std::span<AnalyzedScript::Expression::FunctionArgument>>(func_expr.arguments)) {
-                            auto* arg_expr = state.expression_index[arg.value_ast_node_id];
+                            auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg.value_ast_node_id);
                             if (!arg_expr) {
                                 expr->is_constant_expression = false;
                                 break;
@@ -220,7 +220,7 @@ void ConstantPropagationPass::Finish() {
     // Filter all nodes that don't have a constant parent
     constants.Filter([&](AnalyzedScript::Expression& expr) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
-        auto* parent_expr = state.expression_index[node.parent()];
+        auto* parent_expr = state.GetAnalyzed<AnalyzedScript::Expression>(node.parent());
         return !parent_expr || !parent_expr->is_constant_expression;
     });
 
