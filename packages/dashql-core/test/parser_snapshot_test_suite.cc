@@ -1,9 +1,9 @@
-#include "gtest/gtest.h"
-#include "pugixml.hpp"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
+#include "gtest/gtest.h"
+#include "pugixml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
@@ -38,5 +38,6 @@ INSTANTIATE_TEST_SUITE_P(View, ParserSnapshotTestSuite, ::testing::ValuesIn(Pars
 INSTANTIATE_TEST_SUITE_P(SSB, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ssb.xml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(TPCDS, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpcds.xml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(TPCH, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpch.xml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Trino, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("trino.xml")), ParserSnapshotTest::TestPrinter());
 
 } // namespace

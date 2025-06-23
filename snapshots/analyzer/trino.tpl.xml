@@ -1,0 +1,35 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="trino_explain">
+        <catalog />
+        <script>
+            <input>
+                select
+                  *,
+                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
+                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
+                  (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
+                  (query like '%select distinct count(*)%') as is_count_star
+                from iceberg.some_events.some_queries
+                where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
+                and query_metrics like '%raw_sql%'
+                and event_timestamp >= current_timestamp - interval '30' day
+            </input>
+        </script>
+    </analyzer-snapshot>
+    <analyzer-snapshot name="trino_inhibitors">
+        <catalog />
+        <script>
+            <input>
+                select 
+                  event_timestamp, elapsed, processed_rows_byol, workload_name,
+                  regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+                  query_plan
+                from iceberg.some_events.some_queries
+                where tenant = 'a360/prod/foo'
+                and event_timestamp > cast ('2025-04-14' as timestamp)
+                and processed_rows_byol > 0
+                order by 3 desc
+            </input>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>

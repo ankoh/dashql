@@ -1,0 +1,131 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="trino_explain">
+        <catalog />
+        <script id="0">
+            <input>
+                select
+                  *,
+                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
+                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
+                  (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
+                  (query like '%select distinct count(*)%') as is_count_star
+                from iceberg.some_events.some_queries
+                where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
+                and query_metrics like '%raw_sql%'
+                and event_timestamp &gt;= current_timestamp - interval '30' day
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="444..476" text="iceberg.so..me_queries" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="78..88" text="query_hash" />
+                <expr id="1" type="colref/unresolved" stmt="0" loc="189..199" text="query_hash" />
+                <expr id="2" type="colref/unresolved" stmt="0" loc="287..292" text="query" />
+                <expr id="3" type="colref/unresolved" stmt="0" loc="365..370" text="query" />
+                <expr id="4" type="colref/unresolved" stmt="0" loc="500..506" text="tenant" />
+                <expr id="5" type="colref/unresolved" stmt="0" loc="529..535" text="tenant" />
+                <expr id="6" type="colref/unresolved" stmt="0" loc="575..588" text="query_metrics" />
+                <expr id="7" type="colref/unresolved" stmt="0" loc="626..641" text="event_timestamp" />
+                <expr id="8" type="func" name="regexp_extract" transform="0" stmt="0" loc="63..138" text="regexp_ext..A-Z]+', 1)" />
+                <expr id="9" type="func" name="regexp_extract" transform="1" stmt="0" loc="174..249" text="regexp_ext..-Z]+)', 1)" />
+                <expr id="10" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="645..662" text="current_timestamp" />
+                <expr id="11" type="literal/string" const="true" stmt="0" loc="90..134" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                <expr id="12" type="literal/integer" const="true" stmt="0" loc="136..137" text="1" />
+                <expr id="13" type="literal/string" const="true" stmt="0" loc="201..245" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                <expr id="14" type="literal/integer" const="true" stmt="0" loc="247..248" text="1" />
+                <expr id="15" type="literal/string" const="true" stmt="0" loc="298..329" text="'EXPLAIN (..l_spark,%'" />
+                <expr id="16" type="literal/string" const="true" stmt="0" loc="376..404" text="'%select d..count(*)%'" />
+                <expr id="17" type="literal/string" const="true" stmt="0" loc="509..525" text="'a360/prod3/foo'" />
+                <expr id="18" type="literal/string" const="true" stmt="0" loc="538..553" text="'a360/prod/bar'" />
+                <expr id="19" type="literal/string" const="true" stmt="0" loc="594..605" text="'%raw_sql%'" />
+                <expr id="20" type="literal/string" const="true" stmt="0" loc="674..678" text="'30'" />
+                <expr id="21" type="constcast/interval" const="true" stmt="0" loc="665..682" text="interval '30' day" />
+                <expr id="22" type="binary" op="MINUS" left="10" right="21" const="true" stmt="0" loc="645..682" text="current_ti..l '30' day" />
+                <expr id="23" type="comparison" op="EQUAL" left="4" right="17" restrict="4" stmt="0" loc="500..525" text="tenant = '..prod3/foo'" />
+                <expr id="24" type="comparison" op="EQUAL" left="5" right="18" restrict="5" stmt="0" loc="529..553" text="tenant = '../prod/bar'" />
+                <expr id="25" type="comparison" op="GREATER_EQUAL" left="7" right="22" restrict="7" stmt="0" loc="626..682" text="event_time..l '30' day" />
+            </expressions>
+            <constants>
+                <constant expr="11" loc="90..134" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                <constant expr="12" loc="136..137" text="1" />
+                <constant expr="13" loc="201..245" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                <constant expr="14" loc="247..248" text="1" />
+                <constant expr="15" loc="298..329" text="'EXPLAIN (..l_spark,%'" />
+                <constant expr="16" loc="376..404" text="'%select d..count(*)%'" />
+                <constant expr="17" loc="509..525" text="'a360/prod3/foo'" />
+                <constant expr="18" loc="538..553" text="'a360/prod/bar'" />
+                <constant expr="19" loc="594..605" text="'%raw_sql%'" />
+                <constant expr="21" loc="665..682" text="interval '30' day" />
+                <constant expr="22" loc="645..682" text="current_ti..l '30' day" />
+            </constants>
+            <column-transforms>
+                <transform expr="8" loc="63..138" text="regexp_ext..A-Z]+', 1)" />
+                <transform expr="9" loc="174..249" text="regexp_ext..-Z]+)', 1)" />
+            </column-transforms>
+            <column-restrictions>
+                <restriction expr="23" loc="500..525" text="tenant = '..prod3/foo'" />
+                <restriction expr="24" loc="529..553" text="tenant = '../prod/bar'" />
+                <restriction expr="25" loc="626..682" text="event_time..l '30' day" />
+            </column-restrictions>
+        </script>
+    </analyzer-snapshot>
+    <analyzer-snapshot name="trino_inhibitors">
+        <catalog />
+        <script id="0">
+            <input>
+                select 
+                  event_timestamp, elapsed, processed_rows_byol, workload_name,
+                  regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+                  query_plan
+                from iceberg.some_events.some_queries
+                where tenant = 'a360/prod/foo'
+                and event_timestamp &gt; cast ('2025-04-14' as timestamp)
+                and processed_rows_byol &gt; 0
+                order by 3 desc
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="281..313" text="iceberg.so..me_queries" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="43..58" text="event_timestamp" />
+                <expr id="1" type="colref/unresolved" stmt="0" loc="60..67" text="elapsed" />
+                <expr id="2" type="colref/unresolved" stmt="0" loc="69..88" text="processed_rows_byol" />
+                <expr id="3" type="colref/unresolved" stmt="0" loc="90..103" text="workload_name" />
+                <expr id="4" type="colref/unresolved" stmt="0" loc="138..165" text="pre_execut..ry_metrics" />
+                <expr id="5" type="colref/unresolved" stmt="0" loc="249..259" text="query_plan" />
+                <expr id="6" type="colref/unresolved" stmt="0" loc="336..342" text="tenant" />
+                <expr id="7" type="colref/unresolved" stmt="0" loc="381..396" text="event_timestamp" />
+                <expr id="8" type="colref/unresolved" stmt="0" loc="452..471" text="processed_rows_byol" />
+                <expr id="9" type="func" name="regexp_extract" transform="4" stmt="0" loc="123..215" text="regexp_ext..*}),&quot;', 1)" />
+                <expr id="10" type="func" known="CAST" const="true" stmt="0" loc="399..431" text="cast ('202..timestamp)" />
+                <expr id="11" type="literal/string" const="true" stmt="0" loc="167..211" text="'&quot;federati..:({.*}),&quot;'" />
+                <expr id="12" type="literal/integer" const="true" stmt="0" loc="213..214" text="1" />
+                <expr id="13" type="literal/string" const="true" stmt="0" loc="345..360" text="'a360/prod/foo'" />
+                <expr id="14" type="literal/string" const="true" stmt="0" loc="405..417" text="'2025-04-14'" />
+                <expr id="15" type="literal/integer" const="true" stmt="0" loc="474..475" text="0" />
+                <expr id="16" type="literal/integer" const="true" stmt="0" loc="501..502" text="3" />
+                <expr id="17" type="comparison" op="EQUAL" left="6" right="13" restrict="6" stmt="0" loc="336..360" text="tenant = '../prod/foo'" />
+                <expr id="18" type="comparison" op="GREATER_THAN" left="7" right="10" restrict="7" stmt="0" loc="381..431" text="event_time..timestamp)" />
+                <expr id="19" type="comparison" op="GREATER_THAN" left="8" right="15" restrict="8" stmt="0" loc="452..475" text="processed_..s_byol > 0" />
+            </expressions>
+            <constants>
+                <constant expr="11" loc="167..211" text="'&quot;federati..:({.*}),&quot;'" />
+                <constant expr="12" loc="213..214" text="1" />
+                <constant expr="13" loc="345..360" text="'a360/prod/foo'" />
+                <constant expr="14" loc="405..417" text="'2025-04-14'" />
+                <constant expr="15" loc="474..475" text="0" />
+                <constant expr="16" loc="501..502" text="3" />
+            </constants>
+            <column-transforms>
+                <transform expr="9" loc="123..215" text="regexp_ext..*}),&quot;', 1)" />
+            </column-transforms>
+            <column-restrictions>
+                <restriction expr="17" loc="336..360" text="tenant = '../prod/foo'" />
+                <restriction expr="18" loc="381..431" text="event_time..timestamp)" />
+                <restriction expr="19" loc="452..475" text="processed_..s_byol > 0" />
+            </column-restrictions>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>
