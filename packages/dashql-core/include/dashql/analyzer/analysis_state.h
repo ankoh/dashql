@@ -57,13 +57,6 @@ struct AnalysisState {
         assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
         return LookupAttributes<keys...>(ast.subspan(node.children_begin_or_value(), node.children_count()));
     }
-    //    /// Get the attributes of an object
-    //    template <buffers::parser::AttributeKey keys_head, buffers::parser::AttributeKey... keys_tail>
-    //    AttributeLookupResult<keys_head, keys_tail...> GetAttributes(const sx::parser::Node& node) {
-    //        assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
-    //        return LookupAttributes<keys_head, keys_tail...>(
-    //            ast.subspan(node.children_begin_or_value(), node.children_count()));
-    //    }
     /// Get the id of a node in the ast
     uint32_t GetNodeId(const sx::parser::Node& node) { return &node - ast.data(); }
 
