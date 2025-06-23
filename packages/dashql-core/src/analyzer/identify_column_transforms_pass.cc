@@ -23,8 +23,7 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     size_t arg_count_transform = 0;
     size_t transform_target_idx = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = state.GetNodeId(nodes[i]);
-        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg_node_id);
+        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(nodes[i]);
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
             tmp_expressions[i] = arg_expr;
@@ -54,18 +53,38 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
 
         switch (node.node_type()) {
             case buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-                auto [op_node] = state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR>(node);
+                auto [op_node, args_node] =
+                    state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
                 if (!op_node) continue;
                 assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
 
+                // Read transforms arguments
+                auto arg_nodes = state.ReadArgNodes(args_node);
+                auto maybe_arg_exprs = readTransformArgs(arg_nodes);
+                if (!maybe_arg_exprs) continue;
+                auto [arg_exprs, restriction_target_idx] = maybe_arg_exprs.value();
+
+                ExpressionOperator op_type = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
                 switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
                     case buffers::parser::ExpressionOperator::PLUS:
-                    case buffers::parser::ExpressionOperator::MULTIPLY:
                     case buffers::parser::ExpressionOperator::MINUS:
+                    case buffers::parser::ExpressionOperator::MULTIPLY:
                     case buffers::parser::ExpressionOperator::DIVIDE:
                     case buffers::parser::ExpressionOperator::MODULUS:
-                    case buffers::parser::ExpressionOperator::XOR:
+                    case buffers::parser::ExpressionOperator::XOR: {
+                        assert(arg_exprs.size() == 2);
+                        AnalyzedScript::Expression::BinaryExpression inner{
+                            .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
+                            .left_expression_id = arg_exprs[0]->expression_id,
+                            .right_expression_id = arg_exprs[1]->expression_id,
+                        };
+                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                        n.is_column_transform = true;
+                        n.restriction_target_id = arg_exprs[restriction_target_idx]->expression_id;
+                        state.SetAnalyzed(node, n);
+                        transforms.PushBack(n);
                         break;
+                    }
                     case buffers::parser::ExpressionOperator::NEGATE:
                     case buffers::parser::ExpressionOperator::NOT:
                         break;

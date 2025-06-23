@@ -26,8 +26,7 @@ std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::r
     }
     bool all_args_const = true;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        size_t arg_node_id = state.GetNodeId(nodes[i]);
-        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg_node_id);
+        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(nodes[i]);
         auto* const_expr = (arg_expr && arg_expr->IsConstantExpression()) ? arg_expr : nullptr;
         all_args_const &= const_expr != nullptr;
         tmp_expressions[i] = const_expr;
@@ -66,8 +65,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
 
                 // Check if the value is constant
                 if (!value_node) continue;
-                auto value_node_id = state.GetNodeId(*value_node);
-                auto* value_expr = state.GetAnalyzed<AnalyzedScript::Expression>(value_node_id);
+                auto* value_expr = state.GetAnalyzed<AnalyzedScript::Expression>(*value_node);
                 if (!value_expr || !value_expr->IsConstantExpression()) continue;
 
                 AnalyzedScript::Expression::ConstIntervalCast inner{
