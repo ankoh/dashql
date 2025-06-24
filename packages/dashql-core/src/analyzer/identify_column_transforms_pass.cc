@@ -62,7 +62,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                 auto arg_nodes = state.ReadArgNodes(args_node);
                 auto maybe_arg_exprs = readTransformArgs(arg_nodes);
                 if (!maybe_arg_exprs) continue;
-                auto [arg_exprs, restriction_target_idx] = maybe_arg_exprs.value();
+                auto [arg_exprs, transform_target_id] = maybe_arg_exprs.value();
 
                 ExpressionOperator op_type = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
                 switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
@@ -80,7 +80,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_transform = true;
-                        n.restriction_target_id = arg_exprs[restriction_target_idx]->expression_id;
+                        n.transform_target_id = arg_exprs[transform_target_id]->expression_id;
                         state.SetAnalyzed(node, n);
                         transforms.PushBack(n);
                         break;

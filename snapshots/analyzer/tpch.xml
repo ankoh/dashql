@@ -757,7 +757,7 @@ limit
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="329..341" text="'1995-03-15'" />
                 <expr id="21" type="literal/string" const="true" stmt="0" loc="372..384" text="'1995-03-15'" />
                 <expr id="22" type="literal/integer" const="true" stmt="0" loc="516..518" text="10" />
-                <expr id="23" type="binary" op="MINUS" left="18" right="1" stmt="0" loc="59..73" text="1 - l_discount" />
+                <expr id="23" type="binary" op="MINUS" left="18" right="1" transform="1" stmt="0" loc="59..73" text="1 - l_discount" />
                 <expr id="24" type="comparison" op="EQUAL" left="5" right="19" restrict="5" stmt="0" loc="202..227" text="c_mktsegme..'BUILDING'" />
             </expressions>
             <constants>
@@ -1273,7 +1273,7 @@ order by
                 <expr id="22" type="literal/string" const="true" stmt="0" loc="430..436" text="'ASIA'" />
                 <expr id="23" type="literal/string" const="true" stmt="0" loc="469..481" text="'1994-01-01'" />
                 <expr id="24" type="literal/string" const="true" stmt="0" loc="513..525" text="'1995-01-01'" />
-                <expr id="25" type="binary" op="MINUS" left="21" right="1" stmt="0" loc="55..69" text="1 - l_discount" />
+                <expr id="25" type="binary" op="MINUS" left="21" right="1" transform="1" stmt="0" loc="55..69" text="1 - l_discount" />
                 <expr id="26" type="comparison" op="EQUAL" left="15" right="22" restrict="15" stmt="0" loc="421..436" text="r_name = 'ASIA'" />
             </expressions>
             <constants>
@@ -1822,7 +1822,7 @@ order by
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="1062..1070" text="'FRANCE'" />
                 <expr id="37" type="literal/string" const="true" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="38" type="literal/string" const="true" stmt="0" loc="1172..1184" text="'1996-12-31'" />
-                <expr id="39" type="binary" op="MINUS" left="32" right="7" stmt="0" loc="343..357" text="1 - l_discount" />
+                <expr id="39" type="binary" op="MINUS" left="32" right="7" transform="7" stmt="0" loc="343..357" text="1 - l_discount" />
                 <expr id="40" type="comparison" op="EQUAL" left="19" right="33" restrict="19" stmt="0" loc="940..960" text="n1.n_name ..= 'FRANCE'" />
                 <expr id="41" type="comparison" op="EQUAL" left="20" right="34" restrict="20" stmt="0" loc="965..986" text="n2.n_name .. 'GERMANY'" />
                 <expr id="42" type="comparison" op="EQUAL" left="21" right="35" restrict="21" stmt="0" loc="1024..1045" text="n1.n_name .. 'GERMANY'" />
@@ -2131,7 +2131,7 @@ order by
                 <expr id="34" type="literal/string" const="true" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="35" type="literal/string" const="true" stmt="0" loc="1172..1184" text="'1996-12-31'" />
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
-                <expr id="37" type="binary" op="MINUS" left="32" right="5" stmt="0" loc="302..316" text="1 - l_discount" />
+                <expr id="37" type="binary" op="MINUS" left="32" right="5" transform="5" stmt="0" loc="302..316" text="1 - l_discount" />
                 <expr id="38" type="comparison" op="EQUAL" left="1" right="30" restrict="1" stmt="0" loc="62..79" text="nation = 'BRAZIL'" />
                 <expr id="39" type="comparison" op="EQUAL" left="20" right="33" restrict="20" stmt="0" loc="1021..1039" text="r_name = 'AMERICA'" />
                 <expr id="40" type="comparison" op="EQUAL" left="24" right="36" restrict="24" stmt="0" loc="1213..1246" text="p_type = '..ZED STEEL'" />
@@ -2425,7 +2425,7 @@ order by
                 <expr id="27" type="func" known="EXTRACT" const="true" stmt="0" loc="178..208" text="extract(ye..orderdate)" />
                 <expr id="28" type="literal/integer" const="true" stmt="0" loc="263..264" text="1" />
                 <expr id="29" type="literal/string" const="true" stmt="0" loc="900..909" text="'%green%'" />
-                <expr id="30" type="binary" op="MINUS" left="28" right="5" stmt="0" loc="263..277" text="1 - l_discount" />
+                <expr id="30" type="binary" op="MINUS" left="28" right="5" transform="5" stmt="0" loc="263..277" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="28" loc="263..264" text="1" />
@@ -2706,7 +2706,7 @@ limit
                 <expr id="29" type="literal/string" const="true" stmt="0" loc="412..424" text="'1994-01-01'" />
                 <expr id="30" type="literal/string" const="true" stmt="0" loc="452..455" text="'R'" />
                 <expr id="31" type="literal/integer" const="true" stmt="0" loc="664..666" text="20" />
-                <expr id="32" type="binary" op="MINUS" left="27" right="2" stmt="0" loc="74..88" text="1 - l_discount" />
+                <expr id="32" type="binary" op="MINUS" left="27" right="2" transform="2" stmt="0" loc="74..88" text="1 - l_discount" />
                 <expr id="33" type="comparison" op="EQUAL" left="15" right="30" restrict="15" stmt="0" loc="437..455" text="l_returnflag = 'R'" />
             </expressions>
             <constants>
@@ -3770,8 +3770,8 @@ where
                 <expr id="15" type="literal/integer" const="true" stmt="0" loc="201..202" text="1" />
                 <expr id="16" type="literal/string" const="true" stmt="0" loc="338..350" text="'1995-09-01'" />
                 <expr id="17" type="literal/string" const="true" stmt="0" loc="381..393" text="'1995-10-01'" />
-                <expr id="18" type="binary" op="MINUS" left="12" right="1" stmt="0" loc="124..138" text="1 - l_discount" />
-                <expr id="19" type="binary" op="MINUS" left="15" right="3" stmt="0" loc="201..215" text="1 - l_discount" />
+                <expr id="18" type="binary" op="MINUS" left="12" right="1" transform="1" stmt="0" loc="124..138" text="1 - l_discount" />
+                <expr id="19" type="binary" op="MINUS" left="15" right="3" transform="3" stmt="0" loc="201..215" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="11" loc="67..75" text="'PROMO%'" />
@@ -4045,7 +4045,7 @@ order by
                 <expr id="18" type="literal/integer" const="true" stmt="0" loc="80..81" text="1" />
                 <expr id="19" type="literal/string" const="true" stmt="0" loc="159..174" text="'1996-01-01'&#10;&#09;&#09;" />
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="196..210" text="'1996-04-01'&#10;&#09;" />
-                <expr id="21" type="binary" op="MINUS" left="18" right="1" stmt="0" loc="80..94" text="1 - l_discount" />
+                <expr id="21" type="binary" op="MINUS" left="18" right="1" transform="1" stmt="0" loc="80..94" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="18" loc="80..81" text="1" />
@@ -4578,8 +4578,8 @@ where
                 <expr id="12" type="literal/string" const="true" stmt="0" loc="151..161" text="'Brand#23'" />
                 <expr id="13" type="literal/string" const="true" stmt="0" loc="188..197" text="'MED BOX'" />
                 <expr id="14" type="literal/float" const="true" stmt="0" loc="272..275" text="0.2" />
-                <expr id="15" type="binary" op="MODULUS" left="9" right="11" stmt="0" loc="16..42" text="sum(l_exte..ice) / 7.0" />
-                <expr id="16" type="binary" op="DIVIDE" left="14" right="10" stmt="0" loc="272..293" text="0.2 * avg(.._quantity)" />
+                <expr id="15" type="binary" op="MODULUS" left="9" right="11" transform="9" stmt="0" loc="16..42" text="sum(l_exte..ice) / 7.0" />
+                <expr id="16" type="binary" op="DIVIDE" left="14" right="10" transform="10" stmt="0" loc="272..293" text="0.2 * avg(.._quantity)" />
                 <expr id="17" type="comparison" op="EQUAL" left="3" right="12" restrict="3" stmt="0" loc="141..161" text="p_brand = ..'Brand#23'" />
                 <expr id="18" type="comparison" op="EQUAL" left="4" right="13" restrict="4" stmt="0" loc="174..197" text="p_containe.. 'MED BOX'" />
             </expressions>
@@ -5189,7 +5189,7 @@ where
                 <expr id="70" type="literal/string" const="true" stmt="0" loc="1227..1232" text="'AIR'" />
                 <expr id="71" type="literal/string" const="true" stmt="0" loc="1234..1243" text="'AIR REG'" />
                 <expr id="72" type="literal/string" const="true" stmt="0" loc="1282..1301" text="'DELIVER IN PERSON'" />
-                <expr id="73" type="binary" op="MINUS" left="30" right="0" stmt="0" loc="38..52" text="1 - l_discount" />
+                <expr id="73" type="binary" op="MINUS" left="30" right="0" transform="0" stmt="0" loc="38..52" text="1 - l_discount" />
                 <expr id="74" type="comparison" op="EQUAL" left="4" right="31" restrict="4" stmt="0" loc="176..196" text="p_brand = ..'Brand#12'" />
                 <expr id="75" type="comparison" op="GREATER_EQUAL" left="6" right="36" restrict="6" stmt="0" loc="295..310" text="l_quantity >= 1" />
                 <expr id="76" type="comparison" op="LESS_EQUAL" left="7" right="39" restrict="7" stmt="0" loc="315..335" text="l_quantity.. &lt;= 1 + 10" />
@@ -5535,7 +5535,7 @@ order by
                 <expr id="22" type="literal/string" const="true" stmt="0" loc="1042..1054" text="'1994-01-01'" />
                 <expr id="23" type="literal/string" const="true" stmt="0" loc="1117..1129" text="'1995-01-01'" />
                 <expr id="24" type="literal/string" const="true" stmt="0" loc="1225..1233" text="'CANADA'" />
-                <expr id="25" type="binary" op="DIVIDE" left="21" right="19" stmt="0" loc="703..724" text="0.5 * sum(.._quantity)" />
+                <expr id="25" type="binary" op="DIVIDE" left="21" right="19" transform="19" stmt="0" loc="703..724" text="0.5 * sum(.._quantity)" />
                 <expr id="26" type="comparison" op="EQUAL" left="17" right="24" restrict="17" stmt="0" loc="1216..1233" text="n_name = 'CANADA'" />
             </expressions>
             <constants>
