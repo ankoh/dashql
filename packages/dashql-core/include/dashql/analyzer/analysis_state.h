@@ -62,7 +62,7 @@ struct AnalysisState {
     }
     /// Get the id of a node in the ast
     uint32_t GetNodeId(const buffers::parser::Node& node) { return &node - ast.data(); }
-    /// Get the analyzed node (if any).
+    /// Get the analyzed node (if any)
     template <typename Mapped>
     Mapped* GetAnalyzed(const buffers::parser::Node& node)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
@@ -71,7 +71,7 @@ struct AnalysisState {
             return expression_index[GetNodeId(node)];
         }
     }
-    /// Get the analyzed node (if any).
+    /// Get the analyzed node (if any)
     template <typename Mapped>
     Mapped* GetAnalyzed(uint32_t node_id)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
@@ -80,7 +80,7 @@ struct AnalysisState {
             return expression_index[node_id];
         }
     }
-    /// Set the analyzed node (if any).
+    /// Set the analyzed node (if any)
     template <typename Mapped>
     void SetAnalyzed(const buffers::parser::Node& node, Mapped& mapped)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)

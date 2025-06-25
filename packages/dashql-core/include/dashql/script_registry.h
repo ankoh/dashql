@@ -1,10 +1,13 @@
 #pragma once
 
+#include "dashql/external.h"
 #include "dashql/script.h"
 
 namespace dashql {
 
 using RegistryEntryID = uint32_t;
+using TableID = uint32_t;
+using ColumnID = uint32_t;
 
 /// A script registry.
 ///
@@ -15,6 +18,33 @@ using RegistryEntryID = uint32_t;
 /// It is therefore an orthorgonal concept, a script may be added to both.
 /// Note that completions currently cost in the order of |scripts| in the Catalog.
 /// We expect all scripts to be added in the script registry, but only scripts with DDL statements in the catalog.
+///
+/// There are three kinds of operations that we need to support here:
+///  O1) During completion, we receive a qualified table id and need to find out all scripts
+///      that contain restrictions and transforms for it (later maybe join edges).
+///  O2) When updating a catalog entry, we need to invalidate all catalog entries in the registry
+///  O3) When updating a script, we need to remove the script entries in the restriction and transform maps.
+///
+/// Additional details that help us:
+///  D1) We don't really care too much if the indexes get a little bit stale.
+///      The worst that can happen is that we get a false-positive when looking up a table id. Then we see when
+///      checking the script, that the referenced catalog version is outdated or the restriction does not exist.
+///
+/// Design:
+///  X1) We're using btrees for restriction and transform indexes
+///  X2) When deleting a catalog entry, we can just prefix-search the catalog entry id and remove everything at once.
+///  X3) When updating a script, we do not remove all script refs right away.
+///      Instead, we're doing that lazily during lookup. If we're seeing something that does not exist, we remove it.
+//       This holds for the case where a referenced script no longer has a restriction/transform.
+///      AND for the case where the referenced script got deleted!
+///      Before accessing the referenced script, we always need to check if the script is still alive.
+///
+/// The only downside of this design is, that the script registry grows when:
+///  P1) A user updates a script often
+///  P2) With many different references to table columns
+///  P3) That are rarely ever looked at again (since referencing would cleanup later)
+///
+/// We accept this for now since the effect should be irrelvant.
 ///
 class ScriptRegistry {
    protected:
@@ -27,7 +57,12 @@ class ScriptRegistry {
     };
 
     /// The script entries
-    std::unordered_map<RegistryEntryID, ScriptEntry> script_entries;
+    std::unordered_map<Script*, ScriptEntry> script_entries;
+
+    /// The scripts containing column restrictions
+    btree::set<std::tuple<CatalogEntryID, TableID, ColumnID, Script*>> column_restrictions;
+    /// The scripts containing column transforms
+    btree::set<std::tuple<CatalogEntryID, TableID, ColumnID, Script*>> column_transforms;
 };
 
 }  // namespace dashql
