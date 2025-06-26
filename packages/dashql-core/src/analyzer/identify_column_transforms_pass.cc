@@ -1,6 +1,7 @@
 #include "dashql/analyzer/identify_column_transforms_pass.h"
 
 #include "dashql/analyzer/analyzer.h"
+#include "dashql/buffers/index_generated.h"
 
 namespace dashql {
 
@@ -21,9 +22,9 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     }
     size_t arg_count_const = 0;
     size_t arg_count_transform = 0;
-    size_t transform_target_idx = 0;
+    std::optional<size_t> transform_target_idx = std::nullopt;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(nodes[i]);
+        auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(nodes[i]);
         if (!arg_expr) continue;
         if (arg_expr->IsColumnTransform()) {
             tmp_expressions[i] = arg_expr;
@@ -37,9 +38,13 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     // Is a transform?
     // There must be at most 1 child transform, the rest must be const
     bool is_transform = arg_count_transform == 1 && ((arg_count_transform + arg_count_const) == nodes.size());
-    auto args = std::span{tmp_expressions}.subspan(0, nodes.size());
-    std::pair<std::span<AnalyzedScript::Expression*>, size_t> result{args, transform_target_idx};
-    return (!is_transform) ? std::nullopt : std::optional{result};
+    if (!is_transform) {
+        return std::nullopt;
+    } else {
+        assert(transform_target_idx.has_value());
+        auto args = std::span{tmp_expressions}.subspan(0, nodes.size());
+        return std::pair<std::span<AnalyzedScript::Expression*>, size_t>{args, *transform_target_idx};
+    }
 }
 
 void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> morsel) {
@@ -62,7 +67,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                 auto arg_nodes = state.ReadArgNodes(args_node);
                 auto maybe_arg_exprs = readTransformArgs(arg_nodes);
                 if (!maybe_arg_exprs) continue;
-                auto [arg_exprs, transform_target_id] = maybe_arg_exprs.value();
+                auto [arg_exprs, transform_target_idx] = maybe_arg_exprs.value();
 
                 ExpressionOperator op_type = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
                 switch (static_cast<buffers::parser::ExpressionOperator>(op_node->children_begin_or_value())) {
@@ -80,9 +85,9 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_transform = true;
-                        n.transform_target_id = arg_exprs[transform_target_id]->expression_id;
-                        state.SetAnalyzed(node, n);
+                        n.target_expression_id = arg_exprs[transform_target_idx]->expression_id;
                         transforms.PushBack(n);
+                        state.SetDerivedForNode(node, n);
                         break;
                     }
                     case buffers::parser::ExpressionOperator::NEGATE:
@@ -101,7 +106,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
                 // Did name resolution create a function expression?
                 // Skip the node, if not
-                auto* expr = state.GetAnalyzed<AnalyzedScript::Expression>(node);
+                auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node);
                 if (!expr) continue;
                 assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
                 auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
@@ -117,10 +122,10 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         // Are all function call arguments constant or a single transform?
                         size_t arg_count_const = 0;
                         size_t arg_count_transform = 0;
-                        uint32_t transform_target_id = 0;
+                        std::optional<uint32_t> transform_target_id = std::nullopt;
                         for (size_t i = 0; i < func_args.size(); ++i) {
                             auto& arg = func_args[i];
-                            auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg.value_ast_node_id);
+                            auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(arg.value_ast_node_id);
                             if (!arg_expr) break;
 
                             arg.expression_id = arg_expr->expression_id;
@@ -132,12 +137,13 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         }
 
                         // Is a column transform?
-                        expr->is_column_transform =
-                            arg_count_transform == 1 && ((arg_count_transform + arg_count_const) == func_args.size());
-                        if (expr->is_column_transform) {
-                            expr->transform_target_id = transform_target_id;
+                        if (arg_count_transform == 1 && ((arg_count_transform + arg_count_const) == func_args.size())) {
+                            assert(transform_target_id.has_value());
+                            expr->is_column_transform = true;
+                            expr->target_expression_id = transform_target_id.value();
+                            transforms.PushBack(*expr);
+                            state.SetDerivedForNode(node, *expr);
                         }
-                        transforms.PushBack(*expr);
                         break;
                     }
                 }
@@ -150,15 +156,36 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
 }
 
 void IdentifyColumnTransformsPass::Finish() {
-    // Filter all nodes that don't have a transform parent
-    transforms.Filter([&](AnalyzedScript::Expression& expr) {
+    // Store transforms in the analyzed script
+    for (auto& expr : transforms) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
-        auto* parent_expr = state.GetAnalyzed<AnalyzedScript::Expression>(node.parent());
-        return !parent_expr || !parent_expr->is_column_transform;
-    });
+        auto* parent_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node.parent());
 
-    // Add the transforms
-    state.analyzed->column_transforms.Append(std::move(transforms));
+        // Only store the roots of transforms
+        if (parent_expr && parent_expr->is_column_transform) {
+            continue;
+        }
+        assert(!expr.IsColumnRef());
+        assert(expr.target_expression_id.has_value());
+
+        // Follor transform target ids until we find a column ref
+        AnalyzedScript::Expression* iter = &expr;
+        do {
+            if (!iter->target_expression_id.has_value()) {
+                break;
+            }
+            iter = state.GetExpression(*iter->target_expression_id);
+            assert(iter != nullptr);
+
+        } while (!iter->IsColumnRef());
+
+        // There must be one, otherwise our pass has an error
+        assert(iter->IsColumnRef());
+        state.analyzed->column_transforms.PushBack(AnalyzedScript::ColumnTransform{
+            .root = expr,
+            .column_ref = *iter,
+        });
+    }
 }
 
 }  // namespace dashql

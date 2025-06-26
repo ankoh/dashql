@@ -376,7 +376,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     // Mark column refs as (identity) transform
                     n.is_column_transform = true;
                     node_state.column_references.PushBack(n);
-                    state.SetAnalyzed(node, n);
+                    state.SetDerivedForNode(node, n);
                 }
                 // Column refs may be recursive
                 MergeChildStates(node_state, node);

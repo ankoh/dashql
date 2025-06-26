@@ -26,7 +26,7 @@ std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::r
     }
     bool all_args_const = true;
     for (size_t i = 0; i < nodes.size(); ++i) {
-        auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(nodes[i]);
+        auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(nodes[i]);
         auto* const_expr = (arg_expr && arg_expr->IsConstantExpression()) ? arg_expr : nullptr;
         all_args_const &= const_expr != nullptr;
         tmp_expressions[i] = const_expr;
@@ -52,7 +52,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     .raw_value = state.scanned.ReadTextAtLocation(node.location())};
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
-                state.SetAnalyzed(node, n);
+                state.SetDerivedForNode(node, n);
                 constants.PushBack(n);
                 break;
             }
@@ -65,7 +65,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
 
                 // Check if the value is constant
                 if (!value_node) continue;
-                auto* value_expr = state.GetAnalyzed<AnalyzedScript::Expression>(*value_node);
+                auto* value_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*value_node);
                 if (!value_expr || !value_expr->IsConstantExpression()) continue;
 
                 AnalyzedScript::Expression::ConstIntervalCast inner{
@@ -84,7 +84,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         static_cast<buffers::parser::IntervalType>(type_attr->children_begin_or_value());
                     std::optional<size_t> precision_expression = std::nullopt;
                     if (precision_attr) {
-                        if (auto expr = state.GetAnalyzed<AnalyzedScript::Expression>(*precision_attr)) {
+                        if (auto expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*precision_attr)) {
                             precision_expression = inner.interval->precision_expression;
                         }
                     }
@@ -96,7 +96,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
 
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
-                state.SetAnalyzed(node, n);
+                state.SetDerivedForNode(node, n);
                 constants.PushBack(n);
                 break;
             }
@@ -134,7 +134,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
-                        state.SetAnalyzed(node, n);
+                        state.SetDerivedForNode(node, n);
                         constants.PushBack(n);
                         break;
                     }
@@ -154,7 +154,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         };
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
-                        state.SetAnalyzed(node, n);
+                        state.SetDerivedForNode(node, n);
                         constants.PushBack(n);
                         break;
                     }
@@ -172,7 +172,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
             case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION: {
                 // Did name resolution create a function expression?
                 // Skip the node, if not
-                auto* expr = state.GetAnalyzed<AnalyzedScript::Expression>(node_id);
+                auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node_id);
                 if (!expr) continue;
                 assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner));
                 auto& func_expr = std::get<AnalyzedScript::Expression::FunctionCallExpression>(expr->inner);
@@ -189,7 +189,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         expr->is_constant_expression = true;
                         for (auto& arg :
                              std::get<std::span<AnalyzedScript::Expression::FunctionArgument>>(func_expr.arguments)) {
-                            auto* arg_expr = state.GetAnalyzed<AnalyzedScript::Expression>(arg.value_ast_node_id);
+                            auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(arg.value_ast_node_id);
                             if (!arg_expr) {
                                 expr->is_constant_expression = false;
                                 break;
@@ -215,15 +215,16 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
 }
 
 void ConstantPropagationPass::Finish() {
-    // Filter all nodes that don't have a constant parent
-    constants.Filter([&](AnalyzedScript::Expression& expr) {
+    // Store constants in the analyzed script
+    for (auto& expr : constants) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
-        auto* parent_expr = state.GetAnalyzed<AnalyzedScript::Expression>(node.parent());
-        return !parent_expr || !parent_expr->is_constant_expression;
-    });
-
-    // Add the constants
-    state.analyzed->constant_expressions.Append(std::move(constants));
+        auto* parent_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node.parent());
+        // Only store the roots of constant expression trees
+        if (parent_expr && parent_expr->is_constant_expression) {
+            continue;
+        }
+        state.analyzed->constant_expressions.PushBack(AnalyzedScript::ConstantExpression{.root = expr});
+    }
 }
 
 }  // namespace dashql

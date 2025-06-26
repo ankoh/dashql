@@ -332,10 +332,8 @@ class AnalyzedScript : public CatalogEntry {
         std::variant<std::monostate, ColumnRef, Literal, Comparison, BinaryExpression, FunctionCallExpression,
                      ConstIntervalCast>
             inner;
-        /// Is the transform target index
-        std::optional<uint32_t> restriction_target_id = std::nullopt;
-        /// Is the transform target index
-        std::optional<uint32_t> transform_target_id = std::nullopt;
+        /// The expression id of the subtree that contains the target column ref
+        std::optional<uint32_t> target_expression_id = std::nullopt;
         /// Is the expression a constant?
         bool is_constant_expression = false;
         /// Is the expression a column transform?
@@ -398,6 +396,25 @@ class AnalyzedScript : public CatalogEntry {
         std::unordered_map<std::string_view, std::reference_wrapper<const CatalogEntry::TableDeclaration>>
             referenced_tables_by_name;
     };
+    /// A constant expression
+    struct ConstantExpression {
+        /// The root expression
+        std::reference_wrapper<Expression> root;
+    };
+    /// A column transform
+    struct ColumnTransform {
+        /// The root expression
+        std::reference_wrapper<Expression> root;
+        /// The column ref expression
+        std::reference_wrapper<Expression> column_ref;
+    };
+    /// A column restriction
+    struct ColumnRestriction {
+        /// The root expression
+        std::reference_wrapper<Expression> root;
+        /// The column ref expression
+        std::reference_wrapper<Expression> column_ref;
+    };
 
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
@@ -420,11 +437,11 @@ class AnalyzedScript : public CatalogEntry {
     std::unordered_map<size_t, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
 
     /// The constant expressions in the script
-    IntrusiveList<Expression> constant_expressions;
+    ChunkBuffer<ConstantExpression, 16> constant_expressions;
     /// The column transforms in the script
-    IntrusiveList<Expression> column_transforms;
+    ChunkBuffer<ColumnTransform, 16> column_transforms;
     /// The column restrictions in the script
-    IntrusiveList<Expression> column_restrictions;
+    ChunkBuffer<ColumnRestriction, 16> column_restrictions;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

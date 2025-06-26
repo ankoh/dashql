@@ -62,9 +62,11 @@ struct AnalysisState {
     }
     /// Get the id of a node in the ast
     uint32_t GetNodeId(const buffers::parser::Node& node) { return &node - ast.data(); }
+    /// Get an expression by id
+    AnalyzedScript::Expression* GetExpression(size_t expr_id) { return &analyzed->expressions[expr_id]; }
     /// Get the analyzed node (if any)
     template <typename Mapped>
-    Mapped* GetAnalyzed(const buffers::parser::Node& node)
+    Mapped* GetDerivedForNode(const buffers::parser::Node& node)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
     {
         if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {
@@ -73,7 +75,7 @@ struct AnalysisState {
     }
     /// Get the analyzed node (if any)
     template <typename Mapped>
-    Mapped* GetAnalyzed(uint32_t node_id)
+    Mapped* GetDerivedForNode(uint32_t node_id)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
     {
         if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {
@@ -82,7 +84,7 @@ struct AnalysisState {
     }
     /// Set the analyzed node (if any)
     template <typename Mapped>
-    void SetAnalyzed(const buffers::parser::Node& node, Mapped& mapped)
+    void SetDerivedForNode(const buffers::parser::Node& node, Mapped& mapped)
         requires(std::is_same_v<Mapped, AnalyzedScript::Expression>)
     {
         if constexpr (std::is_same_v<Mapped, AnalyzedScript::Expression>) {

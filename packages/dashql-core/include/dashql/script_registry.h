@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "dashql/external.h"
 #include "dashql/script.h"
 
@@ -48,7 +50,8 @@ using ColumnID = uint32_t;
 ///
 class ScriptRegistry {
    protected:
-    /// A catalog entry backed by an analyzed script
+    /// A registered script with reference to a specifc analyzed script.
+    /// (A script may be modified and re-analyzed. This shared pointer keeps the reference version alive)
     struct ScriptEntry {
         /// The script
         const Script& script;
@@ -63,6 +66,21 @@ class ScriptRegistry {
     btree::set<std::tuple<CatalogEntryID, TableID, ColumnID, Script*>> column_restrictions;
     /// The scripts containing column transforms
     btree::set<std::tuple<CatalogEntryID, TableID, ColumnID, Script*>> column_transforms;
+
+   public:
+    /// Creates a new script entry or updates an existing one if already registered
+    void LoadScript(Script& script);
+    /// Drop a script completely
+    void DropScript(Script& script);
+
+    /// Find table column restrictions
+    void FindColumnRestrictions(
+        CatalogEntryID catalogEntry, TableID tableId, ColumnID columnId,
+        std::function<bool(const Script&, const AnalyzedScript&, const AnalyzedScript::ColumnRestriction&)>& callback);
+    /// Find table column transforms
+    void FindColumnTransforms(
+        CatalogEntryID catalogEntry, TableID tableId, ColumnID columnId,
+        std::function<bool(const Script&, const AnalyzedScript&, const AnalyzedScript::ColumnTransform&)>& callback);
 };
 
 }  // namespace dashql

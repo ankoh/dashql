@@ -769,7 +769,6 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="23" loc="59..73" text="1 - l_discount" />
-                <transform expr="17" loc="36..75" text="sum(l_exte..discount))" />
             </column-transforms>
             <column-restrictions>
                 <restriction expr="24" loc="202..227" text="c_mktsegme..'BUILDING'" />
@@ -1284,7 +1283,6 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="25" loc="55..69" text="1 - l_discount" />
-                <transform expr="20" loc="32..71" text="sum(l_exte..discount))" />
             </column-transforms>
             <column-restrictions>
                 <restriction expr="26" loc="421..436" text="r_name = 'ASIA'" />
@@ -1530,9 +1528,6 @@ where
                 <constant expr="14" loc="219..230" text="0.06 + 0.01" />
                 <constant expr="15" loc="256..258" text="24" />
             </constants>
-            <column-transforms>
-                <transform expr="6" loc="16..49" text="sum(l_exte.._discount)" />
-            </column-transforms>
             <column-restrictions>
                 <restriction expr="16" loc="243..258" text="l_quantity &lt; 24" />
             </column-restrictions>
@@ -2146,7 +2141,6 @@ order by
                 <constant expr="36" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
             </constants>
             <column-transforms>
-                <transform expr="27" loc="32..127" text="sum(case&#10; ..      end)" />
                 <transform expr="28" loc="130..141" text="sum(volume)" />
                 <transform expr="37" loc="302..316" text="1 - l_discount" />
             </column-transforms>
@@ -2718,7 +2712,6 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="32" loc="74..88" text="1 - l_discount" />
-                <transform expr="26" loc="51..90" text="sum(l_exte..discount))" />
             </column-transforms>
             <column-restrictions>
                 <restriction expr="33" loc="437..455" text="l_returnflag = 'R'" />
@@ -2991,11 +2984,6 @@ order by
                 <constant expr="23" loc="428..434" text="0.0001" />
                 <constant expr="24" loc="779..788" text="'GERMANY'" />
             </constants>
-            <column-transforms>
-                <transform expr="19" loc="36..68" text="sum(ps_sup.._availqty)" />
-                <transform expr="20" loc="393..425" text="sum(ps_sup.._availqty)" />
-                <transform expr="21" loc="293..325" text="sum(ps_sup.._availqty)" />
-            </column-transforms>
             <column-restrictions>
                 <restriction expr="25" loc="223..241" text="n_name = 'GERMANY'" />
                 <restriction expr="26" loc="770..788" text="n_name = 'GERMANY'" />
@@ -3281,10 +3269,6 @@ order by
                 <constant expr="28" loc="677..689" text="'1994-01-01'" />
                 <constant expr="29" loc="723..735" text="'1995-01-01'" />
             </constants>
-            <column-transforms>
-                <transform expr="16" loc="36..215" text="sum(case&#10; ..      end)" />
-                <transform expr="17" loc="244..426" text="sum(case&#10; ..      end)" />
-            </column-transforms>
             <column-restrictions>
                 <restriction expr="30" loc="66..94" text="o_orderpri..'1-URGENT'" />
                 <restriction expr="31" loc="122..148" text="o_orderpri..= '2-HIGH'" />
@@ -3784,9 +3768,7 @@ where
             </constants>
             <column-transforms>
                 <transform expr="18" loc="124..138" text="1 - l_discount" />
-                <transform expr="9" loc="25..175" text="sum(case&#10; ..      end)" />
                 <transform expr="19" loc="201..215" text="1 - l_discount" />
-                <transform expr="10" loc="178..217" text="sum(l_exte..discount))" />
             </column-transforms>
         </script>
     </analyzer-snapshot>
@@ -4054,7 +4036,6 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="21" loc="80..94" text="1 - l_discount" />
-                <transform expr="16" loc="57..96" text="sum(l_exte..discount))" />
                 <transform expr="17" loc="388..406" text="max(total_revenue)" />
             </column-transforms>
         </script>
@@ -5250,7 +5231,6 @@ where
             </constants>
             <column-transforms>
                 <transform expr="73" loc="38..52" text="1 - l_discount" />
-                <transform expr="29" loc="16..54" text="sum(l_exte..discount))" />
             </column-transforms>
             <column-restrictions>
                 <restriction expr="74" loc="176..196" text="p_brand = ..'Brand#12'" />

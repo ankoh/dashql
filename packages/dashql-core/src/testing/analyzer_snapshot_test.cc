@@ -275,11 +275,11 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             if (ref.is_constant_expression) {
                 xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
             }
-            if (ref.is_column_restriction && ref.restriction_target_id.has_value()) {
-                xml_ref.append_attribute("restrict").set_value(ref.restriction_target_id.value());
+            if (ref.is_column_restriction && ref.target_expression_id.has_value()) {
+                xml_ref.append_attribute("restrict").set_value(ref.target_expression_id.value());
             }
-            if (ref.is_column_transform && ref.transform_target_id.has_value()) {
-                xml_ref.append_attribute("transform").set_value(ref.transform_target_id.value());
+            if (ref.is_column_transform && ref.target_expression_id.has_value()) {
+                xml_ref.append_attribute("transform").set_value(ref.target_expression_id.value());
             }
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);
@@ -292,32 +292,32 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
     // Write constant expressions
     if (!script.constant_expressions.IsEmpty()) {
         auto list_node = out.append_child("constants");
-        for (auto& constant : script.constant_expressions) {
+        script.constant_expressions.ForEach([&](size_t _i, const AnalyzedScript::ConstantExpression& constant) {
             auto xml_ref = list_node.append_child("constant");
-            xml_ref.append_attribute("expr").set_value(constant.expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[constant.ast_node_id].location(),
+            xml_ref.append_attribute("expr").set_value(constant.root.get().expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
-        }
+        });
     }
     // Write transforms
     if (!script.column_transforms.IsEmpty()) {
         auto list_node = out.append_child("column-transforms");
-        for (auto& transform : script.column_transforms) {
+        script.column_transforms.ForEach([&](size_t _i, const AnalyzedScript::ColumnTransform& transform) {
             auto xml_ref = list_node.append_child("transform");
-            xml_ref.append_attribute("expr").set_value(transform.expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[transform.ast_node_id].location(),
+            xml_ref.append_attribute("expr").set_value(transform.root.get().expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[transform.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
-        }
+        });
     }
     // Write restrictions
     if (!script.column_restrictions.IsEmpty()) {
         auto list_node = out.append_child("column-restrictions");
-        for (auto& restriction : script.column_restrictions) {
+        script.column_restrictions.ForEach([&](size_t _i, const AnalyzedScript::ColumnRestriction& restriction) {
             auto xml_ref = list_node.append_child("restriction");
-            xml_ref.append_attribute("expr").set_value(restriction.expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[restriction.ast_node_id].location(),
+            xml_ref.append_attribute("expr").set_value(restriction.root.get().expression_id);
+            WriteLocation(xml_ref, script.parsed_script->nodes[restriction.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
-        }
+        });
     }
 }
 

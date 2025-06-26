@@ -9,6 +9,7 @@
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
 #include "dashql/script.h"
+#include "dashql/script_registry.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/string_conversion.h"
 #include "dashql/utils/string_trimming.h"
@@ -797,7 +798,8 @@ Completion::Completion(const ScriptCursor& cursor, size_t k)
     : cursor(cursor), strategy(selectStrategy(cursor)), result_heap(k) {}
 
 std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
-                                                                                        size_t k) {
+                                                                                        size_t k,
+                                                                                        ScriptRegistry* registry) {
     auto completion = std::make_unique<Completion>(cursor, k);
 
     // Skip completion for the current symbol?

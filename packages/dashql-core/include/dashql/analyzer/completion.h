@@ -8,6 +8,8 @@
 
 namespace dashql {
 
+class ScriptRegistry;
+
 struct Completion {
     /// A score value
     using ScoreValueType = uint32_t;
@@ -121,8 +123,8 @@ struct Completion {
     /// Pack the completion result
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
     // Compute completion at a cursor
-    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(const ScriptCursor& cursor,
-                                                                                       size_t k);
+    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(
+        const ScriptCursor& cursor, size_t k, ScriptRegistry* registry = nullptr);
 };
 
 }  // namespace dashql
