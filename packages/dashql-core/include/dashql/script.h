@@ -460,11 +460,11 @@ class AnalyzedScript : public CatalogEntry {
     };
     /// The column transforms indexed by the catalog entry.
     /// This index is used to quickly resolve column transforms in this script through catalog ids.
-    std::unordered_map<ColumnRefLookupKey, std::reference_wrapper<ColumnTransform>, ColumnRefLookupKeyHasher>
+    std::unordered_multimap<ColumnRefLookupKey, std::reference_wrapper<ColumnTransform>, ColumnRefLookupKeyHasher>
         column_transforms_by_catalog_entry;
     /// The column restrictions indexed by the catalog entry
     /// This index is used to quickly resolve column restrictions in this script through catalog ids.
-    std::unordered_map<ColumnRefLookupKey, std::reference_wrapper<ColumnRestriction>, ColumnRefLookupKeyHasher>
+    std::unordered_multimap<ColumnRefLookupKey, std::reference_wrapper<ColumnRestriction>, ColumnRefLookupKeyHasher>
         column_restrictions_by_catalog_entry;
 
     /// Traverse the name scopes for a given ast node id
