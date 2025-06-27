@@ -39,6 +39,10 @@ struct ContextObjectID {
     bool operator==(const ContextObjectID& other) const {
         return external_id == other.external_id && value == other.value;
     }
+    /// Comparison
+    bool operator<(const ContextObjectID& other) const {
+        return external_id < other.external_id || (external_id == other.external_id && value < other.value);
+    }
     /// A hasher
     struct Hasher {
         size_t operator()(const ContextObjectID& key) const {

@@ -181,10 +181,17 @@ void IdentifyColumnTransformsPass::Finish() {
 
         // There must be one, otherwise our pass has an error
         assert(iter->IsColumnRef());
-        state.analyzed->column_transforms.PushBack(AnalyzedScript::ColumnTransform{
+        auto& transform = state.analyzed->column_transforms.PushBack(AnalyzedScript::ColumnTransform{
             .root = expr,
             .column_ref = *iter,
         });
+
+        // Register column transform
+        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(iter->inner);
+        if (auto resolved = column_ref.resolved_column) {
+            std::tuple<ContextObjectID, ColumnID> key{resolved->catalog_table_id, resolved->table_column_id};
+            state.analyzed->column_transforms_by_catalog_entry.insert({key, transform});
+        }
     }
 }
 

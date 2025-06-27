@@ -137,7 +137,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
         // Copy table name so that we can override the unresolved expression
         auto table_name = rel_expr->table_name;
         // Helper to register a name
-        auto register_name = [&](std::string_view alias, const AnalyzedScript::TableDeclaration& table) {
+        auto register_table_alias = [&](std::string_view alias, const AnalyzedScript::TableDeclaration& table) {
             // Already exists in this scope?
             auto resolved_iter = scope.referenced_tables_by_name.find(alias);
             if (resolved_iter != scope.referenced_tables_by_name.end()) {
@@ -169,6 +169,9 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
 
         // Found something?
         // Then register the resolved table(s)
+        //
+        // XXX We currently only store a table declaration if we can resolve it through the catalog.
+        //     We also might want to store implicit declarations and collect all referenced columns through the alias
         if (resolved_tables.size() > 0) {
             // Always pick the first match, ResolveTable respects qualification and catalog entry ranks
             auto& best_match = resolved_tables.front().get();
@@ -195,7 +198,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             // Register the table either using the alias or the table name
             std::string_view alias = table_ref.alias_name.has_value() ? table_ref.alias_name->get().text
                                                                       : best_match.table_name.table_name.get().text;
-            register_name(alias, best_match);
+            register_table_alias(alias, best_match);
             continue;
         }
 

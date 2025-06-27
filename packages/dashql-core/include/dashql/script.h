@@ -14,6 +14,7 @@
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
 #include "dashql/text/rope.h"
+#include "dashql/utils/hash.h"
 #include "dashql/utils/intrusive_list.h"
 #include "dashql/utils/string_pool.h"
 
@@ -30,6 +31,7 @@ using Key = buffers::parser::AttributeKey;
 using Location = buffers::parser::Location;
 using NameID = uint32_t;
 using NodeID = uint32_t;
+using ColumnID = uint32_t;
 using StatementID = uint32_t;
 
 class ScannedScript {
@@ -432,6 +434,7 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<Expression::FunctionArgument, 16> function_arguments;
     /// The name scopes
     ChunkBuffer<NameScope, 16> name_scopes;
+
     /// The name scopes by scope root.
     /// Name scopes maintain intrusive lists with all column reference expressions.
     std::unordered_map<size_t, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
@@ -442,6 +445,27 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<ColumnTransform, 16> column_transforms;
     /// The column restrictions in the script
     ChunkBuffer<ColumnRestriction, 16> column_restrictions;
+
+    /// A key to lookup a resolved column ref.
+    using ColumnRefLookupKey = std::tuple<ContextObjectID, ColumnID>;
+    /// A hasher for column ref keys
+    struct ColumnRefLookupKeyHasher {
+        size_t operator()(const ColumnRefLookupKey& key) const {
+            auto [table, column] = key;
+            size_t hash = 0;
+            hash_combine(hash, table.Pack());
+            hash_combine(hash, hash);
+            return hash;
+        }
+    };
+    /// The column transforms indexed by the catalog entry.
+    /// This index is used to quickly resolve column transforms in this script through catalog ids.
+    std::unordered_map<ColumnRefLookupKey, std::reference_wrapper<ColumnTransform>, ColumnRefLookupKeyHasher>
+        column_transforms_by_catalog_entry;
+    /// The column restrictions indexed by the catalog entry
+    /// This index is used to quickly resolve column restrictions in this script through catalog ids.
+    std::unordered_map<ColumnRefLookupKey, std::reference_wrapper<ColumnRestriction>, ColumnRefLookupKeyHasher>
+        column_restrictions_by_catalog_entry;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,
