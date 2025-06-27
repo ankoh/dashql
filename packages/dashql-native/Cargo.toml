@@ -61,7 +61,7 @@ version = "1.0.219"
 features = ["derive"]
 
 [dependencies.tauri]
-version = "2.6.0"
+version = "2.6.1"
 features = []
 
 
