@@ -1,0 +1,24 @@
+include "dashql/parsed_script.fbs";
+
+namespace dashql.buffers.snippet;
+
+enum ScriptTemplateMarkerType: uint8 {
+    UNKNOWN = 0,
+    COLUMN_REF = 1,
+    LITERAL_INTEGER = 2,
+    LITERAL_FLOAT = 3,
+    LITERAL_STRING = 4,
+    LITERAL_INTERVAL = 5,
+}
+
+struct ScriptTemplateMarker {
+    marker_type: ScriptTemplateMarkerType;
+    node_id: uint32;
+}
+
+table ScriptSnippet {
+    text: string;
+    nodes: [dashql.buffers.parser.Node];
+    root_node_id: uint32;
+    template_markers: [ScriptTemplateMarkerType];
+}

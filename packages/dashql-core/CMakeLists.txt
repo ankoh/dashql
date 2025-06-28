@@ -265,6 +265,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/script.cc
   ${CMAKE_SOURCE_DIR}/src/script_cursor.cc
   ${CMAKE_SOURCE_DIR}/src/script_registry.cc
+  ${CMAKE_SOURCE_DIR}/src/snippet.cc
   ${CMAKE_SOURCE_DIR}/src/text/names.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
@@ -297,7 +298,6 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/completion_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/completion_test.cc
     ${CMAKE_SOURCE_DIR}/test/cursor_test.cc
-    ${CMAKE_SOURCE_DIR}/test/format_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/keywords_test.cc
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc

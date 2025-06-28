@@ -63,6 +63,8 @@ struct NameRegistry {
 
     /// Get the name
     RegisteredName& At(RegisteredNameID name_id);
+    /// Get the name
+    const RegisteredName& At(RegisteredNameID name_id) const;
     /// Register a name
     RegisteredName& Register(std::string_view s, sx::parser::Location location = sx::parser::Location(),
                              sx::analyzer::NameTag tag = sx::analyzer::NameTag::NONE);

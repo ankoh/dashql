@@ -6,6 +6,7 @@ include "dashql/completion.fbs";
 include "dashql/parsed_script_enums.fbs";
 include "dashql/parsed_script.fbs";
 include "dashql/query_plan.fbs";
+include "dashql/script_snippet.fbs";
 include "dashql/script_cursor.fbs";
 include "dashql/script_statistics.fbs";
 include "dashql/status.fbs";
