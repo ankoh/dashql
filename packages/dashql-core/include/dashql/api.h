@@ -5,6 +5,7 @@
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
+#include "dashql/script_registry.h"
 #include "dashql/version.h"
 
 namespace console {
@@ -20,6 +21,8 @@ extern "C" std::byte* dashql_malloc(size_t length);
 /// Delete memory
 extern "C" void dashql_free(const void* buffer);
 
+// -----------------------------------------------------------------------------
+
 /// A managed FFI result container
 struct FFIResult {
     uint32_t status_code;
@@ -32,6 +35,8 @@ struct FFIResult {
 };
 /// Delete a result
 extern "C" void dashql_delete_result(FFIResult* result);
+
+// -----------------------------------------------------------------------------
 
 /// Create a script
 extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog, uint32_t external_id);
@@ -63,12 +68,14 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
 /// Complete at a cursor in the script
 extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit);
 
+// -----------------------------------------------------------------------------
+
 /// Create a catalog
 extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr = nullptr, size_t database_name_length = 0,
                                          const char* schema_name_ptr = nullptr, size_t schema_name_length = 0);
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog);
-/// Clear a catalog
+/// Check if a catalog contains an entry id
 extern "C" bool dashql_catalog_contains_entry_id(dashql::Catalog* catalog, uint32_t entry_id);
 /// Describe all entries
 extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog);
@@ -87,3 +94,16 @@ extern "C" FFIResult* dashql_catalog_add_schema_descriptor(dashql::Catalog* cata
                                                            const void* data_ptr, size_t data_size);
 /// Get catalog statistics
 extern "C" FFIResult* dashql_catalog_get_statistics(dashql::Catalog* catalog);
+
+// -----------------------------------------------------------------------------
+
+/// Create a script registry
+extern "C" FFIResult* dashql_script_registry_new();
+/// Clear a registry
+extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry);
+/// Load a script
+extern "C" void dashql_script_registry_load_script(dashql::ScriptRegistry* registry, dashql::Script* script);
+/// Drop a script
+extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* registry, dashql::Script* script);
+/// Drop a script
+extern "C" void dashql_script_registry_find_column_refs(dashql::ScriptRegistry* registry, dashql::Script* script);
