@@ -91,6 +91,10 @@ struct AnalysisState {
             expression_index[GetNodeId(node)] = &mapped;
         }
     }
+    /// Mark a node
+    inline void MarkNode(const buffers::parser::Node& node, buffers::analyzer::SemanticNodeMarkerType t) {
+        analyzed->node_markers.insert({GetNodeId(node), t});
+    }
 
     /// Helper to read a name path
     std::span<std::reference_wrapper<RegisteredName>> ReadNamePath(const buffers::parser::Node& node);

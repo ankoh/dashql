@@ -11,8 +11,9 @@ static buffers::parser::Location patchLocation(buffers::parser::Location loc, si
     return loc;
 }
 
-ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
-                                     size_t root_node_id, const NameRegistry& names) {
+ScriptSnippet ScriptSnippet::Extract(
+    std::string_view text, std::span<const buffers::parser::Node> ast, size_t root_node_id, const NameRegistry& names,
+    const std::unordered_map<size_t, buffers::analyzer::SemanticNodeMarkerType>& markers) {
     // Return an empty snippet for invalid node ids
     if (root_node_id >= ast.size()) {
         return {};

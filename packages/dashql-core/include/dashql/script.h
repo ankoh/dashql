@@ -426,6 +426,12 @@ class AnalyzedScript : public CatalogEntry {
     /// The analyzer errors
     std::vector<buffers::analyzer::AnalyzerErrorT> errors;
 
+    /// The node markers.
+    /// Semantic node markers annotate the ast with lightweight semantic tags.
+    /// For example, we remember which ast nodes store a column ref, literals or constant expressions.
+    /// These markers are preserved for Script Snippets and can be used in the UI for hints and highlighting.
+    std::unordered_map<NodeID, buffers::analyzer::SemanticNodeMarkerType> node_markers;
+
     /// The table references
     ChunkBuffer<TableReference, 16> table_references;
     /// The expressions
@@ -437,7 +443,7 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The name scopes by scope root.
     /// Name scopes maintain intrusive lists with all column reference expressions.
-    std::unordered_map<size_t, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
+    std::unordered_map<NodeID, std::reference_wrapper<NameScope>> name_scopes_by_root_node;
 
     /// The constant expressions in the script
     ChunkBuffer<ConstantExpression, 16> constant_expressions;

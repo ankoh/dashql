@@ -12,7 +12,6 @@
 #include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
-#include "dashql/utils/ast_attributes.h"
 #include "dashql/utils/intrusive_list.h"
 
 namespace dashql {
@@ -380,6 +379,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     n.is_column_transform = true;
                     node_state.column_references.PushBack(n);
                     state.SetDerivedForNode(node, n);
+                    state.MarkNode(node, buffers::analyzer::SemanticNodeMarkerType::COLUMN_REFERENCE);
                 }
                 // Column refs may be recursive
                 MergeChildStates(node_state, node);
@@ -420,6 +420,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                             .resolved_alternatives = {},
                         };
                         node_state.table_references.PushBack(n);
+                        state.MarkNode(node, buffers::analyzer::SemanticNodeMarkerType::TABLE_REFERENCE);
                     }
                 }
                 // Table refs may be recursive

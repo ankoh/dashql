@@ -15,10 +15,13 @@ class ScriptSnippet {
     std::vector<buffers::parser::Node> nodes;
     /// The root node id
     size_t root_node_id = 0;
+    /// The semantic node markers
+    std::vector<buffers::analyzer::SemanticNodeMarker> node_markers;
 
     /// Extract a script snipped from an AST
     ScriptSnippet Extract(std::string_view text, std::span<const buffers::parser::Node> ast, size_t node_id,
-                          const NameRegistry& names);
+                          const NameRegistry& names,
+                          const std::unordered_map<size_t, buffers::analyzer::SemanticNodeMarkerType>& markers);
 };
 
 }  // namespace parser

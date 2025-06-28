@@ -14,6 +14,7 @@ using ExpressionOperator = buffers::parser::ExpressionOperator;
 using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
+using SemanticNodeMarkerType = buffers::analyzer::SemanticNodeMarkerType;
 
 std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>>
 IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser::Node> nodes) {
@@ -86,8 +87,9 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_transform = true;
                         n.target_expression_id = arg_exprs[transform_target_idx]->expression_id;
-                        transforms.PushBack(n);
                         state.SetDerivedForNode(node, n);
+                        state.MarkNode(node, SemanticNodeMarkerType::COLUMN_TRANSFORM);
+                        transforms.PushBack(n);
                         break;
                     }
                     case buffers::parser::ExpressionOperator::NEGATE:
@@ -141,8 +143,9 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
                             assert(transform_target_id.has_value());
                             expr->is_column_transform = true;
                             expr->target_expression_id = transform_target_id.value();
-                            transforms.PushBack(*expr);
                             state.SetDerivedForNode(node, *expr);
+                            state.MarkNode(node, SemanticNodeMarkerType::COLUMN_TRANSFORM);
+                            transforms.PushBack(*expr);
                         }
                         break;
                     }
@@ -167,6 +170,11 @@ void IdentifyColumnTransformsPass::Finish() {
         }
         assert(!expr.IsColumnRef());
         assert(expr.target_expression_id.has_value());
+
+        // If object, mark as constant expression root
+        if (node.node_type() >= NodeType::OBJECT_KEYS_) {
+            state.MarkNode(node, SemanticNodeMarkerType::COLUMN_TRANSFORM_ROOT);
+        }
 
         // Follor transform target ids until we find a column ref
         AnalyzedScript::Expression* iter = &expr;

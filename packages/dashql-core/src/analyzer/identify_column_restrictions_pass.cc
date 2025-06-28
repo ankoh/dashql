@@ -14,6 +14,7 @@ using ExpressionOperator = buffers::parser::ExpressionOperator;
 using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
+using SemanticNodeMarkerType = buffers::analyzer::SemanticNodeMarkerType;
 
 std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>>
 IdentifyColumnRestrictionsPass::readRestrictionArgs(std::span<const buffers::parser::Node> nodes) {
@@ -84,8 +85,9 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_column_restriction = true;
                         n.target_expression_id = arg_exprs[restriction_target_idx]->expression_id;
-                        restrictions.PushBack(n);
                         state.SetDerivedForNode(node, n);
+                        state.MarkNode(node, SemanticNodeMarkerType::COLUMN_RESTRICTION);
+                        restrictions.PushBack(n);
                         break;
                     }
                     default:
@@ -107,8 +109,10 @@ void IdentifyColumnRestrictionsPass::Finish() {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
         auto* parent_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(node.parent());
 
-        // Only store the roots of restrictions
+        // Only store the roots of restrictions.
+        // This is actually unexpected for column restrictions...
         if (parent_expr && parent_expr->is_column_restriction) {
+            assert(false && "column restrictions should not be recursive");
             continue;
         }
         assert(!expr.IsColumnRef());
@@ -132,7 +136,7 @@ void IdentifyColumnRestrictionsPass::Finish() {
             .column_ref = *iter,
         });
 
-        // Register column transform
+        // Register column restriction
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(iter->inner);
         if (auto resolved = column_ref.resolved_column) {
             std::tuple<ContextObjectID, ColumnID> key{resolved->catalog_table_id, resolved->table_column_id};

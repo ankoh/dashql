@@ -18,6 +18,7 @@ using ExpressionOperator = buffers::parser::ExpressionOperator;
 using LiteralType = buffers::algebra::LiteralType;
 using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
+using SemanticNodeMarkerType = buffers::analyzer::SemanticNodeMarkerType;
 
 std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::readConstExprs(
     std::span<const buffers::parser::Node> nodes) {
@@ -32,6 +33,20 @@ std::optional<std::span<AnalyzedScript::Expression*>> ConstantPropagationPass::r
         tmp_expressions[i] = const_expr;
     }
     return !all_args_const ? std::nullopt : std::optional{std::span{tmp_expressions}.subspan(0, nodes.size())};
+}
+
+static SemanticNodeMarkerType getSemanticNodeMarkerForLiteral(NodeType t) {
+    static_assert(static_cast<size_t>(NodeType::LITERAL_STRING) ==
+                  static_cast<size_t>(SemanticNodeMarkerType::LITERAL_STRING));
+    static_assert(static_cast<size_t>(NodeType::LITERAL_INTERVAL) ==
+                  static_cast<size_t>(SemanticNodeMarkerType::LITERAL_INTERVAL));
+    static_assert(static_cast<size_t>(NodeType::LITERAL_INTEGER) ==
+                  static_cast<size_t>(SemanticNodeMarkerType::LITERAL_INTEGER));
+    static_assert(static_cast<size_t>(NodeType::LITERAL_FLOAT) ==
+                  static_cast<size_t>(SemanticNodeMarkerType::LITERAL_FLOAT));
+    static_assert(static_cast<size_t>(NodeType::LITERAL_NULL) ==
+                  static_cast<size_t>(SemanticNodeMarkerType::LITERAL_NULL));
+    return static_cast<SemanticNodeMarkerType>(t);
 }
 
 void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morsel) {
@@ -53,6 +68,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
                 state.SetDerivedForNode(node, n);
+                state.MarkNode(node, getSemanticNodeMarkerForLiteral(node.node_type()));
                 constants.PushBack(n);
                 break;
             }
@@ -97,6 +113,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                 auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                 n.is_constant_expression = true;
                 state.SetDerivedForNode(node, n);
+                state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
                 constants.PushBack(n);
                 break;
             }
@@ -135,6 +152,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
                         state.SetDerivedForNode(node, n);
+                        state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
                         constants.PushBack(n);
                         break;
                     }
@@ -155,6 +173,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
                         n.is_constant_expression = true;
                         state.SetDerivedForNode(node, n);
+                        state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
                         constants.PushBack(n);
                         break;
                     }
@@ -200,6 +219,7 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                         }
                         if (expr->is_constant_expression) {
                             constants.PushBack(*expr);
+                            state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
                         }
                         break;
                     }
@@ -222,6 +242,10 @@ void ConstantPropagationPass::Finish() {
         // Only store the roots of constant expression trees
         if (parent_expr && parent_expr->is_constant_expression) {
             continue;
+        }
+        // If object, mark as constant expression root
+        if (node.node_type() >= NodeType::OBJECT_KEYS_) {
+            state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION_ROOT);
         }
         state.analyzed->constant_expressions.PushBack(AnalyzedScript::ConstantExpression{.root = expr});
     }
