@@ -263,9 +263,11 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/parser/parser.cc
   ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
   ${CMAKE_SOURCE_DIR}/src/script.cc
+  ${CMAKE_SOURCE_DIR}/src/script_comparison.cc
   ${CMAKE_SOURCE_DIR}/src/script_cursor.cc
   ${CMAKE_SOURCE_DIR}/src/script_registry.cc
-  ${CMAKE_SOURCE_DIR}/src/snippet.cc
+  ${CMAKE_SOURCE_DIR}/src/script_signature.cc
+  ${CMAKE_SOURCE_DIR}/src/script_snippet.cc
   ${CMAKE_SOURCE_DIR}/src/text/names.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc

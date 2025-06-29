@@ -1,4 +1,4 @@
-#include "dashql/snippet.h"
+#include "dashql/script_snippet.h"
 
 #include "dashql/buffers/index_generated.h"
 
@@ -45,6 +45,7 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
 
     // Perform the pre-order DFS
     std::vector<std::pair<size_t, size_t>> pending;
+    pending.reserve(16);
     pending.push_back({root_node_id, 0});
     while (!pending.empty()) {
         auto [source_node_id, output_node_id] = pending.back();
