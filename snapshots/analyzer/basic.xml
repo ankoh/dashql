@@ -155,11 +155,7 @@
                 <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
             <constants>
-                <constant expr="7" loc="78..80" text="42">
-                    <snippet signature="985291433776904841" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..2" text="42" />
-                    </snippet>
-                </constant>
+                <constant expr="7" loc="78..80" text="42" />
             </constants>
             <column-restrictions>
                 <restriction expr="8" loc="74..80" text="d = 42">
@@ -216,11 +212,7 @@
                 <expr id="3" type="binary" op="PLUS" left="0" right="2" transform="0" stmt="0" loc="47..53" text="d + 42" />
             </expressions>
             <constants>
-                <constant expr="2" loc="51..53" text="42">
-                    <snippet signature="985291433776904841" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..2" text="42" />
-                    </snippet>
-                </constant>
+                <constant expr="2" loc="51..53" text="42" />
             </constants>
             <column-transforms>
                 <transform expr="3" loc="47..53" text="d + 42">

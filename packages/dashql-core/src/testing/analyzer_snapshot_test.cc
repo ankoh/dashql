@@ -316,7 +316,9 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             xml_ref.append_attribute("expr").set_value(constant.root.get().expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
-            EncodeSnippet(xml_ref, script, constant.root.get().ast_node_id);
+            if (!constant.root.get().IsLiteral()) {
+                EncodeSnippet(xml_ref, script, constant.root.get().ast_node_id);
+            }
         });
     }
     // Write transforms

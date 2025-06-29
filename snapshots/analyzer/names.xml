@@ -34,11 +34,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="42..47" text="a = 2" />
             </expressions>
             <constants>
-                <constant expr="1" loc="46..47" text="2">
-                    <snippet signature="17472606403144407250" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="2" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="46..47" text="2" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="42..47" text="a = 2">
@@ -92,11 +88,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="57..62" text="a = 2" />
             </expressions>
             <constants>
-                <constant expr="1" loc="61..62" text="2">
-                    <snippet signature="17472606403144407250" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="2" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="61..62" text="2" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="57..62" text="a = 2">
@@ -153,16 +145,8 @@
                 <expr id="5" type="comparison" op="EQUAL" left="1" right="3" restrict="1" stmt="0" loc="72..77" text="a = 3" />
             </expressions>
             <constants>
-                <constant expr="2" loc="61..62" text="2">
-                    <snippet signature="17472606403144407250" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="2" />
-                    </snippet>
-                </constant>
-                <constant expr="3" loc="76..77" text="3">
-                    <snippet signature="11275361234216806703" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="3" />
-                    </snippet>
-                </constant>
+                <constant expr="2" loc="61..62" text="2" />
+                <constant expr="3" loc="76..77" text="3" />
             </constants>
             <column-restrictions>
                 <restriction expr="4" loc="57..62" text="a = 2">
@@ -309,11 +293,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="41..50" text="foo.a = 1" />
             </expressions>
             <constants>
-                <constant expr="1" loc="49..50" text="1">
-                    <snippet signature="11413471813678018984" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="49..50" text="1" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="41..50" text="foo.a = 1">
@@ -364,11 +344,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..57" text="foo.a = 1" />
             </expressions>
             <constants>
-                <constant expr="1" loc="56..57" text="1">
-                    <snippet signature="11413471813678018984" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="56..57" text="1" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="48..57" text="foo.a = 1">
@@ -422,11 +398,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="53..62" text="foo.a = 1" />
             </expressions>
             <constants>
-                <constant expr="1" loc="61..62" text="1">
-                    <snippet signature="11413471813678018984" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="61..62" text="1" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="53..62" text="foo.a = 1">
@@ -476,11 +448,7 @@
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="43..52" text="foo.a = 1" />
             </expressions>
             <constants>
-                <constant expr="1" loc="51..52" text="1">
-                    <snippet signature="11413471813678018984" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
-                    </snippet>
-                </constant>
+                <constant expr="1" loc="51..52" text="1" />
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="43..52" text="foo.a = 1">

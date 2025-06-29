@@ -347,6 +347,8 @@ class AnalyzedScript : public CatalogEntry {
         Expression() : inner(std::monostate{}) {}
         // Check if the expression is a column ref
         inline bool IsColumnRef() const { return std::holds_alternative<ColumnRef>(inner); }
+        // Check if the expression is a literal
+        inline bool IsLiteral() const { return std::holds_alternative<Literal>(inner); }
         // Check if the expression is a constant
         inline bool IsConstantExpression() const { return is_constant_expression; }
         // Check if the expression is a column transform

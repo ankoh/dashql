@@ -16,16 +16,8 @@
                 <expr id="3" type="literal/integer" const="true" stmt="0" loc="88..89" text="1" />
             </expressions>
             <constants>
-                <constant expr="2" loc="42..86" text="'[0-9a-zA-..a-zA-Z]+)'">
-                    <snippet signature="12697098615023906939" template="175247765928">
-                        <node type="LITERAL_STRING" loc="0..44" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                    </snippet>
-                </constant>
-                <constant expr="3" loc="88..89" text="1">
-                    <snippet signature="11413471813678018984" template="175247769175">
-                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
-                    </snippet>
-                </constant>
+                <constant expr="2" loc="42..86" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                <constant expr="3" loc="88..89" text="1" />
             </constants>
             <column-transforms>
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
