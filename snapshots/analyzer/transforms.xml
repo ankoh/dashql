@@ -21,7 +21,7 @@
             </constants>
             <column-transforms>
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
-                    <snippet signature="5246299894398560044" template="5606800037095841550">
+                    <snippet template="5606800037095841550">
                         <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
                             <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
                                 <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">

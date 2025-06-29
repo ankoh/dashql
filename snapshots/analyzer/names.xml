@@ -38,7 +38,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="42..47" text="a = 2">
-                    <snippet signature="2692294244296496807" template="1794172684583478586">
+                    <snippet template="1794172684583478586">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 2">
                                 <node type="LITERAL_INTEGER" loc="4..5" text="2" />
@@ -92,7 +92,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="57..62" text="a = 2">
-                    <snippet signature="2692294244296496807" template="1794172684583478586">
+                    <snippet template="1794172684583478586">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 2">
                                 <node type="LITERAL_INTEGER" loc="4..5" text="2" />
@@ -150,7 +150,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="4" loc="57..62" text="a = 2">
-                    <snippet signature="2692294244296496807" template="1794172684583478586">
+                    <snippet template="1794172684583478586">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 2">
                                 <node type="LITERAL_INTEGER" loc="4..5" text="2" />
@@ -165,7 +165,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="5" loc="72..77" text="a = 3">
-                    <snippet signature="11416395646712288966" template="1794172684583478586">
+                    <snippet template="1794172684583478586">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 3">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 3">
                                 <node type="LITERAL_INTEGER" loc="4..5" text="3" />
@@ -297,7 +297,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="41..50" text="foo.a = 1">
-                    <snippet signature="8848828982205394525" template="10922374919875523772">
+                    <snippet template="10922374919875523772">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..9" text="foo.a = 1">
                                 <node type="LITERAL_INTEGER" loc="8..9" text="1" />
@@ -348,7 +348,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="48..57" text="foo.a = 1">
-                    <snippet signature="8848828982205394525" template="10922374919875523772">
+                    <snippet template="10922374919875523772">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..9" text="foo.a = 1">
                                 <node type="LITERAL_INTEGER" loc="8..9" text="1" />
@@ -402,7 +402,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="53..62" text="foo.a = 1">
-                    <snippet signature="8848828982205394525" template="10922374919875523772">
+                    <snippet template="10922374919875523772">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..9" text="foo.a = 1">
                                 <node type="LITERAL_INTEGER" loc="8..9" text="1" />
@@ -452,7 +452,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="43..52" text="foo.a = 1">
-                    <snippet signature="8848828982205394525" template="10922374919875523772">
+                    <snippet template="10922374919875523772">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..9" text="foo.a = 1">
                                 <node type="LITERAL_INTEGER" loc="8..9" text="1" />

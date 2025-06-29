@@ -132,11 +132,9 @@ static void EncodeSnippet(pugi::xml_node parent, const AnalyzedScript& analyzed,
     auto& script_markers = analyzed.node_markers;
 
     auto snippet = ScriptSnippet::Extract(script_text, script_ast, script_markers, root_node_id, scanned.name_registry);
-    auto sig = snippet.ComputeSignature(false);
     auto sig_tmpl = snippet.ComputeSignature(true);
 
     auto out_snippet = parent.append_child("snippet");
-    out_snippet.append_attribute("signature").set_value(sig);
     out_snippet.append_attribute("template").set_value(sig_tmpl);
     ParserSnapshotTest::EncodeAST(out_snippet, snippet.text, snippet.nodes, snippet.root_node_id);
 }

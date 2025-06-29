@@ -159,7 +159,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="8" loc="74..80" text="d = 42">
-                    <snippet signature="16567018020210033945" template="1794172684583478586">
+                    <snippet template="1794172684583478586">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
                                 <node type="LITERAL_INTEGER" loc="4..6" text="42" />
@@ -216,7 +216,7 @@
             </constants>
             <column-transforms>
                 <transform expr="3" loc="47..53" text="d + 42">
-                    <snippet signature="16549934643485065604" template="2290193904433761446">
+                    <snippet template="2290193904433761446">
                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
                                 <node type="LITERAL_INTEGER" loc="4..6" text="42" />

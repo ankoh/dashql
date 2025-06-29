@@ -1,4 +1,3 @@
-#include <functional>
 #include <span>
 #include <string_view>
 

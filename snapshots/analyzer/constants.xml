@@ -12,7 +12,7 @@
             </expressions>
             <constants>
                 <constant expr="1" loc="24..42" text="interval '30 days'">
-                    <snippet signature="10821728219829529505" template="46082571324905491">
+                    <snippet template="46082571324905491">
                         <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
                             <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
                         </node>
