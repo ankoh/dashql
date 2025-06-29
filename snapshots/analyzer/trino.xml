@@ -47,26 +47,189 @@
                 <expr id="25" type="comparison" op="GREATER_EQUAL" left="7" right="22" restrict="7" stmt="0" loc="626..682" text="event_time..l '30' day" />
             </expressions>
             <constants>
-                <constant expr="11" loc="90..134" text="'[0-9a-zA-..9a-zA-Z]+'" />
-                <constant expr="12" loc="136..137" text="1" />
-                <constant expr="13" loc="201..245" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                <constant expr="14" loc="247..248" text="1" />
-                <constant expr="15" loc="298..329" text="'EXPLAIN (..l_spark,%'" />
-                <constant expr="16" loc="376..404" text="'%select d..count(*)%'" />
-                <constant expr="17" loc="509..525" text="'a360/prod3/foo'" />
-                <constant expr="18" loc="538..553" text="'a360/prod/bar'" />
-                <constant expr="19" loc="594..605" text="'%raw_sql%'" />
-                <constant expr="21" loc="665..682" text="interval '30' day" />
-                <constant expr="22" loc="645..682" text="current_ti..l '30' day" />
+                <constant expr="11" loc="90..134" text="'[0-9a-zA-..9a-zA-Z]+'">
+                    <snippet signature="6106643718753830003" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..44" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                    </snippet>
+                </constant>
+                <constant expr="12" loc="136..137" text="1">
+                    <snippet signature="11413471813678018984" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
+                    </snippet>
+                </constant>
+                <constant expr="13" loc="201..245" text="'[0-9a-zA-..a-zA-Z]+)'">
+                    <snippet signature="12697098615023906939" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..44" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                    </snippet>
+                </constant>
+                <constant expr="14" loc="247..248" text="1">
+                    <snippet signature="11413471813678018984" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
+                    </snippet>
+                </constant>
+                <constant expr="15" loc="298..329" text="'EXPLAIN (..l_spark,%'">
+                    <snippet signature="18096010934375616734" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..31" text="'EXPLAIN (..l_spark,%'" />
+                    </snippet>
+                </constant>
+                <constant expr="16" loc="376..404" text="'%select d..count(*)%'">
+                    <snippet signature="17089176379431863730" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..28" text="'%select d..count(*)%'" />
+                    </snippet>
+                </constant>
+                <constant expr="17" loc="509..525" text="'a360/prod3/foo'">
+                    <snippet signature="10979808551196671494" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..16" text="'a360/prod3/foo'" />
+                    </snippet>
+                </constant>
+                <constant expr="18" loc="538..553" text="'a360/prod/bar'">
+                    <snippet signature="7509975957152755209" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..15" text="'a360/prod/bar'" />
+                    </snippet>
+                </constant>
+                <constant expr="19" loc="594..605" text="'%raw_sql%'">
+                    <snippet signature="12163464265515522809" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..11" text="'%raw_sql%'" />
+                    </snippet>
+                </constant>
+                <constant expr="21" loc="665..682" text="interval '30' day">
+                    <snippet signature="1005632877168042011" template="716161563929057878">
+                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..17" text="interval '30' day">
+                            <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="14..17" text="day">
+                                <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
+                            </node>
+                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..13" text="'30'" />
+                        </node>
+                    </snippet>
+                </constant>
+                <constant expr="22" loc="645..682" text="current_ti..l '30' day">
+                    <snippet signature="10897675896844641243" template="14335000208411224916">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..37" text="current_ti..l '30' day">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..37" text="current_ti..l '30' day">
+                                <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..37" text="interval '30' day">
+                                    <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="34..37" text="day">
+                                        <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
+                                    </node>
+                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..33" text="'30'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
+                        </node>
+                    </snippet>
+                </constant>
             </constants>
             <column-transforms>
-                <transform expr="8" loc="63..138" text="regexp_ext..A-Z]+', 1)" />
-                <transform expr="9" loc="174..249" text="regexp_ext..-Z]+)', 1)" />
+                <transform expr="8" loc="63..138" text="regexp_ext..A-Z]+', 1)">
+                    <snippet signature="8189505265582136494" template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                            <node type="NAME" loc="15..25" text="query_hash" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="9" loc="174..249" text="regexp_ext..-Z]+)', 1)">
+                    <snippet signature="17390044247130669303" template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                            <node type="NAME" loc="15..25" text="query_hash" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="23" loc="500..525" text="tenant = '..prod3/foo'" />
-                <restriction expr="24" loc="529..553" text="tenant = '../prod/bar'" />
-                <restriction expr="25" loc="626..682" text="event_time..l '30' day" />
+                <restriction expr="23" loc="500..525" text="tenant = '..prod3/foo'">
+                    <snippet signature="5252260935106076214" template="7878761948638532652">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
+                                <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                        <node type="NAME" loc="0..6" text="tenant" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </snippet>
+                </restriction>
+                <restriction expr="24" loc="529..553" text="tenant = '../prod/bar'">
+                    <snippet signature="2644747614429592926" template="7878761948638532652">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
+                                <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                        <node type="NAME" loc="0..6" text="tenant" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </snippet>
+                </restriction>
+                <restriction expr="25" loc="626..682" text="event_time..l '30' day">
+                    <snippet signature="482172252657023501" template="17608407916322461543">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time..l '30' day">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="19..56" text="current_ti..l '30' day">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="19..56" text="current_ti..l '30' day">
+                                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="39..56" text="interval '30' day">
+                                            <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="53..56" text="day">
+                                                <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
+                                            </node>
+                                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="48..52" text="'30'" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="19..36" text="current_timestamp">
+                                            <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
+                                </node>
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
+                                        <node type="NAME" loc="0..15" text="event_timestamp" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_EQUAL" />
+                        </node>
+                    </snippet>
+                </restriction>
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -111,20 +274,117 @@
                 <expr id="19" type="comparison" op="GREATER_THAN" left="8" right="15" restrict="8" stmt="0" loc="452..475" text="processed_..s_byol > 0" />
             </expressions>
             <constants>
-                <constant expr="11" loc="167..211" text="'&quot;federati..:({.*}),&quot;'" />
-                <constant expr="12" loc="213..214" text="1" />
-                <constant expr="13" loc="345..360" text="'a360/prod/foo'" />
-                <constant expr="14" loc="405..417" text="'2025-04-14'" />
-                <constant expr="15" loc="474..475" text="0" />
-                <constant expr="16" loc="501..502" text="3" />
+                <constant expr="11" loc="167..211" text="'&quot;federati..:({.*}),&quot;'">
+                    <snippet signature="12897464487357986939" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..44" text="'&quot;federati..:({.*}),&quot;'" />
+                    </snippet>
+                </constant>
+                <constant expr="12" loc="213..214" text="1">
+                    <snippet signature="11413471813678018984" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..1" text="1" />
+                    </snippet>
+                </constant>
+                <constant expr="13" loc="345..360" text="'a360/prod/foo'">
+                    <snippet signature="14859162509287606684" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..15" text="'a360/prod/foo'" />
+                    </snippet>
+                </constant>
+                <constant expr="14" loc="405..417" text="'2025-04-14'">
+                    <snippet signature="7058782745666105188" template="175247765928">
+                        <node type="LITERAL_STRING" loc="0..12" text="'2025-04-14'" />
+                    </snippet>
+                </constant>
+                <constant expr="15" loc="474..475" text="0">
+                    <snippet signature="10408332490703207543" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..1" text="0" />
+                    </snippet>
+                </constant>
+                <constant expr="16" loc="501..502" text="3">
+                    <snippet signature="11275361234216806703" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..1" text="3" />
+                    </snippet>
+                </constant>
             </constants>
             <column-transforms>
-                <transform expr="9" loc="123..215" text="regexp_ext..*}),&quot;', 1)" />
+                <transform expr="9" loc="123..215" text="regexp_ext..*}),&quot;', 1)">
+                    <snippet signature="16943471070635675912" template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..92" text="regexp_ext..*}),&quot;', 1)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..91" text="pre_execut...*}),&quot;', 1">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="90..91" text="1">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="90..91" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="44..88" text="'&quot;federati..:({.*}),&quot;'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="44..88" text="'&quot;federati..:({.*}),&quot;'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..42" text="pre_execut..ry_metrics">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..42" text="pre_execut..ry_metrics">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..42" text="pre_execut..ry_metrics">
+                                            <node type="NAME" loc="15..42" text="pre_execut..ry_metrics" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="17" loc="336..360" text="tenant = '../prod/foo'" />
-                <restriction expr="18" loc="381..431" text="event_time..timestamp)" />
-                <restriction expr="19" loc="452..475" text="processed_..s_byol > 0" />
+                <restriction expr="17" loc="336..360" text="tenant = '../prod/foo'">
+                    <snippet signature="15911068183210118332" template="7878761948638532652">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/foo'">
+                                <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/foo'" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                        <node type="NAME" loc="0..6" text="tenant" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </snippet>
+                </restriction>
+                <restriction expr="18" loc="381..431" text="event_time..timestamp)">
+                    <snippet signature="9547372558606951563" template="153693783941112220">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..50" text="event_time..timestamp)">
+                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..50" text="cast ('202..timestamp)">
+                                    <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="23..50" text="('2025-04-..timestamp)">
+                                        <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="40..49" text="timestamp">
+                                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="40..49" text="timestamp" />
+                                        </node>
+                                        <node key="SQL_FUNCTION_CAST_VALUE" type="LITERAL_STRING" loc="24..36" text="'2025-04-14'" />
+                                    </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST" />
+                                </node>
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
+                                        <node type="NAME" loc="0..15" text="event_timestamp" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
+                        </node>
+                    </snippet>
+                </restriction>
+                <restriction expr="19" loc="452..475" text="processed_..s_byol > 0">
+                    <snippet signature="15785701226921720781" template="2279910941344963753">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="processed_..s_byol > 0">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..23" text="processed_..s_byol > 0">
+                                <node type="LITERAL_INTEGER" loc="22..23" text="0" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..19" text="processed_rows_byol">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..19" text="processed_rows_byol">
+                                        <node type="NAME" loc="0..19" text="processed_rows_byol" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
+                        </node>
+                    </snippet>
+                </restriction>
             </column-restrictions>
         </script>
     </analyzer-snapshot>

@@ -155,10 +155,28 @@
                 <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
             <constants>
-                <constant expr="7" loc="78..80" text="42" />
+                <constant expr="7" loc="78..80" text="42">
+                    <snippet signature="985291433776904841" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..2" text="42" />
+                    </snippet>
+                </constant>
             </constants>
             <column-restrictions>
-                <restriction expr="8" loc="74..80" text="d = 42" />
+                <restriction expr="8" loc="74..80" text="d = 42">
+                    <snippet signature="16567018020210033945" template="1794172684583478586">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
+                                <node type="LITERAL_INTEGER" loc="4..6" text="42" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
+                                        <node type="NAME" loc="0..1" text="d" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </snippet>
+                </restriction>
             </column-restrictions>
         </script>
     </analyzer-snapshot>
@@ -198,10 +216,28 @@
                 <expr id="3" type="binary" op="PLUS" left="0" right="2" transform="0" stmt="0" loc="47..53" text="d + 42" />
             </expressions>
             <constants>
-                <constant expr="2" loc="51..53" text="42" />
+                <constant expr="2" loc="51..53" text="42">
+                    <snippet signature="985291433776904841" template="175247769175">
+                        <node type="LITERAL_INTEGER" loc="0..2" text="42" />
+                    </snippet>
+                </constant>
             </constants>
             <column-transforms>
-                <transform expr="3" loc="47..53" text="d + 42" />
+                <transform expr="3" loc="47..53" text="d + 42">
+                    <snippet signature="16549934643485065604" template="2290193904433761446">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
+                                <node type="LITERAL_INTEGER" loc="4..6" text="42" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
+                                        <node type="NAME" loc="0..1" text="d" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                        </node>
+                    </snippet>
+                </transform>
             </column-transforms>
         </script>
     </analyzer-snapshot>

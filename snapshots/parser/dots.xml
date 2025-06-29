@@ -7,18 +7,18 @@
             <statements>
                 <statement type="SELECT" begin="0" count="10">
                     <node type="OBJECT_SQL_SELECT" loc="13..38" text="select * f..bname. foo">
+                        <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..38" text="from dbname. foo">
+                            <node type="OBJECT_SQL_TABLEREF" loc="27..38" text="dbname. foo">
+                                <node key="SQL_TABLEREF_ALIAS" type="NAME" loc="35..38" text="foo" />
+                                <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
+                                    <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
+                                    <node type="NAME" loc="27..33" text="dbname" />
+                                </node>
+                            </node>
+                        </node>
                         <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
                             <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
                                 <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
-                            </node>
-                        </node>
-                        <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..38" text="from dbname. foo">
-                            <node type="OBJECT_SQL_TABLEREF" loc="27..38" text="dbname. foo">
-                                <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
-                                    <node type="NAME" loc="27..33" text="dbname" />
-                                    <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
-                                </node>
-                                <node key="SQL_TABLEREF_ALIAS" type="NAME" loc="35..38" text="foo" />
                             </node>
                         </node>
                     </node>
@@ -43,17 +43,17 @@
             <statements>
                 <statement type="SELECT" begin="0" count="9">
                     <node type="OBJECT_SQL_SELECT" loc="13..41" text="select * f..me.  where">
-                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
-                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
-                            </node>
-                        </node>
                         <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..34" text="from dbname.">
                             <node type="OBJECT_SQL_TABLEREF" loc="27..34" text="dbname.">
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
-                                    <node type="NAME" loc="27..33" text="dbname" />
                                     <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
+                                    <node type="NAME" loc="27..33" text="dbname" />
                                 </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
+                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
                             </node>
                         </node>
                     </node>
@@ -78,17 +78,17 @@
             <statements>
                 <statement type="SELECT" begin="0" count="9">
                     <node type="OBJECT_SQL_SELECT" loc="13..34" text="select * f..om dbname.">
-                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
-                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
-                            </node>
-                        </node>
                         <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..34" text="from dbname.">
                             <node type="OBJECT_SQL_TABLEREF" loc="27..34" text="dbname.">
                                 <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
-                                    <node type="NAME" loc="27..33" text="dbname" />
                                     <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
+                                    <node type="NAME" loc="27..33" text="dbname" />
                                 </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
+                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
                             </node>
                         </node>
                     </node>
@@ -113,32 +113,32 @@
             <statements>
                 <statement type="SELECT" begin="0" count="18">
                     <node type="OBJECT_SQL_SELECT" loc="13..46" text="select * f..here a = b">
-                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
-                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
-                            </node>
-                        </node>
-                        <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..34" text="from dbname.">
-                            <node type="OBJECT_SQL_TABLEREF" loc="27..34" text="dbname.">
-                                <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
-                                    <node type="NAME" loc="27..33" text="dbname" />
-                                    <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
-                                </node>
-                            </node>
-                        </node>
                         <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_NARY_EXPRESSION" loc="41..46" text="a = b">
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="41..46" text="a = b">
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="a">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="41..42" text="a">
-                                        <node type="NAME" loc="41..42" text="a" />
-                                    </node>
-                                </node>
                                 <node type="OBJECT_SQL_COLUMN_REF" loc="45..46" text="b">
                                     <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="45..46" text="b">
                                         <node type="NAME" loc="45..46" text="b" />
                                     </node>
                                 </node>
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="41..42" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="41..42" text="a">
+                                        <node type="NAME" loc="41..42" text="a" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                        <node key="SQL_SELECT_FROM" type="ARRAY" loc="22..34" text="from dbname.">
+                            <node type="OBJECT_SQL_TABLEREF" loc="27..34" text="dbname.">
+                                <node key="SQL_TABLEREF_NAME" type="ARRAY" loc="27..34" text="dbname.">
+                                    <node type="OBJECT_EXT_TRAILING_DOT" loc="33..34" text="." />
+                                    <node type="NAME" loc="27..33" text="dbname" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS" type="ARRAY" loc="20..21" text="*">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..21" text="*">
+                                <node key="SQL_RESULT_TARGET_STAR" type="BOOL" value="true" />
                             </node>
                         </node>
                     </node>
