@@ -3,19 +3,26 @@
 #include "dashql/buffers/index_generated.h"
 
 namespace dashql {
-namespace parser {
 
 using Node = buffers::parser::Node;
 
-static buffers::parser::Location patchLocation(buffers::parser::Location loc, size_t snippet_offset) {
+static buffers::parser::Location patchLocation(buffers::parser::Location loc, size_t snippet_offset,
+                                               size_t snippet_size) {
     assert(loc.offset() >= snippet_offset);
+    assert((loc.offset() - snippet_offset + loc.length()) <= snippet_size);
     loc.mutate_offset(loc.offset() - snippet_offset);
     return loc;
 }
 
+// Compute the signature
+size_t ScriptSnippet::ComputeSignature(bool skip_names_and_literals) const {
+    NameResolver name_resolver = [&](size_t id) { return names[id]; };
+    return ComputeScriptSignature(text, nodes, name_resolver, skip_names_and_literals);
+}
+
 ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
                                      std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers,
-                                     size_t node_id, const NameRegistry& names) {
+                                     size_t root_node_id, const NameRegistry& names) {
     // Return an empty snippet for invalid node ids
     if (root_node_id >= ast.size()) {
         return {};
@@ -26,7 +33,7 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
     std::vector<std::pair<size_t, buffers::analyzer::SemanticNodeMarkerType>> node_markers;
 
     // Prepare patching locations
-    auto& root_node = ast[root_node_id];
+    const buffers::parser::Node& root_node = ast[root_node_id];
     size_t snippet_offset = root_node.location().offset();
     size_t snippet_size = root_node.location().length();
 
@@ -34,13 +41,13 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
     ScriptSnippet out;
     out.text = text.substr(snippet_offset, snippet_size);
     {
-        Node out_root{patchLocation(root_node.location(), snippet_offset),
+        Node out_root{patchLocation(root_node.location(), snippet_offset, snippet_size),
                       root_node.node_type(),
-                      root_node.attribute_key(),
+                      buffers::parser::AttributeKey::NONE,
                       0,
                       root_node.children_begin_or_value(),
                       root_node.children_count()};
-        out.nodes.push_back(root_node);
+        out.nodes.push_back(out_root);
     }
 
     // Perform the pre-order DFS
@@ -72,24 +79,27 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
                 translated_names_by_id.insert({name_id, out.names.size()});
                 out.names.emplace_back(name.text);
             }
-
-        } else if (source_node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_) {
+        } else if (source_node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_ ||
+                   source_node.node_type() == buffers::parser::NodeType::ARRAY) {
             // Update the children index
             output_node.mutate_children_begin_or_value(out.nodes.size());
             for (size_t i = 0; i < source_node.children_count(); ++i) {
                 // Translate child node
-                auto& child_node = ast[source_node.children_begin_or_value() + i];
+                size_t child_source_node_id =
+                    source_node.children_begin_or_value() + source_node.children_count() - 1 - i;
+                auto& child_node = ast[child_source_node_id];
                 uint32_t parent_id = static_cast<uint32_t>(output_node_id);
-                Node out_child{patchLocation(child_node.location(), snippet_offset),
+                Node out_child{patchLocation(child_node.location(), snippet_offset, snippet_size),
                                child_node.node_type(),
                                child_node.attribute_key(),
                                parent_id,
                                child_node.children_begin_or_value(),
                                child_node.children_count()};
                 out.nodes.push_back(out_child);
+
                 // Visit all children
                 pending.push_back({
-                    source_node.children_begin_or_value() + i,
+                    child_source_node_id,
                     out.nodes.size() - 1,
                 });
             }
@@ -109,32 +119,35 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
         std::swap(out.nodes[left], out.nodes[right]);
 
         // Update children indices for objects after swapping
-        if (out.nodes[left].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_) {
-            out.nodes[left].mutate_parent(out.nodes.size() - out.nodes[left].parent() - 1);
-            out.nodes[left].mutate_children_begin_or_value(out.nodes.size() -
-                                                           out.nodes[left].children_begin_or_value() - 1);
+        if (out.nodes[left].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_ ||
+            out.nodes[left].node_type() == buffers::parser::NodeType::ARRAY) {
+            out.nodes[left].mutate_parent(out.nodes.size() - 1 - out.nodes[left].parent());
+            out.nodes[left].mutate_children_begin_or_value(
+                out.nodes.size() - out.nodes[left].children_begin_or_value() - out.nodes[left].children_count());
         }
-        if (out.nodes[right].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_) {
+        if (out.nodes[right].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_ ||
+            out.nodes[right].node_type() == buffers::parser::NodeType::ARRAY) {
             out.nodes[right].mutate_parent(out.nodes.size() - out.nodes[right].parent() - 1);
-            out.nodes[right].mutate_children_begin_or_value(out.nodes.size() -
-                                                            out.nodes[right].children_begin_or_value() - 1);
+            out.nodes[right].mutate_children_begin_or_value(
+                out.nodes.size() - out.nodes[right].children_begin_or_value() - out.nodes[right].children_count());
         }
     }
 
     // Handle the middle element when reverting nodes
     if (out.nodes.size() % 2 == 1) {
         size_t middle = out.nodes.size() / 2;
-        if (out.nodes[middle].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_) {
-            out.nodes[middle].mutate_parent(out.nodes.size() - out.nodes[middle].parent() - 1);
-            out.nodes[middle].mutate_children_begin_or_value(out.nodes.size() -
-                                                             out.nodes[middle].children_begin_or_value() - 1);
+        if (out.nodes[middle].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_ ||
+            out.nodes[middle].node_type() == buffers::parser::NodeType::ARRAY) {
+            out.nodes[middle].mutate_parent(out.nodes.size() - 1 - out.nodes[middle].parent());
+            out.nodes[middle].mutate_children_begin_or_value(
+                out.nodes.size() - out.nodes[middle].children_begin_or_value() - out.nodes[middle].children_count());
         }
     }
 
     // Write the node markers
     out.node_markers.resize(out.nodes.size(), buffers::analyzer::SemanticNodeMarkerType::NONE);
     for (auto [i, marker] : node_markers) {
-        out.node_markers[out.node_markers.size() - i - 1] = marker;
+        out.node_markers[out.node_markers.size() - 1 - i] = marker;
     }
 
     // Invalidate parent of root node
@@ -143,5 +156,4 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
     return out;
 }
 
-}  // namespace parser
 }  // namespace dashql

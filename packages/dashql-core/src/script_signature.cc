@@ -6,7 +6,7 @@ namespace dashql {
 
 template <bool SkipNamesAndLiterals>
 static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const buffers::parser::Node> ast,
-                                         const NameRegistry& names) {
+                                         NameResolver& name_resolver) {
     size_t v = 0;
     for (auto& node : ast) {
         hash_combine(v, static_cast<uint16_t>(node.node_type()));
@@ -14,8 +14,8 @@ static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const 
         switch (node.node_type()) {
             case buffers::parser::NodeType::NAME:
                 if constexpr (!SkipNamesAndLiterals) {
-                    auto& name = names.At(node.children_begin_or_value());
-                    hash_combine(v, name.text);
+                    std::string_view text = name_resolver(node.children_begin_or_value());
+                    hash_combine(v, text);
                 }
                 break;
             case buffers::parser::NodeType::LITERAL_NULL:
@@ -46,11 +46,11 @@ static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const 
 }
 
 size_t ComputeScriptSignature(std::string_view text, std::span<const buffers::parser::Node> ast,
-                              const NameRegistry& names, bool skip_names_and_literals) {
+                              NameResolver& name_resolver, bool skip_names_and_literals) {
     if (skip_names_and_literals) {
-        return ComputeScriptSignatureImpl<true>(text, ast, names);
+        return ComputeScriptSignatureImpl<true>(text, ast, name_resolver);
     } else {
-        return ComputeScriptSignatureImpl<false>(text, ast, names);
+        return ComputeScriptSignatureImpl<false>(text, ast, name_resolver);
     }
 }
 

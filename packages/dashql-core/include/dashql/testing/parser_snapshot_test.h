@@ -3,9 +3,9 @@
 #include <filesystem>
 #include <string>
 
+#include "dashql/script.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
-#include "dashql/script.h"
 
 namespace dashql::testing {
 
@@ -26,6 +26,9 @@ struct ParserSnapshotTest {
     /// The expected output
     pugi::xml_document expected;
 
+    /// Encode AST nodes
+    static void EncodeAST(pugi::xml_node parent, std::string_view text, std::span<const buffers::parser::Node> ast,
+                          size_t root_node_id);
     /// Encode a script
     static void EncodeScript(pugi::xml_node root, const ScannedScript& scanned, const ParsedScript& parsed,
                              std::string_view text);

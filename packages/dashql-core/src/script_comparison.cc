@@ -4,8 +4,8 @@ namespace dashql {
 
 template <bool SkipNamesAndLiterals>
 static size_t ScriptsAreEqualImpl(std::string_view left_text, std::span<const buffers::parser::Node> left_ast,
-                                  const NameRegistry& left_names, std::string_view right_text,
-                                  std::span<const buffers::parser::Node> right_ast, const NameRegistry& right_names) {
+                                  NameResolver& left_names, std::string_view right_text,
+                                  std::span<const buffers::parser::Node> right_ast, NameResolver& right_names) {
     if (left_ast.size() != right_ast.size()) {
         return false;
     }
@@ -20,9 +20,9 @@ static size_t ScriptsAreEqualImpl(std::string_view left_text, std::span<const bu
         switch (node_left.node_type()) {
             case buffers::parser::NodeType::NAME:
                 if constexpr (!SkipNamesAndLiterals) {
-                    auto& name_left = left_names.At(node_left.children_begin_or_value());
-                    auto& name_right = right_names.At(node_right.children_begin_or_value());
-                    equal &= name_left.text == name_right.text;
+                    std::string_view name_left = left_names(node_left.children_begin_or_value());
+                    std::string_view name_right = right_names(node_right.children_begin_or_value());
+                    equal &= name_left == name_right;
                 }
                 break;
             case buffers::parser::NodeType::LITERAL_NULL:
@@ -50,8 +50,8 @@ static size_t ScriptsAreEqualImpl(std::string_view left_text, std::span<const bu
 }
 
 size_t ScriptsAreEqual(std::string_view left_text, std::span<const buffers::parser::Node> left_ast,
-                       const NameRegistry& left_names, std::string_view right_text,
-                       std::span<const buffers::parser::Node> right_ast, const NameRegistry& right_names,
+                       NameResolver& left_names, std::string_view right_text,
+                       std::span<const buffers::parser::Node> right_ast, NameResolver& right_names,
                        bool skip_names_and_literals) {
     if (skip_names_and_literals) {
         return ScriptsAreEqualImpl<true>(left_text, left_ast, left_names, right_text, right_ast, right_names);

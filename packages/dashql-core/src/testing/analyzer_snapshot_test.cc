@@ -5,6 +5,8 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "dashql/script_snippet.h"
+#include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "gtest/gtest.h"
 
@@ -121,6 +123,23 @@ void AnalyzerSnapshotTest::TestMainScriptSnapshot(const ScriptAnalysisSnapshot& 
 }
 
 void operator<<(std::ostream& out, const AnalyzerSnapshotTest& p) { out << p.name; }
+
+static void EncodeSnippet(pugi::xml_node parent, const AnalyzedScript& analyzed, size_t root_node_id) {
+    auto& parsed = *analyzed.parsed_script;
+    auto& scanned = *parsed.scanned_script;
+    auto& script_text = scanned.text_buffer;
+    auto& script_ast = parsed.GetNodes();
+    auto& script_markers = analyzed.node_markers;
+
+    auto snippet = ScriptSnippet::Extract(script_text, script_ast, script_markers, root_node_id, scanned.name_registry);
+    auto sig = snippet.ComputeSignature(false);
+    auto sig_tmpl = snippet.ComputeSignature(true);
+
+    auto out_snippet = parent.append_child("snippet");
+    out_snippet.append_attribute("signature").set_value(sig);
+    out_snippet.append_attribute("template").set_value(sig_tmpl);
+    ParserSnapshotTest::EncodeAST(out_snippet, snippet.text, snippet.nodes, snippet.root_node_id);
+}
 
 void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript& script, bool is_main) {
     // Unpack modules
@@ -297,6 +316,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             xml_ref.append_attribute("expr").set_value(constant.root.get().expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
+            EncodeSnippet(xml_ref, script, constant.root.get().ast_node_id);
         });
     }
     // Write transforms
@@ -307,6 +327,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             xml_ref.append_attribute("expr").set_value(transform.root.get().expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[transform.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
+            EncodeSnippet(xml_ref, script, transform.root.get().ast_node_id);
         });
     }
     // Write restrictions
@@ -317,6 +338,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             xml_ref.append_attribute("expr").set_value(restriction.root.get().expression_id);
             WriteLocation(xml_ref, script.parsed_script->nodes[restriction.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
+            EncodeSnippet(xml_ref, script, restriction.root.get().ast_node_id);
         });
     }
 }

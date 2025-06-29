@@ -42,6 +42,8 @@ struct RegisteredName {
     operator std::string_view() { return text; }
 };
 
+/// A name resolver
+using NameResolver = std::function<std::string_view(size_t name_id)>;
 /// A name search index
 struct NameRegistry {
     /// The names

@@ -16,6 +16,12 @@ RegisteredName& NameRegistry::At(RegisteredNameID name) {
     return names[name];
 }
 
+/// Read a name
+const RegisteredName& NameRegistry::At(RegisteredNameID name) const {
+    assert(name < names.GetSize());
+    return names[name];
+}
+
 /// Register a name
 RegisteredName& NameRegistry::Register(std::string_view s, sx::parser::Location location, sx::analyzer::NameTag tag) {
     auto iter = names_by_text.find(s);

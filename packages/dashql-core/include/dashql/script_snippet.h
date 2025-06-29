@@ -1,12 +1,12 @@
 #include <string_view>
 #include <vector>
 
+#include "dashql/script_signature.h"
 #include "dashql/text/names.h"
 
 namespace dashql {
-namespace parser {
 
-class ScriptSnippet {
+struct ScriptSnippet {
     /// The snippet text
     std::string_view text;
     /// The names in the scripts name registry.
@@ -18,14 +18,15 @@ class ScriptSnippet {
     /// The semantic node markers
     std::vector<buffers::analyzer::SemanticNodeMarkerType> node_markers;
 
-    /// Extract a script snipped from an AST
-    ScriptSnippet Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
-                          std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers, size_t node_id,
-                          const NameRegistry& names);
-
+    // Compute the signature
+    size_t ComputeSignature(bool skip_names_and_literals) const;
     /// Pack the script snippet
-    flatbuffers::Offset<buffers::snippet::ScriptSnippet> Pack(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<buffers::snippet::ScriptSnippet> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+
+    /// Extract a script snipped from an AST
+    static ScriptSnippet Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
+                                 std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers, size_t node_id,
+                                 const NameRegistry& names);
 };
 
-}  // namespace parser
 }  // namespace dashql
