@@ -93,7 +93,7 @@ struct AnalysisState {
     }
     /// Mark a node
     inline void MarkNode(const buffers::parser::Node& node, buffers::analyzer::SemanticNodeMarkerType t) {
-        analyzed->node_markers.insert({GetNodeId(node), t});
+        analyzed->node_markers[GetNodeId(node)] = t;
     }
 
     /// Helper to read a name path

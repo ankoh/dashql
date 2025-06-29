@@ -6,5 +6,5 @@ table ScriptSnippet {
     text: string;
     nodes: [dashql.buffers.parser.Node];
     root_node_id: uint32;
-    node_markers: [dashql.buffers.analyzer.SemanticNodeMarker];
+    node_markers: [dashql.buffers.analyzer.SemanticNodeMarkerType];
 }

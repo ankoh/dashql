@@ -419,7 +419,11 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 AnalyzedScript::AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
     : CatalogEntry(catalog, parsed->external_id),
       parsed_script(std::move(parsed)),
-      catalog_version(catalog.GetVersion()) {}
+      catalog_version(catalog.GetVersion()),
+      node_markers() {
+    assert(parsed_script != nullptr);
+    node_markers.resize(parsed_script->GetNodes().size(), buffers::analyzer::SemanticNodeMarkerType::NONE);
+}
 
 /// Get the name search index
 flatbuffers::Offset<buffers::catalog::CatalogEntry> AnalyzedScript::DescribeEntry(

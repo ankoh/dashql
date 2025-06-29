@@ -430,7 +430,7 @@ class AnalyzedScript : public CatalogEntry {
     /// Semantic node markers annotate the ast with lightweight semantic tags.
     /// For example, we remember which ast nodes store a column ref, literals or constant expressions.
     /// These markers are preserved for Script Snippets and can be used in the UI for hints and highlighting.
-    std::unordered_map<NodeID, buffers::analyzer::SemanticNodeMarkerType> node_markers;
+    std::vector<buffers::analyzer::SemanticNodeMarkerType> node_markers;
 
     /// The table references
     ChunkBuffer<TableReference, 16> table_references;

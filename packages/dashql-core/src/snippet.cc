@@ -1,5 +1,7 @@
 #include "dashql/snippet.h"
 
+#include "dashql/buffers/index_generated.h"
+
 namespace dashql {
 namespace parser {
 
@@ -11,9 +13,9 @@ static buffers::parser::Location patchLocation(buffers::parser::Location loc, si
     return loc;
 }
 
-ScriptSnippet ScriptSnippet::Extract(
-    std::string_view text, std::span<const buffers::parser::Node> ast, size_t root_node_id, const NameRegistry& names,
-    const std::unordered_map<size_t, buffers::analyzer::SemanticNodeMarkerType>& markers) {
+ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
+                                     std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers,
+                                     size_t node_id, const NameRegistry& names) {
     // Return an empty snippet for invalid node ids
     if (root_node_id >= ast.size()) {
         return {};
@@ -21,6 +23,7 @@ ScriptSnippet ScriptSnippet::Extract(
 
     // Prepare translating names
     std::unordered_map<size_t, size_t> translated_names_by_id;
+    std::vector<std::pair<size_t, buffers::analyzer::SemanticNodeMarkerType>> node_markers;
 
     // Prepare patching locations
     auto& root_node = ast[root_node_id];
@@ -46,6 +49,11 @@ ScriptSnippet ScriptSnippet::Extract(
     while (!pending.empty()) {
         auto [source_node_id, output_node_id] = pending.back();
         pending.pop_back();
+
+        // Copy node marker (if any)
+        if (ast_markers[source_node_id] != buffers::analyzer::SemanticNodeMarkerType::NONE) {
+            node_markers.emplace_back(output_node_id, ast_markers[source_node_id]);
+        }
 
         // Output all the children of the node (if any)
         auto& source_node = ast[source_node_id];
@@ -78,7 +86,6 @@ ScriptSnippet ScriptSnippet::Extract(
                                child_node.children_begin_or_value(),
                                child_node.children_count()};
                 out.nodes.push_back(out_child);
-
                 // Visit all children
                 pending.push_back({
                     source_node.children_begin_or_value() + i,
@@ -112,7 +119,8 @@ ScriptSnippet ScriptSnippet::Extract(
                                                             out.nodes[right].children_begin_or_value() - 1);
         }
     }
-    // Handle the middle element in case of odd-sized array
+
+    // Handle the middle element when reverting nodes
     if (out.nodes.size() % 2 == 1) {
         size_t middle = out.nodes.size() / 2;
         if (out.nodes[middle].node_type() >= buffers::parser::NodeType::OBJECT_KEYS_) {
@@ -121,6 +129,13 @@ ScriptSnippet ScriptSnippet::Extract(
                                                              out.nodes[middle].children_begin_or_value() - 1);
         }
     }
+
+    // Write the node markers
+    out.node_markers.resize(out.nodes.size(), buffers::analyzer::SemanticNodeMarkerType::NONE);
+    for (auto [i, marker] : node_markers) {
+        out.node_markers[out.node_markers.size() - i - 1] = marker;
+    }
+
     // Invalidate parent of root node
     out.nodes.back().mutate_parent(std::numeric_limits<uint32_t>::max());
     out.root_node_id = out.nodes.size() - 1;
