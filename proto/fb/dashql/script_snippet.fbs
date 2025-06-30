@@ -4,6 +4,7 @@ namespace dashql.buffers.snippet;
 
 table ScriptSnippet {
     text: string;
+    names: [string];
     nodes: [dashql.buffers.parser.Node];
     root_node_id: uint32;
     node_markers: [dashql.buffers.analyzer.SemanticNodeMarkerType];

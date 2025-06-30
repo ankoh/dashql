@@ -156,4 +156,27 @@ ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buff
     return out;
 }
 
+/// Pack the script snippet
+flatbuffers::Offset<buffers::snippet::ScriptSnippet> ScriptSnippet::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
+    auto text_ofs = builder.CreateString(text);
+    auto nodes_ofs = builder.CreateVectorOfStructs(nodes.data(), nodes.size());
+    auto node_markers_ofs = builder.CreateVector(node_markers);
+
+    std::vector<flatbuffers::Offset<flatbuffers::String>> name_offsets;
+    name_offsets.reserve(names.size());
+    for (auto& name : names) {
+        name_offsets.push_back(builder.CreateString(name));
+    }
+    auto names_ofs = builder.CreateVector(name_offsets);
+
+    buffers::snippet::ScriptSnippetBuilder snippet_builder{builder};
+    snippet_builder.add_text(text_ofs);
+    snippet_builder.add_nodes(nodes_ofs);
+    snippet_builder.add_node_markers(node_markers_ofs);
+    snippet_builder.add_root_node_id(root_node_id);
+    snippet_builder.add_names(names_ofs);
+    return snippet_builder.Finish();
+}
+
 }  // namespace dashql
