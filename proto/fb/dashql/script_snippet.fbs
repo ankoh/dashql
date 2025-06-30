@@ -3,9 +3,38 @@ include "dashql/parsed_script.fbs";
 namespace dashql.buffers.snippet;
 
 table ScriptSnippet {
+    /// The text of the script snippet
     text: string;
+    /// The names in the script snippet
     names: [string];
+    /// The snippet AST
     nodes: [dashql.buffers.parser.Node];
+    /// The id of the root not in the snippet AST
     root_node_id: uint32;
+    /// The semantic node markers in the snippet
     node_markers: [dashql.buffers.analyzer.SemanticNodeMarkerType];
+}
+
+enum ScriptTemplateType: uint8 {
+    NONE = 0,
+    COLUMN_RESTRICTION = 1,
+    COLUMN_TRANSFORM = 2,
+}
+
+/// We maintain templates as collection of snippets that only differ in constants (and names).
+/// Snippets that differ only in constants are 
+table ScriptTemplate {
+    /// The template type
+    template_type: ScriptTemplateType;
+    /// The signature of the template
+    template_signature: uint64;
+    /// Multiple variants of the script snippet
+    snippets: [ScriptSnippet];
+}
+
+/// A collection of script templates.
+/// These templates are returned  when looking up catalog ids in the script registry.
+table ScriptTemplates {
+    /// The different script templates
+    templates: [ScriptTemplate];
 }

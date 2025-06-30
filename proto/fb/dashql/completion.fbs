@@ -1,4 +1,5 @@
 include "dashql/parsed_script.fbs";
+include "dashql/script_snippet.fbs";
 
 namespace dashql.buffers.completion;
 
@@ -50,10 +51,12 @@ table CompletionCandidate {
     name_tags: uint8;
     /// The display text
     display_text: string;
-    /// The completion text, when selected
-    completion_text: string;
     /// The text to replace when completing
     replace_text_at: parser.Location;
+    /// The completion text (simple)
+    completion_text: string;
+    /// The completion templates (advanced)
+    completion_templates: [snippet.ScriptTemplate];
     /// The objects that this candidate references
     catalog_objects: [CompletionCandidateObject];
     /// The score
