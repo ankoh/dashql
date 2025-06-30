@@ -1,0 +1,203 @@
+<analyzer-snapshots>
+    <analyzer-snapshot name="snippet_signature_equality_1">
+        <catalog />
+        <script id="0">
+            <input>
+               select a + 1;
+               select a +            1;
+               select "a" +            1;
+               select 1 + a;
+            </input>
+            <errors />
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="23..24" text="a" />
+                <expr id="1" type="colref/unresolved" stmt="1" loc="52..53" text="a" />
+                <expr id="2" type="colref/unresolved" stmt="2" loc="92..95" text="&quot;a&quot;" />
+                <expr id="3" type="colref/unresolved" stmt="3" loc="138..139" text="a" />
+                <expr id="4" type="literal/integer" const="true" loc="27..28" text="1" />
+                <expr id="5" type="literal/integer" const="true" loc="67..68" text="1" />
+                <expr id="6" type="literal/integer" const="true" loc="109..110" text="1" />
+                <expr id="7" type="literal/integer" const="true" stmt="3" loc="134..135" text="1" />
+                <expr id="8" type="binary" op="PLUS" left="0" right="4" transform="0" loc="23..28" text="a + 1" />
+                <expr id="9" type="binary" op="PLUS" left="1" right="5" transform="1" loc="52..68" text="a +            1" />
+                <expr id="10" type="binary" op="PLUS" left="2" right="6" transform="2" loc="92..110" text="&quot;a&quot; +            1" />
+                <expr id="11" type="binary" op="PLUS" left="7" right="3" transform="3" stmt="3" loc="134..139" text="1 + a" />
+            </expressions>
+            <constants>
+                <constant expr="4" loc="27..28" text="1" />
+                <constant expr="5" loc="67..68" text="1" />
+                <constant expr="6" loc="109..110" text="1" />
+                <constant expr="7" loc="134..135" text="1" />
+            </constants>
+            <column-transforms>
+                <transform expr="8" loc="23..28" text="a + 1">
+                    <snippet template="2290193904433761446">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
+                                <node type="LITERAL_INTEGER" loc="4..5" text="1" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                        <node type="NAME" loc="0..1" text="a" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="9" loc="52..68" text="a +            1">
+                    <snippet template="2290193904433761446">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="a +            1">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..16" text="a +            1">
+                                <node type="LITERAL_INTEGER" loc="15..16" text="1" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                        <node type="NAME" loc="0..1" text="a" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="10" loc="92..110" text="&quot;a&quot; +            1">
+                    <snippet template="2290193904433761446">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="&quot;a&quot; +            1">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="&quot;a&quot; +            1">
+                                <node type="LITERAL_INTEGER" loc="17..18" text="1" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..3" text="&quot;a&quot;">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..3" text="&quot;a&quot;">
+                                        <node type="NAME" loc="0..3" text="&quot;a&quot;" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="11" loc="134..139" text="1 + a">
+                    <snippet template="14311016532657096419">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="1 + a">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="1 + a">
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="4..5" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="4..5" text="a">
+                                        <node type="NAME" loc="4..5" text="a" />
+                                    </node>
+                                </node>
+                                <node type="LITERAL_INTEGER" loc="0..1" text="1" />
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                        </node>
+                    </snippet>
+                </transform>
+            </column-transforms>
+        </script>
+    </analyzer-snapshot>
+    <analyzer-snapshot name="snippet_signature_equality_2">
+        <catalog />
+        <script id="0">
+            <input>
+               select regexp_extract(query_hash, 'regex1', 1);
+               select regexp_extract(query_hash, 'regex2', 1);
+               select regexp_extract(query_hash, 'regex1', 2);
+            </input>
+            <errors />
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="38..48" text="query_hash" />
+                <expr id="1" type="colref/unresolved" stmt="1" loc="101..111" text="query_hash" />
+                <expr id="2" type="colref/unresolved" stmt="2" loc="164..174" text="query_hash" />
+                <expr id="3" type="func" name="regexp_extract" transform="0" loc="23..62" text="regexp_ext..egex1', 1)" />
+                <expr id="4" type="func" name="regexp_extract" transform="1" loc="86..125" text="regexp_ext..egex2', 1)" />
+                <expr id="5" type="func" name="regexp_extract" transform="2" stmt="2" loc="149..188" text="regexp_ext..egex1', 2)" />
+                <expr id="6" type="literal/string" const="true" loc="50..58" text="'regex1'" />
+                <expr id="7" type="literal/integer" const="true" loc="60..61" text="1" />
+                <expr id="8" type="literal/string" const="true" loc="113..121" text="'regex2'" />
+                <expr id="9" type="literal/integer" const="true" loc="123..124" text="1" />
+                <expr id="10" type="literal/string" const="true" stmt="2" loc="176..184" text="'regex1'" />
+                <expr id="11" type="literal/integer" const="true" stmt="2" loc="186..187" text="2" />
+            </expressions>
+            <constants>
+                <constant expr="6" loc="50..58" text="'regex1'" />
+                <constant expr="7" loc="60..61" text="1" />
+                <constant expr="8" loc="113..121" text="'regex2'" />
+                <constant expr="9" loc="123..124" text="1" />
+                <constant expr="10" loc="176..184" text="'regex1'" />
+                <constant expr="11" loc="186..187" text="2" />
+            </constants>
+            <column-transforms>
+                <transform expr="3" loc="23..62" text="regexp_ext..egex1', 1)">
+                    <snippet template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 1)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex1', 1">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                            <node type="NAME" loc="15..25" text="query_hash" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="4" loc="86..125" text="regexp_ext..egex2', 1)">
+                    <snippet template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex2', 1)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex2', 1">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex2'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex2'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                            <node type="NAME" loc="15..25" text="query_hash" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
+                <transform expr="5" loc="149..188" text="regexp_ext..egex1', 2)">
+                    <snippet template="5606800037095841550">
+                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 2)">
+                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex1', 2">
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="2">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="2" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
+                                </node>
+                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                            <node type="NAME" loc="15..25" text="query_hash" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                <node type="NAME" loc="0..14" text="regexp_extract" />
+                            </node>
+                        </node>
+                    </snippet>
+                </transform>
+            </column-transforms>
+        </script>
+    </analyzer-snapshot>
+</analyzer-snapshots>
