@@ -18,7 +18,7 @@
         "@ankoh/dashql-core": "link:../dashql-core-bindings",
         "@ankoh/dashql-protobuf": "link:../dashql-protobuf",
         "@bokuweb/zstd-wasm": "^0.0.27",
-        "@bufbuild/protobuf": "^2.5.2",
+        "@bufbuild/protobuf": "^2.6.0",
         "@codemirror/autocomplete": "^6.18.1",
         "@codemirror/commands": "^6.6.2",
         "@codemirror/language": "^6.10.3",
