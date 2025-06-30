@@ -51,7 +51,7 @@ __metadata:
     "@primer/react-brand": "npm:^0.56.0"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.6.0"
-    "@tauri-apps/cli": "npm:^2.6.1"
+    "@tauri-apps/cli": "npm:^2.6.2"
     "@tauri-apps/plugin-deep-link": "npm:^2.4.0"
     "@tauri-apps/plugin-dialog": "npm:^2.3.0"
     "@tauri-apps/plugin-fs": "npm:^2.4.0"
@@ -2394,98 +2394,98 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-darwin-arm64@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-darwin-arm64@npm:2.6.1"
+"@tauri-apps/cli-darwin-arm64@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-darwin-arm64@npm:2.6.2"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-darwin-x64@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-darwin-x64@npm:2.6.1"
+"@tauri-apps/cli-darwin-x64@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-darwin-x64@npm:2.6.2"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-arm-gnueabihf@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-arm-gnueabihf@npm:2.6.1"
+"@tauri-apps/cli-linux-arm-gnueabihf@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-arm-gnueabihf@npm:2.6.2"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-arm64-gnu@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-arm64-gnu@npm:2.6.1"
+"@tauri-apps/cli-linux-arm64-gnu@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-arm64-gnu@npm:2.6.2"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-arm64-musl@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-arm64-musl@npm:2.6.1"
+"@tauri-apps/cli-linux-arm64-musl@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-arm64-musl@npm:2.6.2"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-riscv64-gnu@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-riscv64-gnu@npm:2.6.1"
+"@tauri-apps/cli-linux-riscv64-gnu@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-riscv64-gnu@npm:2.6.2"
   conditions: os=linux & cpu=riscv64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-x64-gnu@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-x64-gnu@npm:2.6.1"
+"@tauri-apps/cli-linux-x64-gnu@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-x64-gnu@npm:2.6.2"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-linux-x64-musl@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-linux-x64-musl@npm:2.6.1"
+"@tauri-apps/cli-linux-x64-musl@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-linux-x64-musl@npm:2.6.2"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-win32-arm64-msvc@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-win32-arm64-msvc@npm:2.6.1"
+"@tauri-apps/cli-win32-arm64-msvc@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-win32-arm64-msvc@npm:2.6.2"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-win32-ia32-msvc@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-win32-ia32-msvc@npm:2.6.1"
+"@tauri-apps/cli-win32-ia32-msvc@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-win32-ia32-msvc@npm:2.6.2"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli-win32-x64-msvc@npm:2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli-win32-x64-msvc@npm:2.6.1"
+"@tauri-apps/cli-win32-x64-msvc@npm:2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli-win32-x64-msvc@npm:2.6.2"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@tauri-apps/cli@npm:^2.6.1":
-  version: 2.6.1
-  resolution: "@tauri-apps/cli@npm:2.6.1"
+"@tauri-apps/cli@npm:^2.6.2":
+  version: 2.6.2
+  resolution: "@tauri-apps/cli@npm:2.6.2"
   dependencies:
-    "@tauri-apps/cli-darwin-arm64": "npm:2.6.1"
-    "@tauri-apps/cli-darwin-x64": "npm:2.6.1"
-    "@tauri-apps/cli-linux-arm-gnueabihf": "npm:2.6.1"
-    "@tauri-apps/cli-linux-arm64-gnu": "npm:2.6.1"
-    "@tauri-apps/cli-linux-arm64-musl": "npm:2.6.1"
-    "@tauri-apps/cli-linux-riscv64-gnu": "npm:2.6.1"
-    "@tauri-apps/cli-linux-x64-gnu": "npm:2.6.1"
-    "@tauri-apps/cli-linux-x64-musl": "npm:2.6.1"
-    "@tauri-apps/cli-win32-arm64-msvc": "npm:2.6.1"
-    "@tauri-apps/cli-win32-ia32-msvc": "npm:2.6.1"
-    "@tauri-apps/cli-win32-x64-msvc": "npm:2.6.1"
+    "@tauri-apps/cli-darwin-arm64": "npm:2.6.2"
+    "@tauri-apps/cli-darwin-x64": "npm:2.6.2"
+    "@tauri-apps/cli-linux-arm-gnueabihf": "npm:2.6.2"
+    "@tauri-apps/cli-linux-arm64-gnu": "npm:2.6.2"
+    "@tauri-apps/cli-linux-arm64-musl": "npm:2.6.2"
+    "@tauri-apps/cli-linux-riscv64-gnu": "npm:2.6.2"
+    "@tauri-apps/cli-linux-x64-gnu": "npm:2.6.2"
+    "@tauri-apps/cli-linux-x64-musl": "npm:2.6.2"
+    "@tauri-apps/cli-win32-arm64-msvc": "npm:2.6.2"
+    "@tauri-apps/cli-win32-ia32-msvc": "npm:2.6.2"
+    "@tauri-apps/cli-win32-x64-msvc": "npm:2.6.2"
   dependenciesMeta:
     "@tauri-apps/cli-darwin-arm64":
       optional: true
@@ -2511,7 +2511,7 @@ __metadata:
       optional: true
   bin:
     tauri: tauri.js
-  checksum: 10c0/89d9a4b9e098eb9069719934c49ca12376c6bce33e093884e6586a97960222465f387f3fcf57d84b3f60d2c16a2126c238a576e56d8526691f5eeb4d9a485e54
+  checksum: 10c0/286f12dfca380532b84362abe7f5519823d0206b5c4c7f203f76bb8ddbb0cce989b1da76b02a91354ae2aa309e7695bf6e0eb85cd2032e374f229d62dbe85bb3
   languageName: node
   linkType: hard
 
@@ -10040,7 +10040,7 @@ __metadata:
     "@bufbuild/buf": "npm:^1.55.1"
     "@bufbuild/protoc-gen-es": "npm:^2.6.0"
     "@eslint/js": "npm:^9.30.0"
-    "@tauri-apps/cli": "npm:^2.6.1"
+    "@tauri-apps/cli": "npm:^2.6.2"
     "@types/node": "npm:^22.15.34"
     eslint: "npm:^9.30.0"
     prettier: "npm:^3.6.2"
