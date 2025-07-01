@@ -1,14 +1,20 @@
 #include "dashql/script_registry.h"
 
+#include "dashql/buffers/index_generated.h"
+
 namespace dashql {
+
+void ScriptRegistry::Clear() {}
 
 void ScriptRegistry::DropScript(Script& script) {}
 
-void ScriptRegistry::LoadScript(Script& script) {
+buffers::status::StatusCode ScriptRegistry::LoadScript(Script& script) {
     if (!script.analyzed_script) {
-        return;
+        return buffers::status::StatusCode::REGISTRY_SCRIPT_NOT_ANALYZED;
     }
     auto& analyzed = *script.analyzed_script;
+
+    return buffers::status::StatusCode::OK;
 }
 
 void ScriptRegistry::FindColumnRestrictions(
@@ -69,6 +75,12 @@ void ScriptRegistry::FindColumnTransforms(
             callback(script_entry.script, *script_entry.analyzed, transform);
         }
     }
+}
+
+flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry::FindColumnRefs(
+    flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, std::string_view column_name) {
+    buffers::registry::ScriptRegistryColumnInfoBuilder info_builder{builder};
+    return info_builder.Finish();
 }
 
 }  // namespace dashql

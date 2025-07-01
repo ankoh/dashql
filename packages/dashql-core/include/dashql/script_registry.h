@@ -8,6 +8,7 @@
 namespace dashql {
 
 using RegistryEntryID = uint32_t;
+using ColumnID = uint32_t;
 
 /// A script registry.
 ///
@@ -66,8 +67,10 @@ class ScriptRegistry {
     btree::set<std::tuple<ContextObjectID, ColumnID, Script*>> column_transforms;
 
    public:
+    /// Clear the script registry
+    void Clear();
     /// Creates a new script entry or updates an existing one if already registered
-    void LoadScript(Script& script);
+    buffers::status::StatusCode LoadScript(Script& script);
     /// Drop a script completely
     void DropScript(Script& script);
 
@@ -79,6 +82,10 @@ class ScriptRegistry {
     void FindColumnTransforms(
         ContextObjectID table, ColumnID column_id, std::string_view column_name,
         std::function<bool(const Script&, const AnalyzedScript&, const AnalyzedScript::ColumnTransform&)>& callback);
+
+    /// Find column refs and return the result as flatbuffer
+    flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> FindColumnRefs(
+        flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, std::string_view column_name);
 };
 
 }  // namespace dashql

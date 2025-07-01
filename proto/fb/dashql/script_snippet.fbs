@@ -32,9 +32,3 @@ table ScriptTemplate {
     snippets: [ScriptSnippet];
 }
 
-/// A collection of script templates.
-/// These templates are returned  when looking up catalog ids in the script registry.
-table ScriptTemplates {
-    /// The different script templates
-    templates: [ScriptTemplate];
-}

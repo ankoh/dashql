@@ -106,6 +106,9 @@ static FFIResult* packError(buffers::status::StatusCode status) {
         case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
             message = "Collision on external identifier";
             break;
+        case buffers::status::StatusCode::REGISTRY_SCRIPT_NOT_ANALYZED:
+            message = "Unanalyzed scripts cannot be added to the registry";
+            break;
         case buffers::status::StatusCode::OK:
             message = "";
             break;
@@ -385,6 +388,39 @@ extern "C" FFIResult* dashql_catalog_get_statistics(dashql::Catalog* catalog) {
     fb.Finish(buffers::catalog::CatalogStatistics::Pack(fb, stats.get()));
 
     // Return the buffer
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
+}
+
+/// Create a script registry
+extern "C" FFIResult* dashql_script_registry_new() { return packPtr(std::make_unique<dashql::ScriptRegistry>()); }
+
+/// Clear a registry
+extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry) { registry->Clear(); }
+
+/// Load a script
+extern "C" FFIResult* dashql_script_registry_load_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
+    auto status = registry->LoadScript(*script);
+    if (status != buffers::status::StatusCode::OK) {
+        return packError(status);
+    }
+    return packOK();
+}
+
+/// Drop a script
+extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
+    registry->DropScript(*script);
+}
+
+/// Lookup a column ref
+extern "C" FFIResult* dashql_script_registry_find_column_refs(dashql::ScriptRegistry* registry,
+                                                              uint32_t table_context_id, uint32_t table_object_id,
+                                                              const char* column_name_ptr, size_t column_name_length) {
+    std::string_view column_name{column_name_ptr, column_name_length};
+    ContextObjectID table_id{table_context_id, table_object_id};
+    flatbuffers::FlatBufferBuilder fb;
+    auto templates = registry->FindColumnRefs(fb, table_id, column_name);
+    fb.Finish(templates);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));
 }

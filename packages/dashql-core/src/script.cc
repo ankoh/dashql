@@ -17,6 +17,7 @@
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
+#include "dashql/script_registry.h"
 
 namespace dashql {
 
