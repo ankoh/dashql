@@ -135,7 +135,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
     return lookup;
 }
 
-flatbuffers::Offset<buffers::registry::ScriptRegistryColumnLookup> ScriptRegistry::FindColumnRefs(
+flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry::FindColumnInfo(
     flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
     CatalogVersion target_catalog_version) {
     // Find all column restrictions
@@ -145,7 +145,7 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnLookup> ScriptRegistr
 
     // XXX Pack restrictions and transforms
 
-    buffers::registry::ScriptRegistryColumnLookupBuilder info_builder{builder};
+    buffers::registry::ScriptRegistryColumnInfoBuilder info_builder{builder};
     return info_builder.Finish();
 }
 

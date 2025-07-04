@@ -46,6 +46,12 @@ interface DashQLModuleExports {
         data_size: number,
     ) => number;
     dashql_catalog_get_statistics: (ptr: number) => number;
+
+    dashql_script_registry_new: () => number;
+    dashql_script_registry_clear: (registry_ptr: number) => void;
+    dashql_script_registry_load_script: (registry_ptr: number, script_ptr: number) => number;
+    dashql_script_registry_drop_script: (registry_ptr: number, script_ptr: number) => void;
+    dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
 }
 
 type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -56,6 +62,7 @@ interface FlatBufferObject<T> {
 
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
+const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
 
 export class DashQL {
     encoder: TextEncoder;
@@ -166,6 +173,12 @@ export class DashQL {
                 data_size: number,
             ) => number,
             dashql_catalog_get_statistics: instance.exports['dashql_catalog_get_statistics'] as (catalog_ptr: number) => number,
+
+            dashql_script_registry_new: instance.exports['dashql_script_registry_new'] as () => number,
+            dashql_script_registry_clear: instance.exports['dashql_script_registry_clear'] as (registry_ptr: number) => void,
+            dashql_script_registry_load_script: instance.exports['dashql_script_registry_load_script'] as (registry_ptr: number, script_ptr: number) => number,
+            dashql_script_registry_drop_script: instance.exports['dashql_script_registry_drop_script'] as (registry_ptr: number, script_ptr: number) => void,
+            dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number
         };
     }
 
@@ -278,6 +291,12 @@ export class DashQL {
         const result = this.instanceExports.dashql_catalog_new();
         const ptr = this.readPtrResult(CATALOG_TYPE, result);
         return new DashQLCatalog(ptr);
+    }
+
+    public createScriptRegistry(): DashQLScriptRegistry {
+        const result = this.instanceExports.dashql_script_registry_new();
+        const ptr = this.readPtrResult(SCRIPT_REGISTRY_TYPE, result);
+        return new DashQLScriptRegistry(ptr);
     }
 
     public getVersionText(): string {
@@ -775,5 +794,64 @@ export namespace ContextObjectChildID {
     /// Mask index
     export function getChild(value: Value): number {
         return Number(value & 0xffffffffn);
+    }
+}
+
+export class DashQLScriptRegistry {
+    public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
+
+    public constructor(ptr: Ptr<typeof CATALOG_TYPE>) {
+        this.ptr = ptr;
+    }
+    /// Delete the graph
+    public delete() {
+        this.ptr.delete();
+    }
+    /// Reset a script registry
+    public clear(): void {
+        const scriptRegistry = this.ptr.assertNotNull();
+        this.ptr.api.instanceExports.dashql_script_registry_clear(scriptRegistry);
+    }
+    /// Add a script in the registry
+    public loadScript(script: DashQLScript) {
+        const registryPtr = this.ptr.assertNotNull();
+        const scriptPtr = script.ptr.assertNotNull();
+        const result = this.ptr.api.instanceExports.dashql_script_registry_load_script(registryPtr, scriptPtr);
+        this.ptr.api.readStatusResult(result);
+    }
+    /// Update a script from the registry
+    public dropScript(script: DashQLScript) {
+        const registryPtr = this.ptr.assertNotNull();
+        const scriptPtr = script.ptr.assertNotNull();
+        this.ptr.api.instanceExports.dashql_script_registry_drop_script(registryPtr, scriptPtr);
+    }
+    /// Find information about a column
+    public findColumnInfo(table_context_id: number, table_id: number, table_column_id: number, referenced_catalog_version: number): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo> {
+        const registryPtr = this.ptr.assertNotNull();
+
+        // Lookup a column in the script registry
+        const result = this.ptr.api.instanceExports.dashql_script_registry_find_column(
+            registryPtr,
+            table_context_id,
+            table_id,
+            table_column_id,
+            referenced_catalog_version
+        );
+        // Unpack the result
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(result, () => new buffers.registry.ScriptRegistryColumnInfo());
+        return resultBuffer;
+    }
+    /// Find information about a column completion candidate
+    public findColumnInfoForCompletionCandidate(candidate: buffers.completion.CompletionCandidateObjectT): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo> {
+        // Completion object is not a column?
+        if (candidate.objectType != buffers.completion.CompletionCandidateObjectType.COLUMN) {
+            throw new Error(`completion candidate is not a column`);
+        }
+        return this.findColumnInfo(
+            ContextObjectID.getContext(candidate.catalogTableId),
+            ContextObjectID.getObject(candidate.catalogTableId),
+            candidate.tableColumnId,
+            candidate.referencedCatalogVersion
+        );
     }
 }

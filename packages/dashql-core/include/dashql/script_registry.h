@@ -91,7 +91,7 @@ class ScriptRegistry {
                                                              CatalogVersion target_catalog_version);
 
     /// Find column refs and return the result as flatbuffer
-    flatbuffers::Offset<buffers::registry::ScriptRegistryColumnLookup> FindColumnRefs(
+    flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> FindColumnInfo(
         flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
         CatalogVersion target_catalog_version);
 };

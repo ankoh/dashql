@@ -105,7 +105,7 @@ extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry);
 extern "C" FFIResult* dashql_script_registry_load_script(dashql::ScriptRegistry* registry, dashql::Script* script);
 /// Drop a script
 extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* registry, dashql::Script* script);
-/// Drop a script
-extern "C" FFIResult* dashql_script_registry_find_column_refs(dashql::ScriptRegistry* registry, size_t table_context_id,
-                                                              size_t table_object_id, size_t column_id,
-                                                              size_t target_catalog_version);
+/// Lookup column info
+extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
+                                                         size_t table_object_id, size_t column_id,
+                                                         size_t target_catalog_version);

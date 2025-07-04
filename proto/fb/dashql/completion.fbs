@@ -20,6 +20,8 @@ table CompletionCandidateObject {
     catalog_schema_id: uint32;
     /// The table id (unique in catalog)
     catalog_table_id: uint64;
+    /// The column idx
+    table_column_id: uint32;
     /// The referenced catalog version of this particular candidate.
     /// Note that this is not the *global* catalog version but the version of this particular catalog entry.
     ///
@@ -30,9 +32,7 @@ table CompletionCandidateObject {
     ///   found through the registry. If it differs, we know the registry ref is outdated and can ignore it.
     ///   (Without, we would end up returning column restrictions for unrelated columns)
     ///
-    referenced_catalog_version: uint64;
-    /// The column idx
-    table_column_id: uint32;
+    referenced_catalog_version: uint32;
     /// The candidate tags
     candidate_tags: uint8;
     /// The score

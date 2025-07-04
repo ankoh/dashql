@@ -3,7 +3,7 @@ include "dashql/script_snippet.fbs";
 namespace dashql.buffers.registry;
 
 /// Information about a column provided by the script registry.
-table ScriptRegistryColumnLookup {
+table ScriptRegistryColumnInfo {
     /// Templates associated with the column
     templates: [snippet.ScriptTemplate];
 }
