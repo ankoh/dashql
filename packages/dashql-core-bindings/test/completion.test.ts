@@ -24,9 +24,7 @@ describe('DashQL Completion', () => {
             const catalog = dql!.createCatalog();
             const script = dql!.createScript(catalog, 1);
             script.insertTextAt(0, text);
-            script.scan().destroy();
-            script.parse().destroy();
-            script.analyze().destroy();
+            script.analyze();
             script.moveCursor(cursor_offset).destroy();
 
             const completionBuffer = script.completeAtCursor(10);

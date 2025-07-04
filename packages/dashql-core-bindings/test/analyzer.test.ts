@@ -23,9 +23,9 @@ describe('DashQL Analyzer', () => {
         const catalog = dql!.createCatalog();
         const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, 'create table foo(a int);');
-        schemaScript.scan().destroy();
-        schemaScript.parse().destroy();
-        schemaScript.analyze().destroy();
+        schemaScript.scan();
+        schemaScript.parse();
+        schemaScript.analyze();
 
         catalog.loadScript(schemaScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
@@ -33,9 +33,9 @@ describe('DashQL Analyzer', () => {
         expect(() => {
             const mainScript = dql!.createScript(catalog, 1);
             mainScript.insertTextAt(0, 'select * from foo;');
-            mainScript.scan().destroy();
-            mainScript.parse().destroy();
-            mainScript.analyze().destroy();
+            mainScript.scan();
+            mainScript.parse();
+            mainScript.analyze();
             mainScript.destroy();
         }).toThrow(new Error('Collision on external identifier'));
 
@@ -47,48 +47,43 @@ describe('DashQL Analyzer', () => {
         const catalog = dql!.createCatalog();
         const extScript = dql!.createScript(catalog, 1);
         extScript.insertTextAt(0, 'create table foo(a int);');
+        extScript.analyze();
 
-        const extScannerRes = extScript.scan();
-        const extParserRes = extScript.parse();
-        const extAnalyzerRes = extScript.analyze();
-
-        const extScanner = extScannerRes.read();
-        const extParser = extParserRes.read();
-        const extAnalyzer = extAnalyzerRes.read();
-        expect(extScanner.tokens()?.tokenTypesArray()?.length).toBeGreaterThan(0);
-        expect(extParser.nodesLength()).toBeGreaterThan(0);
-        expect(extAnalyzer.tablesLength()).toEqual(1);
+        const extScannedPtr = extScript.getScanned();
+        const extParsedPtr = extScript.getParsed();
+        const extAnalyzedPtr = extScript.getAnalyzed();
+        expect(extScannedPtr.read().tokens()?.tokenTypesArray()?.length).toBeGreaterThan(0);
+        expect(extParsedPtr.read().nodesLength()).toBeGreaterThan(0);
+        expect(extAnalyzedPtr.read().tablesLength()).toEqual(1);
 
         catalog.loadScript(extScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
         const mainScript = dql!.createScript(catalog, 2);
         mainScript.insertTextAt(0, 'select * from foo');
+        mainScript.analyze();
 
-        const mainScannerRes = mainScript.scan();
-        const mainParserRes = mainScript.parse();
-        const mainAnalyzerRes = mainScript.analyze();
+        const mainScannedPtr = mainScript.getScanned();
+        const mainParsedPtr = mainScript.getParsed();
+        const mainAnalyzedPtr = mainScript.getAnalyzed();
+        const mainAnalyzed = mainAnalyzedPtr.read();
+        expect(mainScannedPtr.read().tokens()?.tokenTypesArray()?.length).toBeGreaterThan(0);
+        expect(mainParsedPtr.read().nodesLength()).toBeGreaterThan(0);
+        expect(mainAnalyzed.tableReferencesLength()).toEqual(1);
 
-        const mainScanner = mainScannerRes.read();
-        const mainParser = mainParserRes.read();
-        const mainAnalyzer = mainAnalyzerRes.read();
-        expect(mainScanner.tokens()?.tokenTypesArray()?.length).toBeGreaterThan(0);
-        expect(mainParser.nodesLength()).toBeGreaterThan(0);
-        expect(mainAnalyzer.tableReferencesLength()).toEqual(1);
-
-        const tableRef = mainAnalyzer.tableReferences(0)!;
+        const tableRef = mainAnalyzed.tableReferences(0)!;
         expect(tableRef.resolvedTable()).not.toBeNull();
         const resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.tableName()!.tableName()!).toEqual('foo');
 
-        mainScannerRes.destroy();
-        mainParserRes.destroy();
-        mainAnalyzerRes.destroy();
+        mainScannedPtr.destroy();
+        mainParsedPtr.destroy();
+        mainAnalyzedPtr.destroy();
 
         catalog.destroy();
 
-        extScannerRes.destroy();
-        extParserRes.destroy();
-        extAnalyzerRes.destroy();
+        extScannedPtr.destroy();
+        extParsedPtr.destroy();
+        extAnalyzedPtr.destroy();
     });
 });

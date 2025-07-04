@@ -35,10 +35,11 @@ describe('DashQL Cursor', () => {
         const scriptText = 'select * from A b, C d where b.x = d.y';
         const script = dql!.createScript(catalog, 1);
         script.insertTextAt(0, scriptText);
+        script.analyze();
 
-        const scannedBuffer = script.scan();
-        const parsedBuffer = script.parse();
-        const analyzedBuffer = script.analyze();
+        const scannedBuffer = script.getScanned();
+        const parsedBuffer = script.getParsed();
+        const analyzedBuffer = script.getAnalyzed();
         const scanned = scannedBuffer.read();
         const parsed = parsedBuffer.read();
         const tmpCursor = new dashql.buffers.cursor.ScriptCursor();

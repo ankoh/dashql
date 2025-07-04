@@ -76,6 +76,9 @@ if(WASM)
         -Wl,--export=dashql_script_parse \
         -Wl,--export=dashql_script_analyze \
         -Wl,--export=dashql_script_get_catalog_entry_id \
+        -Wl,--export=dashql_script_get_scanned \
+        -Wl,--export=dashql_script_get_parsed \
+        -Wl,--export=dashql_script_get_analyzed \
         -Wl,--export=dashql_script_get_statistics \
         -Wl,--export=dashql_script_move_cursor \
         -Wl,--export=dashql_script_complete_at_cursor \

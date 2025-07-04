@@ -60,24 +60,33 @@ export type DashQLProcessorState = DashQLSyncState & {
 
 /// Analyze a new script
 export function parseAndAnalyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers {
-    // Scan the script
-    const scanned = script.scan();
-    // Parse the script
-    const parsed = script.parse();
-    // Analyze the script
-    const analyzed = script.analyze();
+    try {
+        script.analyze();
 
-    return { scanned, parsed, analyzed, destroy: destroyBuffers };
+        const scanned = script.getScanned();
+        const parsed = script.getParsed();
+        const analyzed = script.getAnalyzed();
+        return { scanned, parsed, analyzed, destroy: destroyBuffers };
+
+    } catch (e: any) {
+        console.error(e);
+    }
+    return { scanned: null, parsed: null, analyzed: null, destroy: destroyBuffers };
 }
 
 /// Analyze an existing script
 export function analyzeScript(buffers: DashQLScriptBuffers, script: dashql.DashQLScript): DashQLScriptBuffers {
-    // Delete the old analysis
-    buffers.analyzed?.destroy();
-    // Analyze the script
-    const analyzed = script.analyze();
-    // Return the new script
-    return { ...buffers, analyzed };
+    try {
+        // Delete the old analysis
+        buffers.analyzed?.destroy();
+        // Analyze the script
+        script.analyze();
+        // Return the new script
+        return { ...buffers, analyzed: script.getAnalyzed() };
+    } catch (e: any) {
+        console.error(e);
+    }
+    return { scanned: null, parsed: null, analyzed: null, destroy: destroyBuffers };
 }
 
 /// Destory the buffers

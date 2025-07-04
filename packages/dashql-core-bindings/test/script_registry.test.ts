@@ -24,17 +24,13 @@ describe('Script Registry Tests', () => {
 
         const schema = dql!.createScript(catalog, 1);
         schema.insertTextAt(0, 'create table foo(a int);');
-        schema.scan().destroy();
-        schema.parse().destroy();
-        schema.analyze().destroy();
+        schema.analyze();
 
         const registry = dql!.createScriptRegistry();
 
         const target = dql!.createScript(catalog, 2);
         target.insertTextAt(0, 'select * from foo where a < 3');
-        target.scan().destroy();
-        target.parse().destroy();
-        target.analyze().destroy();
+        target.analyze();
 
         registry.loadScript(target);
 

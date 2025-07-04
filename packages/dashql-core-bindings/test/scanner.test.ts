@@ -35,7 +35,8 @@ describe('DashQL Scanner', () => {
             expectedBreaks: number[],
         ) => {
             script.insertTextAt(size++, t);
-            const result = script.scan();
+            script.scan();
+            const result = script.getScanned();
             const scanned = result.read(tmp);
 
             expect(scanned.tokens()).toBeTruthy();
@@ -75,7 +76,8 @@ describe('DashQL Scanner', () => {
                 const catalog = dql!.createCatalog();
                 const script = dql!.createScript(catalog, 1);
                 script.insertTextAt(0, text);
-                const scanResult = script.scan();
+                script.scan();
+                const scanResult = script.getScanned();
                 const scannedScript = scanResult.read();
                 expect(scannedScript.tokens()).toBeTruthy();
 

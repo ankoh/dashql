@@ -60,9 +60,8 @@ describe('Catalog Tests ', () => {
         // Create and analyze a script referencing an unknown table
         const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1');
-        script.scan().destroy();
-        script.parse().destroy();
-        let analyzedBuffer = script.analyze();
+        script.analyze();
+        let analyzedBuffer = script.getAnalyzed();
         let analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
 
@@ -90,8 +89,8 @@ describe('Catalog Tests ', () => {
         );
 
         // Now analyze the script again
-        script.parse().destroy();
-        analyzedBuffer = script.analyze();
+        script.analyze();
+        analyzedBuffer = script.getAnalyzed();
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
         tableRef = analyzed.tableReferences(0)!;
@@ -117,9 +116,8 @@ describe('Catalog Tests ', () => {
         // Create and analyze a script referencing an unknown table
         const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1, db1.schema2.table2');
-        script.scan().destroy();
-        script.parse().destroy();
-        let analyzedBuffer = script.analyze();
+        script.analyze();
+        let analyzedBuffer = script.getAnalyzed();
         let analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
 
@@ -156,8 +154,8 @@ describe('Catalog Tests ', () => {
         );
 
         // Now analyze the script again
-        script.parse().destroy();
-        analyzedBuffer = script.analyze();
+        script.analyze();
+        analyzedBuffer = script.getAnalyzed();
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
         tableRef = analyzed.tableReferences(0)!;
@@ -282,9 +280,7 @@ create table region (
    primary key (r_regionkey)
 );
         `);
-        schemaScript.scan().destroy();
-        schemaScript.parse().destroy();
-        schemaScript.analyze().destroy();
+        schemaScript.analyze();
 
         catalog.loadScript(schemaScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();

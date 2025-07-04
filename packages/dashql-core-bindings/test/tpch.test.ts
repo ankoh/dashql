@@ -38,7 +38,8 @@ describe('DashQL TPCH Parsing', () => {
 
         // Parse the script
         script.scan();
-        const parserResult = script.parse();
+        script.parse();
+        const parserResult = script.getParsed();
         const parsedScript = parserResult.read();
         expect(parsedScript.statementsLength()).toEqual(8);
         for (let i = 0; i < 8; ++i) {
@@ -47,7 +48,8 @@ describe('DashQL TPCH Parsing', () => {
         expect(parsedScript.errorsLength()).toEqual(0);
 
         // Analyze the script
-        const analyzerResult = script.analyze();
+        script.analyze();
+        const analyzerResult = script.getAnalyzed();
         const analyzedScript = analyzerResult.read();
         expect(analyzedScript.tablesLength()).toEqual(8);
 
@@ -190,14 +192,16 @@ limit 100
 
         // Parse the script
         script.scan();
-        const parserResult = script.parse();
+        script.parse();
+        const parserResult = script.getParsed();
         const parsedScript = parserResult.read();
         expect(parsedScript.statementsLength()).toEqual(1);
         expect(parsedScript.statements(0)!.statementType()).toEqual(dashql.buffers.parser.StatementType.SELECT);
         expect(parsedScript.errorsLength()).toEqual(0);
 
         // Analyze the script
-        const analyzerResult = script.analyze();
+        script.analyze()
+        const analyzerResult = script.getAnalyzed();
         const analyzedScript = analyzerResult.read();
         expect(analyzedScript.tablesLength()).toEqual(0);
         expect(analyzedScript.tableReferencesLength()).toBeGreaterThan(0);

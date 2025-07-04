@@ -16,10 +16,13 @@ interface DashQLModuleExports {
     dashql_script_format: (ptr: number) => number;
     dashql_script_scan: (ptr: number) => number;
     dashql_script_parse: (ptr: number) => number;
-    dashql_script_analyze: (ptr: number) => number;
+    dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => number;
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
     dashql_script_complete_at_cursor: (ptr: number, limit: number) => number;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
+    dashql_script_get_scanned: (ptr: number) => number;
+    dashql_script_get_parsed: (ptr: number) => number;
+    dashql_script_get_analyzed: (ptr: number) => number;
     dashql_script_get_statistics: (ptr: number) => number;
 
     dashql_catalog_new: () => number;
@@ -111,9 +114,12 @@ export class DashQL {
             dashql_script_format: instance.exports['dashql_script_format'] as (ptr: number) => number,
             dashql_script_scan: instance.exports['dashql_script_scan'] as (ptr: number) => number,
             dashql_script_parse: instance.exports['dashql_script_parse'] as (ptr: number) => number,
-            dashql_script_analyze: instance.exports['dashql_script_analyze'] as (ptr: number) => number,
+            dashql_script_analyze: instance.exports['dashql_script_analyze'] as (ptr: number, parse_if_outdated: boolean) => number,
             dashql_script_get_statistics: instance.exports['dashql_script_get_statistics'] as (ptr: number) => number,
             dashql_script_get_catalog_entry_id: instance.exports['dashql_script_get_catalog_entry_id'] as (ptr: number) => number,
+            dashql_script_get_scanned: instance.exports['dashql_script_get_scanned'] as (ptr: number) => number,
+            dashql_script_get_parsed: instance.exports['dashql_script_get_parsed'] as (ptr: number) => number,
+            dashql_script_get_analyzed: instance.exports['dashql_script_get_analyzed'] as (ptr: number) => number,
             dashql_script_move_cursor: instance.exports['dashql_script_move_cursor'] as (
                 ptr: number,
                 offset: number,
@@ -509,48 +515,44 @@ export class DashQLScript {
         resultBuffer.destroy();
         return text;
     }
-    /// Scan the script.
-    /// Use `throwOnError` with caution since you might leak other pointers!
-    public scan(throwOnError: boolean = false): FlatBufferPtr<buffers.parser.ScannedScript> {
+    /// Scan the script
+    public scan() {
         const scriptPtr = this.ptr.assertNotNull();
-        const rawResultPtr = this.ptr.api.instanceExports.dashql_script_scan(scriptPtr);
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript>(rawResultPtr, () => new buffers.parser.ScannedScript());
-        if (throwOnError) {
-            const script = resultPtr.read();
-            if (script.errorsLength() > 0) {
-                throw new ScannerError(resultPtr, script.errors(0));
-            }
-        }
-        return resultPtr;
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_scan(scriptPtr);
+        this.ptr.api.readStatusResult(resultPtr);
     }
-    /// Parse the script.
-    /// Use `throwOnError` with caution since you might leak other pointers!
-    public parse(throwOnError: boolean = false): FlatBufferPtr<buffers.parser.ParsedScript> {
+    /// Parse the script
+    public parse() {
         const scriptPtr = this.ptr.assertNotNull();
-        const rawResultPtr = this.ptr.api.instanceExports.dashql_script_parse(scriptPtr);
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript>(rawResultPtr, () => new buffers.parser.ParsedScript());
-        if (throwOnError) {
-            const script = resultPtr.read();
-            if (script.errorsLength() > 0) {
-                throw new ParserError(resultPtr, script.errors(0));
-            }
-        }
-        return resultPtr;
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_parse(scriptPtr);
+        this.ptr.api.readStatusResult(resultPtr);
     }
-    /// Analyze the script (optionally with an external script)
-    public analyze(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
+    /// Analyze the script
+    public analyze(parseIfOutdated: boolean = true) {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_analyze(scriptPtr);
-        return this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript>(resultPtr, () => new buffers.analyzer.AnalyzedScript());
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_analyze(scriptPtr, parseIfOutdated);
+        this.ptr.api.readStatusResult(resultPtr);
     }
-    /// Pretty print the SQL string
-    public format(): string {
+    /// Get the scanned script
+    public getScanned(): FlatBufferPtr<buffers.parser.ScannedScript> {
         const scriptPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_script_format(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
-        const text = this.ptr.api.decoder.decode(resultBuffer.data);
-        resultBuffer.destroy();
-        return text;
+        const result = this.ptr.api.instanceExports.dashql_script_get_scanned(scriptPtr);
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript>(result, () => new buffers.parser.ScannedScript());
+        return resultBuffer;
+    }
+    /// Get the parsed script
+    public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
+        const scriptPtr = this.ptr.assertNotNull();
+        const result = this.ptr.api.instanceExports.dashql_script_get_parsed(scriptPtr);
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript>(result, () => new buffers.parser.ParsedScript());
+        return resultBuffer;
+    }
+    /// Get the analyzed script
+    public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
+        const scriptPtr = this.ptr.assertNotNull();
+        const result = this.ptr.api.instanceExports.dashql_script_get_analyzed(scriptPtr);
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript>(result, () => new buffers.analyzer.AnalyzedScript());
+        return resultBuffer;
     }
     /// Move the cursor
     public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
@@ -574,28 +576,6 @@ export class DashQLScript {
         const resultPtr = this.ptr.api.instanceExports.dashql_script_get_statistics(scriptPtr);
         return this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics>(resultPtr, () => new buffers.statistics.ScriptStatistics());
     }
-}
-
-export class DashQLScriptBuffers {
-    constructor(
-        public scanned: FlatBufferPtr<buffers.parser.ScannedScript> | null,
-        public parsed: FlatBufferPtr<buffers.parser.ParsedScript> | null,
-        public analyzed: FlatBufferPtr<buffers.analyzer.AnalyzedScript> | null
-    ) { }
-    destroy() {
-        if (this.scanned != null) {
-            this.scanned.destroy();
-            this.scanned = null;
-        }
-        if (this.parsed != null) {
-            this.parsed.destroy();
-            this.parsed = null;
-        }
-        if (this.analyzed != null) {
-            this.analyzed.destroy();
-            this.analyzed = null;
-        }
-    };
 }
 
 export class DashQLCatalogSnapshotReader {
