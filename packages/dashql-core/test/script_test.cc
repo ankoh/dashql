@@ -1,8 +1,8 @@
 #include "dashql/script.h"
 
-#include "gtest/gtest.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -11,17 +11,15 @@ namespace {
 TEST(ScriptTest, ParsingBeforeScanning) {
     Catalog catalog;
     Script script{catalog, 1};
-    auto [scanned, status] = script.Parse();
-    ASSERT_EQ(scanned, nullptr);
-    ASSERT_EQ(status, buffers::status::StatusCode::PARSER_INPUT_NOT_SCANNED);
+    auto status = script.Parse();
+    ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
 }
 
 TEST(ScriptTest, AnalyzingBeforeParsing) {
     Catalog catalog;
     Script script{catalog, 1};
-    auto [analyzed, status] = script.Analyze();
-    ASSERT_EQ(analyzed, nullptr);
-    ASSERT_EQ(status, buffers::status::StatusCode::ANALYZER_INPUT_NOT_PARSED);
+    auto status = script.Analyze(false);
+    ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_PARSED);
 }
 
 TEST(ScriptTest, TPCH_Q2) {
@@ -86,17 +84,17 @@ limit 100
     Catalog catalog;
     Script external_script{catalog, 1};
     external_script.InsertTextAt(0, external_script_text);
-    ASSERT_EQ(external_script.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Analyze(), buffers::status::StatusCode::OK);
 
     Script main_script{catalog, 2};
     main_script.InsertTextAt(0, main_script_text);
-    ASSERT_EQ(main_script.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Parse().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);
 
     catalog.LoadScript(external_script, 0);
-    ASSERT_EQ(main_script.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Analyze(), buffers::status::StatusCode::OK);
 }
 
 TEST(ScriptTest, ReplaceText) {

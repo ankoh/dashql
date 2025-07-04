@@ -9,7 +9,6 @@
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
-#include "dashql/parser/parser.h"
 #include "dashql/script.h"
 #include "dashql/version.h"
 
@@ -73,11 +72,14 @@ static FFIResult* packError(buffers::status::StatusCode status) {
         case buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC:
             message = "Catalog id is out of sync";
             break;
-        case buffers::status::StatusCode::PARSER_INPUT_NOT_SCANNED:
-            message = "Parser input is not scanned";
+        case buffers::status::StatusCode::SCRIPT_NOT_SCANNED:
+            message = "Script is not scanned";
             break;
-        case buffers::status::StatusCode::ANALYZER_INPUT_NOT_PARSED:
-            message = "Analyzer input is not parsed";
+        case buffers::status::StatusCode::SCRIPT_NOT_PARSED:
+            message = "Script is not parsed";
+            break;
+        case buffers::status::StatusCode::SCRIPT_NOT_ANALYZED:
+            message = "Script is not analyzed";
             break;
         case buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED:
             message = "Unanalyzed scripts cannot be added to the catalog";
@@ -105,9 +107,6 @@ static FFIResult* packError(buffers::status::StatusCode status) {
             break;
         case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
             message = "Collision on external identifier";
-            break;
-        case buffers::status::StatusCode::REGISTRY_SCRIPT_NOT_ANALYZED:
-            message = "Unanalyzed scripts cannot be added to the registry";
             break;
         case buffers::status::StatusCode::OK:
             message = "";
@@ -184,65 +183,69 @@ extern "C" FFIResult* dashql_script_to_string(Script* script) {
 
 /// Scan a script
 extern "C" FFIResult* dashql_script_scan(Script* script) {
-    // Scan the script
-    auto [scanned, status] = script->Scan();
+    auto status = script->Scan();
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
+    } else {
+        return packOK();
     }
-
-    // Pack a parsed script
-    flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(scanned->Pack(fb));
-
-    // Return the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
-    return packBuffer(std::move(detached));
 }
-
 /// Parse a script
 extern "C" FFIResult* dashql_script_parse(Script* script) {
-    // Parse the script
-    auto [parsed, status] = script->Parse();
+    auto status = script->Parse();
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
+    } else {
+        return packOK();
     }
-
-    // Pack a parsed script
-    flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(parsed->Pack(fb));
-
-    // Return the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
-    return packBuffer(std::move(detached));
 }
-
 /// Analyze a script
-extern "C" FFIResult* dashql_script_analyze(Script* script) {
-    // Analyze the script
-    auto [analyzed, status] = script->Analyze();
+extern "C" FFIResult* dashql_script_analyze(Script* script, bool parse_if_outdated) {
+    auto status = script->Analyze(parse_if_outdated);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
+    } else {
+        return packOK();
+    }
+}
+
+/// Get the parsed script
+extern "C" FFIResult* dashql_script_get_scanned(Script* script) {
+    if (script->scanned_script == nullptr) {
+        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
 
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(analyzed->Pack(fb));
-
-    // Return the buffer
+    fb.Finish(script->scanned_script->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));
 }
 
-/// Get a pretty-printed version of the SQL query
-extern "C" FFIResult* dashql_script_format(dashql::Script* script) {
-    auto text = std::make_unique<std::string>(script->Format());
-    auto result = new FFIResult();
-    result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
-    result->data_ptr = text->data();
-    result->data_length = text->length();
-    result->owner_ptr = text.release();
-    result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
-    return result;
+/// Get the parsed script
+extern "C" FFIResult* dashql_script_get_parsed(Script* script) {
+    if (script->parsed_script == nullptr) {
+        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
+    }
+
+    // Pack a parsed script
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(script->parsed_script->Pack(fb));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
+}
+
+/// Get the analyzed script
+extern "C" FFIResult* dashql_script_get_analyzed(Script* script) {
+    if (script->analyzed_script == nullptr) {
+        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
+    }
+
+    // Pack a parsed script
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(script->analyzed_script->Pack(fb));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
 }
 
 /// Get script id

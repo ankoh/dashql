@@ -123,10 +123,10 @@ TEST(CatalogTest, SingleDescriptorPool) {
     Script script{catalog, 2};
     {
         script.ReplaceText("select * from db1.schema1.table1");
-        ASSERT_EQ(script.Scan().second, buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Parse().second, buffers::status::StatusCode::OK);
-        auto [analyzed, analysis_status] = script.Analyze();
-        ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+        auto& analyzed = script.GetAnalyzedScript();
         ASSERT_EQ(analyzed->table_references.GetSize(), 1);
         ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(
             analyzed->table_references[0].inner));
@@ -140,10 +140,10 @@ TEST(CatalogTest, SingleDescriptorPool) {
     }
     {
         script.ReplaceText("select * from db1.schema1.table2");
-        ASSERT_EQ(script.Scan().second, buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Parse().second, buffers::status::StatusCode::OK);
-        auto [analyzed, analysis_status] = script.Analyze();
-        ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+        auto& analyzed = script.GetAnalyzedScript();
         ASSERT_EQ(analyzed->table_references.GetSize(), 1);
         ASSERT_TRUE(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(
             analyzed->table_references[0].inner));
@@ -369,12 +369,10 @@ TEST(CatalogTest, FlattenExampleSchema) {
     // Create script with TPCH schema
     Script script{catalog, 1};
     script.InsertTextAt(0, TPCH_SCHEMA);
-    auto [scanned, scanner_status] = script.Scan();
-    ASSERT_EQ(scanner_status, buffers::status::StatusCode::OK);
-    auto [parsed, parser_status] = script.Parse();
-    ASSERT_EQ(parser_status, buffers::status::StatusCode::OK);
-    auto [analyzed, analyzer_status] = script.Analyze();
-    ASSERT_EQ(analyzer_status, buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+    auto& analyzed = script.GetAnalyzedScript();
 
     // Make sure the analyzed script matches expectations
     ASSERT_EQ(analyzed->GetDatabasesByName().size(), 1);

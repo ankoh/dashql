@@ -17,7 +17,6 @@
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-#include "dashql/script_registry.h"
 
 namespace dashql {
 
@@ -32,11 +31,11 @@ std::unique_ptr<buffers::parser::StatementT> ParsedScript::Statement::Pack() {
 }
 
 /// Constructor
-ScannedScript::ScannedScript(const rope::Rope& text, uint32_t external_id)
-    : external_id(external_id), text_buffer(text.ToString(true)) {}
+ScannedScript::ScannedScript(const rope::Rope& text, TextVersion text_version, CatalogEntryID external_id)
+    : external_id(external_id), text_buffer(text.ToString(true)), text_version(text_version) {}
 /// Constructor
-ScannedScript::ScannedScript(std::string text, uint32_t external_id)
-    : external_id(external_id), text_buffer(std::move(text)) {
+ScannedScript::ScannedScript(std::string text, TextVersion text_version, CatalogEntryID external_id)
+    : external_id(external_id), text_buffer(std::move(text)), text_version(text_version) {
     if (text_buffer.size() < 2) {
         text_buffer.resize(2);
     }
@@ -648,21 +647,25 @@ void Script::InsertCharAt(size_t char_idx, uint32_t unicode) {
     auto length = dashql::utf8::utf8proc_encode_char(unicode, reinterpret_cast<uint8_t*>(buffer.data()));
     std::string_view encoded{reinterpret_cast<char*>(buffer.data()), static_cast<size_t>(length)};
     text.Insert(char_idx, encoded);
+    ++text_version;
 }
 /// Insert a text at an offet
-void Script::InsertTextAt(size_t char_idx, std::string_view encoded) { text.Insert(char_idx, encoded); }
+void Script::InsertTextAt(size_t char_idx, std::string_view encoded) {
+    text.Insert(char_idx, encoded);
+    ++text_version;
+}
 /// Erase a text at an offet
-void Script::EraseTextRange(size_t char_idx, size_t count) { text.Remove(char_idx, count); }
+void Script::EraseTextRange(size_t char_idx, size_t count) {
+    text.Remove(char_idx, count);
+    ++text_version;
+}
 /// Replace the text in the script
-void Script::ReplaceText(std::string_view encoded) { text = rope::Rope{1024, encoded}; }
+void Script::ReplaceText(std::string_view encoded) {
+    text = rope::Rope{1024, encoded};
+    ++text_version;
+}
 /// Print a script as string
 std::string Script::ToString() { return text.ToString(); }
-
-/// Returns the pretty-printed string for this script.
-std::string Script::Format() {
-    // TODO: actually implement formatting
-    return "formatted[" + text.ToString() + "]";
-}
 
 /// Update memory statisics
 std::unique_ptr<buffers::statistics::ScriptMemoryStatistics> Script::GetMemoryStatistics() {
@@ -730,32 +733,48 @@ std::unique_ptr<buffers::statistics::ScriptStatisticsT> Script::GetStatistics() 
     return stats;
 }
 
-/// Scan a script
-std::pair<ScannedScript*, buffers::status::StatusCode> Script::Scan() {
-    auto time_start = std::chrono::steady_clock::now();
-    auto [script, status] = parser::Scanner::Scan(text, catalog_entry_id);
+buffers::status::StatusCode Script::Scan() {
+    auto time_before = std::chrono::steady_clock::now();
+    auto [script, status] = parser::Scanner::Scan(text, text_version, catalog_entry_id);
     scanned_script = std::move(script);
     timing_statistics.mutate_scanner_last_elapsed(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_start).count());
-    return {scanned_script.get(), status};
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before).count());
+    return status;
 }
-/// Parse a script
-std::pair<ParsedScript*, buffers::status::StatusCode> Script::Parse() {
-    auto time_start = std::chrono::steady_clock::now();
+
+buffers::status::StatusCode Script::Parse() {
+    auto time_before = std::chrono::steady_clock::now();
     auto [script, status] = parser::Parser::Parse(scanned_script);
     parsed_script = std::move(script);
     timing_statistics.mutate_parser_last_elapsed(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_start).count());
-    return {parsed_script.get(), status};
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before).count());
+    return status;
 }
 
 /// Analyze a script
-std::pair<AnalyzedScript*, buffers::status::StatusCode> Script::Analyze() {
-    auto time_start = std::chrono::steady_clock::now();
+buffers::status::StatusCode Script::Analyze(bool parse_if_outdated) {
+    buffers::status::StatusCode status;
+
+    if (parse_if_outdated) {
+        // Scan the script, if needed
+        if (scanned_script == nullptr || scanned_script->text_version != text_version) {
+            status = Scan();
+            if (status != buffers::status::StatusCode::OK) {
+                return status;
+            }
+        }
+        // Parse the script, if needed
+        if (parsed_script == nullptr || parsed_script->scanned_script.get() != scanned_script.get()) {
+            status = Parse();
+            if (status != buffers::status::StatusCode::OK) {
+                return status;
+            }
+        }
+    }
 
     // Check if the script was already analyzed.
     // In that case, we have to clean up anything that we "registered" in the scanned script before.
-    if (analyzed_script && scanned_script) {
+    if (analyzed_script) {
         for (auto& chunk : scanned_script->name_registry.GetChunks()) {
             for (auto& entry : chunk) {
                 entry.coarse_analyzer_tags = 0;
@@ -763,18 +782,19 @@ std::pair<AnalyzedScript*, buffers::status::StatusCode> Script::Analyze() {
             }
         }
     }
-
     // Analyze a script
-    auto [script, status] = Analyzer::Analyze(parsed_script, catalog);
-    if (status != buffers::status::StatusCode::OK) {
-        return {nullptr, status};
-    }
-    analyzed_script = std::move(script);
-
-    // Update step timings
+    auto time_before_analyzing = std::chrono::steady_clock::now();
+    std::shared_ptr<AnalyzedScript> analyzed;
+    std::tie(analyzed, status) = Analyzer::Analyze(parsed_script, catalog);
     timing_statistics.mutate_analyzer_last_elapsed(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_start).count());
-    return {analyzed_script.get(), status};
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before_analyzing)
+            .count());
+    if (status != buffers::status::StatusCode::OK) {
+        return status;
+    }
+    analyzed_script = std::move(analyzed);
+
+    return buffers::status::StatusCode::OK;
 }
 
 /// Move the cursor to a offset

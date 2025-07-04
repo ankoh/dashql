@@ -2,9 +2,9 @@
 
 #include <string_view>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/text/rope.h"
 
@@ -68,7 +68,7 @@ class Scanner {
 
    protected:
     /// Constructor
-    Scanner(const rope::Rope& text, CatalogEntryID external_id);
+    Scanner(const rope::Rope& text, TextVersion text_version, CatalogEntryID external_id);
     /// Delete the copy constructor
     Scanner(const Scanner& other) = delete;
     /// Delete the copy assignment
@@ -77,7 +77,8 @@ class Scanner {
    public:
     /// Scan input and produce all tokens
     static std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scan(const rope::Rope& text,
-                                                                             uint32_t external_id);
+                                                                                       TextVersion text_version,
+                                                                                       CatalogEntryID external_id);
 };
 
 }  // namespace parser

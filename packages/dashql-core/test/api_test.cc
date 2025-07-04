@@ -1,8 +1,8 @@
 #include "dashql/api.h"
 
-#include "gtest/gtest.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -34,7 +34,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
 
     auto external_scanned = dashql_script_scan(external_script);
     auto external_parsed = dashql_script_parse(external_script);
-    auto external_analyzed = dashql_script_analyze(external_script);
+    auto external_analyzed = dashql_script_analyze(external_script, false);
     ASSERT_EQ(external_scanned->status_code, OK);
     ASSERT_EQ(external_parsed->status_code, OK);
     ASSERT_EQ(external_analyzed->status_code, OK);
@@ -45,7 +45,8 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
     dashql_catalog_load_script(catalog, external_script, 0);
 
     auto main_result = dashql_script_new(catalog, 1);
-    ASSERT_EQ(static_cast<buffers::status::StatusCode>(main_result->status_code), buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
+    ASSERT_EQ(static_cast<buffers::status::StatusCode>(main_result->status_code),
+              buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
 
     dashql_delete_result(main_result);
     dashql_delete_result(external_result);
@@ -124,7 +125,7 @@ limit 100
 
     auto external_scanned = dashql_script_scan(external_script);
     auto external_parsed = dashql_script_parse(external_script);
-    auto external_analyzed = dashql_script_analyze(external_script);
+    auto external_analyzed = dashql_script_analyze(external_script, false);
     ASSERT_EQ(external_scanned->status_code, OK);
     ASSERT_EQ(external_parsed->status_code, OK);
     ASSERT_EQ(external_analyzed->status_code, OK);
@@ -142,7 +143,7 @@ limit 100
 
     auto main_scanned = dashql_script_scan(main_script);
     auto main_parsed = dashql_script_parse(main_script);
-    auto main_analyzed = dashql_script_analyze(main_script);
+    auto main_analyzed = dashql_script_analyze(main_script, false);
     ASSERT_EQ(main_scanned->status_code, OK);
     ASSERT_EQ(main_parsed->status_code, OK);
     ASSERT_EQ(main_analyzed->status_code, OK);

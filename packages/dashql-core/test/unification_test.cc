@@ -24,9 +24,9 @@ TEST(UnificationTest, SingleTableInDefaultSchema) {
     Script script{catalog, 42};
     script.InsertTextAt(0, "create table foo(a int);");
 
-    ASSERT_EQ(script.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(script, 1), buffers::status::StatusCode::OK);
 
     flatbuffers::FlatBufferBuilder fb;
@@ -59,14 +59,10 @@ TEST(UnificationTest, MultipleTablesInDefaultSchema) {
     schema0.InsertTextAt(0, "create table foo(a int);");
     schema1.InsertTextAt(0, "create table bar(a int);");
 
-    ASSERT_EQ(schema0.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema0.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema0, 1), buffers::status::StatusCode::OK);
 
-    ASSERT_EQ(schema1.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema1.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema1, 2), buffers::status::StatusCode::OK);
 
     flatbuffers::FlatBufferBuilder fb;
@@ -102,14 +98,10 @@ TEST(UnificationTest, MultipleTablesInMultipleSchemas) {
     schema0.InsertTextAt(0, "create table in_default_0(a int);");
     schema1.InsertTextAt(0, "create table in_default_1(a int); create table separate.schema.in_separate_0(b int);");
 
-    ASSERT_EQ(schema0.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema0.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema0, 1), buffers::status::StatusCode::OK);
 
-    ASSERT_EQ(schema1.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema1.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema1, 2), buffers::status::StatusCode::OK);
 
     flatbuffers::FlatBufferBuilder fb;
@@ -151,16 +143,12 @@ TEST(UnificationTest, SimpleTableReference) {
     schema.InsertTextAt(0, "create table db1.schema1.table1(a int);create table db2.schema2.table2(a int);");
     query.InsertTextAt(0, "select * from db2.schema2.table2");
 
-    ASSERT_EQ(schema.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema, 1), buffers::status::StatusCode::OK);
 
     // Analyze query after loading the schema script in the catalog
-    ASSERT_EQ(query.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(query.Parse().second, buffers::status::StatusCode::OK);
-    auto [analyzed, analysis_status] = query.Analyze();
-    ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
+    ASSERT_EQ(query.Analyze(), buffers::status::StatusCode::OK);
+    auto& analyzed = query.GetAnalyzedScript();
 
     // Check flattened catalog
     flatbuffers::FlatBufferBuilder fb;
@@ -200,14 +188,8 @@ TEST(UnificationTest, ParallelDatabaseRegistration) {
     schema0.InsertTextAt(0, "create table db1.schema1.table1(a int);");
     schema1.InsertTextAt(0, "create table db1.schema2.table2(a int);");
 
-    ASSERT_EQ(schema0.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Analyze().second, buffers::status::StatusCode::OK);
-
-    ASSERT_EQ(schema1.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Analyze().second, buffers::status::StatusCode::OK);
-
+    ASSERT_EQ(schema0.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema1.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema0, 1), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema1, 2), buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
 }
@@ -220,14 +202,8 @@ TEST(UnificationTest, ParallelSchemaRegistration) {
     schema0.InsertTextAt(0, "create table schema1.table1(a int);");
     schema1.InsertTextAt(0, "create table schema1.table2(a int);");
 
-    ASSERT_EQ(schema0.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema0.Analyze().second, buffers::status::StatusCode::OK);
-
-    ASSERT_EQ(schema1.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(schema1.Analyze().second, buffers::status::StatusCode::OK);
-
+    ASSERT_EQ(schema0.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(schema1.Analyze(), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema0, 1), buffers::status::StatusCode::OK);
     ASSERT_EQ(catalog.LoadScript(schema1, 2), buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
 }

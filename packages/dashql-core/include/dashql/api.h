@@ -56,11 +56,17 @@ extern "C" FFIResult* dashql_script_scan(dashql::Script* script);
 /// Parse a script
 extern "C" FFIResult* dashql_script_parse(dashql::Script* script);
 /// Analyze a script
-extern "C" FFIResult* dashql_script_analyze(dashql::Script* script);
+extern "C" FFIResult* dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
 /// Get a pretty-printed version of the SQL query
 extern "C" FFIResult* dashql_script_format(dashql::Script* script);
 /// Get script id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
+/// Get the scanned script
+extern "C" FFIResult* dashql_script_get_scanned(dashql::Script* script);
+/// Get the parsed script
+extern "C" FFIResult* dashql_script_get_parsed(dashql::Script* script);
+/// Get the analyzed script
+extern "C" FFIResult* dashql_script_get_analyzed(dashql::Script* script);
 /// Get script statistics
 extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script);
 /// Move the cursor in a script to a position

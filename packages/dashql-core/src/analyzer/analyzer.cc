@@ -32,7 +32,7 @@ std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer
 std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer::Analyze(
     std::shared_ptr<ParsedScript> parsed, Catalog& catalog) {
     if (parsed == nullptr) {
-        return {nullptr, buffers::status::StatusCode::ANALYZER_INPUT_NOT_PARSED};
+        return {nullptr, buffers::status::StatusCode::SCRIPT_NOT_PARSED};
     }
     Analyzer az{parsed, catalog};
     return az.Execute();

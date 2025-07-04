@@ -107,6 +107,7 @@ Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::Location loc)
 
 /// Scan input and produce all tokens
 std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::Scan(const rope::Rope& text,
+                                                                                     TextVersion text_version,
                                                                                      CatalogEntryID external_id) {
     // Function to get next token
     auto next = [](void* scanner_state_ptr, std::optional<Parser::symbol_type>& lookahead_symbol) {
@@ -178,7 +179,7 @@ std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::
     };
 
     // Create the scanner
-    Scanner scanner{text, external_id};
+    Scanner scanner{text, text_version, external_id};
     // Collect all tokens until we hit EOF
     std::optional<Parser::symbol_type> lookahead_symbol;
     while (true) {

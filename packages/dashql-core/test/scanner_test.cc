@@ -3,12 +3,12 @@
 #include <initializer_list>
 #include <optional>
 
-#include "gtest/gtest.h"
 #include "dashql/api.h"
+#include "dashql/buffers/index_generated.h"
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
-#include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -43,8 +43,13 @@ TEST(ScannerTest, InsertChars) {
         dashql_script_insert_char_at(script, size++, c);
         auto result = dashql_script_scan(script);
         ASSERT_EQ(result->status_code, OK);
-        match_tokens(result->data_ptr, offsets, lengths, types, breaks);
+        ASSERT_EQ(result->data_ptr, nullptr);
         dashql_delete_result(result);
+
+        auto scanned = dashql_script_get_scanned(script);
+        ASSERT_EQ(scanned->status_code, OK);
+        match_tokens(scanned->data_ptr, offsets, lengths, types, breaks);
+        dashql_delete_result(scanned);
     };
 
     add_char('s', {0}, {1}, {ScannerToken::IDENTIFIER}, {});
@@ -67,7 +72,7 @@ TEST(ScannerTest, FindTokenAtOffset) {
     auto scan = [&](std::string_view text, CatalogEntryID external_id) {
         rope::Rope buffer{128};
         buffer.Insert(0, text);
-        auto [scanned, status] = parser::Scanner::Scan(buffer, external_id);
+        auto [scanned, status] = parser::Scanner::Scan(buffer, 0, external_id);
         ASSERT_EQ(status, buffers::status::StatusCode::OK);
         script = std::move(scanned);
     };
@@ -207,7 +212,7 @@ TEST(ScannerTest, FindTokenInterleaved) {
     rope::Rope buffer{128};
     buffer.Insert(0, ss.str());
 
-    auto [scanned, scannerStatus] = parser::Scanner::Scan(buffer, 1);
+    auto [scanned, scannerStatus] = parser::Scanner::Scan(buffer, 0, 1);
     ASSERT_EQ(scannerStatus, buffers::status::StatusCode::OK);
 
     for (size_t i = 0; i < n; ++i) {
@@ -224,7 +229,7 @@ TEST(ScannerTest, TrailingComments) {
         select 1
         --
     )SQL");
-    auto [scanned, status] = parser::Scanner::Scan(buffer, 0);
+    auto [scanned, status] = parser::Scanner::Scan(buffer, 0, 0);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
     auto packed = scanned->PackTokens();
     ASSERT_EQ(packed->token_types.size(), 3);

@@ -37,7 +37,8 @@ struct NameTaggingTest {
     NameTaggingTest(std::string_view title, std::string_view script,
                     std::initializer_list<std::pair<std::string_view, NameTags>> expected)
         : title(title), script(script), expected(expected) {
-        this->expected.push_back({"", NameTags(buffers::analyzer::NameTag::DATABASE_NAME) | buffers::analyzer::NameTag::SCHEMA_NAME});
+        this->expected.push_back(
+            {"", NameTags(buffers::analyzer::NameTag::DATABASE_NAME) | buffers::analyzer::NameTag::SCHEMA_NAME});
     }
 };
 
@@ -55,7 +56,7 @@ TEST_P(TestNameTags, Test) {
     rope::Rope buffer{128};
     buffer.Insert(0, GetParam().script);
 
-    auto [scanned, scan_status] = parser::Scanner::Scan(buffer, 0);
+    auto [scanned, scan_status] = parser::Scanner::Scan(buffer, 0, 0);
     ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
     auto [parsed, parser_status] = parser::Parser::Parse(scanned);
     ASSERT_EQ(parser_status, buffers::status::StatusCode::OK);
@@ -96,8 +97,8 @@ std::vector<NameTaggingTest> TESTS_SIMPLE{
     {"select_foo_from_foo_foo",
      "select foo from foo foo",
      {
-         {"foo",
-          NameTags(buffers::analyzer::NameTag::COLUMN_NAME) | buffers::analyzer::NameTag::TABLE_NAME | buffers::analyzer::NameTag::TABLE_ALIAS},
+         {"foo", NameTags(buffers::analyzer::NameTag::COLUMN_NAME) | buffers::analyzer::NameTag::TABLE_NAME |
+                     buffers::analyzer::NameTag::TABLE_ALIAS},
      }},
     {"select_foo_from_foo_bar",
      "select foo from foo bar",

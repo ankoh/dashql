@@ -58,7 +58,7 @@ static void generate_parser_snapshots(const std::filesystem::path& source_dir) {
             auto input = test.child("input");
             auto input_buffer = std::string{input.last_child().value()};
             rope::Rope input_rope{1024, input_buffer};
-            auto scanned = parser::Scanner::Scan(input_rope, 1);
+            auto scanned = parser::Scanner::Scan(input_rope, 0, 1);
             if (scanned.second != buffers::status::StatusCode::OK) {
                 std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(scanned.second) << std::endl;
                 continue;
@@ -79,19 +79,16 @@ static std::unique_ptr<Script> read_script(pugi::xml_node node, size_t entry_id,
     auto input = node.child("input").last_child().value();
     auto script = std::make_unique<Script>(catalog, entry_id);
     script->InsertTextAt(0, input);
-    auto scanned = script->Scan();
-    if (scanned.second != buffers::status::StatusCode::OK) {
-        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(scanned.second) << std::endl;
+    if (auto status = script->Scan(); status != buffers::status::StatusCode::OK) {
+        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
         return nullptr;
     }
-    auto parsed = script->Parse();
-    if (parsed.second != buffers::status::StatusCode::OK) {
-        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(parsed.second) << std::endl;
+    if (auto status = script->Parse(); status != buffers::status::StatusCode::OK) {
+        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
         return nullptr;
     }
-    auto analyzed = script->Analyze();
-    if (analyzed.second != buffers::status::StatusCode::OK) {
-        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(analyzed.second) << std::endl;
+    if (auto status = script->Analyze(); status != buffers::status::StatusCode::OK) {
+        std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
         return nullptr;
     }
     return script;

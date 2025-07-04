@@ -301,7 +301,7 @@ std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, s
 std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Parse(std::shared_ptr<ScannedScript> scanned,
                                                                           bool debug) {
     if (scanned == nullptr) {
-        return {nullptr, buffers::status::StatusCode::PARSER_INPUT_NOT_SCANNED};
+        return {nullptr, buffers::status::StatusCode::SCRIPT_NOT_SCANNED};
     }
 
 #ifndef NDEBUG

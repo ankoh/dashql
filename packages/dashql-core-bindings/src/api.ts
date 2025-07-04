@@ -576,6 +576,28 @@ export class DashQLScript {
     }
 }
 
+export class DashQLScriptBuffers {
+    constructor(
+        public scanned: FlatBufferPtr<buffers.parser.ScannedScript> | null,
+        public parsed: FlatBufferPtr<buffers.parser.ParsedScript> | null,
+        public analyzed: FlatBufferPtr<buffers.analyzer.AnalyzedScript> | null
+    ) { }
+    destroy() {
+        if (this.scanned != null) {
+            this.scanned.destroy();
+            this.scanned = null;
+        }
+        if (this.parsed != null) {
+            this.parsed.destroy();
+            this.parsed = null;
+        }
+        if (this.analyzed != null) {
+            this.analyzed.destroy();
+            this.analyzed = null;
+        }
+    };
+}
+
 export class DashQLCatalogSnapshotReader {
     public catalogReader: buffers.catalog.FlatCatalog;
     nameDictionary: (string | null)[];

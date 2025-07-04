@@ -1,7 +1,7 @@
 #include "benchmark/benchmark.h"
 #include "dashql/analyzer/completion.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
 #include "dashql/script.h"
 
 using namespace dashql;
@@ -594,8 +594,7 @@ static void scan_query(benchmark::State& state) {
     main.InsertTextAt(0, main_script);
 
     for (auto _ : state) {
-        auto scan = main.Scan();
-        benchmark::DoNotOptimize(scan);
+        main.Scan();
     }
 }
 
@@ -603,12 +602,10 @@ static void parse_query(benchmark::State& state) {
     Catalog catalog;
     Script main{catalog, 1};
     main.InsertTextAt(0, main_script);
-    auto scan = main.Scan();
-    assert(scan.second == buffers::status::StatusCode::OK);
+    assert(main.Scan() == buffers::status::StatusCode::OK);
 
     for (auto _ : state) {
-        auto parsed = main.Parse();
-        benchmark::DoNotOptimize(parsed);
+        main.Parse();
     }
 }
 
@@ -617,26 +614,17 @@ static void analyze_query(benchmark::State& state) {
     Script external{catalog, 2};
     external.InsertTextAt(0, external_script);
 
-    auto ext_scan = external.Scan();
-    auto ext_parsed = external.Parse();
-    auto ext_analyzed = external.Analyze();
-    assert(ext_scan.second == buffers::status::StatusCode::OK);
-    assert(ext_parsed.second == buffers::status::StatusCode::OK);
-    assert(ext_analyzed.second == buffers::status::StatusCode::OK);
+    assert(external.Analyze() == buffers::status::StatusCode::OK);
 
     catalog.LoadScript(external, 0);
 
     Script main{catalog, 1};
     main.InsertTextAt(0, main_script);
 
-    auto main_scan = main.Scan();
-    auto main_parsed = main.Parse();
-    assert(main_scan.second == buffers::status::StatusCode::OK);
-    assert(main_parsed.second == buffers::status::StatusCode::OK);
+    assert(main.Analyze() == buffers::status::StatusCode::OK);
 
     for (auto _ : state) {
-        auto main_analyzed = main.Analyze();
-        benchmark::DoNotOptimize(main_analyzed);
+        main.Analyze(false);
     }
 }
 
@@ -644,24 +632,16 @@ static void move_cursor(benchmark::State& state) {
     Catalog catalog;
     Script main{catalog};
     main.InsertTextAt(0, main_script);
-
-    auto scanned = main.Scan();
-    auto parsed = main.Parse();
-    auto analyzed = main.Analyze();
+    main.Analyze();
 
     std::string_view text = ",customer";
     auto text_offset = main.scanned_script->text_buffer.find(text);
     text_offset += text.size();
     auto cursor = main.MoveCursor(text_offset);
-
-    assert(scanned.second == buffers::status::StatusCode::OK);
-    assert(parsed.second == buffers::status::StatusCode::OK);
-    assert(analyzed.second == buffers::status::StatusCode::OK);
     assert(cursor.second == buffers::status::StatusCode::OK);
 
     for (auto _ : state) {
-        auto cursor = main.MoveCursor(text_offset);
-        benchmark::DoNotOptimize(cursor);
+        main.MoveCursor(text_offset);
     }
 }
 
@@ -680,15 +660,11 @@ static void complete_cursor(benchmark::State& state) {
     auto cursor = main.MoveCursor(text_offset);
     auto completion = main.CompleteAtCursor(10);
 
-    assert(scanned.second == buffers::status::StatusCode::OK);
-    assert(parsed.second == buffers::status::StatusCode::OK);
-    assert(analyzed.second == buffers::status::StatusCode::OK);
     assert(completion.second == buffers::status::StatusCode::OK);
     assert(completion.first != nullptr);
 
     for (auto _ : state) {
-        auto completion = main.CompleteAtCursor(text_offset);
-        benchmark::DoNotOptimize(completion);
+        main.CompleteAtCursor(text_offset);
     }
 }
 

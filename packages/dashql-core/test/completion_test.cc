@@ -1,8 +1,8 @@
 #include "dashql/analyzer/completion.h"
 
-#include "gtest/gtest.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
+#include "gtest/gtest.h"
 
 using namespace dashql;
 
@@ -27,17 +27,17 @@ SELECT s_co
     Catalog catalog;
     Script external_script{catalog, 1};
     external_script.InsertTextAt(0, TPCH_SCHEMA);
-    ASSERT_EQ(external_script.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(external_script.Analyze(), buffers::status::StatusCode::OK);
 
     catalog.LoadScript(external_script, 0);
 
     Script main_script{catalog, 2};
     main_script.InsertTextAt(0, main_script_text);
-    ASSERT_EQ(main_script.Scan().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Parse().second, buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Analyze().second, buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(main_script.Analyze(), buffers::status::StatusCode::OK);
 
     // Move the cursor
     auto cursor_ofs = main_script_text.find("s_co");

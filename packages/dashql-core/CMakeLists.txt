@@ -72,7 +72,6 @@ if(WASM)
         -Wl,--export=dashql_script_erase_text_range \
         -Wl,--export=dashql_script_replace_text \
         -Wl,--export=dashql_script_to_string \
-        -Wl,--export=dashql_script_format \
         -Wl,--export=dashql_script_scan \
         -Wl,--export=dashql_script_parse \
         -Wl,--export=dashql_script_analyze \

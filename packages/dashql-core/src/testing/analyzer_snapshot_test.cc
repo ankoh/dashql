@@ -78,12 +78,9 @@ void AnalyzerSnapshotTest::TestRegistrySnapshot(const std::vector<ScriptAnalysis
 
         auto& script = *catalog_scripts.back();
         script.InsertTextAt(0, entry.input);
-        auto scanned = script.Scan();
-        ASSERT_EQ(scanned.second, buffers::status::StatusCode::OK);
-        auto parsed = script.Parse();
-        ASSERT_EQ(parsed.second, buffers::status::StatusCode::OK);
-        auto analyzed = script.Analyze();
-        ASSERT_EQ(analyzed.second, buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+        ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
         catalog.LoadScript(script, entry_id);
 
@@ -104,12 +101,9 @@ void AnalyzerSnapshotTest::TestMainScriptSnapshot(const ScriptAnalysisSnapshot& 
                                                   Script& script, size_t entry_id) {
     script.InsertTextAt(entry_id, snap.input);
 
-    auto scan = script.Scan();
-    ASSERT_EQ(scan.second, buffers::status::StatusCode::OK);
-    auto parsed = script.Parse();
-    ASSERT_EQ(parsed.second, buffers::status::StatusCode::OK);
-    auto analyzed = script.Analyze();
-    ASSERT_EQ(analyzed.second, buffers::status::StatusCode::OK) << buffers::status::EnumNameStatusCode(analyzed.second);
+    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
     AnalyzerSnapshotTest::EncodeScript(node, *script.analyzed_script, true);
 

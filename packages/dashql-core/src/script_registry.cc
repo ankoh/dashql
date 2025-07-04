@@ -12,7 +12,7 @@ void ScriptRegistry::DropScript(Script& script) {}
 
 buffers::status::StatusCode ScriptRegistry::LoadScript(Script& script) {
     if (!script.analyzed_script) {
-        return buffers::status::StatusCode::REGISTRY_SCRIPT_NOT_ANALYZED;
+        return buffers::status::StatusCode::SCRIPT_NOT_ANALYZED;
     }
     auto& analyzed = *script.analyzed_script;
 

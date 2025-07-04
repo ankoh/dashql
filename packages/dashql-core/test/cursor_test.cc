@@ -123,12 +123,9 @@ TEST(CursorTest, SimpleNoExternal) {
     Catalog catalog;
     Script script{catalog, 1};
     script.InsertTextAt(0, "select * from A b, C d where b.x = d.y");
-    auto [scanned, scan_status] = script.Scan();
-    ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
-    auto [parsed, parse_status] = script.Parse();
-    ASSERT_EQ(parse_status, buffers::status::StatusCode::OK);
-    auto [analyzed, analysis_status] = script.Analyze();
-    ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
     test(script, 0,
          {
@@ -212,12 +209,9 @@ TEST(CursorTest, TableRef) {
     Catalog catalog;
     Script script{catalog, 1};
     script.InsertTextAt(0, "select r_regionkey from region, n");
-    auto [scanned, scan_status] = script.Scan();
-    ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
-    auto [parsed, parse_status] = script.Parse();
-    ASSERT_EQ(parse_status, buffers::status::StatusCode::OK);
-    auto [analyzed, analysis_status] = script.Analyze();
-    ASSERT_EQ(analysis_status, buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
     test(script, 32,
          {

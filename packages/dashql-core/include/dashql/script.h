@@ -33,6 +33,7 @@ using NameID = uint32_t;
 using NodeID = uint32_t;
 using ColumnID = uint32_t;
 using StatementID = uint32_t;
+using TextVersion = uint32_t;
 
 class ScannedScript {
     friend class Script;
@@ -42,6 +43,8 @@ class ScannedScript {
     const CatalogEntryID external_id;
     /// The copied text buffer
     std::string text_buffer;
+    /// The text version
+    TextVersion text_version;
 
     /// The scanner errors
     std::vector<std::pair<buffers::parser::Location, std::string>> errors;
@@ -59,9 +62,9 @@ class ScannedScript {
 
    public:
     /// Constructor
-    ScannedScript(const rope::Rope& text, CatalogEntryID external_id = 1);
+    ScannedScript(const rope::Rope& text, TextVersion text_version = 0, CatalogEntryID external_id = 1);
     /// Constructor
-    ScannedScript(std::string text, CatalogEntryID external_id = 1);
+    ScannedScript(std::string text, TextVersion text_version = 0, CatalogEntryID external_id = 1);
 
     /// Get the input
     auto& GetInput() const { return text_buffer; }
@@ -562,6 +565,8 @@ class Script {
 
     /// The underlying rope
     rope::Rope text;
+    /// The text version
+    uint32_t text_version = 0;
 
     /// The last scanned script
     std::shared_ptr<ScannedScript> scanned_script;
@@ -592,6 +597,12 @@ class Script {
     auto GetCatalogEntryId() const { return catalog_entry_id; }
     /// Get the catalog
     auto& GetCatalog() const { return catalog; }
+    /// Get the latest scanned script
+    auto& GetScannedScript() const { return scanned_script; };
+    /// Get the latest scanned script
+    auto& GetParsedScript() const { return parsed_script; };
+    /// Get the latest parsed script
+    auto& GetAnalyzedScript() const { return analyzed_script; };
 
     /// Insert a unicode codepoint at an offset
     void InsertCharAt(size_t offset, uint32_t unicode);
@@ -603,15 +614,14 @@ class Script {
     void ReplaceText(std::string_view text);
     /// Print a script as string
     std::string ToString();
-    /// Returns the pretty-printed string for this script
-    std::string Format();
 
-    /// Parse the latest scanned script
-    std::pair<ScannedScript*, buffers::status::StatusCode> Scan();
-    /// Parse the latest scanned script
-    std::pair<ParsedScript*, buffers::status::StatusCode> Parse();
-    /// Analyze the latest parsed script
-    std::pair<AnalyzedScript*, buffers::status::StatusCode> Analyze();
+    /// Scans the script unconditionally
+    buffers::status::StatusCode Scan();
+    /// Parses the script unconditionally
+    buffers::status::StatusCode Parse();
+    /// Analyzes the script.
+    /// When `parse_if_outdated` is set we scan and parse the script, if it changed.
+    buffers::status::StatusCode Analyze(bool parse_if_outdated = true);
 
     /// Move the cursor
     std::pair<const ScriptCursor*, buffers::status::StatusCode> MoveCursor(size_t text_offset);
