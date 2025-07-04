@@ -58,8 +58,8 @@ describe('DashQL Scanner', () => {
         add('\n', [0], [6], [Token.KEYWORD], [1]);
         add('1', [0, 7], [6, 1], [Token.KEYWORD, Token.LITERAL_INTEGER], [1]);
 
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        catalog.destroy();
     });
 
     describe(`Utils`, () => {
@@ -92,8 +92,8 @@ describe('DashQL Scanner', () => {
                 const [tokenBegin, tokenEnd] = dashql.findTokensInRange(hl!, textBegin, textEnd);
 
                 expect([tokenBegin, tokenEnd]).toEqual(expectedFiltered);
-                script.delete();
-                catalog.delete();
+                script.destroy();
+                catalog.destroy();
             };
 
             // Full text

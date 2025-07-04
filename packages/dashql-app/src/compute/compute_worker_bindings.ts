@@ -330,7 +330,7 @@ export class AsyncDataFrame {
     }
 
     /// Delete the data frame
-    async delete(): Promise<void> {
+    async destroy(): Promise<void> {
         const task = new ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_DELETE, { frameId: number }, null>(
             ComputeWorkerRequestType.DATAFRAME_DELETE, { frameId: this.frameId }
         );

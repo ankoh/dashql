@@ -43,9 +43,9 @@ describe('CatalogViewModel', () => {
         `;
         const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, schemaText);
-        schemaScript.scan(true).delete();
-        schemaScript.parse(true).delete();
-        schemaScript.analyze().delete();
+        schemaScript.scan(true).destroy();
+        schemaScript.parse(true).destroy();
+        schemaScript.analyze().destroy();
         catalog.loadScript(schemaScript, 1);
 
         const snapshotPtr = catalog.createSnapshot();
@@ -97,8 +97,8 @@ describe('CatalogViewModel', () => {
         `;
         const queryScript = dql!.createScript(catalog, 2);
         queryScript.insertTextAt(0, queryText);
-        queryScript.scan(true).delete();
-        queryScript.parse(true).delete();
+        queryScript.scan(true).destroy();
+        queryScript.parse(true).destroy();
         const analyzed = queryScript.analyze();
         const analyzedReader = analyzed.read();
         expect(analyzedReader.tableReferencesLength()).toEqual(1);

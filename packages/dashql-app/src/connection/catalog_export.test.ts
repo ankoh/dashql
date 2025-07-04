@@ -61,7 +61,7 @@ describe('Catalog Export', () => {
         expect(proto.databases[0].schemas[1].tables.length).toEqual(1);
         expect(proto.databases[0].schemas[1].tables[0].columns.length).toEqual(3);
 
-        catalog.delete();
+        catalog.destroy();
     });
 });
 

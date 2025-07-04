@@ -24,10 +24,10 @@ describe('DashQL Completion', () => {
             const catalog = dql!.createCatalog();
             const script = dql!.createScript(catalog, 1);
             script.insertTextAt(0, text);
-            script.scan().delete();
-            script.parse().delete();
-            script.analyze().delete();
-            script.moveCursor(cursor_offset).delete();
+            script.scan().destroy();
+            script.parse().destroy();
+            script.analyze().destroy();
+            script.moveCursor(cursor_offset).destroy();
 
             const completionBuffer = script.completeAtCursor(10);
             const completion = completionBuffer.read();
@@ -39,8 +39,8 @@ describe('DashQL Completion', () => {
             }
             expect(candidates).toEqual(expected);
 
-            script.delete();
-            catalog.delete();
+            script.destroy();
+            catalog.destroy();
         };
 
         it('s', () => test('s', 1, ['select', 'set', 'values', 'with', 'create', 'table']));

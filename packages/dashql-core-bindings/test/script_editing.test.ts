@@ -128,8 +128,8 @@ describe('DashQL editing fuzzer', () => {
                 const have = script.toString();
                 expect(have).toEqual(expected);
             }
-            script.delete();
-            catalog.delete();
+            script.destroy();
+            catalog.destroy();
         });
     }
 });

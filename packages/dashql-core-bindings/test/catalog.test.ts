@@ -35,21 +35,21 @@ describe('Catalog Tests ', () => {
         let descriptionBuffer = catalog.describeEntries();
         let description = descriptionBuffer.read();
         expect(description.entriesLength()).toEqual(1);
-        descriptionBuffer.delete();
+        descriptionBuffer.destroy();
 
         descriptionBuffer = catalog.describeEntriesOf(1);
         description = descriptionBuffer.read();
         expect(description.entriesLength()).toEqual(1);
-        descriptionBuffer.delete();
+        descriptionBuffer.destroy();
 
         catalog.clear();
 
         descriptionBuffer = catalog.describeEntries();
         description = descriptionBuffer.read();
         expect(description.entriesLength()).toEqual(0);
-        descriptionBuffer.delete();
+        descriptionBuffer.destroy();
 
-        catalog.delete();
+        catalog.destroy();
     });
 
     it('dynamic registration, one table', () => {
@@ -60,8 +60,8 @@ describe('Catalog Tests ', () => {
         // Create and analyze a script referencing an unknown table
         const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1');
-        script.scan().delete();
-        script.parse().delete();
+        script.scan().destroy();
+        script.parse().destroy();
         let analyzedBuffer = script.analyze();
         let analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
@@ -75,7 +75,7 @@ describe('Catalog Tests ', () => {
         expect(tableName.databaseName()).toEqual('db1');
         expect(tableName.schemaName()).toEqual('schema1');
         expect(tableName.tableName()).toEqual('table1');
-        analyzedBuffer.delete();
+        analyzedBuffer.destroy();
 
         // Resolve the table declaration and add a schema descriptor to the descriptor pool
         catalog.addSchemaDescriptorT(
@@ -90,7 +90,7 @@ describe('Catalog Tests ', () => {
         );
 
         // Now analyze the script again
-        script.parse().delete();
+        script.parse().destroy();
         analyzedBuffer = script.analyze();
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(1);
@@ -104,9 +104,9 @@ describe('Catalog Tests ', () => {
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         // Delete all the memory
-        analyzedBuffer.delete();
-        script.delete();
-        catalog.delete();
+        analyzedBuffer.destroy();
+        script.destroy();
+        catalog.destroy();
     });
 
     it('dynamic registration, multiple tables', () => {
@@ -117,8 +117,8 @@ describe('Catalog Tests ', () => {
         // Create and analyze a script referencing an unknown table
         const script = dql!.createScript(catalog, 2);
         script.replaceText('select * from db1.schema1.table1, db1.schema2.table2');
-        script.scan().delete();
-        script.parse().delete();
+        script.scan().destroy();
+        script.parse().destroy();
         let analyzedBuffer = script.analyze();
         let analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
@@ -132,7 +132,7 @@ describe('Catalog Tests ', () => {
         expect(tableName.databaseName()).toEqual('db1');
         expect(tableName.schemaName()).toEqual('schema1');
         expect(tableName.tableName()).toEqual('table1');
-        analyzedBuffer.delete();
+        analyzedBuffer.destroy();
 
         // Resolve the table declaration and add a schema descriptor to the descriptor pool
         catalog.addSchemaDescriptorsT(
@@ -156,7 +156,7 @@ describe('Catalog Tests ', () => {
         );
 
         // Now analyze the script again
-        script.parse().delete();
+        script.parse().destroy();
         analyzedBuffer = script.analyze();
         analyzed = analyzedBuffer.read();
         expect(analyzed.tableReferencesLength()).toEqual(2);
@@ -179,9 +179,9 @@ describe('Catalog Tests ', () => {
         expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         // Delete all the memory
-        analyzedBuffer.delete();
-        script.delete();
-        catalog.delete();
+        analyzedBuffer.destroy();
+        script.destroy();
+        catalog.destroy();
     });
 
     it('tpch flattening', () => {
@@ -282,9 +282,9 @@ create table region (
    primary key (r_regionkey)
 );
         `);
-        schemaScript.scan().delete();
-        schemaScript.parse().delete();
-        schemaScript.analyze().delete();
+        schemaScript.scan().destroy();
+        schemaScript.parse().destroy();
+        schemaScript.analyze().destroy();
 
         catalog.loadScript(schemaScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
@@ -324,8 +324,8 @@ create table region (
             expect(snap.readName(table.nameId())).toEqual(tableNames[i]);
         }
 
-        snapPtr.delete();
-        schemaScript.delete();
-        catalog.delete();
+        snapPtr.destroy();
+        schemaScript.destroy();
+        catalog.destroy();
     });
 });

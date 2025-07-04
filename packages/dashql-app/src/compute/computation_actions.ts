@@ -475,7 +475,7 @@ export async function computeColumnSummary(computationId: number, task: ColumnSu
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches);
         // Delete the data frame after reordering
-        columnSummaryDataFrame.delete();
+        columnSummaryDataFrame.destroy();
         // Create the summary variant
         let summary: ColumnSummaryVariant;
         switch (task.columnEntry.type) {

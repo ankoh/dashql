@@ -73,7 +73,7 @@ export function parseAndAnalyzeScript(script: dashql.DashQLScript): DashQLScript
 /// Analyze an existing script
 export function analyzeScript(buffers: DashQLScriptBuffers, script: dashql.DashQLScript): DashQLScriptBuffers {
     // Delete the old analysis
-    buffers.analyzed?.delete();
+    buffers.analyzed?.destroy();
     // Analyze the script
     const analyzed = script.analyze();
     // Return the new script
@@ -83,15 +83,15 @@ export function analyzeScript(buffers: DashQLScriptBuffers, script: dashql.DashQ
 /// Destory the buffers
 const destroyBuffers = (state: DashQLScriptBuffers) => {
     if (state.scanned != null) {
-        state.scanned.delete();
+        state.scanned.destroy();
         state.scanned = null;
     }
     if (state.parsed != null) {
-        state.parsed.delete();
+        state.parsed.destroy();
         state.parsed = null;
     }
     if (state.analyzed != null) {
-        state.analyzed.delete();
+        state.analyzed.destroy();
         state.analyzed = null;
     }
     return state;
@@ -198,7 +198,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
                 next.scriptBuffers = parseAndAnalyzeScript(next.targetScript!);
                 const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
                 next.scriptCursor = cursorBuffer.read().unpack();
-                cursorBuffer.delete();
+                cursorBuffer.destroy();
                 // Watch out, this passes ownership over the script buffers
                 next.onScriptUpdate(next.scriptKey, next.targetScript!, next.scriptBuffers, next.scriptCursor);
                 return next;
@@ -209,7 +209,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
                 copyIfNotReplaced();
                 const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
                 next.scriptCursor = cursorBuffer.read().unpack();
-                cursorBuffer.delete();
+                cursorBuffer.destroy();
                 next.onCursorUpdate(next.scriptKey, next.targetScript!, next.scriptCursor);
                 return next;
             }

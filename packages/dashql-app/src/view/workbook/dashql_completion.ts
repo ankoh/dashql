@@ -72,7 +72,7 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
         if (performCompletion) {
             const completionBuffer = processor.targetScript.completeAtCursor(COMPLETION_LIMIT);
             const completion = completionBuffer.read().unpack();
-            completionBuffer.delete();
+            completionBuffer.destroy();
             for (let i = 0; i < completion.candidates.length; ++i) {
                 const candidate = completion.candidates[i];
                 let tagName: string | undefined = undefined;

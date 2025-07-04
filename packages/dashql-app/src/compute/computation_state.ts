@@ -198,7 +198,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 return state;
             }
             if (tableState.dataFrame != null) {
-                tableState.dataFrame.delete();
+                tableState.dataFrame.destroy();
             }
             state.tableComputations.set(computationId, {
                 ...tableState,

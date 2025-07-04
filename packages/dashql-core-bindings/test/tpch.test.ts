@@ -132,9 +132,9 @@ describe('DashQL TPCH Parsing', () => {
             ]),
         ]);
 
-        analyzerResult.delete();
-        parserResult.delete();
-        script.delete();
+        analyzerResult.destroy();
+        parserResult.destroy();
+        script.destroy();
     });
 
     it(`Q2`, () => {
@@ -203,8 +203,8 @@ limit 100
         expect(analyzedScript.tableReferencesLength()).toBeGreaterThan(0);
         expect(analyzedScript.expressionsLength()).toBeGreaterThan(0);
 
-        analyzerResult.delete();
-        parserResult.delete();
-        script.delete();
+        analyzerResult.destroy();
+        parserResult.destroy();
+        script.destroy();
     });
 });

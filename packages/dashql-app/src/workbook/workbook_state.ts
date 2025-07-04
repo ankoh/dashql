@@ -265,7 +265,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     const ofs = copy.cursor.textOffset;
                     const cursorBuffer = copy.script.moveCursor(ofs);
                     copy.cursor = cursorBuffer.read().unpack();
-                    cursorBuffer.delete();
+                    cursorBuffer.destroy();
                 }
 
                 // Create the next script
@@ -685,18 +685,18 @@ export function destroyState(state: WorkbookState): WorkbookState {
         const script = state.scripts[key];
         script.processed.destroy(script.processed);
         for (const stats of script.statistics) {
-            stats.delete();
+            stats.destroy();
         }
-        script.script?.delete();
+        script.script?.destroy();
     }
     return state;
 }
 
 function deleteScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
-    data.script?.delete();
+    data.script?.destroy();
     for (const stats of data.statistics) {
-        stats.delete();
+        stats.destroy();
     }
 }
 
@@ -737,7 +737,7 @@ function rotateStatistics(
         return log.withMutations(m => {
             m.push(stats);
             if (m.size > STATS_HISTORY_LIMIT) {
-                m.first()!.delete();
+                m.first()!.destroy();
                 m.shift();
             }
         });

@@ -61,10 +61,10 @@ describe('DashQL Cursor', () => {
             const tokenLength = scannerTokenLengths[cursor.scannerSymbolId()];
             expect(scriptText.substring(tokenOffset, tokenOffset + tokenLength)).toEqual('select');
 
-            cursorBuffer.delete();
-            analyzedBuffer.delete();
-            parsedBuffer.delete();
-            scannedBuffer.delete();
+            cursorBuffer.destroy();
+            analyzedBuffer.destroy();
+            parsedBuffer.destroy();
+            scannedBuffer.destroy();
         };
 
         test(script, 0, {
@@ -78,7 +78,7 @@ describe('DashQL Cursor', () => {
             graphTo: null,
         });
 
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        catalog.destroy();
     });
 });

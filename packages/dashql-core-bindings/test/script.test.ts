@@ -23,8 +23,8 @@ describe('DashQL scripts', () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog, 1);
         expect(script).not.toBeUndefined();
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        catalog.destroy();
     });
 
     it('are initially empty', () => {
@@ -32,15 +32,15 @@ describe('DashQL scripts', () => {
         const script = dql!.createScript(catalog, 1);
         expect(script).not.toBeUndefined();
         expect(script.toString()).toEqual('');
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        catalog.destroy();
     });
 
     it('should throw for accesses after deletion', () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog, 1);
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        catalog.destroy();
         expect(() => script.toString()).toThrow(dashql.NULL_POINTER_EXCEPTION);
         expect(() => script.insertTextAt(0, 'foo')).toThrow(dashql.NULL_POINTER_EXCEPTION);
         expect(() => script.eraseTextRange(0, 1)).toThrow(dashql.NULL_POINTER_EXCEPTION);
@@ -51,10 +51,10 @@ describe('DashQL scripts', () => {
         const script = dql!.createScript(catalog, 1);
         expect(script).not.toBeUndefined();
         expect(script.toString()).toEqual('');
-        script.delete();
-        script.delete();
-        script.delete();
-        catalog.delete();
+        script.destroy();
+        script.destroy();
+        script.destroy();
+        catalog.destroy();
     });
 
     describe('text modifications', () => {
@@ -63,8 +63,8 @@ describe('DashQL scripts', () => {
             const script = dql!.createScript(catalog, 1);
             script.insertTextAt(0, 'a');
             expect(script.toString()).toEqual('a');
-            script.delete();
-            catalog.delete();
+            script.destroy();
+            catalog.destroy();
         });
     });
 });

@@ -381,7 +381,7 @@ export class Ptr<T extends symbol> {
         this.resultPtr = resultPtr;
     }
     /// Delete the object
-    public delete() {
+    public destroy() {
         if (this.resultPtr != null) {
             this.api.instanceExports.dashql_delete_result(this.resultPtr);
             this.resultPtr = null;
@@ -424,7 +424,7 @@ export class FlatBufferPtr<T extends FlatBufferObject<T>> {
         this.factory = factory;
     }
     /// Delete the buffer
-    public delete() {
+    public destroy() {
         if (this.resultPtr) {
             this.api.instanceExports.dashql_delete_result(this.resultPtr);
         }
@@ -475,8 +475,8 @@ export class DashQLScript {
         this.catalog_entry_id = this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(ptr.assertNotNull());
     }
     /// Delete a graph
-    public delete() {
-        this.ptr.delete();
+    public destroy() {
+        this.ptr.destroy();
     }
     /// Insert text at an offset
     public insertTextAt(offset: number, text: string) {
@@ -506,7 +506,7 @@ export class DashQLScript {
         const result = this.ptr.api.instanceExports.dashql_script_to_string(scriptPtr);
         const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
         const text = this.ptr.api.decoder.decode(resultBuffer.data);
-        resultBuffer.delete();
+        resultBuffer.destroy();
         return text;
     }
     /// Scan the script.
@@ -549,7 +549,7 @@ export class DashQLScript {
         const result = this.ptr.api.instanceExports.dashql_script_format(scriptPtr);
         const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
         const text = this.ptr.api.decoder.decode(resultBuffer.data);
-        resultBuffer.delete();
+        resultBuffer.destroy();
         return text;
     }
     /// Move the cursor
@@ -605,8 +605,8 @@ export class DashQLCatalogSnapshot {
         this.nameDictionary = [];
     }
     /// Delete a snapshot
-    public delete() {
-        this.snapshot.delete();
+    public destroy() {
+        this.snapshot.destroy();
     }
     /// Read a snapshot
     public read(): DashQLCatalogSnapshotReader {
@@ -625,13 +625,13 @@ export class DashQLCatalog {
     /// Delete the snapshot if there is one
     protected deleteSnapshot() {
         if (this.snapshot != null) {
-            this.snapshot.delete();
+            this.snapshot.destroy();
             this.snapshot = null;
         }
     }
     /// Delete the graph
-    public delete() {
-        this.ptr.delete();
+    public destroy() {
+        this.ptr.destroy();
     }
     /// Reset a catalog
     public clear(): void {
@@ -804,8 +804,8 @@ export class DashQLScriptRegistry {
         this.ptr = ptr;
     }
     /// Delete the graph
-    public delete() {
-        this.ptr.delete();
+    public destroy() {
+        this.ptr.destroy();
     }
     /// Reset a script registry
     public clear(): void {

@@ -23,9 +23,9 @@ describe('DashQL Analyzer', () => {
         const catalog = dql!.createCatalog();
         const schemaScript = dql!.createScript(catalog, 1);
         schemaScript.insertTextAt(0, 'create table foo(a int);');
-        schemaScript.scan().delete();
-        schemaScript.parse().delete();
-        schemaScript.analyze().delete();
+        schemaScript.scan().destroy();
+        schemaScript.parse().destroy();
+        schemaScript.analyze().destroy();
 
         catalog.loadScript(schemaScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
@@ -33,14 +33,14 @@ describe('DashQL Analyzer', () => {
         expect(() => {
             const mainScript = dql!.createScript(catalog, 1);
             mainScript.insertTextAt(0, 'select * from foo;');
-            mainScript.scan().delete();
-            mainScript.parse().delete();
-            mainScript.analyze().delete();
-            mainScript.delete();
+            mainScript.scan().destroy();
+            mainScript.parse().destroy();
+            mainScript.analyze().destroy();
+            mainScript.destroy();
         }).toThrow(new Error('Collision on external identifier'));
 
-        catalog.delete();
-        schemaScript.delete();
+        catalog.destroy();
+        schemaScript.destroy();
     });
 
     it(`external ref`, () => {
@@ -81,14 +81,14 @@ describe('DashQL Analyzer', () => {
         const resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.tableName()!.tableName()!).toEqual('foo');
 
-        mainScannerRes.delete();
-        mainParserRes.delete();
-        mainAnalyzerRes.delete();
+        mainScannerRes.destroy();
+        mainParserRes.destroy();
+        mainAnalyzerRes.destroy();
 
-        catalog.delete();
+        catalog.destroy();
 
-        extScannerRes.delete();
-        extParserRes.delete();
-        extAnalyzerRes.delete();
+        extScannerRes.destroy();
+        extParserRes.destroy();
+        extAnalyzerRes.destroy();
     });
 });
