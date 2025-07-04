@@ -61,6 +61,7 @@ flatbuffers::Offset<buffers::analyzer::Table> CatalogEntry::TableDeclaration::Pa
 
 CatalogEntry::CatalogEntry(Catalog& catalog, CatalogEntryID external_id)
     : catalog(catalog),
+      catalog_version(catalog.version),
       catalog_entry_id(external_id),
       database_references(),
       schema_references(),
@@ -445,6 +446,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             // Create the table
             auto& t = table_declarations.PushBack(
                 AnalyzedScript::TableDeclaration(QualifiedTableName{std::nullopt, db_name, schema_name, table_name}));
+            t.catalog_version = catalog_version;
             t.catalog_database_id = db_id;
             t.catalog_schema_id = schema_id;
             t.catalog_table_id = table_id;
@@ -476,6 +478,9 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             }
         }
     }
+
+    // Update the entry version
+    catalog_version = catalog.GetVersion();
     return buffers::status::StatusCode::OK;
 }
 

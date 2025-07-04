@@ -136,6 +136,8 @@ table ResolvedColumn {
     // The id of the column that is referenced.
     // This is just the index in the resolved table.
     column_id: uint32;
+    /// The referenced catalog version
+    referenced_catalog_version: uint32;
 }
 
 table ColumnRefExpression {

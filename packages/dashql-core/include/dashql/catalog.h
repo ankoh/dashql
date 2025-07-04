@@ -28,6 +28,7 @@ class Script;
 class AnalyzedScript;
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
+using CatalogVersion = uint32_t;
 
 constexpr uint32_t PROTO_NULL_U32 = std::numeric_limits<uint32_t>::max();
 constexpr CatalogDatabaseID INITIAL_DATABASE_ID = 1 << 8;
@@ -186,6 +187,8 @@ class CatalogEntry {
     };
     /// A table declaration
     struct TableDeclaration : public CatalogObject {
+        /// The catalog version
+        CatalogVersion catalog_version = 0;
         /// The catalog database id
         CatalogDatabaseID catalog_database_id = 0;
         /// The catalog schema id
@@ -265,6 +268,8 @@ class CatalogEntry {
    protected:
     /// The catalog
     Catalog& catalog;
+    /// The version at which this catalog entry was last updated
+    CatalogVersion catalog_version;
     /// The catalog entry id
     const CatalogEntryID catalog_entry_id;
     /// The referenced databases
@@ -320,6 +325,8 @@ class CatalogEntry {
 
     /// Get the external id
     CatalogEntryID GetCatalogEntryId() const { return catalog_entry_id; }
+    /// Get the catalog version
+    CatalogVersion GetCatalogVersion() const { return catalog_version; }
     /// Get the database declarations
     auto& GetDatabases() const { return database_references; }
     /// Get the database declarations by name
@@ -419,9 +426,6 @@ class DescriptorPool : public CatalogEntry {
 class Catalog {
     friend class CatalogEntry;
 
-   public:
-    using Version = uint64_t;
-
    protected:
     /// A catalog entry backed by an analyzed script
     struct ScriptEntry {
@@ -483,7 +487,7 @@ class Catalog {
    protected:
     /// The catalog version.
     /// Every modification bumps the version counter, the analyzer reads the version counter which protects all refs.
-    Version version = 1;
+    CatalogVersion version = 1;
 
     /// The catalog entries
     std::unordered_map<CatalogEntryID, CatalogEntry*> entries;

@@ -950,6 +950,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                     obj.add_catalog_database_id(table.catalog_database_id);
                     obj.add_catalog_schema_id(table.catalog_schema_id);
                     obj.add_catalog_table_id(table.catalog_table_id.Pack());
+                    obj.add_referenced_catalog_version(table.catalog_version);
                     break;
                 }
                 case CatalogObjectType::ColumnDeclaration: {
@@ -959,6 +960,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                     obj.add_catalog_schema_id(table.catalog_schema_id);
                     obj.add_catalog_table_id(table.catalog_table_id.Pack());
                     obj.add_table_column_id(column.column_index);
+                    obj.add_referenced_catalog_version(table.catalog_version);
                     break;
                 }
             }

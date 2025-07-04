@@ -413,13 +413,12 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 }
 
 /// Lookup a column ref
-extern "C" FFIResult* dashql_script_registry_find_column_refs(dashql::ScriptRegistry* registry,
-                                                              uint32_t table_context_id, uint32_t table_object_id,
-                                                              const char* column_name_ptr, size_t column_name_length) {
-    std::string_view column_name{column_name_ptr, column_name_length};
-    ContextObjectID table_id{table_context_id, table_object_id};
+extern "C" FFIResult* dashql_script_registry_find_column_refs(dashql::ScriptRegistry* registry, size_t table_context_id,
+                                                              size_t table_object_id, size_t column_id,
+                                                              size_t target_catalog_version) {
+    ContextObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
     flatbuffers::FlatBufferBuilder fb;
-    auto templates = registry->FindColumnRefs(fb, table_id, column_name);
+    auto templates = registry->FindColumnRefs(fb, table_id, column_id, target_catalog_version);
     fb.Finish(templates);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));

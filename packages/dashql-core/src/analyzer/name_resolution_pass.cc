@@ -181,6 +181,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
                 .catalog_database_id = best_match.catalog_database_id,
                 .catalog_schema_id = best_match.catalog_schema_id,
                 .catalog_table_id = best_match.catalog_table_id,
+                .referenced_catalog_version = best_match.catalog_version,
             };
 
             // Store ambiguous matches
@@ -191,6 +192,7 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
                     .catalog_database_id = match.catalog_database_id,
                     .catalog_schema_id = match.catalog_schema_id,
                     .catalog_table_id = match.catalog_table_id,
+                    .referenced_catalog_version = match.catalog_version,
                 });
             }
 
@@ -291,6 +293,7 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                     .catalog_schema_id = resolved_table.catalog_schema_id,
                     .catalog_table_id = resolved_table.catalog_table_id,
                     .table_column_id = resolved_column.column_index,
+                    .referenced_catalog_version = resolved_table.catalog_version,
                 };
                 auto dead_iter = iter++;
                 unresolved_columns.erase(dead_iter);

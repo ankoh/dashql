@@ -185,6 +185,8 @@ class AnalyzedScript : public CatalogEntry {
             CatalogSchemaID catalog_schema_id = 0;
             /// The resolved table id in the catalog
             ContextObjectID catalog_table_id;
+            /// The catalog version of this resolved column
+            CatalogVersion referenced_catalog_version = 0;
         };
         /// A relation expression
         struct RelationExpression {
@@ -229,6 +231,8 @@ class AnalyzedScript : public CatalogEntry {
             ContextObjectID catalog_table_id;
             /// The resolved table column id
             uint32_t table_column_id = 0;
+            /// The catalog version of the resolved column
+            CatalogVersion referenced_catalog_version = 0;
         };
         /// An unresolved column reference
         struct ColumnRef {
@@ -422,8 +426,6 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The parsed script
     std::shared_ptr<ParsedScript> parsed_script;
-    /// The catalog version
-    Catalog::Version catalog_version;
 
     /// The analyzer errors
     std::vector<buffers::analyzer::AnalyzerErrorT> errors;

@@ -346,6 +346,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
         resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
         resolved_builder.add_table_name(resolved_table_name);
+        resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
         resolved_ofs = resolved_builder.Finish();
     }
     flatbuffers::Offset<flatbuffers::String> alias_name_ofs;
@@ -388,6 +389,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
                 resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
                 resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
                 resolved_builder.add_column_id(resolved.table_column_id);
+                resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
                 resolved_ofs = resolved_builder.Finish();
             }
             buffers::algebra::ColumnRefExpressionBuilder out{builder};
@@ -418,10 +420,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
 /// Constructor
 AnalyzedScript::AnalyzedScript(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
-    : CatalogEntry(catalog, parsed->external_id),
-      parsed_script(std::move(parsed)),
-      catalog_version(catalog.GetVersion()),
-      node_markers() {
+    : CatalogEntry(catalog, parsed->external_id), parsed_script(std::move(parsed)), node_markers() {
     assert(parsed_script != nullptr);
     node_markers.resize(parsed_script->GetNodes().size(), buffers::analyzer::SemanticNodeMarkerType::NONE);
 }

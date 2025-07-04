@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
 
@@ -59,12 +60,12 @@ class ScriptRegistry {
     };
 
     /// The script entries
-    std::unordered_map<Script*, ScriptEntry> script_entries;
+    std::unordered_map<const Script*, ScriptEntry> script_entries;
 
     /// The scripts containing column restrictions
-    btree::set<std::tuple<ContextObjectID, ColumnID, Script*>> column_restrictions;
+    btree::set<std::tuple<ContextObjectID, ColumnID, const Script*>> column_restrictions;
     /// The scripts containing column transforms
-    btree::set<std::tuple<ContextObjectID, ColumnID, Script*>> column_transforms;
+    btree::set<std::tuple<ContextObjectID, ColumnID, const Script*>> column_transforms;
 
    public:
     /// Clear the script registry
@@ -74,18 +75,25 @@ class ScriptRegistry {
     /// Drop a script completely
     void DropScript(Script& script);
 
-    /// Find table column restrictions
-    void FindColumnRestrictions(
-        ContextObjectID table, ColumnID column_id, std::string_view column_name,
-        std::function<bool(const Script&, const AnalyzedScript&, const AnalyzedScript::ColumnRestriction&)>& callback);
+    /// Find table column restrictions.
+    /// The parameter `min_version` stores the catalog version of this column ref.
+    ///
+    using IndexedColumnRestriction =
+        std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
+                   std::reference_wrapper<const AnalyzedScript::ColumnRestriction>>;
+    std::vector<IndexedColumnRestriction> FindColumnRestrictions(ContextObjectID table, ColumnID column_id,
+                                                                 CatalogVersion target_catalog_version);
     /// Find table column transforms
-    void FindColumnTransforms(
-        ContextObjectID table, ColumnID column_id, std::string_view column_name,
-        std::function<bool(const Script&, const AnalyzedScript&, const AnalyzedScript::ColumnTransform&)>& callback);
+    using IndexedColumnTransform =
+        std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
+                   std::reference_wrapper<const AnalyzedScript::ColumnTransform>>;
+    std::vector<IndexedColumnTransform> FindColumnTransforms(ContextObjectID table, ColumnID column_id,
+                                                             CatalogVersion target_catalog_version);
 
     /// Find column refs and return the result as flatbuffer
-    flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> FindColumnRefs(
-        flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, std::string_view column_name);
+    flatbuffers::Offset<buffers::registry::ScriptRegistryColumnLookup> FindColumnRefs(
+        flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
+        CatalogVersion target_catalog_version);
 };
 
 }  // namespace dashql
