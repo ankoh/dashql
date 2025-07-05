@@ -100,7 +100,9 @@ core_native_coverage:
 	${LLVM_COV} show \
 		--instr-profile default.prof \
 		--format html \
-		--ignore-filename-regex='.*/build/native/Debug/.*' \
+		--ignore-filename-regex='.*/build/native/o0/.*' \
+		--ignore-filename-regex='.*/build/native/o1/.*' \
+		--ignore-filename-regex='.*/build/native/o2/.*' \
 		--ignore-filename-regex='.*/utf8proc/.*' \
 		--ignore-filename-regex='.*/proto/proto_generated.h' \
 		--ignore-filename-regex='.*/.*\.list' \
