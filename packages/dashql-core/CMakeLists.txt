@@ -323,6 +323,9 @@ if(NOT WASM)
   add_executable(benchmark_pipeline benchmarks/benchmark_pipeline.cc)
   target_link_libraries(benchmark_pipeline dashql_testutils benchmark gtest gflags Threads::Threads)
 
+  add_executable(benchmark_pipeline_ctes benchmarks/benchmark_pipeline_ctes.cc)
+  target_link_libraries(benchmark_pipeline_ctes dashql_testutils benchmark gtest gflags Threads::Threads)
+
   add_executable(benchmark_catalog benchmarks/benchmark_catalog.cc)
   target_link_libraries(benchmark_catalog dashql_testutils benchmark gtest gflags Threads::Threads)
 

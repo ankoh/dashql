@@ -1,8 +1,8 @@
 #include <format>
 
 #include "benchmark/benchmark.h"
-#include "dashql/catalog.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
 
 using namespace dashql;
 
@@ -96,4 +96,8 @@ static void catalog_update(benchmark::State& state) {
 
 BENCHMARK(catalog_update)->Args({1, 10, 10})->Args({50, 10, 10})->Args({100, 10, 10});
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    benchmark::Initialize(&argc, argv);
+    benchmark::SetDefaultTimeUnit(benchmark::TimeUnit::kMillisecond);
+    benchmark::RunSpecifiedBenchmarks();
+}

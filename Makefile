@@ -111,6 +111,14 @@ core_native_coverage:
 benchmark_pipeline:
 	${LIB_RELWITHDEBINFO_DIR}/benchmark_pipeline
 
+.PHONY: benchmark_pipeline_ctes
+benchmark_pipeline_ctes:
+	${LIB_RELWITHDEBINFO_DIR}/benchmark_pipeline_ctes
+
+.PHONY: benchmark_catalog
+benchmark_catalog:
+	${LIB_RELWITHDEBINFO_DIR}/benchmark_catalog
+
 .PHONY: core_wasm_o0
 core_wasm_o0:
 	./scripts/build_parser_wasm.sh o0
