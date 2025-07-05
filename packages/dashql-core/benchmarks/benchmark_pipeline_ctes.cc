@@ -64,6 +64,7 @@ static void scan_query(benchmark::State& state) {
 
     size_t cte_count = state.range(0);
     auto sql = generate_query(cte_count);
+    std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
     Script main{catalog, 10};
     main.InsertTextAt(0, sql);
@@ -75,6 +76,8 @@ static void scan_query(benchmark::State& state) {
     for (auto _ : state) {
         main.Scan();
     }
+    state.counters["Bytes"] = sql.length();
+    state.counters["Lines"] = newline_count;
 }
 
 static void parse_query(benchmark::State& state) {
@@ -86,6 +89,7 @@ static void parse_query(benchmark::State& state) {
 
     size_t cte_count = state.range(0);
     auto sql = generate_query(cte_count);
+    std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
     Script main{catalog, 10};
     main.InsertTextAt(0, sql);
@@ -97,6 +101,8 @@ static void parse_query(benchmark::State& state) {
     for (auto _ : state) {
         main.Parse();
     }
+    state.counters["Bytes"] = sql.length();
+    state.counters["Lines"] = newline_count;
 }
 
 static void analyze_query(benchmark::State& state) {
@@ -108,6 +114,7 @@ static void analyze_query(benchmark::State& state) {
 
     size_t cte_count = state.range(0);
     auto sql = generate_query(cte_count);
+    std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
     Script main{catalog, 10};
     main.InsertTextAt(0, sql);
@@ -119,6 +126,8 @@ static void analyze_query(benchmark::State& state) {
     for (auto _ : state) {
         main.Analyze(false);
     }
+    state.counters["Bytes"] = sql.length();
+    state.counters["Lines"] = newline_count;
 }
 
 static void apply_cte_args(benchmark::internal::Benchmark* b) {
