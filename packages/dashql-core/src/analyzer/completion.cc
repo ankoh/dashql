@@ -141,26 +141,20 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
     auto& nodes = cursor.script.parsed_script->nodes;
 
-    std::optional<uint32_t> name_ast_node_id;
-    switch (cursor.context.index()) {
-        case 1: {
-            assert(std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context));
-            auto& ctx = std::get<ScriptCursor::TableRefContext>(cursor.context);
+    std::optional<uint32_t> name_ast_node_id = std::visit([&](const auto& ctx) -> std::optional<uint32_t> {
+        using T = std::decay_t<decltype(ctx)>;
+        if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
             auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
             assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
-            name_ast_node_id =
-                std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name.ast_node_id;
-            break;
-        }
-        case 2: {
-            assert(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context));
-            auto& ctx = std::get<ScriptCursor::ColumnRefContext>(cursor.context);
+            return std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name.ast_node_id;
+        } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
             auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
             assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
-            name_ast_node_id = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
-            break;
+            return std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
+        } else {
+            return std::nullopt;
         }
-    }
+    }, cursor.context);
 
     // Couldn't find an ast name path?
     if (!name_ast_node_id.has_value()) {
@@ -782,16 +776,16 @@ void Completion::FlushCandidatesAndFinish() {
 }
 
 static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
-    switch (cursor.context.index()) {
-        case 1:
-            assert(std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context));
+    return std::visit([](const auto& ctx) -> buffers::completion::CompletionStrategy {
+        using T = std::decay_t<decltype(ctx)>;
+        if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
             return buffers::completion::CompletionStrategy::TABLE_REF;
-        case 2:
-            assert(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context));
+        } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
             return buffers::completion::CompletionStrategy::COLUMN_REF;
-        default:
+        } else {
             return buffers::completion::CompletionStrategy::DEFAULT;
-    }
+        }
+    }, cursor.context);
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
