@@ -1,5 +1,6 @@
 #include "dashql/testing/registry_snapshot_test.h"
 
+#include <format>
 #include <fstream>
 #include <set>
 
