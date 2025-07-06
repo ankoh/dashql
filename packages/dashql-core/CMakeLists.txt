@@ -84,7 +84,7 @@ if(WASM)
         -Wl,--export=dashql_script_complete_at_cursor \
         -Wl,--export=dashql_script_registry_new \
         -Wl,--export=dashql_script_registry_clear \
-        -Wl,--export=dashql_script_registry_load_script \
+        -Wl,--export=dashql_script_registry_add_script \
         -Wl,--export=dashql_script_registry_drop_script \
         -Wl,--export=dashql_script_registry_find_column \
         -flto \

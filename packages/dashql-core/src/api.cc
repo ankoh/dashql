@@ -402,8 +402,8 @@ extern "C" FFIResult* dashql_script_registry_new() { return packPtr(std::make_un
 extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry) { registry->Clear(); }
 
 /// Load a script
-extern "C" FFIResult* dashql_script_registry_load_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
-    auto status = registry->LoadScript(*script);
+extern "C" FFIResult* dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
+    auto status = registry->AddScript(*script);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }

@@ -4,6 +4,8 @@ namespace dashql.buffers.registry;
 
 /// Information about a column provided by the script registry.
 table ScriptRegistryColumnInfo {
-    /// Templates associated with the column
-    templates: [snippet.ScriptTemplate];
+    /// Restriction templates associated with the column
+    restriction_templates: [snippet.ScriptTemplate];
+    /// Transform templates associated with the column
+    transform_templates: [snippet.ScriptTemplate];
 }

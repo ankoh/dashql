@@ -32,6 +32,7 @@ describe('Script Registry Tests', () => {
         const target = dql!.createScript(catalog, 2);
         target.insertTextAt(0, 'select * from foo where a < 3');
         target.analyze();
+        registry.addScript(target);
 
         const analyzedPtr = target.getAnalyzed();
         const analyzed = analyzedPtr.read();

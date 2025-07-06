@@ -1,6 +1,7 @@
 #include "dashql/script_snippet.h"
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/script_comparison.h"
 
 namespace dashql {
 
@@ -12,6 +13,14 @@ static buffers::parser::Location patchLocation(buffers::parser::Location loc, si
     assert((loc.offset() - snippet_offset + loc.length()) <= snippet_size);
     loc.mutate_offset(loc.offset() - snippet_offset);
     return loc;
+}
+
+// Equals other snippet?
+bool ScriptSnippet::Equals(const ScriptSnippet& other, bool skip_names_and_literals) const {
+    NameResolver left_name_resolver = [&](size_t id) { return names[id]; };
+    NameResolver right_name_resolver = [&](size_t id) { return other.names[id]; };
+    return ScriptsAreEqual(text, nodes, left_name_resolver, other.text, other.nodes, right_name_resolver,
+                           skip_names_and_literals);
 }
 
 // Compute the signature

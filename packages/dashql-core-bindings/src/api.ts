@@ -52,7 +52,7 @@ interface DashQLModuleExports {
 
     dashql_script_registry_new: () => number;
     dashql_script_registry_clear: (registry_ptr: number) => void;
-    dashql_script_registry_load_script: (registry_ptr: number, script_ptr: number) => number;
+    dashql_script_registry_add_script: (registry_ptr: number, script_ptr: number) => number;
     dashql_script_registry_drop_script: (registry_ptr: number, script_ptr: number) => void;
     dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
 }
@@ -183,7 +183,7 @@ export class DashQL {
 
             dashql_script_registry_new: instance.exports['dashql_script_registry_new'] as () => number,
             dashql_script_registry_clear: instance.exports['dashql_script_registry_clear'] as (registry_ptr: number) => void,
-            dashql_script_registry_load_script: instance.exports['dashql_script_registry_load_script'] as (registry_ptr: number, script_ptr: number) => number,
+            dashql_script_registry_add_script: instance.exports['dashql_script_registry_add_script'] as (registry_ptr: number, script_ptr: number) => number,
             dashql_script_registry_drop_script: instance.exports['dashql_script_registry_drop_script'] as (registry_ptr: number, script_ptr: number) => void,
             dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number
         };
@@ -825,10 +825,10 @@ export class DashQLScriptRegistry {
         this.ptr.api.instanceExports.dashql_script_registry_clear(scriptRegistry);
     }
     /// Add a script in the registry
-    public loadScript(script: DashQLScript) {
+    public addScript(script: DashQLScript) {
         const registryPtr = this.ptr.assertNotNull();
         const scriptPtr = script.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_script_registry_load_script(registryPtr, scriptPtr);
+        const result = this.ptr.api.instanceExports.dashql_script_registry_add_script(registryPtr, scriptPtr);
         this.ptr.api.readStatusResult(result);
     }
     /// Update a script from the registry

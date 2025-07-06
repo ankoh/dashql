@@ -57,6 +57,9 @@ class ScriptRegistry {
         const Script& script;
         /// The analyzed script
         std::shared_ptr<AnalyzedScript> analyzed;
+        // XXX We could maintain a map here for already translated snippets
+        //      std::vector<std::unique_ptr<ScriptSnippet>> restriction_snippets;
+        //      std::vector<std::unique_ptr<ScriptSnippet>> transform_snippets;
     };
 
     /// The script entries
@@ -71,7 +74,7 @@ class ScriptRegistry {
     /// Clear the script registry
     void Clear();
     /// Creates a new script entry or updates an existing one if already registered
-    buffers::status::StatusCode LoadScript(Script& script);
+    buffers::status::StatusCode AddScript(Script& script);
     /// Drop a script completely
     void DropScript(Script& script);
 
