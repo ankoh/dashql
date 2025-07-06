@@ -34,5 +34,4 @@ describe('ContextObjectChildID', () => {
         expect(dashql.ContextObjectChildID.getChild(childId)).toEqual(91011);
         expect(childId.toString()).toEqual("22763282211344411091843");
     });
-
 });

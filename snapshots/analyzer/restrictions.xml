@@ -1,4 +1,41 @@
 <analyzer-snapshots>
+    <analyzer-snapshot name="restrict_variable">
+        <catalog />
+        <script id="0">
+            <input>
+                select * from foo where a &lt; 3
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="foo" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="41..42" text="a" />
+                <expr id="1" type="literal/integer" const="true" stmt="0" loc="45..46" text="3" />
+                <expr id="2" type="comparison" op="LESS_THAN" left="0" right="1" restrict="0" stmt="0" loc="41..46" text="a &lt; 3" />
+            </expressions>
+            <constants>
+                <constant expr="1" loc="45..46" text="3" />
+            </constants>
+            <column-restrictions>
+                <restriction expr="2" loc="41..46" text="a &lt; 3">
+                    <snippet template="1794443991550492122">
+                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 3">
+                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 3">
+                                <node type="LITERAL_INTEGER" loc="4..5" text="3" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                        <node type="NAME" loc="0..1" text="a" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
+                        </node>
+                    </snippet>
+                </restriction>
+            </column-restrictions>
+        </script>
+    </analyzer-snapshot>
     <analyzer-snapshot name="restrict_time">
         <catalog />
         <script id="0">

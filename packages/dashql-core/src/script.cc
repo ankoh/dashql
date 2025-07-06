@@ -401,6 +401,109 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
             inner_ofs = out.Finish().Union();
             break;
         }
+        // Literal
+        case 2: {
+            assert(std::holds_alternative<AnalyzedScript::Expression::Literal>(inner));
+            auto& literal = std::get<AnalyzedScript::Expression::Literal>(inner);
+            auto raw_value_ofs = builder.CreateString(literal.raw_value);
+
+            buffers::algebra::LiteralBuilder literal_builder{builder};
+            literal_builder.add_literal_type(literal.literal_type);
+            literal_builder.add_raw_value(raw_value_ofs);
+
+            inner_type = buffers::algebra::ExpressionSubType::Literal;
+            inner_ofs = literal_builder.Finish().Union();
+            break;
+        }
+        // Comparison
+        case 3: {
+            assert(std::holds_alternative<AnalyzedScript::Expression::Comparison>(inner));
+            auto& comparison = std::get<AnalyzedScript::Expression::Comparison>(inner);
+
+            buffers::algebra::ComparisonBuilder comparison_builder{builder};
+            comparison_builder.add_func(comparison.func);
+            comparison_builder.add_left_child(comparison.left_expression_id);
+            comparison_builder.add_right_child(comparison.right_expression_id);
+
+            inner_type = buffers::algebra::ExpressionSubType::Comparison;
+            inner_ofs = comparison_builder.Finish().Union();
+            break;
+        }
+        // BinaryExpression
+        case 4: {
+            assert(std::holds_alternative<AnalyzedScript::Expression::BinaryExpression>(inner));
+            auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(inner);
+
+            buffers::algebra::BinaryExpressionBuilder binary_builder{builder};
+            binary_builder.add_func(binary.func);
+            binary_builder.add_left_child(binary.left_expression_id);
+            binary_builder.add_right_child(binary.right_expression_id);
+
+            inner_type = buffers::algebra::ExpressionSubType::BinaryExpression;
+            inner_ofs = binary_builder.Finish().Union();
+            break;
+        }
+        // FunctionCallExpression
+        case 5: {
+            assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(inner));
+            auto& func_call = std::get<AnalyzedScript::Expression::FunctionCallExpression>(inner);
+
+            flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> func_name_ofs;
+            if (std::holds_alternative<CatalogEntry::QualifiedFunctionName>(func_call.function_name)) {
+                auto& qualified_name = std::get<CatalogEntry::QualifiedFunctionName>(func_call.function_name);
+                func_name_ofs = qualified_name.Pack(builder);
+            }
+
+            // Handle generic arguments as a vector of uint32_t expression IDs
+            flatbuffers::Offset<flatbuffers::Vector<uint32_t>> arguments_ofs;
+            if (std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(
+                    func_call.arguments)) {
+                auto& generic_args =
+                    std::get<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(func_call.arguments);
+                std::vector<uint32_t> arg_ids;
+                arg_ids.reserve(generic_args.size());
+                for (const auto& arg : generic_args) {
+                    if (arg.expression_id.has_value()) {
+                        arg_ids.push_back(arg.expression_id.value());
+                    }
+                }
+                arguments_ofs = builder.CreateVector(arg_ids);
+            }
+            // Note: Other argument types (CastArguments, ExtractArguments, etc.) are handled as std::monostate
+            // and will result in an empty arguments vector, which is fine for now
+
+            buffers::algebra::FunctionCallExpressionBuilder func_builder{builder};
+            if (!func_name_ofs.IsNull()) {
+                func_builder.add_func_name(func_name_ofs);
+            }
+            func_builder.add_func_call_modifiers(func_call.function_call_modifiers);
+            if (!arguments_ofs.IsNull()) {
+                func_builder.add_arguments(arguments_ofs);
+            }
+
+            inner_type = buffers::algebra::ExpressionSubType::FunctionCallExpression;
+            inner_ofs = func_builder.Finish().Union();
+            break;
+        }
+        // ConstIntervalCast
+        case 6: {
+            assert(std::holds_alternative<AnalyzedScript::Expression::ConstIntervalCast>(inner));
+            auto& interval_cast = std::get<AnalyzedScript::Expression::ConstIntervalCast>(inner);
+
+            buffers::algebra::ConstIntervalCastBuilder interval_builder{builder};
+            interval_builder.add_value_expression(interval_cast.value_expression_id);
+            if (interval_cast.interval.has_value()) {
+                interval_builder.add_interval_type(interval_cast.interval.value().interval_type);
+                if (interval_cast.interval.value().precision_expression.has_value()) {
+                    interval_builder.add_interval_precision(
+                        interval_cast.interval.value().precision_expression.value());
+                }
+            }
+
+            inner_type = buffers::algebra::ExpressionSubType::ConstIntervalCast;
+            inner_ofs = interval_builder.Finish().Union();
+            break;
+        }
         default:
             break;
     }
@@ -623,13 +726,56 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         name_scopes_ofs = builder.CreateVector(name_scope_offsets);
     }
 
+    // Pack constant expressions
+    buffers::analyzer::ConstantExpression* constant_expressions_writer;
+    auto constant_expressions_ofs =
+        builder.CreateUninitializedVectorOfStructs(constant_expressions.GetSize(), &constant_expressions_writer);
+    constant_expressions.ForEach([&](size_t i, const AnalyzedScript::ConstantExpression& restriction) {
+        auto& root = restriction.root.get();
+        assert(root.ast_statement_id.has_value());
+        assert(root.location.has_value());
+        constant_expressions_writer[i] = buffers::analyzer::ConstantExpression(
+            root.ast_node_id, root.ast_statement_id.value(), root.location.value(), root.expression_id);
+    });
+
+    // Pack column restrictions
+    buffers::analyzer::ColumnRestriction* column_restriction_writer;
+    auto column_restrictions_ofs =
+        builder.CreateUninitializedVectorOfStructs(column_restrictions.GetSize(), &column_restriction_writer);
+    column_restrictions.ForEach([&](size_t i, const AnalyzedScript::ColumnRestriction& restriction) {
+        auto& root = restriction.root.get();
+        auto& column_ref = restriction.column_ref.get();
+        assert(root.ast_statement_id.has_value());
+        assert(root.location.has_value());
+        column_restriction_writer[i] =
+            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
+                                                 root.expression_id, column_ref.expression_id);
+    });
+
+    // Pack column transforms
+    buffers::analyzer::ColumnTransform* column_transform_writer;
+    auto column_transforms_ofs =
+        builder.CreateUninitializedVectorOfStructs(column_transforms.GetSize(), &column_transform_writer);
+    column_transforms.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& transform) {
+        auto& root = transform.root.get();
+        auto& column_ref = transform.column_ref.get();
+        assert(root.ast_statement_id.has_value());
+        assert(root.location.has_value());
+        column_transform_writer[i] =
+            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
+                                               root.expression_id, column_ref.expression_id);
+    });
+
     buffers::analyzer::AnalyzedScriptBuilder out{builder};
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
     out.add_table_references(table_references_ofs);
-    out.add_expressions(expressions_ofs);
     out.add_table_references_by_id(table_refs_by_id_ofs);
+    out.add_expressions(expressions_ofs);
     out.add_column_references_by_id(column_refs_by_id_ofs);
+    out.add_constant_expressions(constant_expressions_ofs);
+    out.add_column_restrictions(column_restrictions_ofs);
+    out.add_column_transforms(column_transforms_ofs);
     out.add_name_scopes(name_scopes_ofs);
     return out.Finish();
 }

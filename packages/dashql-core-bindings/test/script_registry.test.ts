@@ -19,7 +19,7 @@ beforeAll(async () => {
 });
 
 describe('Script Registry Tests', () => {
-    it('', () => {
+    it('Single restriction', () => {
         const catalog = dql!.createCatalog();
 
         const schema = dql!.createScript(catalog, 1);
@@ -32,8 +32,21 @@ describe('Script Registry Tests', () => {
         target.insertTextAt(0, 'select * from foo where a < 3');
         target.analyze();
 
+        const analyzedPtr = target.getAnalyzed();
+        const analyzed = analyzedPtr.read();
+        expect(analyzed.expressionsLength()).toEqual(3); // colref, literal, comparison
+        expect(analyzed.columnRestrictionsLength()).toEqual(1);
+        expect(analyzed.constantExpressionsLength()).toEqual(1);
+
+        const restrictionPtr = analyzed.columnRestrictions(0)!;
+        const restrictionExprPtr = analyzed.expressions(restrictionPtr.rootExpressionId())!;
+        const columnRefExprPtr = analyzed.expressions(restrictionPtr.columnReferenceExpressionId())!;
+        expect(restrictionExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.Comparison);
+        expect(columnRefExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression);
+
         registry.loadScript(target);
 
+        analyzedPtr.destroy();
         registry.destroy();
         catalog.destroy();
         target.destroy();

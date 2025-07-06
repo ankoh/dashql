@@ -155,10 +155,10 @@ struct ColumnRestriction {
     ast_statement_id: uint32;
     // The location
     location: parser.Location;
-    /// The table reference that occurs in the restriction expression
-    table_reference_id: uint32;
-    /// The restriction expression
-    expression_id: uint32;
+    /// The root expression id
+    root_expression_id: uint32;
+    /// The column reference expression id
+    column_reference_expression_id: uint32;
 }
 
 struct ColumnTransform {
@@ -168,10 +168,10 @@ struct ColumnTransform {
     ast_statement_id: uint32;
     // The location
     location: parser.Location;
-    /// The reference expression id
-    reference_expression_id: uint32;
-    /// The projection expression id
-    projection_expression_id: uint32;
+    /// The root expression id
+    root_expression_id: uint32;
+    /// The column reference expression id
+    column_reference_expression_id: uint32;
 }
 
 struct IndexedTableReference {

@@ -1,4 +1,12 @@
 <analyzer-snapshots>
+    <analyzer-snapshot name="restrict_variable">
+        <catalog />
+        <script>
+            <input>
+                select * from foo where a &lt; 3
+            </input>
+        </script>
+    </analyzer-snapshot>
     <analyzer-snapshot name="restrict_time">
         <catalog />
         <script>
