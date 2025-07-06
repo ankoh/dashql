@@ -1,0 +1,15 @@
+<registry-snapshots>
+    <registry-snapshot name="simple_1">
+        <catalog>
+            create table foo (a int);
+        </catalog>
+        <scripts>
+            <script>
+                select * from foo where a &lt; 6
+            </script>
+            <script>
+                select * from foo where (a + 1) &lt; 8
+            </script>
+        </scripts>
+    </registry-snapshot>
+</registry-snapshots>

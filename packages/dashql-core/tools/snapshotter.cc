@@ -9,9 +9,11 @@
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/script.h"
+#include "dashql/script_registry.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "gflags/gflags.h"
 
@@ -159,6 +161,106 @@ static void generate_analyzer_snapshots(const std::filesystem::path& source_dir)
     }
 }
 
+static void generate_registry_snapshots(const std::filesystem::path& source_dir) {
+    auto snapshot_dir = source_dir / "snapshots" / "registry";
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto filename = p.path().filename().filename().string();
+
+        // Is template file file
+        auto out = p.path();
+        if (out.extension() != ".xml") continue;
+        out.replace_extension();
+        if (out.extension() != ".tpl") continue;
+        out.replace_extension(".xml");
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << filename << "] failed to read file" << std::endl;
+            continue;
+        }
+
+        // Open output stream
+        std::cout << "FILE " << out << std::endl;
+        std::ofstream outs;
+        outs.open(out, std::ofstream::out | std::ofstream::trunc);
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+        auto root = doc.child("registry-snapshots");
+
+        for (auto test_node : root.children()) {
+            auto name = test_node.attribute("name").as_string();
+            std::cout << "  TEST " << name << std::endl;
+
+            // Read catalog
+            Catalog catalog;
+            std::optional<Script> catalog_script;
+            size_t catalog_entry_id = 0;
+            if (auto catalog_node = test_node.child("catalog"); catalog_node) {
+                catalog_entry_id = catalog_node.attribute("id").as_int(0);
+                catalog_script.emplace(catalog, catalog_entry_id);
+
+                auto script_text = catalog_node.last_child().value();
+                auto& s = catalog_script.value();
+                s.InsertTextAt(0, script_text);
+                if (auto status = s.Scan(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+                if (auto status = s.Parse(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+                if (auto status = s.Analyze(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+
+                catalog.LoadScript(s, 0);
+            }
+
+            // Read scripts
+            auto scripts_node = test_node.child("scripts");
+            std::vector<std::unique_ptr<Script>> registry_scripts;
+            for (auto script_node : scripts_node.children()) {
+                auto script_text = script_node.last_child().value();
+
+                registry_scripts.push_back(
+                    std::make_unique<Script>(catalog, catalog_entry_id + 1 + registry_scripts.size()));
+                auto& s = *registry_scripts.back();
+                s.InsertTextAt(0, script_text);
+                if (auto status = s.Scan(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+                if (auto status = s.Parse(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+                if (auto status = s.Analyze(); status != buffers::status::StatusCode::OK) {
+                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                    return;
+                }
+            }
+
+            // Add all scripts to registry
+            ScriptRegistry registry;
+            for (auto& script : registry_scripts) {
+                registry.AddScript(*script);
+            }
+
+            // Encode the registry
+            auto registry_node = test_node.append_child("registry");
+            RegistrySnapshotTest::EncodeRegistry(registry_node, registry);
+        }
+
+        // Write xml document
+        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
+    }
+}
+
 static void generate_completion_snapshots(const std::filesystem::path& source_dir) {
     auto snapshot_dir = source_dir / "snapshots" / "completion";
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -250,5 +352,6 @@ int main(int argc, char* argv[]) {
     generate_parser_snapshots(source_dir);
     generate_analyzer_snapshots(source_dir);
     generate_completion_snapshots(source_dir);
+    generate_registry_snapshots(source_dir);
     return 0;
 }

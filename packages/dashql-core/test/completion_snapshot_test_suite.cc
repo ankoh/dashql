@@ -24,8 +24,8 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     Catalog catalog;
     std::vector<std::unique_ptr<Script>> catalog_scripts;
     size_t entry_id = 1;
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestRegistrySnapshot(test->catalog_entries, catalog_node, catalog,
-                                                                       catalog_scripts, entry_id));
+    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_entries, catalog_node, catalog,
+                                                                      catalog_scripts, entry_id));
 
     // Read main script
     Script main_script{catalog, 0};

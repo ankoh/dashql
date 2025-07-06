@@ -4,6 +4,7 @@
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/registry_snapshot_test.h"
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
@@ -30,6 +31,7 @@ int main(int argc, char* argv[]) {
     ParserSnapshotTest::LoadTests(source_dir);
     AnalyzerSnapshotTest::LoadTests(source_dir);
     CompletionSnapshotTest::LoadTests(source_dir);
+    RegistrySnapshotTest::LoadTests(source_dir);
 
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

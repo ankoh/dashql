@@ -3,7 +3,6 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/script_snippet.h"
 
 namespace dashql {
 
@@ -16,12 +15,33 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
         return buffers::status::StatusCode::SCRIPT_NOT_ANALYZED;
     }
     auto& analyzed = *script.analyzed_script;
+    ScriptEntry entry{.script = script, .analyzed = script.analyzed_script};
+    script_entries.insert({&script, entry});
+
+    analyzed.column_restrictions.ForEach([&](size_t i, AnalyzedScript::ColumnRestriction& restriction) {
+        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(restriction.column_ref.get().inner);
+        if (column_ref.resolved_column.has_value()) {
+            auto& col = column_ref.resolved_column.value();
+            std::tuple<ContextObjectID, ColumnID, const Script*> entry{col.catalog_table_id, col.table_column_id,
+                                                                       &script};
+            column_restrictions.insert(entry);
+        }
+    });
+    analyzed.column_transforms.ForEach([&](size_t i, AnalyzedScript::ColumnTransform& transform) {
+        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(transform.column_ref.get().inner);
+        if (column_ref.resolved_column.has_value()) {
+            auto& col = column_ref.resolved_column.value();
+            std::tuple<ContextObjectID, ColumnID, const Script*> entry{col.catalog_table_id, col.table_column_id,
+                                                                       &script};
+            column_transforms.insert(entry);
+        }
+    });
 
     return buffers::status::StatusCode::OK;
 }
 
 std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumnRestrictions(
-    ContextObjectID table, ColumnID column_id, CatalogVersion target_catalog_version) {
+    ContextObjectID table, ColumnID column_id, std::optional<CatalogVersion> target_catalog_version) {
     // Collect column restrictions
     std::vector<ScriptRegistry::IndexedColumnRestriction> lookup;
     // Track outdated refs
@@ -48,7 +68,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
         // Collect restrictions in the analyzed script
         auto [b, e] = analyzed->column_restrictions_by_catalog_entry.equal_range({table, column_id});
         for (auto r_iter = b; r_iter != e; ++r_iter) {
-            auto& restriction = b->second.get();
+            auto& restriction = r_iter->second.get();
 
             // Unpack the column ref
             auto& column_ref_expr = restriction.column_ref.get();
@@ -59,7 +79,8 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
             // If it is older than the provided catalog version, we know that the analyzed script is outdated.
             // (We are here looking up a column ref that was registered with the catalog at a later point than this ref)
             if (auto& resolved = column_ref.resolved_column) {
-                if (resolved->referenced_catalog_version < target_catalog_version) {
+                if (target_catalog_version.has_value() &&
+                    resolved->referenced_catalog_version != target_catalog_version.value()) {
                     outdated.emplace_back(table, column_id, &script_entry.script);
                     break;
                 }
@@ -79,7 +100,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
 }
 
 std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTransforms(
-    ContextObjectID table, ColumnID column_id, CatalogVersion target_catalog_version) {
+    ContextObjectID table, ColumnID column_id, std::optional<CatalogVersion> target_catalog_version) {
     // Collect column transforms
     std::vector<ScriptRegistry::IndexedColumnTransform> lookup;
     // Track outdated refs
@@ -106,7 +127,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
         // Collect transforms in the analyzed script
         auto [b, e] = analyzed->column_transforms_by_catalog_entry.equal_range({table, column_id});
         for (auto r_iter = b; r_iter != e; ++r_iter) {
-            auto& transform = b->second.get();
+            auto& transform = r_iter->second.get();
             lookup.emplace_back(script_entry.script, *script_entry.analyzed, transform);
 
             // Unpack the column ref
@@ -118,7 +139,8 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
             // If it is older than the provided catalog version, we know that the analyzed script is outdated.
             // (We are here looking up a column ref that was registered with the catalog at a later point than this ref)
             if (auto& resolved = column_ref.resolved_column) {
-                if (resolved->referenced_catalog_version < target_catalog_version) {
+                if (target_catalog_version.has_value() &&
+                    resolved->referenced_catalog_version != target_catalog_version.value()) {
                     outdated.emplace_back(table, column_id, &script_entry.script);
                     break;
                 }
@@ -136,28 +158,30 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
     return lookup;
 }
 
+/// Helper to add a snippets to grouped snippets
+static void addSnippetToGroup(ScriptSnippet snippet, ScriptRegistry::SnippetMap& snippets) {
+    auto snippet_ptr = std::make_unique<ScriptSnippet>(std::move(snippet));
+    auto& snippet_ref = *snippet_ptr;
+    auto snippet_key = ScriptSnippet::Key<true>{snippet_ref};
+
+    // Did we index a similar snippet already?
+    auto iter = snippets.find(snippet_key);
+    if (iter != snippets.end()) {
+        iter->second.push_back(std::move(snippet_ptr));
+    } else {
+        // Otherwise start a new entry
+        std::vector<std::unique_ptr<ScriptSnippet>> same_key;
+        same_key.reserve(1);
+        same_key.push_back(std::move(snippet_ptr));
+        snippets.insert({snippet_key, std::move(same_key)});
+    }
+};
+
 flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry::FindColumnInfo(
     flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
-    CatalogVersion target_catalog_version) {
+    std::optional<CatalogVersion> target_catalog_version) {
     // Helper to add a snippet
     using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
-    auto add_snippet = [](ScriptSnippet snippet, SnippetMap& snippets) {
-        auto snippet_ptr = std::make_unique<ScriptSnippet>(std::move(snippet));
-        auto& snippet_ref = *snippet_ptr;
-        auto snippet_key = ScriptSnippet::Key<true>{snippet_ref};
-
-        // Did we index a similar restriction snippet already?
-        auto iter = snippets.find(snippet_key);
-        if (iter != snippets.end()) {
-            iter->second.push_back(std::move(snippet_ptr));
-        } else {
-            // Otherwise start a new entry
-            std::vector<std::unique_ptr<ScriptSnippet>> same_key;
-            same_key.reserve(1);
-            same_key.push_back(std::move(snippet_ptr));
-            snippets.insert({snippet_key, std::move(same_key)});
-        }
-    };
 
     // Helper to pack templates
     auto pack_templates = [](flatbuffers::FlatBufferBuilder& builder, const SnippetMap& snippet_map,
@@ -193,13 +217,13 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
         // Group restrictions snippets
         SnippetMap restriction_snippets;
         for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
-            auto& restriction_root = restriction_ref.get().root.get();
+            auto& root = restriction_ref.get().root.get();
             auto& analyzed = analyzed_ref.get();
             auto& parsed = *analyzed.parsed_script;
             auto& scanned = *parsed.scanned_script;
             auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
-                                                  restriction_root.ast_node_id, scanned.GetNames());
-            add_snippet(std::move(snippet), restriction_snippets);
+                                                  root.ast_node_id, scanned.GetNames());
+            addSnippetToGroup(std::move(snippet), restriction_snippets);
         };
 
         // Pack the restriction templates
@@ -216,13 +240,13 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
         // Group transform snippets
         SnippetMap transform_snippets;
         for (auto& [script_ref, analyzed_ref, transform_ref] : transforms) {
-            auto& transform_root = transform_ref.get().root.get();
+            auto& root = transform_ref.get().root.get();
             auto& analyzed = analyzed_ref.get();
             auto& parsed = *analyzed.parsed_script;
             auto& scanned = *parsed.scanned_script;
             auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
-                                                  transform_root.ast_node_id, scanned.GetNames());
-            add_snippet(std::move(snippet), transform_snippets);
+                                                  root.ast_node_id, scanned.GetNames());
+            addSnippetToGroup(std::move(snippet), transform_snippets);
         };
 
         // Pack the restriction templates
@@ -235,6 +259,38 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
     info_builder.add_restriction_templates(restriction_templates);
     info_builder.add_transform_templates(transform_templates);
     return info_builder.Finish();
+}
+
+void ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnID column_id,
+                                               std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
+    auto restrictions = FindColumnRestrictions(table_id, column_id, target_catalog_version);
+    for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
+        auto& root = restriction_ref.get().root.get();
+        auto& analyzed = analyzed_ref.get();
+        auto& parsed = *analyzed.parsed_script;
+        auto& scanned = *parsed.scanned_script;
+
+        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+                                              root.ast_node_id, scanned.GetNames());
+
+        addSnippetToGroup(std::move(snippet), out);
+    }
+}
+
+void ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID column_id,
+                                             std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
+    auto transforms = FindColumnTransforms(table_id, column_id, target_catalog_version);
+    for (auto& [script_ref, analyzed_ref, restriction_ref] : transforms) {
+        auto& root = restriction_ref.get().root.get();
+        auto& analyzed = analyzed_ref.get();
+        auto& parsed = *analyzed.parsed_script;
+        auto& scanned = *parsed.scanned_script;
+
+        auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
+                                              root.ast_node_id, scanned.GetNames());
+
+        addSnippetToGroup(std::move(snippet), out);
+    }
 }
 
 }  // namespace dashql

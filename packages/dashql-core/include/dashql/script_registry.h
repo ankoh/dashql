@@ -5,6 +5,7 @@
 #include "dashql/catalog.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
+#include "dashql/script_snippet.h"
 
 namespace dashql {
 
@@ -71,6 +72,11 @@ class ScriptRegistry {
     btree::set<std::tuple<ContextObjectID, ColumnID, const Script*>> column_transforms;
 
    public:
+    /// Get the column restrictions
+    auto& GetColumnRestrictions() const { return column_restrictions; }
+    /// Get the column transforms
+    auto& GetColumnTransforms() const { return column_transforms; }
+
     /// Clear the script registry
     void Clear();
     /// Creates a new script entry or updates an existing one if already registered
@@ -85,18 +91,27 @@ class ScriptRegistry {
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
                    std::reference_wrapper<const AnalyzedScript::ColumnRestriction>>;
     std::vector<IndexedColumnRestriction> FindColumnRestrictions(ContextObjectID table, ColumnID column_id,
-                                                                 CatalogVersion target_catalog_version);
+                                                                 std::optional<CatalogVersion> target_catalog_version);
     /// Find table column transforms
     using IndexedColumnTransform =
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
                    std::reference_wrapper<const AnalyzedScript::ColumnTransform>>;
     std::vector<IndexedColumnTransform> FindColumnTransforms(ContextObjectID table, ColumnID column_id,
-                                                             CatalogVersion target_catalog_version);
+                                                             std::optional<CatalogVersion> target_catalog_version);
 
     /// Find column refs and return the result as flatbuffer
     flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> FindColumnInfo(
         flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
-        CatalogVersion target_catalog_version);
+        std::optional<CatalogVersion> target_catalog_version);
+
+    using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
+
+    // Collect column restrictions
+    void CollectColumnRestrictions(ContextObjectID table, ColumnID column_id,
+                                   std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
+    // Collect column transforms
+    void CollectColumnTransforms(ContextObjectID table, ColumnID column_id,
+                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
 };
 
 }  // namespace dashql

@@ -295,6 +295,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/src/testing/analyzer_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/completion_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/parser_snapshot_test.cc
+    ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/xml_tests.cc
   )
   target_link_libraries(dashql_testutils dashql pugixml gtest)
@@ -311,6 +312,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+    ${CMAKE_SOURCE_DIR}/test/registry_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc
     ${CMAKE_SOURCE_DIR}/test/scanner_test.cc
     ${CMAKE_SOURCE_DIR}/test/script_test.cc

@@ -28,6 +28,7 @@ table ScriptTemplate {
     template_type: ScriptTemplateType;
     /// The signature of the template
     template_signature: uint64;
+    /// The 
     /// Multiple variants of the script snippet
     snippets: [ScriptSnippet];
 }

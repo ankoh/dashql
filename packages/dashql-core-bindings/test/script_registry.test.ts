@@ -50,13 +50,11 @@ describe('Script Registry Tests', () => {
         const resolvedColumn = columnRef.resolvedColumn();
         expect(resolvedColumn).not.toBeNull();
 
-        const columnInfo = registry.findColumnInfo(
+        const _columnInfo = registry.findColumnInfo(
             resolvedColumn!.catalogTableId(),
             resolvedColumn!.columnId(),
             resolvedColumn!.referencedCatalogVersion()
         ).unpackAndDestroy();
-
-        console.log(JSON.stringify(columnInfo, null, 4));
 
         analyzedPtr.destroy();
         registry.destroy();

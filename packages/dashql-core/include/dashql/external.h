@@ -54,3 +54,17 @@ struct ContextObjectID {
     };
 };
 }  // namespace dashql
+
+namespace std {
+template <> struct hash<dashql::ContextObjectID> {
+    size_t operator()(const dashql::ContextObjectID& key) const { return dashql::ContextObjectID::Hasher{}(key); }
+};
+template <> struct hash<std::pair<dashql::ContextObjectID, uint32_t>> {
+    size_t operator()(const std::pair<dashql::ContextObjectID, uint32_t>& key) const {
+        size_t value = 0;
+        dashql::hash_combine(value, std::get<0>(key));
+        dashql::hash_combine(value, std::get<1>(key));
+        return value;
+    }
+};
+}  // namespace std
