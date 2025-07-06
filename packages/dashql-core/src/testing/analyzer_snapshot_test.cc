@@ -14,6 +14,10 @@ namespace dashql {
 
 using namespace testing;
 
+/// Helper template for static_assert in generic visitor
+template<typename T>
+constexpr bool always_false = false;
+
 /// Is a string with all lower-case alphanumeric characters?
 static bool isAllLowercaseAlphaNum(std::string_view id) {
     bool all = true;
@@ -158,11 +162,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
         auto table_refs_node = out.append_child("table-refs");
         script.table_references.ForEach([&](size_t i, const AnalyzedScript::TableReference& ref) {
             auto xml_ref = table_refs_node.append_child("table-ref");
-            switch (ref.inner.index()) {
-                case 0:
-                    break;
-                case 1: {
-                    auto& relation_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(ref.inner);
+            std::visit([&](const auto& value) {
+                using T = std::decay_t<decltype(value)>;
+                
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    // Empty variant case - no action needed
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::TableReference::RelationExpression>) {
+                    auto& relation_expr = value;
                     if (!relation_expr.resolved_table.has_value()) {
                         xml_ref.append_attribute("type").set_value("name/unresolved");
                     } else {
@@ -176,9 +182,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                         xml_ref.append_attribute("type").set_value(type);
                         xml_ref.append_attribute("id").set_value(catalog_id.c_str());
                     }
-                    break;
+                } else {
+                    static_assert(always_false<T>, "Unhandled table reference type in analyzer snapshot test");
                 }
-            }
+            }, ref.inner);
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);
             }
@@ -193,11 +200,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
         script.expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& ref) {
             auto xml_ref = expr_node.append_child("expr");
             xml_ref.append_attribute("id").set_value(i);
-            switch (ref.inner.index()) {
-                case 0:
-                    break;
-                case 1: {
-                    auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(ref.inner);
+            std::visit([&](const auto& value) {
+                using T = std::decay_t<decltype(value)>;
+                
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    // Empty variant case - no action needed
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
+                    auto& column_ref = value;
                     if (!column_ref.resolved_column.has_value()) {
                         xml_ref.append_attribute("type").set_value("colref/unresolved");
                     } else {
@@ -210,12 +219,9 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                                         : "colref/external";
                         xml_ref.append_attribute("type").set_value(type);
                         xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
-                        break;
                     }
-                    break;
-                }
-                case 2: {
-                    auto& literal = std::get<AnalyzedScript::Expression::Literal>(ref.inner);
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Literal>) {
+                    auto& literal = value;
                     std::string type_name = "literal/";
                     switch (literal.literal_type) {
                         case dashql::buffers::algebra::LiteralType::NULL_:
@@ -235,54 +241,46 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             break;
                     }
                     xml_ref.append_attribute("type").set_value(type_name.c_str());
-                    break;
-                }
-                case 3: {
-                    auto& cmp = std::get<AnalyzedScript::Expression::Comparison>(ref.inner);
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Comparison>) {
+                    auto& cmp = value;
                     xml_ref.append_attribute("type").set_value("comparison");
 
                     auto* op_tt = buffers::algebra::ComparisonFunctionTypeTable();
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(cmp.func)]);
                     xml_ref.append_attribute("left").set_value(cmp.left_expression_id);
                     xml_ref.append_attribute("right").set_value(cmp.right_expression_id);
-                    break;
-                }
-                case 4: {
-                    auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(ref.inner);
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
+                    auto& binary = value;
                     xml_ref.append_attribute("type").set_value("binary");
 
                     auto* op_tt = buffers::algebra::BinaryExpressionFunctionTypeTable();
                     xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
                     xml_ref.append_attribute("left").set_value(binary.left_expression_id);
                     xml_ref.append_attribute("right").set_value(binary.right_expression_id);
-                    break;
-                }
-                case 5: {
-                    auto& func = std::get<AnalyzedScript::Expression::FunctionCallExpression>(ref.inner);
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
+                    auto& func = value;
                     xml_ref.append_attribute("type").set_value("func");
-                    switch (func.function_name.index()) {
-                        case 0: {
-                            auto known = std::get<buffers::parser::KnownFunction>(func.function_name);
+                    std::visit([&](const auto& func_name_value) {
+                        using FuncT = std::decay_t<decltype(func_name_value)>;
+                        if constexpr (std::is_same_v<FuncT, buffers::parser::KnownFunction>) {
+                            auto known = func_name_value;
                             auto known_name =
                                 buffers::parser::KnownFunctionTypeTable()->names[static_cast<size_t>(known)];
                             xml_ref.append_attribute("known").set_value(known_name);
-                            break;
-                        }
-                        case 1: {
-                            auto func_name =
-                                std::get<CatalogEntry::QualifiedFunctionName>(func.function_name).getDebugString();
+                        } else if constexpr (std::is_same_v<FuncT, CatalogEntry::QualifiedFunctionName>) {
+                            auto func_name = func_name_value.getDebugString();
                             xml_ref.append_attribute("name").set_value(func_name.c_str());
-                            break;
+                        } else {
+                            static_assert(always_false<FuncT>, "Unhandled function name type in analyzer snapshot test");
                         }
-                    }
-                    break;
-                }
-                case 6: {
-                    auto& func = std::get<AnalyzedScript::Expression::ConstIntervalCast>(ref.inner);
+                    }, func.function_name);
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ConstIntervalCast>) {
+                    auto& func = value;
                     xml_ref.append_attribute("type").set_value("constcast/interval");
-                    break;
+                } else {
+                    static_assert(always_false<T>, "Unhandled expression type in analyzer snapshot test");
                 }
-            }
+            }, ref.inner);
             if (ref.is_constant_expression) {
                 xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
             }

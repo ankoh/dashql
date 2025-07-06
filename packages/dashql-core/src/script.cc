@@ -20,6 +20,10 @@
 
 namespace dashql {
 
+/// Helper template for static_assert in generic visitor
+template<typename T>
+constexpr bool always_false = false;
+
 /// Finish a statement
 std::unique_ptr<buffers::parser::StatementT> ParsedScript::Statement::Pack() {
     auto stmt = std::make_unique<buffers::parser::StatementT>();
@@ -373,11 +377,15 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
     flatbuffers::FlatBufferBuilder& builder) const {
     std::optional<buffers::algebra::ExpressionSubType> inner_type;
     flatbuffers::Offset<void> inner_ofs;
-    switch (inner.index()) {
-        // Column reference
-        case 1: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(inner));
-            auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(inner);
+    
+    // Use std::visit for type-safe variant handling
+    std::visit([&](const auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        
+        if constexpr (std::is_same_v<T, std::monostate>) {
+            // Empty variant case - no action needed
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
+            auto& column_ref = value;
             auto column_name_ofs = column_ref.column_name.Pack(builder);
 
             flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
@@ -399,12 +407,8 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
             }
             inner_type = buffers::algebra::ExpressionSubType::ColumnRefExpression;
             inner_ofs = out.Finish().Union();
-            break;
-        }
-        // Literal
-        case 2: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::Literal>(inner));
-            auto& literal = std::get<AnalyzedScript::Expression::Literal>(inner);
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Literal>) {
+            auto& literal = value;
             auto raw_value_ofs = builder.CreateString(literal.raw_value);
 
             buffers::algebra::LiteralBuilder literal_builder{builder};
@@ -413,12 +417,8 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
             inner_type = buffers::algebra::ExpressionSubType::Literal;
             inner_ofs = literal_builder.Finish().Union();
-            break;
-        }
-        // Comparison
-        case 3: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::Comparison>(inner));
-            auto& comparison = std::get<AnalyzedScript::Expression::Comparison>(inner);
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Comparison>) {
+            auto& comparison = value;
 
             buffers::algebra::ComparisonBuilder comparison_builder{builder};
             comparison_builder.add_func(comparison.func);
@@ -427,12 +427,8 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
             inner_type = buffers::algebra::ExpressionSubType::Comparison;
             inner_ofs = comparison_builder.Finish().Union();
-            break;
-        }
-        // BinaryExpression
-        case 4: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::BinaryExpression>(inner));
-            auto& binary = std::get<AnalyzedScript::Expression::BinaryExpression>(inner);
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
+            auto& binary = value;
 
             buffers::algebra::BinaryExpressionBuilder binary_builder{builder};
             binary_builder.add_func(binary.func);
@@ -441,12 +437,8 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
             inner_type = buffers::algebra::ExpressionSubType::BinaryExpression;
             inner_ofs = binary_builder.Finish().Union();
-            break;
-        }
-        // FunctionCallExpression
-        case 5: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression>(inner));
-            auto& func_call = std::get<AnalyzedScript::Expression::FunctionCallExpression>(inner);
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
+            auto& func_call = value;
 
             flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> func_name_ofs;
             if (std::holds_alternative<CatalogEntry::QualifiedFunctionName>(func_call.function_name)) {
@@ -483,12 +475,8 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
             inner_type = buffers::algebra::ExpressionSubType::FunctionCallExpression;
             inner_ofs = func_builder.Finish().Union();
-            break;
-        }
-        // ConstIntervalCast
-        case 6: {
-            assert(std::holds_alternative<AnalyzedScript::Expression::ConstIntervalCast>(inner));
-            auto& interval_cast = std::get<AnalyzedScript::Expression::ConstIntervalCast>(inner);
+        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ConstIntervalCast>) {
+            auto& interval_cast = value;
 
             buffers::algebra::ConstIntervalCastBuilder interval_builder{builder};
             interval_builder.add_value_expression(interval_cast.value_expression_id);
@@ -502,11 +490,12 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
 
             inner_type = buffers::algebra::ExpressionSubType::ConstIntervalCast;
             inner_ofs = interval_builder.Finish().Union();
-            break;
+        } else {
+            // This will cause a compile error if a new type is added to the variant
+            // but not handled in the visitor
+            static_assert(always_false<T>, "Unhandled expression type in Pack method");
         }
-        default:
-            break;
-    }
+    }, inner);
     buffers::algebra::ExpressionBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
     out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
