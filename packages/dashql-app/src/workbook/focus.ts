@@ -120,7 +120,7 @@ export function deriveFocusFromScriptCursor(
                             resolvedTable.catalogTableId()
                         );
                         for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
-                            const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
+                            const indexEntry = targetAnalyzed.resolvedTableReferencesById(indexEntryId, tmpIndexedTableRef)!;
                             const tableRefId = indexEntry.tableReferenceId();
                             const focusType = (tableRefId == context.tableReferenceId) ? FocusType.TABLE_REF_UNDER_CURSOR : FocusType.TABLE_REF_OF_TARGET_TABLE;
                             focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), focusType);
@@ -134,7 +134,7 @@ export function deriveFocusFromScriptCursor(
                             resolvedTable.catalogTableId()
                         );
                         for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
-                            const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                            const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                             const expressionId = indexEntry.expressionId();
                             const focusType = FocusType.COLUMN_REF_OF_TARGET_TABLE;
                             focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, expressionId), focusType);
@@ -191,7 +191,7 @@ export function deriveFocusFromScriptCursor(
                                 resolvedColumn.catalogTableId(),
                             );
                             for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
-                                const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
+                                const indexEntry = targetAnalyzed.resolvedTableReferencesById(indexEntryId, tmpIndexedTableRef)!;
                                 const tableRefId = indexEntry.tableReferenceId();
                                 focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), FocusType.TABLE_REF_OF_TARGET_COLUMN);
                             }
@@ -204,7 +204,7 @@ export function deriveFocusFromScriptCursor(
                                 resolvedColumn.catalogTableId(),
                             );
                             for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
-                                const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                                const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                                 const columnRefId = indexEntry.expressionId();
                                 focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), FocusType.COLUMN_REF_OF_TARGET_TABLE);
                             }
@@ -218,7 +218,7 @@ export function deriveFocusFromScriptCursor(
                                 resolvedColumn.columnId(),
                             );
                             for (let indexEntryId = begin2; indexEntryId < end2; ++indexEntryId) {
-                                const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                                const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                                 const columnRefId = indexEntry.expressionId();
                                 const focusType = (columnRefId == context.expressionId) ? FocusType.COLUMN_REF_UNDER_CURSOR : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
                                 focus.scriptColumnRefs.set(dashql.ContextObjectID.create(scriptKey, columnRefId), focusType);
@@ -288,7 +288,7 @@ export function deriveFocusFromCatalogSelection(
                     target.value.table,
                 );
                 for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
-                    const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
+                    const indexEntry = targetAnalyzed.resolvedTableReferencesById(indexEntryId, tmpIndexedTableRef)!;
                     const tableRefId = indexEntry.tableReferenceId();
                     focus.scriptTableRefs.set(dashql.ContextObjectID.create(d.scriptKey, tableRefId), FocusType.TABLE_REF_OF_TARGET_TABLE);
                 }
@@ -301,7 +301,7 @@ export function deriveFocusFromCatalogSelection(
                     target.value.table,
                 );
                 for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
-                    const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                    const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                     const expressionId = indexEntry.expressionId();
                     focus.scriptColumnRefs.set(dashql.ContextObjectID.create(d.scriptKey, expressionId), FocusType.COLUMN_REF_OF_TARGET_TABLE);
                 }
@@ -336,7 +336,7 @@ export function deriveFocusFromCatalogSelection(
                     target.value.table,
                 );
                 for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
-                    const indexEntry = targetAnalyzed.tableReferencesById(indexEntryId, tmpIndexedTableRef)!;
+                    const indexEntry = targetAnalyzed.resolvedTableReferencesById(indexEntryId, tmpIndexedTableRef)!;
                     const tableRefId = indexEntry.tableReferenceId();
                     focus.scriptTableRefs.set(dashql.ContextObjectID.create(d.scriptKey, tableRefId), FocusType.TABLE_REF_OF_TARGET_TABLE);
                 }
@@ -350,7 +350,7 @@ export function deriveFocusFromCatalogSelection(
                     target.value.column
                 );
                 for (let indexEntryId = begin1; indexEntryId < end1; ++indexEntryId) {
-                    const indexEntry = targetAnalyzed.columnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
+                    const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                     const expressionId = indexEntry.expressionId();
                     focus.scriptColumnRefs.set(dashql.ContextObjectID.create(d.scriptKey, expressionId), FocusType.COLUMN_REF_OF_TARGET_COLUMN);
                 }

@@ -634,7 +634,8 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     auto expressions_ofs = PackVector<AnalyzedScript::Expression, buffers::algebra::Expression>(builder, expressions);
 
     // Build index: (db_id, schema_id, table_id) -> table_ref*
-    flatbuffers::Offset<flatbuffers::Vector<const buffers::analyzer::IndexedTableReference*>> table_refs_by_id_ofs;
+    flatbuffers::Offset<flatbuffers::Vector<const buffers::analyzer::IndexedTableReference*>>
+        resolved_table_refs_by_id_ofs;
     {
         std::vector<buffers::analyzer::IndexedTableReference> table_refs_by_id;
         table_refs_by_id.reserve(table_references.GetSize());
@@ -654,11 +655,12 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                       auto b = std::make_tuple(r.catalog_database_id(), r.catalog_schema_id(), r.catalog_table_id());
                       return a < b;
                   });
-        table_refs_by_id_ofs = builder.CreateVectorOfStructs(table_refs_by_id);
+        resolved_table_refs_by_id_ofs = builder.CreateVectorOfStructs(table_refs_by_id);
     }
 
     // Build index: (db_id, schema_id, table_id, column_id) -> column_ref*
-    flatbuffers::Offset<flatbuffers::Vector<const buffers::analyzer::IndexedColumnReference*>> column_refs_by_id_ofs;
+    flatbuffers::Offset<flatbuffers::Vector<const buffers::analyzer::IndexedColumnReference*>>
+        resolved_column_refs_by_id_ofs;
     {
         std::vector<buffers::analyzer::IndexedColumnReference> column_refs_by_id;
         column_refs_by_id.reserve(expressions.GetSize());
@@ -681,7 +683,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                                                r.table_column_id());
                       return a < b;
                   });
-        column_refs_by_id_ofs = builder.CreateVectorOfStructs(column_refs_by_id);
+        resolved_column_refs_by_id_ofs = builder.CreateVectorOfStructs(column_refs_by_id);
     }
 
     // Pack name scopes
@@ -770,9 +772,9 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
     out.add_table_references(table_references_ofs);
-    out.add_table_references_by_id(table_refs_by_id_ofs);
+    out.add_resolved_table_references_by_id(resolved_table_refs_by_id_ofs);
     out.add_expressions(expressions_ofs);
-    out.add_column_references_by_id(column_refs_by_id_ofs);
+    out.add_resolved_column_references_by_id(resolved_column_refs_by_id_ofs);
     out.add_constant_expressions(constant_expressions_ofs);
     out.add_column_restrictions(column_restrictions_ofs);
     out.add_column_transforms(column_transforms_ofs);

@@ -263,13 +263,15 @@ table AnalyzedScript {
     table_references: [TableReference];
     /// The indexed table references, sorted by (database_id, schema_id, table_id).
     /// This allows resolving table references in logarithmic time using catalog ids.
-    table_references_by_id: [IndexedTableReference];
+    /// Does not contain entries for unresolved table refs.
+    resolved_table_references_by_id: [IndexedTableReference];
 
     /// A subset of expressions relevant for the analyzer output
     expressions: [algebra.Expression];
     /// The indexed column references, sorted by (database_id, schema_id, table_id, column_id)
     /// This allows resolving column references in logarithmic time using catalog ids.
-    column_references_by_id: [IndexedColumnReference];
+    /// Does not contain entries for unresolved column refs.
+    resolved_column_references_by_id: [IndexedColumnReference];
     /// The constant expressions.
     /// We track constant expressions in the AST and emit an entry for the expression root.
     constant_expressions: [ConstantExpression];

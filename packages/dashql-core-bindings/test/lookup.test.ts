@@ -21,8 +21,8 @@ function tableEntryById(table: bigint, index: number) {
 
 function packScript(tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[], columnRefs: dashql.buffers.analyzer.IndexedColumnReferenceT[]) {
     const script = new dashql.buffers.analyzer.AnalyzedScriptT();
-    script.tableReferencesById = tableRefs;
-    script.columnReferencesById = columnRefs;
+    script.resolvedTableReferencesById = tableRefs;
+    script.resolvedColumnReferencesById = columnRefs;
     const builder = new flatbuffers.Builder();
     const ofs = script.pack(builder);
     builder.finish(ofs);

@@ -5,7 +5,7 @@ export function findScriptTableRefsLowerBound(script: buffers.analyzer.AnalyzedS
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
-        const midRef = script.tableReferencesById(m, tmp);
+        const midRef = script.resolvedTableReferencesById(m, tmp);
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -35,7 +35,7 @@ export function findScriptTableRefsUpperBound(script: buffers.analyzer.AnalyzedS
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
-        const midRef = script.tableReferencesById(m, tmp);
+        const midRef = script.resolvedTableReferencesById(m, tmp);
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -63,7 +63,7 @@ export function findScriptTableRefsUpperBound(script: buffers.analyzer.AnalyzedS
 /// Find equal range among table refs for a table
 export function findScriptTableRefsEqualRange(script: buffers.analyzer.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, tmp: buffers.analyzer.IndexedTableReference = new buffers.analyzer.IndexedTableReference()): [number, number] {
     const begin = 0;
-    const end = script.tableReferencesByIdLength();
+    const end = script.resolvedTableReferencesByIdLength();
     const lb = findScriptTableRefsLowerBound(script, tmp, begin, end, targetDb, targetSchema ?? 0, targetTable ?? 0n);
     const ub = findScriptTableRefsUpperBound(script, tmp, lb, end, targetDb, targetSchema ?? Number.MAX_SAFE_INTEGER, targetTable ?? 0xFFFFFFFFFFFFFFFFn);
     return [lb, ub];
@@ -74,7 +74,7 @@ export function findScriptColumnRefsLowerBound(script: buffers.analyzer.Analyzed
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
-        const midRef = script.columnReferencesById(m, tmp);
+        const midRef = script.resolvedColumnReferencesById(m, tmp);
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -111,7 +111,7 @@ export function findScriptColumnRefsUpperBound(script: buffers.analyzer.Analyzed
     while (begin < end) {
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
-        const midRef = script.columnReferencesById(m, tmp);
+        const midRef = script.resolvedColumnReferencesById(m, tmp);
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -146,7 +146,7 @@ export function findScriptColumnRefsUpperBound(script: buffers.analyzer.Analyzed
 /// Find equal range among table refs for a table column
 export function findScriptColumnRefsEqualRange(script: buffers.analyzer.AnalyzedScript, targetDb: number, targetSchema: number | null = null, targetTable: bigint | null = null, columnId: number | null = null, tmp: buffers.analyzer.IndexedColumnReference = new buffers.analyzer.IndexedColumnReference()): [number, number] {
     const begin = 0;
-    const end = script.columnReferencesByIdLength();
+    const end = script.resolvedColumnReferencesByIdLength();
     const lb = findScriptColumnRefsLowerBound(script, tmp, begin, end, targetDb, targetSchema ?? 0, targetTable ?? 0n, columnId ?? 0);
     const ub = findScriptColumnRefsUpperBound(script, tmp, lb, end, targetDb, targetSchema ?? Number.MAX_SAFE_INTEGER, targetTable ?? 0xFFFFFFFFFFFFFFFFn, columnId ?? Number.MAX_SAFE_INTEGER);
     return [lb, ub];
