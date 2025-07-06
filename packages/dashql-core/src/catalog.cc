@@ -277,22 +277,20 @@ flatbuffers::Offset<buffers::catalog::CatalogEntry> DescriptorPool::DescribeEntr
     schema_offsets.reserve(descriptor_buffers.size());
     uint32_t table_id = 0;
     for (auto& buffer : descriptor_buffers) {
-        switch (buffer.descriptor.index()) {
-            case 0: {
-                auto& descriptor = std::get<0>(buffer.descriptor);
+        std::visit([&](const auto& descriptor_ref) {
+            using T = std::decay_t<decltype(descriptor_ref)>;
+            if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptor>>) {
+                auto& descriptor = descriptor_ref.get();
                 schema_offsets.push_back(describeEntrySchema(builder, descriptor, table_id));
-                break;
-            }
-            case 1: {
-                auto& descriptors = std::get<1>(buffer.descriptor).get();
+            } else if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptors>>) {
+                auto& descriptors = descriptor_ref.get();
                 auto* schemas = descriptors.schemas();
                 for (size_t i = 0; i < schemas->size(); ++i) {
                     auto* schema = schemas->Get(i);
                     schema_offsets.push_back(describeEntrySchema(builder, *schema, table_id));
                 }
-                break;
             }
-        }
+        }, buffer.descriptor);
     }
     auto schemas_offset = builder.CreateVector(schema_offsets);
 
@@ -312,17 +310,16 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
                                                                 CatalogSchemaID& schema_id) {
     // Unpack the schemas
     std::vector<std::reference_wrapper<const buffers::catalog::SchemaDescriptor>> descriptors;
-    switch (descriptor_variant.index()) {
-        case 0: {
-            auto& entry = std::get<0>(descriptor_variant).get();
+    auto status = std::visit([&](const auto& descriptor_ref) -> buffers::status::StatusCode {
+        using T = std::decay_t<decltype(descriptor_ref)>;
+        if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptor>>) {
+            auto& entry = descriptor_ref.get();
             if (!entry.tables()) {
                 return buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL;
             }
-            descriptors.push_back(std::get<0>(descriptor_variant));
-            break;
-        }
-        case 1: {
-            auto* entries = std::get<1>(descriptor_variant).get().schemas();
+            descriptors.push_back(descriptor_ref);
+        } else if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptors>>) {
+            auto* entries = descriptor_ref.get().schemas();
             descriptors.reserve(entries->size());
             for (size_t i = 0; i < entries->size(); ++i) {
                 auto& entry = *entries->Get(i);
@@ -331,9 +328,14 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
                 }
                 descriptors.push_back(*entries->Get(i));
             }
-            break;
         }
+        return buffers::status::StatusCode::OK;
+    }, descriptor_variant);
+
+    if (status != buffers::status::StatusCode::OK) {
+        return status;
     }
+
     descriptor_buffers.push_back({
         .descriptor = descriptor_variant,
         .descriptor_buffer = std::move(descriptor_buffer),
