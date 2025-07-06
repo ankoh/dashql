@@ -59,8 +59,9 @@ interface DashQLModuleExports {
 
 type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
-interface FlatBufferObject<T> {
+interface FlatBufferObject<T, O> {
     __init(i: number, bb: flatbuffers.ByteBuffer): T;
+    unpack(): O;
 }
 
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
@@ -333,7 +334,7 @@ export class DashQL {
         }
     }
 
-    public readFlatBufferResult<T extends FlatBufferObject<T> = any>(resultPtr: number, factory: () => T) {
+    public readFlatBufferResult<T extends FlatBufferObject<T, O> = any, O = any>(resultPtr: number, factory: () => T) {
         const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
         const heapU32 = new Uint32Array(this.memory.buffer);
@@ -410,7 +411,7 @@ export class Ptr<T extends symbol> {
     }
 }
 
-export class FlatBufferPtr<T extends FlatBufferObject<T>> {
+export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     /// The DashQL api
     api: DashQL;
     /// The result pointer
@@ -453,6 +454,15 @@ export class FlatBufferPtr<T extends FlatBufferObject<T>> {
         obj = obj ?? this.factory();
         const bb = new flatbuffers.ByteBuffer(this.data);
         return obj.__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    }
+    // Get the flatbuffer object, unpack it and destroy the memory
+    public unpackAndDestroy(obj: T | null = null): O {
+        obj = obj ?? this.factory();
+        const bb = new flatbuffers.ByteBuffer(this.data);
+        obj.__init(bb.readInt32(bb.position()) + bb.position(), bb);
+        const out = obj.unpack();
+        this.destroy();
+        return out;
     }
 }
 
@@ -537,34 +547,34 @@ export class DashQLScript {
     public getScanned(): FlatBufferPtr<buffers.parser.ScannedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_scanned(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript>(result, () => new buffers.parser.ScannedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(result, () => new buffers.parser.ScannedScript());
         return resultBuffer;
     }
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_parsed(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript>(result, () => new buffers.parser.ParsedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(result, () => new buffers.parser.ParsedScript());
         return resultBuffer;
     }
     /// Get the analyzed script
     public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_analyzed(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript>(result, () => new buffers.analyzer.AnalyzedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(result, () => new buffers.analyzer.AnalyzedScript());
         return resultBuffer;
     }
     /// Move the cursor
     public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_move_cursor(scriptPtr, textOffset);
-        return this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor>(resultPtr, () => new buffers.cursor.ScriptCursor());
+        return this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(resultPtr, () => new buffers.cursor.ScriptCursor());
     }
     /// Complete at the cursor position
     public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit);
-        return this.ptr.api.readFlatBufferResult<buffers.completion.Completion>(resultPtr, () => new buffers.completion.Completion());
+        return this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(resultPtr, () => new buffers.completion.Completion());
     }
     /// Get the script statistics.
     /// Timings are useless in some browsers today.
@@ -574,7 +584,7 @@ export class DashQLScript {
     public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_get_statistics(scriptPtr);
-        return this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics>(resultPtr, () => new buffers.statistics.ScriptStatistics());
+        return this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(resultPtr, () => new buffers.statistics.ScriptStatistics());
     }
 }
 
@@ -742,7 +752,7 @@ export class DashQLCatalog {
         this.addSchemaDescriptors(id, buffer);
     }
     /// Get the catalog statistics.
-    public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics> {
+    public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {
         const catalogPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_catalog_get_statistics(catalogPtr);
         return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(resultPtr, () => new buffers.catalog.CatalogStatistics());
@@ -828,14 +838,14 @@ export class DashQLScriptRegistry {
         this.ptr.api.instanceExports.dashql_script_registry_drop_script(registryPtr, scriptPtr);
     }
     /// Find information about a column
-    public findColumnInfo(table_context_id: number, table_id: number, table_column_id: number, referenced_catalog_version: number): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo> {
+    public findColumnInfo(table_id: bigint, table_column_id: number, referenced_catalog_version: number): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
         const registryPtr = this.ptr.assertNotNull();
 
         // Lookup a column in the script registry
         const result = this.ptr.api.instanceExports.dashql_script_registry_find_column(
             registryPtr,
-            table_context_id,
-            table_id,
+            ContextObjectID.getContext(table_id),
+            ContextObjectID.getObject(table_id),
             table_column_id,
             referenced_catalog_version
         );
@@ -844,14 +854,13 @@ export class DashQLScriptRegistry {
         return resultBuffer;
     }
     /// Find information about a column completion candidate
-    public findColumnInfoForCompletionCandidate(candidate: buffers.completion.CompletionCandidateObjectT): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo> {
+    public findColumnInfoForCompletionCandidate(candidate: buffers.completion.CompletionCandidateObjectT): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
         // Completion object is not a column?
         if (candidate.objectType != buffers.completion.CompletionCandidateObjectType.COLUMN) {
             throw new Error(`completion candidate is not a column`);
         }
         return this.findColumnInfo(
-            ContextObjectID.getContext(candidate.catalogTableId),
-            ContextObjectID.getObject(candidate.catalogTableId),
+            candidate.catalogTableId,
             candidate.tableColumnId,
             candidate.referencedCatalogVersion
         );

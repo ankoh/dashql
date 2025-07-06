@@ -25,6 +25,7 @@ describe('Script Registry Tests', () => {
         const schema = dql!.createScript(catalog, 1);
         schema.insertTextAt(0, 'create table foo(a int);');
         schema.analyze();
+        catalog.loadScript(schema, 1);
 
         const registry = dql!.createScriptRegistry();
 
@@ -44,7 +45,17 @@ describe('Script Registry Tests', () => {
         expect(restrictionExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.Comparison);
         expect(columnRefExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression);
 
-        registry.loadScript(target);
+        const columnRef: dashql.buffers.algebra.ColumnRefExpression = columnRefExprPtr.inner(new dashql.buffers.algebra.ColumnRefExpression())!;
+        const resolvedColumn = columnRef.resolvedColumn();
+        expect(resolvedColumn).not.toBeNull();
+
+        const columnInfo = registry.findColumnInfo(
+            resolvedColumn!.catalogTableId(),
+            resolvedColumn!.columnId(),
+            resolvedColumn!.referencedCatalogVersion()
+        ).unpackAndDestroy();
+
+        console.log(JSON.stringify(columnInfo, null, 4));
 
         analyzedPtr.destroy();
         registry.destroy();
