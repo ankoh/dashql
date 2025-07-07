@@ -22,26 +22,29 @@
             <column-transforms>
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
                     <snippet template="5606800037095841550">
-                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
-                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="64..65" text="1" />
-                                </node>
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                                </node>
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..16" text="a">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..16" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..16" text="a">
-                                            <node type="NAME" loc="15..16" text="a" />
+                        <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
+                                <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="64..65" text="1" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..16" text="a">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..16" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..16" text="a">
+                                                <node type="NAME" loc="15..16" text="a" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
+                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                </node>
                             </node>
-                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                <node type="NAME" loc="0..14" text="regexp_extract" />
-                            </node>
-                        </node>
+                        </nodes>
                     </snippet>
                 </transform>
             </column-transforms>
@@ -68,51 +71,60 @@
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'">
                     <snippet template="46082571324905491">
-                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
-                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
-                        </node>
+                        <text>interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
+                                <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
+                            </node>
+                        </nodes>
                     </snippet>
                 </constant>
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
                     <snippet template="11044524866165889543">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
-                                <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
-                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..38" text="'30 days'" />
+                        <text>current_timestamp - interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
+                                    <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
+                                        <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..38" text="'30 days'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
+                                        <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                    </node>
                                 </node>
-                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
-                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </constant>
             </constants>
             <column-restrictions>
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
                     <snippet template="11137086844753160654">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="18..56" text="current_ti.. '30 days'">
-                                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="38..56" text="interval '30 days'">
-                                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="47..56" text="'30 days'" />
+                        <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
+                                    <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">
+                                        <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="18..56" text="current_ti.. '30 days'">
+                                            <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="38..56" text="interval '30 days'">
+                                                <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="47..56" text="'30 days'" />
+                                            </node>
+                                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..35" text="current_timestamp">
+                                                <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                            </node>
                                         </node>
-                                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..35" text="current_timestamp">
-                                            <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
+                                    </node>
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
+                                            <node type="NAME" loc="0..15" text="event_timestamp" />
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
                                 </node>
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
-                                        <node type="NAME" loc="0..15" text="event_timestamp" />
-                                    </node>
-                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </restriction>
             </column-restrictions>
@@ -139,51 +151,60 @@
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'">
                     <snippet template="46082571324905491">
-                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
-                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
-                        </node>
+                        <text>interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
+                                <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
+                            </node>
+                        </nodes>
                     </snippet>
                 </constant>
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
                     <snippet template="11044524866165889543">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
-                                <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
-                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..38" text="'30 days'" />
+                        <text>current_timestamp - interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
+                                    <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
+                                        <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..38" text="'30 days'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
+                                        <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                    </node>
                                 </node>
-                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
-                                    <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
-                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </constant>
             </constants>
             <column-restrictions>
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
                     <snippet template="11137086844753160654">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="18..56" text="current_ti.. '30 days'">
-                                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="38..56" text="interval '30 days'">
-                                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="47..56" text="'30 days'" />
+                        <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
+                                    <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">
+                                        <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="18..56" text="current_ti.. '30 days'">
+                                            <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="38..56" text="interval '30 days'">
+                                                <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="47..56" text="'30 days'" />
+                                            </node>
+                                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..35" text="current_timestamp">
+                                                <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                            </node>
                                         </node>
-                                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..35" text="current_timestamp">
-                                            <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
+                                    </node>
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
+                                            <node type="NAME" loc="0..15" text="event_timestamp" />
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
                                 </node>
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
-                                        <node type="NAME" loc="0..15" text="event_timestamp" />
-                                    </node>
-                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </restriction>
             </column-restrictions>

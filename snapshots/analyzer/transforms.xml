@@ -22,26 +22,29 @@
             <column-transforms>
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
                     <snippet template="5606800037095841550">
-                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
-                            <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="64..65" text="1" />
-                                </node>
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                                </node>
-                                <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..16" text="a">
-                                    <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..16" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..16" text="a">
-                                            <node type="NAME" loc="15..16" text="a" />
+                        <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
+                                <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="64..65" text="1" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="18..62" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..16" text="a">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..16" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..16" text="a">
+                                                <node type="NAME" loc="15..16" text="a" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
+                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                </node>
                             </node>
-                            <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                <node type="NAME" loc="0..14" text="regexp_extract" />
-                            </node>
-                        </node>
+                        </nodes>
                     </snippet>
                 </transform>
             </column-transforms>

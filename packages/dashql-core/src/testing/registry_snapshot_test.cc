@@ -66,7 +66,9 @@ void RegistrySnapshotTest::EncodeRegistry(pugi::xml_node out, ScriptRegistry& re
 
                 for (auto& snippet : snippets) {
                     auto snippet_node = template_node.append_child("snippet");
-                    ParserSnapshotTest::EncodeAST(snippet_node, snippet->text, snippet->nodes, snippet->root_node_id);
+                    snippet_node.append_child("text").text().set(std::string{snippet->text}.c_str());
+                    auto out_nodes = snippet_node.append_child("nodes");
+                    ParserSnapshotTest::EncodeAST(out_nodes, snippet->text, snippet->nodes, snippet->root_node_id);
                 }
             }
         }

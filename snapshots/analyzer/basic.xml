@@ -160,17 +160,20 @@
             <column-restrictions>
                 <restriction expr="8" loc="74..80" text="d = 42">
                     <snippet template="1794172684583478586">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
-                                <node type="LITERAL_INTEGER" loc="4..6" text="42" />
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
-                                        <node type="NAME" loc="0..1" text="d" />
+                        <text>d = 42</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
+                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
+                                            <node type="NAME" loc="0..1" text="d" />
+                                        </node>
                                     </node>
                                 </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </restriction>
             </column-restrictions>
@@ -217,17 +220,20 @@
             <column-transforms>
                 <transform expr="3" loc="47..53" text="d + 42">
                     <snippet template="2290193904433761446">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
-                                <node type="LITERAL_INTEGER" loc="4..6" text="42" />
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
-                                        <node type="NAME" loc="0..1" text="d" />
+                        <text>d + 42</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
+                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
+                                            <node type="NAME" loc="0..1" text="d" />
+                                        </node>
                                     </node>
                                 </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </transform>
             </column-transforms>

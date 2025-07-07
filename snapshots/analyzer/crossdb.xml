@@ -205,32 +205,38 @@
             <column-restrictions>
                 <restriction expr="4" loc="51..56" text="a = 1">
                     <snippet template="1794172684583478586">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 1">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 1">
-                                <node type="LITERAL_INTEGER" loc="4..5" text="1" />
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                        <node type="NAME" loc="0..1" text="a" />
+                        <text>a = 1</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 1">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a = 1">
+                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                            <node type="NAME" loc="0..1" text="a" />
+                                        </node>
                                     </node>
                                 </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </restriction>
                 <restriction expr="5" loc="108..113" text="c = 1">
                     <snippet template="1794172684583478586">
-                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="c = 1">
-                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="c = 1">
-                                <node type="LITERAL_INTEGER" loc="4..5" text="1" />
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="c">
-                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="c">
-                                        <node type="NAME" loc="0..1" text="c" />
+                        <text>c = 1</text>
+                        <nodes>
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="c = 1">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="c = 1">
+                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="c">
+                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="c">
+                                            <node type="NAME" loc="0..1" text="c" />
+                                        </node>
                                     </node>
                                 </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
-                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                        </node>
+                        </nodes>
                     </snippet>
                 </restriction>
             </column-restrictions>

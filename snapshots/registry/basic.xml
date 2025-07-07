@@ -16,38 +16,44 @@
                 <templates column="0.0">
                     <template signature="1751179248397104785">
                         <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="(a + 1) &lt; 8">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="(a + 1) &lt; 8">
-                                    <node type="LITERAL_INTEGER" loc="10..11" text="8" />
-                                    <node type="OBJECT_SQL_NARY_EXPRESSION" loc="1..6" text="a + 1">
-                                        <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="1..6" text="a + 1">
-                                            <node type="LITERAL_INTEGER" loc="5..6" text="1" />
-                                            <node type="OBJECT_SQL_COLUMN_REF" loc="1..2" text="a">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="1..2" text="a">
-                                                    <node type="NAME" loc="1..2" text="a" />
+                            <text>(a + 1) &lt; 8</text>
+                            <nodes>
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="(a + 1) &lt; 8">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="(a + 1) &lt; 8">
+                                        <node type="LITERAL_INTEGER" loc="10..11" text="8" />
+                                        <node type="OBJECT_SQL_NARY_EXPRESSION" loc="1..6" text="a + 1">
+                                            <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="1..6" text="a + 1">
+                                                <node type="LITERAL_INTEGER" loc="5..6" text="1" />
+                                                <node type="OBJECT_SQL_COLUMN_REF" loc="1..2" text="a">
+                                                    <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="1..2" text="a">
+                                                        <node type="NAME" loc="1..2" text="a" />
+                                                    </node>
                                                 </node>
                                             </node>
+                                            <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                         </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                     </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
-                            </node>
+                            </nodes>
                         </snippet>
                     </template>
                     <template signature="1794443991550492122">
                         <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 6">
-                                    <node type="LITERAL_INTEGER" loc="4..5" text="6" />
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                            <node type="NAME" loc="0..1" text="a" />
+                            <text>a &lt; 6</text>
+                            <nodes>
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 6">
+                                        <node type="LITERAL_INTEGER" loc="4..5" text="6" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                                <node type="NAME" loc="0..1" text="a" />
+                                            </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
-                            </node>
+                            </nodes>
                         </snippet>
                     </template>
                 </templates>
@@ -56,17 +62,20 @@
                 <templates column="0.0">
                     <template signature="2290193904433761446">
                         <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
-                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                            <node type="NAME" loc="0..1" text="a" />
+                            <text>a + 1</text>
+                            <nodes>
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
+                                        <node type="LITERAL_INTEGER" loc="4..5" text="1" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                                <node type="NAME" loc="0..1" text="a" />
+                                            </node>
                                         </node>
                                     </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
-                            </node>
+                            </nodes>
                         </snippet>
                     </template>
                 </templates>
