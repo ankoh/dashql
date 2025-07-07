@@ -37,7 +37,7 @@ void RegistrySnapshotTest::EncodeRegistry(pugi::xml_node out, ScriptRegistry& re
     }
 
     // Write grouped snippets
-    auto write_grouped_snippets = [](pugi::xml_node out, const std::map<TableColumnKey, SnippetMap>& grouped) {
+    auto write_grouped_snippets = [](pugi::xml_node out, std::map<TableColumnKey, SnippetMap>& grouped) {
         for (auto& [table_column_key, snippet_map] : grouped) {
             if (snippet_map.empty()) continue;
             auto [table_id, column_id] = table_column_key;
@@ -46,7 +46,21 @@ void RegistrySnapshotTest::EncodeRegistry(pugi::xml_node out, ScriptRegistry& re
             std::string id = std::format("{}.{}", table_id.Pack(), column_id);
             templates_node.append_attribute("column").set_value(id.c_str());
 
+            // Order the template snippets by the signature.
+            // And order the referenced snippets per group by snippet text.
+            std::vector<std::pair<ScriptSnippet::Key<true>, std::span<std::unique_ptr<ScriptSnippet>>>>
+                snippets_ordered;
             for (auto& [snippet_key, snippets] : snippet_map) {
+                std::sort(snippets.begin(), snippets.end(),
+                          [&](std::unique_ptr<ScriptSnippet>& l, std::unique_ptr<ScriptSnippet>& r) {
+                              return l->text < r->text;
+                          });
+                snippets_ordered.emplace_back(snippet_key, std::span{snippets});
+            }
+            std::sort(snippets_ordered.begin(), snippets_ordered.end(),
+                      [&](auto& l, auto& r) { return std::get<0>(l).hash() < std::get<0>(r).hash(); });
+
+            for (auto& [snippet_key, snippets] : snippets_ordered) {
                 auto template_node = templates_node.append_child("template");
                 template_node.append_attribute("signature").set_value(std::to_string(snippet_key.hash()).c_str());
 

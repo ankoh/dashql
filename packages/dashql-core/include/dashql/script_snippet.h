@@ -10,14 +10,14 @@ struct ScriptSnippet {
     /// Key class for using ScriptSnippet in unordered_map
     template <bool SkipNamesAndLiterals> struct Key {
         /// The snippet
-        const ScriptSnippet& snippet;
+        const ScriptSnippet* snippet = nullptr;
         /// The precomputed signature
-        size_t signature;
+        size_t signature = 0;
         // Constructor
-        Key(const ScriptSnippet& s) : snippet(s), signature(s.ComputeSignature(SkipNamesAndLiterals)) {}
+        Key(const ScriptSnippet& s) : snippet(&s), signature(s.ComputeSignature(SkipNamesAndLiterals)) {}
 
         /// Compare the snippet
-        bool operator==(const Key& other) const { return snippet.Equals(other.snippet, SkipNamesAndLiterals); }
+        bool operator==(const Key& other) const { return snippet->Equals(*other.snippet, SkipNamesAndLiterals); }
         /// Get the signature of the snippet
         size_t hash() const { return signature; }
     };

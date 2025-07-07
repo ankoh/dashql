@@ -83,9 +83,9 @@
                 <templates column="0.3">
                     <template signature="7878761948638532652">
                         <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
-                                    <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
+                                    <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
                                             <node type="NAME" loc="0..6" text="tenant" />
@@ -96,9 +96,9 @@
                             </node>
                         </snippet>
                         <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
-                                    <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
+                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
+                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
+                                    <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
                                             <node type="NAME" loc="0..6" text="tenant" />
