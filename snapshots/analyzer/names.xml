@@ -38,7 +38,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="42..47" text="a = 2">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
@@ -95,7 +95,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="57..62" text="a = 2">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
@@ -156,7 +156,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="4" loc="57..62" text="a = 2">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 2">
@@ -174,7 +174,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="5" loc="72..77" text="a = 3">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="11416395646712288966">
                         <text>a = 3</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 3">
@@ -309,7 +309,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="41..50" text="foo.a = 1">
-                    <snippet template="10922374919875523772">
+                    <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
@@ -363,7 +363,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="48..57" text="foo.a = 1">
-                    <snippet template="10922374919875523772">
+                    <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
@@ -420,7 +420,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="53..62" text="foo.a = 1">
-                    <snippet template="10922374919875523772">
+                    <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">
@@ -473,7 +473,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="43..52" text="foo.a = 1">
-                    <snippet template="10922374919875523772">
+                    <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..9" text="foo.a = 1">

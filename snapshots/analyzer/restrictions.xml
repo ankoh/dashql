@@ -19,7 +19,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="2" loc="41..46" text="a &lt; 3">
-                    <snippet template="1794443991550492122">
+                    <snippet template="1794443991550492122" raw="11310464975673153460">
                         <text>a &lt; 3</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 3">
@@ -59,7 +59,7 @@
             </expressions>
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'">
-                    <snippet template="46082571324905491">
+                    <snippet template="46082571324905491" raw="10821728219829529505">
                         <text>interval '30 days'</text>
                         <nodes count="2" bytes="48">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
@@ -69,7 +69,7 @@
                     </snippet>
                 </constant>
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
-                    <snippet template="11044524866165889543">
+                    <snippet template="11044524866165889543" raw="4403198772867270226">
                         <text>current_timestamp - interval '30 days'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
@@ -89,7 +89,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
-                    <snippet template="11137086844753160654">
+                    <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
@@ -139,7 +139,7 @@
             </expressions>
             <constants>
                 <constant expr="3" loc="79..97" text="interval '30 days'">
-                    <snippet template="46082571324905491">
+                    <snippet template="46082571324905491" raw="10821728219829529505">
                         <text>interval '30 days'</text>
                         <nodes count="2" bytes="48">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
@@ -149,7 +149,7 @@
                     </snippet>
                 </constant>
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
-                    <snippet template="11044524866165889543">
+                    <snippet template="11044524866165889543" raw="4403198772867270226">
                         <text>current_timestamp - interval '30 days'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
@@ -169,7 +169,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
-                    <snippet template="11137086844753160654">
+                    <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">

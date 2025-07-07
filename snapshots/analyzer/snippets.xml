@@ -31,7 +31,7 @@
             </constants>
             <column-transforms>
                 <transform expr="8" loc="23..28" text="a + 1">
-                    <snippet template="2290193904433761446">
+                    <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>a + 1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
@@ -49,7 +49,7 @@
                     </snippet>
                 </transform>
                 <transform expr="9" loc="52..68" text="a +            1">
-                    <snippet template="2290193904433761446">
+                    <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>a +            1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="a +            1">
@@ -67,7 +67,7 @@
                     </snippet>
                 </transform>
                 <transform expr="10" loc="92..110" text="&quot;a&quot; +            1">
-                    <snippet template="2290193904433761446">
+                    <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>"a" +            1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="&quot;a&quot; +            1">
@@ -85,7 +85,7 @@
                     </snippet>
                 </transform>
                 <transform expr="11" loc="134..139" text="1 + a">
-                    <snippet template="14311016532657096419">
+                    <snippet template="14311016532657096419" raw="15009054713129869234">
                         <text>1 + a</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="1 + a">
@@ -138,7 +138,7 @@
             </constants>
             <column-transforms>
                 <transform expr="3" loc="23..62" text="regexp_ext..egex1', 1)">
-                    <snippet template="5606800037095841550">
+                    <snippet template="5606800037095841550" raw="2116280342442820278">
                         <text>regexp_extract(query_hash, 'regex1', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 1)">
@@ -165,7 +165,7 @@
                     </snippet>
                 </transform>
                 <transform expr="4" loc="86..125" text="regexp_ext..egex2', 1)">
-                    <snippet template="5606800037095841550">
+                    <snippet template="5606800037095841550" raw="1744818170360831636">
                         <text>regexp_extract(query_hash, 'regex2', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex2', 1)">
@@ -192,7 +192,7 @@
                     </snippet>
                 </transform>
                 <transform expr="5" loc="149..188" text="regexp_ext..egex1', 2)">
-                    <snippet template="5606800037095841550">
+                    <snippet template="5606800037095841550" raw="9979227379760755826">
                         <text>regexp_extract(query_hash, 'regex1', 2)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 2)">

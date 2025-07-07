@@ -204,7 +204,7 @@
             </constants>
             <column-restrictions>
                 <restriction expr="4" loc="51..56" text="a = 1">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="13683921101890712907">
                         <text>a = 1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a = 1">
@@ -222,7 +222,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="5" loc="108..113" text="c = 1">
-                    <snippet template="1794172684583478586">
+                    <snippet template="1794172684583478586" raw="9959752159791025192">
                         <text>c = 1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="c = 1">

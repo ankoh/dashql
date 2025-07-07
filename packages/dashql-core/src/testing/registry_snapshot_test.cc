@@ -66,6 +66,9 @@ void RegistrySnapshotTest::EncodeRegistry(pugi::xml_node out, ScriptRegistry& re
 
                 for (auto& snippet : snippets) {
                     auto snippet_node = template_node.append_child("snippet");
+                    auto sig_raw = snippet->ComputeSignature(false);
+                    snippet_node.append_attribute("template").set_value(std::to_string(snippet_key.hash()).c_str());
+                    snippet_node.append_attribute("raw").set_value(std::to_string(sig_raw).c_str());
                     snippet_node.append_child("text").text().set(std::string{snippet->text}.c_str());
                     auto out_nodes = snippet_node.append_child("nodes");
                     out_nodes.append_attribute("count").set_value(snippet->nodes.size());

@@ -129,10 +129,12 @@ void AnalyzerSnapshotTest::EncodeSnippet(pugi::xml_node parent, const AnalyzedSc
     auto& script_markers = analyzed.node_markers;
 
     auto snippet = ScriptSnippet::Extract(script_text, script_ast, script_markers, root_node_id, scanned.name_registry);
-    auto sig_tmpl = snippet.ComputeSignature(true);
+    auto sig_masked = snippet.ComputeSignature(true);
+    auto sig_unmasked = snippet.ComputeSignature(false);
 
     auto out_snippet = parent.append_child("snippet");
-    out_snippet.append_attribute("template").set_value(sig_tmpl);
+    out_snippet.append_attribute("template").set_value(sig_masked);
+    out_snippet.append_attribute("raw").set_value(std::to_string(sig_unmasked).c_str());
     out_snippet.append_child("text").text().set(std::string{snippet.text}.c_str());
     auto out_nodes = out_snippet.append_child("nodes");
     out_nodes.append_attribute("count").set_value(snippet.nodes.size());

@@ -15,7 +15,7 @@
             <column-restrictions>
                 <templates column="0.0">
                     <template signature="1751179248397104785">
-                        <snippet>
+                        <snippet template="1751179248397104785" raw="6670508621155234833">
                             <text>(a + 1) &lt; 8</text>
                             <nodes count="11" bytes="264">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="(a + 1) &lt; 8">
@@ -39,7 +39,7 @@
                         </snippet>
                     </template>
                     <template signature="1794443991550492122">
-                        <snippet>
+                        <snippet template="1794443991550492122" raw="3176322437313731171">
                             <text>a &lt; 6</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
@@ -61,7 +61,7 @@
             <column-transforms>
                 <templates column="0.0">
                     <template signature="2290193904433761446">
-                        <snippet>
+                        <snippet template="2290193904433761446" raw="13650450438301900399">
                             <text>a + 1</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
