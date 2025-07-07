@@ -111,50 +111,6 @@
                             </node>
                         </snippet>
                         <snippet>
-                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
-                                <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
-                                                <node type="NAME" loc="15..25" text="query_hash" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                </node>
-                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                    <node type="NAME" loc="0..14" text="regexp_extract" />
-                                </node>
-                            </node>
-                        </snippet>
-                        <snippet>
-                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
-                                <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
-                                                <node type="NAME" loc="15..25" text="query_hash" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                </node>
-                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                    <node type="NAME" loc="0..14" text="regexp_extract" />
-                                </node>
-                            </node>
-                        </snippet>
-                        <snippet>
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">

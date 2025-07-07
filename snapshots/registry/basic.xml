@@ -68,19 +68,6 @@
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </snippet>
-                        <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
-                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                            <node type="NAME" loc="0..1" text="a" />
-                                        </node>
-                                    </node>
-                                </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
-                            </node>
-                        </snippet>
                     </template>
                 </templates>
             </column-transforms>

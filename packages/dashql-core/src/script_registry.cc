@@ -128,7 +128,6 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
         auto [b, e] = analyzed->column_transforms_by_catalog_entry.equal_range({table, column_id});
         for (auto r_iter = b; r_iter != e; ++r_iter) {
             auto& transform = r_iter->second.get();
-            lookup.emplace_back(script_entry.script, *script_entry.analyzed, transform);
 
             // Unpack the column ref
             auto& column_ref_expr = transform.column_ref.get();
@@ -145,6 +144,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
                     break;
                 }
             }
+
             lookup.emplace_back(script_entry.script, *script_entry.analyzed, transform);
         }
     }
