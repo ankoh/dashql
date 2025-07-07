@@ -52,32 +52,6 @@
                                 <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_EQUAL" />
                             </node>
                         </snippet>
-                        <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time..l '30' day">
-                                    <node type="OBJECT_SQL_NARY_EXPRESSION" loc="19..56" text="current_ti..l '30' day">
-                                        <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="19..56" text="current_ti..l '30' day">
-                                            <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="39..56" text="interval '30' day">
-                                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="53..56" text="day">
-                                                    <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
-                                                </node>
-                                                <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="48..52" text="'30'" />
-                                            </node>
-                                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="19..36" text="current_timestamp">
-                                                <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
-                                            </node>
-                                        </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
-                                    </node>
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
-                                            <node type="NAME" loc="0..15" text="event_timestamp" />
-                                        </node>
-                                    </node>
-                                </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_EQUAL" />
-                            </node>
-                        </snippet>
                     </template>
                 </templates>
                 <templates column="0.3">
@@ -233,27 +207,6 @@
             <column-restrictions>
                 <templates column="0.0">
                     <template signature="153693783941112220">
-                        <snippet>
-                            <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
-                                <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..50" text="event_time..timestamp)">
-                                    <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..50" text="cast ('202..timestamp)">
-                                        <node key="SQL_FUNCTION_CAST_ARGS" type="OBJECT_SQL_FUNCTION_CAST_ARGS" loc="23..50" text="('2025-04-..timestamp)">
-                                            <node key="SQL_FUNCTION_CAST_TYPE" type="OBJECT_SQL_TYPENAME" loc="40..49" text="timestamp">
-                                                <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_TIMESTAMP_TYPE" loc="40..49" text="timestamp" />
-                                            </node>
-                                            <node key="SQL_FUNCTION_CAST_VALUE" type="LITERAL_STRING" loc="24..36" text="'2025-04-14'" />
-                                        </node>
-                                        <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CAST" />
-                                    </node>
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="0..15" text="event_timestamp">
-                                        <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..15" text="event_timestamp">
-                                            <node type="NAME" loc="0..15" text="event_timestamp" />
-                                        </node>
-                                    </node>
-                                </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
-                            </node>
-                        </snippet>
                         <snippet>
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..50" text="event_time..timestamp)">

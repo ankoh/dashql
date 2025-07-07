@@ -53,7 +53,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
     for (; iter != column_restrictions.end(); ++iter) {
         // Same key?
         auto [iter_table, iter_column, iter_script] = iter.key();
-        if (iter_table != table && iter_column != column_id) {
+        if (iter_table != table || iter_column != column_id) {
             break;
         }
         // Script still alive?
@@ -112,7 +112,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
     for (; iter != column_transforms.end(); ++iter) {
         // Same key?
         auto [iter_table, iter_column, iter_script] = iter.key();
-        if (iter_table != table && iter_column != column_id) {
+        if (iter_table != table || iter_column != column_id) {
             break;
         }
         // Script still alive?
