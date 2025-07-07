@@ -161,7 +161,7 @@
                 <restriction expr="8" loc="74..80" text="d = 42">
                     <snippet template="1794172684583478586">
                         <text>d = 42</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
                                     <node type="LITERAL_INTEGER" loc="4..6" text="42" />
@@ -221,7 +221,7 @@
                 <transform expr="3" loc="47..53" text="d + 42">
                     <snippet template="2290193904433761446">
                         <text>d + 42</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
                                     <node type="LITERAL_INTEGER" loc="4..6" text="42" />

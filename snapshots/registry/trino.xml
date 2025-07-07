@@ -28,7 +28,7 @@
                     <template signature="17608407916322461543">
                         <snippet>
                             <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
-                            <nodes>
+                            <nodes count="15" bytes="360">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time..l '30' day">
                                         <node type="OBJECT_SQL_NARY_EXPRESSION" loc="19..56" text="current_ti..l '30' day">
@@ -61,7 +61,7 @@
                     <template signature="7878761948638532652">
                         <snippet>
                             <text>tenant = 'a360/prod/bar'</text>
-                            <nodes>
+                            <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
                                         <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
@@ -77,7 +77,7 @@
                         </snippet>
                         <snippet>
                             <text>tenant = 'a360/prod3/foo'</text>
-                            <nodes>
+                            <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
                                         <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
@@ -99,7 +99,7 @@
                     <template signature="5606800037095841550">
                         <snippet>
                             <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
-                            <nodes>
+                            <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
                                         <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
@@ -124,7 +124,7 @@
                         </snippet>
                         <snippet>
                             <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
-                            <nodes>
+                            <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
                                         <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
@@ -180,7 +180,7 @@
                     <template signature="153693783941112220">
                         <snippet>
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
-                            <nodes>
+                            <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..50" text="event_time..timestamp)">
                                         <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..50" text="cast ('202..timestamp)">
@@ -208,7 +208,7 @@
                     <template signature="7878761948638532652">
                         <snippet>
                             <text>tenant = 'a360/prod/foo'</text>
-                            <nodes>
+                            <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/foo'">
                                         <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/foo'" />

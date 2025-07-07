@@ -59,7 +59,7 @@
                 <constant expr="21" loc="665..682" text="interval '30' day">
                     <snippet template="716161563929057878">
                         <text>interval '30' day</text>
-                        <nodes>
+                        <nodes count="4" bytes="96">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..17" text="interval '30' day">
                                 <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="14..17" text="day">
                                     <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
@@ -72,7 +72,7 @@
                 <constant expr="22" loc="645..682" text="current_ti..l '30' day">
                     <snippet template="14335000208411224916">
                         <text>current_timestamp - interval '30' day</text>
-                        <nodes>
+                        <nodes count="9" bytes="216">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..37" text="current_ti..l '30' day">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..37" text="current_ti..l '30' day">
                                     <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..37" text="interval '30' day">
@@ -95,7 +95,7 @@
                 <transform expr="8" loc="63..138" text="regexp_ext..A-Z]+', 1)">
                     <snippet template="5606800037095841550">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
@@ -122,7 +122,7 @@
                 <transform expr="9" loc="174..249" text="regexp_ext..-Z]+)', 1)">
                     <snippet template="5606800037095841550">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
@@ -151,7 +151,7 @@
                 <restriction expr="23" loc="500..525" text="tenant = '..prod3/foo'">
                     <snippet template="7878761948638532652">
                         <text>tenant = 'a360/prod3/foo'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
                                     <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
@@ -169,7 +169,7 @@
                 <restriction expr="24" loc="529..553" text="tenant = '../prod/bar'">
                     <snippet template="7878761948638532652">
                         <text>tenant = 'a360/prod/bar'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
                                     <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
@@ -187,7 +187,7 @@
                 <restriction expr="25" loc="626..682" text="event_time..l '30' day">
                     <snippet template="17608407916322461543">
                         <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
-                        <nodes>
+                        <nodes count="15" bytes="360">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time..l '30' day">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="19..56" text="current_ti..l '30' day">
@@ -270,7 +270,7 @@
                 <transform expr="9" loc="123..215" text="regexp_ext..*}),&quot;', 1)">
                     <snippet template="5606800037095841550">
                         <text>regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..92" text="regexp_ext..*}),&quot;', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..91" text="pre_execut...*}),&quot;', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="90..91" text="1">
@@ -299,7 +299,7 @@
                 <restriction expr="17" loc="336..360" text="tenant = '../prod/foo'">
                     <snippet template="7878761948638532652">
                         <text>tenant = 'a360/prod/foo'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/foo'">
                                     <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/foo'" />
@@ -317,7 +317,7 @@
                 <restriction expr="18" loc="381..431" text="event_time..timestamp)">
                     <snippet template="153693783941112220">
                         <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..50" text="event_time..timestamp)">
                                     <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="18..50" text="cast ('202..timestamp)">
@@ -343,7 +343,7 @@
                 <restriction expr="19" loc="452..475" text="processed_..s_byol > 0">
                     <snippet template="2279910941344963753">
                         <text>processed_rows_byol &gt; 0</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="processed_..s_byol > 0">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..23" text="processed_..s_byol > 0">
                                     <node type="LITERAL_INTEGER" loc="22..23" text="0" />

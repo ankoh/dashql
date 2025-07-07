@@ -23,7 +23,7 @@
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
                     <snippet template="5606800037095841550">
                         <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">

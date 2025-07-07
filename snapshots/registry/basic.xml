@@ -17,7 +17,7 @@
                     <template signature="1751179248397104785">
                         <snippet>
                             <text>(a + 1) &lt; 8</text>
-                            <nodes>
+                            <nodes count="11" bytes="264">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="(a + 1) &lt; 8">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="(a + 1) &lt; 8">
                                         <node type="LITERAL_INTEGER" loc="10..11" text="8" />
@@ -41,7 +41,7 @@
                     <template signature="1794443991550492122">
                         <snippet>
                             <text>a &lt; 6</text>
-                            <nodes>
+                            <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 6">
                                         <node type="LITERAL_INTEGER" loc="4..5" text="6" />
@@ -63,7 +63,7 @@
                     <template signature="2290193904433761446">
                         <snippet>
                             <text>a + 1</text>
-                            <nodes>
+                            <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
                                         <node type="LITERAL_INTEGER" loc="4..5" text="1" />

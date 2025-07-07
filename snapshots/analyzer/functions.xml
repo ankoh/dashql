@@ -23,7 +23,7 @@
                 <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
                     <snippet template="5606800037095841550">
                         <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..65" text="a, '[0-9a-..A-Z]+)', 1">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="64..65" text="1">
@@ -72,7 +72,7 @@
                 <constant expr="3" loc="79..97" text="interval '30 days'">
                     <snippet template="46082571324905491">
                         <text>interval '30 days'</text>
-                        <nodes>
+                        <nodes count="2" bytes="48">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
                                 <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
                             </node>
@@ -82,7 +82,7 @@
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
                     <snippet template="11044524866165889543">
                         <text>current_timestamp - interval '30 days'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
                                     <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
@@ -102,7 +102,7 @@
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
                     <snippet template="11137086844753160654">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
-                        <nodes>
+                        <nodes count="13" bytes="312">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">
@@ -152,7 +152,7 @@
                 <constant expr="3" loc="79..97" text="interval '30 days'">
                     <snippet template="46082571324905491">
                         <text>interval '30 days'</text>
-                        <nodes>
+                        <nodes count="2" bytes="48">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
                                 <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
                             </node>
@@ -162,7 +162,7 @@
                 <constant expr="4" loc="59..97" text="current_ti.. '30 days'">
                     <snippet template="11044524866165889543">
                         <text>current_timestamp - interval '30 days'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..38" text="current_ti.. '30 days'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..38" text="current_ti.. '30 days'">
                                     <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..38" text="interval '30 days'">
@@ -182,7 +182,7 @@
                 <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
                     <snippet template="11137086844753160654">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
-                        <nodes>
+                        <nodes count="13" bytes="312">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time.. '30 days'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..56" text="event_time.. '30 days'">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="18..56" text="current_ti.. '30 days'">

@@ -14,7 +14,7 @@
                 <constant expr="1" loc="24..42" text="interval '30 days'">
                     <snippet template="46082571324905491">
                         <text>interval '30 days'</text>
-                        <nodes>
+                        <nodes count="2" bytes="48">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..18" text="interval '30 days'">
                                 <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..18" text="'30 days'" />
                             </node>

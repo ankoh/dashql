@@ -501,7 +501,7 @@ limit
                 <transform expr="34" loc="546..564" text="min(ps_supplycost)">
                     <snippet template="7459937480860943044">
                         <text>min(ps_supplycost)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..18" text="min(ps_supplycost)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..17" text="ps_supplycost">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..17" text="ps_supplycost">
@@ -524,7 +524,7 @@ limit
                 <restriction expr="40" loc="973..990" text="r_name = 'EUROPE'">
                     <snippet template="7878761948638532652">
                         <text>r_name = 'EUROPE'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="r_name = 'EUROPE'">
                                     <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
@@ -542,7 +542,7 @@ limit
                 <restriction expr="41" loc="318..329" text="p_size = 15">
                     <snippet template="1794172684583478586">
                         <text>p_size = 15</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="p_size = 15">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="p_size = 15">
                                     <node type="LITERAL_INTEGER" loc="9..11" text="15" />
@@ -560,7 +560,7 @@ limit
                 <restriction expr="42" loc="451..468" text="r_name = 'EUROPE'">
                     <snippet template="7878761948638532652">
                         <text>r_name = 'EUROPE'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="r_name = 'EUROPE'">
                                     <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
@@ -842,7 +842,7 @@ limit
                 <transform expr="23" loc="59..73" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -862,7 +862,7 @@ limit
                 <restriction expr="24" loc="202..227" text="c_mktsegme..'BUILDING'">
                     <snippet template="7878761948638532652">
                         <text>c_mktsegment = 'BUILDING'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="c_mktsegme..'BUILDING'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="c_mktsegme..'BUILDING'">
                                     <node type="LITERAL_STRING" loc="15..25" text="'BUILDING'" />
@@ -1390,7 +1390,7 @@ order by
                 <transform expr="25" loc="55..69" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -1410,7 +1410,7 @@ order by
                 <restriction expr="26" loc="421..436" text="r_name = 'ASIA'">
                     <snippet template="7878761948638532652">
                         <text>r_name = 'ASIA'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="r_name = 'ASIA'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..15" text="r_name = 'ASIA'">
                                     <node type="LITERAL_STRING" loc="9..15" text="'ASIA'" />
@@ -1666,7 +1666,7 @@ where
                 <constant expr="13" loc="203..214" text="0.06 - 0.01">
                     <snippet template="11750168420183201345">
                         <text>0.06 - 0.01</text>
-                        <nodes>
+                        <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="0.06 - 0.01">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="0.06 - 0.01">
                                     <node type="LITERAL_FLOAT" loc="7..11" text="0.01" />
@@ -1680,7 +1680,7 @@ where
                 <constant expr="14" loc="219..230" text="0.06 + 0.01">
                     <snippet template="11585643956688421893">
                         <text>0.06 + 0.01</text>
-                        <nodes>
+                        <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="0.06 + 0.01">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="0.06 + 0.01">
                                     <node type="LITERAL_FLOAT" loc="7..11" text="0.01" />
@@ -1697,7 +1697,7 @@ where
                 <restriction expr="16" loc="243..258" text="l_quantity &lt; 24">
                     <snippet template="1794443991550492122">
                         <text>l_quantity &lt; 24</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="l_quantity &lt; 24">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..15" text="l_quantity &lt; 24">
                                     <node type="LITERAL_INTEGER" loc="13..15" text="24" />
@@ -2018,7 +2018,7 @@ order by
                 <transform expr="30" loc="74..85" text="sum(volume)">
                     <snippet template="7459937480860943044">
                         <text>sum(volume)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(volume)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..10" text="volume">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..10" text="volume">
@@ -2039,7 +2039,7 @@ order by
                 <transform expr="39" loc="343..357" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -2059,7 +2059,7 @@ order by
                 <restriction expr="40" loc="940..960" text="n1.n_name ..= 'FRANCE'">
                     <snippet template="1774411175897133756">
                         <text>n1.n_name = 'FRANCE'</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="n1.n_name ..= 'FRANCE'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="n1.n_name ..= 'FRANCE'">
                                     <node type="LITERAL_STRING" loc="12..20" text="'FRANCE'" />
@@ -2078,7 +2078,7 @@ order by
                 <restriction expr="41" loc="965..986" text="n2.n_name .. 'GERMANY'">
                     <snippet template="1774411175897133756">
                         <text>n2.n_name = 'GERMANY'</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="n2.n_name .. 'GERMANY'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="n2.n_name .. 'GERMANY'">
                                     <node type="LITERAL_STRING" loc="12..21" text="'GERMANY'" />
@@ -2097,7 +2097,7 @@ order by
                 <restriction expr="42" loc="1024..1045" text="n1.n_name .. 'GERMANY'">
                     <snippet template="1774411175897133756">
                         <text>n1.n_name = 'GERMANY'</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="n1.n_name .. 'GERMANY'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="n1.n_name .. 'GERMANY'">
                                     <node type="LITERAL_STRING" loc="12..21" text="'GERMANY'" />
@@ -2116,7 +2116,7 @@ order by
                 <restriction expr="43" loc="1050..1070" text="n2.n_name ..= 'FRANCE'">
                     <snippet template="1774411175897133756">
                         <text>n2.n_name = 'FRANCE'</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="n2.n_name ..= 'FRANCE'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="n2.n_name ..= 'FRANCE'">
                                     <node type="LITERAL_STRING" loc="12..20" text="'FRANCE'" />
@@ -2435,7 +2435,7 @@ order by
                 <transform expr="28" loc="130..141" text="sum(volume)">
                     <snippet template="7459937480860943044">
                         <text>sum(volume)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(volume)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..10" text="volume">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..10" text="volume">
@@ -2456,7 +2456,7 @@ order by
                 <transform expr="37" loc="302..316" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -2476,7 +2476,7 @@ order by
                 <restriction expr="38" loc="62..79" text="nation = 'BRAZIL'">
                     <snippet template="7878761948638532652">
                         <text>nation = 'BRAZIL'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="nation = 'BRAZIL'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="nation = 'BRAZIL'">
                                     <node type="LITERAL_STRING" loc="9..17" text="'BRAZIL'" />
@@ -2494,7 +2494,7 @@ order by
                 <restriction expr="39" loc="1021..1039" text="r_name = 'AMERICA'">
                     <snippet template="7878761948638532652">
                         <text>r_name = 'AMERICA'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="r_name = 'AMERICA'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="r_name = 'AMERICA'">
                                     <node type="LITERAL_STRING" loc="9..18" text="'AMERICA'" />
@@ -2512,7 +2512,7 @@ order by
                 <restriction expr="40" loc="1213..1246" text="p_type = '..ZED STEEL'">
                     <snippet template="7878761948638532652">
                         <text>p_type = 'ECONOMY ANODIZED STEEL'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..33" text="p_type = '..ZED STEEL'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..33" text="p_type = '..ZED STEEL'">
                                     <node type="LITERAL_STRING" loc="9..33" text="'ECONOMY A..ZED STEEL'" />
@@ -2808,7 +2808,7 @@ order by
                 <transform expr="26" loc="48..59" text="sum(amount)">
                     <snippet template="7459937480860943044">
                         <text>sum(amount)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(amount)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..10" text="amount">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..10" text="amount">
@@ -2829,7 +2829,7 @@ order by
                 <transform expr="30" loc="263..277" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -3130,7 +3130,7 @@ limit
                 <transform expr="32" loc="74..88" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -3150,7 +3150,7 @@ limit
                 <restriction expr="33" loc="437..455" text="l_returnflag = 'R'">
                     <snippet template="7878761948638532652">
                         <text>l_returnflag = 'R'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="l_returnflag = 'R'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="l_returnflag = 'R'">
                                     <node type="LITERAL_STRING" loc="15..18" text="'R'" />
@@ -3438,7 +3438,7 @@ order by
                 <restriction expr="25" loc="223..241" text="n_name = 'GERMANY'">
                     <snippet template="7878761948638532652">
                         <text>n_name = 'GERMANY'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="n_name = 'GERMANY'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="n_name = 'GERMANY'">
                                     <node type="LITERAL_STRING" loc="9..18" text="'GERMANY'" />
@@ -3456,7 +3456,7 @@ order by
                 <restriction expr="26" loc="770..788" text="n_name = 'GERMANY'">
                     <snippet template="7878761948638532652">
                         <text>n_name = 'GERMANY'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="n_name = 'GERMANY'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="n_name = 'GERMANY'">
                                     <node type="LITERAL_STRING" loc="9..18" text="'GERMANY'" />
@@ -3757,7 +3757,7 @@ order by
                 <restriction expr="30" loc="66..94" text="o_orderpri..'1-URGENT'">
                     <snippet template="7878761948638532652">
                         <text>o_orderpriority = '1-URGENT'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..28" text="o_orderpri..'1-URGENT'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..28" text="o_orderpri..'1-URGENT'">
                                     <node type="LITERAL_STRING" loc="18..28" text="'1-URGENT'" />
@@ -3775,7 +3775,7 @@ order by
                 <restriction expr="31" loc="122..148" text="o_orderpri..= '2-HIGH'">
                     <snippet template="7878761948638532652">
                         <text>o_orderpriority = '2-HIGH'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..26" text="o_orderpri..= '2-HIGH'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..26" text="o_orderpri..= '2-HIGH'">
                                     <node type="LITERAL_STRING" loc="18..26" text="'2-HIGH'" />
@@ -3793,7 +3793,7 @@ order by
                 <restriction expr="32" loc="274..303" text="o_orderpri..'1-URGENT'">
                     <snippet template="7876191237927212653">
                         <text>o_orderpriority &lt;&gt; '1-URGENT'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..29" text="o_orderpri..'1-URGENT'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..29" text="o_orderpri..'1-URGENT'">
                                     <node type="LITERAL_STRING" loc="19..29" text="'1-URGENT'" />
@@ -3811,7 +3811,7 @@ order by
                 <restriction expr="33" loc="332..359" text="o_orderpri..> '2-HIGH'">
                     <snippet template="7876191237927212653">
                         <text>o_orderpriority &lt;&gt; '2-HIGH'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..27" text="o_orderpri..> '2-HIGH'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..27" text="o_orderpri..> '2-HIGH'">
                                     <node type="LITERAL_STRING" loc="19..27" text="'2-HIGH'" />
@@ -4072,7 +4072,7 @@ order by
                 <transform expr="11" loc="151..168" text="count(o_orderkey)">
                     <snippet template="7459937480860943044">
                         <text>count(o_orderkey)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="count(o_orderkey)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="6..16" text="o_orderkey">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="6..16" text="o_orderkey">
@@ -4342,7 +4342,7 @@ where
                 <transform expr="18" loc="124..138" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -4360,7 +4360,7 @@ where
                 <transform expr="19" loc="201..215" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -4644,7 +4644,7 @@ order by
                 <transform expr="21" loc="80..94" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -4662,7 +4662,7 @@ order by
                 <transform expr="17" loc="388..406" text="max(total_revenue)">
                     <snippet template="7459937480860943044">
                         <text>max(total_revenue)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..18" text="max(total_revenue)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..17" text="total_revenue">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..17" text="total_revenue">
@@ -4966,7 +4966,7 @@ order by
                 <restriction expr="31" loc="193..214" text="p_brand &lt;>..'Brand#45'">
                     <snippet template="7876191237927212653">
                         <text>p_brand &lt;&gt; 'Brand#45'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="p_brand &lt;>..'Brand#45'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="p_brand &lt;>..'Brand#45'">
                                     <node type="LITERAL_STRING" loc="11..21" text="'Brand#45'" />
@@ -5234,7 +5234,7 @@ where
                 <transform expr="9" loc="16..36" text="sum(l_exte..ndedprice)">
                     <snippet template="7459937480860943044">
                         <text>sum(l_extendedprice)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..20" text="sum(l_exte..ndedprice)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..19" text="l_extendedprice">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..19" text="l_extendedprice">
@@ -5255,7 +5255,7 @@ where
                 <transform expr="15" loc="16..42" text="sum(l_exte..ice) / 7.0">
                     <snippet template="3953482423731880416">
                         <text>sum(l_extendedprice) / 7.0</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..26" text="sum(l_exte..ice) / 7.0">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..26" text="sum(l_exte..ice) / 7.0">
                                     <node type="LITERAL_FLOAT" loc="23..26" text="7.0" />
@@ -5282,7 +5282,7 @@ where
                 <transform expr="10" loc="278..293" text="avg(l_quantity)">
                     <snippet template="7459937480860943044">
                         <text>avg(l_quantity)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="avg(l_quantity)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..14" text="l_quantity">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..14" text="l_quantity">
@@ -5303,7 +5303,7 @@ where
                 <transform expr="16" loc="272..293" text="0.2 * avg(.._quantity)">
                     <snippet template="5900558999169186486">
                         <text>0.2 * avg(l_quantity)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="0.2 * avg(.._quantity)">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="0.2 * avg(.._quantity)">
                                     <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="6..21" text="avg(l_quantity)">
@@ -5332,7 +5332,7 @@ where
                 <restriction expr="17" loc="141..161" text="p_brand = ..'Brand#23'">
                     <snippet template="7878761948638532652">
                         <text>p_brand = 'Brand#23'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#23'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="p_brand = ..'Brand#23'">
                                     <node type="LITERAL_STRING" loc="10..20" text="'Brand#23'" />
@@ -5350,7 +5350,7 @@ where
                 <restriction expr="18" loc="174..197" text="p_containe.. 'MED BOX'">
                     <snippet template="7878761948638532652">
                         <text>p_container = 'MED BOX'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="p_containe.. 'MED BOX'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..23" text="p_containe.. 'MED BOX'">
                                     <node type="LITERAL_STRING" loc="14..23" text="'MED BOX'" />
@@ -5641,7 +5641,7 @@ limit
                 <transform expr="21" loc="114..129" text="sum(l_quantity)">
                     <snippet template="7459937480860943044">
                         <text>sum(l_quantity)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..14" text="l_quantity">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..14" text="l_quantity">
@@ -5662,7 +5662,7 @@ limit
                 <transform expr="22" loc="427..442" text="sum(l_quantity)">
                     <snippet template="7459937480860943044">
                         <text>sum(l_quantity)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..14" text="l_quantity">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..14" text="l_quantity">
@@ -5685,7 +5685,7 @@ limit
                 <restriction expr="25" loc="427..448" text="sum(l_quan..ity) > 300">
                     <snippet template="16544040145736921644">
                         <text>sum(l_quantity) &gt; 300</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="sum(l_quan..ity) > 300">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="sum(l_quan..ity) > 300">
                                     <node type="LITERAL_INTEGER" loc="18..21" text="300" />
@@ -6049,7 +6049,7 @@ where
                 <constant expr="39" loc="329..335" text="1 + 10">
                     <snippet template="12424959531160489459">
                         <text>1 + 10</text>
-                        <nodes>
+                        <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="1 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="1 + 10">
                                     <node type="LITERAL_INTEGER" loc="4..6" text="10" />
@@ -6076,7 +6076,7 @@ where
                 <constant expr="53" loc="735..742" text="10 + 10">
                     <snippet template="12424959531160489459">
                         <text>10 + 10</text>
-                        <nodes>
+                        <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..7" text="10 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..7" text="10 + 10">
                                     <node type="LITERAL_INTEGER" loc="5..7" text="10" />
@@ -6103,7 +6103,7 @@ where
                 <constant expr="67" loc="1140..1147" text="20 + 10">
                     <snippet template="12424959531160489459">
                         <text>20 + 10</text>
-                        <nodes>
+                        <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..7" text="20 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..7" text="20 + 10">
                                     <node type="LITERAL_INTEGER" loc="5..7" text="10" />
@@ -6124,7 +6124,7 @@ where
                 <transform expr="73" loc="38..52" text="1 - l_discount">
                     <snippet template="14310701343703095298">
                         <text>1 - l_discount</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..14" text="1 - l_discount">
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..14" text="l_discount">
@@ -6144,7 +6144,7 @@ where
                 <restriction expr="74" loc="176..196" text="p_brand = ..'Brand#12'">
                     <snippet template="7878761948638532652">
                         <text>p_brand = 'Brand#12'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#12'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="p_brand = ..'Brand#12'">
                                     <node type="LITERAL_STRING" loc="10..20" text="'Brand#12'" />
@@ -6162,7 +6162,7 @@ where
                 <restriction expr="75" loc="295..310" text="l_quantity >= 1">
                     <snippet template="1794727616146586915">
                         <text>l_quantity &gt;= 1</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="l_quantity >= 1">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..15" text="l_quantity >= 1">
                                     <node type="LITERAL_INTEGER" loc="14..15" text="1" />
@@ -6180,7 +6180,7 @@ where
                 <restriction expr="76" loc="315..335" text="l_quantity.. &lt;= 1 + 10">
                     <snippet template="14979201821369072793">
                         <text>l_quantity &lt;= 1 + 10</text>
-                        <nodes>
+                        <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="l_quantity.. &lt;= 1 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="l_quantity.. &lt;= 1 + 10">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="14..20" text="1 + 10">
@@ -6204,7 +6204,7 @@ where
                 <restriction expr="77" loc="452..488" text="l_shipinst..IN PERSON'">
                     <snippet template="7878761948638532652">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..36" text="l_shipinst..IN PERSON'">
                                     <node type="LITERAL_STRING" loc="17..36" text="'DELIVER IN PERSON'" />
@@ -6222,7 +6222,7 @@ where
                 <restriction expr="78" loc="578..598" text="p_brand = ..'Brand#23'">
                     <snippet template="7878761948638532652">
                         <text>p_brand = 'Brand#23'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#23'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="p_brand = ..'Brand#23'">
                                     <node type="LITERAL_STRING" loc="10..20" text="'Brand#23'" />
@@ -6240,7 +6240,7 @@ where
                 <restriction expr="79" loc="700..716" text="l_quantity >= 10">
                     <snippet template="1794727616146586915">
                         <text>l_quantity &gt;= 10</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="l_quantity >= 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..16" text="l_quantity >= 10">
                                     <node type="LITERAL_INTEGER" loc="14..16" text="10" />
@@ -6258,7 +6258,7 @@ where
                 <restriction expr="80" loc="721..742" text="l_quantity..&lt;= 10 + 10">
                     <snippet template="14979201821369072793">
                         <text>l_quantity &lt;= 10 + 10</text>
-                        <nodes>
+                        <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="l_quantity..&lt;= 10 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="l_quantity..&lt;= 10 + 10">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="14..21" text="10 + 10">
@@ -6282,7 +6282,7 @@ where
                 <restriction expr="81" loc="860..896" text="l_shipinst..IN PERSON'">
                     <snippet template="7878761948638532652">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..36" text="l_shipinst..IN PERSON'">
                                     <node type="LITERAL_STRING" loc="17..36" text="'DELIVER IN PERSON'" />
@@ -6300,7 +6300,7 @@ where
                 <restriction expr="82" loc="986..1006" text="p_brand = ..'Brand#34'">
                     <snippet template="7878761948638532652">
                         <text>p_brand = 'Brand#34'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#34'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..20" text="p_brand = ..'Brand#34'">
                                     <node type="LITERAL_STRING" loc="10..20" text="'Brand#34'" />
@@ -6318,7 +6318,7 @@ where
                 <restriction expr="83" loc="1105..1121" text="l_quantity >= 20">
                     <snippet template="1794727616146586915">
                         <text>l_quantity &gt;= 20</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="l_quantity >= 20">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..16" text="l_quantity >= 20">
                                     <node type="LITERAL_INTEGER" loc="14..16" text="20" />
@@ -6336,7 +6336,7 @@ where
                 <restriction expr="84" loc="1126..1147" text="l_quantity..&lt;= 20 + 10">
                     <snippet template="14979201821369072793">
                         <text>l_quantity &lt;= 20 + 10</text>
-                        <nodes>
+                        <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="l_quantity..&lt;= 20 + 10">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="l_quantity..&lt;= 20 + 10">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="14..21" text="20 + 10">
@@ -6360,7 +6360,7 @@ where
                 <restriction expr="85" loc="1265..1301" text="l_shipinst..IN PERSON'">
                     <snippet template="7878761948638532652">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..36" text="l_shipinst..IN PERSON'">
                                     <node type="LITERAL_STRING" loc="17..36" text="'DELIVER IN PERSON'" />
@@ -6659,7 +6659,7 @@ order by
                 <transform expr="19" loc="709..724" text="sum(l_quantity)">
                     <snippet template="7459937480860943044">
                         <text>sum(l_quantity)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..14" text="l_quantity">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..14" text="l_quantity">
@@ -6680,7 +6680,7 @@ order by
                 <transform expr="25" loc="703..724" text="0.5 * sum(.._quantity)">
                     <snippet template="5900558999169186486">
                         <text>0.5 * sum(l_quantity)</text>
-                        <nodes>
+                        <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="0.5 * sum(.._quantity)">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..21" text="0.5 * sum(.._quantity)">
                                     <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="6..21" text="sum(l_quantity)">
@@ -6709,7 +6709,7 @@ order by
                 <restriction expr="26" loc="1216..1233" text="n_name = 'CANADA'">
                     <snippet template="7878761948638532652">
                         <text>n_name = 'CANADA'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="n_name = 'CANADA'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="n_name = 'CANADA'">
                                     <node type="LITERAL_STRING" loc="9..17" text="'CANADA'" />
@@ -7014,7 +7014,7 @@ limit
                 <restriction expr="28" loc="217..236" text="o_orderstatus = 'F'">
                     <snippet template="7878761948638532652">
                         <text>o_orderstatus = 'F'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..19" text="o_orderstatus = 'F'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..19" text="o_orderstatus = 'F'">
                                     <node type="LITERAL_STRING" loc="16..19" text="'F'" />
@@ -7032,7 +7032,7 @@ limit
                 <restriction expr="29" loc="941..964" text="n_name = '..DI ARABIA'">
                     <snippet template="7878761948638532652">
                         <text>n_name = 'SAUDI ARABIA'</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="n_name = '..DI ARABIA'">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..23" text="n_name = '..DI ARABIA'">
                                     <node type="LITERAL_STRING" loc="9..23" text="'SAUDI ARABIA'" />
@@ -7359,7 +7359,7 @@ order by
                 <transform expr="14" loc="64..78" text="sum(c_acctbal)">
                     <snippet template="7459937480860943044">
                         <text>sum(c_acctbal)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..14" text="sum(c_acctbal)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..13" text="c_acctbal">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..13" text="c_acctbal">
@@ -7380,7 +7380,7 @@ order by
                 <transform expr="17" loc="566..580" text="avg(c_acctbal)">
                     <snippet template="7459937480860943044">
                         <text>avg(c_acctbal)</text>
-                        <nodes>
+                        <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..14" text="avg(c_acctbal)">
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..13" text="c_acctbal">
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..13" text="c_acctbal">
@@ -7403,7 +7403,7 @@ order by
                 <restriction expr="40" loc="745..761" text="c_acctbal > 0.00">
                     <snippet template="2494651304169023382">
                         <text>c_acctbal &gt; 0.00</text>
-                        <nodes>
+                        <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="c_acctbal > 0.00">
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..16" text="c_acctbal > 0.00">
                                     <node type="LITERAL_FLOAT" loc="12..16" text="0.00" />

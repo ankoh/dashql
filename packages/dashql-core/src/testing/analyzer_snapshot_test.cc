@@ -135,6 +135,8 @@ void AnalyzerSnapshotTest::EncodeSnippet(pugi::xml_node parent, const AnalyzedSc
     out_snippet.append_attribute("template").set_value(sig_tmpl);
     out_snippet.append_child("text").text().set(std::string{snippet.text}.c_str());
     auto out_nodes = out_snippet.append_child("nodes");
+    out_nodes.append_attribute("count").set_value(snippet.nodes.size());
+    out_nodes.append_attribute("bytes").set_value(snippet.nodes.size() * sizeof(buffers::parser::Node));
     ParserSnapshotTest::EncodeAST(out_nodes, snippet.text, snippet.nodes, snippet.root_node_id);
 }
 
