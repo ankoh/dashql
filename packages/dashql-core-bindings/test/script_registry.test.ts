@@ -50,12 +50,19 @@ describe('Script Registry Tests', () => {
         const resolvedColumn = columnRef.resolvedColumn();
         expect(resolvedColumn).not.toBeNull();
 
-        const _columnInfo = registry.findColumnInfo(
+        const columnInfoPtr = registry.findColumnInfo(
             resolvedColumn!.catalogTableId(),
             resolvedColumn!.columnId(),
             resolvedColumn!.referencedCatalogVersion()
-        ).unpackAndDestroy();
+        );
+        const columnInfo = columnInfoPtr.read();
+        expect(columnInfo.restrictionTemplatesLength()).toEqual(1);
+        const template = columnInfo.restrictionTemplates(0)!;
+        expect(template.snippetsLength()).toEqual(1);
+        const snippet = template.snippets(0)!;
+        expect(snippet.text()).toEqual("a < 3");
 
+        columnInfoPtr.destroy();
         analyzedPtr.destroy();
         registry.destroy();
         catalog.destroy();
