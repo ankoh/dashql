@@ -1,7 +1,6 @@
 #include "dashql/script_signature.h"
 
 #include "dashql/utils/hash.h"
-#include "dashql/utils/murmur3.h"
 
 namespace dashql {
 
