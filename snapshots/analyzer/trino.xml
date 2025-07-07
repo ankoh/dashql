@@ -92,7 +92,7 @@
                 </constant>
             </constants>
             <column-transforms>
-                <transform expr="8" loc="63..138" text="regexp_ext..A-Z]+', 1)">
+                <transform expr="8">
                     <snippet template="5606800037095841550" raw="8189505265582136494">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
                         <nodes count="12" bytes="288">
@@ -119,7 +119,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="9" loc="174..249" text="regexp_ext..-Z]+)', 1)">
+                <transform expr="9">
                     <snippet template="5606800037095841550" raw="17390044247130669303">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                         <nodes count="12" bytes="288">
@@ -148,7 +148,7 @@
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="23" loc="500..525" text="tenant = '..prod3/foo'">
+                <restriction expr="23">
                     <snippet template="7878761948638532652" raw="5252260935106076214">
                         <text>tenant = 'a360/prod3/foo'</text>
                         <nodes count="7" bytes="168">
@@ -166,7 +166,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="24" loc="529..553" text="tenant = '../prod/bar'">
+                <restriction expr="24">
                     <snippet template="7878761948638532652" raw="2644747614429592926">
                         <text>tenant = 'a360/prod/bar'</text>
                         <nodes count="7" bytes="168">
@@ -184,7 +184,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="25" loc="626..682" text="event_time..l '30' day">
+                <restriction expr="25">
                     <snippet template="17608407916322461543" raw="482172252657023501">
                         <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
                         <nodes count="15" bytes="360">
@@ -267,7 +267,7 @@
                 <constant expr="16" loc="501..502" text="3" />
             </constants>
             <column-transforms>
-                <transform expr="9" loc="123..215" text="regexp_ext..*}),&quot;', 1)">
+                <transform expr="9">
                     <snippet template="5606800037095841550" raw="16943471070635675912">
                         <text>regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1)</text>
                         <nodes count="12" bytes="288">
@@ -296,7 +296,7 @@
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="17" loc="336..360" text="tenant = '../prod/foo'">
+                <restriction expr="17">
                     <snippet template="7878761948638532652" raw="15911068183210118332">
                         <text>tenant = 'a360/prod/foo'</text>
                         <nodes count="7" bytes="168">
@@ -314,7 +314,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="18" loc="381..431" text="event_time..timestamp)">
+                <restriction expr="18">
                     <snippet template="153693783941112220" raw="9547372558606951563">
                         <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                         <nodes count="12" bytes="288">
@@ -340,7 +340,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="19" loc="452..475" text="processed_..s_byol > 0">
+                <restriction expr="19">
                     <snippet template="2279910941344963753" raw="15785701226921720781">
                         <text>processed_rows_byol &gt; 0</text>
                         <nodes count="7" bytes="168">

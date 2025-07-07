@@ -20,7 +20,7 @@
                 <constant expr="3" loc="88..89" text="1" />
             </constants>
             <column-transforms>
-                <transform expr="1" loc="24..90" text="regexp_ext..-Z]+)', 1)">
+                <transform expr="1">
                     <snippet template="5606800037095841550" raw="5246299894398560044">
                         <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                         <nodes count="12" bytes="288">
@@ -99,7 +99,7 @@
                 </constant>
             </constants>
             <column-restrictions>
-                <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
+                <restriction expr="5">
                     <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -179,7 +179,7 @@
                 </constant>
             </constants>
             <column-restrictions>
-                <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
+                <restriction expr="5">
                     <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">

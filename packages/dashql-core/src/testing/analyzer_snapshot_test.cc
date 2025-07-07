@@ -330,8 +330,6 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
         script.column_transforms.ForEach([&](size_t _i, const AnalyzedScript::ColumnTransform& transform) {
             auto xml_ref = list_node.append_child("transform");
             xml_ref.append_attribute("expr").set_value(transform.root.get().expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[transform.root.get().ast_node_id].location(),
-                          script.parsed_script->scanned_script->GetInput());
             EncodeSnippet(xml_ref, script, transform.root.get().ast_node_id);
         });
     }
@@ -341,8 +339,6 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
         script.column_restrictions.ForEach([&](size_t _i, const AnalyzedScript::ColumnRestriction& restriction) {
             auto xml_ref = list_node.append_child("restriction");
             xml_ref.append_attribute("expr").set_value(restriction.root.get().expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[restriction.root.get().ast_node_id].location(),
-                          script.parsed_script->scanned_script->GetInput());
             EncodeSnippet(xml_ref, script, restriction.root.get().ast_node_id);
         });
     }

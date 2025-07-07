@@ -37,7 +37,7 @@
                 <constant expr="1" loc="46..47" text="2" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="42..47" text="a = 2">
+                <restriction expr="2">
                     <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
@@ -94,7 +94,7 @@
                 <constant expr="1" loc="61..62" text="2" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="57..62" text="a = 2">
+                <restriction expr="2">
                     <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
@@ -155,7 +155,7 @@
                 <constant expr="3" loc="76..77" text="3" />
             </constants>
             <column-restrictions>
-                <restriction expr="4" loc="57..62" text="a = 2">
+                <restriction expr="4">
                     <snippet template="1794172684583478586" raw="2692294244296496807">
                         <text>a = 2</text>
                         <nodes count="7" bytes="168">
@@ -173,7 +173,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="5" loc="72..77" text="a = 3">
+                <restriction expr="5">
                     <snippet template="1794172684583478586" raw="11416395646712288966">
                         <text>a = 3</text>
                         <nodes count="7" bytes="168">
@@ -308,7 +308,7 @@
                 <constant expr="1" loc="49..50" text="1" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="41..50" text="foo.a = 1">
+                <restriction expr="2">
                     <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
@@ -362,7 +362,7 @@
                 <constant expr="1" loc="56..57" text="1" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="48..57" text="foo.a = 1">
+                <restriction expr="2">
                     <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
@@ -419,7 +419,7 @@
                 <constant expr="1" loc="61..62" text="1" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="53..62" text="foo.a = 1">
+                <restriction expr="2">
                     <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">
@@ -472,7 +472,7 @@
                 <constant expr="1" loc="51..52" text="1" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="43..52" text="foo.a = 1">
+                <restriction expr="2">
                     <snippet template="10922374919875523772" raw="8848828982205394525">
                         <text>foo.a = 1</text>
                         <nodes count="8" bytes="192">

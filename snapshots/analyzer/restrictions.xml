@@ -18,7 +18,7 @@
                 <constant expr="1" loc="45..46" text="3" />
             </constants>
             <column-restrictions>
-                <restriction expr="2" loc="41..46" text="a &lt; 3">
+                <restriction expr="2">
                     <snippet template="1794443991550492122" raw="11310464975673153460">
                         <text>a &lt; 3</text>
                         <nodes count="7" bytes="168">
@@ -88,7 +88,7 @@
                 </constant>
             </constants>
             <column-restrictions>
-                <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
+                <restriction expr="5">
                     <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -168,7 +168,7 @@
                 </constant>
             </constants>
             <column-restrictions>
-                <restriction expr="5" loc="41..97" text="event_time.. '30 days'">
+                <restriction expr="5">
                     <snippet template="11137086844753160654" raw="1303692310839633042">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">

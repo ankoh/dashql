@@ -30,7 +30,7 @@
                 <constant expr="7" loc="134..135" text="1" />
             </constants>
             <column-transforms>
-                <transform expr="8" loc="23..28" text="a + 1">
+                <transform expr="8">
                     <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>a + 1</text>
                         <nodes count="7" bytes="168">
@@ -48,7 +48,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="9" loc="52..68" text="a +            1">
+                <transform expr="9">
                     <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>a +            1</text>
                         <nodes count="7" bytes="168">
@@ -66,7 +66,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="10" loc="92..110" text="&quot;a&quot; +            1">
+                <transform expr="10">
                     <snippet template="2290193904433761446" raw="13650450438301900399">
                         <text>"a" +            1</text>
                         <nodes count="7" bytes="168">
@@ -84,7 +84,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="11" loc="134..139" text="1 + a">
+                <transform expr="11">
                     <snippet template="14311016532657096419" raw="15009054713129869234">
                         <text>1 + a</text>
                         <nodes count="7" bytes="168">
@@ -137,7 +137,7 @@
                 <constant expr="11" loc="186..187" text="2" />
             </constants>
             <column-transforms>
-                <transform expr="3" loc="23..62" text="regexp_ext..egex1', 1)">
+                <transform expr="3">
                     <snippet template="5606800037095841550" raw="2116280342442820278">
                         <text>regexp_extract(query_hash, 'regex1', 1)</text>
                         <nodes count="12" bytes="288">
@@ -164,7 +164,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="4" loc="86..125" text="regexp_ext..egex2', 1)">
+                <transform expr="4">
                     <snippet template="5606800037095841550" raw="1744818170360831636">
                         <text>regexp_extract(query_hash, 'regex2', 1)</text>
                         <nodes count="12" bytes="288">
@@ -191,7 +191,7 @@
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="5" loc="149..188" text="regexp_ext..egex1', 2)">
+                <transform expr="5">
                     <snippet template="5606800037095841550" raw="9979227379760755826">
                         <text>regexp_extract(query_hash, 'regex1', 2)</text>
                         <nodes count="12" bytes="288">

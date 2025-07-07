@@ -158,7 +158,7 @@
                 <constant expr="7" loc="78..80" text="42" />
             </constants>
             <column-restrictions>
-                <restriction expr="8" loc="74..80" text="d = 42">
+                <restriction expr="8">
                     <snippet template="1794172684583478586" raw="16567018020210033945">
                         <text>d = 42</text>
                         <nodes count="7" bytes="168">
@@ -218,7 +218,7 @@
                 <constant expr="2" loc="51..53" text="42" />
             </constants>
             <column-transforms>
-                <transform expr="3" loc="47..53" text="d + 42">
+                <transform expr="3">
                     <snippet template="2290193904433761446" raw="16549934643485065604">
                         <text>d + 42</text>
                         <nodes count="7" bytes="168">

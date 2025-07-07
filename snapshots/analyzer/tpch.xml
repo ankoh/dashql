@@ -498,7 +498,7 @@ limit
                 <constant expr="39" loc="1091..1094" text="100" />
             </constants>
             <column-transforms>
-                <transform expr="34" loc="546..564" text="min(ps_supplycost)">
+                <transform expr="34">
                     <snippet template="7459937480860943044" raw="11611953038300492331">
                         <text>min(ps_supplycost)</text>
                         <nodes count="8" bytes="192">
@@ -521,7 +521,7 @@ limit
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="40" loc="973..990" text="r_name = 'EUROPE'">
+                <restriction expr="40">
                     <snippet template="7878761948638532652" raw="1615364296403375658">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
@@ -539,7 +539,7 @@ limit
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="41" loc="318..329" text="p_size = 15">
+                <restriction expr="41">
                     <snippet template="1794172684583478586" raw="8917676136111970972">
                         <text>p_size = 15</text>
                         <nodes count="7" bytes="168">
@@ -557,7 +557,7 @@ limit
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="42" loc="451..468" text="r_name = 'EUROPE'">
+                <restriction expr="42">
                     <snippet template="7878761948638532652" raw="1615364296403375658">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
@@ -839,7 +839,7 @@ limit
                 <constant expr="22" loc="516..518" text="10" />
             </constants>
             <column-transforms>
-                <transform expr="23" loc="59..73" text="1 - l_discount">
+                <transform expr="23">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -859,7 +859,7 @@ limit
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="24" loc="202..227" text="c_mktsegme..'BUILDING'">
+                <restriction expr="24">
                     <snippet template="7878761948638532652" raw="6801012629576939932">
                         <text>c_mktsegment = 'BUILDING'</text>
                         <nodes count="7" bytes="168">
@@ -1387,7 +1387,7 @@ order by
                 <constant expr="24" loc="513..525" text="'1995-01-01'" />
             </constants>
             <column-transforms>
-                <transform expr="25" loc="55..69" text="1 - l_discount">
+                <transform expr="25">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -1407,7 +1407,7 @@ order by
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="26" loc="421..436" text="r_name = 'ASIA'">
+                <restriction expr="26">
                     <snippet template="7878761948638532652" raw="3459582574283646939">
                         <text>r_name = 'ASIA'</text>
                         <nodes count="7" bytes="168">
@@ -1694,7 +1694,7 @@ where
                 <constant expr="15" loc="256..258" text="24" />
             </constants>
             <column-restrictions>
-                <restriction expr="16" loc="243..258" text="l_quantity &lt; 24">
+                <restriction expr="16">
                     <snippet template="1794443991550492122" raw="12671594229110699380">
                         <text>l_quantity &lt; 24</text>
                         <nodes count="7" bytes="168">
@@ -2015,7 +2015,7 @@ order by
                 <constant expr="38" loc="1172..1184" text="'1996-12-31'" />
             </constants>
             <column-transforms>
-                <transform expr="30" loc="74..85" text="sum(volume)">
+                <transform expr="30">
                     <snippet template="7459937480860943044" raw="5289733661820011416">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
@@ -2036,7 +2036,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="39" loc="343..357" text="1 - l_discount">
+                <transform expr="39">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -2056,7 +2056,7 @@ order by
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="40" loc="940..960" text="n1.n_name ..= 'FRANCE'">
+                <restriction expr="40">
                     <snippet template="1774411175897133756" raw="9231270480714351691">
                         <text>n1.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
@@ -2075,7 +2075,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="41" loc="965..986" text="n2.n_name .. 'GERMANY'">
+                <restriction expr="41">
                     <snippet template="1774411175897133756" raw="18251525370566592695">
                         <text>n2.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
@@ -2094,7 +2094,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="42" loc="1024..1045" text="n1.n_name .. 'GERMANY'">
+                <restriction expr="42">
                     <snippet template="1774411175897133756" raw="10811116771996125067">
                         <text>n1.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
@@ -2113,7 +2113,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="43" loc="1050..1070" text="n2.n_name ..= 'FRANCE'">
+                <restriction expr="43">
                     <snippet template="1774411175897133756" raw="11829175498032063588">
                         <text>n2.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
@@ -2432,7 +2432,7 @@ order by
                 <constant expr="36" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
             </constants>
             <column-transforms>
-                <transform expr="28" loc="130..141" text="sum(volume)">
+                <transform expr="28">
                     <snippet template="7459937480860943044" raw="5289733661820011416">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
@@ -2453,7 +2453,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="37" loc="302..316" text="1 - l_discount">
+                <transform expr="37">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -2473,7 +2473,7 @@ order by
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="38" loc="62..79" text="nation = 'BRAZIL'">
+                <restriction expr="38">
                     <snippet template="7878761948638532652" raw="6912707325437122133">
                         <text>nation = 'BRAZIL'</text>
                         <nodes count="7" bytes="168">
@@ -2491,7 +2491,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="39" loc="1021..1039" text="r_name = 'AMERICA'">
+                <restriction expr="39">
                     <snippet template="7878761948638532652" raw="14360511931414206078">
                         <text>r_name = 'AMERICA'</text>
                         <nodes count="7" bytes="168">
@@ -2509,7 +2509,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="40" loc="1213..1246" text="p_type = '..ZED STEEL'">
+                <restriction expr="40">
                     <snippet template="7878761948638532652" raw="7361831576079096355">
                         <text>p_type = 'ECONOMY ANODIZED STEEL'</text>
                         <nodes count="7" bytes="168">
@@ -2805,7 +2805,7 @@ order by
                 <constant expr="29" loc="900..909" text="'%green%'" />
             </constants>
             <column-transforms>
-                <transform expr="26" loc="48..59" text="sum(amount)">
+                <transform expr="26">
                     <snippet template="7459937480860943044" raw="11211526282332761838">
                         <text>sum(amount)</text>
                         <nodes count="8" bytes="192">
@@ -2826,7 +2826,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="30" loc="263..277" text="1 - l_discount">
+                <transform expr="30">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -3127,7 +3127,7 @@ limit
                 <constant expr="31" loc="664..666" text="20" />
             </constants>
             <column-transforms>
-                <transform expr="32" loc="74..88" text="1 - l_discount">
+                <transform expr="32">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -3147,7 +3147,7 @@ limit
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="33" loc="437..455" text="l_returnflag = 'R'">
+                <restriction expr="33">
                     <snippet template="7878761948638532652" raw="11753550935655191038">
                         <text>l_returnflag = 'R'</text>
                         <nodes count="7" bytes="168">
@@ -3435,7 +3435,7 @@ order by
                 <constant expr="24" loc="779..788" text="'GERMANY'" />
             </constants>
             <column-restrictions>
-                <restriction expr="25" loc="223..241" text="n_name = 'GERMANY'">
+                <restriction expr="25">
                     <snippet template="7878761948638532652" raw="5770694515598955604">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
@@ -3453,7 +3453,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="26" loc="770..788" text="n_name = 'GERMANY'">
+                <restriction expr="26">
                     <snippet template="7878761948638532652" raw="5770694515598955604">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
@@ -3754,7 +3754,7 @@ order by
                 <constant expr="29" loc="723..735" text="'1995-01-01'" />
             </constants>
             <column-restrictions>
-                <restriction expr="30" loc="66..94" text="o_orderpri..'1-URGENT'">
+                <restriction expr="30">
                     <snippet template="7878761948638532652" raw="3019222705241498741">
                         <text>o_orderpriority = '1-URGENT'</text>
                         <nodes count="7" bytes="168">
@@ -3772,7 +3772,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="31" loc="122..148" text="o_orderpri..= '2-HIGH'">
+                <restriction expr="31">
                     <snippet template="7878761948638532652" raw="7447869018882390966">
                         <text>o_orderpriority = '2-HIGH'</text>
                         <nodes count="7" bytes="168">
@@ -3790,7 +3790,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="32" loc="274..303" text="o_orderpri..'1-URGENT'">
+                <restriction expr="32">
                     <snippet template="7876191237927212653" raw="3399214136986979852">
                         <text>o_orderpriority &lt;&gt; '1-URGENT'</text>
                         <nodes count="7" bytes="168">
@@ -3808,7 +3808,7 @@ order by
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="33" loc="332..359" text="o_orderpri..> '2-HIGH'">
+                <restriction expr="33">
                     <snippet template="7876191237927212653" raw="7487099238900648811">
                         <text>o_orderpriority &lt;&gt; '2-HIGH'</text>
                         <nodes count="7" bytes="168">
@@ -4069,7 +4069,7 @@ order by
                 <constant expr="12" loc="366..386" text="'%special%..requests%'" />
             </constants>
             <column-transforms>
-                <transform expr="11" loc="151..168" text="count(o_orderkey)">
+                <transform expr="11">
                     <snippet template="7459937480860943044" raw="16943677651523603000">
                         <text>count(o_orderkey)</text>
                         <nodes count="8" bytes="192">
@@ -4339,7 +4339,7 @@ where
                 <constant expr="17" loc="381..393" text="'1995-10-01'" />
             </constants>
             <column-transforms>
-                <transform expr="18" loc="124..138" text="1 - l_discount">
+                <transform expr="18">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4357,7 +4357,7 @@ where
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="19" loc="201..215" text="1 - l_discount">
+                <transform expr="19">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4641,7 +4641,7 @@ order by
                 <constant expr="20" loc="196..210" text="'1996-04-01'&#10;&#09;" />
             </constants>
             <column-transforms>
-                <transform expr="21" loc="80..94" text="1 - l_discount">
+                <transform expr="21">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4659,7 +4659,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="17" loc="388..406" text="max(total_revenue)">
+                <transform expr="17">
                     <snippet template="7459937480860943044" raw="10095664298754608661">
                         <text>max(total_revenue)</text>
                         <nodes count="8" bytes="192">
@@ -4963,7 +4963,7 @@ order by
                 <constant expr="30" loc="519..542" text="'%Customer..mplaints%'" />
             </constants>
             <column-restrictions>
-                <restriction expr="31" loc="193..214" text="p_brand &lt;>..'Brand#45'">
+                <restriction expr="31">
                     <snippet template="7876191237927212653" raw="5626173075326177579">
                         <text>p_brand &lt;&gt; 'Brand#45'</text>
                         <nodes count="7" bytes="168">
@@ -5231,7 +5231,7 @@ where
                 <constant expr="14" loc="272..275" text="0.2" />
             </constants>
             <column-transforms>
-                <transform expr="9" loc="16..36" text="sum(l_exte..ndedprice)">
+                <transform expr="9">
                     <snippet template="7459937480860943044" raw="17304206197469207063">
                         <text>sum(l_extendedprice)</text>
                         <nodes count="8" bytes="192">
@@ -5252,7 +5252,7 @@ where
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="15" loc="16..42" text="sum(l_exte..ice) / 7.0">
+                <transform expr="15">
                     <snippet template="3953482423731880416" raw="3983150103707451728">
                         <text>sum(l_extendedprice) / 7.0</text>
                         <nodes count="12" bytes="288">
@@ -5279,7 +5279,7 @@ where
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="10" loc="278..293" text="avg(l_quantity)">
+                <transform expr="10">
                     <snippet template="7459937480860943044" raw="1811333566291200298">
                         <text>avg(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5300,7 +5300,7 @@ where
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="16" loc="272..293" text="0.2 * avg(.._quantity)">
+                <transform expr="16">
                     <snippet template="5900558999169186486" raw="15603315551634890040">
                         <text>0.2 * avg(l_quantity)</text>
                         <nodes count="12" bytes="288">
@@ -5329,7 +5329,7 @@ where
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="17" loc="141..161" text="p_brand = ..'Brand#23'">
+                <restriction expr="17">
                     <snippet template="7878761948638532652" raw="17172068765389280692">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
@@ -5347,7 +5347,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="18" loc="174..197" text="p_containe.. 'MED BOX'">
+                <restriction expr="18">
                     <snippet template="7878761948638532652" raw="7825312954926929890">
                         <text>p_container = 'MED BOX'</text>
                         <nodes count="7" bytes="168">
@@ -5638,7 +5638,7 @@ limit
                 <constant expr="24" loc="698..701" text="100" />
             </constants>
             <column-transforms>
-                <transform expr="21" loc="114..129" text="sum(l_quantity)">
+                <transform expr="21">
                     <snippet template="7459937480860943044" raw="17723185355577448959">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5659,7 +5659,7 @@ limit
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="22" loc="427..442" text="sum(l_quantity)">
+                <transform expr="22">
                     <snippet template="7459937480860943044" raw="17723185355577448959">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5682,7 +5682,7 @@ limit
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="25" loc="427..448" text="sum(l_quan..ity) > 300">
+                <restriction expr="25">
                     <snippet template="16544040145736921644" raw="9726401535347383754">
                         <text>sum(l_quantity) &gt; 300</text>
                         <nodes count="12" bytes="288">
@@ -6121,7 +6121,7 @@ where
                 <constant expr="72" loc="1282..1301" text="'DELIVER IN PERSON'" />
             </constants>
             <column-transforms>
-                <transform expr="73" loc="38..52" text="1 - l_discount">
+                <transform expr="73">
                     <snippet template="14310701343703095298" raw="7118058518308277">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -6141,7 +6141,7 @@ where
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="74" loc="176..196" text="p_brand = ..'Brand#12'">
+                <restriction expr="74">
                     <snippet template="7878761948638532652" raw="17713497619629445853">
                         <text>p_brand = 'Brand#12'</text>
                         <nodes count="7" bytes="168">
@@ -6159,7 +6159,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="75" loc="295..310" text="l_quantity >= 1">
+                <restriction expr="75">
                     <snippet template="1794727616146586915" raw="7777695536916607133">
                         <text>l_quantity &gt;= 1</text>
                         <nodes count="7" bytes="168">
@@ -6177,7 +6177,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="76" loc="315..335" text="l_quantity.. &lt;= 1 + 10">
+                <restriction expr="76">
                     <snippet template="14979201821369072793" raw="16980307589728116878">
                         <text>l_quantity &lt;= 1 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6201,7 +6201,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="77" loc="452..488" text="l_shipinst..IN PERSON'">
+                <restriction expr="77">
                     <snippet template="7878761948638532652" raw="8716873930640281316">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6219,7 +6219,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="78" loc="578..598" text="p_brand = ..'Brand#23'">
+                <restriction expr="78">
                     <snippet template="7878761948638532652" raw="17172068765389280692">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
@@ -6237,7 +6237,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="79" loc="700..716" text="l_quantity >= 10">
+                <restriction expr="79">
                     <snippet template="1794727616146586915" raw="8021518249472524203">
                         <text>l_quantity &gt;= 10</text>
                         <nodes count="7" bytes="168">
@@ -6255,7 +6255,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="80" loc="721..742" text="l_quantity..&lt;= 10 + 10">
+                <restriction expr="80">
                     <snippet template="14979201821369072793" raw="5589824322633713912">
                         <text>l_quantity &lt;= 10 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6279,7 +6279,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="81" loc="860..896" text="l_shipinst..IN PERSON'">
+                <restriction expr="81">
                     <snippet template="7878761948638532652" raw="8716873930640281316">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6297,7 +6297,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="82" loc="986..1006" text="p_brand = ..'Brand#34'">
+                <restriction expr="82">
                     <snippet template="7878761948638532652" raw="8446666227254167991">
                         <text>p_brand = 'Brand#34'</text>
                         <nodes count="7" bytes="168">
@@ -6315,7 +6315,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="83" loc="1105..1121" text="l_quantity >= 20">
+                <restriction expr="83">
                     <snippet template="1794727616146586915" raw="2972509414027772077">
                         <text>l_quantity &gt;= 20</text>
                         <nodes count="7" bytes="168">
@@ -6333,7 +6333,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="84" loc="1126..1147" text="l_quantity..&lt;= 20 + 10">
+                <restriction expr="84">
                     <snippet template="14979201821369072793" raw="3228216071317835085">
                         <text>l_quantity &lt;= 20 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6357,7 +6357,7 @@ where
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="85" loc="1265..1301" text="l_shipinst..IN PERSON'">
+                <restriction expr="85">
                     <snippet template="7878761948638532652" raw="8716873930640281316">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6656,7 +6656,7 @@ order by
                 <constant expr="24" loc="1225..1233" text="'CANADA'" />
             </constants>
             <column-transforms>
-                <transform expr="19" loc="709..724" text="sum(l_quantity)">
+                <transform expr="19">
                     <snippet template="7459937480860943044" raw="17723185355577448959">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -6677,7 +6677,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="25" loc="703..724" text="0.5 * sum(.._quantity)">
+                <transform expr="25">
                     <snippet template="5900558999169186486" raw="17031206447350500755">
                         <text>0.5 * sum(l_quantity)</text>
                         <nodes count="12" bytes="288">
@@ -6706,7 +6706,7 @@ order by
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="26" loc="1216..1233" text="n_name = 'CANADA'">
+                <restriction expr="26">
                     <snippet template="7878761948638532652" raw="6709935607568204152">
                         <text>n_name = 'CANADA'</text>
                         <nodes count="7" bytes="168">
@@ -7011,7 +7011,7 @@ limit
                 <constant expr="27" loc="1042..1045" text="100" />
             </constants>
             <column-restrictions>
-                <restriction expr="28" loc="217..236" text="o_orderstatus = 'F'">
+                <restriction expr="28">
                     <snippet template="7878761948638532652" raw="16642252314022566492">
                         <text>o_orderstatus = 'F'</text>
                         <nodes count="7" bytes="168">
@@ -7029,7 +7029,7 @@ limit
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="29" loc="941..964" text="n_name = '..DI ARABIA'">
+                <restriction expr="29">
                     <snippet template="7878761948638532652" raw="10097217521961769076">
                         <text>n_name = 'SAUDI ARABIA'</text>
                         <nodes count="7" bytes="168">
@@ -7356,7 +7356,7 @@ order by
                 <constant expr="39" loc="926..930" text="'17'" />
             </constants>
             <column-transforms>
-                <transform expr="14" loc="64..78" text="sum(c_acctbal)">
+                <transform expr="14">
                     <snippet template="7459937480860943044" raw="3729885507378371514">
                         <text>sum(c_acctbal)</text>
                         <nodes count="8" bytes="192">
@@ -7377,7 +7377,7 @@ order by
                         </nodes>
                     </snippet>
                 </transform>
-                <transform expr="17" loc="566..580" text="avg(c_acctbal)">
+                <transform expr="17">
                     <snippet template="7459937480860943044" raw="6275788049764562326">
                         <text>avg(c_acctbal)</text>
                         <nodes count="8" bytes="192">
@@ -7400,7 +7400,7 @@ order by
                 </transform>
             </column-transforms>
             <column-restrictions>
-                <restriction expr="40" loc="745..761" text="c_acctbal > 0.00">
+                <restriction expr="40">
                     <snippet template="2494651304169023382" raw="15070666140374270649">
                         <text>c_acctbal &gt; 0.00</text>
                         <nodes count="7" bytes="168">

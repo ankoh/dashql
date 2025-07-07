@@ -203,7 +203,7 @@
                 <constant expr="3" loc="112..113" text="1" />
             </constants>
             <column-restrictions>
-                <restriction expr="4" loc="51..56" text="a = 1">
+                <restriction expr="4">
                     <snippet template="1794172684583478586" raw="13683921101890712907">
                         <text>a = 1</text>
                         <nodes count="7" bytes="168">
@@ -221,7 +221,7 @@
                         </nodes>
                     </snippet>
                 </restriction>
-                <restriction expr="5" loc="108..113" text="c = 1">
+                <restriction expr="5">
                     <snippet template="1794172684583478586" raw="9959752159791025192">
                         <text>c = 1</text>
                         <nodes count="7" bytes="168">
