@@ -57,7 +57,7 @@
                 <constant expr="18" loc="538..553" text="'a360/prod/bar'" />
                 <constant expr="19" loc="594..605" text="'%raw_sql%'" />
                 <constant expr="21" loc="665..682" text="interval '30' day">
-                    <snippet template="716161563929057878" raw="1005632877168042011">
+                    <snippet template="716161563929057878" raw="18138650483241059678">
                         <text>interval '30' day</text>
                         <nodes count="4" bytes="96">
                             <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..17" text="interval '30' day">
@@ -70,7 +70,7 @@
                     </snippet>
                 </constant>
                 <constant expr="22" loc="645..682" text="current_ti..l '30' day">
-                    <snippet template="14335000208411224916" raw="10897675896844641243">
+                    <snippet template="14335000208411224916" raw="14531844735497943305">
                         <text>current_timestamp - interval '30' day</text>
                         <nodes count="9" bytes="216">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..37" text="current_ti..l '30' day">
@@ -93,7 +93,7 @@
             </constants>
             <column-transforms>
                 <transform expr="8">
-                    <snippet template="5606800037095841550" raw="8189505265582136494">
+                    <snippet template="5606800037095841550" raw="3197809837303275225">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
@@ -120,7 +120,7 @@
                     </snippet>
                 </transform>
                 <transform expr="9">
-                    <snippet template="5606800037095841550" raw="17390044247130669303">
+                    <snippet template="5606800037095841550" raw="10739155601962827482">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
@@ -149,7 +149,7 @@
             </column-transforms>
             <column-restrictions>
                 <restriction expr="23">
-                    <snippet template="7878761948638532652" raw="5252260935106076214">
+                    <snippet template="7878761948638532652" raw="12915170941615982935">
                         <text>tenant = 'a360/prod3/foo'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
@@ -167,7 +167,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="24">
-                    <snippet template="7878761948638532652" raw="2644747614429592926">
+                    <snippet template="7878761948638532652" raw="13423462593048553321">
                         <text>tenant = 'a360/prod/bar'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
@@ -185,7 +185,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="25">
-                    <snippet template="17608407916322461543" raw="482172252657023501">
+                    <snippet template="17608407916322461543" raw="17046291626474264120">
                         <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
                         <nodes count="15" bytes="360">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
@@ -268,7 +268,7 @@
             </constants>
             <column-transforms>
                 <transform expr="9">
-                    <snippet template="5606800037095841550" raw="16943471070635675912">
+                    <snippet template="5606800037095841550" raw="1321516605521455402">
                         <text>regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..92" text="regexp_ext..*}),&quot;', 1)">
@@ -297,7 +297,7 @@
             </column-transforms>
             <column-restrictions>
                 <restriction expr="17">
-                    <snippet template="7878761948638532652" raw="15911068183210118332">
+                    <snippet template="7878761948638532652" raw="12730198808566288772">
                         <text>tenant = 'a360/prod/foo'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
@@ -315,7 +315,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="18">
-                    <snippet template="153693783941112220" raw="9547372558606951563">
+                    <snippet template="153693783941112220" raw="17607440235580690731">
                         <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
@@ -341,7 +341,7 @@
                     </snippet>
                 </restriction>
                 <restriction expr="19">
-                    <snippet template="2279910941344963753" raw="15785701226921720781">
+                    <snippet template="2279910941344963753" raw="5597646258326568496">
                         <text>processed_rows_byol &gt; 0</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="processed_..s_byol > 0">

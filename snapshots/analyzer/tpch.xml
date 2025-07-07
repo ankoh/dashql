@@ -499,7 +499,7 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="34">
-                    <snippet template="7459937480860943044" raw="11611953038300492331">
+                    <snippet template="7459937480860943044" raw="11197653063154628272">
                         <text>min(ps_supplycost)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..18" text="min(ps_supplycost)">
@@ -522,7 +522,7 @@ limit
             </column-transforms>
             <column-restrictions>
                 <restriction expr="40">
-                    <snippet template="7878761948638532652" raw="1615364296403375658">
+                    <snippet template="7878761948638532652" raw="8251145953384635132">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
@@ -540,7 +540,7 @@ limit
                     </snippet>
                 </restriction>
                 <restriction expr="41">
-                    <snippet template="1794172684583478586" raw="8917676136111970972">
+                    <snippet template="1794172684583478586" raw="13823816213952588114">
                         <text>p_size = 15</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="p_size = 15">
@@ -558,7 +558,7 @@ limit
                     </snippet>
                 </restriction>
                 <restriction expr="42">
-                    <snippet template="7878761948638532652" raw="1615364296403375658">
+                    <snippet template="7878761948638532652" raw="8251145953384635132">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
@@ -840,7 +840,7 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="23">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -860,7 +860,7 @@ limit
             </column-transforms>
             <column-restrictions>
                 <restriction expr="24">
-                    <snippet template="7878761948638532652" raw="6801012629576939932">
+                    <snippet template="7878761948638532652" raw="8446832695607096638">
                         <text>c_mktsegment = 'BUILDING'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="c_mktsegme..'BUILDING'">
@@ -1388,7 +1388,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="25">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -1408,7 +1408,7 @@ order by
             </column-transforms>
             <column-restrictions>
                 <restriction expr="26">
-                    <snippet template="7878761948638532652" raw="3459582574283646939">
+                    <snippet template="7878761948638532652" raw="1369862379082964638">
                         <text>r_name = 'ASIA'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="r_name = 'ASIA'">
@@ -1664,7 +1664,7 @@ where
                 <constant expr="11" loc="219..223" text="0.06" />
                 <constant expr="12" loc="226..230" text="0.01" />
                 <constant expr="13" loc="203..214" text="0.06 - 0.01">
-                    <snippet template="11750168420183201345" raw="13733505047087081430">
+                    <snippet template="11750168420183201345" raw="2392968471144137696">
                         <text>0.06 - 0.01</text>
                         <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="0.06 - 0.01">
@@ -1678,7 +1678,7 @@ where
                     </snippet>
                 </constant>
                 <constant expr="14" loc="219..230" text="0.06 + 0.01">
-                    <snippet template="11585643956688421893" raw="13716899511760311509">
+                    <snippet template="11585643956688421893" raw="2384240539672382412">
                         <text>0.06 + 0.01</text>
                         <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="0.06 + 0.01">
@@ -1695,7 +1695,7 @@ where
             </constants>
             <column-restrictions>
                 <restriction expr="16">
-                    <snippet template="1794443991550492122" raw="12671594229110699380">
+                    <snippet template="1794443991550492122" raw="16397231595477093087">
                         <text>l_quantity &lt; 24</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="l_quantity &lt; 24">
@@ -2016,7 +2016,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="30">
-                    <snippet template="7459937480860943044" raw="5289733661820011416">
+                    <snippet template="7459937480860943044" raw="17956433327077651684">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(volume)">
@@ -2037,7 +2037,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="39">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -2057,7 +2057,7 @@ order by
             </column-transforms>
             <column-restrictions>
                 <restriction expr="40">
-                    <snippet template="1774411175897133756" raw="9231270480714351691">
+                    <snippet template="1774411175897133756" raw="3150574409033100535">
                         <text>n1.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="n1.n_name ..= 'FRANCE'">
@@ -2076,7 +2076,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="41">
-                    <snippet template="1774411175897133756" raw="18251525370566592695">
+                    <snippet template="1774411175897133756" raw="6647721872532571037">
                         <text>n2.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="n2.n_name .. 'GERMANY'">
@@ -2095,7 +2095,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="42">
-                    <snippet template="1774411175897133756" raw="10811116771996125067">
+                    <snippet template="1774411175897133756" raw="18104143012407523739">
                         <text>n1.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="n1.n_name .. 'GERMANY'">
@@ -2114,7 +2114,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="43">
-                    <snippet template="1774411175897133756" raw="11829175498032063588">
+                    <snippet template="1774411175897133756" raw="7747851937444159769">
                         <text>n2.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="n2.n_name ..= 'FRANCE'">
@@ -2433,7 +2433,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="28">
-                    <snippet template="7459937480860943044" raw="5289733661820011416">
+                    <snippet template="7459937480860943044" raw="17956433327077651684">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(volume)">
@@ -2454,7 +2454,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="37">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -2474,7 +2474,7 @@ order by
             </column-transforms>
             <column-restrictions>
                 <restriction expr="38">
-                    <snippet template="7878761948638532652" raw="6912707325437122133">
+                    <snippet template="7878761948638532652" raw="6332405420526788244">
                         <text>nation = 'BRAZIL'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="nation = 'BRAZIL'">
@@ -2492,7 +2492,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="39">
-                    <snippet template="7878761948638532652" raw="14360511931414206078">
+                    <snippet template="7878761948638532652" raw="13986438379663263640">
                         <text>r_name = 'AMERICA'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="r_name = 'AMERICA'">
@@ -2510,7 +2510,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="40">
-                    <snippet template="7878761948638532652" raw="7361831576079096355">
+                    <snippet template="7878761948638532652" raw="12697985139264258807">
                         <text>p_type = 'ECONOMY ANODIZED STEEL'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..33" text="p_type = '..ZED STEEL'">
@@ -2806,7 +2806,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="26">
-                    <snippet template="7459937480860943044" raw="11211526282332761838">
+                    <snippet template="7459937480860943044" raw="7349171517081095692">
                         <text>sum(amount)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..11" text="sum(amount)">
@@ -2827,7 +2827,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="30">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -3128,7 +3128,7 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="32">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -3148,7 +3148,7 @@ limit
             </column-transforms>
             <column-restrictions>
                 <restriction expr="33">
-                    <snippet template="7878761948638532652" raw="11753550935655191038">
+                    <snippet template="7878761948638532652" raw="12618826992940438907">
                         <text>l_returnflag = 'R'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="l_returnflag = 'R'">
@@ -3436,7 +3436,7 @@ order by
             </constants>
             <column-restrictions>
                 <restriction expr="25">
-                    <snippet template="7878761948638532652" raw="5770694515598955604">
+                    <snippet template="7878761948638532652" raw="17849391643708943025">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="n_name = 'GERMANY'">
@@ -3454,7 +3454,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="26">
-                    <snippet template="7878761948638532652" raw="5770694515598955604">
+                    <snippet template="7878761948638532652" raw="17849391643708943025">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="n_name = 'GERMANY'">
@@ -3755,7 +3755,7 @@ order by
             </constants>
             <column-restrictions>
                 <restriction expr="30">
-                    <snippet template="7878761948638532652" raw="3019222705241498741">
+                    <snippet template="7878761948638532652" raw="12612562843334486563">
                         <text>o_orderpriority = '1-URGENT'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..28" text="o_orderpri..'1-URGENT'">
@@ -3773,7 +3773,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="31">
-                    <snippet template="7878761948638532652" raw="7447869018882390966">
+                    <snippet template="7878761948638532652" raw="11078846806949687147">
                         <text>o_orderpriority = '2-HIGH'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..26" text="o_orderpri..= '2-HIGH'">
@@ -3791,7 +3791,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="32">
-                    <snippet template="7876191237927212653" raw="3399214136986979852">
+                    <snippet template="7876191237927212653" raw="12635847034319305931">
                         <text>o_orderpriority &lt;&gt; '1-URGENT'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..29" text="o_orderpri..'1-URGENT'">
@@ -3809,7 +3809,7 @@ order by
                     </snippet>
                 </restriction>
                 <restriction expr="33">
-                    <snippet template="7876191237927212653" raw="7487099238900648811">
+                    <snippet template="7876191237927212653" raw="11230535099903543576">
                         <text>o_orderpriority &lt;&gt; '2-HIGH'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..27" text="o_orderpri..> '2-HIGH'">
@@ -4070,7 +4070,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="11">
-                    <snippet template="7459937480860943044" raw="16943677651523603000">
+                    <snippet template="7459937480860943044" raw="12778882692393153820">
                         <text>count(o_orderkey)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="count(o_orderkey)">
@@ -4340,7 +4340,7 @@ where
             </constants>
             <column-transforms>
                 <transform expr="18">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -4358,7 +4358,7 @@ where
                     </snippet>
                 </transform>
                 <transform expr="19">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -4642,7 +4642,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="21">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -4660,7 +4660,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="17">
-                    <snippet template="7459937480860943044" raw="10095664298754608661">
+                    <snippet template="7459937480860943044" raw="17998980483922362832">
                         <text>max(total_revenue)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..18" text="max(total_revenue)">
@@ -4964,7 +4964,7 @@ order by
             </constants>
             <column-restrictions>
                 <restriction expr="31">
-                    <snippet template="7876191237927212653" raw="5626173075326177579">
+                    <snippet template="7876191237927212653" raw="14879473264125503777">
                         <text>p_brand &lt;&gt; 'Brand#45'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="p_brand &lt;>..'Brand#45'">
@@ -5232,7 +5232,7 @@ where
             </constants>
             <column-transforms>
                 <transform expr="9">
-                    <snippet template="7459937480860943044" raw="17304206197469207063">
+                    <snippet template="7459937480860943044" raw="11000236514155240899">
                         <text>sum(l_extendedprice)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..20" text="sum(l_exte..ndedprice)">
@@ -5253,7 +5253,7 @@ where
                     </snippet>
                 </transform>
                 <transform expr="15">
-                    <snippet template="3953482423731880416" raw="3983150103707451728">
+                    <snippet template="3953482423731880416" raw="13908898628615272176">
                         <text>sum(l_extendedprice) / 7.0</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..26" text="sum(l_exte..ice) / 7.0">
@@ -5280,7 +5280,7 @@ where
                     </snippet>
                 </transform>
                 <transform expr="10">
-                    <snippet template="7459937480860943044" raw="1811333566291200298">
+                    <snippet template="7459937480860943044" raw="13737816790111530731">
                         <text>avg(l_quantity)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="avg(l_quantity)">
@@ -5301,7 +5301,7 @@ where
                     </snippet>
                 </transform>
                 <transform expr="16">
-                    <snippet template="5900558999169186486" raw="15603315551634890040">
+                    <snippet template="5900558999169186486" raw="9251967689031886429">
                         <text>0.2 * avg(l_quantity)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="0.2 * avg(.._quantity)">
@@ -5330,7 +5330,7 @@ where
             </column-transforms>
             <column-restrictions>
                 <restriction expr="17">
-                    <snippet template="7878761948638532652" raw="17172068765389280692">
+                    <snippet template="7878761948638532652" raw="4329201091260278617">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#23'">
@@ -5348,7 +5348,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="18">
-                    <snippet template="7878761948638532652" raw="7825312954926929890">
+                    <snippet template="7878761948638532652" raw="1719335436705875048">
                         <text>p_container = 'MED BOX'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="p_containe.. 'MED BOX'">
@@ -5639,7 +5639,7 @@ limit
             </constants>
             <column-transforms>
                 <transform expr="21">
-                    <snippet template="7459937480860943044" raw="17723185355577448959">
+                    <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
@@ -5660,7 +5660,7 @@ limit
                     </snippet>
                 </transform>
                 <transform expr="22">
-                    <snippet template="7459937480860943044" raw="17723185355577448959">
+                    <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
@@ -5683,7 +5683,7 @@ limit
             </column-transforms>
             <column-restrictions>
                 <restriction expr="25">
-                    <snippet template="16544040145736921644" raw="9726401535347383754">
+                    <snippet template="16544040145736921644" raw="15585843519595032425">
                         <text>sum(l_quantity) &gt; 300</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="sum(l_quan..ity) > 300">
@@ -6047,7 +6047,7 @@ where
                 <constant expr="37" loc="329..330" text="1" />
                 <constant expr="38" loc="333..335" text="10" />
                 <constant expr="39" loc="329..335" text="1 + 10">
-                    <snippet template="12424959531160489459" raw="7621672061136644152">
+                    <snippet template="12424959531160489459" raw="10116070303484514696">
                         <text>1 + 10</text>
                         <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="1 + 10">
@@ -6074,7 +6074,7 @@ where
                 <constant expr="51" loc="735..737" text="10" />
                 <constant expr="52" loc="740..742" text="10" />
                 <constant expr="53" loc="735..742" text="10 + 10">
-                    <snippet template="12424959531160489459" raw="16497831323127428783">
+                    <snippet template="12424959531160489459" raw="16755926737830464181">
                         <text>10 + 10</text>
                         <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..7" text="10 + 10">
@@ -6101,7 +6101,7 @@ where
                 <constant expr="65" loc="1140..1142" text="20" />
                 <constant expr="66" loc="1145..1147" text="10" />
                 <constant expr="67" loc="1140..1147" text="20 + 10">
-                    <snippet template="12424959531160489459" raw="3546855962772816584">
+                    <snippet template="12424959531160489459" raw="10159800169023021064">
                         <text>20 + 10</text>
                         <nodes count="5" bytes="120">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..7" text="20 + 10">
@@ -6122,7 +6122,7 @@ where
             </constants>
             <column-transforms>
                 <transform expr="73">
-                    <snippet template="14310701343703095298" raw="7118058518308277">
+                    <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..14" text="1 - l_discount">
@@ -6142,7 +6142,7 @@ where
             </column-transforms>
             <column-restrictions>
                 <restriction expr="74">
-                    <snippet template="7878761948638532652" raw="17713497619629445853">
+                    <snippet template="7878761948638532652" raw="14135332075547948918">
                         <text>p_brand = 'Brand#12'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#12'">
@@ -6160,7 +6160,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="75">
-                    <snippet template="1794727616146586915" raw="7777695536916607133">
+                    <snippet template="1794727616146586915" raw="15312582582394865745">
                         <text>l_quantity &gt;= 1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..15" text="l_quantity >= 1">
@@ -6178,7 +6178,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="76">
-                    <snippet template="14979201821369072793" raw="16980307589728116878">
+                    <snippet template="14979201821369072793" raw="11367199732580831010">
                         <text>l_quantity &lt;= 1 + 10</text>
                         <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="l_quantity.. &lt;= 1 + 10">
@@ -6202,7 +6202,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="77">
-                    <snippet template="7878761948638532652" raw="8716873930640281316">
+                    <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
@@ -6220,7 +6220,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="78">
-                    <snippet template="7878761948638532652" raw="17172068765389280692">
+                    <snippet template="7878761948638532652" raw="4329201091260278617">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#23'">
@@ -6238,7 +6238,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="79">
-                    <snippet template="1794727616146586915" raw="8021518249472524203">
+                    <snippet template="1794727616146586915" raw="5325364192640452651">
                         <text>l_quantity &gt;= 10</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="l_quantity >= 10">
@@ -6256,7 +6256,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="80">
-                    <snippet template="14979201821369072793" raw="5589824322633713912">
+                    <snippet template="14979201821369072793" raw="4261815542071764728">
                         <text>l_quantity &lt;= 10 + 10</text>
                         <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="l_quantity..&lt;= 10 + 10">
@@ -6280,7 +6280,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="81">
-                    <snippet template="7878761948638532652" raw="8716873930640281316">
+                    <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
@@ -6298,7 +6298,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="82">
-                    <snippet template="7878761948638532652" raw="8446666227254167991">
+                    <snippet template="7878761948638532652" raw="8846675650963382816">
                         <text>p_brand = 'Brand#34'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..20" text="p_brand = ..'Brand#34'">
@@ -6316,7 +6316,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="83">
-                    <snippet template="1794727616146586915" raw="2972509414027772077">
+                    <snippet template="1794727616146586915" raw="17876119122366299275">
                         <text>l_quantity &gt;= 20</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="l_quantity >= 20">
@@ -6334,7 +6334,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="84">
-                    <snippet template="14979201821369072793" raw="3228216071317835085">
+                    <snippet template="14979201821369072793" raw="3143745946647309617">
                         <text>l_quantity &lt;= 20 + 10</text>
                         <nodes count="11" bytes="264">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="l_quantity..&lt;= 20 + 10">
@@ -6358,7 +6358,7 @@ where
                     </snippet>
                 </restriction>
                 <restriction expr="85">
-                    <snippet template="7878761948638532652" raw="8716873930640281316">
+                    <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..36" text="l_shipinst..IN PERSON'">
@@ -6657,7 +6657,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="19">
-                    <snippet template="7459937480860943044" raw="17723185355577448959">
+                    <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..15" text="sum(l_quantity)">
@@ -6678,7 +6678,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="25">
-                    <snippet template="5900558999169186486" raw="17031206447350500755">
+                    <snippet template="5900558999169186486" raw="5223770085421581126">
                         <text>0.5 * sum(l_quantity)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..21" text="0.5 * sum(.._quantity)">
@@ -6707,7 +6707,7 @@ order by
             </column-transforms>
             <column-restrictions>
                 <restriction expr="26">
-                    <snippet template="7878761948638532652" raw="6709935607568204152">
+                    <snippet template="7878761948638532652" raw="10065351477473628320">
                         <text>n_name = 'CANADA'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="n_name = 'CANADA'">
@@ -7012,7 +7012,7 @@ limit
             </constants>
             <column-restrictions>
                 <restriction expr="28">
-                    <snippet template="7878761948638532652" raw="16642252314022566492">
+                    <snippet template="7878761948638532652" raw="15267920131222227459">
                         <text>o_orderstatus = 'F'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..19" text="o_orderstatus = 'F'">
@@ -7030,7 +7030,7 @@ limit
                     </snippet>
                 </restriction>
                 <restriction expr="29">
-                    <snippet template="7878761948638532652" raw="10097217521961769076">
+                    <snippet template="7878761948638532652" raw="14637891371526592409">
                         <text>n_name = 'SAUDI ARABIA'</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="n_name = '..DI ARABIA'">
@@ -7357,7 +7357,7 @@ order by
             </constants>
             <column-transforms>
                 <transform expr="14">
-                    <snippet template="7459937480860943044" raw="3729885507378371514">
+                    <snippet template="7459937480860943044" raw="17136717280471383120">
                         <text>sum(c_acctbal)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..14" text="sum(c_acctbal)">
@@ -7378,7 +7378,7 @@ order by
                     </snippet>
                 </transform>
                 <transform expr="17">
-                    <snippet template="7459937480860943044" raw="6275788049764562326">
+                    <snippet template="7459937480860943044" raw="16864173837778933596">
                         <text>avg(c_acctbal)</text>
                         <nodes count="8" bytes="192">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..14" text="avg(c_acctbal)">
@@ -7401,7 +7401,7 @@ order by
             </column-transforms>
             <column-restrictions>
                 <restriction expr="40">
-                    <snippet template="2494651304169023382" raw="15070666140374270649">
+                    <snippet template="2494651304169023382" raw="11669804565785528925">
                         <text>c_acctbal &gt; 0.00</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="c_acctbal > 0.00">

@@ -26,7 +26,7 @@
             <column-restrictions>
                 <templates column="0.0">
                     <template signature="17608407916322461543">
-                        <snippet template="17608407916322461543" raw="482172252657023501">
+                        <snippet template="17608407916322461543" raw="17046291626474264120">
                             <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
                             <nodes count="15" bytes="360">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..56" text="event_time..l '30' day">
@@ -59,7 +59,7 @@
                 </templates>
                 <templates column="0.3">
                     <template signature="7878761948638532652">
-                        <snippet template="7878761948638532652" raw="2644747614429592926">
+                        <snippet template="7878761948638532652" raw="13423462593048553321">
                             <text>tenant = 'a360/prod/bar'</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
@@ -75,7 +75,7 @@
                                 </node>
                             </nodes>
                         </snippet>
-                        <snippet template="7878761948638532652" raw="5252260935106076214">
+                        <snippet template="7878761948638532652" raw="12915170941615982935">
                             <text>tenant = 'a360/prod3/foo'</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
@@ -97,7 +97,7 @@
             <column-transforms>
                 <templates column="0.1">
                     <template signature="5606800037095841550">
-                        <snippet template="5606800037095841550" raw="8189505265582136494">
+                        <snippet template="5606800037095841550" raw="3197809837303275225">
                             <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
                             <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
@@ -122,7 +122,7 @@
                                 </node>
                             </nodes>
                         </snippet>
-                        <snippet template="5606800037095841550" raw="17390044247130669303">
+                        <snippet template="5606800037095841550" raw="10739155601962827482">
                             <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                             <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
@@ -178,7 +178,7 @@
             <column-restrictions>
                 <templates column="0.0">
                     <template signature="153693783941112220">
-                        <snippet template="153693783941112220" raw="9547372558606951563">
+                        <snippet template="153693783941112220" raw="17607440235580690731">
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                             <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
@@ -206,7 +206,7 @@
                 </templates>
                 <templates column="0.3">
                     <template signature="7878761948638532652">
-                        <snippet template="7878761948638532652" raw="15911068183210118332">
+                        <snippet template="7878761948638532652" raw="12730198808566288772">
                             <text>tenant = 'a360/prod/foo'</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">

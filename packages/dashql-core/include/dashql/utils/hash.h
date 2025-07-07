@@ -5,6 +5,8 @@
 #include <string>
 #include <tuple>
 
+#include "dashql/utils/murmur3.h"
+
 namespace dashql {
 
 template <class T> inline void hash_combine(std::size_t& seed, const T& v) {
@@ -27,11 +29,16 @@ struct TupleHasher {
 
 struct StringHasher {
     using is_transparent = void;
-    using hasher = std::hash<std::string_view>;
 
-    std::size_t operator()(const char* str) const { return hasher{}(str); }
-    std::size_t operator()(std::string_view str) const { return hasher{}(str); }
-    std::size_t operator()(std::string const& str) const { return hasher{}(str); }
+    std::size_t operator()(const char* str) const { return Hash(str); }
+    std::size_t operator()(std::string_view str) const { return Hash(str); }
+    std::size_t operator()(std::string const& str) const { return Hash(str); }
+
+    static uint32_t Hash(std::string_view text, uint32_t seed = 0) {
+        uint32_t out = 0;
+        MurmurHash3_x86_32(text.data(), text.size(), seed, &out);
+        return out;
+    }
 };
 
 struct StringPairHasher {
@@ -40,14 +47,14 @@ struct StringPairHasher {
 
     size_t operator()(std::pair<std::string_view, std::string_view> str) const {
         size_t hash = 0;
-        hash_combine(hash, view_hasher{}(str.first));
-        hash_combine(hash, view_hasher{}(str.second));
+        hash_combine(hash, StringHasher::Hash(str.first));
+        hash_combine(hash, StringHasher::Hash(str.second));
         return hash;
     }
     size_t operator()(std::pair<std::string, std::string> const& str) const {
         size_t hash = 0;
-        hash_combine(hash, view_hasher{}(str.first));
-        hash_combine(hash, view_hasher{}(str.second));
+        hash_combine(hash, StringHasher::Hash(str.first));
+        hash_combine(hash, StringHasher::Hash(str.second));
         return hash;
     }
 };

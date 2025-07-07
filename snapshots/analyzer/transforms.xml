@@ -21,7 +21,7 @@
             </constants>
             <column-transforms>
                 <transform expr="1">
-                    <snippet template="5606800037095841550" raw="5246299894398560044">
+                    <snippet template="5606800037095841550" raw="506185710814489970">
                         <text>regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..66" text="regexp_ext..-Z]+)', 1)">

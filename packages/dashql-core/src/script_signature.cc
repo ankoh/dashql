@@ -1,6 +1,7 @@
 #include "dashql/script_signature.h"
 
 #include "dashql/utils/hash.h"
+#include "dashql/utils/murmur3.h"
 
 namespace dashql {
 
@@ -15,7 +16,7 @@ static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const 
             case buffers::parser::NodeType::NAME:
                 if constexpr (!SkipNamesAndLiterals) {
                     std::string_view text = name_resolver(node.children_begin_or_value());
-                    hash_combine(v, text);
+                    hash_combine(v, StringHasher::Hash(text));
                 }
                 break;
             case buffers::parser::NodeType::LITERAL_NULL:
@@ -27,7 +28,7 @@ static size_t ComputeScriptSignatureImpl(std::string_view text, std::span<const 
                     // Note that this is strictly speaking a little too lax.
                     // We ignore the rabbit hole of value interpretation here.
                     auto value = text.substr(node.location().offset(), node.location().length());
-                    hash_combine(v, value);
+                    hash_combine(v, StringHasher::Hash(value));
                 }
                 break;
             }
