@@ -66,7 +66,7 @@ __metadata:
     "@types/flatbuffers": "npm:^2.0.1"
     "@types/fontfaceobserver": "npm:^2.1.3"
     "@types/jest": "npm:^30.0.0"
-    "@types/node": "npm:^22.16.0"
+    "@types/node": "npm:^22.16.2"
     "@types/react": "npm:^18.3.23"
     "@types/react-dom": "npm:^18.3.7"
     "@types/react-window": "npm:^1.8.8"
@@ -156,7 +156,7 @@ __metadata:
     "@bufbuild/protobuf": "npm:^2.6.0"
     "@connectrpc/connect": "npm:^2.0.2"
     "@connectrpc/connect-web": "npm:^2.0.2"
-    "@types/node": "npm:^22.16.0"
+    "@types/node": "npm:^22.16.2"
     esbuild: "npm:^0.25.6"
     typescript: "npm:^5.8.3"
   languageName: unknown
@@ -3220,12 +3220,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^22.16.0":
-  version: 22.16.0
-  resolution: "@types/node@npm:22.16.0"
+"@types/node@npm:^22.16.2":
+  version: 22.16.2
+  resolution: "@types/node@npm:22.16.2"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/6219b521062f6c38d4d85ebd25807bd7f2bc703a5acba24e2c6716938d9d6cefd6fafd7b5156f61580eb58a0d82e8921751b778655675389631d813e5f261c03
+  checksum: 10c0/4b5e34ca73cceb2630ae2ca46cc8fe1173e0026edb24dcd203cb7cfa788f0bab84b0d8599c32aedbc506a519acc5027177ce8b47a4f63e4f7887808499fec6a3
   languageName: node
   linkType: hard
 
@@ -10051,7 +10051,7 @@ __metadata:
     "@bufbuild/protoc-gen-es": "npm:^2.6.0"
     "@eslint/js": "npm:^9.30.1"
     "@tauri-apps/cli": "npm:^2.6.2"
-    "@types/node": "npm:^22.16.0"
+    "@types/node": "npm:^22.16.2"
     eslint: "npm:^9.30.1"
     prettier: "npm:^3.6.2"
     ts-node: "npm:^10.9.2"
