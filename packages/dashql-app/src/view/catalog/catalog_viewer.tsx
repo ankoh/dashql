@@ -3,8 +3,6 @@ import * as dashql from '@ankoh/dashql-core';
 
 import * as styles from './catalog_viewer.module.css'
 
-import { CatalogInfoView } from './catalog_info_view.js';
-import { CatalogRefreshView } from './catalog_refresh_view.js';
 import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
 import { EdgeLayer } from './edge_layer.js';
@@ -18,10 +16,10 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-export const PADDING_LEFT = 40;
-export const PADDING_TOP = 20;
-export const PADDING_BOTTOM = 20;
-export const PADDING_RIGHT = 60;
+export const PADDING_LEFT = 20;
+export const PADDING_TOP = 4;
+export const PADDING_BOTTOM = 16;
+export const PADDING_RIGHT = 48;
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
         prerenderSize: 200,
@@ -92,7 +90,7 @@ export function CatalogViewer(props: Props) {
             setViewModel(state);
         }
     }, [workbook?.connectionCatalog.snapshot]);
-    const viewModelHeight = viewModel?.totalHeight ?? 0;
+    const viewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_BOTTOM + PADDING_TOP;
 
     // Load script refs
     const previousScript = React.useRef<dashql.DashQLScript | null>(null);
@@ -140,7 +138,7 @@ export function CatalogViewer(props: Props) {
                 // XXX Are browsers doing the right thing here?
                 //     Manual tests indicate that this is working...
                 //     We manually bump the minimum height to make sure there's enough room for scrollTop.
-                const newViewModelHeight = viewModel?.totalHeight ?? 0;
+                const newViewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_TOP + PADDING_BOTTOM;
                 boardDiv.style.minHeight = `${newViewModelHeight}px`;
                 containerDiv.scrollTop = scrollToFocus;
             }
