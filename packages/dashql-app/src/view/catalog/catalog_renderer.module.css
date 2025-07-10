@@ -30,12 +30,12 @@
 
     display: grid;
     grid-template-rows: 100%;
-    grid-template-columns: max-content 1fr max-content;
+    grid-template-columns: 1fr max-content;
     align-items: center;
     justify-items: center;
     column-gap: 8px;
 
-    padding: 0px 4px 0px 6px;
+    padding: 0px 6px 0px 6px;
     font-size: 0.7rem;
 }
 

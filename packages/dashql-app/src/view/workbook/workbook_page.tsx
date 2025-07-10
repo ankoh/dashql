@@ -351,7 +351,6 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     }, [activeQueryId, activeQueryState?.status]);
 
     const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
-    const SparklesIcon: Icon = SymbolIcon("sparkles_16");
     return (
         <div className={styles.details_body_container}>
             <div className={styles.details_body_card}>

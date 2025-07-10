@@ -17,8 +17,8 @@ import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 export const PADDING_LEFT = 0;
-export const PADDING_TOP = 20;
-export const PADDING_BOTTOM = 20;
+export const PADDING_TOP = 8;
+export const PADDING_BOTTOM = 8;
 export const PADDING_RIGHT = 20;
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {

@@ -405,11 +405,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-snapshot-level={levelId.toString()}
                     data-catalog-object={entry.catalogObjectId()}
                 >
-                    <div className={styles.node_type_icon_container}>
-                        <svg width="10px" height="10px">
-                            <use xlinkHref={`${symbols}${LEVEL_ICONS[levelId]}`} />
-                        </svg>
-                    </div>
                     {
                         (
                             thisName == ""
@@ -425,6 +420,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 )
                         )
                     }
+                    <div className={styles.node_type_icon_container}>
+                        <svg width="10px" height="10px">
+                            <use xlinkHref={`${symbols}${LEVEL_ICONS[levelId]}`} />
+                        </svg>
+                    </div>
                     <div className={styles.node_ports}>
                         {(parentEntryId != null) && (
                             <div
