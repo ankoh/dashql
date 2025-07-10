@@ -47,7 +47,7 @@ __metadata:
     "@octokit/graphql": "npm:^9.0.1"
     "@primer/behaviors": "npm:^1.8.1"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
-    "@primer/react": "npm:^37.27.0"
+    "@primer/react": "npm:^37.28.0"
     "@primer/react-brand": "npm:^0.56.2"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.6.0"
@@ -2147,9 +2147,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/react@npm:^37.27.0":
-  version: 37.27.0
-  resolution: "@primer/react@npm:37.27.0"
+"@primer/react@npm:^37.28.0":
+  version: 37.28.0
+  resolution: "@primer/react@npm:37.28.0"
   dependencies:
     "@github/relative-time-element": "npm:^4.4.5"
     "@github/tab-container-element": "npm:4.8.2"
@@ -2174,6 +2174,7 @@ __metadata:
     hsluv: "npm:1.0.1"
     lodash.isempty: "npm:^4.4.0"
     lodash.isobject: "npm:^3.0.2"
+    react-compiler-runtime: "npm:^19.1.0-rc.2"
     react-intersection-observer: "npm:^9.16.0"
     react-is: "npm:^18.2.0"
     styled-system: "npm:^5.1.5"
@@ -2192,7 +2193,7 @@ __metadata:
       optional: true
     "@types/styled-components":
       optional: true
-  checksum: 10c0/06d55a843e54450d2157984499834426e3208f4962da1edb938c3a6cb0ceaa8a7f62a5b656b4b854038a8c4d7f5d17ec20738a10af11cda94f47e0f1b4cf6cde
+  checksum: 10c0/37aeab1c4a4d4d73665c2fd0c2219902558479ecb3a2947753710e5d17bafd9ec79448f5e68544887ef5c96a31af04b04cb98eea259b9b97e7e5c086652b19d8
   languageName: node
   linkType: hard
 
@@ -9697,6 +9698,15 @@ __metadata:
     iconv-lite: "npm:0.4.24"
     unpipe: "npm:1.0.0"
   checksum: 10c0/b201c4b66049369a60e766318caff5cb3cc5a900efd89bdac431463822d976ad0670912c931fdbdcf5543207daf6f6833bca57aa116e1661d2ea91e12ca692c4
+  languageName: node
+  linkType: hard
+
+"react-compiler-runtime@npm:^19.1.0-rc.2":
+  version: 19.1.0-rc.2
+  resolution: "react-compiler-runtime@npm:19.1.0-rc.2"
+  peerDependencies:
+    react: ^17.0.0 || ^18.0.0 || ^19.0.0 || ^0.0.0-experimental
+  checksum: 10c0/4d5a78453c490457269741519040a9dc723fc0e3b83441ff6e225f71a35c5ea96da84cd86d464f5916f9a139ff73570db62e8d1d77c32221c9a93df5a00ef3f9
   languageName: node
   linkType: hard
 
