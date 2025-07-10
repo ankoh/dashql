@@ -285,8 +285,6 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     const ollamaClient = useOllamaClient();
 
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
-    const [isEditingDescription, setIsEditingDescription] = React.useState<boolean>(false);
-    const [description, setDescription] = React.useState<string>("");
     const [workbook, modifyWorkbook] = useWorkbookState(props.workbook.workbookId);
 
     // Resolve the query state (if any)
@@ -303,16 +301,6 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
     enabledTabs += +(activeQueryState != null);
     enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
     tabState.current.enabledTabs = enabledTabs;
-
-    // Auto-resizing text area
-    const descriptionInputRef = React.useRef<HTMLTextAreaElement>(null);
-    function adjustDescriptionInput() {
-        if (descriptionInputRef.current) {
-            descriptionInputRef.current.style.height = "inherit";
-            descriptionInputRef.current.style.height = `${descriptionInputRef.current.scrollHeight}px`;
-        }
-    }
-    React.useLayoutEffect(adjustDescriptionInput, []);
 
     // Register keyboard events
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
@@ -392,48 +380,6 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                         >
                             <ScreenNormalIcon size={16} />
                         </IconButton>
-                    </div>
-                    <div className={styles.details_description}>
-                        <div className={styles.description_edit_container}>
-                            <textarea
-                                className={styles.description_textarea}
-                                value={description}
-                                ref={descriptionInputRef}
-                                onFocus={_ => {
-                                    setIsEditingDescription(true);
-                                }}
-                                onChange={e => {
-                                    setDescription(e.target.value);
-                                    adjustDescriptionInput();
-                                }}
-                                onBlur={_ => {
-                                    setIsEditingDescription(false);
-                                    // XXX Save description
-                                }}
-                                placeholder="Add a description..."
-                                rows={1}
-                            />
-                            <div className={styles.description_button_container}>
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="generate description"
-                                    disabled={!isNativePlatform()}
-                                    onClick={async () => {
-                                        if (ollamaClient != null) {
-                                            const text = scriptData.script?.toString();
-                                            console.log(text);
-                                            const prompt = `generate a short description of the following sql query: ${text}`;
-                                            // XXX
-                                            const cancel = new AbortController();
-                                            const response = await ollamaClient.generate("deepseek-r1:8b", prompt, cancel.signal);
-                                            setDescription(response);
-                                        }
-                                    }}
-                                >
-                                    <SparklesIcon size={16} />
-                                </IconButton>
-                            </div>
-                        </div>
                     </div>
                     <VerticalTabs
                         className={styles.details_editor_tabs}
