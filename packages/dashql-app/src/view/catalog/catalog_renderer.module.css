@@ -11,13 +11,12 @@
 
     --catalog_node_focus_border_color: hsl(208.5deg 24.69% 71.76%);
     --catalog_node_focus_port_color: hsl(208.5deg 24.69% 41.76%);
-    /* --catalog_node_focus_port_color: hsl(212.44deg, 92.07%, 44.51%); */
     --catalog_edge_focus_color: hsl(208.5deg 24.69% 41.76%);
 
     --catalog_default_border_width: 1px;
     --catalog_focus_border_width: 2px;
 
-    --catalog_port_size_inner: 10px;
+    --catalog_port_size_inner: 8px;
     --catalog_port_size: calc(var(--catalog_port_size_inner) + 2 * var(--catalog_default_border_width));
     --catalog_port_size_focused: calc(var(--catalog_port_size_inner) + 2 * var(--catalog_focus_border_width))
 }
@@ -35,7 +34,7 @@
     justify-items: center;
     column-gap: 8px;
 
-    padding: 0px 6px 0px 6px;
+    padding: 0px 6px 0px 8px;
     font-size: 0.7rem;
 }
 

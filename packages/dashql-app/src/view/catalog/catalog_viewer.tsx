@@ -18,7 +18,7 @@ import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
 export const PADDING_LEFT = 0;
 export const PADDING_TOP = 8;
-export const PADDING_BOTTOM = 8;
+export const PADDING_BOTTOM = 16;
 export const PADDING_RIGHT = 20;
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
@@ -59,10 +59,6 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
             childOffsetX: 0,
         },
     },
-    details: {
-        nodeWidth: 200,
-        columnGap: 24,
-    }
 };
 
 interface Props {
@@ -254,12 +250,6 @@ export function CatalogViewer(props: Props) {
 
     // Should we always expand the info overlay?
     const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT;
-    let paddingLeft = PADDING_LEFT;
-    let paddingRight = PADDING_RIGHT;
-
-    // Use padding to center the catalog if the view model is smaller than the container height.
-    const paddingTop = Math.max(PADDING_TOP, Math.max((containerSize?.height ?? 0) - (viewModel?.totalHeight ?? 0), 0) / 2);
-    const paddingBottom = paddingTop;
 
     let layerWidth = viewModel?.totalWidth ?? 0;
     let layerHeight = viewModel?.totalHeight ?? 0;
@@ -286,29 +276,29 @@ export function CatalogViewer(props: Props) {
                         className={styles.edge_layer}
                         width={layerWidth}
                         height={layerHeight}
-                        paddingTop={paddingTop}
-                        paddingRight={paddingRight}
-                        paddingLeft={paddingLeft}
-                        paddingBottom={paddingBottom}
+                        paddingTop={PADDING_TOP}
+                        paddingRight={PADDING_RIGHT}
+                        paddingLeft={PADDING_LEFT}
+                        paddingBottom={PADDING_BOTTOM}
                         paths={renderedOutput.edges ?? []}
                     />
                     <EdgeLayer
                         className={styles.edge_layer_focused}
                         width={layerWidth}
                         height={layerHeight}
-                        paddingTop={paddingTop}
-                        paddingRight={paddingRight}
-                        paddingLeft={paddingLeft}
-                        paddingBottom={paddingBottom}
+                        paddingTop={PADDING_TOP}
+                        paddingRight={PADDING_RIGHT}
+                        paddingLeft={PADDING_LEFT}
+                        paddingBottom={PADDING_BOTTOM}
                         paths={renderedOutput.edgesFocused ?? []}
                     />
                     <NodeLayer
                         width={layerWidth}
                         height={layerHeight}
-                        paddingTop={paddingTop}
-                        paddingRight={paddingRight}
-                        paddingLeft={paddingLeft}
-                        paddingBottom={paddingBottom}
+                        paddingTop={PADDING_TOP}
+                        paddingRight={PADDING_RIGHT}
+                        paddingLeft={PADDING_LEFT}
+                        paddingBottom={PADDING_BOTTOM}
                         nodes={renderedOutput.nodes}
                     />
                 </div>

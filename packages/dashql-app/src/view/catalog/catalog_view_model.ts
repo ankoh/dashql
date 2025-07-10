@@ -45,8 +45,6 @@ export interface CatalogRenderingSettings {
         /// The column settings
         columns: CatalogLevelRenderingSettings;
     },
-    /// The details
-    details: CatalogDetailsRenderingSettings;
 }
 
 /// The flags for rendering catalog entries
@@ -199,8 +197,6 @@ export class CatalogViewModel {
     tableEntries: CatalogLevelViewModel;
     /// The column entries
     columnEntries: CatalogLevelViewModel;
-    /// The details
-    details: CatalogDetailsViewModel;
 
     /// The latest focus epoch
     latestFocusEpoch: number | null;
@@ -313,12 +309,6 @@ export class CatalogViewModel {
             firstFocusedEntry: null,
         };
         currentWriterX += settings.levels.columns.childOffsetX;
-        this.details = {
-            settings: settings.details,
-            positionX: 0,
-            anchorPositionX: 0,
-            positionY: 0,
-        };
 
         this.visibleLevels = 4;
         this.visibleDetails = false;
@@ -466,12 +456,6 @@ export class CatalogViewModel {
         }
         if (visibleLevels > 0) {
             totalWidth += levels[visibleLevels - 1].settings.nodeWidth;
-        }
-        if (this.visibleDetails) {
-            this.details.anchorPositionX = totalWidth;
-            totalWidth += this.details.settings.columnGap;
-            this.details.positionX = totalWidth;
-            totalWidth += this.settings.details.nodeWidth;
         }
         this.totalWidth = totalWidth;
     }

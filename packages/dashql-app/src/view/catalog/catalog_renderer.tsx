@@ -246,20 +246,6 @@ const DEFAULT_EDGE_TRANSITION = {
     duration: 0.3,
     ease: "easeInOut"
 };
-const DETAILS_NODE_INITIAL_X_OFFSET = 0;
-const DETAILS_NODE_INITIAL_SCALE = 1.0;
-const DETAILS_NODE_TRANSITION = {
-    duration: 0.3,
-    ease: "easeInOut"
-};
-const DETAILS_EDGE_INITIAL_SCALE = 1.0;
-const DETAILS_EDGE_INITIAL_PATH_LENGTH = 1.0;
-const DETAILS_EDGE_INITIAL_PATH_OFFSET = 0;
-const DETAILS_EDGE_INITIAL_OPACITY = 0.5;
-const DETAILS_EDGE_TRANSITION = {
-    duration: 0.3,
-    ease: "easeInOut"
-};
 
 const LEVEL_ICONS = [
     `#database`,
@@ -294,7 +280,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const entryFlags = flags[entryId];
             const entryIsPinned = (entryFlags & PINNED_BY_ANYTHING) != 0;
             const entryIsFocused = (entryFlags & PINNED_BY_FOCUS) != 0;
-            const entryIsFocusTarget = (entryFlags & PINNED_BY_FOCUS_TARGET) != 0 && thisLevel.pinnedInEpoch[entryId] == ctx.latestFocusEpoch;
             const entryIsCompletion = (entryFlags & PINNED_BY_COMPLETION) != 0 && thisLevel.pinnedInEpoch[entryId] == ctx.latestFocusEpoch;
             // Quickly skip over irrelevant entries
             if (entryIsPinned != renderPinned) {
@@ -436,16 +421,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 data-port={NodePort.East}
                             />
                         )}
-                        {entryIsFocusTarget && (
-                            <div
-                                className={classNames(styles.node_port_west, {
-                                    [styles.node_port_border_default]: !entryIsFocused,
-                                    [styles.node_port_border_focused]: entryIsFocused,
-                                    [styles.node_port_focused]: isLastLevel || anyChildIsFocused,
-                                })}
-                                data-port={NodePort.East}
-                            />
-                        )}
                     </div>
                 </motion.div>
             );
@@ -562,96 +537,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     />,
                 );
             }
-
-            // XXX If the node is focused and the last level, we also emit the details node
-            if (isLastLevel && entryIsFocusTarget) {
-                const detailsKey = "details";
-
-                const detailsRendering = ctx.viewModel.settings.details;
-                const detailsPositionX = ctx.viewModel.details.positionX;
-                const detailsPositionY = thisPosY;
-
-                // Resolve the previous details node
-                const prevNodePosition = ctx.prevState.nodePositions.get(detailsKey);
-                const newNodePosition: RenderedNode = {
-                    key: detailsKey,
-                    initial: prevNodePosition?.animate ?? (
-                        {
-                            top: detailsPositionY,
-                            right: detailsPositionX + DETAILS_NODE_INITIAL_X_OFFSET,
-                            scale: DETAILS_NODE_INITIAL_SCALE,
-                        }
-                    ),
-                    animate: {
-                        top: detailsPositionY,
-                        right: detailsPositionX,
-                        scale: 1.0,
-                    },
-                };
-                ctx.nextState.nodePositions.set(detailsKey, newNodePosition);
-
-                const edgeFromX = levelPositionX + levelWidth / 2;
-                const edgeFromY = thisPosY + settings.nodeHeight / 2;
-                const edgeToX = detailsPositionX + detailsRendering.nodeWidth / 2;
-                const edgeToY = thisPosY + settings.nodeHeight / 2; // We want a horizontal line
-                const edgeType = selectHorizontalEdgeType(edgeFromX, edgeFromY, edgeToX, edgeToY);
-                const edgePath = buildEdgePathBetweenRectangles(ctx.edgeBuilder, edgeType, edgeFromX, edgeFromY, edgeToX, edgeToY, levelWidth, settings.nodeHeight, detailsRendering.nodeWidth, settings.nodeHeight, 4);
-
-                const nextPath: RenderedPath = {
-                    key: detailsKey,
-                    initial: {
-                        d: edgePath,
-                        pathLength: DETAILS_EDGE_INITIAL_PATH_LENGTH,
-                        pathOffset: DETAILS_EDGE_INITIAL_PATH_OFFSET,
-                        scale: DETAILS_EDGE_INITIAL_SCALE,
-                        opacity: DETAILS_EDGE_INITIAL_OPACITY,
-                    },
-                    animate: {
-                        d: edgePath,
-                        pathLength: 1.0,
-                        pathOffset: 0.0,
-                        scale: 1.0,
-                        opacity: 1.0
-                    }
-                };
-                ctx.nextState.edgePaths.set(detailsKey, nextPath);
-                ctx.output.nodes.push(
-                    <motion.div
-                        key={detailsKey}
-                        className={classNames(styles.node, styles.node_details)}
-                        style={{
-                            position: 'absolute',
-                            width: detailsRendering.nodeWidth,
-                            height: '60px',
-                        }}
-                        initial={newNodePosition.initial}
-                        animate={newNodePosition.animate}
-                        transition={DETAILS_NODE_TRANSITION}
-                    >
-
-                        <div className={styles.node_ports}>
-                            <div
-                                className={styles.node_port_details}
-                                data-port={NodePort.East}
-                            />
-                        </div>
-                    </motion.div>
-                );
-                ctx.output.edgesFocused.push(
-                    <motion.path
-                        key={detailsKey}
-                        initial={nextPath.initial}
-                        animate={nextPath.animate}
-                        transition={DETAILS_EDGE_TRANSITION}
-                        strokeWidth="2px"
-                        stroke="currentcolor"
-                        fill="transparent"
-                        pointerEvents="stroke"
-                        data-edge="details"
-                    />,
-                );
-            }
-
         }
     }
 
