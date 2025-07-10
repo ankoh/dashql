@@ -16,10 +16,10 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-export const PADDING_LEFT = 20;
-export const PADDING_TOP = 4;
-export const PADDING_BOTTOM = 16;
-export const PADDING_RIGHT = 48;
+export const PADDING_LEFT = 0;
+export const PADDING_TOP = 20;
+export const PADDING_BOTTOM = 20;
+export const PADDING_RIGHT = 20;
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     virtual: {
         prerenderSize: 200,
@@ -27,32 +27,32 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     },
     levels: {
         databases: {
-            nodeWidth: 240,
-            nodeHeight: 36,
+            nodeWidth: 160,
+            nodeHeight: 24,
             maxUnpinnedChildren: 3,
             levelGap: 8,
             rowGap: 24,
-            childOffsetX: 48,
+            childOffsetX: 24,
         },
         schemas: {
-            nodeWidth: 240,
-            nodeHeight: 36,
+            nodeWidth: 160,
+            nodeHeight: 24,
             maxUnpinnedChildren: 3,
             levelGap: 8,
             rowGap: 24,
-            childOffsetX: 48,
+            childOffsetX: 24,
         },
         tables: {
-            nodeWidth: 240,
-            nodeHeight: 36,
+            nodeWidth: 160,
+            nodeHeight: 24,
             maxUnpinnedChildren: 5,
             levelGap: 8,
             rowGap: 8,
-            childOffsetX: 48,
+            childOffsetX: 24,
         },
         columns: {
-            nodeWidth: 240,
-            nodeHeight: 36,
+            nodeWidth: 160,
+            nodeHeight: 24,
             maxUnpinnedChildren: 3,
             levelGap: 8,
             rowGap: 8,
@@ -61,7 +61,7 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     },
     details: {
         nodeWidth: 200,
-        columnGap: 48,
+        columnGap: 24,
     }
 };
 
@@ -133,7 +133,7 @@ export function CatalogViewer(props: Props) {
                 const containerDiv = containerElement.current as HTMLDivElement;
                 const boardDiv = boardElement.current as HTMLDivElement;
                 const clientVerticalCenter = containerSize.height / 2;
-                scrollToFocus = Math.max(scrollToFocus, clientVerticalCenter) - clientVerticalCenter;
+                scrollToFocus = Math.max(scrollToFocus + PADDING_TOP, clientVerticalCenter) - clientVerticalCenter;
 
                 // XXX Are browsers doing the right thing here?
                 //     Manual tests indicate that this is working...
@@ -275,44 +275,42 @@ export function CatalogViewer(props: Props) {
                 ref={containerElement}
                 onScroll={handleScroll}
             >
-                <div className={styles.board_container_shadows}>
-                    <div
-                        className={styles.board}
-                        ref={boardElement}
-                        style={{
-                            minHeight: viewModelHeight
-                        }}
-                    >
-                        <EdgeLayer
-                            className={styles.edge_layer}
-                            width={layerWidth}
-                            height={layerHeight}
-                            paddingTop={paddingTop}
-                            paddingRight={paddingRight}
-                            paddingLeft={paddingLeft}
-                            paddingBottom={paddingBottom}
-                            paths={renderedOutput.edges ?? []}
-                        />
-                        <EdgeLayer
-                            className={styles.edge_layer_focused}
-                            width={layerWidth}
-                            height={layerHeight}
-                            paddingTop={paddingTop}
-                            paddingRight={paddingRight}
-                            paddingLeft={paddingLeft}
-                            paddingBottom={paddingBottom}
-                            paths={renderedOutput.edgesFocused ?? []}
-                        />
-                        <NodeLayer
-                            width={layerWidth}
-                            height={layerHeight}
-                            paddingTop={paddingTop}
-                            paddingRight={paddingRight}
-                            paddingLeft={paddingLeft}
-                            paddingBottom={paddingBottom}
-                            nodes={renderedOutput.nodes}
-                        />
-                    </div>
+                <div
+                    className={styles.board}
+                    ref={boardElement}
+                    style={{
+                        minHeight: viewModelHeight
+                    }}
+                >
+                    <EdgeLayer
+                        className={styles.edge_layer}
+                        width={layerWidth}
+                        height={layerHeight}
+                        paddingTop={paddingTop}
+                        paddingRight={paddingRight}
+                        paddingLeft={paddingLeft}
+                        paddingBottom={paddingBottom}
+                        paths={renderedOutput.edges ?? []}
+                    />
+                    <EdgeLayer
+                        className={styles.edge_layer_focused}
+                        width={layerWidth}
+                        height={layerHeight}
+                        paddingTop={paddingTop}
+                        paddingRight={paddingRight}
+                        paddingLeft={paddingLeft}
+                        paddingBottom={paddingBottom}
+                        paths={renderedOutput.edgesFocused ?? []}
+                    />
+                    <NodeLayer
+                        width={layerWidth}
+                        height={layerHeight}
+                        paddingTop={paddingTop}
+                        paddingRight={paddingRight}
+                        paddingLeft={paddingLeft}
+                        paddingBottom={paddingBottom}
+                        nodes={renderedOutput.nodes}
+                    />
                 </div>
             </div>
         </div>

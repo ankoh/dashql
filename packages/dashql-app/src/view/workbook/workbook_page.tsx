@@ -14,7 +14,6 @@ import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { DragSizing, DragSizingBorder } from '../../view/foundations/drag_sizing.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
@@ -30,7 +29,6 @@ import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
-import { classNames } from '../../utils/classnames.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
@@ -159,18 +157,11 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
-enum OverlayPosition {
-    Top,
-    Bottom
-}
 interface OverlayLayout {
-    position: OverlayPosition;
-    height: number;
     preferCollapsed: boolean;
 }
 
 const OVERLAY_HEIGHT_MIN = 300;
-const OVERLAY_HEIGHT_MAX = 600;
 const OVERLAY_PADDING = 20;
 
 function positionOverlay(view: EditorView): OverlayLayout | null {
@@ -182,25 +173,12 @@ function positionOverlay(view: EditorView): OverlayLayout | null {
 
     const editorRect = view.scrollDOM.getBoundingClientRect();
     const cursorToTop = cursorCoords.top - editorRect.top;
-    const cursorToBottom = editorRect.bottom - cursorCoords.bottom;
 
-    let overlayPos: OverlayPosition = OverlayPosition.Bottom;
-    let overlayHeight: number = OVERLAY_HEIGHT_MIN;
+    // XXX Collapse base on width
     let preferCollapsed: boolean = true;
+    preferCollapsed = cursorToTop < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
 
-    if (cursorToBottom > cursorToTop) {
-        // Show overlay at the bottom?
-        overlayPos = OverlayPosition.Bottom;
-        overlayHeight = Math.min(Math.max(cursorToBottom, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
-        preferCollapsed = cursorToBottom < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
-
-    } else {
-        // Show overlay at the top
-        overlayPos = OverlayPosition.Top;
-        overlayHeight = Math.min(Math.max(cursorToTop, OVERLAY_HEIGHT_MIN), OVERLAY_HEIGHT_MAX);
-        preferCollapsed = cursorToTop < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
-    }
-    return { position: overlayPos, height: overlayHeight, preferCollapsed };
+    return { preferCollapsed };
 }
 
 enum PinState {
@@ -241,14 +219,6 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
     }, [props.script.cursor]);
 
     // Determine the overlay positioning classname
-    let overlayPosition: OverlayPosition = OverlayPosition.Bottom;
-    let overlayBorder: DragSizingBorder = DragSizingBorder.Top;
-    let overlayPositionClass = styles.catalog_overlay_container_bottom;
-    if (overlayLayout?.position == OverlayPosition.Top) {
-        overlayBorder = DragSizingBorder.Bottom;
-        overlayPosition = OverlayPosition.Top;
-        overlayPositionClass = styles.catalog_overlay_container_top;
-    }
     let showOverlay = pinState == PinState.PinnedByUser || (pinState == PinState.ShowIfSpace && !overlayLayout?.preferCollapsed);
     return (
         <div className={styles.details_editor_tabs_body}>
@@ -259,33 +229,15 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
             {
                 showOverlay
                     ? (
-                        <DragSizing
-                            border={overlayBorder}
-                            className={classNames(styles.catalog_overlay_container, overlayPositionClass)}
-                            handlerClassName={styles.catalog_overlay_drag_resizing}
+                        <div
+                            className={styles.catalog_overlay_container}
                         >
                             <div className={styles.catalog_overlay_content}>
-                                <div className={styles.catalog_overlay_header}>
-                                    <div className={styles.catalog_overlay_header_icon}>
-                                        <CatalogIcon />
-                                    </div>
-                                    <div className={styles.catalog_overlay_header_text}>
-                                        Catalog
-                                    </div>
-                                    <IconButton
-                                        className={styles.catalog_overlay_header_sync_toggle}
-                                        variant={ButtonVariant.Invisible}
-                                        aria-label="close-overlay"
-                                        onClick={() => setPinState(PinState.UnpinnedByUser)}
-                                    >
-                                        <PinSlashIcon />
-                                    </IconButton>
-                                </div>
                                 <div className={styles.catalog_viewer}>
                                     <CatalogViewer workbookId={props.workbook.workbookId} />
                                 </div>
                             </div>
-                        </DragSizing>
+                        </div>
                     )
                     : (
                         <Button

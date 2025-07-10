@@ -342,61 +342,22 @@
 /* Catalog overlay */
 .catalog_overlay_container {
     position: absolute;
-    right: 32px;
     width: auto;
     max-width: calc(100% - 40px);
-    height: 45%;
+    right: 8px;
+    top: 0px;
+    bottom: 0px;
 
-    border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
-    background-color: white;
     overflow: hidden;
 
-    box-shadow: 0px 1px 1px 0px #25292e1a, 0px 3px 6px 0px #25292e1f;
-}
-.catalog_overlay_container_top {
-    top: 20px;
-}
-.catalog_overlay_container_bottom {
-    bottom: 20px;
 }
 .catalog_overlay_drag_resizing {
 }
 .catalog_overlay_content {
     width: 100%;
     height: 100%;
-    display: grid;
-    grid-tempate-rows: max-content 1fr;
-    grid-template-columns: 100%;
-    overflow: hidden;
 }
-.catalog_overlay_header {
-    border-bottom: 1px solid var(--border_color_primary);
-    display: grid;
-    grid-template-rows: 40px;
-    grid-template-columns: max-content max-content 1fr max-content;
-    align-items: center;
-    column-gap: 8px;
-    padding: 0px 4px;
-}
-.catalog_overlay_header_icon {
-    grid-column: 1;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-left: 8px;
-    padding-right: 4px;
-}
-.catalog_overlay_header_text {
-    grid-column: 2;
-    display: grid;
-}
-.catalog_overlay_header_sync_toggle {
-    grid-column: 4;
-}
-
 .catalog_viewer {
     grid-row: 2;
     height: 100%;

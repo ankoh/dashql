@@ -178,12 +178,12 @@ export interface RenderedNode {
     key: string;
     initial: {
         top: number;
-        left: number;
+        right: number;
         scale: number;
     };
     animate: {
         top: number;
-        left: number;
+        right: number;
         scale: number;
     };
 }
@@ -368,13 +368,13 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 initial: prevNodePosition?.animate ?? (
                     {
                         top: thisPosY,
-                        left: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
+                        right: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
                         scale: DEFAULT_NODE_INITIAL_SCALE,
                     }
                 ),
                 animate: {
                     top: thisPosY,
-                    left: levelPositionX,
+                    right: levelPositionX,
                     scale: 1.0,
                 },
             };
@@ -406,7 +406,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     data-catalog-object={entry.catalogObjectId()}
                 >
                     <div className={styles.node_type_icon_container}>
-                        <svg width="12px" height="12px">
+                        <svg width="10px" height="10px">
                             <use xlinkHref={`${symbols}${LEVEL_ICONS[levelId]}`} />
                         </svg>
                     </div>
@@ -428,17 +428,17 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     <div className={styles.node_ports}>
                         {(parentEntryId != null) && (
                             <div
-                                className={classNames(styles.node_port_west, {
+                                className={classNames(styles.node_port_east, {
                                     [styles.node_port_border_default]: !entryIsFocused,
                                     [styles.node_port_border_focused]: entryIsFocused,
                                     [styles.node_port_focused]: parentIsFocused && entryIsFocused,
                                 })}
-                                data-port={NodePort.West}
+                                data-port={NodePort.East}
                             />
                         )}
                         {entryIsFocusTarget && (
                             <div
-                                className={classNames(styles.node_port_east, {
+                                className={classNames(styles.node_port_west, {
                                     [styles.node_port_border_default]: !entryIsFocused,
                                     [styles.node_port_border_focused]: entryIsFocused,
                                     [styles.node_port_focused]: isLastLevel || anyChildIsFocused,
@@ -578,13 +578,13 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     initial: prevNodePosition?.animate ?? (
                         {
                             top: detailsPositionY,
-                            left: detailsPositionX + DETAILS_NODE_INITIAL_X_OFFSET,
+                            right: detailsPositionX + DETAILS_NODE_INITIAL_X_OFFSET,
                             scale: DETAILS_NODE_INITIAL_SCALE,
                         }
                     ),
                     animate: {
                         top: detailsPositionY,
-                        left: detailsPositionX,
+                        right: detailsPositionX,
                         scale: 1.0,
                     },
                 };
@@ -632,7 +632,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         <div className={styles.node_ports}>
                             <div
                                 className={styles.node_port_details}
-                                data-port={NodePort.West}
+                                data-port={NodePort.East}
                             />
                         </div>
                     </motion.div>
@@ -677,12 +677,12 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 initial: prevNodePosition?.animate ?? (
                     {
                         top: thisPosY,
-                        left: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
+                        right: levelPositionX + DEFAULT_NODE_INITIAL_X_OFFSET,
                         scale: 1.0,
                     }),
                 animate: {
                     top: thisPosY,
-                    left: levelPositionX,
+                    right: levelPositionX,
                     scale: 1.0,
                 },
             };

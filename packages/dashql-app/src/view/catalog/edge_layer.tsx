@@ -33,7 +33,9 @@ export function EdgeLayer(props: EdgeLayerProps) {
                 width={props.width}
                 height={props.height}
             >
-                {props.paths}
+                <g transform={`translate(${props.width / 2}, 0) scale(-1, 1) translate(-${props.width / 2}, 0)`}>
+                    {props.paths}
+                </g>
             </svg>
         </div>
     );

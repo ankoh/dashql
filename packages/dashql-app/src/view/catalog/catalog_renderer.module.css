@@ -24,7 +24,7 @@
 
 .node {
     position: relative;
-    border-radius: var(--border_radius);
+    border-radius: 6px;
     border: var(--catalog_default_border_width) solid var(--border_color_primary);
     background-color: var(--catalog_node_inactive_bg);
 
@@ -35,8 +35,8 @@
     justify-items: center;
     column-gap: 8px;
 
-    padding: 0px 10px 0px 10px;
-    font-size: 0.85rem;
+    padding: 0px 4px 0px 6px;
+    font-size: 0.7rem;
 }
 
 .node_overflow {
@@ -48,8 +48,8 @@
     align-items: center;
     justify-items: center;
 
-    padding: 4px;
-    border-radius: 4px;
+    padding: 3px;
+    border-radius: 3px;
     background-color: hsl(210deg, 12%, 92%);
 }
 .node_pinned > .node_type_icon_container {
@@ -269,10 +269,10 @@
 }
 .node_port_details {
     position: absolute;
-    top: calc(16px - var(--catalog_port_size_focused) / 2);
-    left: calc(-1 * var(--catalog_port_size_focused) / 2);
+    top: calc(10px - var(--catalog_port_size_focused) / 2);
+    right: calc(-1 * var(--catalog_port_size_focused) / 2);
     background-image: linear-gradient(
-        270deg,
+        90deg,
         transparent 0%,
         transparent 50%,
         var(--catalog_node_focus_border_color) 50%,
@@ -285,7 +285,7 @@
 .node_port_details::before {
     position: absolute;
     top: var(--catalog_focus_border_width);
-    left: var(--catalog_focus_border_width);
+    right: var(--catalog_focus_border_width);
     width: calc(var(--catalog_port_size_focused) - (var(--catalog_focus_border_width) * 2));
     height: calc(var(--catalog_port_size_focused) - (var(--catalog_focus_border_width) * 2));
     content: '';
@@ -296,7 +296,7 @@
 .node_port_details::after {
     position: absolute;
     top: calc(var(--catalog_port_size_focused) / 4);
-    left: calc(var(--catalog_port_size_focused) / 4);
+    right: calc(var(--catalog_port_size_focused) / 4);
     width: calc(var(--catalog_port_size_focused) / 2);
     height: calc(var(--catalog_port_size_focused) / 2);
     content: '';
