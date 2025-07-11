@@ -33,7 +33,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
-import { useScrollbarWidth } from '../../utils/scrollbar.js';
+import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -164,11 +164,6 @@ enum PinState {
     UnpinnedByUser
 }
 
-interface MinimapLayout {
-    preferCollapsed: boolean;
-    marginRight: number;
-}
-
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
@@ -177,15 +172,19 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
     const [view, setView] = React.useState<EditorView | null>(null);
     const catalogOverlayRef = React.useRef<HTMLDivElement>(null);
     const scrollbarWidth = useScrollbarWidth();
+    const scrollbarHeight = useScrollbarHeight();
 
-    // Update the minimap
-    const [preferCollapsedOverlay, overlayMarginRight] = React.useMemo(() => {
+    // Determine the catalog overlay positioning.
+    const [preferCollapsedOverlay, overlayMarginRight, overlayMarginBottom] = React.useMemo(() => {
         let preferCollapsed = true;
         let marginRight = 0;
+        let marginBottom = 0;
         if (props.script.cursor && view) {
             // Determine the right margin
-            const hasScrollbar = view.scrollDOM.scrollHeight > view.scrollDOM.clientHeight;
-            marginRight = hasScrollbar ? scrollbarWidth : 0;
+            const hasVerticalScrollbar = view.scrollDOM.scrollHeight > view.scrollDOM.clientHeight;
+            const hasHorizontalScrollbar = view.scrollDOM.scrollWidth > view.scrollDOM.clientWidth;
+            marginRight = hasVerticalScrollbar ? scrollbarWidth : 0;
+            marginBottom = hasHorizontalScrollbar ? scrollbarHeight : 0;
 
             // Should we collapse the catalog? minimap
             preferCollapsed = true;
@@ -193,12 +192,12 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
             const cursorCoords = view.coordsAtPos(cursorPos, -1);
             if (cursorCoords != null) {
                 const editorRect = view.scrollDOM.getBoundingClientRect();
-                const cursorToRight = cursorCoords.right - editorRect.right;
+                const cursorToRight = editorRect.right - cursorCoords.right;
                 const overlayWidth = catalogOverlayRef.current?.getBoundingClientRect()?.width ?? 300;
-                preferCollapsed = cursorToRight > overlayWidth;
+                preferCollapsed = cursorToRight <= (overlayWidth + 20);
             }
         }
-        return [preferCollapsed, marginRight];
+        return [preferCollapsed, marginRight, marginBottom];
     }, [props.script.cursor, view, catalogOverlayRef.current]);
 
     React.useEffect(() => {
@@ -228,7 +227,8 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                             className={styles.catalog_overlay_container}
                             ref={catalogOverlayRef}
                             style={{
-                                right: overlayMarginRight
+                                right: overlayMarginRight,
+                                bottom: overlayMarginBottom
                             }}
                         >
                             <div className={styles.catalog_overlay_content}>
