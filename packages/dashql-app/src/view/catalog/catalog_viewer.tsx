@@ -16,7 +16,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 
-export const PADDING_LEFT = 0;
+export const PADDING_LEFT = 20;
 export const PADDING_TOP = 8;
 export const PADDING_BOTTOM = 16;
 export const PADDING_RIGHT = 20;

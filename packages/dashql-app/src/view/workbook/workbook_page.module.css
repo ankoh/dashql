@@ -344,12 +344,12 @@
     position: absolute;
     width: auto;
     max-width: calc(100% - 40px);
-    right: 8px;
     top: 0px;
     bottom: 0px;
 
     overflow: hidden;
-
+    background-color: hsla(210, 29%, 80%, 10%);
+    border-left: var(--catalog_default_border_width) solid var(--border_color_primary);
 }
 .catalog_overlay_drag_resizing {
 }

@@ -29,11 +29,11 @@ import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
-import { isNativePlatform } from '../../platform/native_globals.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
+import { useScrollbarWidth } from '../../utils/scrollbar.js';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -157,35 +157,16 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     );
 };
 
-interface OverlayLayout {
-    preferCollapsed: boolean;
-}
-
-const OVERLAY_HEIGHT_MIN = 300;
-const OVERLAY_PADDING = 20;
-
-function positionOverlay(view: EditorView): OverlayLayout | null {
-    if (!view) { return null; }
-
-    const pos = view.state.selection.main.head;
-    const cursorCoords = view.coordsAtPos(pos, -1);
-    if (!cursorCoords) return null;
-
-    const editorRect = view.scrollDOM.getBoundingClientRect();
-    const cursorToTop = cursorCoords.top - editorRect.top;
-
-    // XXX Collapse base on width
-    let preferCollapsed: boolean = true;
-    preferCollapsed = cursorToTop < (OVERLAY_HEIGHT_MIN + OVERLAY_PADDING);
-
-    return { preferCollapsed };
-}
-
 enum PinState {
     Hide,
     ShowIfSpace,
     PinnedByUser,
     UnpinnedByUser
+}
+
+interface MinimapLayout {
+    preferCollapsed: boolean;
+    marginRight: number;
 }
 
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
@@ -194,17 +175,31 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
 
     const [pinState, setPinState] = React.useState<PinState>(PinState.Hide);
     const [view, setView] = React.useState<EditorView | null>(null);
-    const [overlayLayout, setOverlayLayout] = React.useState<OverlayLayout | null>(null);
+    const catalogOverlayRef = React.useRef<HTMLDivElement>(null);
+    const scrollbarWidth = useScrollbarWidth();
 
-    // Update the overlay
-    React.useEffect(() => {
+    // Update the minimap
+    const [preferCollapsedOverlay, overlayMarginRight] = React.useMemo(() => {
+        let preferCollapsed = true;
+        let marginRight = 0;
         if (props.script.cursor && view) {
-            const layout = positionOverlay(view);
-            if (layout != null) {
-                setOverlayLayout(layout);
+            // Determine the right margin
+            const hasScrollbar = view.scrollDOM.scrollHeight > view.scrollDOM.clientHeight;
+            marginRight = hasScrollbar ? scrollbarWidth : 0;
+
+            // Should we collapse the catalog? minimap
+            preferCollapsed = true;
+            const cursorPos = view.state.selection.main.head;
+            const cursorCoords = view.coordsAtPos(cursorPos, -1);
+            if (cursorCoords != null) {
+                const editorRect = view.scrollDOM.getBoundingClientRect();
+                const cursorToRight = cursorCoords.right - editorRect.right;
+                const overlayWidth = catalogOverlayRef.current?.getBoundingClientRect()?.width ?? 300;
+                preferCollapsed = cursorToRight > overlayWidth;
             }
         }
-    }, [props.script.cursor, view]);
+        return [preferCollapsed, marginRight];
+    }, [props.script.cursor, view, catalogOverlayRef.current]);
 
     React.useEffect(() => {
         if (props.script.cursor == null || props.script.cursor.contextType == core.buffers.cursor.ScriptCursorContext.NONE) {
@@ -219,7 +214,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
     }, [props.script.cursor]);
 
     // Determine the overlay positioning classname
-    let showOverlay = pinState == PinState.PinnedByUser || (pinState == PinState.ShowIfSpace && !overlayLayout?.preferCollapsed);
+    let showMinimap = pinState == PinState.PinnedByUser || (pinState == PinState.ShowIfSpace && !preferCollapsedOverlay);
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor
@@ -227,10 +222,14 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                 setView={setView}
             />
             {
-                showOverlay
+                showMinimap
                     ? (
                         <div
                             className={styles.catalog_overlay_container}
+                            ref={catalogOverlayRef}
+                            style={{
+                                right: overlayMarginRight
+                            }}
                         >
                             <div className={styles.catalog_overlay_content}>
                                 <div className={styles.catalog_viewer}>

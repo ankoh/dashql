@@ -1,8 +1,11 @@
 :root {
     --catalog_title_fg: rgb(0, 0, 0);
     --catalog_bg: hsl(210, 29%, 97%);
+    --catalog_fg: inherit;
     --catalog_node_bg: white;
     --catalog_node_inactive_bg: white;
+    --catalog_border_color_primary: hsl(210deg 17.5% 84.31%);
+    --catalog_border_radius: 8px;
     --catalog_card_port_bg: hsl(210deg, 12.68%, 84.16%);
     --catalog_card_column_count_bg: rgb(0, 0, 0, 0.05);
     --catalog_card_bg: rgb(255, 255, 255);
@@ -18,7 +21,7 @@
 
     --catalog_port_size_inner: 8px;
     --catalog_port_size: calc(var(--catalog_port_size_inner) + 2 * var(--catalog_default_border_width));
-    --catalog_port_size_focused: calc(var(--catalog_port_size_inner) + 2 * var(--catalog_focus_border_width))
+    --catalog_port_size_focused: calc(var(--catalog_port_size_inner) + 2 * var(--catalog_focus_border_width));
 }
 
 .node {
@@ -26,6 +29,7 @@
     border-radius: 6px;
     border: var(--catalog_default_border_width) solid var(--border_color_primary);
     background-color: var(--catalog_node_inactive_bg);
+    color: var(--catalog_fg);
 
     display: grid;
     grid-template-rows: 100%;
