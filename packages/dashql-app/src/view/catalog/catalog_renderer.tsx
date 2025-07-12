@@ -244,7 +244,7 @@ const DEFAULT_NODE_TRANSITION = {
     ease: "easeInOut"
 };
 const DEFAULT_EDGE_TRANSITION = {
-    duration: 0.3,
+    duration: 0.1,
     ease: "easeInOut"
 };
 
@@ -558,7 +558,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         animate={newNodePosition.animate}
                         transition={DEFAULT_NODE_TRANSITION}
                     >
-                        Foo
+                        <div className={styles.node_port_details} />
                     </motion.div>
                 );
 
