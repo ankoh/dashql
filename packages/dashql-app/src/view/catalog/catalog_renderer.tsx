@@ -7,12 +7,13 @@ import { motion } from 'framer-motion';
 
 import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
-import { buildEdgePathBetweenRectangles, selectHorizontalEdgeType } from './graph_edges.js';
-import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_FOCUS_TARGET, PINNED_BY_COMPLETION } from './catalog_view_model.js';
+import { buildEdgePathBetweenRectangles } from './graph_edges.js';
+import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_COMPLETION, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
 class RenderingPath {
+
     /// The entries ids
     public entryIds: Uint32Array;
 
@@ -280,6 +281,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             const entryFlags = flags[entryId];
             const entryIsPinned = (entryFlags & PINNED_BY_ANYTHING) != 0;
             const entryIsFocused = (entryFlags & PINNED_BY_FOCUS) != 0;
+            const entryIsFocusTarget = (entryFlags & PINNED_BY_FOCUS_TARGET) != 0;
             const entryIsCompletion = (entryFlags & PINNED_BY_COMPLETION) != 0 && thisLevel.pinnedInEpoch[entryId] == ctx.latestFocusEpoch;
             // Quickly skip over irrelevant entries
             if (entryIsPinned != renderPinned) {
@@ -512,6 +514,99 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         );
                     }
                 }
+            }
+
+            // Is the focus target?
+            if (isLastLevel && entryIsFocusTarget) {
+                const detailsSettings = ctx.viewModel.settings.details;
+                const detailsKey = "details";
+
+                // Remember own position
+                const detailsPosY = ctx.currentWriterY + detailsSettings.offsetY;
+                const detailsPosX = thisLevel.positionX + settings.childOffsetX;
+                ctx.currentWriterY = detailsPosY + detailsSettings.nodeHeight;
+
+                // Resolve the previous node
+                const prevNodePosition = ctx.prevState.nodePositions.get(detailsKey);
+                const newNodePosition: RenderedNode = {
+                    key: detailsKey,
+                    initial: prevNodePosition?.animate ?? (
+                        {
+                            top: detailsPosY,
+                            right: detailsPosX + DEFAULT_NODE_INITIAL_X_OFFSET,
+                            scale: DEFAULT_NODE_INITIAL_SCALE,
+                        }
+                    ),
+                    animate: {
+                        top: detailsPosY,
+                        right: detailsPosX,
+                        scale: 1.0,
+                    },
+                };
+                ctx.nextState.nodePositions.set(detailsKey, newNodePosition);
+
+                ctx.output.nodes.push(
+                    <motion.div
+                        key={detailsKey}
+                        className={classNames(styles.node, styles.node_details)}
+                        style={{
+                            position: 'absolute',
+                            width: detailsSettings.nodeWidth,
+                            height: detailsSettings.nodeHeight,
+                        }}
+                        initial={newNodePosition.initial}
+                        animate={newNodePosition.animate}
+                        transition={DEFAULT_NODE_TRANSITION}
+                    >
+                        Foo
+                    </motion.div>
+                );
+
+                const edgeFromX = levelPositionX + settings.childOffsetX / 2;
+                const edgeFromY = thisPosY + settings.nodeHeight / 2;
+                const edgeToX = detailsPosX + detailsSettings.nodeWidth / 2;
+                const edgeToY = detailsPosY + settings.nodeHeight / 2; // Symmetry
+                ctx.edgeBuilder.begin(edgeFromX, edgeFromY);
+                ctx.edgeBuilder.push(edgeFromX, edgeFromY + ctx.viewModel.totalHeight);
+
+                const edgePath = buildEdgePathBetweenRectangles(
+                    ctx.edgeBuilder,
+                    EdgeType.NorthEast,
+                    edgeFromX, edgeFromY,
+                    edgeToX, edgeToY,
+                    settings.childOffsetX,
+                    settings.nodeHeight,
+                    detailsSettings.nodeWidth,
+                    detailsSettings.nodeHeight,
+                    4);
+
+                // Resolve the previous path
+                const prevPath = ctx.prevState.edgePaths.get(detailsKey);
+                const nextPath: RenderedPath = {
+                    key: thisKey,
+                    initial: prevPath?.animate ?? (
+                        {
+                            d: edgePath,
+                        }
+                    ),
+                    animate: {
+                        d: edgePath,
+                    }
+                };
+                ctx.nextState.edgePaths.set(detailsKey, nextPath);
+
+                ctx.output.edgesFocused.push(
+                    <motion.path
+                        key={detailsKey}
+                        initial={nextPath.initial}
+                        animate={nextPath.animate}
+                        transition={DEFAULT_EDGE_TRANSITION}
+                        strokeWidth="2px"
+                        stroke="currentcolor"
+                        fill="transparent"
+                        pointerEvents="stroke"
+                    />
+                );
             }
 
             // Are there are any children that were not rendered because they were exceeding the upper window boundary?

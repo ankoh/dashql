@@ -56,9 +56,14 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
             maxUnpinnedChildren: 3,
             levelGap: 8,
             rowGap: 8,
-            childOffsetX: 0,
+            childOffsetX: 24,
         },
     },
+    details: {
+        nodeWidth: 160,
+        nodeHeight: 160,
+        offsetY: 8,
+    }
 };
 
 interface Props {

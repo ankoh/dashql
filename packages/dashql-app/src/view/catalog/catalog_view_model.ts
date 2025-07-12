@@ -22,8 +22,10 @@ export interface CatalogLevelRenderingSettings {
 export interface CatalogDetailsRenderingSettings {
     /// The width of a node
     nodeWidth: number;
-    /// The column gap left of this entry
-    columnGap: number;
+    /// The height of a node
+    nodeHeight: number;
+    /// The y offset of the details node under the focus target (== rowGap)
+    offsetY: number;
 }
 
 export interface CatalogRenderingSettings {
@@ -45,6 +47,8 @@ export interface CatalogRenderingSettings {
         /// The column settings
         columns: CatalogLevelRenderingSettings;
     },
+    /// The details
+    details: CatalogDetailsRenderingSettings;
 }
 
 /// The flags for rendering catalog entries
@@ -124,6 +128,8 @@ class PendingLayoutUpdates {
 
 
 interface LayoutContext {
+    /// The rendering settings
+    settings: CatalogRenderingSettings;
     /// The snapshot
     snapshot: dashql.DashQLCatalogSnapshotReader;
     /// The current writer
@@ -174,9 +180,6 @@ interface CatalogDetailsViewModel {
     settings: CatalogDetailsRenderingSettings;
     /// The x-position of the details
     positionX: number;
-    /// The x-position of the details anchor.
-    /// (Right side of pinned node)
-    anchorPositionX: number;
     // The y-positon of the details
     positionY: number;
 }
@@ -381,10 +384,19 @@ export class CatalogViewModel {
 
             // Special-case the last level since we skip writer updates there
             if (isLastLevel) {
-                // Add the own node
-                ctx.currentWriterY += level.settings.nodeHeight;
-                // The subtree height includes the own node height
-                level.subtreeHeights[entryId] = level.settings.nodeHeight;
+                // Is focus target on last level?
+                if ((entryFlags & PINNED_BY_FOCUS_TARGET) != 0) {
+                    // Compute details height
+                    const detailsY = ctx.settings.details.offsetY + ctx.settings.details.nodeHeight;
+                    ctx.currentWriterY += level.settings.nodeHeight + detailsY;
+                    // The subtree height contains the own height and the detail node
+                    level.subtreeHeights[entryId] = level.settings.nodeHeight + detailsY;
+                } else {
+                    // Otherwise just the own node
+                    ctx.currentWriterY += level.settings.nodeHeight;
+                    // The subtree height includes the own node height
+                    level.subtreeHeights[entryId] = level.settings.nodeHeight;
+                }
 
             } else {
                 // Add the own position
@@ -397,7 +409,7 @@ export class CatalogViewModel {
                 // Store the subtree height
                 // Note that we deliberately do not include the entries row gap here.
                 // If we would, we couldn't update this easily from the children.
-                // (We would have to know if our parent is the child)
+                // (We would have to know if our parent is the first child)
                 level.subtreeHeights[entryId] = ctx.currentWriterY - thisPos;
             }
         }
@@ -440,6 +452,7 @@ export class CatalogViewModel {
         const snap = this.snapshot.read();
         const databaseCount = this.databaseEntries.entries.length(snap);
         const ctx: LayoutContext = {
+            settings: this.settings,
             snapshot: snap,
             currentWriterY: 0,
             visibleLevels: visibleLevels
@@ -454,8 +467,12 @@ export class CatalogViewModel {
         for (let i = 0; i < (visibleLevels - 1); ++i) {
             totalWidth += levels[i].settings.childOffsetX;
         }
-        if (visibleLevels > 0) {
-            totalWidth += levels[visibleLevels - 1].settings.nodeWidth;
+        let lastLevel = levels[visibleLevels - 1];
+        if (visibleDetails) {
+            totalWidth += lastLevel.settings.childOffsetX;
+            totalWidth += this.settings.details.nodeWidth;
+        } else {
+            totalWidth += lastLevel.settings.nodeWidth;
         }
         this.totalWidth = totalWidth;
     }
