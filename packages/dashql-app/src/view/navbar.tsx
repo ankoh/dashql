@@ -17,6 +17,7 @@ import { useLogger } from '../platform/logger_provider.js';
 import { RouteContext, useRouteContext } from '../router.js';
 import { useVersionCheck } from '../platform/version_check.js';
 import { useWorkbookState } from '../workbook/workbook_state_registry.js';
+import { useThrottledMemo } from '../utils/throttle.js';
 
 const LOG_CTX = "navbar";
 
@@ -132,7 +133,7 @@ export const NavBar = (): React.ReactElement => {
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
     const setupLinkTarget = isBrowser ? WorkbookLinkTarget.NATIVE : WorkbookLinkTarget.WEB;
-    const setupUrl = React.useMemo(() => {
+    const setupUrl = useThrottledMemo(() => {
         if (connection == null) {
             return null;
         }
