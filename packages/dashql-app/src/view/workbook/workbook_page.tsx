@@ -232,6 +232,22 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                             }}
                         >
                             <div className={styles.catalog_overlay_content}>
+                                <div className={styles.catalog_overlay_header}>
+                                    <div className={styles.catalog_overlay_header_icon}>
+                                        <CatalogIcon size={14} />
+                                    </div>
+                                    <div className={styles.catalog_overlay_header_text}>
+                                        Catalog
+                                    </div>
+                                    <IconButton
+                                        className={styles.catalog_overlay_header_sync_toggle}
+                                        variant={ButtonVariant.Invisible}
+                                        aria-label="close-overlay"
+                                        onClick={() => setPinState(PinState.UnpinnedByUser)}
+                                    >
+                                        <PinSlashIcon size={14} />
+                                    </IconButton>
+                                </div>
                                 <div className={styles.catalog_viewer}>
                                     <CatalogViewer workbookId={props.workbook.workbookId} />
                                 </div>

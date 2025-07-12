@@ -355,7 +355,38 @@
 .catalog_overlay_content {
     width: 100%;
     height: 100%;
+    display: grid;
+    grid-template-rows: 36px 1fr;
+    grid-template-columns: 100%;
 }
+.catalog_overlay_header {
+    border-bottom: 1px solid var(--border_color_primary);
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: max-content 1fr max-content;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0px 4px;
+}
+.catalog_overlay_header_icon {
+    grid-column: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+    padding-right: 4px;
+}
+.catalog_overlay_header_text {
+    grid-column: 2;
+    display: grid;
+    font-size: 0.9rem;
+}
+.catalog_overlay_header_sync_toggle {
+    grid-column: 3;
+}
+
 .catalog_viewer {
     grid-row: 2;
     height: 100%;
