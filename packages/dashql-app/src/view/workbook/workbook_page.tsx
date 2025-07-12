@@ -10,6 +10,7 @@ import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { Icon, LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { CatalogStatisticsOverlay } from '../../view/catalog/catalog_statistics_overlay.js';
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
@@ -164,12 +165,14 @@ enum PinState {
     UnpinnedByUser
 }
 
-export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script: ScriptData }) {
+export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connection: ConnectionState | null, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
+    const InfoCircleIcon = SymbolIcon("info_circle_16");
 
     const [pinState, setPinState] = React.useState<PinState>(PinState.Hide);
     const [view, setView] = React.useState<EditorView | null>(null);
+    const [showCatalogStats, setShowCatalogStats] = React.useState<boolean>(false);
     const catalogOverlayRef = React.useRef<HTMLDivElement>(null);
     const scrollbarWidth = useScrollbarWidth();
     const scrollbarHeight = useScrollbarHeight();
@@ -239,10 +242,28 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, script
                                     <div className={styles.catalog_overlay_header_text}>
                                         Catalog
                                     </div>
+                                    <div className={styles.catalog_overlay_header_info}>
+                                        {props.connection && (
+                                            <CatalogStatisticsOverlay
+                                                anchorClassName={styles.catalog_overlay_header_info_anchor}
+                                                connection={props.connection}
+                                                isOpen={showCatalogStats}
+                                                setIsOpen={setShowCatalogStats}
+                                            />
+                                        )}
+                                        <IconButton
+                                            className={styles.catalog_overlay_header_info_button}
+                                            variant={ButtonVariant.Invisible}
+                                            aria-label="info-overlay"
+                                            onClick={() => setShowCatalogStats(true)}
+                                        >
+                                            <InfoCircleIcon size={14} />
+                                        </IconButton>
+                                    </div>
                                     <IconButton
-                                        className={styles.catalog_overlay_header_sync_toggle}
+                                        className={styles.catalog_overlay_header_button_unpin}
                                         variant={ButtonVariant.Invisible}
-                                        aria-label="close-overlay"
+                                        aria-label="unpin-overlay"
                                         onClick={() => setPinState(PinState.UnpinnedByUser)}
                                     >
                                         <PinSlashIcon size={14} />
@@ -293,6 +314,7 @@ interface TabState {
 interface WorkbookEntryDetailsProps {
     workbook: WorkbookState;
     workbookEntryId: number;
+    connection: ConnectionState | null;
     hideDetails: () => void;
 }
 
@@ -421,7 +443,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} script={scriptData} />,
+                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} connection={props.connection} script={scriptData} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
@@ -542,7 +564,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.body_container}>
                 {
                     showDetails
-                        ? <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} hideDetails={() => setShowDetails(false)} />
+                        ? <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} connection={conn} hideDetails={() => setShowDetails(false)} />
                         : <WorkbookEntryList workbook={workbook} showDetails={() => setShowDetails(true)} />
                 }
             </div>

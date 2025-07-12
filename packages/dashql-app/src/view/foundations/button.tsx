@@ -104,7 +104,7 @@ interface IconButtonProps {
     size?: ButtonSize;
     disabled?: boolean;
     inactive?: boolean;
-    children?: React.ReactElement | string;
+    children?: React.ReactElement | (React.ReactElement | null)[] | string;
     onClick?: React.MouseEventHandler;
     description?: string;
     'aria-label': string;

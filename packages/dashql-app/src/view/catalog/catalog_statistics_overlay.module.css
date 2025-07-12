@@ -25,7 +25,7 @@
 .header_title {
     padding: 0 16px;
 }
-.header_button {
+.header_close {
     padding: 4px;
 }
 
@@ -55,28 +55,3 @@
     text-overflow: ellipsis;
 }
 
-
-.additional_entries {
-    border-top: 1px solid var(--border_color_primary);
-    width: 100%;
-
-    padding: 8px 16px;
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 32px;
-
-    font-weight: 400;
-    font-size: 0.85rem;
-}
-
-.additional_entry_key {
-    grid-column: 1;
-}
-
-.additional_entry_value {
-    text-align: right;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* overflow-wrap: anywhere; */
-}

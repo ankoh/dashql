@@ -102,7 +102,7 @@ export function QueryInfoView(props: QueryInfoViewProps) {
                             aria-label="Info"
                         >
                             <svg width="16px" height="16px">
-                                <use xlinkHref={`${symbols}#info_circle`} />
+                                <use xlinkHref={`${symbols}#info_circle_16`} />
                             </svg>
                         </IconButton>
                     )
