@@ -270,13 +270,6 @@
     background-color: var(--catalog_node_bg) !important;
     border: var(--catalog_focus_border_width) solid var(--catalog_node_focus_border_color);
     padding: 0px !important;
-
-    overflow: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-}
-.node_details::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
 }
 
 .node_port_details {

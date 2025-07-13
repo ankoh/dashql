@@ -24,7 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
-import { parseAndAnalyzeScript } from './workbook/dashql_processor.js';
+import { analyzeScript } from './workbook/dashql_processor.js';
 import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
 import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 
@@ -260,7 +260,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
                 // Analyze every script
                 // XXX Report progress
-                const processed = parseAndAnalyzeScript(s);
+                const processed = analyzeScript(s);
                 let statistics = Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>();
                 statistics = statistics.push(s.getStatistics());
 

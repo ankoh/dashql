@@ -59,7 +59,7 @@ export type DashQLProcessorState = DashQLSyncState & {
 };
 
 /// Analyze a new script
-export function parseAndAnalyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers {
+export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers {
     try {
         script.analyze();
 
@@ -68,21 +68,6 @@ export function parseAndAnalyzeScript(script: dashql.DashQLScript): DashQLScript
         const analyzed = script.getAnalyzed();
         return { scanned, parsed, analyzed, destroy: destroyBuffers };
 
-    } catch (e: any) {
-        console.error(e);
-    }
-    return { scanned: null, parsed: null, analyzed: null, destroy: destroyBuffers };
-}
-
-/// Analyze an existing script
-export function analyzeScript(buffers: DashQLScriptBuffers, script: dashql.DashQLScript): DashQLScriptBuffers {
-    try {
-        // Delete the old analysis
-        buffers.analyzed?.destroy();
-        // Analyze the script
-        script.analyze();
-        // Return the new script
-        return { ...buffers, analyzed: script.getAnalyzed() };
     } catch (e: any) {
         console.error(e);
     }
@@ -204,7 +189,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
                     },
                 );
                 // Analyze the new script
-                next.scriptBuffers = parseAndAnalyzeScript(next.targetScript!);
+                next.scriptBuffers = analyzeScript(next.targetScript!);
                 const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
                 next.scriptCursor = cursorBuffer.read().unpack();
                 cursorBuffer.destroy();

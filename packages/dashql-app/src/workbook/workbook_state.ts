@@ -5,7 +5,7 @@ import * as Immutable from 'immutable';
 
 import { ScriptMetadata, ScriptOriginType, ScriptType } from './script_metadata.js';
 import { ScriptLoadingStatus } from './script_loader.js';
-import { parseAndAnalyzeScript, DashQLScriptBuffers } from '../view/workbook/dashql_processor.js';
+import { analyzeScript, DashQLScriptBuffers } from '../view/workbook/dashql_processor.js';
 import { ScriptLoadingInfo } from './script_loader.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, FOCUSED_COMPLETION, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
@@ -202,7 +202,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             for (const k in next.scripts) {
                 const s = next.scripts[k];
                 if (s.metadata.scriptType == ScriptType.SCHEMA) {
-                    s.processed = parseAndAnalyzeScript(s.script!);
+                    s.processed = analyzeScript(s.script!);
                     s.statistics = rotateStatistics(s.statistics, s.script!.getStatistics() ?? null);
                     s.outdatedAnalysis = false;
                     next.connectionCatalog.loadScript(s.script!, SCHEMA_SCRIPT_CATALOG_RANK);
@@ -258,7 +258,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             if (script.outdatedAnalysis) {
                 const copy = { ...script };
                 copy.processed.destroy(copy.processed);
-                copy.processed = parseAndAnalyzeScript(copy.script!);
+                copy.processed = analyzeScript(copy.script!);
                 copy.statistics = rotateStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
                 copy.outdatedAnalysis = false;
 
@@ -433,7 +433,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 // Analyze the new script
                 const script = prevScript.script!;
                 script.replaceText(content);
-                const analysis = parseAndAnalyzeScript(script);
+                const analysis = analyzeScript(script);
 
                 // Update the script data
                 const prev = next.scripts[scriptKey];
