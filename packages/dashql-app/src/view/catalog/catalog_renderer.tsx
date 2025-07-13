@@ -13,7 +13,6 @@ import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_F
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
 class RenderingPath {
-
     /// The entries ids
     public entryIds: Uint32Array;
 
@@ -519,12 +518,13 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
             // Is the focus target?
             if (isLastLevel && entryIsFocusTarget) {
                 const detailsSettings = ctx.viewModel.settings.details;
+                const detailsViewModel = ctx.viewModel.details;
                 const detailsKey = "details";
 
                 // Remember own position
                 const detailsPosY = ctx.currentWriterY + detailsSettings.offsetY;
                 const detailsPosX = thisLevel.positionX + settings.childOffsetX;
-                ctx.currentWriterY = detailsPosY + detailsSettings.nodeHeight;
+                ctx.currentWriterY = detailsPosY + detailsViewModel.height;
 
                 // Resolve the previous node
                 const prevNodePosition = ctx.prevState.nodePositions.get(detailsKey);
@@ -552,7 +552,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         style={{
                             position: 'absolute',
                             width: detailsSettings.nodeWidth,
-                            height: detailsSettings.nodeHeight,
+                            height: detailsViewModel.height,
                         }}
                         initial={newNodePosition.initial}
                         animate={newNodePosition.animate}
@@ -591,7 +591,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     settings.childOffsetX,
                     settings.nodeHeight,
                     detailsSettings.nodeWidth,
-                    detailsSettings.nodeHeight,
+                    detailsViewModel.height,
                     4);
 
                 // Resolve the previous path

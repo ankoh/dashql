@@ -22,8 +22,6 @@ export interface CatalogLevelRenderingSettings {
 export interface CatalogDetailsRenderingSettings {
     /// The width of a node
     nodeWidth: number;
-    /// The height of a node
-    nodeHeight: number;
     /// The y offset of the details node under the focus target (== rowGap)
     offsetY: number;
 }
@@ -175,6 +173,13 @@ interface CatalogLevelViewModel {
     firstFocusedEntry: { epoch: number, entryId: number } | null;
 }
 
+interface CatalogDetailsViewModel {
+    /// The rendered details height
+    height: number;
+};
+
+export const DEFAULT_DETAILS_HEIGHT = 64;
+
 /// A catalog rendering state
 export class CatalogViewModel {
     /// The snapshot.
@@ -185,6 +190,8 @@ export class CatalogViewModel {
     /// The rendering settings
     settings: CatalogRenderingSettings;
 
+    /// The details
+    details: CatalogDetailsViewModel;
     /// The database entries
     databaseEntries: CatalogLevelViewModel;
     /// The schema entries
@@ -194,6 +201,8 @@ export class CatalogViewModel {
     /// The column entries
     columnEntries: CatalogLevelViewModel;
 
+    /// The user focus
+    latestFocus: UserFocus | null;
     /// The latest focus epoch
     latestFocusEpoch: number | null;
     /// The next rendering epoch
@@ -233,10 +242,16 @@ export class CatalogViewModel {
         this.catalogSnapshot = catalog;
         this.scriptRegistry = registry;
         this.settings = settings;
+        this.latestFocus = null;
         this.latestFocusEpoch = null;
         this.nextRenderingEpoch = 100;
         this.nextPinEpoch = 1;
         const snap = catalog.read();
+
+        this.details = {
+            height: DEFAULT_DETAILS_HEIGHT
+        };
+
         let currentWriterX = 0;
         this.databaseEntries = {
             settings: settings.levels.databases,
@@ -341,7 +356,7 @@ export class CatalogViewModel {
     }
 
     /// Layout entries at a level
-    static layoutEntriesAtLevel(ctx: LayoutContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number) {
+    static layoutEntriesAtLevel(ctx: LayoutContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number, details: CatalogDetailsViewModel | null) {
         const level = levels[levelId];
         const isLastLevel = (levelId + 1) >= ctx.visibleLevels;
         let unpinnedChildCount = 0;
@@ -379,9 +394,9 @@ export class CatalogViewModel {
             // Special-case the last level since we skip writer updates there
             if (isLastLevel) {
                 // Is focus target on last level?
-                if ((entryFlags & PINNED_BY_FOCUS_TARGET) != 0) {
+                if ((entryFlags & PINNED_BY_FOCUS_TARGET) != 0 && details != null) {
                     // Compute details height
-                    const detailsY = ctx.settings.details.offsetY + ctx.settings.details.nodeHeight;
+                    const detailsY = ctx.settings.details.offsetY + details.height;
                     ctx.currentWriterY += level.settings.nodeHeight + detailsY;
                     // The subtree height contains the own height and the detail node
                     level.subtreeHeights[entryId] = level.settings.nodeHeight + detailsY;
@@ -398,7 +413,7 @@ export class CatalogViewModel {
                 ctx.currentWriterY += level.settings.nodeHeight;
                 // Render child columns
                 if (entry.childCount() > 0) {
-                    this.layoutEntriesAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount());
+                    this.layoutEntriesAtLevel(ctx, levels, levelId + 1, entry.childBegin(), entry.childCount(), details);
                 }
                 // Store the subtree height
                 // Note that we deliberately do not include the entries row gap here.
@@ -452,7 +467,7 @@ export class CatalogViewModel {
             visibleLevels: visibleLevels
         };
         const levels = this.levels;
-        CatalogViewModel.layoutEntriesAtLevel(ctx, levels, 0, 0, databaseCount);
+        CatalogViewModel.layoutEntriesAtLevel(ctx, levels, 0, 0, databaseCount, this.details);
         this.totalHeight = ctx.currentWriterY;
 
         // Determine the total width.
@@ -689,16 +704,39 @@ export class CatalogViewModel {
         const epoch = this.nextPinEpoch++;
         // Unpin previous catalog objects
         this.unpin(PINNED_BY_FOCUS, epoch);
+        this.latestFocus = null;
         this.latestFocusEpoch = null;
         // Now run all necessary layout updates
         this.layoutPendingEntries();
     }
 
-    pinFocusedByUser(focus: UserFocus, clear: boolean = false): void {
+    static deriveDetailsFromUserFocus(focus: UserFocus): CatalogDetailsViewModel {
+        if (focus.registryColumnInfo == null) {
+            console.log("NO COLUMN INFO");
+            return {
+                height: DEFAULT_DETAILS_HEIGHT,
+            };
+        }
+        const columnInfo = focus.registryColumnInfo.read();
+        let detailsHeight = 0;
+        const sectionHeaderHeight = 24;
+        const lineHeight = 32;
+        detailsHeight += sectionHeaderHeight;
+        detailsHeight += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
+        detailsHeight += sectionHeaderHeight;
+        detailsHeight += Math.max(columnInfo.transformTemplatesLength(), 1) * lineHeight;
+        console.log(`GOT COLUMN INFO: restrictions=${columnInfo.restrictionTemplatesLength()}, transforms=${columnInfo.transformTemplatesLength()}`);
+        return {
+            height: detailsHeight
+        };
+    }
+
+    pinFocusedByUser(focus: UserFocus): void {
         const catalog = this.catalogSnapshot.read().catalogReader;
         const epoch = this.nextPinEpoch++;
+        this.latestFocus = focus;
         this.latestFocusEpoch = epoch;
-        let focusedAnything = false;
+        this.details = CatalogViewModel.deriveDetailsFromUserFocus(focus);
 
         // Pin focused catalog objects
         if (focus.catalogObject != null) {
@@ -708,34 +746,28 @@ export class CatalogViewModel {
                 case FocusType.COMPLETION_CANDIDATE:
                     flagsTarget = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE;
                     flagsPath = CatalogRenderingFlag.FOCUS_COMPLETION_CANDIDATE_PATH;
-                    focusedAnything = true;
                     break;
                 case FocusType.CATALOG_ENTRY:
                     flagsTarget = CatalogRenderingFlag.FOCUS_CATALOG_ENTRY;
                     flagsPath = CatalogRenderingFlag.FOCUS_CATALOG_ENTRY_PATH;
-                    focusedAnything = true;
                     break;
                 case FocusType.TABLE_REF:
                     flagsTarget = CatalogRenderingFlag.FOCUS_TABLE_REF;
                     flagsPath = CatalogRenderingFlag.FOCUS_TABLE_REF_PATH;
-                    focusedAnything = true;
                     break;
                 case FocusType.COLUMN_REF:
                     flagsTarget = CatalogRenderingFlag.FOCUS_COLUMN_REF;
                     flagsPath = CatalogRenderingFlag.FOCUS_COLUMN_REF_PATH;
-                    focusedAnything = true;
                     break;
             }
 
             // Pin user focus path
             this.pinPath(catalog, epoch, flagsTarget, flagsPath, PINNED_BY_FOCUS, focus.catalogObject);
         }
-        if (focusedAnything || clear) {
-            // Unpin previous catalog objects
-            this.unpin(PINNED_BY_FOCUS, epoch);
-            // Now run all necessary layout updates
-            this.layoutPendingEntries();
-        }
+        // Unpin previous catalog objects
+        this.unpin(PINNED_BY_FOCUS, epoch);
+        // Now run all necessary layout updates
+        this.layoutPendingEntries();
     }
 
     static searchEntryOffsetAtLevel(ctx: SearchContext, levels: CatalogLevelViewModel[], levelId: number, entriesBegin: number, entriesCount: number): [number, boolean] {

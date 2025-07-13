@@ -61,7 +61,6 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     },
     details: {
         nodeWidth: 160,
-        nodeHeight: 4 * 24,
         offsetY: 8,
     }
 };
@@ -116,7 +115,7 @@ export function CatalogViewer(props: Props) {
             // We need to do this in the same useEffect if we want to get rid of flickering
             // XXX We'll double-pin focused now
             if (workbook?.userFocus) {
-                viewModel.pinFocusedByUser(workbook.userFocus, true);
+                viewModel.pinFocusedByUser(workbook.userFocus);
             }
             setViewModelVersion(v => v + 1);
         }
@@ -127,7 +126,7 @@ export function CatalogViewer(props: Props) {
     React.useEffect(() => {
         if (viewModel != null && workbook?.userFocus) {
             // Pin focused elements
-            viewModel.pinFocusedByUser(workbook.userFocus, true);
+            viewModel.pinFocusedByUser(workbook.userFocus);
 
             // Scroll to first focused entry
             let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();
