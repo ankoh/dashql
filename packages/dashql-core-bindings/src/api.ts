@@ -853,16 +853,4 @@ export class DashQLScriptRegistry {
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(result, () => new buffers.registry.ScriptRegistryColumnInfo());
         return resultBuffer;
     }
-    /// Find information about a column completion candidate
-    public findColumnInfoForCompletionCandidate(candidate: buffers.completion.CompletionCandidateObjectT): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
-        // Completion object is not a column?
-        if (candidate.objectType != buffers.completion.CompletionCandidateObjectType.COLUMN) {
-            throw new Error(`completion candidate is not a column`);
-        }
-        return this.findColumnInfo(
-            candidate.catalogTableId,
-            candidate.tableColumnId,
-            candidate.referencedCatalogVersion
-        );
-    }
 }

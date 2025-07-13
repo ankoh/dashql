@@ -48,17 +48,19 @@ export enum FocusType {
 export interface UserFocus {
     /// The input focus target
     focusTarget: FocusTarget;
-
-    /// The focused catalog objects
+    /// The focused catalog object
     catalogObject: (QualifiedCatalogObjectID & { focus: FocusType }) | null;
-    /// The column references
+    /// The registry column info (if any)
+    registryColumnInfo: dashql.FlatBufferPtr<dashql.buffers.registry.ScriptRegistryColumnInfo> | null;
+    /// The column references in the script, referencing the catalog object
     scriptColumnRefs: Map<dashql.ContextObjectID.Value, FocusType>;
-    /// The table references
+    /// The table references in the script, referencing the catalog object
     scriptTableRefs: Map<dashql.ContextObjectID.Value, FocusType>;
 }
 
 /// Derive focus from script cursor
 export function deriveFocusFromScriptCursor(
+    scriptRegistry: dashql.DashQLScriptRegistry,
     scriptKey: ScriptKey,
     scriptData: ScriptData,
     cursor: dashql.buffers.cursor.ScriptCursorT,
@@ -89,6 +91,7 @@ export function deriveFocusFromScriptCursor(
             const focus: UserFocus = {
                 focusTarget,
                 catalogObject: null,
+                registryColumnInfo: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -103,6 +106,7 @@ export function deriveFocusFromScriptCursor(
                         database: resolvedTable.catalogDatabaseId(),
                         schema: resolvedTable.catalogSchemaId(),
                         table: resolvedTable.catalogTableId(),
+                        referencedCatalogVersion: resolvedTable.referencedCatalogVersion(),
                     },
                     focus: FocusType.TABLE_REF
                 };
@@ -155,6 +159,7 @@ export function deriveFocusFromScriptCursor(
             const focus: UserFocus = {
                 focusTarget,
                 catalogObject: null,
+                registryColumnInfo: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -174,12 +179,20 @@ export function deriveFocusFromScriptCursor(
                             schema: resolvedColumn.catalogSchemaId(),
                             table: resolvedColumn.catalogTableId(),
                             column: resolvedColumn.columnId(),
+                            referencedCatalogVersion: resolvedColumn.referencedCatalogVersion(),
                         },
                         focus: FocusType.COLUMN_REF
                     };
 
                     // Could we resolve the ref?
                     if (!dashql.ContextObjectID.isNull(resolvedColumn.catalogTableId())) {
+                        /// Resolve the column info from the registry
+                        focus.registryColumnInfo = scriptRegistry.findColumnInfo(
+                            resolvedColumn.catalogTableId(),
+                            resolvedColumn.columnId(),
+                            resolvedColumn.referencedCatalogVersion()
+                        );
+
                         // Read the analyzed script
                         const targetAnalyzed = scriptData.processed.analyzed?.read(tmpTargetAnalyzed);
                         if (targetAnalyzed != null) {
@@ -238,6 +251,7 @@ export function deriveFocusFromScriptCursor(
 
 /// Derive focus from catalog
 export function deriveFocusFromCatalogSelection(
+    scriptRegistry: dashql.DashQLScriptRegistry,
     scriptData: {
         [context: number]: ScriptData;
     },
@@ -256,6 +270,7 @@ export function deriveFocusFromCatalogSelection(
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
                 },
+                registryColumnInfo: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -266,6 +281,7 @@ export function deriveFocusFromCatalogSelection(
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
                 },
+                registryColumnInfo: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
@@ -315,9 +331,19 @@ export function deriveFocusFromCatalogSelection(
                     ...target,
                     focus: FocusType.CATALOG_ENTRY
                 },
+                registryColumnInfo: null,
                 scriptTableRefs: new Map(),
                 scriptColumnRefs: new Map(),
             };
+
+            /// Resolve the column info from the registry
+            focus.registryColumnInfo = scriptRegistry.findColumnInfo(
+                target.value.table,
+                target.value.column,
+                target.value.referencedCatalogVersion,
+            );
+
+            // Collect table and column refs in workbook scripts
             for (const k in scriptData) {
                 // Is there data for the script key?
                 const d = scriptData[k];
@@ -363,6 +389,7 @@ export function deriveFocusFromCatalogSelection(
 
 /// Derive focus from script completion
 export function deriveFocusFromCompletionCandidates(
+    scriptRegistry: dashql.DashQLScriptRegistry,
     _scriptKey: ScriptKey,
     scriptData: ScriptData,
 ): UserFocus | null {
@@ -383,6 +410,7 @@ export function deriveFocusFromCompletionCandidates(
     const focus: UserFocus = {
         focusTarget,
         catalogObject: null,
+        registryColumnInfo: null, // XXX
         scriptTableRefs: new Map(),
         scriptColumnRefs: new Map(),
     };
@@ -416,7 +444,8 @@ export function deriveFocusFromCompletionCandidates(
                     value: {
                         database: candidateObject.catalogDatabaseId,
                         schema: candidateObject.catalogSchemaId,
-                        table: candidateObject.catalogTableId
+                        table: candidateObject.catalogTableId,
+                        referencedCatalogVersion: candidateObject.referencedCatalogVersion,
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
@@ -428,10 +457,16 @@ export function deriveFocusFromCompletionCandidates(
                         database: candidateObject.catalogDatabaseId,
                         schema: candidateObject.catalogSchemaId,
                         table: candidateObject.catalogTableId,
-                        column: candidateObject.tableColumnId
+                        column: candidateObject.tableColumnId,
+                        referencedCatalogVersion: candidateObject.referencedCatalogVersion,
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
+                focus.registryColumnInfo = scriptRegistry.findColumnInfo(
+                    candidateObject.catalogTableId,
+                    candidateObject.tableColumnId,
+                    candidateObject.referencedCatalogVersion,
+                );
                 break;
         }
     }

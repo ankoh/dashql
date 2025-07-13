@@ -175,15 +175,6 @@ interface CatalogLevelViewModel {
     firstFocusedEntry: { epoch: number, entryId: number } | null;
 }
 
-interface CatalogDetailsViewModel {
-    /// The settings
-    settings: CatalogDetailsRenderingSettings;
-    /// The x-position of the details
-    positionX: number;
-    // The y-positon of the details
-    positionY: number;
-}
-
 /// A catalog rendering state
 export class CatalogViewModel {
     /// The snapshot.
@@ -662,6 +653,7 @@ export class CatalogViewModel {
                     database: resolved.catalogDatabaseId(),
                     schema: resolved.catalogSchemaId(),
                     table: resolved.catalogTableId(),
+                    referencedCatalogVersion: resolved.referencedCatalogVersion(),
                 }
             };
             this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_TABLE_REF, CatalogRenderingFlag.SCRIPT_TABLE_REF_PATH, PINNED_BY_SCRIPT, objectId);
@@ -681,6 +673,7 @@ export class CatalogViewModel {
                     schema: resolved.catalogSchemaId(),
                     table: resolved.catalogTableId(),
                     column: resolved.columnId(),
+                    referencedCatalogVersion: resolved.referencedCatalogVersion(),
                 }
             };
             this.pinPath(catalog, epoch, CatalogRenderingFlag.SCRIPT_COLUMN_REF, CatalogRenderingFlag.SCRIPT_COLUMN_REF_PATH, PINNED_BY_SCRIPT, objectId);
@@ -733,6 +726,8 @@ export class CatalogViewModel {
                     focusedAnything = true;
                     break;
             }
+
+            // Pin user focus path
             this.pinPath(catalog, epoch, flagsTarget, flagsPath, PINNED_BY_FOCUS, focus.catalogObject);
         }
         if (focusedAnything || clear) {

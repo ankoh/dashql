@@ -154,7 +154,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     next.connectionCatalog.dropScript(script.script);
                 }
                 // Delete the script data
-                deleteScriptData(script);
+                destroyScriptData(script);
             }
             next.scripts = {};
 
@@ -203,10 +203,12 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 const s = next.scripts[k];
                 if (s.metadata.scriptType == ScriptType.SCHEMA) {
                     s.processed = analyzeScript(s.script!);
-                    s.statistics = rotateStatistics(s.statistics, s.script!.getStatistics() ?? null);
+                    s.statistics = rotateScriptStatistics(s.statistics, s.script!.getStatistics() ?? null);
                     s.outdatedAnalysis = false;
                     next.connectionCatalog.loadScript(s.script!, SCHEMA_SCRIPT_CATALOG_RANK);
                 }
+                // Update the script in the registry
+                state.scriptRegistry.addScript(s.script!);
             }
 
             // All other scripts are marked via `outdatedAnalysis`
@@ -215,21 +217,18 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
         case SELECT_NEXT_ENTRY:
             return {
-                ...state,
+                ...clearUserFocus(state),
                 selectedWorkbookEntry: Math.max(Math.min(state.selectedWorkbookEntry + 1, state.workbookEntries.length - 1), 0),
-                userFocus: null,
             };
         case SELECT_PREV_ENTRY:
             return {
-                ...state,
+                ...clearUserFocus(state),
                 selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0),
-                userFocus: null,
             };
         case SELECT_ENTRY:
             return {
-                ...state,
+                ...clearUserFocus(state),
                 selectedWorkbookEntry: Math.max(Math.min(action.value, state.workbookEntries.length - 1), 0),
-                userFocus: null,
             };
 
         case CATALOG_DID_UPDATE: {
@@ -256,23 +255,29 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
             // Is the script outdated?
             if (script.outdatedAnalysis) {
-                const copy = { ...script };
+                const copy: ScriptData = { ...script };
                 copy.processed.destroy(copy.processed);
+
+                // Analyze the script
                 copy.processed = analyzeScript(copy.script!);
-                copy.statistics = rotateStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
+                // Rotate the script statistics
+                copy.statistics = rotateScriptStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
                 copy.outdatedAnalysis = false;
+
+                // Update the script in the registry
+                state.scriptRegistry.addScript(copy.script!);
 
                 // Update the cursor?
                 if (copy.script && copy.cursor != null) {
-                    const ofs = copy.cursor.textOffset;
-                    const cursorBuffer = copy.script.moveCursor(ofs);
-                    copy.cursor = cursorBuffer.read().unpack();
-                    cursorBuffer.destroy();
+                    const textOffset = copy.cursor.textOffset;
+                    const scriptCursor = copy.script.moveCursor(textOffset);
+                    copy.cursor = scriptCursor.read().unpack();
+                    scriptCursor.destroy();
                 }
 
                 // Create the next script
                 const next = {
-                    ...state,
+                    ...clearUserFocus(state),
                     scripts: {
                         ...state.scripts,
                         [copy.scriptKey]: copy
@@ -281,7 +286,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
                 // Update the user focus
                 if (next.userFocus != null && copy.cursor != null) {
-                    next.userFocus = deriveFocusFromScriptCursor(scriptKey, copy, copy.cursor);
+                    next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy, copy.cursor);
                 }
                 return next;
             }
@@ -294,23 +299,22 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             const prevScript = state.scripts[scriptKey];
             const prevFocus = state.userFocus;
             if (!prevScript) {
-                return state;
+                return clearUserFocus(state);
             }
             // Store the new buffers
             prevScript.processed.destroy(prevScript.processed);
-            const next: WorkbookState = {
-                ...state,
+            let next: WorkbookState = {
+                ...clearUserFocus(state),
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: {
                         ...prevScript,
                         processed: buffers,
                         outdatedAnalysis: false,
-                        statistics: rotateStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
+                        statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
                         cursor,
                     },
                 },
-                userFocus: null,
             };
 
             let scriptData = next.scripts[scriptKey];
@@ -322,7 +326,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     next.userFocus = state.userFocus;
                 } else {
                     // Otherwise derive a new user focus
-                    next.userFocus = deriveFocusFromScriptCursor(scriptKey, scriptData, cursor);
+                    next = clearUserFocus(next);
+                    next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, scriptData, cursor);
                 }
             }
             // Is schema script?
@@ -355,14 +360,13 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 cursor,
             };
             const newState: WorkbookState = {
-                ...state,
+                ...clearUserFocus(state),
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: newScriptData,
                 },
-                userFocus: null,
             };
-            newState.userFocus = deriveFocusFromScriptCursor(scriptKey, newScriptData, cursor);
+            newState.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, newScriptData, cursor);
             return newState;
         }
 
@@ -440,8 +444,11 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 next.scripts[scriptKey] = {
                     ...prev,
                     processed: analysis,
-                    statistics: rotateStatistics(prev.statistics, script.getStatistics() ?? null),
+                    statistics: rotateScriptStatistics(prev.statistics, script.getStatistics() ?? null),
                 };
+
+                // Update the script in the registry
+                state.scriptRegistry.addScript(script);
 
                 // Did we load a schema script?
                 if (prevScript.metadata.scriptType == ScriptType.SCHEMA) {
@@ -504,7 +511,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                         completion: completion,
                         selectedCompletionCandidate: 0
                     };
-                    userFocus = deriveFocusFromCompletionCandidates(targetKey, scriptData);
+                    userFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, targetKey, scriptData);
                     scripts[data.scriptKey] = scriptData;
                 } else if (data.completion != null) {
                     scripts[data.scriptKey] = {
@@ -515,7 +522,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 }
             }
             return {
-                ...state,
+                ...clearUserFocus(state),
                 scripts: scripts,
                 userFocus
             };
@@ -528,12 +535,12 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 selectedCompletionCandidate: index
             };
             return {
-                ...state,
+                ...clearUserFocus(state),
                 scripts: {
                     ...state.scripts,
                     [key]: scriptData,
                 },
-                userFocus: deriveFocusFromCompletionCandidates(key, scriptData),
+                userFocus: deriveFocusFromCompletionCandidates(state.scriptRegistry, key, scriptData),
             };
         }
         case COMPLETION_STOPPED: {
@@ -549,10 +556,10 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     };
                 }
             }
-            const next: WorkbookState = { ...state, scripts: scripts, userFocus: null };
+            const next: WorkbookState = { ...clearUserFocus(state), scripts: scripts };
             let scriptData = next.scripts[action.value];
             if (scriptData != null && scriptData.cursor) {
-                next.userFocus = deriveFocusFromScriptCursor(action.value, scriptData, scriptData.cursor);
+                next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, action.value, scriptData, scriptData.cursor);
             }
             return next;
         }
@@ -578,10 +585,9 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             }
 
             return {
-                ...state,
+                ...clearUserFocus(state),
                 workbookEntries: newEntries,
                 selectedWorkbookEntry: newSelectedIndex,
-                userFocus: null,
             };
         }
 
@@ -602,11 +608,10 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 // We deleted one entry below the selected, decrement the selection index
                 newSelectedIndex--;
             }
-            return deleteDeadScripts({
-                ...state,
+            return destroyDeadScripts({
+                ...clearUserFocus(state),
                 workbookEntries: newEntries,
                 selectedWorkbookEntry: newSelectedIndex,
-                userFocus: null,
             });
         }
 
@@ -654,7 +659,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 title: null,
             };
             return {
-                ...state,
+                ...clearUserFocus(state),
                 nextScriptKey: state.nextScriptKey + 1,
                 scripts: {
                     ...state.scripts,
@@ -662,7 +667,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 },
                 workbookEntries: [...state.workbookEntries, entry],
                 selectedWorkbookEntry: state.workbookEntries.length,
-                userFocus: null,
             };
         }
 
@@ -682,7 +686,17 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
     }
 }
 
+export function clearUserFocus(state: WorkbookState): WorkbookState {
+    if (state.userFocus?.registryColumnInfo) {
+        state.userFocus.registryColumnInfo.destroy();
+    }
+    return { ...state, userFocus: null };
+}
+
 export function destroyState(state: WorkbookState): WorkbookState {
+    if (state.userFocus?.registryColumnInfo) {
+        state.userFocus?.registryColumnInfo.destroy();
+    }
     state.scriptRegistry.destroy();
     for (const key in state.scripts) {
         const script = state.scripts[key];
@@ -695,7 +709,7 @@ export function destroyState(state: WorkbookState): WorkbookState {
     return state;
 }
 
-function deleteScriptData(data: ScriptData) {
+function destroyScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
     data.script?.destroy();
     for (const stats of data.statistics) {
@@ -703,7 +717,7 @@ function deleteScriptData(data: ScriptData) {
     }
 }
 
-function deleteDeadScripts(state: WorkbookState): WorkbookState {
+function destroyDeadScripts(state: WorkbookState): WorkbookState {
     // Determine script liveness
     let deadScripts = new Map<number, ScriptData>();
     for (const key in state.scripts) {
@@ -724,13 +738,13 @@ function deleteDeadScripts(state: WorkbookState): WorkbookState {
         if (v.script && v.metadata.scriptType === ScriptType.SCHEMA) {
             state.connectionCatalog.dropScript(v.script);
         }
-        deleteScriptData(v);
+        destroyScriptData(v);
         delete cleanedScripts[k];
     }
     return { ...state, scripts: cleanedScripts };
 }
 
-function rotateStatistics(
+function rotateScriptStatistics(
     log: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>,
     stats: core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics> | null,
 ) {
