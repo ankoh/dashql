@@ -24,6 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
+import { parseAndAnalyzeScript } from './workbook/dashql_processor.js';
 import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
 import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 
@@ -230,6 +231,9 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 }));
             }
 
+            // Create the script registry
+            const registry = dql.createScriptRegistry();
+
             // Collect workbook scripts
             let scripts: Record<number, ScriptData> = {};
             for (const script of workbook.scripts) {
@@ -254,6 +258,12 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                         break;
                 }
 
+                // Analyze every script
+                // XXX Report progress
+                const processed = parseAndAnalyzeScript(s);
+                let statistics = Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>();
+                statistics = statistics.push(s.getStatistics());
+
                 // Allocate the script data
                 scripts[script.scriptId] = {
                     scriptKey: script.scriptId,
@@ -273,26 +283,16 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                         startedAt: null,
                         finishedAt: null,
                     },
-                    processed: {
-                        scanned: null,
-                        parsed: null,
-                        analyzed: null,
-                        destroy: () => { },
-                    },
-                    outdatedAnalysis: true,
-                    statistics: Immutable.List(),
+                    processed: processed,
+                    outdatedAnalysis: false,
+                    statistics: statistics,
                     cursor: null,
                     completion: null,
                     selectedCompletionCandidate: null,
                 };
 
-                // Is a schema script?
-                if (script.scriptType === pb.dashql.workbook.ScriptType.Schema) {
-                    // XXX
-                    // s.scan();
-                    // s.parse();
-                    // s.analyze();
-                }
+                // Add to script registry
+                registry.addScript(s);
             }
 
             // Create workbook entries
@@ -318,6 +318,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 connectorInfo: connState.connectorInfo,
                 connectionId: connState.connectionId,
                 connectionCatalog: connState.catalog,
+                scriptRegistry: registry,
                 scripts,
                 nextScriptKey: Math.max(...Object.keys(scripts).map(k => parseInt(k)), 0) + 1,
                 workbookEntries,

@@ -61,7 +61,7 @@ export const RENDERING_SETTINGS: CatalogRenderingSettings = {
     },
     details: {
         nodeWidth: 160,
-        nodeHeight: 160,
+        nodeHeight: 4 * 24,
         offsetY: 8,
     }
 };
@@ -86,8 +86,9 @@ export function CatalogViewer(props: Props) {
     const [viewModelVersion, setViewModelVersion] = React.useState<number>(0);
     React.useEffect(() => {
         const snapshot = workbook?.connectionCatalog.createSnapshot() ?? null;
-        if (snapshot) {
-            const state = new CatalogViewModel(snapshot, RENDERING_SETTINGS);
+        const registry = workbook?.scriptRegistry ?? null;
+        if (snapshot && registry) {
+            const state = new CatalogViewModel(snapshot, registry, RENDERING_SETTINGS);
             setViewModel(state);
         }
     }, [workbook?.connectionCatalog.snapshot]);

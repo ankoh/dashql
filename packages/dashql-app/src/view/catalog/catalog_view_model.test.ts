@@ -22,6 +22,7 @@ beforeAll(async () => {
 
 describe('CatalogViewModel', () => {
     it('2 tables', () => {
+        const registry = dql!.createScriptRegistry();
         const catalog = dql!.createCatalog();
         const schemaText = `
             CREATE TABLE table1 (
@@ -53,7 +54,7 @@ describe('CatalogViewModel', () => {
         expect(snapshot.catalogReader.tablesLength()).toEqual(2);
         expect(snapshot.catalogReader.columnsLength()).toEqual(12);
 
-        const catalogVM = new CatalogViewModel(snapshotPtr, RENDERING_SETTINGS);
+        const catalogVM = new CatalogViewModel(snapshotPtr, registry, RENDERING_SETTINGS);
         catalogVM.layoutEntries();
         expect(catalogVM.totalHeight).toEqual(
             // Database

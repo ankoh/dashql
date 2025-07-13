@@ -16,6 +16,7 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {
+        const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog, 1);
         const schemaScript = conn.instance.createScript(conn.catalog, 2);
 
@@ -74,6 +75,7 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,
             connectionCatalog: conn.catalog,
+            scriptRegistry: registry,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [schemaScriptData.scriptKey]: schemaScriptData,

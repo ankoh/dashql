@@ -559,6 +559,20 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         transition={DEFAULT_NODE_TRANSITION}
                     >
                         <div className={styles.node_port_details} />
+                        <div className={styles.node_details_content}>
+                            <div className={styles.node_details_section_header}>
+                                Restrictions
+                            </div>
+                            <div className={styles.node_details_section_entries}>
+                                None
+                            </div>
+                            <div className={styles.node_details_section_header}>
+                                Transforms
+                            </div>
+                            <div className={styles.node_details_section_entries}>
+                                None
+                            </div>
+                        </div>
                     </motion.div>
                 );
 
@@ -696,7 +710,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
 export function renderCatalog(state: RenderingState, viewModel: CatalogViewModel): [RenderingState, RenderingOutput] {
     const ctx: RenderingContext = {
         viewModel,
-        snapshot: viewModel.snapshot.read(),
+        snapshot: viewModel.catalogSnapshot.read(),
         renderingEpoch: viewModel.nextRenderingEpoch++,
         latestFocusEpoch: viewModel.latestFocusEpoch,
         currentWriterY: 0,

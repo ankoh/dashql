@@ -36,6 +36,8 @@ export interface WorkbookState {
     connectionId: number;
     /// The connection catalog
     connectionCatalog: core.DashQLCatalog;
+    /// The script registry
+    scriptRegistry: core.DashQLScriptRegistry;
     /// The scripts
     scripts: ScriptDataMap;
     /// The next script key
@@ -681,6 +683,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 }
 
 export function destroyState(state: WorkbookState): WorkbookState {
+    state.scriptRegistry.destroy();
     for (const key in state.scripts) {
         const script = state.scripts[key];
         script.processed.destroy(script.processed);

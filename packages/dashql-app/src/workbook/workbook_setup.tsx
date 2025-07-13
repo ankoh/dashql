@@ -13,6 +13,7 @@ export function useWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {
+        const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog, 1);
         const mainScriptData: ScriptData = {
             scriptKey: 1,
@@ -45,6 +46,7 @@ export function useWorkbookSetup(): WorkbookSetupFn {
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,
             connectionCatalog: conn.catalog,
+            scriptRegistry: registry,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
             },

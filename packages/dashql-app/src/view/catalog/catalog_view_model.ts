@@ -188,7 +188,9 @@ interface CatalogDetailsViewModel {
 export class CatalogViewModel {
     /// The snapshot.
     /// We have to recreate the state for every new snapshot.
-    snapshot: dashql.DashQLCatalogSnapshot;
+    catalogSnapshot: dashql.DashQLCatalogSnapshot;
+    /// The script registry
+    scriptRegistry: dashql.DashQLScriptRegistry;
     /// The rendering settings
     settings: CatalogRenderingSettings;
 
@@ -236,13 +238,14 @@ export class CatalogViewModel {
     /// A temporary table object
     tmpTableEntry: dashql.buffers.catalog.IndexedFlatTableEntry;
 
-    constructor(snapshot: dashql.DashQLCatalogSnapshot, settings: CatalogRenderingSettings) {
-        this.snapshot = snapshot;
+    constructor(catalog: dashql.DashQLCatalogSnapshot, registry: dashql.DashQLScriptRegistry, settings: CatalogRenderingSettings) {
+        this.catalogSnapshot = catalog;
+        this.scriptRegistry = registry;
         this.settings = settings;
         this.latestFocusEpoch = null;
         this.nextRenderingEpoch = 100;
         this.nextPinEpoch = 1;
-        const snap = snapshot.read();
+        const snap = catalog.read();
         let currentWriterX = 0;
         this.databaseEntries = {
             settings: settings.levels.databases,
@@ -449,7 +452,7 @@ export class CatalogViewModel {
         this.visibleDetails = visibleDetails;
 
         // Build the layout context
-        const snap = this.snapshot.read();
+        const snap = this.catalogSnapshot.read();
         const databaseCount = this.databaseEntries.entries.length(snap);
         const ctx: LayoutContext = {
             settings: this.settings,
@@ -579,7 +582,7 @@ export class CatalogViewModel {
 
     // Unpin old entries.
     unpin(pinFlags: number, currentEpoch: number): void {
-        const snap = this.snapshot.read();
+        const snap = this.catalogSnapshot.read();
 
         // Find databases that are no longer pinned
         for (const catalogEntryId of this.databaseEntries.pinnedEntries) {
@@ -638,7 +641,7 @@ export class CatalogViewModel {
 
     // Pin all script refs
     pinScriptRefs(script: dashql.buffers.analyzer.AnalyzedScript): void {
-        const catalog = this.snapshot.read().catalogReader;
+        const catalog = this.catalogSnapshot.read().catalogReader;
         const tmpTableRef = new dashql.buffers.analyzer.TableReference();
         const tmpResolvedTable = new dashql.buffers.analyzer.ResolvedTable();
         const tmpExpression = new dashql.buffers.algebra.Expression();
@@ -699,7 +702,7 @@ export class CatalogViewModel {
     }
 
     pinFocusedByUser(focus: UserFocus, clear: boolean = false): void {
-        const catalog = this.snapshot.read().catalogReader;
+        const catalog = this.catalogSnapshot.read().catalogReader;
         const epoch = this.nextPinEpoch++;
         this.latestFocusEpoch = epoch;
         let focusedAnything = false;
@@ -816,7 +819,7 @@ export class CatalogViewModel {
 
     /// Determine the offset of the first focused element
     getOffsetOfFirstFocused(): [number, boolean] {
-        const snap = this.snapshot.read();
+        const snap = this.catalogSnapshot.read();
         const levels = this.levels;
         let maxEpoch = 0;
         let targetEntry = null;
