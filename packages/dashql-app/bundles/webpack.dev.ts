@@ -27,17 +27,26 @@ const base = configure({
 const config: Configuration = {
     ...base,
     watchOptions: {
-        ignored: ['node_modules/**', 'build/**'],
+        ignored: ['node_modules/**', 'build/**', '**/*.wasm', '**/*.sql'],
+        aggregateTimeout: 200,
+        poll: false,
     },
     performance: {
         hints: false,
     },
-    devtool: 'source-map',
+    // Use cheap-module-source-map for good debugging with reasonable memory usage
+    devtool: 'cheap-module-source-map',
+    optimization: {
+        ...base.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+    },
     devServer: {
         historyApiFallback: true,
         compress: true,
         hot: true,
-        liveReload: true,
+        liveReload: false, // Disable liveReload when hot is enabled
         port: 9002,
         static: {
             directory: url.fileURLToPath(new URL('./build/pwa/dev/static', import.meta.url)),
@@ -46,6 +55,12 @@ const config: Configuration = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
             'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+        },
+        client: {
+            overlay: {
+                errors: true,
+                warnings: false,
+            },
         },
     },
 };

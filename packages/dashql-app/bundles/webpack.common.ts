@@ -67,6 +67,12 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                     options: {
                         ...params.tsLoaderOptions,
                         configFile: 'tsconfig.json',
+                        transpileOnly: params.mode === 'development',
+                        experimentalWatchApi: true,
+                        compilerOptions: {
+                            ...(params.tsLoaderOptions as any)?.compilerOptions,
+                            skipLibCheck: true,
+                        },
                     },
                 },
                 {
@@ -129,18 +135,28 @@ export function configure(params: ConfigParams): Partial<Configuration> {
             moduleIds: 'deterministic',
         },
         plugins: [
-            new ForkTsCheckerWebpackPlugin(),
+            new ForkTsCheckerWebpackPlugin({
+                typescript: {
+                    memoryLimit: 4096,
+                },
+            }),
             new HtmlWebpackPlugin({
                 chunks: ['app'],
                 template: './static/index.html',
                 filename: './index.html',
                 base: params.relocatable ? './' : '/',
+                templateParameters: {
+                    buildMode: params.mode,
+                },
             }),
             new HtmlWebpackPlugin({
                 chunks: ['oauth_redirect'],
                 template: './static/oauth.html',
                 filename: './oauth.html',
                 base: params.relocatable ? './' : '/',
+                templateParameters: {
+                    buildMode: params.mode,
+                },
             }),
             new webpack.DefinePlugin({
                 'process.env.DASHQL_BUILD_MODE': JSON.stringify(params.mode),
