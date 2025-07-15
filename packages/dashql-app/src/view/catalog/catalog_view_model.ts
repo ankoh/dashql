@@ -724,7 +724,24 @@ export class CatalogViewModel {
         detailsHeight += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
         detailsHeight += sectionHeaderHeight;
         detailsHeight += Math.max(columnInfo.transformTemplatesLength(), 1) * lineHeight;
-        console.log(`GOT COLUMN INFO: restrictions=${columnInfo.restrictionTemplatesLength()}, transforms=${columnInfo.transformTemplatesLength()}`);
+
+        let tmpTemplate = new dashql.buffers.snippet.ScriptTemplate();
+        let tmpSnippet = new dashql.buffers.snippet.ScriptSnippet();
+
+        for (let i = 0; i < columnInfo.restrictionTemplatesLength(); ++i) {
+            let restriction = columnInfo.restrictionTemplates(i, tmpTemplate);
+            for (let j = 0; j < (restriction?.snippetsLength() ?? 0); ++j) {
+                let snippet = restriction!.snippets(j, tmpSnippet)!;
+                console.log(`[Restriction] ${snippet.text()}`);
+            }
+        }
+        for (let i = 0; i < columnInfo.transformTemplatesLength(); ++i) {
+            let template = columnInfo.transformTemplates(i, tmpTemplate);
+            for (let j = 0; j < (template?.snippetsLength() ?? 0); ++j) {
+                let snippet = template!.snippets(j, tmpSnippet)!;
+                console.log(`[Transform] ${snippet.text()}`);
+            }
+        }
         return {
             height: detailsHeight
         };

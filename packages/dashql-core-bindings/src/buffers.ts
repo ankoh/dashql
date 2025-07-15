@@ -6,5 +6,6 @@ export * as cursor from '../gen/dashql/buffers/cursor.js';
 export * as parser from '../gen/dashql/buffers/parser.js';
 export * as plan from '../gen/dashql/buffers/plan.js';
 export * as registry from '../gen/dashql/buffers/registry.js';
+export * as snippet from '../gen/dashql/buffers/snippet.js';
 export * as statistics from '../gen/dashql/buffers/statistics.js';
 export * as status from '../gen/dashql/buffers/status.js';
