@@ -190,7 +190,7 @@ export function deriveFocusFromScriptCursor(
                         focus.registryColumnInfo = scriptRegistry.findColumnInfo(
                             resolvedColumn.catalogTableId(),
                             resolvedColumn.columnId(),
-                            resolvedColumn.referencedCatalogVersion()
+                            resolvedColumn.referencedCatalogVersion(),
                         );
 
                         // Read the analyzed script

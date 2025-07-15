@@ -60,5 +60,6 @@ TEST_P(RegistrySnapshotTestSuite, Test) {
 
 INSTANTIATE_TEST_SUITE_P(Basic, RegistrySnapshotTestSuite, ::testing::ValuesIn(RegistrySnapshotTest::GetTests("basic.xml")), RegistrySnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Trino, RegistrySnapshotTestSuite, ::testing::ValuesIn(RegistrySnapshotTest::GetTests("trino.xml")), RegistrySnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(TPCH, RegistrySnapshotTestSuite, ::testing::ValuesIn(RegistrySnapshotTest::GetTests("tpch.xml")), RegistrySnapshotTest::TestPrinter());
 
 } // namespace

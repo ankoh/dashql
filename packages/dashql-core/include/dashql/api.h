@@ -114,4 +114,4 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 /// Lookup column info
 extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
                                                          size_t table_object_id, size_t column_id,
-                                                         size_t target_catalog_version);
+                                                         ssize_t target_catalog_version);

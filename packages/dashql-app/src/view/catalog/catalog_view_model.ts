@@ -712,7 +712,6 @@ export class CatalogViewModel {
 
     static deriveDetailsFromUserFocus(focus: UserFocus): CatalogDetailsViewModel {
         if (focus.registryColumnInfo == null) {
-            console.log("NO COLUMN INFO");
             return {
                 height: DEFAULT_DETAILS_HEIGHT,
             };

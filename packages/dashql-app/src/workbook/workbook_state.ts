@@ -329,6 +329,11 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     next = clearUserFocus(next);
                     next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, scriptData, cursor);
                 }
+
+                // Update the script in the registry
+                if (scriptData.script) {
+                    state.scriptRegistry.addScript(scriptData.script);
+                }
             }
             // Is schema script?
             if (scriptData.metadata.scriptType == ScriptType.SCHEMA) {

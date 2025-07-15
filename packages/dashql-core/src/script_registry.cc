@@ -15,8 +15,8 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
         return buffers::status::StatusCode::SCRIPT_NOT_ANALYZED;
     }
     auto& analyzed = *script.analyzed_script;
-    ScriptEntry entry{.script = script, .analyzed = script.analyzed_script};
-    script_entries.insert({&script, entry});
+    script_entries.erase(&script);
+    script_entries.emplace(&script, ScriptEntry{.script = script, .analyzed = script.analyzed_script});
 
     analyzed.column_restrictions.ForEach([&](size_t i, AnalyzedScript::ColumnRestriction& restriction) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(restriction.column_ref.get().inner);
@@ -96,6 +96,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
     for (auto& key : outdated) {
         column_restrictions.erase(key);
     }
+
     return lookup;
 }
 

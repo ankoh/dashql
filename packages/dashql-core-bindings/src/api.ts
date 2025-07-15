@@ -838,16 +838,17 @@ export class DashQLScriptRegistry {
         this.ptr.api.instanceExports.dashql_script_registry_drop_script(registryPtr, scriptPtr);
     }
     /// Find information about a column
-    public findColumnInfo(table_id: bigint, table_column_id: number, referenced_catalog_version: number): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
+    public findColumnInfo(table_id: bigint, table_column_id: number, referenced_catalog_version: number | null = null): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
         const registryPtr = this.ptr.assertNotNull();
 
         // Lookup a column in the script registry
+        const catalogVersion = referenced_catalog_version == null ? -1 : referenced_catalog_version;
         const result = this.ptr.api.instanceExports.dashql_script_registry_find_column(
             registryPtr,
             ContextObjectID.getContext(table_id),
             ContextObjectID.getObject(table_id),
             table_column_id,
-            referenced_catalog_version
+            catalogVersion
         );
         // Unpack the result
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(result, () => new buffers.registry.ScriptRegistryColumnInfo());
