@@ -104,11 +104,23 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                     },
                 },
                 {
-                    test: /\.(png|jpe?g|gif|svg|ico)$/i,
+                    test: /\.(png|jpe?g|gif|ico)$/i,
                     type: 'asset/resource',
                     generator: {
                         filename: 'static/img/[name].[contenthash][ext]',
                     },
+                },
+                {
+                    test: /\.svg$/i,
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: 'static/img/[name].[contenthash].[ext]',
+                                esModule: false, // This makes it export directly instead of as { default: ... }
+                            },
+                        },
+                    ],
                 },
                 {
                     test: /\.(ttf)$/i,
@@ -176,3 +188,4 @@ export function configure(params: ConfigParams): Partial<Configuration> {
         },
     };
 }
+
