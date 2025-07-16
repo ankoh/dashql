@@ -5,6 +5,7 @@ import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
 import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
+import { showCompletionHint, clearCompletionHintInView } from './dashql_completion_hint.js';
 
 const COMPLETION_LIMIT = 32;
 
@@ -16,6 +17,8 @@ interface DashQLCompletion extends Completion {
     coreCompletion: dashql.buffers.completion.CompletionT;
     /// The candidate id
     candidateId: number;
+    /// The editor view for showing hints
+    view?: EditorView;
 }
 
 /// Update the completions
@@ -28,10 +31,36 @@ function updateCompletions(
     return null;
 }
 
-/// Preview a completion candidate
+/// Preview a completion candidate and show inline hint
 const previewCompletion = (completion: Completion) => {
     const candidate = completion as DashQLCompletion;
+
+    // Call the existing preview function.
+    // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
     candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.coreCompletion, candidate.candidateId);
+
+    // Show inline completion hint.
+    const candidateData = candidate.coreCompletion.candidates[candidate.candidateId];
+    if (candidateData.completionText && candidateData.replaceTextAt && candidate.view) {
+        const currentPos = candidate.view.state.selection.main.head;
+        const replaceFrom = candidateData.replaceTextAt.offset;
+        const replaceTo = replaceFrom + candidateData.replaceTextAt.length;
+
+        // Only show hint if cursor is at the replacement position
+        if (currentPos >= replaceFrom && currentPos <= replaceTo) {
+            // Calculate the hint text (part that would be inserted after current cursor)
+            const currentText = candidate.view.state.doc.sliceString(replaceFrom, currentPos);
+            const fullText = candidateData.completionText as string;
+
+            if (fullText.startsWith(currentText)) {
+                const hintText = fullText.slice(currentText.length);
+                if (hintText.length > 0) {
+                    showCompletionHint(candidate.view, currentPos, hintText, candidateData);
+                }
+            }
+        }
+    }
+
     return null;
 };
 
@@ -42,6 +71,10 @@ const applyCompletion = (view: EditorView, completion: Completion, _from: number
         console.warn("candidate replaceTextAt is null");
         return;
     }
+
+    // Clear any existing completion hint
+    clearCompletionHintInView(view);
+
     const changes: ChangeSpec[] = [];
     // XXX The location of the trailing to might include eof?
     //     We shouldn't need to clamp here but should rather fix it on the wasm side
@@ -88,6 +121,7 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
                     state: processor,
                     coreCompletion: completion,
                     candidateId: i,
+                    view: context.view,
                     label: candidate.completionText as string,
                     detail: candidateDetail,
                     info: previewCompletion,
