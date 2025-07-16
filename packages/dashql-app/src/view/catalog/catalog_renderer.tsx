@@ -9,6 +9,7 @@ import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
 import { buildEdgePathBetweenRectangles } from './graph_edges.js';
 import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_COMPLETION, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
+import { ColumnIdentifierTemplateSpan } from '../../view/snippet/script_template.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -564,13 +565,21 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 Restrictions
                             </div>
                             <div className={styles.node_details_section_entries}>
-                                None
+                                {ctx.viewModel.details.columnRestrictions.filter((t, i) => (t.snippets.length > 0)).map(r => (
+                                    <div key={i} className={styles.node_details_section_entry}>
+                                        <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                                    </div>
+                                ))}
                             </div>
                             <div className={styles.node_details_section_header}>
                                 Transforms
                             </div>
                             <div className={styles.node_details_section_entries}>
-                                None
+                                {ctx.viewModel.details.columnTransforms.filter((t, i) => (t.snippets.length > 0)).map(r => (
+                                    <div key={i} className={styles.node_details_section_entry}>
+                                        <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </motion.div>

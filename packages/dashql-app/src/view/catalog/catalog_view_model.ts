@@ -147,7 +147,7 @@ interface SearchContext {
     entryPath: number[];
 };
 
-interface CatalogLevelViewModel {
+export interface CatalogLevelViewModel {
     /// The rendering settings
     settings: CatalogLevelRenderingSettings;
     /// The buffers
@@ -173,19 +173,20 @@ interface CatalogLevelViewModel {
     firstFocusedEntry: { epoch: number, entryId: number } | null;
 }
 
-interface TemplateViewModel {
+export interface TemplateViewModel {
     /// The snippets
-    snippets: SnippetViewModel[];
+    snippets: ColumnIdentifierTemplateSnippet[];
 }
 
-interface SnippetViewModel {
+/// A template snippet for a single column identifer
+export interface ColumnIdentifierTemplateSnippet {
     /// The text before the placeholder
     textBefore: string;
     /// The text after the placeholder
     textAfter: string;
 }
 
-interface CatalogDetailsViewModel {
+export interface CatalogDetailsViewModel {
     /// The rendered details height
     height: number;
     /// The column restrictions
@@ -195,7 +196,7 @@ interface CatalogDetailsViewModel {
 };
 
 export const DETAILS_EMPTY_HEIGHT = 64;
-export const DETAILS_LINE_HEIGHT = 32;
+export const DETAILS_LINE_HEIGHT = 24;
 export const DETAILS_SECTION_HEADER_HEIGHT = 24;
 
 /// A catalog rendering state
@@ -770,7 +771,7 @@ export class CatalogViewModel {
                 let textAfter = "";
 
                 // Find the column reference.
-                // XXX We could be fater here when remembering the column ref node?
+                // XXX We could be faster here when remembering the column ref node?
                 const markers = snippet.nodeMarkersArray()!;
                 for (let mi = 0; mi < markers.length; ++mi) {
                     if (markers[mi] == dashql.buffers.analyzer.SemanticNodeMarkerType.COLUMN_REFERENCE) {

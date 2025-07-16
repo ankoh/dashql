@@ -314,12 +314,25 @@
     position: absolute;
     width: 100%;
     height: 100%;
+
+    overflow: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
 }
+.node_details_content::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
 .node_details_section_header {
-    border-top: 1px solid var(--border_color_primary);
     padding: 0 6px;
+}
+.node_details_section_header:not(:first-child) {
+    border-top: 1px solid var(--border_color_primary);
 }
 .node_details_section_entries {
     border-top: 1px solid var(--border_color_primary);
-    height: 48px
+}
+.node_details_section_entry {
+    white-space: nowrap;
+    padding: 0px 4px 0px 0px;
 }
