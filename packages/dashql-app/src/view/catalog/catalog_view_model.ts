@@ -173,12 +173,30 @@ interface CatalogLevelViewModel {
     firstFocusedEntry: { epoch: number, entryId: number } | null;
 }
 
+interface TemplateViewModel {
+    /// The snippets
+    snippets: SnippetViewModel[];
+}
+
+interface SnippetViewModel {
+    /// The text before the placeholder
+    textBefore: string;
+    /// The text after the placeholder
+    textAfter: string;
+}
+
 interface CatalogDetailsViewModel {
     /// The rendered details height
     height: number;
+    /// The column restrictions
+    columnRestrictions: TemplateViewModel[];
+    /// The column transforms
+    columnTransforms: TemplateViewModel[];
 };
 
-export const DEFAULT_DETAILS_HEIGHT = 64;
+export const DETAILS_EMPTY_HEIGHT = 64;
+export const DETAILS_LINE_HEIGHT = 32;
+export const DETAILS_SECTION_HEADER_HEIGHT = 24;
 
 /// A catalog rendering state
 export class CatalogViewModel {
@@ -249,7 +267,9 @@ export class CatalogViewModel {
         const snap = catalog.read();
 
         this.details = {
-            height: DEFAULT_DETAILS_HEIGHT
+            height: DETAILS_EMPTY_HEIGHT,
+            columnTransforms: [],
+            columnRestrictions: [],
         };
 
         let currentWriterX = 0;
@@ -713,38 +733,84 @@ export class CatalogViewModel {
     static deriveDetailsFromUserFocus(focus: UserFocus): CatalogDetailsViewModel {
         if (focus.registryColumnInfo == null) {
             return {
-                height: DEFAULT_DETAILS_HEIGHT,
+                height: DETAILS_EMPTY_HEIGHT,
+                columnRestrictions: [],
+                columnTransforms: [],
             };
         }
         const columnInfo = focus.registryColumnInfo.read();
-        let detailsHeight = 0;
-        const sectionHeaderHeight = 24;
-        const lineHeight = 32;
-        detailsHeight += sectionHeaderHeight;
-        detailsHeight += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
-        detailsHeight += sectionHeaderHeight;
-        detailsHeight += Math.max(columnInfo.transformTemplatesLength(), 1) * lineHeight;
+
+        // Compute the height of the details node
+        let height = 0;
+        const sectionHeaderHeight = DETAILS_SECTION_HEADER_HEIGHT;
+        const lineHeight = DETAILS_LINE_HEIGHT;
+        height += sectionHeaderHeight;
+        height += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
+        height += sectionHeaderHeight;
+        height += Math.max(columnInfo.transformTemplatesLength(), 1) * lineHeight;
 
         let tmpTemplate = new dashql.buffers.snippet.ScriptTemplate();
         let tmpSnippet = new dashql.buffers.snippet.ScriptSnippet();
+        let tmpNode = new dashql.buffers.parser.Node();
 
-        for (let i = 0; i < columnInfo.restrictionTemplatesLength(); ++i) {
-            let restriction = columnInfo.restrictionTemplates(i, tmpTemplate);
-            for (let j = 0; j < (restriction?.snippetsLength() ?? 0); ++j) {
-                let snippet = restriction!.snippets(j, tmpSnippet)!;
-                console.log(`[Restriction] ${snippet.text()}`);
+        // Helper to unpack a template
+        let unpackColumnRefTemplate = (template: dashql.buffers.snippet.ScriptTemplate): TemplateViewModel => {
+            if (template.snippetsLength() == 0) {
+                return {
+                    snippets: []
+                };
             }
-        }
-        for (let i = 0; i < columnInfo.transformTemplatesLength(); ++i) {
-            let template = columnInfo.transformTemplates(i, tmpTemplate);
-            for (let j = 0; j < (template?.snippetsLength() ?? 0); ++j) {
-                let snippet = template!.snippets(j, tmpSnippet)!;
-                console.log(`[Transform] ${snippet.text()}`);
+            const out: TemplateViewModel = {
+                snippets: []
+            };
+            for (let j = 0; j < (template.snippetsLength() ?? 0); ++j) {
+                let snippet = template.snippets(j, tmpSnippet)!;
+                const text = snippet.text()!;
+                let textBefore = text;
+                let textAfter = "";
+
+                // Find the column reference.
+                // XXX We could be fater here when remembering the column ref node?
+                const markers = snippet.nodeMarkersArray()!;
+                for (let mi = 0; mi < markers.length; ++mi) {
+                    if (markers[mi] == dashql.buffers.analyzer.SemanticNodeMarkerType.COLUMN_REFERENCE) {
+                        const node = snippet.nodes(mi, tmpNode)!;
+                        const nodeLoc = node.location()!;
+                        textBefore = text.substring(0, nodeLoc.offset());
+                        textAfter = text.substring(nodeLoc.offset() + nodeLoc.length());
+                    }
+                }
+
+                out.snippets.push({
+                    textBefore,
+                    textAfter
+                });
             }
-        }
-        return {
-            height: detailsHeight
+            return out;
         };
+
+        // Unpack column restrictions
+        let columnRestrictions: TemplateViewModel[] = [];
+        for (let i = 0; i < columnInfo.restrictionTemplatesLength(); ++i) {
+            let tmpl = columnInfo.restrictionTemplates(i, tmpTemplate)!;
+            const unpacked = unpackColumnRefTemplate(tmpl);
+            columnRestrictions.push(unpacked);
+        }
+
+        // Unpack column transforms
+        let columnTransforms: TemplateViewModel[] = [];
+        for (let i = 0; i < columnInfo.transformTemplatesLength(); ++i) {
+            let tmpl = columnInfo.transformTemplates(i, tmpTemplate)!;
+            const unpacked = unpackColumnRefTemplate(tmpl);
+            columnTransforms.push(unpacked);
+        }
+        const out: CatalogDetailsViewModel = {
+            height,
+            columnRestrictions,
+            columnTransforms
+        };
+        console.log(out);
+        return out;
     }
 
     pinFocusedByUser(focus: UserFocus): void {
