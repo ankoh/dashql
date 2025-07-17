@@ -569,20 +569,21 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 }
             </div>
             <div className={styles.body_action_sidebar}>
-                <ActionList.List aria-label="Actions">
-                    <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
-                    <ConnectionCommandList
-                        conn={conn ?? null}
-                        workbook={workbook}
-                    />
-                    <ActionList.GroupHeading>Workbook</ActionList.GroupHeading>
-                    <WorkbookCommandList
-                        conn={conn ?? null}
-                        workbook={workbook}
-                        modifyWorkbook={modifyWorkbook}
-                    />
-                    <ActionList.Divider />
-                </ActionList.List>
+                <div className={styles.body_action_sidebar_card}>
+                    <ActionList.List aria-label="Actions">
+                        <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
+                        <ConnectionCommandList
+                            conn={conn ?? null}
+                            workbook={workbook}
+                        />
+                        <ActionList.GroupHeading>Workbook</ActionList.GroupHeading>
+                        <WorkbookCommandList
+                            conn={conn ?? null}
+                            workbook={workbook}
+                            modifyWorkbook={modifyWorkbook}
+                        />
+                    </ActionList.List>
+                </div>
             </div>
         </div>
     );

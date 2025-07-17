@@ -103,9 +103,16 @@
         grid-column: 2;
     }
     .body_action_sidebar {
-        border-left: 1px solid var(--border_color_primary);
         grid-row: 2;
         grid-column: 3;
+        padding: 8px;
+        background-color: var(--workbook_body_background_color);
+        padding: 16px 16px 0px 16px;
+    }
+    .body_action_sidebar_card {
+        border: 1px solid var(--border_color_primary);
+        border-radius: var(--border_radius);
+        background-color: white;
     }
     .action_list {
         display: grid;
