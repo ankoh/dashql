@@ -10,7 +10,7 @@
     "devDependencies": {
         "@types/jest": "^30.0.0",
         "cross-env": "^7.0.3",
-        "esbuild": "^0.25.7",
+        "esbuild": "^0.25.8",
         "jest": "^30.0.4",
         "ts-jest": "^29.4.0",
         "typescript": "^5.8.3"
