@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { StateField, StateEffect } from '@codemirror/state';
-import { EditorView, Decoration, DecorationSet, WidgetType, ViewUpdate, ViewPlugin } from '@codemirror/view';
+import { StateField, StateEffect, Transaction } from '@codemirror/state';
+import { EditorView, Decoration, DecorationSet, WidgetType, keymap } from '@codemirror/view';
 
 // A completion hint that is shown inline
 interface InlineCompletionHint {
@@ -9,10 +9,11 @@ interface InlineCompletionHint {
     text: string;
     candidate: dashql.buffers.completion.CompletionCandidateT;
 };
-/// State effect to set the completion hint
-export const setCompletionHint = StateEffect.define<InlineCompletionHint | null>();
-/// State effect to clear the completion hint
-export const clearCompletionHint = StateEffect.define<null>();
+
+// Effect to set a completion hint
+export const SET_COMPLETION_HINT = StateEffect.define<InlineCompletionHint | null>();
+// Effect to clear a completion hint
+export const CLEAR_COMPLETION_HINT = StateEffect.define<null>();
 
 /// Widget that renders the completion hint text
 class CompletionHintWidget extends WidgetType {
@@ -33,20 +34,24 @@ class CompletionHintWidget extends WidgetType {
     }
 }
 
-// State field to manage completion hints
-const completionHintState = StateField.define<{
-    decorations: DecorationSet;
+interface CompletionHintState {
     hint: InlineCompletionHint | null;
-}>({
+    decorations: DecorationSet;
+}
+
+// State field to manage completion hints
+const COMPLETION_HINT_STATE = StateField.define<CompletionHintState>({
     create() {
         return { decorations: Decoration.none, hint: null };
     },
-    update(value, tr) {
-        let decorations = value.decorations.map(tr.changes);
-        let hint = value.hint;
+    update(value: CompletionHintState, tr: Transaction) {
+        let hint: InlineCompletionHint | null = null;
+        let decorations: DecorationSet = Decoration.none;
+        let cleared = false;
 
+        // Check if there are completion hint updates
         for (const effect of tr.effects) {
-            if (effect.is(setCompletionHint)) {
+            if (effect.is(SET_COMPLETION_HINT)) {
                 hint = effect.value;
                 if (hint) {
                     const widget = new CompletionHintWidget(hint.text);
@@ -59,61 +64,38 @@ const completionHintState = StateField.define<{
                 } else {
                     decorations = Decoration.none;
                 }
-            } else if (effect.is(clearCompletionHint)) {
-                hint = null;
-                decorations = Decoration.none;
+            } else if (effect.is(CLEAR_COMPLETION_HINT)) {
+                cleared = true;
             }
         }
+        // Hint changed?
+        if (hint != null || cleared) {
+            return { hint, decorations };
+        }
 
-        return { decorations, hint };
+        // Did the do change??
+        if (tr.docChanged || tr.newSelection.main.head !== value.hint?.from) {
+            return { hint: null, decorations: Decoration.none };
+        }
+        return {
+            decorations: value.decorations?.map(tr.changes) ?? null,
+            hint: value.hint,
+        };
     },
-    provide: f => EditorView.decorations.from(f, s => s.decorations)
+    provide: f => EditorView.decorations.from(f, s => s.decorations ?? Decoration.none)
 });
 
-// View plugin to handle completion hint updates
-const completionHintPlugin = ViewPlugin.fromClass(
-    class {
-        constructor(public view: EditorView) { }
-
-        update(update: ViewUpdate) {
-            // Clear hints on selection changes or document changes that affect the hint position
-            const state = update.state.field(completionHintState);
-            if (state.hint) {
-                const pos = update.state.selection.main.head;
-                const hintStart = state.hint.from;
-                const hintEnd = state.hint.from;
-
-                // Clear hint if cursor moved away from hint position or document changed
-                if (pos !== hintEnd || update.docChanged) {
-                    // Schedule the clear operation to avoid update conflicts
-                    setTimeout(() => {
-                        if (this.view.state.field(completionHintState).hint) {
-                            this.view.dispatch({
-                                effects: clearCompletionHint.of(null)
-                            });
-                        }
-                    }, 0);
-                    // XXX This plugin should rather react to processor updates
-                }
-            }
-        }
-    }
-);
-
-export const DashQLCompletionHint = [completionHintState, completionHintPlugin];
-
-// Temporary keymap for completion hints.
-// XXX
-export const completionHintKeymap = [
+// Keymap for completion hints
+export const COMPLETION_HINT_KEYMAP = [
     {
         key: 'Tab',
         run: (view: EditorView): boolean => {
-            const state = view.state.field(completionHintState);
+            const state = view.state.field(COMPLETION_HINT_STATE);
             if (state.hint) {
                 const { from, text } = state.hint;
                 view.dispatch({
                     changes: { from, insert: text },
-                    effects: clearCompletionHint.of(null),
+                    effects: CLEAR_COMPLETION_HINT.of(null),
                     selection: { anchor: from + text.length }
                 });
                 return true;
@@ -124,10 +106,10 @@ export const completionHintKeymap = [
     {
         key: 'Escape',
         run: (view: EditorView): boolean => {
-            const state = view.state.field(completionHintState);
+            const state = view.state.field(COMPLETION_HINT_STATE);
             if (state.hint) {
                 view.dispatch({
-                    effects: clearCompletionHint.of(null)
+                    effects: CLEAR_COMPLETION_HINT.of(null)
                 });
                 return true;
             }
@@ -148,7 +130,7 @@ export function showCompletionHint(
         // Check if the view is still valid and the position is still appropriate
         if (view.state.selection.main.head === from) {
             view.dispatch({
-                effects: setCompletionHint.of({ from, text, candidate })
+                effects: SET_COMPLETION_HINT.of({ from, text, candidate })
             });
         }
     }, 0);
@@ -158,10 +140,15 @@ export function showCompletionHint(
 export function clearCompletionHintInView(view: EditorView): void {
     // Schedule the clear operation to avoid update conflicts
     setTimeout(() => {
-        if (view.state.field(completionHintState).hint) {
+        if (view.state.field(COMPLETION_HINT_STATE).hint) {
             view.dispatch({
-                effects: clearCompletionHint.of(null)
+                effects: CLEAR_COMPLETION_HINT.of(null)
             });
         }
     }, 0);
 }
+
+export const DashQLCompletionHint = [
+    COMPLETION_HINT_STATE,
+    keymap.of(COMPLETION_HINT_KEYMAP)
+];

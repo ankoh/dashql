@@ -1,5 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 
+import { autocompletion } from '@codemirror/autocomplete';
 import { EditorView } from '@codemirror/view';
 import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
@@ -142,3 +143,10 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
         update: updateCompletions,
     };
 }
+
+
+export const DashQLCompletion = [
+    autocompletion({
+        override: [completeDashQL],
+    }),
+];
