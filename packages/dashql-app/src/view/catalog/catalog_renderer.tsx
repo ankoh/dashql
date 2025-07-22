@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
-import { motion } from 'framer-motion';
+import { motion, Easing } from 'framer-motion';
 
 import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
@@ -239,11 +239,11 @@ const LEVEL_NAMES = [
 
 const DEFAULT_NODE_INITIAL_X_OFFSET = 0;
 const DEFAULT_NODE_INITIAL_SCALE = 1.0;
-const DEFAULT_NODE_TRANSITION = {
+const DEFAULT_NODE_TRANSITION: { duration: number, ease: Easing } = {
     duration: 0.2,
     ease: "easeInOut"
 };
-const DEFAULT_EDGE_TRANSITION = {
+const DEFAULT_EDGE_TRANSITION: { duration: number, ease: Easing } = {
     duration: 0.1,
     ease: "easeInOut"
 };
