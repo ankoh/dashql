@@ -24,11 +24,11 @@ __metadata:
     "@ankoh/dashql-protobuf": "link:../dashql-protobuf"
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
     "@bufbuild/protobuf": "npm:^2.6.1"
-    "@codemirror/autocomplete": "npm:^6.18.1"
-    "@codemirror/commands": "npm:^6.6.2"
-    "@codemirror/language": "npm:^6.10.3"
-    "@codemirror/state": "npm:^6.4.1"
-    "@codemirror/view": "npm:^6.34.1"
+    "@codemirror/autocomplete": "npm:^6.18.6"
+    "@codemirror/commands": "npm:^6.8.1"
+    "@codemirror/language": "npm:^6.11.2"
+    "@codemirror/state": "npm:^6.5.2"
+    "@codemirror/view": "npm:^6.38.1"
     "@connectrpc/connect": "npm:^2.0.2"
     "@connectrpc/connect-web": "npm:^2.0.2"
     "@dnd-kit/core": "npm:^6.3.1"
@@ -658,36 +658,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/autocomplete@npm:^6.18.1":
-  version: 6.18.1
-  resolution: "@codemirror/autocomplete@npm:6.18.1"
+"@codemirror/autocomplete@npm:^6.18.6":
+  version: 6.18.6
+  resolution: "@codemirror/autocomplete@npm:6.18.6"
   dependencies:
     "@codemirror/language": "npm:^6.0.0"
     "@codemirror/state": "npm:^6.0.0"
     "@codemirror/view": "npm:^6.17.0"
     "@lezer/common": "npm:^1.0.0"
-  peerDependencies:
-    "@codemirror/language": ^6.0.0
-    "@codemirror/state": ^6.0.0
-    "@codemirror/view": ^6.0.0
-    "@lezer/common": ^1.0.0
-  checksum: 10c0/30bf98685feccef3e643472c88ff67f53c31bdaf15e904a5207d499e08229fe170cf4f8322192ba622ec8ffbf7f5003e865a77798819f6530c5b7a4abafdc879
+  checksum: 10c0/65069493978b2af7c600af5020a8873270a8bc9a6820da192bf28b03535f1a0127aa5767eb30d9bfa5d36c61186ee2766925625e8a6c731194e7def0d882fb84
   languageName: node
   linkType: hard
 
-"@codemirror/commands@npm:^6.6.2":
-  version: 6.6.2
-  resolution: "@codemirror/commands@npm:6.6.2"
+"@codemirror/commands@npm:^6.8.1":
+  version: 6.8.1
+  resolution: "@codemirror/commands@npm:6.8.1"
   dependencies:
     "@codemirror/language": "npm:^6.0.0"
     "@codemirror/state": "npm:^6.4.0"
     "@codemirror/view": "npm:^6.27.0"
     "@lezer/common": "npm:^1.1.0"
-  checksum: 10c0/e2e5e40c9776087bba3d951b8f20077a5382e80e178c069253e786f297af8ab136a18d57964364d2d3c362900e3a1e6a0ab5dfff50f0791fc59bd93ad530eb9d
+  checksum: 10c0/da61311f4c39036f93fbe518c673f2464902cf1b64b071319b14b7d690315b72828de4bc12f28be78eeac6e8b8bd8800d4e7921dc37977f78baac4dd49c5b4bf
   languageName: node
   linkType: hard
 
-"@codemirror/language@npm:^6.0.0, @codemirror/language@npm:^6.10.3":
+"@codemirror/language@npm:^6.0.0":
   version: 6.10.3
   resolution: "@codemirror/language@npm:6.10.3"
   dependencies:
@@ -701,14 +696,37 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/state@npm:^6.0.0, @codemirror/state@npm:^6.4.0, @codemirror/state@npm:^6.4.1":
+"@codemirror/language@npm:^6.11.2":
+  version: 6.11.2
+  resolution: "@codemirror/language@npm:6.11.2"
+  dependencies:
+    "@codemirror/state": "npm:^6.0.0"
+    "@codemirror/view": "npm:^6.23.0"
+    "@lezer/common": "npm:^1.1.0"
+    "@lezer/highlight": "npm:^1.0.0"
+    "@lezer/lr": "npm:^1.0.0"
+    style-mod: "npm:^4.0.0"
+  checksum: 10c0/ed03a8d452a92a01be1b5dd3c65199d0c4559e004a4d2399c16cac3226c879fbe4ea46e6884b442a8033392ea78b658da2c3926b827598a1e5de8f62b5991251
+  languageName: node
+  linkType: hard
+
+"@codemirror/state@npm:^6.0.0, @codemirror/state@npm:^6.4.0":
   version: 6.4.1
   resolution: "@codemirror/state@npm:6.4.1"
   checksum: 10c0/cdab74d0ca4e262531a257ac419c9c44124f3ace8b0ca1262598a9218fbb6fd8f0afeb4b5ed2f64552a9573a0fc5d55481d4b9b05e9505ef729f9bd0f9469423
   languageName: node
   linkType: hard
 
-"@codemirror/view@npm:^6.0.0, @codemirror/view@npm:^6.17.0, @codemirror/view@npm:^6.23.0, @codemirror/view@npm:^6.27.0, @codemirror/view@npm:^6.34.1":
+"@codemirror/state@npm:^6.5.0, @codemirror/state@npm:^6.5.2":
+  version: 6.5.2
+  resolution: "@codemirror/state@npm:6.5.2"
+  dependencies:
+    "@marijn/find-cluster-break": "npm:^1.0.0"
+  checksum: 10c0/1ef773394e32c077a8cfc1ec6d881aefb1918876f82161748e505c38d143aa1c6893c314cfec91097d28f704ec07b2a6c6b75abd435086208974256dee997282
+  languageName: node
+  linkType: hard
+
+"@codemirror/view@npm:^6.0.0, @codemirror/view@npm:^6.17.0, @codemirror/view@npm:^6.23.0, @codemirror/view@npm:^6.27.0":
   version: 6.34.1
   resolution: "@codemirror/view@npm:6.34.1"
   dependencies:
@@ -716,6 +734,18 @@ __metadata:
     style-mod: "npm:^4.1.0"
     w3c-keyname: "npm:^2.2.4"
   checksum: 10c0/cbb562ee7d6a443214e7f7c9822e207b506ef41ce31f331374aa9065931da8b40d6284081e21076579c2e6ea7c2d7b4e7ddf4b12058a667841428d29c5ae9a3e
+  languageName: node
+  linkType: hard
+
+"@codemirror/view@npm:^6.38.1":
+  version: 6.38.1
+  resolution: "@codemirror/view@npm:6.38.1"
+  dependencies:
+    "@codemirror/state": "npm:^6.5.0"
+    crelt: "npm:^1.0.6"
+    style-mod: "npm:^4.1.0"
+    w3c-keyname: "npm:^2.2.4"
+  checksum: 10c0/dfb4253275b62c95f2fd0410bd09de102122c56137bdf3c3b03fd3fc894a194d474449191d7a435a459c222b1afcef9fba6c6f38594424e3fce875872139f96d
   languageName: node
   linkType: hard
 
@@ -1643,6 +1673,13 @@ __metadata:
   version: 1.2.1
   resolution: "@lit-labs/ssr-dom-shim@npm:1.2.1"
   checksum: 10c0/75cecf2cc4c1a089c6984d9f45b8264e3b4947b4ebed96aef7eb201bd6b3f26caeaafedf457884ac38d4f2d99cddaf94a4b2414c02c61fbf1f64c0a0dade11f4
+  languageName: node
+  linkType: hard
+
+"@marijn/find-cluster-break@npm:^1.0.0":
+  version: 1.0.2
+  resolution: "@marijn/find-cluster-break@npm:1.0.2"
+  checksum: 10c0/1a17a60b16083cc5f7ce89d7b7d8aa87ce4099723e3e9e34e229ef2cd8a980e69d481ca8ee90ffedfec5119af1aed581642fb60ed0365e7e90634c81ea6b630f
   languageName: node
   linkType: hard
 
@@ -4982,6 +5019,13 @@ __metadata:
   version: 1.1.1
   resolution: "create-require@npm:1.1.1"
   checksum: 10c0/157cbc59b2430ae9a90034a5f3a1b398b6738bf510f713edc4d4e45e169bc514d3d99dd34d8d01ca7ae7830b5b8b537e46ae8f3c8f932371b0875c0151d7ec91
+  languageName: node
+  linkType: hard
+
+"crelt@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "crelt@npm:1.0.6"
+  checksum: 10c0/e0fb76dff50c5eb47f2ea9b786c17f9425c66276025adee80876bdbf4a84ab72e899e56d3928431ab0cb057a105ef704df80fe5726ef0f7b1658f815521bdf09
   languageName: node
   linkType: hard
 
