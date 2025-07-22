@@ -15,7 +15,7 @@ export enum AnchorSide {
 
     InsideCenter = 4 << 1,
 
-    OutsideTop =  (5 << 1) | 0b1,
+    OutsideTop = (5 << 1) | 0b1,
     OutsideBottom = (6 << 1) | 0b1,
     OutsideLeft = (7 << 1) | 0b1,
     OutsideRight = (8 << 1) | 0b1,
@@ -117,7 +117,7 @@ export interface AnchorPosition {
     anchorAlign: AnchorAlignment
 }
 
-interface BoxPosition extends Size, Position {}
+interface BoxPosition extends Size, Position { }
 
 /// Given a floating element and an anchor element, return coordinates for the top-left
 /// of the floating element in order to absolutely position it such that it appears
@@ -245,7 +245,7 @@ function getDefaultSettings(settings: Partial<PositionSettings> = {}): PositionS
         anchorOffset: settings.anchorOffset ?? (side === AnchorSide.InsideCenter ? 0 : positionDefaults.anchorOffset),
         alignmentOffset:
             settings.alignmentOffset ??
-            (align !== AnchorAlignment.Center &&  isInsideAnchorSide(side) ? positionDefaults.alignmentOffset : 0),
+            (align !== AnchorAlignment.Center && isInsideAnchorSide(side) ? positionDefaults.alignmentOffset : 0),
         allowOutOfBounds: settings.allowOutOfBounds ?? positionDefaults.allowOutOfBounds,
     }
 }
@@ -256,7 +256,7 @@ function pureCalculateAnchoredPosition(
     relativePosition: Position,
     floatingRect: Size,
     anchorRect: BoxPosition,
-    {side, align, allowOutOfBounds, anchorOffset, alignmentOffset}: PositionSettings,
+    { side, align, allowOutOfBounds, anchorOffset, alignmentOffset }: PositionSettings,
 ): AnchorPosition {
     // Compute the relative viewport rect, to bring it into the same coordinate space as `pos`
     const relativeViewportRect: BoxPosition = {
@@ -284,7 +284,7 @@ function pureCalculateAnchoredPosition(
             while (
                 positionAttempt < alternateOrder.length &&
                 shouldRecalculatePosition(prevSide, pos, relativeViewportRect, floatingRect)
-                ) {
+            ) {
                 const nextSide = alternateOrder[positionAttempt++]
                 prevSide = nextSide
 
@@ -308,7 +308,7 @@ function pureCalculateAnchoredPosition(
             while (
                 alignmentAttempt < alternateAlignment.length &&
                 shouldRecalculateAlignment(prevAlign, pos, relativeViewportRect, floatingRect)
-                ) {
+            ) {
                 const nextAlign = alternateAlignment[alignmentAttempt++]
                 prevAlign = nextAlign
 
@@ -340,7 +340,7 @@ function pureCalculateAnchoredPosition(
         }
     }
 
-    return {...pos, anchorSide, anchorAlign}
+    return { ...pos, anchorSide, anchorAlign }
 }
 
 /// Given a floating element and an anchor element, return coordinates for the
@@ -422,7 +422,7 @@ function calculatePosition(
         }
     }
 
-    return {top, left}
+    return { top, left }
 }
 
 /// Determines if there is an overflow
@@ -465,17 +465,17 @@ function shouldRecalculateAlignment(
 }
 
 export interface AnchoredPositionHookArgs extends Partial<PositionSettings> {
-    floatingElementRef?: React.RefObject<Element>
-    anchorElementRef?: React.RefObject<Element>
+    floatingElementRef?: React.RefObject<HTMLElement | null>
+    anchorElementRef?: React.RefObject<HTMLElement | null>
 }
 
 export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencies: React.DependencyList = []): {
-    floatingElementRef: React.RefObject<Element>
-    anchorElementRef: React.RefObject<Element>
+    floatingElementRef: React.RefObject<Element | null>
+    anchorElementRef: React.RefObject<Element | null>
     position: AnchorPosition | undefined
 } {
-    const altFloatingElementRef = React.useRef<Element>(null);
-    const altAnchorElementRef = React.useRef<Element>(null);
+    const altFloatingElementRef = React.useRef<HTMLElement | null>(null);
+    const altAnchorElementRef = React.useRef<HTMLElement | null>(null);
 
     const floatingElementRef = args?.floatingElementRef ?? altFloatingElementRef;
     const anchorElementRef = args?.anchorElementRef ?? altAnchorElementRef;

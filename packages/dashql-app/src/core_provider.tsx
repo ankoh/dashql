@@ -16,7 +16,7 @@ const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<d
 const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
 
 interface Props {
-    children: JSX.Element;
+    children: React.ReactElement;
 }
 
 export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {

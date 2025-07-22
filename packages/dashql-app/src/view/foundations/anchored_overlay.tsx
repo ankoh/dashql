@@ -8,22 +8,22 @@ import { useRenderForcingRef } from './rerender_ref.js';
 interface AnchoredOverlayPropsWithAnchor {
     /// A custom function component used to render the anchor element.
     /// Will receive the selected text as `children` prop when an item is activated.
-    renderAnchor: <T extends React.HTMLAttributes<HTMLElement>>(props: T) => JSX.Element
+    renderAnchor: <T extends React.HTMLAttributes<HTMLElement>>(props: T) => React.ReactElement;
     /// An override to the internal ref that will be spread on to the renderAnchor
-    anchorRef?: React.RefObject<HTMLElement>
+    anchorRef?: React.RefObject<HTMLElement | null>;
     /// An override to the internal id that will be spread on to the renderAnchor
-    anchorId?: string
+    anchorId?: string;
 }
 
 interface AnchoredOverlayPropsWithoutAnchor {
     /// A custom function component used to render the anchor element.
     /// When renderAnchor is null, an anchorRef is required.
-    renderAnchor: null
+    renderAnchor: null;
     /// An override to the internal renderAnchor ref that will be used to position the overlay.
     /// When renderAnchor is null this can be used to make an anchor that is detached from ActionMenu.
-    anchorRef: React.RefObject<HTMLElement>
+    anchorRef: React.RefObject<HTMLElement | null>;
     /// An override to the internal id that will be spread on to the renderAnchor
-    anchorId?: string
+    anchorId?: string;
 }
 
 export type AnchoredOverlayWrapperAnchorProps =
@@ -54,7 +54,7 @@ export type AnchoredOverlayProps = AnchoredOverlayBaseProps &
 /// An `AnchoredOverlay` provides an anchor that will open a floating overlay positioned relative to the anchor.
 /// The overlay can be opened and navigated using keyboard or mouse.
 export function AnchoredOverlay(args: AnchoredOverlayProps) {
-    const altAnchorRef = React.useRef<HTMLElement>(null);
+    const altAnchorRef = React.useRef<HTMLElement | null>(null);
     const anchorRef = args.anchorRef ?? altAnchorRef;
     const [overlayRef, updateOverlayRef] = useRenderForcingRef<HTMLDivElement>()
     const anchorId = React.useId()

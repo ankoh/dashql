@@ -3,7 +3,7 @@ import * as React from 'react'
 type TouchOrMouseEventCallback = (event: MouseEvent | TouchEvent) => boolean | undefined
 
 const STOP_PROPAGATION = true;
-const REGISTRY: {[id: number]: TouchOrMouseEventCallback} = {}
+const REGISTRY: { [id: number]: TouchOrMouseEventCallback } = {}
 let NEXT_HANDLER_ID = 1
 
 function handleClick(event: MouseEvent) {
@@ -17,8 +17,8 @@ function handleClick(event: MouseEvent) {
 }
 
 interface UseOnOutsideClickArgs {
-    containerRef: React.RefObject<HTMLDivElement> | React.RefObject<HTMLUListElement>
-    ignoreClickRefs?: React.RefObject<HTMLElement>[]
+    containerRef: React.RefObject<HTMLDivElement | null> | React.RefObject<HTMLUListElement | null>
+    ignoreClickRefs?: React.RefObject<HTMLElement | null>[]
     onClickOutside: (e: MouseEvent | TouchEvent) => void
 }
 
@@ -36,7 +36,7 @@ export function useOnOutsideClick(args: UseOnOutsideClickArgs) {
                 return STOP_PROPAGATION;
             }
             // Don't call handler if click happened on an ignored ref
-            if (args.ignoreClickRefs && args.ignoreClickRefs.some(({current}) => current?.contains(event.target as Node))) {
+            if (args.ignoreClickRefs && args.ignoreClickRefs.some(({ current }) => current?.contains(event.target as Node))) {
                 return STOP_PROPAGATION;
             }
 
@@ -48,14 +48,14 @@ export function useOnOutsideClick(args: UseOnOutsideClickArgs) {
     React.useEffect(() => {
         if (Object.keys(REGISTRY).length === 0) {
             // use capture to ensure we get all events
-            document.addEventListener('mousedown', handleClick, {capture: true})
+            document.addEventListener('mousedown', handleClick, { capture: true })
         }
         REGISTRY[id] = handler;
 
         return () => {
             delete REGISTRY[id];
             if (Object.keys(REGISTRY).length === 0) {
-                document.removeEventListener('mousedown', handleClick, {capture: true})
+                document.removeEventListener('mousedown', handleClick, { capture: true })
             }
         }
     }, [id, handler])

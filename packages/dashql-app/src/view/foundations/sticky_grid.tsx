@@ -11,6 +11,8 @@ type InnerElementProps = {
     children?: React.ReactElement[]
 }
 
+interface CellProps { rowIndex: number; columnIndex: number; }
+
 export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocation: GridCellLocation, className: string, headerRowCount: number = 1) {
     return React.useMemo(
         () =>
@@ -20,7 +22,7 @@ export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocati
                 let maxRow = -Infinity;
                 let minColumn = Infinity;
                 let maxColumn = -Infinity;
-                React.Children.forEach(props.children, (child) => {
+                React.Children.forEach(props.children as any, (child: React.ReactElement<CellProps>) => {
                     const row = child?.props.rowIndex;
                     const column = child?.props.columnIndex;
                     minRow = Math.min(minRow, row);
@@ -30,7 +32,7 @@ export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocati
                 });
 
                 // Filter all non-sticky children
-                const newChildren = React.Children.map(props.children!, (child) => {
+                const newChildren = React.Children.map(props.children as any, (child: React.ReactElement<CellProps>) => {
                     const row = child?.props.rowIndex;
                     const column = child?.props.columnIndex;
                     if (column === 0 || row < headerRowCount) {

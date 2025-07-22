@@ -535,7 +535,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
     }, [computationState, dispatchComputation, logger]);
 
-    const focusedCells = React.useRef<FocusedCells>();
+    const focusedCells = React.useRef<FocusedCells | null>(null);
 
     const onMouseEnterCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);

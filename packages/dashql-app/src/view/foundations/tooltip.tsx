@@ -12,7 +12,7 @@ export type TriggerPropsType = {
     onFocus?: React.FocusEventHandler
     onMouseEnter?: React.MouseEventHandler
     onMouseLeave?: React.MouseEventHandler
-    ref?: React.RefObject<HTMLElement>
+    ref?: React.RefObject<HTMLElement | null>
 }
 
 export type TooltipDirection = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
@@ -20,10 +20,10 @@ export interface TooltipProps {
     direction?: TooltipDirection;
     text: string
     type?: 'label' | 'description'
-    children?: React.ReactElement<TriggerPropsType>;
+    children?: React.ReactElement<TriggerPropsType | null>;
 }
 
-const directionToPosition: Record<TooltipDirection, {side: AnchorSide; align: AnchorAlignment}> = {
+const directionToPosition: Record<TooltipDirection, { side: AnchorSide; align: AnchorAlignment }> = {
     nw: { side: AnchorSide.OutsideTop, align: AnchorAlignment.End },
     n: { side: AnchorSide.OutsideTop, align: AnchorAlignment.Center },
     ne: { side: AnchorSide.OutsideTop, align: AnchorAlignment.Start },
@@ -45,12 +45,12 @@ const positionToDirection: Record<number, TooltipDirection> = {
     [(AnchorSide.OutsideLeft << 3 | AnchorAlignment.Center)]: 'w',
 }
 
-export const TooltipContext = React.createContext<{tooltipId?: string}>({})
+export const TooltipContext = React.createContext<{ tooltipId?: string }>({})
 
-export function Tooltip(props: TooltipProps): React.ReactElement  {
-    const tooltipId = React.useId()
-    const triggerRef = React.useRef<HTMLElement>(null);
-    const tooltipElRef = React.useRef<HTMLDivElement>(null)
+export function Tooltip(props: TooltipProps): React.ReactElement {
+    const tooltipId = React.useId();
+    const triggerRef = React.useRef<HTMLElement | null>(null);
+    const tooltipElRef = React.useRef<HTMLDivElement | null>(null)
     const [calculatedDirection, setCalculatedDirection] = React.useState<TooltipDirection | undefined>(props.direction)
     const isPopOverOpen = React.useRef(false);
 
@@ -67,7 +67,7 @@ export function Tooltip(props: TooltipProps): React.ReactElement  {
             isPopOverOpen.current = true;
 
             const settings = props.direction ? directionToPosition[props.direction] : undefined;
-            const {top, left, anchorAlign, anchorSide} = getAnchoredPosition(tooltip, trigger, settings)
+            const { top, left, anchorAlign, anchorSide } = getAnchoredPosition(tooltip, trigger, settings)
             const calculatedDirection = positionToDirection[(anchorSide << 3) | anchorAlign];
             setCalculatedDirection(calculatedDirection);
             tooltip.style.top = `${top}px`
@@ -87,7 +87,7 @@ export function Tooltip(props: TooltipProps): React.ReactElement  {
         }
     }
     // context value
-    const value = React.useMemo(() => ({tooltipId}), [tooltipId])
+    const value = React.useMemo(() => ({ tooltipId }), [tooltipId])
 
     React.useEffect(() => {
         if (!tooltipElRef.current || !triggerRef.current) return
@@ -131,12 +131,12 @@ export function Tooltip(props: TooltipProps): React.ReactElement  {
                     React.cloneElement(child, {
                         ref: triggerRef,
                         // If it is a type description, we use tooltip to describe the trigger
-                        'aria-describedby': props.type === 'description' ? tooltipId : child.props['aria-describedby'],
+                        'aria-describedby': props.type === 'description' ? tooltipId : (child.props ? child.props['aria-describedby'] : undefined),
                         // If it is a label type, we use tooltip to label the trigger
-                        'aria-labelledby': props.type === 'label' ? tooltipId : child.props['aria-labelledby'],
+                        'aria-labelledby': props.type === 'label' ? tooltipId : (child.props ? child.props['aria-labelledby'] : undefined),
                         onBlur: (event: React.FocusEvent) => {
                             closeTooltip()
-                            child.props.onBlur?.(event)
+                            child.props?.onBlur?.(event)
                         },
                         onFocus: (event: React.FocusEvent) => {
                             // only show tooltip on :focus-visible, not on :focus
@@ -147,15 +147,15 @@ export function Tooltip(props: TooltipProps): React.ReactElement  {
                                 // https://github.com/jsdom/jsdom/issues/3426
                             }
                             openTooltip()
-                            child.props.onFocus?.(event)
+                            child.props?.onFocus?.(event)
                         },
                         onMouseEnter: (event: React.MouseEvent) => {
                             openTooltip()
-                            child.props.onMouseEnter?.(event)
+                            child.props?.onMouseEnter?.(event)
                         },
                         onMouseLeave: (event: React.MouseEvent) => {
                             closeTooltip()
-                            child.props.onMouseLeave?.(event)
+                            child.props?.onMouseLeave?.(event)
                         },
                     })
                 }

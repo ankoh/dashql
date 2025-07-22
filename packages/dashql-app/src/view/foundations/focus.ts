@@ -3,9 +3,9 @@ import { iterateFocusableElements } from '@primer/behaviors/utils'
 import { focusTrap, focusZone, FocusZoneSettings } from '@primer/behaviors';
 
 export type UseOpenAndCloseFocusArgs = {
-    initialFocusRef?: React.RefObject<HTMLElement>
-    containerRef: React.RefObject<HTMLElement>
-    returnFocusRef: React.RefObject<HTMLElement>
+    initialFocusRef?: React.RefObject<HTMLElement | null>
+    containerRef: React.RefObject<HTMLElement | null>
+    returnFocusRef: React.RefObject<HTMLElement | null>
     preventFocusOnOpen?: boolean
 }
 
@@ -21,7 +21,7 @@ export function useOpenAndCloseFocus(args: UseOpenAndCloseFocusArgs): void {
             const firstItem = iterateFocusableElements(args.containerRef.current).next().value
             firstItem?.focus()
         }
-        return function () {
+        return function() {
             returnRef?.focus()
         }
     }, [args.initialFocusRef, args.returnFocusRef, args.containerRef, args.preventFocusOnOpen])
@@ -51,15 +51,15 @@ export interface FocusTrapHookArgs {
 export function useFocusTrap(
     args?: FocusTrapHookArgs,
     dependencies: React.DependencyList = [],
-): {containerRef: React.RefObject<HTMLElement>; initialFocusRef: React.RefObject<HTMLElement>} {
+): { containerRef: React.RefObject<HTMLElement | null>; initialFocusRef: React.RefObject<HTMLElement | null> } {
     const altContainerRef = React.useRef<HTMLElement>(null);
     const altInitialFocusRef = React.useRef<HTMLElement>(null);
 
-    const containerRef = args?.containerRef ?? altContainerRef
-    const initialFocusRef = args?.initialFocusRef ?? altInitialFocusRef
-    const disabled = args?.disabled
-    const abortController = React.useRef<AbortController>()
-    const previousFocusedElement = React.useRef<Element | null>(null)
+    const containerRef = args?.containerRef ?? altContainerRef;
+    const initialFocusRef = args?.initialFocusRef ?? altInitialFocusRef;
+    const disabled = args?.disabled;
+    const abortController = React.useRef<AbortController | null>(null);
+    const previousFocusedElement = React.useRef<Element | null>(null);
 
     // If we are enabling a focus trap and haven't already stored the previously focused element
     // go ahead an do that so we can restore later when the trap is disabled.
@@ -82,7 +82,7 @@ export function useFocusTrap(
         () => {
             if (containerRef.current instanceof HTMLElement) {
                 if (!disabled) {
-                    abortController.current = focusTrap(containerRef.current, initialFocusRef.current ?? undefined)
+                    abortController.current = focusTrap(containerRef.current, initialFocusRef.current ?? undefined) ?? null;
                     return () => {
                         disableTrap()
                     }
@@ -93,7 +93,7 @@ export function useFocusTrap(
         },
         [containerRef, initialFocusRef, disabled, ...dependencies],
     )
-    return {containerRef, initialFocusRef}
+    return { containerRef, initialFocusRef };
 }
 
 
@@ -111,7 +111,7 @@ export interface FocusZoneHookArgs extends Omit<FocusZoneSettings, 'activeDescen
 export function useFocusZone(
     settings: FocusZoneHookArgs = {},
     dependencies: React.DependencyList = [],
-): { containerRef: React.RefObject<HTMLElement>; activeDescendantControlRef: React.RefObject<HTMLElement> } {
+): { containerRef: React.RefObject<HTMLElement | null>; activeDescendantControlRef: React.RefObject<HTMLElement | null> } {
     const altContainerRef = React.useRef<HTMLElement>(null);
     const altActiveDescFocusRef = React.useRef<HTMLElement>(null);
 
@@ -123,7 +123,7 @@ export function useFocusZone(
             : settings.activeDescendantFocus
     const activeDescendantControlRef = passedActiveDescendantRef ?? altActiveDescFocusRef;
     const disabled = settings.disabled
-    const abortController = React.useRef<AbortController>()
+    const abortController = React.useRef<AbortController | null>(null);
 
     React.useEffect(
         () => {
@@ -147,5 +147,5 @@ export function useFocusZone(
         },
         [disabled, ...dependencies],
     )
-    return {containerRef, activeDescendantControlRef}
+    return { containerRef, activeDescendantControlRef }
 }

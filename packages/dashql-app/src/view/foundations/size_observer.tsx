@@ -10,7 +10,7 @@ export interface ObservedSize {
 export const OBSERVED_SIZE = React.createContext<ObservedSize | null>(null);
 export const useObservedSize = () => React.useContext(OBSERVED_SIZE)!;
 
-export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize | null => {
+export const observeSize = (target: React.RefObject<HTMLElement | null>): ObservedSize | null => {
     const [size, setSize] = React.useState<ObservedSize | null>(null);
     React.useLayoutEffect(() => {
         setSize(target.current?.getBoundingClientRect() ?? null);

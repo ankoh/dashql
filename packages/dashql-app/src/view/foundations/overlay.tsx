@@ -10,17 +10,17 @@ import { AnchorSide } from './anchored_position.js';
 import * as styles from './overlay.module.css';
 
 interface UseOverlayArgs {
-    ignoreClickRefs?: React.RefObject<HTMLElement>[];
-    initialFocusRef?: React.RefObject<HTMLElement>;
-    returnFocusRef: React.RefObject<HTMLElement>;
+    ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
+    initialFocusRef?: React.RefObject<HTMLElement | null>;
+    returnFocusRef: React.RefObject<HTMLElement | null>;
     onEscape: (e: KeyboardEvent) => void;
     onClickOutside: (e: TouchEvent | MouseEvent) => void;
-    overlayRef?: React.RefObject<HTMLDivElement>;
+    overlayRef?: React.RefObject<HTMLDivElement | null>;
     preventFocusOnOpen?: boolean;
 }
 
-export function useOverlay(args: UseOverlayArgs): React.RefObject<HTMLDivElement> {
-    const ownOverlayRef = React.useRef<HTMLDivElement>(null);
+export function useOverlay(args: UseOverlayArgs): React.RefObject<HTMLDivElement | null> {
+    const ownOverlayRef = React.useRef<HTMLDivElement | null>(null);
     const overlayRef = args.overlayRef ?? ownOverlayRef;
     useOpenAndCloseFocus({ containerRef: overlayRef, returnFocusRef: args.returnFocusRef, initialFocusRef: args.initialFocusRef, preventFocusOnOpen: args.preventFocusOnOpen });
     useOnOutsideClick({ containerRef: overlayRef, ignoreClickRefs: args.ignoreClickRefs, onClickOutside: args.onClickOutside })
@@ -114,9 +114,9 @@ function getSlideAnimationStartingVector(anchorSide?: AnchorSide): { x: number; 
 }
 
 export interface OverlayProps {
-    ignoreClickRefs?: React.RefObject<HTMLElement>[];
-    initialFocusRef?: React.RefObject<HTMLElement>;
-    returnFocusRef: React.RefObject<HTMLElement>;
+    ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
+    initialFocusRef?: React.RefObject<HTMLElement | null>;
+    returnFocusRef: React.RefObject<HTMLElement | null>;
     onClickOutside: (e: MouseEvent | TouchEvent) => void;
     onEscape: (e: KeyboardEvent) => void;
     visibility?: OverlayVisibility;

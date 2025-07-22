@@ -48,7 +48,7 @@ type Props = {
 
 export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const configPromise = React.useRef<Promise<AppConfig>>();
+    const configPromise = React.useRef<Promise<AppConfig>>(null);
     const [config, setConfig] = React.useState<AppConfig | null>(null);
 
     React.useEffect(() => {

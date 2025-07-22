@@ -154,8 +154,8 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     }, [logVersion, containerHeight]);
 
     // Helper to render a cell
-    type CellProps = { columnIndex: number, rowIndex: number, style: React.CSSProperties };
-    const Cell = React.useCallback<(props: CellProps) => React.ReactElement>((props: CellProps) => {
+    type CellProps = { columnIndex: number, rowIndex: number, style: React.CSSProperties, children?: React.ReactElement };
+    const Cell: React.FC<CellProps> = React.useCallback<React.FC<CellProps>>((props: CellProps) => {
         if (props.rowIndex >= logger.buffer.length) {
             return <div />;
         }

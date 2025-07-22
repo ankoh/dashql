@@ -182,8 +182,8 @@ export function QueryInfoListView(props: QueryInfoListViewProps) {
     });
 
     // Helper to render a cell
-    type CellProps = { index: number, style: React.CSSProperties };
-    const Cell = React.useCallback<(props: CellProps) => React.ReactElement>((props: CellProps) => {
+    type CellProps = { index: number, style: React.CSSProperties, children?: React.ReactElement };
+    const Cell: React.FC<CellProps> = React.useCallback<React.FC<CellProps>>((props: CellProps) => {
         if (listViewModel == null) {
             return <div />;
         }

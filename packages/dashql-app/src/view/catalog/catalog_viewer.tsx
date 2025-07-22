@@ -76,7 +76,7 @@ export function CatalogViewer(props: Props) {
     const script = workbookEntry ? workbook.scripts[workbookEntry.scriptKey] : null;
 
     // Watch the container size
-    const containerElement = React.useRef(null);
+    const containerElement = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerElement);
     const boardElement = React.useRef(null);
 
