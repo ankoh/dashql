@@ -4,6 +4,7 @@ use arrow::array::{ArrayRef, ArrowNativeTypeOp, UInt32Array};
 use arrow::array::RecordBatch;
 use arrow::datatypes::i256;
 use arrow::datatypes::DataType;
+use arrow::datatypes::Field;
 use arrow::datatypes::Schema;
 use arrow::datatypes::SchemaRef;
 use arrow::datatypes::TimeUnit;
@@ -581,7 +582,7 @@ impl DataFrame {
                         floor_udf.name(),
                         floor_udf.clone(),
                         vec![bin_f64.clone()],
-                        DataType::Float64,
+                        Field::new("bin_f64_floored", DataType::Float64, true).into(),
                     ));
                     let bin_u32 = Arc::new(CastExpr::new(bin_f64_floored, DataType::UInt32, None));
                     let bin_key = Arc::new(clamp_bin(bin_u32, binning.bin_count, input.schema())?);
