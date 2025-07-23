@@ -29,7 +29,10 @@
     "packageManager": "yarn@4.9.2",
     "resolutions": {
         "@primer/octicons-react@npm:^19.8.0": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch",
-        "stylus": "0.0.1-security"
+        "stylus": "0.0.1-security",
+        "@codemirror/state": "6.5.2",
+        "@codemirror/view": "6.38.1",
+        "@codemirror/language": "6.11.2"
     },
     "scripts": {
         "compute:wasm:o0": "wasm-pack build --target web --debug --out-name dashql_compute --out-dir ./dist ./packages/dashql-compute/",
