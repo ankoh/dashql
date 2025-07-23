@@ -32,6 +32,9 @@ const CursorTableReference = Decoration.mark({
 const FocusedTableReferenceDecoration = Decoration.mark({
     class: 'dashql-tableref-focus',
 });
+const ResolvedTableReferenceDecoration = Decoration.mark({
+    class: 'dashql-tableref-resolved',
+});
 const UnresolvedTableReferenceDecoration = Decoration.mark({
     class: 'dashql-tableref-unresolved',
 });
@@ -40,6 +43,9 @@ const CursorColumnReference = Decoration.mark({
 });
 const FocusedColumnReferenceDecoration = Decoration.mark({
     class: 'dashql-colref-focus',
+});
+const ResolvedColumnReferenceDecoration = Decoration.mark({
+    class: 'dashql-colref-resolved',
 });
 const UnresolvedColumnReferenceDecoration = Decoration.mark({
     class: 'dashql-colref-unresolved',
@@ -157,12 +163,18 @@ function buildDecorationsFromAnalysis(
         const tmpTableRef = new dashql.buffers.analyzer.TableReference();
         for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
             const tableRef = analyzed.tableReferences(i, tmpTableRef)!;
+            const loc = tableRef.location()!;
             if (tableRef.resolvedTable() == null) {
-                const loc = tableRef.location()!;
                 decorations.push({
                     from: loc.offset(),
                     to: loc.offset() + loc.length(),
                     decoration: UnresolvedTableReferenceDecoration,
+                });
+            } else {
+                decorations.push({
+                    from: loc.offset(),
+                    to: loc.offset() + loc.length(),
+                    decoration: ResolvedTableReferenceDecoration,
                 });
             }
         }
@@ -172,12 +184,18 @@ function buildDecorationsFromAnalysis(
             const expr = analyzed.expressions(i)!;
             if (expr.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
                 const colRef: dashql.buffers.algebra.ColumnRefExpression = expr.inner(tmpColRef)!;
+                const loc = expr.location()!;
                 if (colRef.resolvedColumn() == null) {
-                    const loc = expr.location()!;
                     decorations.push({
                         from: loc.offset(),
                         to: loc.offset() + loc.length(),
                         decoration: UnresolvedColumnReferenceDecoration,
+                    });
+                } else {
+                    decorations.push({
+                        from: loc.offset(),
+                        to: loc.offset() + loc.length(),
+                        decoration: ResolvedColumnReferenceDecoration,
                     });
                 }
             }
