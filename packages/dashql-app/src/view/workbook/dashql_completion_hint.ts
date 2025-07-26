@@ -78,13 +78,21 @@ const COMPLETION_HINT_STATE = StateField.define<CompletionHintState>({
         for (const effect of tr.effects) {
             if (effect.is(SET_COMPLETION_HINTS)) {
                 hints = effect.value;
-                const widget = new CompletionHintWidget(hints.candidate.hint.text);
-                decorations = Decoration.set([
-                    Decoration.widget({
-                        widget,
-                        side: 1,
-                    }).range(hints.candidate.hint.at)
-                ]);
+
+                const candidate = new CompletionHintWidget(hints.candidate.hint.text);
+                if (hints.extended != null) {
+                    const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text);
+                    const suffix = new CompletionHintWidget(hints.extended.hintSuffix.text);
+                    decorations = Decoration.set([
+                        Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at),
+                        Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
+                        Decoration.widget({ widget: suffix, side: 10 }).range(hints.extended.hintSuffix.at),
+                    ]);
+                } else {
+                    decorations = Decoration.set([
+                        Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
+                    ]);
+                }
             } else if (effect.is(CLEAR_COMPLETION_HINTS)) {
                 cleared = true;
             }
@@ -173,7 +181,16 @@ export function showCompletionHint(candidate: DashQLCompletion) {
                                             text: hintText
                                         }
                                     },
-                                    extended: null
+                                    extended: {
+                                        hintPrefix: {
+                                            at: replaceFrom,
+                                            text: "[prefix]"
+                                        },
+                                        hintSuffix: {
+                                            at: replaceTo,
+                                            text: "[suffix]"
+                                        }
+                                    }
                                 })
                             });
                         }
