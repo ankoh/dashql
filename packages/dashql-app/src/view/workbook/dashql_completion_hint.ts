@@ -19,9 +19,9 @@ interface CandidateCompletion {
 /// An extended completion hint that shows an extended snippet
 interface ExtendedCompletion {
     /// The prefix
-    hintPrefix: CompletionHint;
+    hintPrefix: CompletionHint | null;
     /// The suffix
-    hintSuffix: CompletionHint;
+    hintSuffix: CompletionHint | null;
 }
 
 interface CompletionHints {
@@ -81,13 +81,17 @@ const COMPLETION_HINT_STATE = StateField.define<CompletionHintState>({
 
                 const candidate = new CompletionHintWidget(hints.candidate.hint.text);
                 if (hints.extended != null) {
-                    const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text);
-                    const suffix = new CompletionHintWidget(hints.extended.hintSuffix.text);
-                    decorations = Decoration.set([
-                        Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at),
-                        Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
-                        Decoration.widget({ widget: suffix, side: 10 }).range(hints.extended.hintSuffix.at),
-                    ]);
+                    const widgets = [];
+                    if (hints.extended.hintPrefix != null) {
+                        const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text);
+                        widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at));
+                    }
+                    widgets.push(Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at));
+                    if (hints.extended.hintSuffix != null) {
+                        const prefix = new CompletionHintWidget(hints.extended.hintSuffix.text);
+                        widgets.push(Decoration.widget({ widget: prefix, side: 2 }).range(hints.extended.hintSuffix.at));
+                    }
+                    decorations = Decoration.set(widgets);
                 } else {
                     decorations = Decoration.set([
                         Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
