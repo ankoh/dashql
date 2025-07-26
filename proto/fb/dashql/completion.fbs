@@ -66,7 +66,7 @@ table CompletionCandidate {
     replace_text_at: parser.Location;
     /// The completion text (simple)
     completion_text: string;
-    /// The completion templates (advanced)
+    /// The completion templates (extended)
     completion_templates: [snippet.ScriptTemplate];
     /// The objects that this candidate references
     catalog_objects: [CompletionCandidateObject];

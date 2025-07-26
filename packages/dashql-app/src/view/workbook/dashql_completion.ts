@@ -6,17 +6,17 @@ import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
 import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
-import { showCompletionHint, clearCompletionHintInView } from './dashql_completion_hint.js';
+import { showCompletionHint, CLEAR_COMPLETION_HINTS } from './dashql_completion_hint.js';
 
 const COMPLETION_LIMIT = 32;
 
 /// A DashQL completion storing the backing completion buffer and a candidate
-interface DashQLCompletion extends Completion {
+export interface DashQLCompletion extends Completion {
     /// The processor
     state: DashQLProcessorState;
-    /// The completion buffer
+    /// The completion buffer from core
     coreCompletion: dashql.buffers.completion.CompletionT;
-    /// The candidate id
+    /// The current candidate id
     candidateId: number;
     /// The editor view for showing hints
     view?: EditorView;
@@ -36,32 +36,12 @@ function updateCompletions(
 const previewCompletion = (completion: Completion) => {
     const candidate = completion as DashQLCompletion;
 
+    // Show the completion hint
+    showCompletionHint(candidate);
+
     // Call the existing preview function.
     // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
     candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.coreCompletion, candidate.candidateId);
-
-    // Show inline completion hint.
-    const candidateData = candidate.coreCompletion.candidates[candidate.candidateId];
-    if (candidateData.completionText && candidateData.replaceTextAt && candidate.view) {
-        const currentPos = candidate.view.state.selection.main.head;
-        const replaceFrom = candidateData.replaceTextAt.offset;
-        const replaceTo = replaceFrom + candidateData.replaceTextAt.length;
-
-        // Only show hint if cursor is at the replacement position
-        if (currentPos >= replaceFrom && currentPos <= replaceTo) {
-            // Calculate the hint text (part that would be inserted after current cursor)
-            const currentText = candidate.view.state.doc.sliceString(replaceFrom, currentPos);
-            const fullText = candidateData.completionText as string;
-
-            if (fullText.startsWith(currentText)) {
-                const hintText = fullText.slice(currentText.length);
-                if (hintText.length > 0) {
-                    showCompletionHint(candidate.view, currentPos, hintText, candidateData);
-                }
-            }
-        }
-    }
-
     return null;
 };
 
@@ -72,9 +52,6 @@ const applyCompletion = (view: EditorView, completion: Completion, _from: number
         console.warn("candidate replaceTextAt is null");
         return;
     }
-
-    // Clear any existing completion hint
-    clearCompletionHintInView(view);
 
     const changes: ChangeSpec[] = [];
     // XXX The location of the trailing to might include eof?
@@ -87,7 +64,11 @@ const applyCompletion = (view: EditorView, completion: Completion, _from: number
         insert: candidate.completionText as string,
     });
     const newCursor = replaceFrom + (candidate.completionText as string).length;
-    view.dispatch({ changes, selection: { anchor: newCursor } });
+    view.dispatch({
+        changes,
+        selection: { anchor: newCursor },
+        effects: CLEAR_COMPLETION_HINTS.of(null),
+    });
 }
 
 /// Derived from this example:
