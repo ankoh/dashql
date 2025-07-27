@@ -166,7 +166,7 @@ export function deriveFocusFromScriptCursor(
             };
 
             // Is resolved?
-            const sourceRef = sourceAnalyzed.expressions(context.expressionId)!;
+            const sourceRef = sourceAnalyzed.expressions(context.expressionId())!;
             if (sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
                 const columnRef: dashql.buffers.algebra.ColumnRefExpression = sourceRef.inner(tmpColumnRef)!;
 
