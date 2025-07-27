@@ -1,6 +1,10 @@
+import * as dashql from '@ankoh/dashql-core';
+
 import { StateField, StateEffect, Transaction, ChangeSpec } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, keymap } from '@codemirror/view';
+
 import { DashQLCompletion } from './dashql_completion.js';
+import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 
 /// A completion content
 interface CompletionHint {
@@ -162,6 +166,7 @@ export function showCompletionHint(candidate: DashQLCompletion) {
     if (completion.candidatesLength() <= candidate.candidateId) {
         return;
     }
+    const tmpNode = new dashql.buffers.parser.Node();
 
     // Show inline completion hint.
     const candidateData = completion.candidates(candidate.candidateId)!;
@@ -188,26 +193,29 @@ export function showCompletionHint(candidate: DashQLCompletion) {
                         text: hintText
                     }
                 };
+                let extended: ExtendedCompletion | null = null;
                 if (candidateData.completionTemplatesLength() > 0) {
                     const template = candidateData.completionTemplates(0)!;
                     if (template.snippetsLength() > 0) {
-                        const _snippet = template.snippets(0);
+                        const snippet = template.snippets(0)!;
+                        const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
+                        extended = {
+                            hintPrefix: {
+                                at: replaceFrom,
+                                text: snippetModel.textBefore
+                            },
+                            hintSuffix: {
+                                at: replaceTo,
+                                text: snippetModel.textAfter
+                            }
+                        };
                     }
                 }
                 setTimeout(() => {
                     view.dispatch({
                         effects: SET_COMPLETION_HINTS.of({
                             candidate: candidateCompletion,
-                            extended: {
-                                hintPrefix: {
-                                    at: replaceFrom,
-                                    text: "[prefix]"
-                                },
-                                hintSuffix: {
-                                    at: replaceTo,
-                                    text: "[suffix]"
-                                }
-                            }
+                            extended
                         })
                     });
                 }, 0);

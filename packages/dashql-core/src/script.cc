@@ -21,8 +21,7 @@
 namespace dashql {
 
 /// Helper template for static_assert in generic visitor
-template<typename T>
-constexpr bool always_false = false;
+template <typename T> constexpr bool always_false = false;
 
 /// Finish a statement
 std::unique_ptr<buffers::parser::StatementT> ParsedScript::Statement::Pack() {
@@ -377,125 +376,127 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
     flatbuffers::FlatBufferBuilder& builder) const {
     std::optional<buffers::algebra::ExpressionSubType> inner_type;
     flatbuffers::Offset<void> inner_ofs;
-    
+
     // Use std::visit for type-safe variant handling
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-        
-        if constexpr (std::is_same_v<T, std::monostate>) {
-            // Empty variant case - no action needed
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
-            auto& column_ref = value;
-            auto column_name_ofs = column_ref.column_name.Pack(builder);
+    std::visit(
+        [&](const auto& value) {
+            using T = std::decay_t<decltype(value)>;
 
-            flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
-            if (column_ref.resolved_column.has_value()) {
-                auto& resolved = column_ref.resolved_column.value();
-                buffers::algebra::ResolvedColumnBuilder resolved_builder{builder};
-                resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
-                resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
-                resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
-                resolved_builder.add_column_id(resolved.table_column_id);
-                resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
-                resolved_ofs = resolved_builder.Finish();
-            }
-            buffers::algebra::ColumnRefExpressionBuilder out{builder};
-            out.add_ast_scope_root(column_ref.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
-            out.add_column_name(column_name_ofs);
-            if (!resolved_ofs.IsNull()) {
-                out.add_resolved_column(resolved_ofs);
-            }
-            inner_type = buffers::algebra::ExpressionSubType::ColumnRefExpression;
-            inner_ofs = out.Finish().Union();
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Literal>) {
-            auto& literal = value;
-            auto raw_value_ofs = builder.CreateString(literal.raw_value);
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                // Empty variant case - no action needed
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
+                auto& column_ref = value;
+                auto column_name_ofs = column_ref.column_name.Pack(builder);
 
-            buffers::algebra::LiteralBuilder literal_builder{builder};
-            literal_builder.add_literal_type(literal.literal_type);
-            literal_builder.add_raw_value(raw_value_ofs);
+                flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
+                if (column_ref.resolved_column.has_value()) {
+                    auto& resolved = column_ref.resolved_column.value();
+                    buffers::algebra::ResolvedColumnBuilder resolved_builder{builder};
+                    resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
+                    resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
+                    resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
+                    resolved_builder.add_column_id(resolved.table_column_id);
+                    resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
+                    resolved_ofs = resolved_builder.Finish();
+                }
+                buffers::algebra::ColumnRefExpressionBuilder out{builder};
+                out.add_ast_scope_root(column_ref.ast_scope_root.value_or(std::numeric_limits<uint32_t>::max()));
+                out.add_column_name(column_name_ofs);
+                if (!resolved_ofs.IsNull()) {
+                    out.add_resolved_column(resolved_ofs);
+                }
+                inner_type = buffers::algebra::ExpressionSubType::ColumnRefExpression;
+                inner_ofs = out.Finish().Union();
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Literal>) {
+                auto& literal = value;
+                auto raw_value_ofs = builder.CreateString(literal.raw_value);
 
-            inner_type = buffers::algebra::ExpressionSubType::Literal;
-            inner_ofs = literal_builder.Finish().Union();
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Comparison>) {
-            auto& comparison = value;
+                buffers::algebra::LiteralBuilder literal_builder{builder};
+                literal_builder.add_literal_type(literal.literal_type);
+                literal_builder.add_raw_value(raw_value_ofs);
 
-            buffers::algebra::ComparisonBuilder comparison_builder{builder};
-            comparison_builder.add_func(comparison.func);
-            comparison_builder.add_left_child(comparison.left_expression_id);
-            comparison_builder.add_right_child(comparison.right_expression_id);
+                inner_type = buffers::algebra::ExpressionSubType::Literal;
+                inner_ofs = literal_builder.Finish().Union();
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Comparison>) {
+                auto& comparison = value;
 
-            inner_type = buffers::algebra::ExpressionSubType::Comparison;
-            inner_ofs = comparison_builder.Finish().Union();
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
-            auto& binary = value;
+                buffers::algebra::ComparisonBuilder comparison_builder{builder};
+                comparison_builder.add_func(comparison.func);
+                comparison_builder.add_left_child(comparison.left_expression_id);
+                comparison_builder.add_right_child(comparison.right_expression_id);
 
-            buffers::algebra::BinaryExpressionBuilder binary_builder{builder};
-            binary_builder.add_func(binary.func);
-            binary_builder.add_left_child(binary.left_expression_id);
-            binary_builder.add_right_child(binary.right_expression_id);
+                inner_type = buffers::algebra::ExpressionSubType::Comparison;
+                inner_ofs = comparison_builder.Finish().Union();
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
+                auto& binary = value;
 
-            inner_type = buffers::algebra::ExpressionSubType::BinaryExpression;
-            inner_ofs = binary_builder.Finish().Union();
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
-            auto& func_call = value;
+                buffers::algebra::BinaryExpressionBuilder binary_builder{builder};
+                binary_builder.add_func(binary.func);
+                binary_builder.add_left_child(binary.left_expression_id);
+                binary_builder.add_right_child(binary.right_expression_id);
 
-            flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> func_name_ofs;
-            if (std::holds_alternative<CatalogEntry::QualifiedFunctionName>(func_call.function_name)) {
-                auto& qualified_name = std::get<CatalogEntry::QualifiedFunctionName>(func_call.function_name);
-                func_name_ofs = qualified_name.Pack(builder);
-            }
+                inner_type = buffers::algebra::ExpressionSubType::BinaryExpression;
+                inner_ofs = binary_builder.Finish().Union();
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
+                auto& func_call = value;
 
-            // Handle generic arguments as a vector of uint32_t expression IDs
-            flatbuffers::Offset<flatbuffers::Vector<uint32_t>> arguments_ofs;
-            if (std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(
-                    func_call.arguments)) {
-                auto& generic_args =
-                    std::get<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(func_call.arguments);
-                std::vector<uint32_t> arg_ids;
-                arg_ids.reserve(generic_args.size());
-                for (const auto& arg : generic_args) {
-                    if (arg.expression_id.has_value()) {
-                        arg_ids.push_back(arg.expression_id.value());
+                flatbuffers::Offset<buffers::analyzer::QualifiedFunctionName> func_name_ofs;
+                if (std::holds_alternative<CatalogEntry::QualifiedFunctionName>(func_call.function_name)) {
+                    auto& qualified_name = std::get<CatalogEntry::QualifiedFunctionName>(func_call.function_name);
+                    func_name_ofs = qualified_name.Pack(builder);
+                }
+
+                // Handle generic arguments as a vector of uint32_t expression IDs
+                flatbuffers::Offset<flatbuffers::Vector<uint32_t>> arguments_ofs;
+                if (std::holds_alternative<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(
+                        func_call.arguments)) {
+                    auto& generic_args = std::get<AnalyzedScript::Expression::FunctionCallExpression::GenericArguments>(
+                        func_call.arguments);
+                    std::vector<uint32_t> arg_ids;
+                    arg_ids.reserve(generic_args.size());
+                    for (const auto& arg : generic_args) {
+                        if (arg.expression_id.has_value()) {
+                            arg_ids.push_back(arg.expression_id.value());
+                        }
+                    }
+                    arguments_ofs = builder.CreateVector(arg_ids);
+                }
+                // Note: Other argument types (CastArguments, ExtractArguments, etc.) are handled as std::monostate
+                // and will result in an empty arguments vector, which is fine for now
+
+                buffers::algebra::FunctionCallExpressionBuilder func_builder{builder};
+                if (!func_name_ofs.IsNull()) {
+                    func_builder.add_func_name(func_name_ofs);
+                }
+                func_builder.add_func_call_modifiers(func_call.function_call_modifiers);
+                if (!arguments_ofs.IsNull()) {
+                    func_builder.add_arguments(arguments_ofs);
+                }
+
+                inner_type = buffers::algebra::ExpressionSubType::FunctionCallExpression;
+                inner_ofs = func_builder.Finish().Union();
+            } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ConstIntervalCast>) {
+                auto& interval_cast = value;
+
+                buffers::algebra::ConstIntervalCastBuilder interval_builder{builder};
+                interval_builder.add_value_expression(interval_cast.value_expression_id);
+                if (interval_cast.interval.has_value()) {
+                    interval_builder.add_interval_type(interval_cast.interval.value().interval_type);
+                    if (interval_cast.interval.value().precision_expression.has_value()) {
+                        interval_builder.add_interval_precision(
+                            interval_cast.interval.value().precision_expression.value());
                     }
                 }
-                arguments_ofs = builder.CreateVector(arg_ids);
-            }
-            // Note: Other argument types (CastArguments, ExtractArguments, etc.) are handled as std::monostate
-            // and will result in an empty arguments vector, which is fine for now
 
-            buffers::algebra::FunctionCallExpressionBuilder func_builder{builder};
-            if (!func_name_ofs.IsNull()) {
-                func_builder.add_func_name(func_name_ofs);
+                inner_type = buffers::algebra::ExpressionSubType::ConstIntervalCast;
+                inner_ofs = interval_builder.Finish().Union();
+            } else {
+                // This will cause a compile error if a new type is added to the variant
+                // but not handled in the visitor
+                static_assert(always_false<T>, "Unhandled expression type in Pack method");
             }
-            func_builder.add_func_call_modifiers(func_call.function_call_modifiers);
-            if (!arguments_ofs.IsNull()) {
-                func_builder.add_arguments(arguments_ofs);
-            }
-
-            inner_type = buffers::algebra::ExpressionSubType::FunctionCallExpression;
-            inner_ofs = func_builder.Finish().Union();
-        } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ConstIntervalCast>) {
-            auto& interval_cast = value;
-
-            buffers::algebra::ConstIntervalCastBuilder interval_builder{builder};
-            interval_builder.add_value_expression(interval_cast.value_expression_id);
-            if (interval_cast.interval.has_value()) {
-                interval_builder.add_interval_type(interval_cast.interval.value().interval_type);
-                if (interval_cast.interval.value().precision_expression.has_value()) {
-                    interval_builder.add_interval_precision(
-                        interval_cast.interval.value().precision_expression.value());
-                }
-            }
-
-            inner_type = buffers::algebra::ExpressionSubType::ConstIntervalCast;
-            inner_ofs = interval_builder.Finish().Union();
-        } else {
-            // This will cause a compile error if a new type is added to the variant
-            // but not handled in the visitor
-            static_assert(always_false<T>, "Unhandled expression type in Pack method");
-        }
-    }, inner);
+        },
+        inner);
     buffers::algebra::ExpressionBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
     out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
@@ -943,7 +944,8 @@ std::pair<const ScriptCursor*, buffers::status::StatusCode> Script::MoveCursor(s
     return {cursor.get(), status};
 }
 /// Complete at the cursor
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::CompleteAtCursor(size_t limit) const {
+std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::CompleteAtCursor(
+    size_t limit, ScriptRegistry* registry) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
         return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
@@ -953,7 +955,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::Comp
         return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
     }
     // Compute the completion
-    return Completion::Compute(*cursor, limit);
+    return Completion::Compute(*cursor, limit, registry);
 }
 
 void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

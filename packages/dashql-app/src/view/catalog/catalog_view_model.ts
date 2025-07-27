@@ -1,6 +1,8 @@
 import * as dashql from '@ankoh/dashql-core';
+
 import { FocusType, UserFocus } from '../../workbook/focus.js';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../../workbook/catalog_object_id.js';
+import { readColumnIdentifierSnippet, ColumnIdentifierSnippetViewModel } from '../snippet/script_template_snippet.js';
 
 /// The rendering settings for a catalog level
 export interface CatalogLevelRenderingSettings {
@@ -175,7 +177,7 @@ export interface CatalogLevelViewModel {
 
 export interface TemplateViewModel {
     /// The snippets
-    snippets: ColumnIdentifierTemplateSnippet[];
+    snippets: ColumnIdentifierSnippetViewModel[];
 }
 
 /// A template snippet for a single column identifer
@@ -766,26 +768,8 @@ export class CatalogViewModel {
             };
             for (let j = 0; j < (template.snippetsLength() ?? 0); ++j) {
                 let snippet = template.snippets(j, tmpSnippet)!;
-                const text = snippet.text()!;
-                let textBefore = text;
-                let textAfter = "";
-
-                // Find the column reference.
-                // XXX We could be faster here when remembering the column ref node?
-                const markers = snippet.nodeMarkersArray()!;
-                for (let mi = 0; mi < markers.length; ++mi) {
-                    if (markers[mi] == dashql.buffers.analyzer.SemanticNodeMarkerType.COLUMN_REFERENCE) {
-                        const node = snippet.nodes(mi, tmpNode)!;
-                        const nodeLoc = node.location()!;
-                        textBefore = text.substring(0, nodeLoc.offset());
-                        textAfter = text.substring(nodeLoc.offset() + nodeLoc.length());
-                    }
-                }
-
-                out.snippets.push({
-                    textBefore,
-                    textAfter
-                });
+                const snippetText = readColumnIdentifierSnippet(snippet, tmpNode);
+                out.snippets.push(snippetText);
             }
             return out;
         };

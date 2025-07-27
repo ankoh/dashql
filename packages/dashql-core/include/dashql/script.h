@@ -26,6 +26,7 @@ class ParseContext;
 class Analyzer;
 class NameSuffixIndex;
 class Completion;
+class ScriptRegistry;
 
 using Key = buffers::parser::AttributeKey;
 using Location = buffers::parser::Location;
@@ -626,7 +627,8 @@ class Script {
     /// Move the cursor
     std::pair<const ScriptCursor*, buffers::status::StatusCode> MoveCursor(size_t text_offset);
     /// Complete at the cursor
-    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursor(size_t limit = 10) const;
+    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursor(
+        size_t limit = 10, ScriptRegistry* registry = nullptr) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 };
