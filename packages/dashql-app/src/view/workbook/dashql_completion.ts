@@ -36,12 +36,12 @@ function updateCompletions(
 const previewCompletion = (completion: Completion) => {
     const candidate = completion as DashQLCompletion;
 
-    // Show the completion hint
-    showCompletionHint(candidate);
-
     // Call the existing preview function.
     // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
     candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.completion, candidate.candidateId);
+
+    // Show the completion hint
+    showCompletionHint(candidate);
     return null;
 };
 
