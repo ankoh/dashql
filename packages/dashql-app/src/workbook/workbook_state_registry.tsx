@@ -9,7 +9,7 @@ import { CONNECTOR_TYPES } from '../connection/connector_info.js';
 /// Note that we're deliberately not using immutable maps for workbooks and the connection index.
 /// We're never "observing" these maps directly and thus can live with the simple variants.
 /// Shallow-compare the entire registry object instead when reacting to workbook list changes.
-interface WorkbookRegistry {
+export interface WorkbookRegistry {
     /// The workbook map
     workbookMap: Map<number, WorkbookState>;
     /// The index to find workbooks associated with a connection id
@@ -47,8 +47,8 @@ export const WorkbookStateRegistry: React.FC<Props> = (props: Props) => {
     );
 };
 
-export function useWorkbookRegistry(): WorkbookRegistry {
-    return React.useContext(WORKBOOK_REGISTRY_CTX)![0];
+export function useWorkbookRegistry(): [WorkbookRegistry, Dispatch<SetWorkbookRegistryAction>] {
+    return React.useContext(WORKBOOK_REGISTRY_CTX)!;
 }
 
 export function useWorkbookStateAllocator(): WorkbookAllocator {

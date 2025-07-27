@@ -11,7 +11,7 @@ import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { Identicon } from './foundations/identicon.js';
 
 export function AppStats(props: { onClose: () => void; }) {
-    const workbookRegistry = useWorkbookRegistry();
+    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
     const [connReg, _modifyConnReg] = useConnectionRegistry();
 
     // Collect all workbooks

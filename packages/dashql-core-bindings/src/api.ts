@@ -1,6 +1,8 @@
 import * as buffers from './buffers.js';
 import * as flatbuffers from 'flatbuffers';
 
+import { VariantKind } from './variant.js';
+
 interface DashQLModuleExports {
     dashql_version: () => number;
     dashql_malloc: (length: number) => number;
@@ -64,9 +66,47 @@ interface FlatBufferObject<T, O> {
     unpack(): O;
 }
 
-const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
+const TEMPORARY = Symbol('TEMPORARY');
+const ANALYZED_SCRIPT_TYPE = Symbol('ANALYZED_SCRIPT_TYPE');
+const CATALOG_ENTRIES_TYPE = Symbol('CATALOG_ENTRIES_TYPE');
+const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
+const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
+const CURSOR_TYPE = Symbol('CURSOR_TYPE');
+const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
+const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
+const SCANNED_SCRIPT_TYPE = Symbol('SCANNED_SCRIPT_TYPE');
+const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYPE');
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
+const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
+const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
+
+export type DashQLRegisteredMemory =
+    VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
+    | VariantKind<typeof CATALOG_TYPE, Ptr<typeof CATALOG_TYPE>>
+    | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
+    | VariantKind<typeof ANALYZED_SCRIPT_TYPE, FlatBufferPtr<buffers.analyzer.AnalyzedScript>>
+    | VariantKind<typeof CATALOG_ENTRIES_TYPE, FlatBufferPtr<buffers.catalog.CatalogEntries>>
+    | VariantKind<typeof CATALOG_STATISTICS_TYPE, FlatBufferPtr<buffers.catalog.CatalogStatistics>>
+    | VariantKind<typeof COMPLETION_TYPE, FlatBufferPtr<buffers.completion.Completion>>
+    | VariantKind<typeof CURSOR_TYPE, FlatBufferPtr<buffers.cursor.ScriptCursor>>
+    | VariantKind<typeof FLAT_CATALOG_TYPE, FlatBufferPtr<buffers.catalog.FlatCatalog>>
+    | VariantKind<typeof PARSED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ParsedScript>>
+    | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
+    | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
+    | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
+    | VariantKind<typeof TEMPORARY, FlatBufferPtr<any>>
+    ;
+
+export interface DashQLRegisteredMemoryEntry {
+    value: DashQLRegisteredMemory;
+    epoch: number;
+};
+
+export interface DashQLMemoryLiveness {
+    alive: DashQLRegisteredMemoryEntry[];
+    dead: DashQLRegisteredMemoryEntry[];
+}
 
 export class DashQL {
     encoder: TextEncoder;
@@ -75,6 +115,8 @@ export class DashQL {
     instanceExports: DashQLModuleExports;
     memory: WebAssembly.Memory;
     nextScriptId: number;
+    registeredMemory: Map<number, DashQLRegisteredMemoryEntry>;
+    nextLivenessEpoch: number;
 
     public constructor(instance: WebAssembly.Instance) {
         this.encoder = new TextEncoder();
@@ -82,6 +124,8 @@ export class DashQL {
         this.instance = instance;
         this.memory = instance.exports['memory'] as unknown as WebAssembly.Memory;
         this.nextScriptId = 1;
+        this.registeredMemory = new Map();
+        this.nextLivenessEpoch = 0;
         this.instanceExports = {
             dashql_version: instance.exports['dashql_version'] as () => number,
             dashql_malloc: instance.exports['dashql_malloc'] as (length: number) => number,
@@ -262,6 +306,57 @@ export class DashQL {
         return [ptr, src.length];
     }
 
+    public registerMemory(ptr: DashQLRegisteredMemory) {
+        let key = null;
+        switch (ptr.type) {
+            case SCRIPT_TYPE:
+            case SCRIPT_REGISTRY_TYPE:
+            case CATALOG_TYPE:
+                key = ptr.value.resultPtr;
+                break;
+            case ANALYZED_SCRIPT_TYPE:
+            case CATALOG_ENTRIES_TYPE:
+            case COMPLETION_TYPE:
+            case CURSOR_TYPE:
+            case FLAT_CATALOG_TYPE:
+            case PARSED_SCRIPT_TYPE:
+            case SCANNED_SCRIPT_TYPE:
+            case SCRIPT_REGISTRY_COLUMN_INFO_TYPE:
+            case SCRIPT_STATISTICS_TYPE:
+                key = ptr.value.resultPtr;
+                break;
+        }
+        if (this.registeredMemory.has(key)) {
+            console.error("[WASM MEMORY] Detected double registration");
+        } else {
+            this.registeredMemory.set(key!, { value: ptr, epoch: 0 });
+        }
+    }
+    public unregisterMemory(resultPtr: number) {
+        if (!this.registeredMemory.has(resultPtr)) {
+            console.error("[WASM MEMORY] Detected double deletion");
+        } else {
+            this.registeredMemory.delete(resultPtr);
+        }
+    }
+    public acquireLivenessEpoch(): number {
+        return this.nextLivenessEpoch++;
+    }
+    public checkMemoryLiveness(epoch: number) {
+        const check: DashQLMemoryLiveness = {
+            alive: [],
+            dead: [],
+        };
+        for (const [_k, v] of this.registeredMemory) {
+            if (v.epoch == epoch) {
+                check.alive.push(v);
+            } else {
+                check.dead.push(v);
+            }
+        }
+        return check;
+    }
+
     public createScript(
         catalog: DashQLCatalog,
         catalogEntryId: number | null = null,
@@ -291,19 +386,25 @@ export class DashQL {
         const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
         const result = this.instanceExports.dashql_script_new(catalogPtr, catalogEntryId);
         const scriptPtr = this.readPtrResult(SCRIPT_TYPE, result);
-        return new DashQLScript(scriptPtr);
+        const script = new DashQLScript(scriptPtr);
+        this.registerMemory({ type: SCRIPT_TYPE, value: script.ptr });
+        return script;
     }
 
     public createCatalog(): DashQLCatalog {
         const result = this.instanceExports.dashql_catalog_new();
         const ptr = this.readPtrResult(CATALOG_TYPE, result);
-        return new DashQLCatalog(ptr);
+        const catalog = new DashQLCatalog(ptr);
+        this.registerMemory({ type: CATALOG_TYPE, value: catalog.ptr });
+        return catalog;
     }
 
     public createScriptRegistry(): DashQLScriptRegistry {
         const result = this.instanceExports.dashql_script_registry_new();
         const ptr = this.readPtrResult(SCRIPT_REGISTRY_TYPE, result);
-        return new DashQLScriptRegistry(ptr);
+        const registry = new DashQLScriptRegistry(ptr);
+        this.registerMemory({ type: SCRIPT_REGISTRY_TYPE, value: registry.ptr });
+        return registry;
     }
 
     public getVersionText(): string {
@@ -334,7 +435,7 @@ export class DashQL {
         }
     }
 
-    public readFlatBufferResult<T extends FlatBufferObject<T, O> = any, O = any>(resultPtr: number, factory: () => T) {
+    public readFlatBufferResult<T extends FlatBufferObject<T, O> = any, O = any>(sym: symbol, resultPtr: number, factory: () => T) {
         const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
         const heapU32 = new Uint32Array(this.memory.buffer);
@@ -342,7 +443,7 @@ export class DashQL {
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
         if (statusCode == buffers.status.StatusCode.OK) {
-            return new FlatBufferPtr<T>(this, resultPtr, dataPtr, dataLength, factory);
+            return new FlatBufferPtr<T>(sym, this, resultPtr, dataPtr, dataLength, factory);
         } else {
             const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
@@ -360,6 +461,26 @@ export class DashQL {
         const dataPtr = heapU32[resultPtrU32 + 2];
         if (statusCode == buffers.status.StatusCode.OK) {
             this.instanceExports.dashql_delete_result(resultPtr);
+        } else {
+            const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+            const error = this.decoder.decode(dataArray);
+            this.instanceExports.dashql_delete_result(resultPtr);
+            throw new Error(error);
+        }
+    }
+
+    public readStringResult(resultPtr: number) {
+        const heapU8 = new Uint8Array(this.memory.buffer);
+        const resultPtrU32 = resultPtr / 4;
+        const heapU32 = new Uint32Array(this.memory.buffer);
+        const statusCode = heapU32[resultPtrU32];
+        const dataLength = heapU32[resultPtrU32 + 1];
+        const dataPtr = heapU32[resultPtrU32 + 2];
+        if (statusCode == buffers.status.StatusCode.OK) {
+            const ptr = new FlatBufferPtr<any>(TEMPORARY, this, resultPtr, dataPtr, dataLength, () => null);
+            const text = ptr.api.decoder.decode(ptr.data);
+            ptr.destroy(false);
+            return text;
         } else {
             const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
@@ -390,6 +511,7 @@ export class Ptr<T extends symbol> {
     /// Delete the object
     public destroy() {
         if (this.resultPtr != null) {
+            this.api.unregisterMemory(this.resultPtr);
             this.api.instanceExports.dashql_delete_result(this.resultPtr);
             this.resultPtr = null;
         }
@@ -409,11 +531,18 @@ export class Ptr<T extends symbol> {
     public get(): number | null {
         return this.ptr;
     }
+    /// Mark a pointer alive in epoch
+    public markAliveInEpoch(epoch: number) {
+        const mem = this.api.registeredMemory.get(this.resultPtr);
+        mem.epoch = epoch;
+    }
 }
 
 export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
+    /// The object type
+    public readonly type: symbol;
     /// The DashQL api
-    api: DashQL;
+    public readonly api: DashQL;
     /// The result pointer
     resultPtr: number | null;
     /// The data pointer
@@ -423,7 +552,8 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     /// The factory
     factory: () => T;
 
-    public constructor(api: DashQL, resultPtr: number, dataPtr: number, dataLength: number, factory: () => T) {
+    public constructor(type: symbol, api: DashQL, resultPtr: number, dataPtr: number, dataLength: number, factory: () => T) {
+        this.type = type;
         this.api = api;
         this.resultPtr = resultPtr;
         this.dataPtr = dataPtr;
@@ -431,11 +561,14 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         this.factory = factory;
     }
     /// Delete the buffer
-    public destroy() {
+    public destroy(registered: boolean = true) {
         if (this.resultPtr) {
+            if (registered) {
+                this.api.unregisterMemory(this.resultPtr);
+            }
             this.api.instanceExports.dashql_delete_result(this.resultPtr);
+            this.resultPtr = null;
         }
-        this.resultPtr = null;
     }
     /// Get the data
     public get data(): Uint8Array {
@@ -467,6 +600,11 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         const out = obj.unpack();
         this.destroy();
         return out;
+    }
+    /// Mark a pointer alive in epoch
+    public markAliveInEpoch(epoch: number) {
+        const mem = this.api.registeredMemory.get(this.resultPtr);
+        mem.epoch = epoch;
     }
 }
 
@@ -524,10 +662,7 @@ export class DashQLScript {
     public toString(): string {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_to_string(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<any>(result, () => null);
-        const text = this.ptr.api.decoder.decode(resultBuffer.data);
-        resultBuffer.destroy();
-        return text;
+        return this.ptr.api.readStringResult(result);
     }
     /// Scan the script
     public scan() {
@@ -551,34 +686,41 @@ export class DashQLScript {
     public getScanned(): FlatBufferPtr<buffers.parser.ScannedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_scanned(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(result, () => new buffers.parser.ScannedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(SCANNED_SCRIPT_TYPE, result, () => new buffers.parser.ScannedScript());
+        this.ptr.api.registerMemory({ type: SCANNED_SCRIPT_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_parsed(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(result, () => new buffers.parser.ParsedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(PARSED_SCRIPT_TYPE, result, () => new buffers.parser.ParsedScript());
+        this.ptr.api.registerMemory({ type: PARSED_SCRIPT_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Get the analyzed script
     public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
         const scriptPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_script_get_analyzed(scriptPtr);
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(result, () => new buffers.analyzer.AnalyzedScript());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(ANALYZED_SCRIPT_TYPE, result, () => new buffers.analyzer.AnalyzedScript());
+        this.ptr.api.registerMemory({ type: ANALYZED_SCRIPT_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Move the cursor
     public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_move_cursor(scriptPtr, textOffset);
-        return this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(resultPtr, () => new buffers.cursor.ScriptCursor());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(CURSOR_TYPE, resultPtr, () => new buffers.cursor.ScriptCursor());
+        this.ptr.api.registerMemory({ type: CURSOR_TYPE, value: resultBuffer });
+        return resultBuffer;
     }
     /// Complete at the cursor position
     public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit);
-        return this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(resultPtr, () => new buffers.completion.Completion());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
+        this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
+        return resultBuffer;
     }
     /// Get the script statistics.
     /// Timings are useless in some browsers today.
@@ -588,7 +730,9 @@ export class DashQLScript {
     public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
         const scriptPtr = this.ptr.assertNotNull();
         const resultPtr = this.ptr.api.instanceExports.dashql_script_get_statistics(scriptPtr);
-        return this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(resultPtr, () => new buffers.statistics.ScriptStatistics());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(SCRIPT_STATISTICS_TYPE, resultPtr, () => new buffers.statistics.ScriptStatistics());
+        this.ptr.api.registerMemory({ type: SCRIPT_STATISTICS_TYPE, value: resultBuffer });
+        return resultBuffer;
     }
 }
 
@@ -613,20 +757,20 @@ export class DashQLCatalogSnapshotReader {
 }
 
 export class DashQLCatalogSnapshot {
-    snapshot: FlatBufferPtr<buffers.catalog.FlatCatalog>;
+    public ptr: FlatBufferPtr<buffers.catalog.FlatCatalog>;
     nameDictionary: (string | null)[];
 
     constructor(snapshot: FlatBufferPtr<buffers.catalog.FlatCatalog>) {
-        this.snapshot = snapshot;
+        this.ptr = snapshot;
         this.nameDictionary = [];
     }
     /// Delete a snapshot
     public destroy() {
-        this.snapshot.destroy();
+        this.ptr.destroy();
     }
     /// Read a snapshot
     public read(): DashQLCatalogSnapshotReader {
-        const reader = this.snapshot.read();
+        const reader = this.ptr.read();
         return new DashQLCatalogSnapshotReader(reader, this.nameDictionary);
     }
 }
@@ -664,13 +808,17 @@ export class DashQLCatalog {
     public describeEntries(): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries(catalogPtr);
-        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(result, () => new buffers.catalog.CatalogEntries());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(CATALOG_ENTRIES_TYPE, result, () => new buffers.catalog.CatalogEntries());
+        this.ptr.api.registerMemory({ type: CATALOG_ENTRIES_TYPE, value: resultBuffer });
+        return resultBuffer;
     }
     /// Describe catalog entries
     public describeEntriesOf(id: number): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries_of(catalogPtr, id);
-        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(result, () => new buffers.catalog.CatalogEntries());
+        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(CATALOG_ENTRIES_TYPE, result, () => new buffers.catalog.CatalogEntries());
+        this.ptr.api.registerMemory({ type: CATALOG_ENTRIES_TYPE, value: resultBuffer });
+        return resultBuffer;
     }
     /// Export a catalog snapshot
     public createSnapshot(): DashQLCatalogSnapshot {
@@ -679,8 +827,9 @@ export class DashQLCatalog {
         }
         const catalogPtr = this.ptr.assertNotNull();
         const result = this.ptr.api.instanceExports.dashql_catalog_flatten(catalogPtr);
-        const snapshot = this.ptr.api.readFlatBufferResult<buffers.catalog.FlatCatalog>(result, () => new buffers.catalog.FlatCatalog());
+        const snapshot = this.ptr.api.readFlatBufferResult<buffers.catalog.FlatCatalog>(FLAT_CATALOG_TYPE, result, () => new buffers.catalog.FlatCatalog());
         this.snapshot = new DashQLCatalogSnapshot(snapshot);
+        this.ptr.api.registerMemory({ type: FLAT_CATALOG_TYPE, value: snapshot });
         return this.snapshot;
     }
     /// Add a script in the registry
@@ -758,8 +907,10 @@ export class DashQLCatalog {
     /// Get the catalog statistics.
     public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {
         const catalogPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_catalog_get_statistics(catalogPtr);
-        return this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(resultPtr, () => new buffers.catalog.CatalogStatistics());
+        const result = this.ptr.api.instanceExports.dashql_catalog_get_statistics(catalogPtr);
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(SCRIPT_STATISTICS_TYPE, result, () => new buffers.catalog.CatalogStatistics());
+        this.ptr.api.registerMemory({ type: CATALOG_STATISTICS_TYPE, value: resultPtr });
+        return resultPtr;
     }
 }
 
@@ -855,7 +1006,8 @@ export class DashQLScriptRegistry {
             catalogVersion
         );
         // Unpack the result
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(result, () => new buffers.registry.ScriptRegistryColumnInfo());
-        return resultBuffer;
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(SCRIPT_REGISTRY_TYPE, result, () => new buffers.registry.ScriptRegistryColumnInfo());
+        this.ptr.api.registerMemory({ type: SCRIPT_REGISTRY_COLUMN_INFO_TYPE, value: resultPtr });
+        return resultPtr;
     }
 }

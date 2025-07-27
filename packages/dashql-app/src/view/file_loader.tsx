@@ -396,7 +396,7 @@ export function FileLoader(props: Props) {
     const allocateWorkbook = useWorkbookStateAllocator();
     const [progress, setProgress] = React.useState<ProgressState | null>(null);
     const [connReg, _setConnReg] = useConnectionRegistry();
-    const workbookReg = useWorkbookRegistry();
+    const [workbookReg, _modifyWorkbooks] = useWorkbookRegistry();
 
     React.useEffect(() => {
         const proxiedSetProgress = (value: ProgressState | null) => {

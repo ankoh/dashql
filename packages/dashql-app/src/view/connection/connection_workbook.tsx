@@ -8,7 +8,7 @@ export function useAnyConnectionWorkbook(connectionId: number | null): WorkbookS
     if (connectionId == null) {
         return null;
     }
-    const workbookRegistry = useWorkbookRegistry();
+    const [workbookRegistry, _modifyWorkbookRegistry] = useWorkbookRegistry();
     const workbooks: undefined | (number[]) = workbookRegistry.workbooksByConnection.get(connectionId);
     if (workbooks !== undefined && workbooks.length > 0) {
         return workbookRegistry.workbookMap.get(workbooks[0])!;

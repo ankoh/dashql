@@ -55,6 +55,7 @@
     display: grid;
     grid-template-columns: 1fr max-content;
     grid-column-gap: 16px;
+    grid-row-gap: 8px;
     align-items: center;
 }
 
@@ -63,4 +64,6 @@
 }
 .setting_switch {
     grid-column: 2;
+    display: flex;
+    justify-content: end;
 }

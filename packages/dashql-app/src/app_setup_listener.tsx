@@ -163,7 +163,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
     }, [appEvents]);
 
     // Effect to switch to default workbook after setup
-    const workbookRegistry = useWorkbookRegistry();
+    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
     const awaitWorkbooks = useAwaitStateChange(workbookRegistry);
 
     React.useEffect(() => {

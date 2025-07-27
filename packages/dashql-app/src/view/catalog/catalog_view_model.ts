@@ -810,7 +810,6 @@ export class CatalogViewModel {
             columnRestrictions,
             columnTransforms
         };
-        console.log(out);
         return out;
     }
 

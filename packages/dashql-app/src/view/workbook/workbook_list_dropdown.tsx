@@ -24,7 +24,7 @@ import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.
 export function WorkbookListDropdown(props: { className?: string; }) {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
-    const workbookRegistry = useWorkbookRegistry();
+    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
     const [selectedWorkbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
