@@ -407,7 +407,7 @@ interface FocusDecorationState {
     scriptKey: DashQLScriptKey | null;
     decorations: DecorationSet;
     scriptBuffers: DashQLScriptBuffers;
-    scriptCursor: dashql.buffers.cursor.ScriptCursorT | null;
+    scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
     derivedFocus: UserFocus | null;
 }
 

@@ -20,7 +20,7 @@ export interface DashQLSyncState {
     /// The previous processed script buffers (if any)
     scriptBuffers: DashQLScriptBuffers;
     /// The script cursor
-    scriptCursor: dashql.buffers.cursor.ScriptCursorT | null;
+    scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
     /// The derive focus info
     derivedFocus: UserFocus | null;
     // This callback is called when the editor updates the script
@@ -28,15 +28,17 @@ export interface DashQLSyncState {
         scriptKey: DashQLScriptKey,
         script: dashql.DashQLScript,
         scriptBuffers: DashQLScriptBuffers,
-        cursor: dashql.buffers.cursor.ScriptCursorT,
+        cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>,
     ) => void;
     // This callback is called when the editor updates the cursor
-    onCursorUpdate: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, cursor: dashql.buffers.cursor.ScriptCursorT) => void;
+    onCursorUpdate: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>) => void;
     // This callback is called when the editor completion is starting
-    onCompletionStart: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.buffers.completion.CompletionT) => void;
+    // Note that it's expected that you destroy completion pointers once the completion updates or ends.
+    onCompletionStart: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>) => void;
     // This callback is called when the user peeks a completion candidate
-    onCompletionPeek: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.buffers.completion.CompletionT, candidateId: number) => void;
-    // This callback is called when the editor completion is starting
+    onCompletionPeek: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number) => void;
+    // This callback is called when the editor completion is starting.
+    // Note that it's expected that you destroy completion pointers once the completion ends.
     onCompletionStop: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript) => void;
 }
 /// The DashQL script buffers
@@ -190,9 +192,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
                 );
                 // Analyze the new script
                 next.scriptBuffers = analyzeScript(next.targetScript!);
-                const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
-                next.scriptCursor = cursorBuffer.read().unpack();
-                cursorBuffer.destroy();
+                next.scriptCursor = next.targetScript!.moveCursor(selection ?? 0);
                 // Watch out, this passes ownership over the script buffers
                 next.onScriptUpdate(next.scriptKey, next.targetScript!, next.scriptBuffers, next.scriptCursor);
                 return next;
@@ -201,9 +201,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
             // This is the place where we handle events of normal cursor movements.
             if (cursorChanged) {
                 copyIfNotReplaced();
-                const cursorBuffer = next.targetScript!.moveCursor(selection ?? 0);
-                next.scriptCursor = cursorBuffer.read().unpack();
-                cursorBuffer.destroy();
+                next.scriptCursor = next.targetScript!.moveCursor(selection ?? 0);
                 next.onCursorUpdate(next.scriptKey, next.targetScript!, next.scriptCursor);
                 return next;
             }

@@ -15,7 +15,7 @@ export interface FocusedTableRef {
 
 export interface FocusedCompletion {
     /// The completion
-    completion: dashql.buffers.completion.CompletionT;
+    completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
     /// The index of the selected completion candidate
     completionCandidateIndex: number;
 }
@@ -63,8 +63,9 @@ export function deriveFocusFromScriptCursor(
     scriptRegistry: dashql.DashQLScriptRegistry,
     scriptKey: ScriptKey,
     scriptData: ScriptData,
-    cursor: dashql.buffers.cursor.ScriptCursorT,
+    cursorPtr: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>,
 ): UserFocus | null {
+    const cursor = cursorPtr.read();
     const tmpSourceAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpTargetAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
@@ -79,13 +80,13 @@ export function deriveFocusFromScriptCursor(
         return null;
     }
 
-    switch (cursor.contextType) {
+    switch (cursor.contextType()) {
         case dashql.buffers.cursor.ScriptCursorContext.ScriptCursorTableRefContext: {
-            const context = cursor.context as dashql.buffers.cursor.ScriptCursorTableRefContextT;
+            const context = cursor.context(new dashql.buffers.cursor.ScriptCursorTableRefContext());
             const focusTarget: FocusTarget = {
                 type: FOCUSED_TABLE_REF_ID,
                 value: {
-                    tableReference: dashql.ContextObjectID.create(scriptKey, context.tableReferenceId)
+                    tableReference: dashql.ContextObjectID.create(scriptKey, context.tableReferenceId())
                 }
             };
             const focus: UserFocus = {
@@ -96,7 +97,7 @@ export function deriveFocusFromScriptCursor(
                 scriptColumnRefs: new Map(),
             };
             // Is resolved?
-            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId, tmpTableRef)!;
+            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId(), tmpTableRef)!;
             const resolvedTable = sourceRef.resolvedTable(tmpResolvedTable);
             if (resolvedTable != null) {
                 // Focus in catalog
@@ -126,7 +127,7 @@ export function deriveFocusFromScriptCursor(
                         for (let indexEntryId = begin0; indexEntryId < end0; ++indexEntryId) {
                             const indexEntry = targetAnalyzed.resolvedTableReferencesById(indexEntryId, tmpIndexedTableRef)!;
                             const tableRefId = indexEntry.tableReferenceId();
-                            const focusType = (tableRefId == context.tableReferenceId) ? FocusType.TABLE_REF_UNDER_CURSOR : FocusType.TABLE_REF_OF_TARGET_TABLE;
+                            const focusType = (tableRefId == context.tableReferenceId()) ? FocusType.TABLE_REF_UNDER_CURSOR : FocusType.TABLE_REF_OF_TARGET_TABLE;
                             focus.scriptTableRefs.set(dashql.ContextObjectID.create(scriptKey, tableRefId), focusType);
                         }
 
@@ -149,11 +150,11 @@ export function deriveFocusFromScriptCursor(
             return focus;
         }
         case dashql.buffers.cursor.ScriptCursorContext.ScriptCursorColumnRefContext: {
-            const context = cursor.context as dashql.buffers.cursor.ScriptCursorColumnRefContextT;
+            const context = cursor.context(new dashql.buffers.cursor.ScriptCursorColumnRefContext());
             const focusTarget: FocusTarget = {
                 type: FOCUSED_EXPRESSION_ID,
                 value: {
-                    expression: dashql.ContextObjectID.create(scriptKey, context.expressionId)
+                    expression: dashql.ContextObjectID.create(scriptKey, context.expressionId())
                 }
             };
             const focus: UserFocus = {
@@ -396,7 +397,8 @@ export function deriveFocusFromCompletionCandidates(
     if (scriptData.completion == null) {
         return null;
     }
-    if (scriptData.completion.candidates.length == 0 || scriptData.selectedCompletionCandidate == null) {
+    const completion = scriptData.completion.read();
+    if (completion.candidates.length == 0 || scriptData.selectedCompletionCandidate == null) {
         return null;
     }
 
@@ -416,14 +418,16 @@ export function deriveFocusFromCompletionCandidates(
     };
 
     // Highlight only the selected completion candidate for now
-    const candidate = scriptData.completion.candidates[scriptData.selectedCompletionCandidate ?? 0];
-    for (const candidateObject of candidate.catalogObjects) {
-        switch (candidateObject.objectType) {
+    const candidate = completion.candidates(scriptData.selectedCompletionCandidate ?? 0)!;
+    const tmp = new dashql.buffers.completion.CompletionCandidateObject();
+    for (let i = 0; i < candidate.catalogObjectsLength(); ++i) {
+        const candidateObject = candidate.catalogObjects(i, tmp)!;
+        switch (candidateObject.objectType()) {
             case dashql.buffers.completion.CompletionCandidateObjectType.DATABASE:
                 focus.catalogObject = {
                     type: QUALIFIED_DATABASE_ID,
                     value: {
-                        database: candidateObject.catalogDatabaseId
+                        database: candidateObject.catalogDatabaseId()
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
@@ -432,8 +436,8 @@ export function deriveFocusFromCompletionCandidates(
                 focus.catalogObject = {
                     type: QUALIFIED_SCHEMA_ID,
                     value: {
-                        database: candidateObject.catalogDatabaseId,
-                        schema: candidateObject.catalogSchemaId
+                        database: candidateObject.catalogDatabaseId(),
+                        schema: candidateObject.catalogSchemaId()
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
@@ -442,10 +446,10 @@ export function deriveFocusFromCompletionCandidates(
                 focus.catalogObject = {
                     type: QUALIFIED_TABLE_ID,
                     value: {
-                        database: candidateObject.catalogDatabaseId,
-                        schema: candidateObject.catalogSchemaId,
-                        table: candidateObject.catalogTableId,
-                        referencedCatalogVersion: candidateObject.referencedCatalogVersion,
+                        database: candidateObject.catalogDatabaseId(),
+                        schema: candidateObject.catalogSchemaId(),
+                        table: candidateObject.catalogTableId(),
+                        referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
@@ -454,18 +458,18 @@ export function deriveFocusFromCompletionCandidates(
                 focus.catalogObject = {
                     type: QUALIFIED_TABLE_COLUMN_ID,
                     value: {
-                        database: candidateObject.catalogDatabaseId,
-                        schema: candidateObject.catalogSchemaId,
-                        table: candidateObject.catalogTableId,
-                        column: candidateObject.tableColumnId,
-                        referencedCatalogVersion: candidateObject.referencedCatalogVersion,
+                        database: candidateObject.catalogDatabaseId(),
+                        schema: candidateObject.catalogSchemaId(),
+                        table: candidateObject.catalogTableId(),
+                        column: candidateObject.tableColumnId(),
+                        referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
                     },
                     focus: FocusType.COMPLETION_CANDIDATE
                 };
                 focus.registryColumnInfo = scriptRegistry.findColumnInfo(
-                    candidateObject.catalogTableId,
-                    candidateObject.tableColumnId,
-                    candidateObject.referencedCatalogVersion,
+                    candidateObject.catalogTableId(),
+                    candidateObject.tableColumnId(),
+                    candidateObject.referencedCatalogVersion(),
                 );
                 break;
         }

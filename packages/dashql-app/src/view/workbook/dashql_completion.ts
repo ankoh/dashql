@@ -15,7 +15,7 @@ export interface DashQLCompletion extends Completion {
     /// The processor
     state: DashQLProcessorState;
     /// The completion buffer from core
-    coreCompletion: dashql.buffers.completion.CompletionT;
+    completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
     /// The current candidate id
     candidateId: number;
     /// The editor view for showing hints
@@ -41,13 +41,19 @@ const previewCompletion = (completion: Completion) => {
 
     // Call the existing preview function.
     // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
-    candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.coreCompletion, candidate.candidateId);
+    candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.completion, candidate.candidateId);
     return null;
 };
 
 const applyCompletion = (view: EditorView, completion: Completion, _from: number, _to: number) => {
     const c = completion as DashQLCompletion;
-    const candidate = c.coreCompletion.candidates[c.candidateId];
+    const coreCompletion = c.completion.read();
+    if (coreCompletion.candidatesLength() <= c.candidateId) {
+        console.warn("invalid candidate id");
+        return;
+    }
+    // Get the completion candidate
+    const candidate = coreCompletion.candidates(c.candidateId)!;
     if (!candidate.replaceTextAt) {
         console.warn("candidate replaceTextAt is null");
         return;
@@ -56,14 +62,16 @@ const applyCompletion = (view: EditorView, completion: Completion, _from: number
     const changes: ChangeSpec[] = [];
     // XXX The location of the trailing to might include eof?
     //     We shouldn't need to clamp here but should rather fix it on the wasm side
-    const replaceFrom = Math.min(candidate.replaceTextAt.offset, view.state.doc.length);
-    const replaceTo = Math.min(replaceFrom + candidate.replaceTextAt.length, view.state.doc.length);
+    const replaceTextAt = candidate.replaceTextAt()!;
+    const replaceFrom = Math.min(replaceTextAt.offset(), view.state.doc.length);
+    const replaceTo = Math.min(replaceFrom + replaceTextAt.length(), view.state.doc.length);
+    const completionText = candidate.completionText()!;
     changes.push({
         from: replaceFrom,
         to: replaceTo,
-        insert: candidate.completionText as string,
+        insert: completionText,
     });
-    const newCursor = replaceFrom + (candidate.completionText as string).length;
+    const newCursor = replaceFrom + completionText.length;
     view.dispatch({
         changes,
         selection: { anchor: newCursor },
@@ -79,19 +87,19 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
 
     let offset = context.pos;
     if (processor.targetScript !== null && processor.scriptCursor !== null) {
-        const relativePos = processor.scriptCursor.scannerRelativePosition;
+        const cursor = processor.scriptCursor.read();
+        const relativePos = cursor.scannerRelativePosition();
         const performCompletion =
             relativePos == dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
             relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
             relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
         if (performCompletion) {
-            const completionBuffer = processor.targetScript.completeAtCursor(COMPLETION_LIMIT);
-            const completion = completionBuffer.read().unpack();
-            completionBuffer.destroy();
-            for (let i = 0; i < completion.candidates.length; ++i) {
-                const candidate = completion.candidates[i];
+            const completionPtr = processor.targetScript.completeAtCursor(COMPLETION_LIMIT);
+            const completion = completionPtr.read();
+            for (let i = 0; i < completion.candidatesLength(); ++i) {
+                const candidate = completion.candidates(i)!;
                 let tagName: string | undefined = undefined;
-                for (const tag of unpackNameTags(candidate.nameTags)) {
+                for (const tag of unpackNameTags(candidate.nameTags())) {
                     tagName = getNameTagName(tag);
                     break;
                 }
@@ -101,19 +109,20 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
                 }
                 completions.push({
                     state: processor,
-                    coreCompletion: completion,
+                    completion: completionPtr,
                     candidateId: i,
                     view: context.view,
-                    label: candidate.completionText as string,
+                    label: candidate.completionText()!,
                     detail: candidateDetail,
                     info: previewCompletion,
                     apply: applyCompletion,
                 });
             }
-            offset = processor.scriptCursor.scannerSymbolOffset;
-            if (!processor.completionActive) {
-                processor.onCompletionStart(processor.scriptKey, processor.targetScript!, completion);
-            }
+            offset = cursor.scannerSymbolOffset();
+
+            // Note that this callback is responsible for storing the completionPtr.
+            // We are not cleaning up completion pointers!
+            processor.onCompletionStart(processor.scriptKey, processor.targetScript!, completionPtr);
         }
     }
 

@@ -235,8 +235,6 @@ export function CatalogViewer(props: Props) {
     }, [viewModelVersion, renderingWindow]);
 
 
-    // Build the catalog info entries
-    const catalogInfoEntries = useCatalogInfoEntries(workbook, script);
     // Resolve the latest full-refresh task
     const fullRefreshTask = React.useMemo<CatalogUpdateTaskState | null>(() => {
         const lastFullRefresh = conn?.catalogUpdates.lastFullRefresh ?? null;
@@ -310,98 +308,4 @@ export function CatalogViewer(props: Props) {
             </div>
         </div>
     );
-}
-
-function useCatalogInfoEntries(workbook: WorkbookState | null, script: ScriptData | null) {
-    // Collect overlay metrics
-    return React.useMemo<[string, string][]>(() => {
-        const overlay: [string, string][] = [];
-
-        // Inspect the cursor
-        const cursor = script?.cursor;
-        if (cursor && cursor.scannerSymbolId != U32_MAX) {
-            const scanned = script.processed.scanned?.read();
-            const tokens = scanned?.tokens();
-            const tokenTypes = tokens?.tokenTypesArray();
-            if (tokenTypes && cursor.scannerSymbolId < tokenTypes.length) {
-                const tokenType = tokenTypes[cursor.scannerSymbolId];
-                const tokenTypeName = dashql.getScannerTokenTypeName(tokenType);
-
-                overlay.push([
-                    "Token",
-                    tokenTypeName
-                ]);
-            }
-        }
-
-        // Is there a user focus?
-        const focusTarget = workbook?.userFocus?.focusTarget;
-        switch (focusTarget?.type) {
-            case FOCUSED_TABLE_REF_ID: {
-                const tableRefObject = focusTarget.value.tableReference;
-                const scriptKey = dashql.ContextObjectID.getContext(tableRefObject);
-                const tableRefId = dashql.ContextObjectID.getObject(tableRefObject);
-                const scriptData = workbook?.scripts[scriptKey];
-                const analyzed = scriptData?.processed.analyzed;
-                if (analyzed) {
-                    const analyzedPtr = analyzed.read();
-                    const tableRef = analyzedPtr.tableReferences(tableRefId)!;
-                    const resolved = tableRef.resolvedTable()!;
-                    if (resolved == null) {
-                        overlay.push(["Table", "<unresolved>"]);
-                    } else {
-                        const tableName = resolved.tableName();
-                        overlay.push(["Table", tableName?.tableName() ?? ""]);
-                    }
-                }
-                break;
-            }
-            case FOCUSED_EXPRESSION_ID: {
-                const expressionObject = focusTarget.value.expression;
-                const scriptKey = dashql.ContextObjectID.getContext(expressionObject);
-                const expressionId = dashql.ContextObjectID.getObject(expressionObject);
-                const scriptData = workbook?.scripts[scriptKey];
-                const analyzed = scriptData?.processed.analyzed;
-                if (analyzed) {
-                    const analyzedPtr = analyzed.read();
-                    const expression = analyzedPtr.expressions(expressionId)!;
-                    switch (expression.innerType()) {
-                        case dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression: {
-                            const inner = new dashql.buffers.algebra.ColumnRefExpression();
-                            expression.inner(inner) as dashql.buffers.algebra.ColumnRefExpression;
-                            const resolved = inner.resolvedColumn();
-                            if (resolved == null) {
-                                overlay.push(["Expression", "column reference"]);
-                                overlay.push(["Column", "<unresolved>"]);
-                            } else {
-                                overlay.push(["Expression", "column reference"]);
-                                const columnName = inner.columnName();
-                                overlay.push(["Column", columnName?.columnName() ?? ""]);
-                            }
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-            case FOCUSED_COMPLETION: {
-                switch (focusTarget.value.completion.strategy) {
-                    case dashql.buffers.completion.CompletionStrategy.DEFAULT:
-                        overlay.push(["Completion", "Default"]);
-                        break;
-                    case dashql.buffers.completion.CompletionStrategy.TABLE_REF:
-                        overlay.push(["Completion", "Table Reference"]);
-                        break;
-                    case dashql.buffers.completion.CompletionStrategy.COLUMN_REF:
-                        overlay.push(["Completion", "Column Reference"]);
-                        break;
-                }
-                const completionCandidate = focusTarget.value.completion.candidates[focusTarget.value.completionCandidateIndex];
-                overlay.push(["Candidate Score", `${completionCandidate.score}`]);
-                break;
-            }
-        }
-
-        return overlay;
-    }, [workbook?.userFocus, script?.cursor]);
 }

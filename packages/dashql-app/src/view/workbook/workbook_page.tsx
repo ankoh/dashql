@@ -204,7 +204,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
     }, [props.script.cursor, view, catalogOverlayRef.current]);
 
     React.useEffect(() => {
-        if (props.script.cursor == null || props.script.cursor.contextType == core.buffers.cursor.ScriptCursorContext.NONE) {
+        if (props.script.cursor == null || props.script.cursor.read().contextType() == core.buffers.cursor.ScriptCursorContext.NONE) {
             if (pinState != PinState.PinnedByUser) {
                 setPinState(PinState.Hide);
             }

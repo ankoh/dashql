@@ -114,13 +114,13 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     // Did the cursor change?
     let selection: EditorSelection | null = null;
     if (state.scriptCursor !== scriptData.cursor) {
-        selection = EditorSelection.create([EditorSelection.cursor(scriptData.cursor?.textOffset ?? 0)]);
+        selection = EditorSelection.create([EditorSelection.cursor(scriptData.cursor?.read().textOffset() ?? 0)]);
     }
 
     // Helper to update a script.
     // Called when the script gets updated by the CodeMirror extension.
     // Note that this is also called when the state is set up initially.
-    const updateScript = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, buffers: DashQLScriptBuffers, cursor: dashql.buffers.cursor.ScriptCursorT) => {
+    const updateScript = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, buffers: DashQLScriptBuffers, cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>) => {
         modifyWorkbook({
             type: UPDATE_SCRIPT_ANALYSIS,
             value: [scriptKey, buffers, cursor],
@@ -130,7 +130,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     // Helper to update a script cursor.
     // Called when the cursor gets updated by the CodeMirror extension.
     // Note that this is also called when the state is set up initially.
-    const updateCursor = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, cursor: dashql.buffers.cursor.ScriptCursorT) => {
+    const updateCursor = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>) => {
         modifyWorkbook({
             type: UPDATE_SCRIPT_CURSOR,
             value: [scriptKey, cursor],
@@ -138,7 +138,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     };
     // Helper to start a completion.
     // Called when the CodeMirror extension opens the completion dropdown.
-    const startCompletion = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.buffers.completion.CompletionT) => {
+    const startCompletion = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>) => {
         modifyWorkbook({
             type: COMPLETION_STARTED,
             value: [scriptKey, completion],
@@ -146,7 +146,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     };
     // Helper to peek a completion candidate
     // Called when the CodeMirror extension changes the selected completion.
-    const peekCompletionCandidate = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.buffers.completion.CompletionT, candidateId: number) => {
+    const peekCompletionCandidate = (scriptKey: DashQLScriptKey, _script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number) => {
         modifyWorkbook({
             type: COMPLETION_CHANGED,
             value: [scriptKey, completion, candidateId],

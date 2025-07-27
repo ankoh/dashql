@@ -448,6 +448,10 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         copy.set(this.data);
         return copy;
     }
+    /// Equals a different flatbuffer ptr?
+    public equals(other: FlatBufferPtr<T>): boolean {
+        return this.resultPtr == other.resultPtr;
+    }
     // Get the flatbuffer object
     // C.f. getRootAsAnalyzedScript
     public read(obj: T | null = null): T {

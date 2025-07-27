@@ -158,48 +158,59 @@ export function showCompletionHint(candidate: DashQLCompletion) {
     const view = candidate.view;
     if (!view) return;
 
+    const completion = candidate.completion.read();
+    if (completion.candidatesLength() <= candidate.candidateId) {
+        return;
+    }
+
     // Show inline completion hint.
-    const candidateData = candidate.coreCompletion.candidates[candidate.candidateId];
-    if (candidateData.completionText && candidateData.replaceTextAt && candidate.view) {
-        const currentPos = candidate.view.state.selection.main.head;
-        const replaceFrom = candidateData.replaceTextAt.offset;
-        const replaceTo = replaceFrom + candidateData.replaceTextAt.length;
+    const candidateData = completion.candidates(candidate.candidateId)!;
+    const candidateText = candidateData.completionText();
+    const replaceTextAt = candidateData.replaceTextAt();
+    if (candidateText && replaceTextAt && candidate.view) {
+        const _cursorPos = candidate.view.state.selection.main.head;
+        const replaceFrom = replaceTextAt.offset();
+        const replaceTo = replaceFrom + replaceTextAt.length();
 
-        // Only show hint if cursor is at the replacement position
-        if (currentPos >= replaceFrom && currentPos <= replaceTo) {
-            // Calculate the hint text (part that would be inserted after current cursor)
-            const currentText = candidate.view.state.doc.sliceString(replaceFrom, currentPos);
-            const fullText = candidateData.completionText as string;
+        // XXX Wouldn't we rather track it as currentTokenStart or so?
+        //     replaceFrom sounds dangerous.
 
-            if (fullText.startsWith(currentText)) {
-                const hintText = fullText.slice(currentText.length);
-                if (hintText.length > 0) {
-                    const view = candidate.view!;
-                    setTimeout(() => {
-                        if (view.state.selection.main.head === currentPos) {
-                            view.dispatch({
-                                effects: SET_COMPLETION_HINTS.of({
-                                    candidate: {
-                                        hint: {
-                                            at: currentPos,
-                                            text: hintText
-                                        }
-                                    },
-                                    extended: {
-                                        hintPrefix: {
-                                            at: replaceFrom,
-                                            text: "[prefix]"
-                                        },
-                                        hintSuffix: {
-                                            at: replaceTo,
-                                            text: "[suffix]"
-                                        }
-                                    }
-                                })
-                            });
-                        }
-                    }, 0);
+        // Calculate the hint text (part that would be inserted after current cursor)
+        const currentText = candidate.view.state.doc.sliceString(replaceFrom, replaceTo);
+
+        if (candidateText.startsWith(currentText)) {
+            const hintText = candidateText.slice(currentText.length);
+            if (hintText.length > 0) {
+                const view = candidate.view!;
+                const candidateCompletion: CandidateCompletion = {
+                    hint: {
+                        at: replaceTo,
+                        text: hintText
+                    }
+                };
+                if (candidateData.completionTemplatesLength() > 0) {
+                    const template = candidateData.completionTemplates(0)!;
+                    if (template.snippetsLength() > 0) {
+                        const _snippet = template.snippets(0);
+                    }
                 }
+                setTimeout(() => {
+                    view.dispatch({
+                        effects: SET_COMPLETION_HINTS.of({
+                            candidate: candidateCompletion,
+                            extended: {
+                                hintPrefix: {
+                                    at: replaceFrom,
+                                    text: "[prefix]"
+                                },
+                                hintSuffix: {
+                                    at: replaceTo,
+                                    text: "[suffix]"
+                                }
+                            }
+                        })
+                    });
+                }, 0);
             }
         }
     }
