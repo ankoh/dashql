@@ -16,7 +16,7 @@ jobs:
             pages: write
             id-token: write
         steps:
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_pwa_pages
                   path: ./page
@@ -37,17 +37,17 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ github.event.inputs.commit || github.sha }}
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_pack_linux
                   path: ${{ github.workspace }}/.bin/
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_native_macos_dmg
                   path: ${{ github.workspace }}/target/universal-apple-darwin/release/bundle/dmg/
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_native_macos_update
                   path: ${{ github.workspace }}/target/release/bundle/macos/

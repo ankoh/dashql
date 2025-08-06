@@ -201,7 +201,7 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ github.event.inputs.sha || github.sha }}
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_core_wasm_o3
                   path: ${{ github.workspace }}/packages/dashql-core/build/wasm/o3/
@@ -372,17 +372,17 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ github.event.inputs.sha || github.sha }}
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_pack_linux
                   path: ${{ github.workspace }}/.bin/
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_core
                   path: ${{ github.workspace }}/packages/dashql-core-bindings/dist
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                   name: dashql_compute_wasm_o3
                   path: ${{ github.workspace }}/packages/dashql-compute/dist
@@ -436,17 +436,17 @@ jobs:
                 fetch-depth: 0
                 ref: ${{ github.event.inputs.sha || github.sha }}
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                 name: dashql_pack_macos
                 path: ${{ github.workspace }}/.bin/
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                 name: dashql_core
                 path: ${{ github.workspace }}/packages/dashql-core-bindings/dist
 
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v5
               with:
                 name: dashql_pwa_reloc
                 path: ${{ github.workspace }}/packages/dashql-app/build/reloc
