@@ -20,7 +20,7 @@ console_error_panic_hook = "0.1.7"
 
 log = "0.4.27"
 chrono = { version = "0.4.41", features = ["wasmbind"] }
-anyhow = "1.0.98"
+anyhow = "1.0.99"
 
 getrandom_2 = { package = "getrandom", version = "0.2", features = ["js"] }
 getrandom_3 = { package = "getrandom", version = "0.3.3", features = ["wasm_js"] }
@@ -57,7 +57,7 @@ pretty_assertions = "1.4.1"
 indoc = "2.0.6"
 
 [build-dependencies]
-anyhow = "1.0.98"
+anyhow = "1.0.99"
 regex = "1.11.1"
 prost-build = "0.13.3"
 
