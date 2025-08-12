@@ -160,7 +160,8 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
 }
 
 /// Helper to add a snippets to grouped snippets
-static void addSnippetToGroup(ScriptSnippet snippet, ScriptRegistry::SnippetMap& snippets) {
+static bool addSnippetToGroup(ScriptSnippet snippet, ScriptRegistry::SnippetMap& snippets,
+                              bool deduplicate_similar = false) {
     auto snippet_ptr = std::make_unique<ScriptSnippet>(std::move(snippet));
     auto& snippet_ref = *snippet_ptr;
     auto snippet_key = ScriptSnippet::Key<true>{snippet_ref};
@@ -168,13 +169,21 @@ static void addSnippetToGroup(ScriptSnippet snippet, ScriptRegistry::SnippetMap&
     // Did we index a similar snippet already?
     auto iter = snippets.find(snippet_key);
     if (iter != snippets.end()) {
-        iter->second.push_back(std::move(snippet_ptr));
+        // Deduplicate snippets eagerly
+        if (iter->second.back()->Equals(*snippet_ptr, deduplicate_similar)) {
+            return false;
+        } else {
+            // Otherwise remember the snippet
+            iter->second.push_back(std::move(snippet_ptr));
+            return true;
+        }
     } else {
         // Otherwise start a new entry
         std::vector<std::unique_ptr<ScriptSnippet>> same_key;
         same_key.reserve(1);
         same_key.push_back(std::move(snippet_ptr));
         snippets.insert({snippet_key, std::move(same_key)});
+        return true;
     }
 };
 
@@ -262,8 +271,10 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
     return info_builder.Finish();
 }
 
-void ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnID column_id,
-                                               std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
+size_t ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnID column_id,
+                                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
+                                                 bool deduplicate_similar) {
+    size_t n = 0;
     auto restrictions = FindColumnRestrictions(table_id, column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
         auto& root = restriction_ref.get().root.get();
@@ -274,12 +285,15 @@ void ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnI
         auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
-        addSnippetToGroup(std::move(snippet), out);
+        n += addSnippetToGroup(std::move(snippet), out, deduplicate_similar);
     }
+    return n;
 }
 
-void ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID column_id,
-                                             std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
+size_t ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID column_id,
+                                               std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
+                                               bool deduplicate_similar) {
+    size_t n = 0;
     auto transforms = FindColumnTransforms(table_id, column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, restriction_ref] : transforms) {
         auto& root = restriction_ref.get().root.get();
@@ -290,8 +304,9 @@ void ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID 
         auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
-        addSnippetToGroup(std::move(snippet), out);
+        n += addSnippetToGroup(std::move(snippet), out, deduplicate_similar);
     }
+    return n;
 }
 
 }  // namespace dashql

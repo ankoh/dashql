@@ -3,6 +3,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/script.h"
+#include "dashql/script_snippet.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/topk.h"
 
@@ -56,6 +57,13 @@ struct Completion {
                                           fuzzy_ci_string_view{other.name.data(), other.name.size()}));
         }
     };
+    /// A candidate that was picked
+    struct ResultCandidate : public Candidate {
+        /// The column restriction snippets
+        std::vector<std::unique_ptr<ScriptSnippet>> restriction_snippets;
+        /// The column transform snippets
+        std::vector<std::unique_ptr<ScriptSnippet>> transform_snippets;
+    };
 
     /// A name component type
     enum NameComponentType { Name, Star, TrailingDot, Index };
@@ -92,6 +100,8 @@ struct Completion {
 
     /// The result heap, holding up to k entries
     TopKHeap<Candidate> result_heap;
+    /// The top result candidates
+    std::vector<ResultCandidate> result_candidates;
 
     /// Read the name path of the current cursor
     std::vector<Completion::NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
@@ -108,6 +118,8 @@ struct Completion {
     void AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols);
     /// Flush pending candidates and finish the results
     void FlushCandidatesAndFinish();
+    /// Find identifier snippets for results (after flushing)
+    void FindIdentifierSnippetsForResults(ScriptRegistry& registry);
 
    public:
     /// Constructor

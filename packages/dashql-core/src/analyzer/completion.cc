@@ -141,20 +141,23 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
     auto& nodes = cursor.script.parsed_script->nodes;
 
-    std::optional<uint32_t> name_ast_node_id = std::visit([&](const auto& ctx) -> std::optional<uint32_t> {
-        using T = std::decay_t<decltype(ctx)>;
-        if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
-            auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
-            assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
-            return std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner).table_name.ast_node_id;
-        } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
-            auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
-            assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
-            return std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
-        } else {
-            return std::nullopt;
-        }
-    }, cursor.context);
+    std::optional<uint32_t> name_ast_node_id = std::visit(
+        [&](const auto& ctx) -> std::optional<uint32_t> {
+            using T = std::decay_t<decltype(ctx)>;
+            if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
+                auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
+                assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
+                return std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner)
+                    .table_name.ast_node_id;
+            } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
+                auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
+                assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
+                return std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
+            } else {
+                return std::nullopt;
+            }
+        },
+        cursor.context);
 
     // Couldn't find an ast name path?
     if (!name_ast_node_id.has_value()) {
@@ -706,26 +709,6 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
 }
 
 void Completion::FlushCandidatesAndFinish() {
-    // Helper to check if two locations overlap.
-    // Two ranges overlap if the sum of their widths exceeds the (max - min).
-    auto intersects = [](const sx::parser::Location& l, const sx::parser::Location& r) {
-        auto l_begin = l.offset();
-        auto l_end = l_begin + l.length();
-        auto r_begin = r.offset();
-        auto r_end = r_begin + r.length();
-        auto min = std::min(l_begin, r_begin);
-        auto max = std::max(l_end, r_end);
-        auto l_width = l_end - l_begin;
-        auto r_width = r_end - r_begin;
-        return (max - min) < (l_width + r_width);
-    };
-
-    // Find name if under cursor (if any)
-    sx::parser::Location current_symbol_location;
-    if (auto& location = cursor.scanner_location; location.has_value()) {
-        current_symbol_location = location->symbol.location;
-    }
-
     // Resolve the scoring table
     auto& base_scoring_table = selectNameScoringTable(strategy);
 
@@ -773,19 +756,73 @@ void Completion::FlushCandidatesAndFinish() {
 
     // Finish the heap
     result_heap.Finish();
+
+    // Collect result entries
+    auto& entries = result_heap.GetEntries();
+    result_candidates.reserve(entries.size());
+    for (auto& entry : entries) {
+        result_candidates.emplace_back(entry);
+    }
+}
+
+void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
+    ScriptRegistry::SnippetMap restrictions;
+    ScriptRegistry::SnippetMap transforms;
+
+    for (auto& entry : result_candidates) {
+        size_t total_restrictions = 0;
+        size_t total_transforms = 0;
+        restrictions.clear();
+        transforms.clear();
+
+        // Process all catalog objects for a result candidate
+        for (auto& obj : entry.catalog_objects) {
+            switch (obj.catalog_object.object_type) {
+                case CatalogObjectType::ColumnDeclaration: {
+                    auto& column = obj.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
+                    auto& table = column.table->get();
+
+                    total_restrictions += registry.CollectColumnRestrictions(
+                        table.catalog_table_id, column.column_index, std::nullopt, restrictions);
+                    total_transforms += registry.CollectColumnTransforms(table.catalog_table_id, column.column_index,
+                                                                         std::nullopt, transforms);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+
+        // Flatten restrictions
+        entry.restriction_snippets.reserve(total_restrictions);
+        for (auto& [k, vs] : restrictions) {
+            for (auto& v : vs) {
+                entry.restriction_snippets.push_back(std::move(v));
+            }
+        }
+        // Flatten transforms
+        entry.transform_snippets.reserve(total_transforms);
+        for (auto& [k, vs] : transforms) {
+            for (auto& v : vs) {
+                entry.transform_snippets.push_back(std::move(v));
+            }
+        }
+    }
 }
 
 static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
-    return std::visit([](const auto& ctx) -> buffers::completion::CompletionStrategy {
-        using T = std::decay_t<decltype(ctx)>;
-        if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
-            return buffers::completion::CompletionStrategy::TABLE_REF;
-        } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
-            return buffers::completion::CompletionStrategy::COLUMN_REF;
-        } else {
-            return buffers::completion::CompletionStrategy::DEFAULT;
-        }
-    }, cursor.context);
+    return std::visit(
+        [](const auto& ctx) -> buffers::completion::CompletionStrategy {
+            using T = std::decay_t<decltype(ctx)>;
+            if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
+                return buffers::completion::CompletionStrategy::TABLE_REF;
+            } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
+                return buffers::completion::CompletionStrategy::COLUMN_REF;
+            } else {
+                return buffers::completion::CompletionStrategy::DEFAULT;
+            }
+        },
+        cursor.context);
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
@@ -894,7 +931,12 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         // Promote names of all tables that could resolve an unresolved column
         completion->PromoteTablesAndPeersForUnresolvedColumns();
     }
+    // Add all candidates to the result heap
     completion->FlushCandidatesAndFinish();
+    // Find identifier snippets for the completion result
+    if (registry) {
+        completion->FindIdentifierSnippetsForResults(*registry);
+    }
 
     // Register as normal completion
     return {std::move(completion), buffers::status::StatusCode::OK};

@@ -107,11 +107,13 @@ class ScriptRegistry {
     using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
 
     // Collect column restrictions
-    void CollectColumnRestrictions(ContextObjectID table, ColumnID column_id,
-                                   std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
+    size_t CollectColumnRestrictions(ContextObjectID table, ColumnID column_id,
+                                     std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
+                                     bool deduplicate_similar = false);
     // Collect column transforms
-    void CollectColumnTransforms(ContextObjectID table, ColumnID column_id,
-                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
+    size_t CollectColumnTransforms(ContextObjectID table, ColumnID column_id,
+                                   std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
+                                   bool deduplicate_similar = false);
 };
 
 }  // namespace dashql

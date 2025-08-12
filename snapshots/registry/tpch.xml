@@ -99,22 +99,6 @@ limit
                                 </node>
                             </nodes>
                         </snippet>
-                        <snippet template="7878761948638532652" raw="8251145953384635132">
-                            <text>r_name = 'EUROPE'</text>
-                            <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="r_name = 'EUROPE'">
-                                        <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="r_name">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="r_name">
-                                                <node type="NAME" loc="0..6" text="r_name" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                                </node>
-                            </nodes>
-                        </snippet>
                     </template>
                 </templates>
             </column-restrictions>
