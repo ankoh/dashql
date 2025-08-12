@@ -766,15 +766,7 @@ void Completion::FlushCandidatesAndFinish() {
 }
 
 void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
-    ScriptRegistry::SnippetMap restrictions;
-    ScriptRegistry::SnippetMap transforms;
-
     for (auto& entry : result_candidates) {
-        size_t total_restrictions = 0;
-        size_t total_transforms = 0;
-        restrictions.clear();
-        transforms.clear();
-
         // Process all catalog objects for a result candidate
         for (auto& obj : entry.catalog_objects) {
             switch (obj.catalog_object.object_type) {
@@ -782,29 +774,14 @@ void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
                     auto& column = obj.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& table = column.table->get();
 
-                    total_restrictions += registry.CollectColumnRestrictions(
-                        table.catalog_table_id, column.column_index, std::nullopt, restrictions);
-                    total_transforms += registry.CollectColumnTransforms(table.catalog_table_id, column.column_index,
-                                                                         std::nullopt, transforms);
+                    registry.CollectColumnRestrictions(table.catalog_table_id, column.column_index, std::nullopt,
+                                                       entry.restriction_snippets);
+                    registry.CollectColumnTransforms(table.catalog_table_id, column.column_index, std::nullopt,
+                                                     entry.transform_snippets);
                     break;
                 }
                 default:
                     break;
-            }
-        }
-
-        // Flatten restrictions
-        entry.restriction_snippets.reserve(total_restrictions);
-        for (auto& [k, vs] : restrictions) {
-            for (auto& v : vs) {
-                entry.restriction_snippets.push_back(std::move(v));
-            }
-        }
-        // Flatten transforms
-        entry.transform_snippets.reserve(total_transforms);
-        for (auto& [k, vs] : transforms) {
-            for (auto& v : vs) {
-                entry.transform_snippets.push_back(std::move(v));
             }
         }
     }
@@ -943,11 +920,14 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
 }
 
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
-    auto& entries = result_heap.GetEntries();
+    auto& entries = result_candidates;
 
     // Reservie for packed candidates
     std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidates;
     candidates.reserve(entries.size());
+
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> script_snippets;
 
     // Pack candidates
     for (auto iter_entry = entries.rbegin(); iter_entry != entries.rend(); ++iter_entry) {
@@ -1002,26 +982,58 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             }
             catalog_objects.push_back(obj.Finish());
         }
+
+        // Pack script templates
+        script_templates.clear();
+        script_templates.reserve(iter_entry->restriction_snippets.size() + iter_entry->transform_snippets.size());
+
+        auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets,
+                                     buffers::snippet::ScriptTemplateType type,
+                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
+                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
+            for (auto& [k, vs] : iter_entry->restriction_snippets) {
+                assert(!vs.empty());
+                tmp_snippets.clear();
+                tmp_snippets.reserve(vs.size());
+                for (auto& v : vs) {
+                    tmp_snippets.push_back(v->Pack(builder));
+                }
+                auto script_snippets_ofs = builder.CreateVector(tmp_snippets);
+
+                buffers::snippet::ScriptTemplateBuilder template_builder{builder};
+                template_builder.add_template_signature(k.signature);
+                template_builder.add_template_type(type);
+                template_builder.add_snippets(script_snippets_ofs);
+                out.push_back(template_builder.Finish());
+            }
+        };
+        collect_templates(iter_entry->restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION,
+                          script_templates, script_snippets);
+        collect_templates(iter_entry->transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM,
+                          script_templates, script_snippets);
+        auto templates_ofs = builder.CreateVector(script_templates);
+
         auto catalog_objects_ofs = builder.CreateVector(catalog_objects);
         auto completion_text_ofs = builder.CreateString(completion_text);
-        buffers::completion::CompletionCandidateBuilder candidateBuilder{builder};
-        candidateBuilder.add_display_text(display_text_offset);
-        candidateBuilder.add_completion_text(completion_text_ofs);
-        candidateBuilder.add_candidate_tags(iter_entry->candidate_tags);
-        candidateBuilder.add_name_tags(iter_entry->coarse_name_tags);
-        candidateBuilder.add_catalog_objects(catalog_objects_ofs);
-        candidateBuilder.add_score(iter_entry->score);
-        candidateBuilder.add_replace_text_at(&iter_entry->replace_text_at);
-        candidates.push_back(candidateBuilder.Finish());
+        buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
+        candidate_builder.add_display_text(display_text_offset);
+        candidate_builder.add_completion_text(completion_text_ofs);
+        candidate_builder.add_candidate_tags(iter_entry->candidate_tags);
+        candidate_builder.add_name_tags(iter_entry->coarse_name_tags);
+        candidate_builder.add_catalog_objects(catalog_objects_ofs);
+        candidate_builder.add_score(iter_entry->score);
+        candidate_builder.add_replace_text_at(&iter_entry->replace_text_at);
+        candidate_builder.add_completion_templates(templates_ofs);
+        candidates.push_back(candidate_builder.Finish());
     }
     auto candidatesOfs = builder.CreateVector(candidates);
 
     // Pack completion table
-    buffers::completion::CompletionBuilder completionBuilder{builder};
-    completionBuilder.add_text_offset(cursor.text_offset);
-    completionBuilder.add_strategy(strategy);
-    completionBuilder.add_candidates(candidatesOfs);
-    return completionBuilder.Finish();
+    buffers::completion::CompletionBuilder completion_builder{builder};
+    completion_builder.add_text_offset(cursor.text_offset);
+    completion_builder.add_strategy(strategy);
+    completion_builder.add_candidates(candidatesOfs);
+    return completion_builder.Finish();
 }
 
 }  // namespace dashql

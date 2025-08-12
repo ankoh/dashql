@@ -3,7 +3,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/script.h"
-#include "dashql/script_snippet.h"
+#include "dashql/script_registry.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/topk.h"
 
@@ -60,9 +60,9 @@ struct Completion {
     /// A candidate that was picked
     struct ResultCandidate : public Candidate {
         /// The column restriction snippets
-        std::vector<std::unique_ptr<ScriptSnippet>> restriction_snippets;
+        ScriptRegistry::SnippetMap restriction_snippets;
         /// The column transform snippets
-        std::vector<std::unique_ptr<ScriptSnippet>> transform_snippets;
+        ScriptRegistry::SnippetMap transform_snippets;
     };
 
     /// A name component type

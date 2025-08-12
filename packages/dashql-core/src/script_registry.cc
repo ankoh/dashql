@@ -271,10 +271,8 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
     return info_builder.Finish();
 }
 
-size_t ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnID column_id,
-                                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
-                                                 bool deduplicate_similar) {
-    size_t n = 0;
+void ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, ColumnID column_id,
+                                               std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
     auto restrictions = FindColumnRestrictions(table_id, column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
         auto& root = restriction_ref.get().root.get();
@@ -285,14 +283,12 @@ size_t ScriptRegistry::CollectColumnRestrictions(ContextObjectID table_id, Colum
         auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
-        n += addSnippetToGroup(std::move(snippet), out, deduplicate_similar);
+        addSnippetToGroup(std::move(snippet), out);
     }
-    return n;
 }
 
-size_t ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID column_id,
-                                               std::optional<CatalogVersion> target_catalog_version, SnippetMap& out,
-                                               bool deduplicate_similar) {
+void ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnID column_id,
+                                             std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
     size_t n = 0;
     auto transforms = FindColumnTransforms(table_id, column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, restriction_ref] : transforms) {
@@ -304,9 +300,8 @@ size_t ScriptRegistry::CollectColumnTransforms(ContextObjectID table_id, ColumnI
         auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
                                               root.ast_node_id, scanned.GetNames());
 
-        n += addSnippetToGroup(std::move(snippet), out, deduplicate_similar);
+        addSnippetToGroup(std::move(snippet), out);
     }
-    return n;
 }
 
 }  // namespace dashql
