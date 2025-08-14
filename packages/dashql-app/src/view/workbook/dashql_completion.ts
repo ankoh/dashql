@@ -94,7 +94,7 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
             relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
             relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
         if (performCompletion) {
-            const completionPtr = processor.targetScript.completeAtCursor(COMPLETION_LIMIT);
+            const completionPtr = processor.targetScript.completeAtCursor(COMPLETION_LIMIT, processor.scriptRegistry);
             const completion = completionPtr.read();
             for (let i = 0; i < completion.candidatesLength(); ++i) {
                 const candidate = completion.candidates(i)!;

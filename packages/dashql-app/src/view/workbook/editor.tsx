@@ -168,6 +168,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
             config: {
                 showCompletionDetails: config?.settings?.showCompletionDetails ?? false,
             },
+            scriptRegistry: workbook.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             targetScript: scriptData.script,
             scriptBuffers: scriptData.processed,

@@ -20,7 +20,7 @@ interface DashQLModuleExports {
     dashql_script_parse: (ptr: number) => number;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => number;
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
-    dashql_script_complete_at_cursor: (ptr: number, limit: number) => number;
+    dashql_script_complete_at_cursor: (ptr: number, limit: number, registry: number) => number;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_scanned: (ptr: number) => number;
     dashql_script_get_parsed: (ptr: number) => number;
@@ -715,9 +715,9 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Complete at the cursor position
-    public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
+    public completeAtCursor(limit: number, registry: DashQLScriptRegistry | null = null): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit);
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit, registry == null ? 0 : registry.ptr.get());
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;

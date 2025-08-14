@@ -72,7 +72,8 @@ extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script);
 /// Move the cursor in a script to a position
 extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t text_offset);
 /// Complete at a cursor in the script
-extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit);
+extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit,
+                                                       dashql::ScriptRegistry* registry);
 
 // -----------------------------------------------------------------------------
 

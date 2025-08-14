@@ -267,8 +267,9 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
     return packBuffer(std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit) {
-    auto [completion, status] = script->CompleteAtCursor(limit);
+extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit,
+                                                       dashql::ScriptRegistry* registry) {
+    auto [completion, status] = script->CompleteAtCursor(limit, registry);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }

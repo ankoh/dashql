@@ -5,17 +5,20 @@ import { UserFocus } from '../../workbook/focus.js';
 
 /// The configuration of the DashQL config
 export interface DashQLProcessorConfig {
+    /// Show the completion details
     showCompletionDetails: boolean;
 }
 /// A DashQL script key
 export type DashQLScriptKey = number;
 /// A DashQL script update
 export interface DashQLSyncState {
-    // The config
+    /// The config
     config: DashQLProcessorConfig;
-    // The key of the currently active script
+    /// The registry script retirstry
+    scriptRegistry: dashql.DashQLScriptRegistry | null;
+    /// The key of the currently active script
     scriptKey: DashQLScriptKey;
-    // The currently active script in the editor
+    /// The currently active script in the editor
     targetScript: dashql.DashQLScript | null;
     /// The previous processed script buffers (if any)
     scriptBuffers: DashQLScriptBuffers;
@@ -23,22 +26,22 @@ export interface DashQLSyncState {
     scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
     /// The derive focus info
     derivedFocus: UserFocus | null;
-    // This callback is called when the editor updates the script
+    /// This callback is called when the editor updates the script
     onScriptUpdate: (
         scriptKey: DashQLScriptKey,
         script: dashql.DashQLScript,
         scriptBuffers: DashQLScriptBuffers,
         cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>,
     ) => void;
-    // This callback is called when the editor updates the cursor
+    /// This callback is called when the editor updates the cursor
     onCursorUpdate: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>) => void;
-    // This callback is called when the editor completion is starting
-    // Note that it's expected that you destroy completion pointers once the completion updates or ends.
+    /// This callback is called when the editor completion is starting
+    /// Note that it's expected that you destroy completion pointers once the completion updates or ends.
     onCompletionStart: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>) => void;
-    // This callback is called when the user peeks a completion candidate
+    /// This callback is called when the user peeks a completion candidate
     onCompletionPeek: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number) => void;
-    // This callback is called when the editor completion is starting.
-    // Note that it's expected that you destroy completion pointers once the completion ends.
+    /// This callback is called when the editor completion is starting.
+    /// Note that it's expected that you destroy completion pointers once the completion ends.
     onCompletionStop: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript) => void;
 }
 /// The DashQL script buffers
@@ -56,8 +59,10 @@ export interface DashQLScriptBuffers {
 }
 /// The state of a DashQL analyzer
 export type DashQLProcessorState = DashQLSyncState & {
+    /// The completion status
     completionStatus: null | "active" | "pending";
-    completionActive: boolean;
+    /// Is the completion stop pending?
+    completionStopPending: boolean;
 };
 
 /// Analyze a new script
@@ -105,6 +110,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
             config: {
                 showCompletionDetails: false,
             },
+            scriptRegistry: null,
             scriptKey: 0,
             targetScript: null,
             scriptBuffers: {
@@ -116,7 +122,7 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
             scriptCursor: null,
             derivedFocus: null,
             completionStatus: null,
-            completionActive: false,
+            completionStopPending: false,
             onScriptUpdate: () => { },
             onCursorUpdate: () => { },
             onCompletionStart: () => { },
@@ -145,9 +151,9 @@ export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.defi
             copyIfNotReplaced();
             next.completionStatus = currentCompletionStatus;
             if (next.completionStatus == "active") {
-                next.completionActive = true;
-            } else if (next.completionStatus == null && state.completionActive) {
-                next.completionActive = false;
+                next.completionStopPending = true;
+            } else if (next.completionStatus == null && state.completionStopPending) {
+                next.completionStopPending = false;
                 next.onCompletionStop(next.scriptKey, next.targetScript!);
             }
         }
