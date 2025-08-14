@@ -69,11 +69,11 @@ describe('DashQL Completion', () => {
 
         const completionReader = completion.read()
         expect(completionReader.candidatesLength()).toEqual(10);
-        const candidate0 = completionReader.candidates(0);
-        expect(candidate0?.catalogObjectsLength()).toEqual(1);
-        expect(candidate0?.completionText()).toEqual("\"attrA\"");
-        expect(candidate0?.completionTemplatesLength()).toEqual(1);
-        const template = candidate0?.completionTemplates(0);
+        const candidate = completionReader.candidates(0);
+        expect(candidate?.catalogObjectsLength()).toEqual(1);
+        expect(candidate?.completionText()).toEqual("\"attrA\"");
+        expect(candidate?.completionTemplatesLength()).toEqual(1);
+        const template = candidate?.completionTemplates(0);
         expect(template?.templateType()).toEqual(ScriptTemplateType.COLUMN_RESTRICTION);
         expect(template?.snippetsLength()).toEqual(1);
         const snippet = template?.snippets(0);
