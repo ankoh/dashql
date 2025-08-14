@@ -192,7 +192,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
                 </constants>
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 SELECT s_co
             </input>
@@ -200,7 +200,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="24..28" text="s_co" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="s_co" index="4" />
         </cursor>
@@ -407,7 +407,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
                 </constants>
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from lineitem where ke
             </input>
@@ -418,7 +418,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="46..48" text="ke" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="ke" index="2" />
         </cursor>

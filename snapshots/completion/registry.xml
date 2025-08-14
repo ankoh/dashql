@@ -1,0 +1,104 @@
+<completion-snapshots>
+    <completion-snapshot name="registry_restriction_1">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table TableA(attr1 int);
+                    create table TableB(attr2 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="tablea" loc="21..51" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="41..50" text="attr1 int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="tableb" loc="73..103" text="create tab..attr2 int)">
+                        <column id="256.65536.4294967297.0" name="attr2" loc="93..102" text="attr2 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <registry>
+            <script id="2">
+                <input>
+                    select * from TableA where attr1 = 10
+                </input>
+                <errors />
+                <table-refs>
+                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..41" text="TableA" />
+                </table-refs>
+                <expressions>
+                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="attr1" />
+                    <expr id="1" type="literal/integer" const="true" stmt="0" loc="56..58" text="10" />
+                    <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..58" text="attr1 = 10" />
+                </expressions>
+                <constants>
+                    <constant expr="1" loc="56..58" text="10" />
+                </constants>
+                <column-restrictions>
+                    <restriction expr="2">
+                        <snippet template="1794172684583478586" raw="16511122199517028602">
+                            <text>attr1 = 10</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..10" text="attr1 = 10">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..10" text="attr1 = 10">
+                                        <node type="LITERAL_INTEGER" loc="8..10" text="10" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..5" text="attr1">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..5" text="attr1">
+                                                <node type="NAME" loc="0..5" text="attr1" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </restriction>
+                </column-restrictions>
+            </script>
+        </registry>
+        <editor id="0">
+            <input>
+                select * from TableA where attr
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..37" text="TableA" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="44..48" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="44..48" text="attr">
+            <entry score="40" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="44..48" replace_text="attr">
+                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
+                <templates>
+                    <template signature="1794172684583478586">
+                        <snippet template="1794172684583478586" raw="16511122199517028602">
+                            <text>attr1 = 10</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..10" text="attr1 = 10">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..10" text="attr1 = 10">
+                                        <node type="LITERAL_INTEGER" loc="8..10" text="10" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..5" text="attr1">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..5" text="attr1">
+                                                <node type="NAME" loc="0..5" text="attr1" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </template>
+                </templates>
+            </entry>
+            <entry score="40" value="attr2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="44..48" replace_text="attr">
+                <object score="20" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
+            </entry>
+            <entry score="20" value="attribute" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="44..48" replace_text="attr" />
+        </completions>
+    </completion-snapshot>
+</completion-snapshots>

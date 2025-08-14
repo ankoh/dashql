@@ -1,11 +1,11 @@
 <completion-snapshots>
     <completion-snapshot name="s">
-        <script id="0">
+        <editor id="0">
             <input>
                 s
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="s" index="1" />
         </cursor>
@@ -16,12 +16,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="se">
-        <script id="0">
+        <editor id="0">
             <input>
                 se
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="se" index="2" />
         </cursor>
@@ -32,12 +32,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="sel">
-        <script id="0">
+        <editor id="0">
             <input>
                 sel
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="sel" index="3" />
         </cursor>
@@ -48,24 +48,24 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_star">
-        <script id="0">
+        <editor id="0">
             <input>
                 select *
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="*" index="1" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" symbol="BOOL" relative="END_OF_SYMBOL" loc="24..25" text="*" />
     </completion-snapshot>
     <completion-snapshot name="select_f">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * f
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="f" index="1" />
         </cursor>
@@ -76,12 +76,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_fr">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * fr
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="fr" index="2" />
         </cursor>
@@ -92,12 +92,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_from">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="fr" index="4" />
         </cursor>
@@ -108,7 +108,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_from_eof">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from a xx
             </input>
@@ -116,7 +116,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..35" text="a xx" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="xx" index="0" />
         </cursor>
@@ -127,7 +127,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_from_w">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from a w
             </input>
@@ -135,7 +135,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..34" text="a w" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="w" index="1" />
         </cursor>
@@ -146,7 +146,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="select_from_wh">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from a wh
             </input>
@@ -154,7 +154,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..35" text="a wh" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="wh" index="2" />
         </cursor>
@@ -165,12 +165,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="selec">
-        <script id="0">
+        <editor id="0">
             <input>
                 selec
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="selec" index="5" />
         </cursor>
@@ -181,7 +181,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="gr">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo gr
             </input>
@@ -189,7 +189,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..37" text="foo gr" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="gr" index="1" />
         </cursor>
@@ -200,12 +200,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="group">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo group
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="group" index="4" />
         </cursor>
@@ -216,12 +216,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="group_b">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo group b
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="b" index="1" />
         </cursor>
@@ -230,12 +230,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="group_eof">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo group xx
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="xx" index="0" />
         </cursor>
@@ -244,7 +244,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="from_o">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo o
             </input>
@@ -252,7 +252,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..36" text="foo o" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="foo o" index="5" />
         </cursor>
@@ -263,12 +263,12 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="from_or">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo or
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="or" index="1" />
         </cursor>
@@ -279,7 +279,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="from_order">
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from foo order
             </input>
@@ -287,7 +287,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" loc="31..34" text="foo" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="order" index="5" />
         </cursor>

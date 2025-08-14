@@ -1,13 +1,13 @@
 <completion-snapshots>
     <completion-snapshot name="peers_0" what="score column names higher if they have an unresolved peer">
-        <script>
+        <editor>
             <input>
                 create table foo(apple int, juice0 int);
                 create table bar(juice1 int);
 
                 select apple, ju
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="apple, ju" index="9" />
         </cursor>

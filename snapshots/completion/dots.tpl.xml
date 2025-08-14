@@ -1,110 +1,110 @@
 <completion-snapshots>
     <completion-snapshot name="dots_qualified_table" what="complete a qualified table">
-        <script>
+        <editor>
             <input>
                 create table dbname.schemaname.foo(a int);
                 select * from dbname.schemaname.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="from dbname.schemaname." index="23" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_column_0" what="complete an alias with qualified table">
-        <script>
+        <editor>
             <input>
                 create table dbname.schemaname.foo(a int);
                 select from dbname.schemaname.foo f where f.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_column_1" what="complete an alias with qualified table but default db">
-        <script>
+        <editor>
             <input>
                 create table schemaname.foo(a int);
                 select from schemaname.foo f where f.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_column_2" what="complete an alias with unqualified table">
-        <script>
+        <editor>
             <input>
                 create table foo(a int);
                 select from foo f where f.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_0" what="complete multiple columns">
-        <script>
+        <editor>
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
                 select from foo alias where alias.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="alias." index="6" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_1" what="complete multiple columns, multiple froms">
-        <script>
+        <editor>
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
                 select from foo f, bar b where f.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_2" what="complete multiple columns, multiple froms, other table">
-        <script>
+        <editor>
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
                 select from foo f, bar b where b.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="b." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_limit" what="more table columns than limit">
-        <script>
+        <editor>
             <input>
                 create table foo(a int, b int, c int, d int, e int);
                 select from foo f where f.
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="dots_score_column_prefix_0" what="column names with matching prefix should score higher">
-        <script>
+        <editor>
             <input>
                 create table foo(apple int, juice int);
                 select from foo f where f.ap
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f.ap" index="4" />
         </cursor>

@@ -5,6 +5,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
+#include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "dashql/text/names.h"
 
@@ -30,7 +31,8 @@ std::vector<const CompletionSnapshotTest*> CompletionSnapshotTest::GetTests(std:
 
 /// Encode a script
 void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Completion& completion) {
-    auto entries = completion.GetHeap().GetEntries();
+    auto& entries = completion.GetResultCandidates();
+
     auto ctxName = buffers::completion::EnumNameCompletionStrategy(completion.GetStrategy());
     root.append_attribute("strategy").set_value(ctxName);
     if (auto node_id = completion.GetCursor().ast_node_id) {
@@ -130,6 +132,13 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 }
             }
         }
+
+        // Encode snippets
+        if (!iter->restriction_snippets.empty() || !iter->transform_snippets.empty()) {
+            auto templates_entry = xml_entry.append_child("templates");
+            RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, iter->restriction_snippets);
+            RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, iter->transform_snippets);
+        }
     }
 }
 
@@ -168,38 +177,27 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
 
             // Read catalog
             auto catalog_node = test_node.child("catalog");
-
-            // Read main script
-            {
-                auto main_node = test_node.child("script");
-                test.script.input = main_node.child("input").last_child().value();
-                test.script.errors.append_copy(main_node.child("errors"));
-                test.script.tables.append_copy(main_node.child("tables"));
-                test.script.table_references.append_copy(main_node.child("table-refs"));
-                test.script.expressions.append_copy(main_node.child("expressions"));
-                test.script.constant_expressions.append_copy(main_node.child("constants"));
-                test.script.column_transforms.append_copy(main_node.child("column-transforms"));
-                test.script.column_resrictions.append_copy(main_node.child("column-restrictions"));
-            }
-
-            // Read catalog
             for (auto entry_node : catalog_node.children()) {
                 test.catalog_entries.emplace_back();
                 auto& entry = test.catalog_entries.back();
                 std::string entry_name = entry_node.name();
                 if (entry_name == "script") {
-                    entry.input = entry_node.child("input").last_child().value();
-                    entry.errors.append_copy(entry_node.child("errors"));
-                    entry.tables.append_copy(entry_node.child("tables"));
-                    entry.table_references.append_copy(entry_node.child("table-refs"));
-                    entry.expressions.append_copy(entry_node.child("expressions"));
-                    entry.constant_expressions.append_copy(entry_node.child("constants"));
-                    entry.column_transforms.append_copy(entry_node.child("column-transforms"));
-                    entry.column_resrictions.append_copy(entry_node.child("column-restrictions"));
+                    entry.ReadFrom(entry_node);
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
                 }
             }
+
+            // Read registry scripts
+            auto scripts_node = test_node.child("registry");
+            for (auto script_node : scripts_node.children()) {
+                auto& script = test.registry_scripts.emplace_back();
+                script.ReadFrom(script_node);
+            }
+
+            // Read main script
+            auto editor_node = test_node.child("editor");
+            test.script.ReadFrom(editor_node);
 
             // Read the cursor
             auto xml_cursor = test_node.child("cursor");

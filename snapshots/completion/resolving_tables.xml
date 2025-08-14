@@ -1,6 +1,6 @@
 <completion-snapshots>
     <completion-snapshot name="resolving_0" what="score table name higher if it resolves an unresolved column ref">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table similar_name_0(apple int, juice0 int);
                 create table similar_name_1(juice1 int);
@@ -23,7 +23,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="2" loc="150..156" text="juice0" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="from s" index="6" />
         </cursor>

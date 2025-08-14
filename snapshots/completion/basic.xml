@@ -1,9 +1,9 @@
 <completion-snapshots>
     <completion-snapshot name="empty">
         <catalog />
-        <script id="0">
+        <editor id="0">
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="" index="0" />
         </cursor>
@@ -27,7 +27,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from db
             </input>
@@ -35,7 +35,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..33" text="db" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="db" index="2" />
         </cursor>
@@ -61,7 +61,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from sch
             </input>
@@ -69,7 +69,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..34" text="sch" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="sch" index="3" />
         </cursor>
@@ -95,7 +95,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from fo
             </input>
@@ -103,7 +103,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..33" text="fo" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="fo" index="2" />
         </cursor>
@@ -129,12 +129,12 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from ( foo );
             </input>
             <errors />
-        </script>
+        </editor>
         <cursor>
             <search text="from (" index="6" />
         </cursor>
@@ -162,7 +162,7 @@ create table table3(attr3 integer);
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select attr2 from tab
             </input>
@@ -173,7 +173,7 @@ create table table3(attr3 integer);
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="24..29" text="attr2" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="tab" index="3" />
         </cursor>
@@ -203,7 +203,7 @@ create table table3(attr3 integer);
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select external_name2 from external_name1 where external_
             </input>
@@ -215,7 +215,7 @@ create table table3(attr3 integer);
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
-        </script>
+        </editor>
         <cursor script="1">
             <search text="where external_" index="14" />
         </cursor>
@@ -245,7 +245,7 @@ create table table3(attr3 integer);
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select external_name2 from external_name1 where external_
             </input>
@@ -257,7 +257,7 @@ create table table3(attr3 integer);
                 <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="where external_" index="15" />
         </cursor>

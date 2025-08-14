@@ -294,20 +294,40 @@ static void generate_completion_snapshots(const std::filesystem::path& source_di
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
+            // Read catalog.
+            // Leave the catalog unique ptr before the script vector to make sure scripts are dropped from the catalog
+            // first.
             std::unique_ptr<Catalog> catalog;
             std::vector<std::unique_ptr<Script>> catalog_scripts;
-            size_t entry_id = 1;
-            catalog = read_catalog(test.child("catalog"), catalog_scripts, entry_id);
-            auto main_node = test.child("script");
-            auto main_script = read_script(main_node, 0, *catalog);
-            AnalyzerSnapshotTest::EncodeScript(main_node, *main_script->analyzed_script, true);
+            size_t next_entry_id = 1;
+            catalog = read_catalog(test.child("catalog"), catalog_scripts, next_entry_id);
+
+            // Read registry
+            auto registry_node = test.child("registry");
+            std::vector<std::unique_ptr<Script>> registry_scripts;
+            for (auto script_node : registry_node.children()) {
+                auto script = read_script(script_node, next_entry_id++, *catalog);
+                AnalyzerSnapshotTest::EncodeScript(script_node, *script->analyzed_script, false);
+                registry_scripts.push_back(std::move(script));
+            }
+
+            // Add registry scripts
+            ScriptRegistry registry;
+            for (auto& script : registry_scripts) {
+                registry.AddScript(*script);
+            }
+
+            // Read main script
+            auto editor_node = test.child("editor");
+            auto editor_script = read_script(editor_node, 0, *catalog);
+            AnalyzerSnapshotTest::EncodeScript(editor_node, *editor_script->analyzed_script, true);
 
             auto cursor_node = test.child("cursor");
             auto cursor_search_node = cursor_node.child("search");
             auto cursor_search_text = cursor_search_node.attribute("text").value();
             auto cursor_search_index = cursor_search_node.attribute("index").as_int();
 
-            std::string_view target_text = main_script->scanned_script->GetInput();
+            std::string_view target_text = editor_script->scanned_script->GetInput();
             auto search_pos = target_text.find(cursor_search_text);
             if (search_pos == std::string_view::npos) {
                 std::cout << "  ERROR couldn't locate cursor `" << cursor_search_text << "`" << std::endl;
@@ -323,8 +343,8 @@ static void generate_completion_snapshots(const std::filesystem::path& source_di
             auto completions_node = test.child("completions");
             auto limit = completions_node.attribute("limit").as_int(100);
 
-            main_script->MoveCursor(cursor_pos);
-            auto [completion, completion_status] = main_script->CompleteAtCursor(limit);
+            editor_script->MoveCursor(cursor_pos);
+            auto [completion, completion_status] = editor_script->CompleteAtCursor(limit, &registry);
             if (completion_status != buffers::status::StatusCode::OK) {
                 std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(completion_status) << std::endl;
                 continue;

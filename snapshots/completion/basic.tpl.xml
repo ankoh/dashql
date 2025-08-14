@@ -1,7 +1,7 @@
 <completion-snapshots>
     <completion-snapshot name="empty">
         <catalog />
-        <script />
+        <editor />
         <cursor>
             <search text="" index="0" />
         </cursor>
@@ -15,11 +15,11 @@
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select * from db
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="db" index="2" />
         </cursor>
@@ -33,11 +33,11 @@
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select * from sch
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="sch" index="3" />
         </cursor>
@@ -51,11 +51,11 @@
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select * from fo
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="fo" index="2" />
         </cursor>
@@ -69,11 +69,11 @@
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select * from ( foo );
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="from (" index="6" />
         </cursor>
@@ -89,11 +89,11 @@ create table table3(attr3 integer);
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select attr2 from tab
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="tab" index="3" />
         </cursor>
@@ -107,11 +107,11 @@ create table table3(attr3 integer);
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select external_name2 from external_name1 where external_
             </input>
-        </script>
+        </editor>
         <cursor script="1">
             <search text="where external_" index="14" />
         </cursor>
@@ -125,11 +125,11 @@ create table table3(attr3 integer);
                 </input>
             </script>
         </catalog>
-        <script>
+        <editor>
             <input>
                 select external_name2 from external_name1 where external_
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="where external_" index="15" />
         </cursor>

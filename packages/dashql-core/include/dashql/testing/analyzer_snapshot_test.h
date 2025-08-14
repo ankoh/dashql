@@ -37,6 +37,9 @@ struct AnalyzerSnapshotTest {
         pugi::xml_document column_transforms;
         /// The column restrictions
         pugi::xml_document column_resrictions;
+
+        /// Read from an xml node
+        void ReadFrom(const pugi::xml_node& script_node);
     };
 
     /// The name

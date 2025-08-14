@@ -1,6 +1,6 @@
 <completion-snapshots>
     <completion-snapshot name="peers_0" what="score column names higher if they have an unresolved peer">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(apple int, juice0 int);
                 create table bar(juice1 int);
@@ -21,7 +21,7 @@
                 <expr id="0" type="colref/unresolved" stmt="2" loc="128..133" text="apple" />
                 <expr id="1" type="colref/unresolved" stmt="2" loc="135..137" text="ju" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="apple, ju" index="9" />
         </cursor>

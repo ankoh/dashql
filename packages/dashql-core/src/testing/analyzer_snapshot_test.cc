@@ -71,6 +71,17 @@ static void writeTables(pugi::xml_node root, const AnalyzedScript& target) {
 
 namespace testing {
 
+void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(const pugi::xml_node& script_node) {
+    input = script_node.child("input").last_child().value();
+    errors.append_copy(script_node.child("errors"));
+    tables.append_copy(script_node.child("tables"));
+    table_references.append_copy(script_node.child("table-refs"));
+    expressions.append_copy(script_node.child("expressions"));
+    constant_expressions.append_copy(script_node.child("constants"));
+    column_transforms.append_copy(script_node.child("column-transforms"));
+    column_resrictions.append_copy(script_node.child("column-restrictions"));
+}
+
 void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, pugi::xml_node& node,
                                                Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts,
                                                size_t& entry_ids) {
@@ -384,17 +395,8 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
             auto catalog_node = test_node.child("catalog");
 
             // Read main script
-            {
-                auto main_node = test_node.child("script");
-                test.script.input = main_node.child("input").last_child().value();
-                test.script.errors.append_copy(main_node.child("errors"));
-                test.script.tables.append_copy(main_node.child("tables"));
-                test.script.table_references.append_copy(main_node.child("table-refs"));
-                test.script.expressions.append_copy(main_node.child("expressions"));
-                test.script.constant_expressions.append_copy(main_node.child("constants"));
-                test.script.column_transforms.append_copy(main_node.child("column-transforms"));
-                test.script.column_resrictions.append_copy(main_node.child("column-restrictions"));
-            }
+            auto main_node = test_node.child("script");
+            test.script.ReadFrom(main_node);
 
             // Read catalog entries
             for (auto entry_node : catalog_node.children()) {
@@ -402,14 +404,7 @@ void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
                 auto& entry = test.catalog_entries.back();
                 std::string entry_name = entry_node.name();
                 if (entry_name == "script") {
-                    entry.input = entry_node.child("input").last_child().value();
-                    entry.errors.append_copy(entry_node.child("errors"));
-                    entry.tables.append_copy(entry_node.child("tables"));
-                    entry.table_references.append_copy(entry_node.child("table-refs"));
-                    entry.expressions.append_copy(entry_node.child("expressions"));
-                    entry.constant_expressions.append_copy(entry_node.child("constants"));
-                    entry.column_transforms.append_copy(entry_node.child("column-transforms"));
-                    entry.column_resrictions.append_copy(entry_node.child("column-restrictions"));
+                    entry.ReadFrom(entry_node);
                 } else {
                     std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
                 }

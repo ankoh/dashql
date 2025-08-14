@@ -1,197 +1,197 @@
 <completion-snapshots>
     <completion-snapshot name="s">
-        <script>
+        <editor>
             <input>
                 s
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="s" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="se">
-        <script>
+        <editor>
             <input>
                 se
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="se" index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="sel">
-        <script>
+        <editor>
             <input>
                 sel
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="sel" index="3" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_star">
-        <script>
+        <editor>
             <input>
                 select *
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="*" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_f">
-        <script>
+        <editor>
             <input>
                 select * f
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="f" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_fr">
-        <script>
+        <editor>
             <input>
                 select * fr
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="fr" index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_from">
-        <script>
+        <editor>
             <input>
                 select * from
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="fr" index="4" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_from_eof">
-        <script>
+        <editor>
             <input>
                 select * from a xx
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="xx" index="0" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_from_w">
-        <script>
+        <editor>
             <input>
                 select * from a w
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="w" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="select_from_wh">
-        <script>
+        <editor>
             <input>
                 select * from a wh
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="wh" index="2" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="selec">
-        <script>
+        <editor>
             <input>
                 selec
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="selec" index="5" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="gr">
-        <script>
+        <editor>
             <input>
                 select * from foo gr
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="gr" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="group">
-        <script>
+        <editor>
             <input>
                 select * from foo group
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="group" index="4" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="group_b">
-        <script>
+        <editor>
             <input>
                 select * from foo group b
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="b" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="group_eof">
-        <script>
+        <editor>
             <input>
                 select * from foo group xx
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="xx" index="0" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="from_o">
-        <script>
+        <editor>
             <input>
                 select * from foo o
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="foo o" index="5" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="from_or">
-        <script>
+        <editor>
             <input>
                 select * from foo or
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="or" index="1" />
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
     <completion-snapshot name="from_order">
-        <script>
+        <editor>
             <input>
                 select * from foo order
             </input>
-        </script>
+        </editor>
         <cursor>
             <search text="order" index="5" />
         </cursor>

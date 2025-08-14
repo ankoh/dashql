@@ -13,7 +13,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from dbname.
             </input>
@@ -21,7 +21,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..38" text="dbname." />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="dbname." index="7" />
         </cursor>
@@ -45,7 +45,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from dbname.sch
             </input>
@@ -53,7 +53,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text=".sch" index="0" />
         </cursor>
@@ -73,7 +73,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from dbname.sch
             </input>
@@ -81,7 +81,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..41" text="dbname.sch" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text=".sch" index="1" />
         </cursor>
@@ -105,7 +105,7 @@
                 <errors />
             </script>
         </catalog>
-        <script id="0">
+        <editor id="0">
             <input>
                 select * from dbname."sch"
             </input>
@@ -113,7 +113,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..43" text="dbname.&quot;sch&quot;" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="name." index="5" />
         </cursor>
@@ -124,7 +124,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_catalog_same_script_complete_schema">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table dbname.schemaname.foo(a int);
                 select * from dbname.
@@ -138,7 +138,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="1" loc="90..97" text="dbname." />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="from dbname." index="12" />
         </cursor>

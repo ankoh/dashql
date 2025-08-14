@@ -1,6 +1,6 @@
 <completion-snapshots>
     <completion-snapshot name="dots_qualified_table" what="complete a qualified table">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table dbname.schemaname.foo(a int);
                 select * from dbname.schemaname.
@@ -14,7 +14,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="1" loc="90..108" text="dbname.schemaname." />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="from dbname.schemaname." index="23" />
         </cursor>
@@ -25,7 +25,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_column_0" what="complete an alias with qualified table">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table dbname.schemaname.foo(a int);
                 select from dbname.schemaname.foo f where f.
@@ -42,7 +42,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="118..120" text="f." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
@@ -53,7 +53,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_column_1" what="complete an alias with qualified table but default db">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table schemaname.foo(a int);
                 select from schemaname.foo f where f.
@@ -70,7 +70,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="104..106" text="f." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
@@ -81,7 +81,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_column_2" what="complete an alias with unqualified table">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(a int);
                 select from foo f where f.
@@ -98,7 +98,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="82..84" text="f." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
@@ -109,7 +109,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_0" what="complete multiple columns">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
@@ -134,7 +134,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="2" loc="155..161" text="alias." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="alias." index="6" />
         </cursor>
@@ -151,7 +151,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_1" what="complete multiple columns, multiple froms">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
@@ -177,7 +177,7 @@
             <expressions>
                 <expr id="0" type="colref/internal" catalog="256.65536.1.2" stmt="2" loc="158..160" text="f." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
@@ -194,7 +194,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_multiple_columns_2" what="complete multiple columns, multiple froms, other table">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
                 create table bar(d int, e int, f int);
@@ -220,7 +220,7 @@
             <expressions>
                 <expr id="0" type="colref/internal" catalog="256.65536.0.1" stmt="2" loc="158..160" text="b." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="b." index="2" />
         </cursor>
@@ -237,7 +237,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_limit" what="more table columns than limit">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(a int, b int, c int, d int, e int);
                 select from foo f where f.
@@ -258,7 +258,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="110..112" text="f." />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f." index="2" />
         </cursor>
@@ -275,7 +275,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dots_score_column_prefix_0" what="column names with matching prefix should score higher">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo(apple int, juice int);
                 select from foo f where f.ap
@@ -293,7 +293,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="1" loc="97..101" text="f.ap" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="f.ap" index="4" />
         </cursor>

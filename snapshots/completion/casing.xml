@@ -1,6 +1,6 @@
 <completion-snapshots>
     <completion-snapshot name="casing_0" what="discover table names with different casing">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table "CaSeSeNsItIvE_TaBlE"(a int);
                 create table casesensitive_table(a int);
@@ -19,7 +19,7 @@
             <table-refs>
                 <table-ref type="name/unresolved" stmt="2" loc="148..151" text="cas" />
             </table-refs>
-        </script>
+        </editor>
         <cursor>
             <search text="from cas" index="8" />
         </cursor>
@@ -34,7 +34,7 @@
         </completions>
     </completion-snapshot>
     <completion-snapshot name="casing_1" what="discover column names with different casing">
-        <script id="0">
+        <editor id="0">
             <input>
                 create table foo0("Casesensitive" int);
                 create table foo1(casesensitive int);
@@ -53,7 +53,7 @@
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="2" loc="135..138" text="cas" />
             </expressions>
-        </script>
+        </editor>
         <cursor>
             <search text="select cas" index="10" />
         </cursor>

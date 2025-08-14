@@ -131,6 +131,8 @@ struct Completion {
     auto& GetStrategy() const { return strategy; }
     /// Get the result heap
     auto& GetHeap() const { return result_heap; }
+    /// Get the result candidates after finishing
+    auto& GetResultCandidates() const { return result_candidates; }
 
     /// Pack the completion result
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
