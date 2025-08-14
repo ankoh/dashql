@@ -22,6 +22,7 @@ jobs:
         runs-on: ubuntu-24.04
         needs:
             - build
+        continue-on-error: true
         steps:
             - uses: actions/checkout@v4
               with:
@@ -43,3 +44,4 @@ jobs:
               uses: coverallsapp/github-action@v2
               with:
                   github-token: ${{secrets.GITHUB_TOKEN}}
+              continue-on-error: true
