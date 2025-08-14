@@ -54,8 +54,8 @@ struct AnalyzerSnapshotTest {
                                     Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts,
                                     size_t& entry_ids);
     /// Read a registry
-    static void TestMainScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node, Script& script,
-                                       size_t entry_id);
+    static void TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node, Script& script,
+                                   size_t entry_id, bool is_main);
     /// Encode a snippet
     static void EncodeSnippet(pugi::xml_node parent, const AnalyzedScript& analyzed, size_t root_node_id);
     /// Encode a script

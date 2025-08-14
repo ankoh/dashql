@@ -6,7 +6,6 @@
 
 #include "dashql/script_registry.h"
 #include "dashql/testing/parser_snapshot_test.h"
-#include "dashql/testing/xml_tests.h"
 
 namespace dashql {
 namespace testing {
@@ -18,26 +17,22 @@ void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapsh
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
         auto entry_id = entry_ids++;
+
+        // Create a new script
         registry_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
-
         auto& script = *registry_scripts.back();
-        script.InsertTextAt(0, entry.input);
-        ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
+        // Make sure the analysis snapshot looks as expected
+        auto script_node = node.append_child("script");
+        AnalyzerSnapshotTest::TestScriptSnapshot(entry, script_node, script, entry_id, false);
+
+        // Add script to registry
         registry.AddScript(script);
 
-        auto script_node = node.append_child("script");
-        AnalyzerSnapshotTest::EncodeScript(script_node, *script.analyzed_script, false);
-
-        ASSERT_TRUE(Matches(script_node.child("errors"), entry.errors));
-        ASSERT_TRUE(Matches(script_node.child("tables"), entry.tables));
-        ASSERT_TRUE(Matches(script_node.child("table-refs"), entry.table_references));
-        ASSERT_TRUE(Matches(script_node.child("expressions"), entry.expressions));
-        ASSERT_TRUE(Matches(script_node.child("constants"), entry.constant_expressions));
-        ASSERT_TRUE(Matches(script_node.child("column-transforms"), entry.column_transforms));
-        ASSERT_TRUE(Matches(script_node.child("column-restrictions"), entry.column_resrictions));
+        // Note that we're not adding registry scripts to the catalog here.
+        // The test would have to do explicitly if wished.
+        // Or we introduce an xml flag like catalog="true" to registry scripts.
+        // Add once needed.
     }
 }
 

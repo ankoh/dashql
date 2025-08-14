@@ -27,7 +27,7 @@ TEST_P(AnalyzerSnapshotTestSuite, Test) {
 
     // Read main script
     Script main_script{catalog, 0};
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestMainScriptSnapshot(test->script, main_node, main_script, 0));
+    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestScriptSnapshot(test->script, main_node, main_script, 0, true));
 }
 
 // clang-format off

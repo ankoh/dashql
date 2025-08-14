@@ -38,7 +38,7 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     // Read main script
     Script editor_script{catalog, 0};
     ASSERT_NO_FATAL_FAILURE(
-        AnalyzerSnapshotTest::TestMainScriptSnapshot(test->script, editor_node, editor_script, next_entry_id));
+        AnalyzerSnapshotTest::TestScriptSnapshot(test->script, editor_node, editor_script, next_entry_id, true));
 
     // Determine cursor position
     std::string_view target_text = editor_script.scanned_script->GetInput();

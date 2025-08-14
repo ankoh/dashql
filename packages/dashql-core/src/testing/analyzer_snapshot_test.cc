@@ -88,38 +88,31 @@ void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisS
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
         auto entry_id = entry_ids++;
+
+        // Create a new script
         catalog_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
-
         auto& script = *catalog_scripts.back();
-        script.InsertTextAt(0, entry.input);
-        ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
-        catalog.LoadScript(script, entry_id);
-
+        // Make sure the analysis snapshot looks as expected
         auto script_node = node.append_child("script");
-        AnalyzerSnapshotTest::EncodeScript(script_node, *script.analyzed_script, false);
+        TestScriptSnapshot(entry, script_node, script, entry_id, false);
 
-        ASSERT_TRUE(Matches(script_node.child("errors"), entry.errors));
-        ASSERT_TRUE(Matches(script_node.child("tables"), entry.tables));
-        ASSERT_TRUE(Matches(script_node.child("table-refs"), entry.table_references));
-        ASSERT_TRUE(Matches(script_node.child("expressions"), entry.expressions));
-        ASSERT_TRUE(Matches(script_node.child("constants"), entry.constant_expressions));
-        ASSERT_TRUE(Matches(script_node.child("column-transforms"), entry.column_transforms));
-        ASSERT_TRUE(Matches(script_node.child("column-restrictions"), entry.column_resrictions));
+        // Add script to catalog.
+        // Note that the catalog rank here is just picked to equal the entry id for simplicity.
+        // We could be more flexible here in tests.
+        catalog.LoadScript(script, entry_id);
     }
 }
 
-void AnalyzerSnapshotTest::TestMainScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node,
-                                                  Script& script, size_t entry_id) {
+void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node, Script& script,
+                                              size_t entry_id, bool is_main) {
     script.InsertTextAt(entry_id, snap.input);
 
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
 
-    AnalyzerSnapshotTest::EncodeScript(node, *script.analyzed_script, true);
+    AnalyzerSnapshotTest::EncodeScript(node, *script.analyzed_script, is_main);
 
     ASSERT_TRUE(Matches(node.child("errors"), snap.errors));
     ASSERT_TRUE(Matches(node.child("tables"), snap.tables));
