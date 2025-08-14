@@ -107,7 +107,7 @@
         grid-column: 3;
         padding: 8px;
         background-color: var(--workbook_body_background_color);
-        padding: 16px 16px 0px 16px;
+        padding: 16px 16px 0px 0px;
     }
     .body_action_sidebar_card {
         border: 1px solid var(--border_color_primary);
