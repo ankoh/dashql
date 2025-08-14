@@ -1,20 +1,97 @@
 <registry-snapshots>
     <registry-snapshot name="simple_1">
         <catalog>
-            create table foo (a int);
+            <script id="1">
+                <input>
+                    create table foo (a int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="foo" loc="21..45" text="create tab..oo (a int)">
+                        <column id="256.65536.4294967296.0" name="a" loc="39..44" text="a int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
         </catalog>
-        <scripts>
-            <script>
-                select * from foo where a &lt; 6
-            </script>
-            <script>
-                select * from foo where (a + 1) &lt; 8
-            </script>
-        </scripts>
         <registry>
-            <column-restrictions>
-                <templates column="0.0">
-                    <template signature="1751179248397104785">
+            <script id="2">
+                <input>
+                    select * from foo where a &lt; 6
+                </input>
+                <errors />
+                <table-refs>
+                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
+                </table-refs>
+                <expressions>
+                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="45..46" text="a" />
+                    <expr id="1" type="literal/integer" const="true" stmt="0" loc="49..50" text="6" />
+                    <expr id="2" type="comparison" op="LESS_THAN" left="0" right="1" restrict="0" stmt="0" loc="45..50" text="a &lt; 6" />
+                </expressions>
+                <constants>
+                    <constant expr="1" loc="49..50" text="6" />
+                </constants>
+                <column-restrictions>
+                    <restriction expr="2">
+                        <snippet template="1794443991550492122" raw="10544378850070544503">
+                            <text>a &lt; 6</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 6">
+                                        <node type="LITERAL_INTEGER" loc="4..5" text="6" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                                <node type="NAME" loc="0..1" text="a" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </restriction>
+                </column-restrictions>
+            </script>
+            <script id="3">
+                <input>
+                    select * from foo where (a + 1) &lt; 8
+                </input>
+                <errors />
+                <table-refs>
+                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
+                </table-refs>
+                <expressions>
+                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="46..47" text="a" />
+                    <expr id="1" type="literal/integer" const="true" stmt="0" loc="50..51" text="1" />
+                    <expr id="2" type="literal/integer" const="true" stmt="0" loc="55..56" text="8" />
+                    <expr id="3" type="binary" op="PLUS" left="0" right="1" transform="0" stmt="0" loc="46..51" text="a + 1" />
+                    <expr id="4" type="comparison" op="LESS_THAN" left="3" right="2" restrict="3" stmt="0" loc="45..56" text="(a + 1) &lt; 8" />
+                </expressions>
+                <constants>
+                    <constant expr="1" loc="50..51" text="1" />
+                    <constant expr="2" loc="55..56" text="8" />
+                </constants>
+                <column-transforms>
+                    <transform expr="3">
+                        <snippet template="2290193904433761446" raw="6736335147927997687">
+                            <text>a + 1</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
+                                        <node type="LITERAL_INTEGER" loc="4..5" text="1" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
+                                                <node type="NAME" loc="0..1" text="a" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </transform>
+                </column-transforms>
+                <column-restrictions>
+                    <restriction expr="4">
                         <snippet template="1751179248397104785" raw="2970112772522538482">
                             <text>(a + 1) &lt; 8</text>
                             <nodes count="11" bytes="264">
@@ -37,49 +114,9 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </template>
-                    <template signature="1794443991550492122">
-                        <snippet template="1794443991550492122" raw="10544378850070544503">
-                            <text>a &lt; 6</text>
-                            <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a &lt; 6">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a &lt; 6">
-                                        <node type="LITERAL_INTEGER" loc="4..5" text="6" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                                <node type="NAME" loc="0..1" text="a" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="LESS_THAN" />
-                                </node>
-                            </nodes>
-                        </snippet>
-                    </template>
-                </templates>
-            </column-restrictions>
-            <column-transforms>
-                <templates column="0.0">
-                    <template signature="2290193904433761446">
-                        <snippet template="2290193904433761446" raw="6736335147927997687">
-                            <text>a + 1</text>
-                            <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
-                                        <node type="LITERAL_INTEGER" loc="4..5" text="1" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
-                                                <node type="NAME" loc="0..1" text="a" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
-                                </node>
-                            </nodes>
-                        </snippet>
-                    </template>
-                </templates>
-            </column-transforms>
+                    </restriction>
+                </column-restrictions>
+            </script>
         </registry>
     </registry-snapshot>
 </registry-snapshots>

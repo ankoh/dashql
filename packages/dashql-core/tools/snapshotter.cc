@@ -190,70 +190,32 @@ static void generate_registry_snapshots(const std::filesystem::path& source_dir)
         doc.load(in);
         auto root = doc.child("registry-snapshots");
 
-        for (auto test_node : root.children()) {
-            auto name = test_node.attribute("name").as_string();
+        for (auto test : root.children()) {
+            auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
-            // Read catalog
-            Catalog catalog;
-            std::optional<Script> catalog_script;
-            size_t catalog_entry_id = 0;
-            if (auto catalog_node = test_node.child("catalog"); catalog_node) {
-                catalog_entry_id = catalog_node.attribute("id").as_int(0);
-                catalog_script.emplace(catalog, catalog_entry_id);
+            // Read catalog.
+            // Leave the catalog unique ptr before the script vector to make sure scripts are dropped from the catalog
+            // first.
+            std::unique_ptr<Catalog> catalog;
+            std::vector<std::unique_ptr<Script>> catalog_scripts;
+            size_t next_entry_id = 1;
+            catalog = read_catalog(test.child("catalog"), catalog_scripts, next_entry_id);
 
-                auto script_text = catalog_node.last_child().value();
-                auto& s = catalog_script.value();
-                s.InsertTextAt(0, script_text);
-                if (auto status = s.Scan(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
-                if (auto status = s.Parse(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
-                if (auto status = s.Analyze(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
-
-                catalog.LoadScript(s, 0);
-            }
-
-            // Read scripts
-            auto scripts_node = test_node.child("scripts");
+            // Read registry
+            auto registry_node = test.child("registry");
             std::vector<std::unique_ptr<Script>> registry_scripts;
-            for (auto script_node : scripts_node.children()) {
-                auto script_text = script_node.last_child().value();
-
-                registry_scripts.push_back(
-                    std::make_unique<Script>(catalog, catalog_entry_id + 1 + registry_scripts.size()));
-                auto& s = *registry_scripts.back();
-                s.InsertTextAt(0, script_text);
-                if (auto status = s.Scan(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
-                if (auto status = s.Parse(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
-                if (auto status = s.Analyze(); status != buffers::status::StatusCode::OK) {
-                    std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
-                    return;
-                }
+            for (auto script_node : registry_node.children()) {
+                auto script = read_script(script_node, next_entry_id++, *catalog);
+                AnalyzerSnapshotTest::EncodeScript(script_node, *script->analyzed_script, false);
+                registry_scripts.push_back(std::move(script));
             }
 
-            // Add all scripts to registry
+            // Add registry scripts
             ScriptRegistry registry;
             for (auto& script : registry_scripts) {
                 registry.AddScript(*script);
             }
-
-            // Encode the registry
-            auto registry_node = test_node.append_child("registry");
-            RegistrySnapshotTest::EncodeRegistry(registry_node, registry);
         }
 
         // Write xml document

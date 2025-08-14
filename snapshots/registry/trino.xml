@@ -1,31 +1,211 @@
 <registry-snapshots>
     <registry-snapshot name="trino_explain">
         <catalog>
-            create table iceberg.some_events.some_queries (
-                query_hash varchar,
-                query_metrics varchar,
-                tenant varchar,
-                event_timestamp timestamp
-            );
-        </catalog>
-        <scripts>
-            <script>
-                select
-                  *,
-                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
-                  regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
-                  (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
-                  (query like '%select distinct count(*)%') as is_count_star
-                from iceberg.some_events.some_queries
-                where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
-                and query_metrics like '%raw_sql%'
-                and event_timestamp &gt;= current_timestamp - interval '30' day
+            <script id="1">
+                <input>
+                    create table iceberg.some_events.some_queries (
+                        query_hash varchar,
+                        query_metrics varchar,
+                        tenant varchar,
+                        event_timestamp timestamp
+                    );
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="some_queries" loc="21..271" text="create tab..         )">
+                        <column id="256.65536.4294967296.0" name="event_timestamp" loc="224..249" text="event_time.. timestamp" />
+                        <column id="256.65536.4294967296.1" name="query_hash" loc="93..111" text="query_hash varchar" />
+                        <column id="256.65536.4294967296.2" name="query_metrics" loc="137..158" text="query_metr..cs varchar" />
+                        <column id="256.65536.4294967296.3" name="tenant" loc="184..198" text="tenant varchar" />
+                    </table>
+                </tables>
+                <errors />
             </script>
-        </scripts>
+        </catalog>
         <registry>
-            <column-restrictions>
-                <templates column="0.0">
-                    <template signature="17608407916322461543">
+            <script id="2">
+                <input>
+                    select
+                      *,
+                      regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
+                      regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
+                      (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
+                      (query like '%select distinct count(*)%') as is_count_star
+                    from iceberg.some_events.some_queries
+                    where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
+                    and query_metrics like '%raw_sql%'
+                    and event_timestamp &gt;= current_timestamp - interval '30' day
+                </input>
+                <errors />
+                <table-refs>
+                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="472..504" text="iceberg.so..me_queries" />
+                </table-refs>
+                <expressions>
+                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="90..100" text="query_hash" />
+                    <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="205..215" text="query_hash" />
+                    <expr id="2" type="colref/unresolved" stmt="0" loc="307..312" text="query" />
+                    <expr id="3" type="colref/unresolved" stmt="0" loc="389..394" text="query" />
+                    <expr id="4" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="532..538" text="tenant" />
+                    <expr id="5" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="561..567" text="tenant" />
+                    <expr id="6" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="611..624" text="query_metrics" />
+                    <expr id="7" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="666..681" text="event_timestamp" />
+                    <expr id="8" type="func" name="regexp_extract" transform="0" stmt="0" loc="75..150" text="regexp_ext..A-Z]+', 1)" />
+                    <expr id="9" type="func" name="regexp_extract" transform="1" stmt="0" loc="190..265" text="regexp_ext..-Z]+)', 1)" />
+                    <expr id="10" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="685..702" text="current_timestamp" />
+                    <expr id="11" type="literal/string" const="true" stmt="0" loc="102..146" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                    <expr id="12" type="literal/integer" const="true" stmt="0" loc="148..149" text="1" />
+                    <expr id="13" type="literal/string" const="true" stmt="0" loc="217..261" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                    <expr id="14" type="literal/integer" const="true" stmt="0" loc="263..264" text="1" />
+                    <expr id="15" type="literal/string" const="true" stmt="0" loc="318..349" text="'EXPLAIN (..l_spark,%'" />
+                    <expr id="16" type="literal/string" const="true" stmt="0" loc="400..428" text="'%select d..count(*)%'" />
+                    <expr id="17" type="literal/string" const="true" stmt="0" loc="541..557" text="'a360/prod3/foo'" />
+                    <expr id="18" type="literal/string" const="true" stmt="0" loc="570..585" text="'a360/prod/bar'" />
+                    <expr id="19" type="literal/string" const="true" stmt="0" loc="630..641" text="'%raw_sql%'" />
+                    <expr id="20" type="literal/string" const="true" stmt="0" loc="714..718" text="'30'" />
+                    <expr id="21" type="constcast/interval" const="true" stmt="0" loc="705..722" text="interval '30' day" />
+                    <expr id="22" type="binary" op="MINUS" left="10" right="21" const="true" stmt="0" loc="685..722" text="current_ti..l '30' day" />
+                    <expr id="23" type="comparison" op="EQUAL" left="4" right="17" restrict="4" stmt="0" loc="532..557" text="tenant = '..prod3/foo'" />
+                    <expr id="24" type="comparison" op="EQUAL" left="5" right="18" restrict="5" stmt="0" loc="561..585" text="tenant = '../prod/bar'" />
+                    <expr id="25" type="comparison" op="GREATER_EQUAL" left="7" right="22" restrict="7" stmt="0" loc="666..722" text="event_time..l '30' day" />
+                </expressions>
+                <constants>
+                    <constant expr="11" loc="102..146" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                    <constant expr="12" loc="148..149" text="1" />
+                    <constant expr="13" loc="217..261" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                    <constant expr="14" loc="263..264" text="1" />
+                    <constant expr="15" loc="318..349" text="'EXPLAIN (..l_spark,%'" />
+                    <constant expr="16" loc="400..428" text="'%select d..count(*)%'" />
+                    <constant expr="17" loc="541..557" text="'a360/prod3/foo'" />
+                    <constant expr="18" loc="570..585" text="'a360/prod/bar'" />
+                    <constant expr="19" loc="630..641" text="'%raw_sql%'" />
+                    <constant expr="21" loc="705..722" text="interval '30' day">
+                        <snippet template="716161563929057878" raw="18138650483241059678">
+                            <text>interval '30' day</text>
+                            <nodes count="4" bytes="96">
+                                <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="0..17" text="interval '30' day">
+                                    <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="14..17" text="day">
+                                        <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
+                                    </node>
+                                    <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="9..13" text="'30'" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </constant>
+                    <constant expr="22" loc="685..722" text="current_ti..l '30' day">
+                        <snippet template="14335000208411224916" raw="14531844735497943305">
+                            <text>current_timestamp - interval '30' day</text>
+                            <nodes count="9" bytes="216">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..37" text="current_ti..l '30' day">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..37" text="current_ti..l '30' day">
+                                        <node type="OBJECT_SQL_CONST_INTERVAL_CAST" loc="20..37" text="interval '30' day">
+                                            <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="34..37" text="day">
+                                                <node key="SQL_INTERVAL_TYPE" type="ENUM_SQL_INTERVAL_TYPE" value="DAY" />
+                                            </node>
+                                            <node key="SQL_CONST_CAST_VALUE" type="LITERAL_STRING" loc="29..33" text="'30'" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..17" text="current_timestamp">
+                                            <node key="SQL_FUNCTION_NAME" type="ENUM_SQL_KNOWN_FUNCTION" value="CURRENT_TIMESTAMP" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="MINUS" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </constant>
+                </constants>
+                <column-transforms>
+                    <transform expr="8">
+                        <snippet template="5606800037095841550" raw="3197809837303275225">
+                            <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
+                            <nodes count="12" bytes="288">
+                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
+                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                                    <node type="NAME" loc="15..25" text="query_hash" />
+                                                </node>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                        <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    </node>
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </transform>
+                    <transform expr="9">
+                        <snippet template="5606800037095841550" raw="10739155601962827482">
+                            <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
+                            <nodes count="12" bytes="288">
+                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
+                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
+                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
+                                                    <node type="NAME" loc="15..25" text="query_hash" />
+                                                </node>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                        <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    </node>
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </transform>
+                </column-transforms>
+                <column-restrictions>
+                    <restriction expr="23">
+                        <snippet template="7878761948638532652" raw="12915170941615982935">
+                            <text>tenant = 'a360/prod3/foo'</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
+                                        <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                                <node type="NAME" loc="0..6" text="tenant" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </restriction>
+                    <restriction expr="24">
+                        <snippet template="7878761948638532652" raw="13423462593048553321">
+                            <text>tenant = 'a360/prod/bar'</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
+                                        <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                                <node type="NAME" loc="0..6" text="tenant" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </restriction>
+                    <restriction expr="25">
                         <snippet template="17608407916322461543" raw="17046291626474264120">
                             <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
                             <nodes count="15" bytes="360">
@@ -55,129 +235,129 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </template>
-                </templates>
-                <templates column="0.3">
-                    <template signature="7878761948638532652">
-                        <snippet template="7878761948638532652" raw="13423462593048553321">
-                            <text>tenant = 'a360/prod/bar'</text>
-                            <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/bar'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/bar'">
-                                        <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/bar'" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
-                                                <node type="NAME" loc="0..6" text="tenant" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                                </node>
-                            </nodes>
-                        </snippet>
-                        <snippet template="7878761948638532652" raw="12915170941615982935">
-                            <text>tenant = 'a360/prod3/foo'</text>
-                            <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..25" text="tenant = '..prod3/foo'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..25" text="tenant = '..prod3/foo'">
-                                        <node type="LITERAL_STRING" loc="9..25" text="'a360/prod3/foo'" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
-                                                <node type="NAME" loc="0..6" text="tenant" />
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
-                                </node>
-                            </nodes>
-                        </snippet>
-                    </template>
-                </templates>
-            </column-restrictions>
-            <column-transforms>
-                <templates column="0.1">
-                    <template signature="5606800037095841550">
-                        <snippet template="5606800037095841550" raw="3197809837303275225">
-                            <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
-                            <nodes count="12" bytes="288">
-                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..A-Z]+', 1)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..zA-Z]+', 1">
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
-                                        </node>
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..9a-zA-Z]+'" />
-                                        </node>
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
-                                                    <node type="NAME" loc="15..25" text="query_hash" />
-                                                </node>
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                        <node type="NAME" loc="0..14" text="regexp_extract" />
-                                    </node>
-                                </node>
-                            </nodes>
-                        </snippet>
-                        <snippet template="5606800037095841550" raw="10739155601962827482">
-                            <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
-                            <nodes count="12" bytes="288">
-                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..75" text="regexp_ext..-Z]+)', 1)">
-                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..74" text="query_hash..A-Z]+)', 1">
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="73..74" text="1">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="73..74" text="1" />
-                                        </node>
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..71" text="'[0-9a-zA-..a-zA-Z]+)'" />
-                                        </node>
-                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
-                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
-                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
-                                                    <node type="NAME" loc="15..25" text="query_hash" />
-                                                </node>
-                                            </node>
-                                        </node>
-                                    </node>
-                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                        <node type="NAME" loc="0..14" text="regexp_extract" />
-                                    </node>
-                                </node>
-                            </nodes>
-                        </snippet>
-                    </template>
-                </templates>
-            </column-transforms>
+                    </restriction>
+                </column-restrictions>
+            </script>
         </registry>
     </registry-snapshot>
     <registry-snapshot name="trino_inhibitors">
         <catalog>
-            create table iceberg.some_events.some_queries (
-                query_hash varchar,
-                query_metrics varchar,
-                tenant varchar,
-                event_timestamp timestamp
-            );
-        </catalog>
-        <scripts>
-            <script>
-                select 
-                  event_timestamp, elapsed, processed_rows_byol, workload_name,
-                  regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
-                  query_plan
-                from iceberg.some_events.some_queries
-                where tenant = 'a360/prod/foo'
-                and event_timestamp &gt; cast ('2025-04-14' as timestamp)
-                and processed_rows_byol &gt; 0
-                order by 3 desc
+            <script id="1">
+                <input>
+                    create table iceberg.some_events.some_queries (
+                        query_hash varchar,
+                        query_metrics varchar,
+                        tenant varchar,
+                        event_timestamp timestamp
+                    );
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="some_queries" loc="21..271" text="create tab..         )">
+                        <column id="256.65536.4294967296.0" name="event_timestamp" loc="224..249" text="event_time.. timestamp" />
+                        <column id="256.65536.4294967296.1" name="query_hash" loc="93..111" text="query_hash varchar" />
+                        <column id="256.65536.4294967296.2" name="query_metrics" loc="137..158" text="query_metr..cs varchar" />
+                        <column id="256.65536.4294967296.3" name="tenant" loc="184..198" text="tenant varchar" />
+                    </table>
+                </tables>
+                <errors />
             </script>
-        </scripts>
+        </catalog>
         <registry>
-            <column-restrictions>
-                <templates column="0.0">
-                    <template signature="153693783941112220">
+            <script id="2">
+                <input>
+                    select 
+                      event_timestamp, elapsed, processed_rows_byol, workload_name,
+                      regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+                      query_plan
+                    from iceberg.some_events.some_queries
+                    where tenant = 'a360/prod/foo'
+                    and event_timestamp &gt; cast ('2025-04-14' as timestamp)
+                    and processed_rows_byol &gt; 0
+                    order by 3 desc
+                </input>
+                <errors />
+                <table-refs>
+                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="301..333" text="iceberg.so..me_queries" />
+                </table-refs>
+                <expressions>
+                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="51..66" text="event_timestamp" />
+                    <expr id="1" type="colref/unresolved" stmt="0" loc="68..75" text="elapsed" />
+                    <expr id="2" type="colref/unresolved" stmt="0" loc="77..96" text="processed_rows_byol" />
+                    <expr id="3" type="colref/unresolved" stmt="0" loc="98..111" text="workload_name" />
+                    <expr id="4" type="colref/unresolved" stmt="0" loc="150..177" text="pre_execut..ry_metrics" />
+                    <expr id="5" type="colref/unresolved" stmt="0" loc="265..275" text="query_plan" />
+                    <expr id="6" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="360..366" text="tenant" />
+                    <expr id="7" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="409..424" text="event_timestamp" />
+                    <expr id="8" type="colref/unresolved" stmt="0" loc="484..503" text="processed_rows_byol" />
+                    <expr id="9" type="func" name="regexp_extract" transform="4" stmt="0" loc="135..227" text="regexp_ext..*}),&quot;', 1)" />
+                    <expr id="10" type="func" known="CAST" const="true" stmt="0" loc="427..459" text="cast ('202..timestamp)" />
+                    <expr id="11" type="literal/string" const="true" stmt="0" loc="179..223" text="'&quot;federati..:({.*}),&quot;'" />
+                    <expr id="12" type="literal/integer" const="true" stmt="0" loc="225..226" text="1" />
+                    <expr id="13" type="literal/string" const="true" stmt="0" loc="369..384" text="'a360/prod/foo'" />
+                    <expr id="14" type="literal/string" const="true" stmt="0" loc="433..445" text="'2025-04-14'" />
+                    <expr id="15" type="literal/integer" const="true" stmt="0" loc="506..507" text="0" />
+                    <expr id="16" type="literal/integer" const="true" stmt="0" loc="537..538" text="3" />
+                    <expr id="17" type="comparison" op="EQUAL" left="6" right="13" restrict="6" stmt="0" loc="360..384" text="tenant = '../prod/foo'" />
+                    <expr id="18" type="comparison" op="GREATER_THAN" left="7" right="10" restrict="7" stmt="0" loc="409..459" text="event_time..timestamp)" />
+                    <expr id="19" type="comparison" op="GREATER_THAN" left="8" right="15" restrict="8" stmt="0" loc="484..507" text="processed_..s_byol > 0" />
+                </expressions>
+                <constants>
+                    <constant expr="11" loc="179..223" text="'&quot;federati..:({.*}),&quot;'" />
+                    <constant expr="12" loc="225..226" text="1" />
+                    <constant expr="13" loc="369..384" text="'a360/prod/foo'" />
+                    <constant expr="14" loc="433..445" text="'2025-04-14'" />
+                    <constant expr="15" loc="506..507" text="0" />
+                    <constant expr="16" loc="537..538" text="3" />
+                </constants>
+                <column-transforms>
+                    <transform expr="9">
+                        <snippet template="5606800037095841550" raw="1321516605521455402">
+                            <text>regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1)</text>
+                            <nodes count="12" bytes="288">
+                                <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..92" text="regexp_ext..*}),&quot;', 1)">
+                                    <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..91" text="pre_execut...*}),&quot;', 1">
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="90..91" text="1">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="90..91" text="1" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="44..88" text="'&quot;federati..:({.*}),&quot;'">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="44..88" text="'&quot;federati..:({.*}),&quot;'" />
+                                        </node>
+                                        <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..42" text="pre_execut..ry_metrics">
+                                            <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..42" text="pre_execut..ry_metrics">
+                                                <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..42" text="pre_execut..ry_metrics">
+                                                    <node type="NAME" loc="15..42" text="pre_execut..ry_metrics" />
+                                                </node>
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                        <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    </node>
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </transform>
+                </column-transforms>
+                <column-restrictions>
+                    <restriction expr="17">
+                        <snippet template="7878761948638532652" raw="12730198808566288772">
+                            <text>tenant = 'a360/prod/foo'</text>
+                            <nodes count="7" bytes="168">
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/foo'">
+                                        <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/foo'" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
+                                                <node type="NAME" loc="0..6" text="tenant" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                            </nodes>
+                        </snippet>
+                    </restriction>
+                    <restriction expr="18">
                         <snippet template="153693783941112220" raw="17607440235580690731">
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                             <nodes count="12" bytes="288">
@@ -202,30 +382,27 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </template>
-                </templates>
-                <templates column="0.3">
-                    <template signature="7878761948638532652">
-                        <snippet template="7878761948638532652" raw="12730198808566288772">
-                            <text>tenant = 'a360/prod/foo'</text>
+                    </restriction>
+                    <restriction expr="19">
+                        <snippet template="2279910941344963753" raw="5597646258326568496">
+                            <text>processed_rows_byol &gt; 0</text>
                             <nodes count="7" bytes="168">
-                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..24" text="tenant = '../prod/foo'">
-                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..24" text="tenant = '../prod/foo'">
-                                        <node type="LITERAL_STRING" loc="9..24" text="'a360/prod/foo'" />
-                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="tenant">
-                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="tenant">
-                                                <node type="NAME" loc="0..6" text="tenant" />
+                                <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..23" text="processed_..s_byol > 0">
+                                    <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..23" text="processed_..s_byol > 0">
+                                        <node type="LITERAL_INTEGER" loc="22..23" text="0" />
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="0..19" text="processed_rows_byol">
+                                            <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..19" text="processed_rows_byol">
+                                                <node type="NAME" loc="0..19" text="processed_rows_byol" />
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="GREATER_THAN" />
                                 </node>
                             </nodes>
                         </snippet>
-                    </template>
-                </templates>
-            </column-restrictions>
-            <column-transforms />
+                    </restriction>
+                </column-restrictions>
+            </script>
         </registry>
     </registry-snapshot>
 </registry-snapshots>

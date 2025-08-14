@@ -26,7 +26,7 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     Catalog catalog;
     std::vector<std::unique_ptr<Script>> catalog_scripts;
     size_t next_entry_id = 1;
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_entries, catalog_node, catalog,
+    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_scripts, catalog_node, catalog,
                                                                       catalog_scripts, next_entry_id));
 
     // Read registry

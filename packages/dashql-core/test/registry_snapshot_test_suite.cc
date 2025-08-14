@@ -1,6 +1,5 @@
 #include "dashql/script_registry.h"
 #include "dashql/testing/registry_snapshot_test.h"
-#include "dashql/testing/xml_tests.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
 
@@ -14,46 +13,24 @@ struct RegistrySnapshotTestSuite : public ::testing::TestWithParam<const Registr
 TEST_P(RegistrySnapshotTestSuite, Test) {
     auto* test = GetParam();
 
-    // Prepare catalog
-    Catalog catalog;
-    std::optional<Script> catalog_script;
-    size_t catalog_entry_id = 0;
-    if (auto& text = test->catalog_script; text.has_value()) {
-        catalog_entry_id = text.value().external_id;
-        catalog_script.emplace(catalog, catalog_entry_id);
-
-        auto& s = catalog_script.value();
-        s.InsertTextAt(0, text.value().input);
-        ASSERT_EQ(s.Scan(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(s.Parse(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(s.Analyze(), buffers::status::StatusCode::OK);
-
-        catalog.LoadScript(s, 0);
-    }
-
-    // Analyze all registry scripts
-    std::vector<std::unique_ptr<Script>> registry_scripts;
-    for (auto& text : test->registry_scripts) {
-        registry_scripts.push_back(std::make_unique<Script>(catalog, catalog_entry_id + 1 + registry_scripts.size()));
-
-        auto& s = *registry_scripts.back();
-        s.InsertTextAt(0, text);
-        ASSERT_EQ(s.Scan(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(s.Parse(), buffers::status::StatusCode::OK);
-        ASSERT_EQ(s.Analyze(), buffers::status::StatusCode::OK);
-    }
-
-    // Add all scripts
-    ScriptRegistry registry;
-    for (auto& script : registry_scripts) {
-        registry.AddScript(*script);
-    }
-
     pugi::xml_document out;
+    auto catalog_node = out.append_child("catalog");
     auto registry_node = out.append_child("registry");
-    RegistrySnapshotTest::EncodeRegistry(registry_node, registry);
 
-    ASSERT_TRUE(Matches(out, test->expected));
+    // Read catalog
+    Catalog catalog;
+    std::vector<std::unique_ptr<Script>> catalog_scripts;
+    size_t next_entry_id = 1;
+    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_scripts, catalog_node, catalog,
+                                                                      catalog_scripts, next_entry_id));
+
+    // Read registry
+    ScriptRegistry registry;
+    std::vector<std::unique_ptr<Script>> registry_scripts;
+    ASSERT_NO_FATAL_FAILURE(RegistrySnapshotTest::TestRegistrySnapshot(test->registry_scripts, registry_node, catalog,
+                                                                       registry, registry_scripts, next_entry_id));
+
+    // XXX We could test the btree entries by listing all restriction & transform keys
 }
 
 // clang-format off

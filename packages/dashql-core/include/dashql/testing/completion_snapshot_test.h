@@ -21,14 +21,12 @@ struct CompletionSnapshotTest {
 
     /// The name
     std::string name;
-    /// The catalog
-    std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_entries;
+    /// The catalog scriopts
+    std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_scripts;
     /// The registry scripts
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> registry_scripts;
-    /// The main script
+    /// The editor script
     AnalyzerSnapshotTest::ScriptAnalysisSnapshot script;
-    /// The cursor script
-    std::string cursor_script;
     /// The search string for the cursor
     std::string cursor_search_string;
     /// The search index for the cursor

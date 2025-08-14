@@ -17,22 +17,13 @@ struct RegistrySnapshotTest {
             return std::string{info.param->name};
         }
     };
-    struct CatalogScript {
-        /// The origin id
-        CatalogEntryID external_id;
-        /// The script
-        std::string input;
-    };
 
     /// The name
     std::string name;
     /// The catalog scripts
-    std::optional<CatalogScript> catalog_script;
+    std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_scripts;
     /// The registry scripts
-    std::vector<std::string> registry_scripts;
-
-    /// The expected registry node
-    pugi::xml_document expected;
+    std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> registry_scripts;
 
     using TableColumnKey = std::pair<ContextObjectID, ColumnID>;
 
@@ -42,8 +33,6 @@ struct RegistrySnapshotTest {
                                      std::vector<std::unique_ptr<Script>>& registry_scripts, size_t& entry_ids);
     /// Encode script templates
     static void EncodeScriptTemplates(pugi::xml_node out, const ScriptRegistry::SnippetMap& snippets);
-    /// Encode a script
-    static void EncodeRegistry(pugi::xml_node out, ScriptRegistry& registry);
     /// Get the registry tests
     static void LoadTests(std::filesystem::path& project_root);
     /// Get the registry tests

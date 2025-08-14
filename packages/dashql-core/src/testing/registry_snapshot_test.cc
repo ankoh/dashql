@@ -71,57 +71,6 @@ void RegistrySnapshotTest::EncodeScriptTemplates(pugi::xml_node out, const Scrip
     }
 }
 
-void RegistrySnapshotTest::EncodeRegistry(pugi::xml_node out, ScriptRegistry& registry) {
-    // Group snippets by (table_id, column_id) combination
-    using TableColumnKey = std::pair<ContextObjectID, ColumnID>;
-    std::map<TableColumnKey, ScriptRegistry::SnippetMap> grouped_restriction_snippets;
-    std::map<TableColumnKey, ScriptRegistry::SnippetMap> grouped_transform_snippets;
-
-    // Collect all unique (table_id, column_id) pairs
-    std::set<TableColumnKey> unique_table_column_pairs;
-    for (auto& restriction_tuple : registry.GetColumnRestrictions()) {
-        auto [table_id, column_id, script_ptr] = restriction_tuple;
-        unique_table_column_pairs.insert({table_id, column_id});
-    }
-    for (auto& transform_tuple : registry.GetColumnTransforms()) {
-        auto [table_id, column_id, script_ptr] = transform_tuple;
-        unique_table_column_pairs.insert({table_id, column_id});
-    }
-
-    // Collect column transforms and restrictions
-    for (auto& [table_id, column_id] : unique_table_column_pairs) {
-        TableColumnKey key{table_id, column_id};
-        registry.CollectColumnRestrictions(table_id, column_id, std::nullopt, grouped_restriction_snippets[key]);
-        registry.CollectColumnTransforms(table_id, column_id, std::nullopt, grouped_transform_snippets[key]);
-    }
-
-    // Write grouped snippets
-    auto write_grouped_snippets = [](pugi::xml_node out,
-                                     std::map<TableColumnKey, ScriptRegistry::SnippetMap>& grouped) {
-        for (auto& [table_column_key, snippet_map] : grouped) {
-            if (snippet_map.empty()) continue;
-            auto [table_id, column_id] = table_column_key;
-            auto templates_node = out.append_child("templates");
-
-            std::string id = std::format("{}.{}", table_id.Pack(), column_id);
-            templates_node.append_attribute("column").set_value(id.c_str());
-
-            EncodeScriptTemplates(templates_node, snippet_map);
-        }
-    };
-
-    // Encode column restrictions
-    if (!grouped_restriction_snippets.empty()) {
-        auto restrictions_node = out.append_child("column-restrictions");
-        write_grouped_snippets(restrictions_node, grouped_restriction_snippets);
-    }
-    // Encode column transforms
-    if (!grouped_transform_snippets.empty()) {
-        auto transforms_node = out.append_child("column-transforms");
-        write_grouped_snippets(transforms_node, grouped_transform_snippets);
-    }
-}
-
 // The files
 static std::unordered_map<std::string, std::vector<RegistrySnapshotTest>> TEST_FILES;
 
@@ -157,26 +106,25 @@ void RegistrySnapshotTest::LoadTests(std::filesystem::path& source_dir) {
             auto& test = tests.back();
             test.name = test_node.attribute("name").as_string();
 
-            // Read catalog
+            // Read catalog scripts
             auto catalog_node = test_node.child("catalog");
-            if (catalog_node) {
-                auto catalog_id = catalog_node.attribute("id").as_int(0);
-                test.catalog_script.emplace(CatalogScript{.external_id = static_cast<CatalogEntryID>(catalog_id),
-                                                          .input = catalog_node.last_child().value()});
+            for (auto entry_node : catalog_node.children()) {
+                test.catalog_scripts.emplace_back();
+                auto& entry = test.catalog_scripts.back();
+                std::string entry_name = entry_node.name();
+                if (entry_name == "script") {
+                    entry.ReadFrom(entry_node);
+                } else {
+                    std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
+                }
             }
 
-            // Read scripts
-            auto scripts_node = test_node.child("scripts");
-            for (auto script_node : scripts_node.children()) {
-                auto& script = test.registry_scripts.emplace_back();
-                script = script_node.last_child().value();
-            }
-
-            // Copy column restrictions and transforms
+            // Read registry scripts
             auto registry_node = test_node.child("registry");
-            auto expected_root = test.expected.append_child("registry");
-            expected_root.append_copy(registry_node.child("column-restrictions"));
-            expected_root.append_copy(registry_node.child("column-transforms"));
+            for (auto script_node : registry_node.children()) {
+                auto& script = test.registry_scripts.emplace_back();
+                script.ReadFrom(script_node);
+            }
         }
 
         std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;

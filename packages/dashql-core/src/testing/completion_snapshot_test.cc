@@ -178,8 +178,8 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
             // Read catalog
             auto catalog_node = test_node.child("catalog");
             for (auto entry_node : catalog_node.children()) {
-                test.catalog_entries.emplace_back();
-                auto& entry = test.catalog_entries.back();
+                test.catalog_scripts.emplace_back();
+                auto& entry = test.catalog_scripts.back();
                 std::string entry_name = entry_node.name();
                 if (entry_name == "script") {
                     entry.ReadFrom(entry_node);
@@ -189,20 +189,19 @@ void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
             }
 
             // Read registry scripts
-            auto scripts_node = test_node.child("registry");
-            for (auto script_node : scripts_node.children()) {
+            auto registry_node = test_node.child("registry");
+            for (auto script_node : registry_node.children()) {
                 auto& script = test.registry_scripts.emplace_back();
                 script.ReadFrom(script_node);
             }
 
-            // Read main script
+            // Read editor script
             auto editor_node = test_node.child("editor");
             test.script.ReadFrom(editor_node);
 
             // Read the cursor
             auto xml_cursor = test_node.child("cursor");
             auto xml_cursor_search = xml_cursor.child("search");
-            test.cursor_script = xml_cursor.attribute("script").value();
             test.cursor_search_string = xml_cursor_search.attribute("text").value();
             test.cursor_search_index = xml_cursor_search.attribute("index").as_int();
 
