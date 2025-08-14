@@ -4,6 +4,7 @@ import * as dashql from '../src/index.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'node:url';
+import { ScriptTemplateType } from '../gen/dashql/buffers/snippet.js';
 
 const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
@@ -42,5 +43,46 @@ describe('DashQL Completion', () => {
         };
 
         it('s', () => test('s', 1, ['select', 'set', 'values', 'with', 'create', 'table']));
+    });
+
+    test('simple candidate template', () => {
+        const catalog = dql!.createCatalog();
+        const registry = dql!.createScriptRegistry();
+        const schemaScript = dql!.createScript(catalog, 1);
+        const scriptA = dql!.createScript(catalog, 2);
+        const scriptB = dql!.createScript(catalog, 3);
+
+        schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
+        schemaScript.analyze();
+        registry.addScript(schemaScript);
+        catalog.loadScript(schemaScript, 0);
+
+        scriptA.insertTextAt(0, "select * from tableA where \"attrA\" = 42");
+        scriptA.analyze();
+        registry.addScript(scriptA);
+
+        const text = "select * from tableA where attr";
+        scriptB.insertTextAt(0, text);
+        scriptB.analyze();
+        const cursor = scriptB.moveCursor(text.search(" attr") + 6);
+        const completion = scriptB.completeAtCursor(10, registry);
+
+        const completionReader = completion.read()
+        expect(completionReader.candidatesLength()).toEqual(10);
+        const candidate0 = completionReader.candidates(0);
+        expect(candidate0?.catalogObjectsLength()).toEqual(1);
+        expect(candidate0?.completionText()).toEqual("\"attrA\"");
+        expect(candidate0?.completionTemplatesLength()).toEqual(1);
+        const template = candidate0?.completionTemplates(0);
+        expect(template?.templateType()).toEqual(ScriptTemplateType.COLUMN_RESTRICTION);
+        expect(template?.snippetsLength()).toEqual(1);
+        const snippet = template?.snippets(0);
+        expect(snippet?.text()).toEqual("\"attrA\" = 42");
+
+        cursor.destroy();
+        completion.destroy();
+        scriptB.destroy();
+        scriptA.destroy();
+        schemaScript.destroy();
     });
 });

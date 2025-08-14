@@ -991,7 +991,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                                      buffers::snippet::ScriptTemplateType type,
                                      std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
                                      std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
-            for (auto& [k, vs] : iter_entry->restriction_snippets) {
+            for (auto& [k, vs] : snippets) {
                 assert(!vs.empty());
                 tmp_snippets.clear();
                 tmp_snippets.reserve(vs.size());
