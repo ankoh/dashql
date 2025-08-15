@@ -59,7 +59,7 @@
         "@types/react-dom": "^19.1.7",
         "@types/react-window": "^1.8.8",
         "@types/stylis": "^4.2.7",
-        "@uiw/codemirror-themes-all": "^4.24.2",
+        "@uiw/codemirror-themes-all": "^4.25.1",
         "apache-arrow": "^21.0.0",
         "cm6-theme-basic-light": "^0.2.0",
         "cm6-theme-nord": "^0.2.0",
