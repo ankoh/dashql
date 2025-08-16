@@ -44,7 +44,6 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
     if (completion.candidatesLength() <= candidate.candidateId) {
         return null;
     }
-    const tmpNode = new dashql.buffers.parser.Node();
 
     // Show inline completion hint.
     const candidateData = completion.candidates(candidate.candidateId)!;
@@ -74,6 +73,7 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
         }
     };
     let extended: ExtendedCompletion | null = null;
+    const tmpNode = new dashql.buffers.parser.Node();
     if (candidateData.completionTemplatesLength() > 0) {
         const template = candidateData.completionTemplates(0)!;
         if (template.snippetsLength() > 0) {
