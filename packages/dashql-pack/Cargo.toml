@@ -48,7 +48,7 @@ version = "4.5.45"
 features = ["derive"]
 
 [dependencies.uuid]
-version = "1.17.0"
+version = "1.18.0"
 features = ["v5"]
 
 [dependencies.toml]
