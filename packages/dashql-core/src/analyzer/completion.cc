@@ -626,6 +626,10 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 candidate_objects_by_object.insert({&o, co});
             }
         }
+
+        // XXX What's missing here is the check if the catalog object is already in scope.
+        //     This becomes problematic when we have the same column name for multiple tables.
+        //     We want to promote candidates with names that are in scope to show correct catalog entries.
     }
 }
 
