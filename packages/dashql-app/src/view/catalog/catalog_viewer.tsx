@@ -6,10 +6,7 @@ import * as styles from './catalog_viewer.module.css'
 import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
 import { EdgeLayer } from './edge_layer.js';
-import { FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID } from '../../workbook/focus.js';
 import { NodeLayer } from './node_layer.js';
-import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { U32_MAX } from '../../utils/numeric_limits.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { renderCatalog, RenderingOutput, RenderingState } from './catalog_renderer.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
