@@ -164,44 +164,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     }
 };
 
-// 
-// // Keymap for completion hints
-// export const COMPLETION_HINT_KEYMAP = [
-//     {
-//         key: 'Tab',
-//         run: (view: EditorView): boolean => {
-//             const state = view.state.field(COMPLETION_HINT_STATE);
-//             if (state.hints) {
-//                 const textChange: ChangeSpec = {
-//                     from: state.hints.candidate.hint.at,
-//                     insert: state.hints.candidate.hint.text
-//                 };
-//                 view.dispatch({
-//                     changes: textChange,
-//                     selection: { anchor: state.hints.candidate.hint.at + state.hints.candidate.hint.text.length },
-//                     effects: CLEAR_COMPLETION_HINTS.of(null),
-//                 });
-//                 return true;
-//             }
-//             return false;
-//         }
-//     },
-//     {
-//         key: 'Escape',
-//         run: (view: EditorView): boolean => {
-//             const state = view.state.field(COMPLETION_HINT_STATE);
-//             if (state.hints) {
-//                 view.dispatch({
-//                     effects: CLEAR_COMPLETION_HINTS.of(null)
-//                 });
-//                 return true;
-//             }
-//             return false;
-//         }
-//     }
-// ];
-
-const COMPLETION_HINT_VIEW_PLUGIN = ViewPlugin.fromClass(
+export const DashQLCompletionHint = ViewPlugin.fromClass(
     class {
         decorations: DecorationSet;
         constructor(readonly view: EditorView) {
@@ -216,9 +179,3 @@ const COMPLETION_HINT_VIEW_PLUGIN = ViewPlugin.fromClass(
     },
     { decorations: v => v.decorations }
 );
-
-
-export const DashQLCompletionHint = [
-    COMPLETION_HINT_VIEW_PLUGIN,
-    // keymap.of(COMPLETION_HINT_KEYMAP)
-];

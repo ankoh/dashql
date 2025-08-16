@@ -5,8 +5,8 @@ import { EditorView } from '@codemirror/view';
 import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
-import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
 import { DashQLCompletionHint } from './dashql_completion_hint.js';
+import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
 
 const COMPLETION_LIMIT = 32;
 
@@ -128,6 +128,43 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
         update: updateCompletions,
     };
 }
+
+// 
+// // Keymap for completion hints
+// export const COMPLETION_HINT_KEYMAP = [
+//     {
+//         key: 'Tab',
+//         run: (view: EditorView): boolean => {
+//             const state = view.state.field(COMPLETION_HINT_STATE);
+//             if (state.hints) {
+//                 const textChange: ChangeSpec = {
+//                     from: state.hints.candidate.hint.at,
+//                     insert: state.hints.candidate.hint.text
+//                 };
+//                 view.dispatch({
+//                     changes: textChange,
+//                     selection: { anchor: state.hints.candidate.hint.at + state.hints.candidate.hint.text.length },
+//                     effects: CLEAR_COMPLETION_HINTS.of(null),
+//                 });
+//                 return true;
+//             }
+//             return false;
+//         }
+//     },
+//     {
+//         key: 'Escape',
+//         run: (view: EditorView): boolean => {
+//             const state = view.state.field(COMPLETION_HINT_STATE);
+//             if (state.hints) {
+//                 view.dispatch({
+//                     effects: CLEAR_COMPLETION_HINTS.of(null)
+//                 });
+//                 return true;
+//             }
+//             return false;
+//         }
+//     }
+// ];
 
 
 export const DashQLCompletion = [
