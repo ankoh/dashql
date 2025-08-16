@@ -184,6 +184,7 @@ struct IntrusiveList {
         } else {
             assert(first != nullptr);
             assert(last != nullptr);
+            node.next = nullptr;
             last->next = &node;
             last = &node;
             ++size;
