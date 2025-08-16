@@ -1,0 +1,31 @@
+
+
+.completion_hint_simple {
+    color: var(--dashql-completion-hint-color, #666) !important;
+    opacity: 0.6;
+    font-style: italic;
+    user-select: none;
+    pointer-events: none;
+    background: transparent;
+    display: inline;
+}
+.completion_hint_simple:not(:empty) {
+    background-color: var(--dashql-completion-hint-bg, rgba(100, 149, 237, 0.1));
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.completion_hint_extended {
+    color: var(--dashql-completion-hint-color, #666) !important;
+    opacity: 0.6;
+    font-style: italic;
+    user-select: none;
+    pointer-events: none;
+    background: transparent;
+    display: inline;
+}
+.completion_hint_extended:not(:empty) {
+    background-color: var(--dashql-completion-hint-bg, rgba(255, 0, 0, 0.5));
+    border-radius: 2px;
+    padding: 0 1px;
+}

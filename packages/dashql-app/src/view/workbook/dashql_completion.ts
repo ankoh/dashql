@@ -6,7 +6,7 @@ import { ChangeSpec } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
 import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
-import { showCompletionHint, CLEAR_COMPLETION_HINTS } from './dashql_completion_hint.js';
+import { DashQLCompletionHint } from './dashql_completion_hint.js';
 
 const COMPLETION_LIMIT = 32;
 
@@ -18,8 +18,6 @@ export interface DashQLCompletion extends Completion {
     completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
     /// The current candidate id
     candidateId: number;
-    /// The editor view for showing hints
-    view?: EditorView;
 }
 
 /// Update the completions
@@ -32,20 +30,18 @@ function updateCompletions(
     return null;
 }
 
-/// Preview a completion candidate and show inline hint
-const previewCompletion = (completion: Completion) => {
+/// Preview a completion candidate
+function showExternalCompletionInfo(completion: Completion) {
     const candidate = completion as DashQLCompletion;
 
     // Call the existing preview function.
     // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
     candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.completion, candidate.candidateId);
 
-    // Show the completion hint
-    showCompletionHint(candidate);
     return null;
 };
 
-const applyCompletion = (view: EditorView, completion: Completion, _from: number, _to: number) => {
+function applyCompletion(view: EditorView, completion: Completion, _from: number, _to: number) {
     const c = completion as DashQLCompletion;
     const coreCompletion = c.completion.read();
     if (coreCompletion.candidatesLength() <= c.candidateId) {
@@ -75,7 +71,7 @@ const applyCompletion = (view: EditorView, completion: Completion, _from: number
     view.dispatch({
         changes,
         selection: { anchor: newCursor },
-        effects: CLEAR_COMPLETION_HINTS.of(null),
+        // effects: CLEAR_COMPLETION_HINTS.of(null),
     });
 }
 
@@ -111,10 +107,9 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
                     state: processor,
                     completion: completionPtr,
                     candidateId: i,
-                    view: context.view,
                     label: candidate.completionText()!,
                     detail: candidateDetail,
-                    info: previewCompletion,
+                    info: showExternalCompletionInfo,
                     apply: applyCompletion,
                 });
             }
@@ -139,4 +134,5 @@ export const DashQLCompletion = [
     autocompletion({
         override: [completeDashQL],
     }),
+    DashQLCompletionHint
 ];

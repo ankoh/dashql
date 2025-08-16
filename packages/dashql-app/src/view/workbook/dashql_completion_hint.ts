@@ -1,10 +1,13 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { StateField, StateEffect, Transaction, ChangeSpec } from '@codemirror/state';
-import { EditorView, Decoration, DecorationSet, WidgetType, keymap } from '@codemirror/view';
+import { currentCompletions, completionStatus, selectedCompletion } from '@codemirror/autocomplete';
+import { EditorState } from '@codemirror/state';
+import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
+
+import * as styles from './dashql_completion_hint.module.css';
 
 /// A completion content
 interface CompletionHint {
@@ -35,14 +38,70 @@ interface CompletionHints {
     extended: ExtendedCompletion | null;
 }
 
-// Effect to set a simple completion hint
-export const SET_COMPLETION_HINTS = StateEffect.define<CompletionHints>();
-// Effect to clear a completion hint
-export const CLEAR_COMPLETION_HINTS = StateEffect.define<null>();
+/// Helper to compute the completion hints given a completion candidate a new editor state
+export function computeCompletionHints(candidate: DashQLCompletion, state: EditorState): CompletionHints | null {
+    const completion = candidate.completion.read();
+    if (completion.candidatesLength() <= candidate.candidateId) {
+        return null;
+    }
+    const tmpNode = new dashql.buffers.parser.Node();
+
+    // Show inline completion hint.
+    const candidateData = completion.candidates(candidate.candidateId)!;
+    const candidateText = candidateData.completionText();
+    const replaceTextAt = candidateData.replaceTextAt();
+    if (candidateText === null || replaceTextAt === null) {
+        return null;
+    }
+    const _cursorPos = state.selection.main.head;
+    const replaceFrom = replaceTextAt.offset();
+    const replaceTo = replaceFrom + replaceTextAt.length();
+
+    // XXX Wouldn't we rather track it as currentTokenStart or so?
+    //     replaceFrom sounds dangerous.
+
+    // Calculate the hint text (part that would be inserted after current cursor)
+    const currentText = state.doc.sliceString(replaceFrom, replaceTo);
+
+    if (!candidateText.startsWith(currentText)) {
+        return null;
+    }
+    const hintText = candidateText.slice(currentText.length);
+    const candidateCompletion: CandidateCompletion = {
+        hint: {
+            at: replaceTo,
+            text: hintText
+        }
+    };
+    let extended: ExtendedCompletion | null = null;
+    if (candidateData.completionTemplatesLength() > 0) {
+        const template = candidateData.completionTemplates(0)!;
+        if (template.snippetsLength() > 0) {
+            const snippet = template.snippets(0)!;
+            const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
+            extended = {
+                hintPrefix: {
+                    at: replaceFrom,
+                    text: snippetModel.textBefore
+                },
+                hintSuffix: {
+                    at: replaceTo,
+                    text: snippetModel.textAfter
+                }
+            };
+        }
+    }
+    return {
+        candidate: candidateCompletion,
+        extended
+    };
+}
+
 
 class CompletionHintWidget extends WidgetType {
     constructor(
         protected text: string,
+        protected extended: boolean = false
     ) {
         super();
     }
@@ -51,7 +110,7 @@ class CompletionHintWidget extends WidgetType {
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
-        span.className = 'cm-completion-hint';
+        span.className = this.extended ? styles.completion_hint_extended : styles.completion_hint_simple;
         span.textContent = this.text;
         return span;
     }
@@ -60,171 +119,106 @@ class CompletionHintWidget extends WidgetType {
     }
 }
 
-interface CompletionHintState {
-    hints: CompletionHints | null;
-    decorations: DecorationSet;
-}
-
-// State field to manage completion hints
-const COMPLETION_HINT_STATE = StateField.define<CompletionHintState>({
-    create() {
-        return {
-            decorations: Decoration.none,
-            hints: null
-        };
-    },
-    update(value: CompletionHintState, tr: Transaction) {
-        let hints: CompletionHints | null = null;
-        let decorations: DecorationSet = Decoration.none;
-        let cleared = false;
-
-        // Check if there are completion hint updates
-        for (const effect of tr.effects) {
-            if (effect.is(SET_COMPLETION_HINTS)) {
-                hints = effect.value;
-
-                const candidate = new CompletionHintWidget(hints.candidate.hint.text);
-                if (hints.extended != null) {
-                    const widgets = [];
-                    if (hints.extended.hintPrefix != null) {
-                        const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text);
-                        widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at));
-                    }
-                    widgets.push(Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at));
-                    if (hints.extended.hintSuffix != null) {
-                        const prefix = new CompletionHintWidget(hints.extended.hintSuffix.text);
-                        widgets.push(Decoration.widget({ widget: prefix, side: 2 }).range(hints.extended.hintSuffix.at));
-                    }
-                    decorations = Decoration.set(widgets);
-                } else {
-                    decorations = Decoration.set([
-                        Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
-                    ]);
-                }
-            } else if (effect.is(CLEAR_COMPLETION_HINTS)) {
-                cleared = true;
-            }
-        }
-        // Hint changed?
-        if (hints != null || cleared) {
-            return { hints: hints, decorations };
-        }
-
-        // Did the do change??
-        if (tr.docChanged || tr.newSelection.main.head !== value.hints?.candidate.hint.at) {
-            return { hints: null, decorations: Decoration.none };
-        }
-        return {
-            decorations: value.decorations?.map(tr.changes) ?? null,
-            hints: value.hints,
-        };
-    },
-    provide: f => EditorView.decorations.from(f, s => s.decorations ?? Decoration.none)
-});
-
-// Keymap for completion hints
-export const COMPLETION_HINT_KEYMAP = [
-    {
-        key: 'Tab',
-        run: (view: EditorView): boolean => {
-            const state = view.state.field(COMPLETION_HINT_STATE);
-            if (state.hints) {
-                const textChange: ChangeSpec = {
-                    from: state.hints.candidate.hint.at,
-                    insert: state.hints.candidate.hint.text
-                };
-                view.dispatch({
-                    changes: textChange,
-                    selection: { anchor: state.hints.candidate.hint.at + state.hints.candidate.hint.text.length },
-                    effects: CLEAR_COMPLETION_HINTS.of(null),
-                });
-                return true;
-            }
-            return false;
-        }
-    },
-    {
-        key: 'Escape',
-        run: (view: EditorView): boolean => {
-            const state = view.state.field(COMPLETION_HINT_STATE);
-            if (state.hints) {
-                view.dispatch({
-                    effects: CLEAR_COMPLETION_HINTS.of(null)
-                });
-                return true;
-            }
-            return false;
-        }
+function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet {
+    // Check completion status first
+    const status = completionStatus(viewUpdate.state);
+    if (status !== "active") {
+        return Decoration.none;
     }
-];
 
-export function showCompletionHint(candidate: DashQLCompletion) {
-    const view = candidate.view;
-    if (!view) return;
-
-    const completion = candidate.completion.read();
-    if (completion.candidatesLength() <= candidate.candidateId) {
-        return;
+    // Get current completions
+    const completions = currentCompletions(viewUpdate.state);
+    if (!completions || completions.length === 0) {
+        return Decoration.none;
     }
-    const tmpNode = new dashql.buffers.parser.Node();
 
-    // Show inline completion hint.
-    const candidateData = completion.candidates(candidate.candidateId)!;
-    const candidateText = candidateData.completionText();
-    const replaceTextAt = candidateData.replaceTextAt();
-    if (candidateText && replaceTextAt && candidate.view) {
-        const _cursorPos = candidate.view.state.selection.main.head;
-        const replaceFrom = replaceTextAt.offset();
-        const replaceTo = replaceFrom + replaceTextAt.length();
+    // Find the selected completion
+    const currentCompletion = selectedCompletion(viewUpdate.state) as DashQLCompletion;
+    if (!currentCompletion) {
+        return Decoration.none;
+    }
 
-        // XXX Wouldn't we rather track it as currentTokenStart or so?
-        //     replaceFrom sounds dangerous.
+    // Compute the new completion hints
+    const hints = computeCompletionHints(currentCompletion, viewUpdate.state);
+    if (hints == null) {
+        return Decoration.none;
+    }
 
-        // Calculate the hint text (part that would be inserted after current cursor)
-        const currentText = candidate.view.state.doc.sliceString(replaceFrom, replaceTo);
+    const candidate = new CompletionHintWidget(hints.candidate.hint.text, false);
+    if (hints.extended != null) {
+        const widgets = [];
+        if (hints.extended.hintPrefix != null) {
+            const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text, true);
+            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at));
+        }
+        widgets.push(Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at));
+        if (hints.extended.hintSuffix != null) {
+            const suffix = new CompletionHintWidget(hints.extended.hintSuffix.text, true);
+            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hints.extended.hintSuffix.at));
+        }
+        return Decoration.set(widgets);
+    } else {
+        return Decoration.set([
+            Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
+        ]);
+    }
+};
 
-        if (candidateText.startsWith(currentText)) {
-            const hintText = candidateText.slice(currentText.length);
-            if (hintText.length > 0) {
-                const view = candidate.view!;
-                const candidateCompletion: CandidateCompletion = {
-                    hint: {
-                        at: replaceTo,
-                        text: hintText
-                    }
-                };
-                let extended: ExtendedCompletion | null = null;
-                if (candidateData.completionTemplatesLength() > 0) {
-                    const template = candidateData.completionTemplates(0)!;
-                    if (template.snippetsLength() > 0) {
-                        const snippet = template.snippets(0)!;
-                        const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-                        extended = {
-                            hintPrefix: {
-                                at: replaceFrom,
-                                text: snippetModel.textBefore
-                            },
-                            hintSuffix: {
-                                at: replaceTo,
-                                text: snippetModel.textAfter
-                            }
-                        };
-                    }
-                }
-                setTimeout(() => {
-                    view.dispatch({
-                        effects: SET_COMPLETION_HINTS.of({
-                            candidate: candidateCompletion,
-                            extended
-                        })
-                    });
-                }, 0);
+// 
+// // Keymap for completion hints
+// export const COMPLETION_HINT_KEYMAP = [
+//     {
+//         key: 'Tab',
+//         run: (view: EditorView): boolean => {
+//             const state = view.state.field(COMPLETION_HINT_STATE);
+//             if (state.hints) {
+//                 const textChange: ChangeSpec = {
+//                     from: state.hints.candidate.hint.at,
+//                     insert: state.hints.candidate.hint.text
+//                 };
+//                 view.dispatch({
+//                     changes: textChange,
+//                     selection: { anchor: state.hints.candidate.hint.at + state.hints.candidate.hint.text.length },
+//                     effects: CLEAR_COMPLETION_HINTS.of(null),
+//                 });
+//                 return true;
+//             }
+//             return false;
+//         }
+//     },
+//     {
+//         key: 'Escape',
+//         run: (view: EditorView): boolean => {
+//             const state = view.state.field(COMPLETION_HINT_STATE);
+//             if (state.hints) {
+//                 view.dispatch({
+//                     effects: CLEAR_COMPLETION_HINTS.of(null)
+//                 });
+//                 return true;
+//             }
+//             return false;
+//         }
+//     }
+// ];
+
+const COMPLETION_HINT_VIEW_PLUGIN = ViewPlugin.fromClass(
+    class {
+        decorations: DecorationSet;
+        constructor(readonly view: EditorView) {
+            this.decorations = Decoration.none;
+        }
+        update(u: ViewUpdate) {
+            const next = computeCompletionHintDecorations(u);
+            if (next !== this.decorations) {
+                this.decorations = next;
             }
         }
-    }
-}
+    },
+    { decorations: v => v.decorations }
+);
+
 
 export const DashQLCompletionHint = [
-    COMPLETION_HINT_STATE,
-    keymap.of(COMPLETION_HINT_KEYMAP)
+    COMPLETION_HINT_VIEW_PLUGIN,
+    // keymap.of(COMPLETION_HINT_KEYMAP)
 ];
