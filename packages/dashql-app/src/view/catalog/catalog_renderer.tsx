@@ -576,7 +576,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                             </div>
                             <div className={styles.node_details_section_entries}>
                                 {ctx.viewModel.details.columnTransforms.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (
-                                    <div key={`${detailsKey}/transforms/${ri}`} className={styles.node_details_section_entry}>
+                                    <div key={`${detailsKey}/transform/${ri}`} className={styles.node_details_section_entry}>
                                         <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
                                     </div>
                                 ))}
