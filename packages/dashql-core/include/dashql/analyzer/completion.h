@@ -109,6 +109,8 @@ struct Completion {
     void FindCandidatesForNamePath();
     /// Find the candidates in completion indexes
     void FindCandidatesInIndexes();
+    /// Promote identifiers that are in the current name scope of in the same statement
+    void PromoteIdentifiersInScope();
     /// Promote tables that contain column names that are still unresolved in the current statement
     void PromoteTablesAndPeersForUnresolvedColumns();
     /// Add expected keywords in the grammar directly to the result heap.

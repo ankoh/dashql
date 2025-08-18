@@ -646,6 +646,14 @@ void Completion::FindCandidatesInIndexes() {
     }
 }
 
+void Completion::PromoteIdentifiersInScope() {
+    // 1. Collect the vector of name scopes that the cursor is in
+    //    (bottom to top)
+    // 2. For each scope, collect the table references
+    // 3. For each of the table references that are in scope, probe the candidate table with the table columns
+    // 4. For each of the candidates found, make sure the relevant catalog object comes first
+}
+
 void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
     if (!cursor.statement_id.has_value() || !cursor.script.analyzed_script) {
         return;
