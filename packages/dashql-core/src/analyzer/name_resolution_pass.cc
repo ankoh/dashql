@@ -10,6 +10,7 @@
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/catalog_object.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
 #include "dashql/utils/intrusive_list.h"
@@ -49,33 +50,33 @@ NameResolutionPass::NameResolutionPass(AnalysisState& state)
     : PassManager::LTRPass(state), node_states(state.ast.size()) {}
 
 /// Register a schema
-std::pair<CatalogDatabaseID, CatalogSchemaID> NameResolutionPass::RegisterSchema(RegisteredName& database_name,
-                                                                                 RegisteredName& schema_name) {
+QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name) {
     // Register the database
-    CatalogDatabaseID db_id = 0;
-    CatalogSchemaID schema_id = 0;
-    auto db_ref_iter = state.analyzed->databases_by_name.find(database_name);
+    auto db_ref_iter = state.analyzed->databases_by_name.find({database_name});
+    QualifiedCatalogObjectID db_id = QualifiedCatalogObjectID::Deferred();
     if (db_ref_iter == state.analyzed->databases_by_name.end()) {
         db_id = state.catalog.AllocateDatabaseId(database_name);
         auto& db =
             state.analyzed->database_references.PushBack(CatalogEntry::DatabaseReference{db_id, database_name, ""});
-        state.analyzed->databases_by_name.insert({db.database_name, db});
+        state.analyzed->databases_by_name.insert({{database_name}, db});
         database_name.resolved_objects.PushBack(db.CastToBase());
     } else {
-        db_id = db_ref_iter->second.get().catalog_database_id;
+        db_id = db_ref_iter->second.get().object_id;
     }
+
     // Register the schema
+    QualifiedCatalogObjectID schema_id = QualifiedCatalogObjectID::Deferred();
     auto schema_ref_iter = state.analyzed->schemas_by_qualified_name.find({database_name, schema_name});
     if (schema_ref_iter == state.analyzed->schemas_by_qualified_name.end()) {
-        schema_id = state.catalog.AllocateSchemaId(database_name, schema_name);
+        schema_id = state.catalog.AllocateSchemaId(database_name, schema_name, db_id);
         auto& schema = state.analyzed->schema_references.PushBack(
-            CatalogEntry::SchemaReference{db_id, schema_id, database_name, schema_name});
+            CatalogEntry::SchemaReference{schema_id, database_name, schema_name});
         state.analyzed->schemas_by_qualified_name.insert({{database_name, schema_name}, schema});
         schema_name.resolved_objects.PushBack(schema.CastToBase());
     } else {
-        schema_id = schema_ref_iter->second.get().catalog_schema_id;
+        schema_id = schema_ref_iter->second.get().object_id;
     }
-    return {db_id, schema_id};
+    return schema_id;
 }
 
 void NameResolutionPass::MergeChildStates(NodeState& dst,
@@ -178,9 +179,8 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             // Store resolved relation expression
             rel_expr->resolved_table = AnalyzedScript::TableReference::ResolvedTableEntry{
                 .table_name = best_match.table_name,
-                .catalog_database_id = best_match.catalog_database_id,
                 .catalog_schema_id = best_match.catalog_schema_id,
-                .catalog_table_id = best_match.catalog_table_id,
+                .catalog_table_id = best_match.object_id,
                 .referenced_catalog_version = best_match.catalog_version,
             };
 
@@ -189,9 +189,8 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
                 auto& match = resolved_tables[i].get();
                 rel_expr->resolved_alternatives.push_back({
                     .table_name = match.table_name,
-                    .catalog_database_id = match.catalog_database_id,
                     .catalog_schema_id = match.catalog_schema_id,
-                    .catalog_table_id = match.catalog_table_id,
+                    .catalog_table_id = match.object_id,
                     .referenced_catalog_version = match.catalog_version,
                 });
             }
@@ -289,10 +288,8 @@ void NameResolutionPass::ResolveColumnRefsInScope(AnalyzedScript::NameScope& sco
                 assert(column_ref.ast_scope_root.has_value());
                 auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner);
                 column_ref.resolved_column = AnalyzedScript::Expression::ResolvedColumn{
-                    .catalog_database_id = resolved_table.catalog_database_id,
                     .catalog_schema_id = resolved_table.catalog_schema_id,
-                    .catalog_table_id = resolved_table.catalog_table_id,
-                    .table_column_id = resolved_column.column_index,
+                    .catalog_table_column_id = resolved_column.object_id,
                     .referenced_catalog_version = resolved_table.catalog_version,
                 };
                 auto dead_iter = iter++;
@@ -462,7 +459,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto table_name = state.ReadQualifiedTableName(name_node);
                 if (table_name.has_value()) {
                     // Register the database
-                    auto [db_id, schema_id] = RegisterSchema(table_name->database_name, table_name->schema_name);
+                    auto schema_id = RegisterSchema(table_name->database_name, table_name->schema_name);
                     // Determine the catalog table id
                     ContextObjectID catalog_table_id{
                         state.catalog_entry_id, static_cast<uint32_t>(state.analyzed->table_declarations.GetSize())};
@@ -481,10 +478,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     CreateScope(node_state, node_id);
                     // Build the table
                     auto& n = state.analyzed->table_declarations.PushBack(
-                        AnalyzedScript::TableDeclaration(table_name.value()));
-                    n.catalog_table_id = catalog_table_id;
-                    n.catalog_database_id = db_id;
-                    n.catalog_schema_id = schema_id;
+                        AnalyzedScript::TableDeclaration(schema_id, catalog_table_id, table_name.value()));
                     n.ast_node_id = node_id;
                     n.table_columns = std::move(table_columns);
                     // Register the table declaration
@@ -493,8 +487,8 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     n.table_columns_by_name.reserve(n.table_columns.size());
                     for (size_t column_index = 0; column_index != n.table_columns.size(); ++column_index) {
                         auto& column = n.table_columns[column_index];
+                        column.object_id = QualifiedCatalogObjectID::TableColumn(catalog_table_id, column_index);
                         column.table = n;
-                        column.column_index = column_index;
                         column.column_name.get().resolved_objects.PushBack(column);
                         n.table_columns_by_name.insert({column.column_name.get().text, column});
                     }

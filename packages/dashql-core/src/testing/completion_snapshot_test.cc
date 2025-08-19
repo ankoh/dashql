@@ -79,12 +79,12 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
             auto& obj = co.catalog_object;
             auto xml_obj = xml_entry.append_child("object");
             xml_obj.append_attribute("score").set_value(co.score);
-            switch (obj.object_type) {
+            switch (obj.GetObjectType()) {
                 case dashql::CatalogObjectType::DatabaseReference: {
                     std::string type = "database";
                     auto* t = static_cast<const CatalogEntry::DatabaseReference*>(&obj);
                     xml_obj.append_attribute("type").set_value(type.c_str());
-                    std::string catalog_id = std::format("{}", t->catalog_database_id);
+                    std::string catalog_id = std::format("{}", t->GetDatabaseID());
                     xml_obj.append_attribute("id").set_value(catalog_id.c_str());
                     break;
                 }
@@ -92,7 +92,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                     std::string type = "schema";
                     auto* t = static_cast<const CatalogEntry::SchemaReference*>(&obj);
                     xml_obj.append_attribute("type").set_value(type.c_str());
-                    std::string catalog_id = std::format("{}.{}", t->catalog_database_id, t->catalog_schema_id);
+                    std::string catalog_id = std::format("{}.{}", t->GetDatabaseID(), t->GetSchemaID());
                     xml_obj.append_attribute("id").set_value(catalog_id.c_str());
                     break;
                 }
@@ -100,8 +100,8 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                     std::string type = "table";
                     auto* t = static_cast<const CatalogEntry::TableDeclaration*>(&obj);
                     xml_obj.append_attribute("type").set_value(type.c_str());
-                    std::string catalog_id = std::format("{}.{}.{}", t->catalog_database_id, t->catalog_schema_id,
-                                                         t->catalog_table_id.Pack());
+                    auto [db_id, schema_id] = t->catalog_schema_id.UnpackSchemaID();
+                    std::string catalog_id = std::format("{}.{}.{}", db_id, schema_id, t->GetTableID().Pack());
                     xml_obj.append_attribute("id").set_value(catalog_id.c_str());
                     break;
                 }
@@ -110,8 +110,9 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                     auto& c = *static_cast<const CatalogEntry::TableColumn*>(&obj);
                     auto& t = c.table->get();
                     xml_obj.append_attribute("type").set_value(type.c_str());
-                    std::string catalog_id = std::format("{}.{}.{}.{}", t.catalog_database_id, t.catalog_schema_id,
-                                                         t.catalog_table_id.Pack(), c.column_index);
+                    auto [db_id, schema_id] = t.catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_idx] = c.object_id.UnpackTableColumnID();
+                    std::string catalog_id = std::format("{}.{}.{}.{}", db_id, schema_id, table_id.Pack(), column_idx);
                     xml_obj.append_attribute("id").set_value(catalog_id.c_str());
                     break;
                 }

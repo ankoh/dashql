@@ -67,9 +67,9 @@ class ScriptRegistry {
     std::unordered_map<const Script*, ScriptEntry> script_entries;
 
     /// The scripts containing column restrictions
-    btree::set<std::tuple<ContextObjectID, ColumnID, const Script*>> column_restrictions;
+    btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_restrictions;
     /// The scripts containing column transforms
-    btree::set<std::tuple<ContextObjectID, ColumnID, const Script*>> column_transforms;
+    btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_transforms;
 
    public:
     /// Get the column restrictions
@@ -90,28 +90,28 @@ class ScriptRegistry {
     using IndexedColumnRestriction =
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
                    std::reference_wrapper<const AnalyzedScript::ColumnRestriction>>;
-    std::vector<IndexedColumnRestriction> FindColumnRestrictions(ContextObjectID table, ColumnID column_id,
+    std::vector<IndexedColumnRestriction> FindColumnRestrictions(QualifiedCatalogObjectID column_id,
                                                                  std::optional<CatalogVersion> target_catalog_version);
     /// Find table column transforms
     using IndexedColumnTransform =
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
                    std::reference_wrapper<const AnalyzedScript::ColumnTransform>>;
-    std::vector<IndexedColumnTransform> FindColumnTransforms(ContextObjectID table, ColumnID column_id,
+    std::vector<IndexedColumnTransform> FindColumnTransforms(QualifiedCatalogObjectID column_id,
                                                              std::optional<CatalogVersion> target_catalog_version);
 
     /// Find column refs and return the result as flatbuffer
     flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> FindColumnInfo(
-        flatbuffers::FlatBufferBuilder& builder, ContextObjectID table, ColumnID column_id,
+        flatbuffers::FlatBufferBuilder& builder, QualifiedCatalogObjectID column_id,
         std::optional<CatalogVersion> target_catalog_version);
 
     using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
 
     // Collect column restrictions
-    void CollectColumnRestrictions(ContextObjectID table, ColumnID column_id,
-                                   std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
+    void CollectColumnRestrictions(QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version,
+                                   SnippetMap& out);
     // Collect column transforms
-    void CollectColumnTransforms(ContextObjectID table, ColumnID column_id,
-                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
+    void CollectColumnTransforms(QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version,
+                                 SnippetMap& out);
 };
 
 }  // namespace dashql

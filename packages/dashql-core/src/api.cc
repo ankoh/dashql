@@ -9,6 +9,7 @@
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/catalog_object.h"
 #include "dashql/script.h"
 #include "dashql/version.h"
 
@@ -418,13 +419,14 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 
 /// Lookup a column ref
 extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
-                                                         size_t table_object_id, size_t column_id,
+                                                         size_t table_object_id, size_t column_idx,
                                                          ssize_t target_catalog_version) {
     ContextObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
+    auto column_id = QualifiedCatalogObjectID::TableColumn(table_id, column_idx);
 
     flatbuffers::FlatBufferBuilder fb;
     auto version = target_catalog_version < 0 ? std::nullopt : std::optional{target_catalog_version};
-    auto templates = registry->FindColumnInfo(fb, table_id, column_id, version);
+    auto templates = registry->FindColumnInfo(fb, column_id, version);
     fb.Finish(templates);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));

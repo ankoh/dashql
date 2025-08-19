@@ -45,8 +45,7 @@ class NameResolutionPass : public PassManager::LTRPass {
     IntrusiveList<AnalyzedScript::TableColumn> pending_columns_free_list;
 
     /// Register a schema
-    std::pair<CatalogDatabaseID, CatalogSchemaID> RegisterSchema(RegisteredName& database_name,
-                                                                 RegisteredName& schema_name);
+    QualifiedCatalogObjectID RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name);
 
     /// Merge child states into a destination state
     void MergeChildStates(NodeState& dst, const sx::parser::Node& parent);

@@ -5,6 +5,7 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog_object.h"
 #include "dashql/script.h"
 #include "gtest/gtest.h"
 
@@ -134,9 +135,9 @@ TEST(CatalogTest, SingleDescriptorPool) {
             std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
         ASSERT_TRUE(rel_expr.resolved_table.has_value());
         auto& resolved = rel_expr.resolved_table.value();
-        ASSERT_FALSE(resolved.catalog_table_id.IsNull());
-        ASSERT_EQ(resolved.catalog_table_id.GetContext(), 1);
-        ASSERT_EQ(resolved.catalog_table_id.GetObject(), 0);
+        ASSERT_EQ(resolved.catalog_table_id.GetType(), CatalogObjectType::TableDeclaration);
+        ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().GetContext(), 1);
+        ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().GetObject(), 0);
     }
     {
         script.ReplaceText("select * from db1.schema1.table2");

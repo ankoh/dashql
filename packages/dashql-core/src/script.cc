@@ -344,9 +344,11 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         auto& resolved = relation_expr.resolved_table.value();
         auto resolved_table_name = resolved.table_name.Pack(builder);
         buffers::analyzer::ResolvedTableBuilder resolved_builder{builder};
-        resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
-        resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
-        resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
+        auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+        auto table_id = resolved.catalog_table_id.UnpackTableID();
+        resolved_builder.add_catalog_database_id(db_id);
+        resolved_builder.add_catalog_schema_id(schema_id);
+        resolved_builder.add_catalog_table_id(table_id.Pack());
         resolved_builder.add_table_name(resolved_table_name);
         resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
         resolved_ofs = resolved_builder.Finish();
@@ -392,10 +394,12 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
                 if (column_ref.resolved_column.has_value()) {
                     auto& resolved = column_ref.resolved_column.value();
                     buffers::algebra::ResolvedColumnBuilder resolved_builder{builder};
-                    resolved_builder.add_catalog_database_id(resolved.catalog_database_id);
-                    resolved_builder.add_catalog_schema_id(resolved.catalog_schema_id);
-                    resolved_builder.add_catalog_table_id(resolved.catalog_table_id.Pack());
-                    resolved_builder.add_column_id(resolved.table_column_id);
+                    auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
+                    resolved_builder.add_catalog_database_id(db_id);
+                    resolved_builder.add_catalog_schema_id(schema_id);
+                    resolved_builder.add_catalog_table_id(table_id.Pack());
+                    resolved_builder.add_column_id(column_idx);
                     resolved_builder.add_referenced_catalog_version(resolved.referenced_catalog_version);
                     resolved_ofs = resolved_builder.Finish();
                 }
@@ -633,10 +637,9 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             if (auto* table_ref = std::get_if<TableReference::RelationExpression>(&ref.inner);
                 table_ref && table_ref->resolved_table.has_value()) {
                 auto& resolved = table_ref->resolved_table.value();
-                assert(resolved.catalog_database_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved.catalog_schema_id != std::numeric_limits<uint32_t>::max());
-                table_refs_by_id.emplace_back(resolved.catalog_database_id, resolved.catalog_schema_id,
-                                              resolved.catalog_table_id.Pack(), ref_id);
+                auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+                auto table_id = resolved.catalog_table_id.UnpackTableID().Pack();
+                table_refs_by_id.emplace_back(db_id, schema_id, table_id, ref_id);
             }
         });
         std::sort(table_refs_by_id.begin(), table_refs_by_id.end(),
@@ -658,11 +661,9 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&ref.inner);
                 column_ref && column_ref->resolved_column.has_value()) {
                 auto& resolved = column_ref->resolved_column.value();
-                assert(resolved.catalog_database_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved.catalog_schema_id != std::numeric_limits<uint32_t>::max());
-                assert(resolved.table_column_id);
-                column_refs_by_id.emplace_back(resolved.catalog_database_id, resolved.catalog_schema_id,
-                                               resolved.catalog_table_id.Pack(), resolved.table_column_id, ref_id);
+                auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+                auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
+                column_refs_by_id.emplace_back(db_id, schema_id, table_id.Pack(), column_idx, ref_id);
             }
         });
         std::sort(column_refs_by_id.begin(), column_refs_by_id.end(),

@@ -139,8 +139,8 @@ void IdentifyColumnRestrictionsPass::Finish() {
         // Register column restriction
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(iter->inner);
         if (auto resolved = column_ref.resolved_column) {
-            std::tuple<ContextObjectID, ColumnID> key{resolved->catalog_table_id, resolved->table_column_id};
-            state.analyzed->column_restrictions_by_catalog_entry.insert({key, restriction});
+            state.analyzed->column_restrictions_by_catalog_entry.insert(
+                {resolved->catalog_table_column_id, restriction});
         }
     }
 }

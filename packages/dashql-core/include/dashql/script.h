@@ -11,6 +11,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/catalog_object.h"
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
 #include "dashql/text/rope.h"
@@ -183,12 +184,10 @@ class AnalyzedScript : public CatalogEntry {
         struct ResolvedTableEntry {
             /// The table name, may refer to different catalog entry
             QualifiedTableName table_name;
-            /// The resolved database id in the catalog
-            CatalogDatabaseID catalog_database_id = 0;
-            /// The resolved schema id in the catalog
-            CatalogSchemaID catalog_schema_id = 0;
+            /// The resolved schema in the catalog
+            QualifiedCatalogObjectID catalog_schema_id;
             /// The resolved table id in the catalog
-            ContextObjectID catalog_table_id;
+            QualifiedCatalogObjectID catalog_table_id;
             /// The catalog version of this resolved column
             CatalogVersion referenced_catalog_version = 0;
         };
@@ -227,14 +226,10 @@ class AnalyzedScript : public CatalogEntry {
     struct Expression : public IntrusiveListNode {
         /// A resolved column reference
         struct ResolvedColumn {
-            /// The resolved catalog database id
-            CatalogDatabaseID catalog_database_id = 0;
             /// The resolved catalog schema id
-            CatalogSchemaID catalog_schema_id = 0;
-            /// The resolved table id in the catalog
-            ContextObjectID catalog_table_id;
-            /// The resolved table column id
-            uint32_t table_column_id = 0;
+            QualifiedCatalogObjectID catalog_schema_id;
+            /// The resolved table column id in the catalog
+            QualifiedCatalogObjectID catalog_table_column_id;
             /// The catalog version of the resolved column
             CatalogVersion referenced_catalog_version = 0;
         };
@@ -460,25 +455,13 @@ class AnalyzedScript : public CatalogEntry {
     /// The column restrictions in the script
     ChunkBuffer<ColumnRestriction, 16> column_restrictions;
 
-    /// A key to lookup a resolved column ref.
-    using ColumnRefLookupKey = std::tuple<ContextObjectID, ColumnID>;
-    /// A hasher for column ref keys
-    struct ColumnRefLookupKeyHasher {
-        size_t operator()(const ColumnRefLookupKey& key) const {
-            auto [table, column] = key;
-            size_t hash = 0;
-            hash_combine(hash, table.Pack());
-            hash_combine(hash, hash);
-            return hash;
-        }
-    };
     /// The column transforms indexed by the catalog entry.
     /// This index is used to quickly resolve column transforms in this script through catalog ids.
-    std::unordered_multimap<ColumnRefLookupKey, std::reference_wrapper<ColumnTransform>, ColumnRefLookupKeyHasher>
+    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnTransform>>
         column_transforms_by_catalog_entry;
     /// The column restrictions indexed by the catalog entry
     /// This index is used to quickly resolve column restrictions in this script through catalog ids.
-    std::unordered_multimap<ColumnRefLookupKey, std::reference_wrapper<ColumnRestriction>, ColumnRefLookupKeyHasher>
+    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnRestriction>>
         column_restrictions_by_catalog_entry;
 
     /// Traverse the name scopes for a given ast node id

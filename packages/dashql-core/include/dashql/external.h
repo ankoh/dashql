@@ -34,6 +34,13 @@ struct ContextObjectID {
     inline bool IsNull() const { return GetObject() == std::numeric_limits<uint32_t>::max(); }
     /// Is a null id?
     inline uint64_t Pack() const { return (static_cast<uint64_t>(external_id) << 32) | value; }
+    /// Is a null id?
+    inline static ContextObjectID Unpack(uint64_t packed) {
+        ContextObjectID out;
+        out.external_id = ((packed >> 32) & 0xFFFFFFFF);
+        out.value = (packed & 0xFFFFFFFF);
+        return out;
+    }
 
     /// Comparison
     bool operator==(const ContextObjectID& other) const {

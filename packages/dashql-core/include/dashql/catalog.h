@@ -28,6 +28,7 @@ class Script;
 class AnalyzedScript;
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
+using CatalogTableID = ContextObjectID;
 using CatalogVersion = uint32_t;
 
 constexpr uint32_t PROTO_NULL_U32 = std::numeric_limits<uint32_t>::max();
@@ -173,15 +174,23 @@ class CatalogEntry {
     struct TableColumn : public CatalogObject {
         /// The parent table
         std::optional<std::reference_wrapper<TableDeclaration>> table;
-        /// The catalog database id
-        uint32_t column_index = 0;
         /// The AST node id in the target script
         std::optional<uint32_t> ast_node_id;
         /// The column name
         std::reference_wrapper<RegisteredName> column_name;
         /// Constructor
         TableColumn(std::optional<uint32_t> ast_node_id, RegisteredName& column_name)
-            : CatalogObject(CatalogObjectType::ColumnDeclaration), ast_node_id(ast_node_id), column_name(column_name) {}
+            : CatalogObject(QualifiedCatalogObjectID::Deferred()), ast_node_id(ast_node_id), column_name(column_name) {}
+        /// Constructor
+        TableColumn(CatalogTableID table_id, uint32_t column_id, std::optional<uint32_t> ast_node_id,
+                    RegisteredName& column_name)
+            : CatalogObject(QualifiedCatalogObjectID::TableColumn(table_id, column_id)),
+              ast_node_id(ast_node_id),
+              column_name(column_name) {}
+        /// Get the column index
+        CatalogTableID GetTableID() const { return object_id.UnpackTableColumnID().first; }
+        /// Get the column index
+        uint32_t GetColumnIndex() const { return object_id.UnpackTableColumnID().second; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::TableColumn> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
@@ -189,12 +198,8 @@ class CatalogEntry {
     struct TableDeclaration : public CatalogObject {
         /// The catalog version
         CatalogVersion catalog_version = 0;
-        /// The catalog database id
-        CatalogDatabaseID catalog_database_id = 0;
         /// The catalog schema id
-        CatalogSchemaID catalog_schema_id = 0;
-        /// The catalog database id
-        ContextObjectID catalog_table_id;
+        QualifiedCatalogObjectID catalog_schema_id;
         /// The database reference id
         size_t database_reference_id = 0;
         /// The schema reference id
@@ -214,53 +219,49 @@ class CatalogEntry {
         ankerl::unordered_dense::map<std::string_view, std::reference_wrapper<TableColumn>> table_columns_by_name;
 
         /// Constructor
-        TableDeclaration(QualifiedTableName table_name)
-            : CatalogObject(CatalogObjectType::TableDeclaration), table_name(std::move(table_name)) {}
+        TableDeclaration(QualifiedCatalogObjectID schema, CatalogTableID table, QualifiedTableName table_name)
+            : CatalogObject(QualifiedCatalogObjectID::Table(table)),
+              catalog_schema_id(schema),
+              table_name(std::move(table_name)) {}
+        /// Get the table id
+        CatalogTableID GetTableID() const { return object_id.UnpackTableID(); }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::Table> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
     /// A database name declaration
     struct DatabaseReference : public CatalogObject {
-        /// The catalog database id.
-        /// This ID is only preliminary if the entry has not been added to the catalog yet.
-        /// Adding the entry to the catalog might fail if this id becomes invalid.
-        CatalogDatabaseID catalog_database_id;
         /// The database name
         std::string_view database_name;
         /// The database alias (if any)
         std::string_view database_alias;
         /// Constructor
-        DatabaseReference(CatalogDatabaseID database_id, std::string_view database_name,
+        ///
+        /// The database ID is only preliminary if the entry has not been added to the catalog yet.
+        /// Adding the entry to the catalog might fail if this id becomes invalid.
+        DatabaseReference(QualifiedCatalogObjectID database_id, std::string_view database_name,
                           std::string_view database_alias)
-            : CatalogObject(CatalogObjectType::DatabaseReference),
-              catalog_database_id(database_id),
-              database_name(database_name),
-              database_alias(database_alias) {}
+            : CatalogObject(database_id), database_name(database_name), database_alias(database_alias) {}
+        /// Get the database id
+        CatalogDatabaseID GetDatabaseID() const { return object_id.UnpackDatabaseID(); }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::DatabaseDeclaration> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
     /// A schema name declaration
     struct SchemaReference : public CatalogObject {
-        /// The catalog database id
-        /// This ID is only preliminary if the entry has not been added to the catalog yet.
-        /// Adding the entry to the catalog might fail if this id becomes invalid.
-        CatalogDatabaseID catalog_database_id;
-        /// The catalog schema id.
-        /// This ID is only preliminary if the entry has not been added to the catalog yet.
-        /// Adding the entry to the catalog might fail if this id becomes invalid.
-        CatalogSchemaID catalog_schema_id;
         /// The database name
         std::string_view database_name;
         /// The schema name
         std::string_view schema_name;
         /// Constructor
-        SchemaReference(CatalogDatabaseID database_id, CatalogSchemaID schema_id, std::string_view database_name,
-                        std::string_view schema_name)
-            : CatalogObject(CatalogObjectType::SchemaReference),
-              catalog_database_id(database_id),
-              catalog_schema_id(schema_id),
-              database_name(database_name),
-              schema_name(schema_name) {}
+        ///
+        /// Database and schema IDs are only preliminary if the entry has not been added to the catalog yet.
+        /// Adding the entry to the catalog might fail if this id becomes invalid.
+        SchemaReference(QualifiedCatalogObjectID schema_id, std::string_view database_name, std::string_view schema_name)
+            : CatalogObject(schema_id), database_name(database_name), schema_name(schema_name) {}
+        /// Get the database id
+        CatalogDatabaseID GetDatabaseID() const { return object_id.UnpackSchemaID().first; }
+        /// Get the schema id
+        CatalogSchemaID GetSchemaID() const { return object_id.UnpackSchemaID().second; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::SchemaDeclaration> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
@@ -361,7 +362,7 @@ class CatalogEntry {
         std::string_view database_name, std::string_view schema_name,
         std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const;
     /// Resolve a table by id
-    const TableDeclaration* ResolveTableById(ContextObjectID table_id) const;
+    const TableDeclaration* ResolveTableById(CatalogTableID table_id) const;
     /// Resolve a table by qualified name <database, schema, table>
     void ResolveTable(QualifiedTableName table_name, std::vector<std::reference_wrapper<const TableDeclaration>>& out,
                       size_t limit) const;
@@ -419,8 +420,7 @@ class DescriptorPool : public CatalogEntry {
     /// Add a schema descriptor
     buffers::status::StatusCode AddSchemaDescriptor(DescriptorRefVariant descriptor,
                                                     std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                    size_t descriptor_buffer_size, CatalogDatabaseID& db_id,
-                                                    CatalogSchemaID& schema_id);
+                                                    size_t descriptor_buffer_size, QualifiedCatalogObjectID& schema_id);
 };
 
 class Catalog {
@@ -440,10 +440,8 @@ class Catalog {
     struct CatalogSchemaEntryInfo {
         /// The id of the catalog entry
         CatalogEntryID catalog_entry_id;
-        /// The id of the database <catalog_entry_id, database_idx>
-        CatalogDatabaseID catalog_database_id;
-        /// The id of the schema <catalog_entry_id, schema_idx>
-        CatalogSchemaID catalog_schema_id;
+        /// The id of the schema
+        QualifiedCatalogObjectID catalog_schema_id;
     };
 
    public:
@@ -454,7 +452,7 @@ class Catalog {
         /// The database alias (if any)
         std::string database_alias_buffer;
         /// Constructor
-        DatabaseDeclaration(CatalogDatabaseID database_id, std::string_view database_name,
+        DatabaseDeclaration(QualifiedCatalogObjectID database_id, std::string_view database_name,
                             std::string_view database_alias)
             : CatalogEntry::DatabaseReference(database_id, "", ""),
               database_name_buffer(std::move(database_name)),
@@ -472,10 +470,8 @@ class Catalog {
         /// The schema name
         std::string schema_name_buffer;
         /// Constructor
-        SchemaDeclaration(CatalogDatabaseID database_id, CatalogSchemaID schema_id, std::string_view database_name,
-                          std::string_view schema_name)
-            : CatalogEntry::SchemaReference(database_id, schema_id, database_name, ""),
-              schema_name_buffer(std::move(schema_name)) {
+        SchemaDeclaration(QualifiedCatalogObjectID schema_id, std::string_view database_name, std::string_view schema_name)
+            : CatalogEntry::SchemaReference(schema_id, database_name, ""), schema_name_buffer(std::move(schema_name)) {
             this->schema_name = schema_name_buffer;
         }
         /// Move constructor
@@ -561,21 +557,21 @@ class Catalog {
         }
     }
     /// Register a database name
-    CatalogDatabaseID AllocateDatabaseId(std::string_view database) {
+    QualifiedCatalogObjectID AllocateDatabaseId(std::string_view database) {
         auto iter = databases.find(database);
         if (iter != databases.end()) {
-            return iter->second->catalog_database_id;
+            return iter->second->object_id;
         } else {
-            return next_database_id++;
+            return QualifiedCatalogObjectID::Database(next_database_id++);
         }
     }
     /// Register a schema name
-    CatalogSchemaID AllocateSchemaId(std::string_view database, std::string_view schema) {
+    QualifiedCatalogObjectID AllocateSchemaId(std::string_view database, std::string_view schema, QualifiedCatalogObjectID db_id) {
         auto iter = schemas.find({database, schema});
         if (iter != schemas.end()) {
-            return iter->second->catalog_schema_id;
+            return iter->second->object_id;
         } else {
-            return next_schema_id++;
+            return QualifiedCatalogObjectID::Schema(db_id.UnpackDatabaseID(), next_schema_id++);
         }
     }
 
@@ -610,7 +606,7 @@ class Catalog {
                                                      size_t descriptor_buffer_size);
 
     /// Resolve a table by id
-    const CatalogEntry::TableDeclaration* ResolveTable(ContextObjectID table_id) const;
+    const CatalogEntry::TableDeclaration* ResolveTable(CatalogTableID table_id) const;
     /// Resolve a table by id
     void ResolveTable(CatalogEntry::QualifiedTableName table_name, CatalogEntryID ignore_entry,
                       std::vector<std::reference_wrapper<const CatalogEntry::TableDeclaration>>& out,

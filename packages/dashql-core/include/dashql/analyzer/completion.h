@@ -19,12 +19,15 @@ struct Completion {
         EnumBitset<uint16_t, buffers::completion::CandidateTag, buffers::completion::CandidateTag::MAX>;
 
     struct Candidate;
+
     /// A catalog object referenced by a completion candidate
     struct CandidateCatalogObject : public IntrusiveListNode {
         /// The candidate
         Candidate& candidate;
         /// The candidate tags of this object
         CandidateTags candidate_tags;
+        /// The candidate catalog object id
+        QualifiedCatalogObjectID catalog_object_id;
         /// The catalog object
         const CatalogObject& catalog_object;
         /// The score (if computed)
@@ -93,10 +96,13 @@ struct Completion {
     /// The candidates by name
     std::unordered_map<std::string_view, std::reference_wrapper<Candidate>> candidates_by_name;
     /// The candidate objects by object.
-    /// We use this for promoting individual candidates.
-    /// Note that this assumes that a catalog object can be added to at most a single candidate.
-    std::unordered_map<const CatalogObject*, std::reference_wrapper<CandidateCatalogObject>>
-        candidate_objects_by_object;
+    /// We use this for boosting individual candidates.
+    /// This currently assumes that a catalog object can be added to at most a single candidate.
+    ///
+    /// We *could* use a btree here if we want to prefix-search for candidate columns of a table.
+    /// However, `PromoteIdentifiersInScripts` probes this hash map with all identifiers that we can find
+    /// through the script registry. Having a hash-map there outweighs resolving scope columns without prefix.
+    std::unordered_map<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>> candidate_objects_by_id;
 
     /// The result heap, holding up to k entries
     TopKHeap<Candidate> result_heap;
@@ -111,6 +117,8 @@ struct Completion {
     void FindCandidatesInIndexes();
     /// Promote identifiers that are in the current name scope of in the same statement
     void PromoteIdentifiersInScope();
+    /// Promote identifiers that were used before
+    void PromoteIdentifiersInScripts(ScriptRegistry& registry);
     /// Promote tables that contain column names that are still unresolved in the current statement
     void PromoteTablesAndPeersForUnresolvedColumns();
     /// Add expected keywords in the grammar directly to the result heap.
@@ -122,6 +130,8 @@ struct Completion {
     void FlushCandidatesAndFinish();
     /// Find identifier snippets for results (after flushing)
     void FindIdentifierSnippetsForResults(ScriptRegistry& registry);
+    /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
+    void DeriveKeywordSnippetsForResults();
 
    public:
     /// Constructor

@@ -2,10 +2,10 @@
 
 #include <flatbuffers/buffer.h>
 
+#include <unordered_set>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/external.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
 #include "dashql/script.h"
@@ -287,6 +287,7 @@ void Completion::FindCandidatesForNamePath() {
         std::string_view name;
         CandidateTags candidate_tags;
         NameTags name_tags;
+        QualifiedCatalogObjectID object_id;
         const CatalogObject& object;
         sx::parser::Location replace_text_at;
     };
@@ -321,6 +322,7 @@ void Completion::FindCandidatesForNamePath() {
                             .name = name.text,
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
                             .name_tags = {buffers::analyzer::NameTag::TABLE_NAME},
+                            .object_id = table.get().object_id,
                             .object = table.get().CastToBase(),
                             .replace_text_at = replace_text_at};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
@@ -341,6 +343,7 @@ void Completion::FindCandidatesForNamePath() {
                             .name = name,
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA},
                             .name_tags = NameTags{buffers::analyzer::NameTag::SCHEMA_NAME},
+                            .object_id = schema.get().object_id,
                             .object = schema.get().CastToBase(),
                             .replace_text_at = replace_text_at};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
@@ -367,6 +370,7 @@ void Completion::FindCandidatesForNamePath() {
                             .name = name,
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
                             .name_tags = NameTags{buffers::analyzer::NameTag::TABLE_NAME},
+                            .object_id = table.get().object_id,
                             .object = {table.get().CastToBase()},
                             .replace_text_at = replace_text_at};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
@@ -409,11 +413,12 @@ void Completion::FindCandidatesForNamePath() {
                                 .name = name,
                                 .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN},
                                 .name_tags = NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
+                                .object_id = column.object_id,
                                 .object = {column.CastToBase()},
                                 .replace_text_at = replace_text_at};
                             candidate.candidate_tags.AddIf(
                                 buffers::completion::CandidateTag::THROUGH_CATALOG,
-                                table_decl.catalog_table_id.GetContext() != script.GetCatalogEntryId());
+                                table_decl.GetTableID().GetContext() != script.GetCatalogEntryId());
                             dot_candidates.push_back(std::move(candidate));
                         }
                         break;
@@ -426,8 +431,7 @@ void Completion::FindCandidatesForNamePath() {
 
     for (auto& dot_candidate : dot_candidates) {
         // Did we already add the dot candidate?
-        if (auto iter = candidate_objects_by_object.find(&dot_candidate.object);
-            iter != candidate_objects_by_object.end()) {
+        if (auto iter = candidate_objects_by_id.find(dot_candidate.object_id); iter != candidate_objects_by_id.end()) {
             // Update candidate tags and replacement target
             auto& candidate_object = iter->second.get();
             candidate_object.candidate_tags |= dot_candidate.candidate_tags;
@@ -456,13 +460,14 @@ void Completion::FindCandidatesForNamePath() {
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = existing,
                     .candidate_tags = dot_candidate.candidate_tags,
+                    .catalog_object_id = dot_candidate.object_id,
                     .catalog_object = dot_candidate.object,
                 });
                 existing.catalog_objects.PushBack(co);
                 existing.candidate_tags |= dot_candidate.candidate_tags;
 
-                assert(!candidate_objects_by_object.contains(&dot_candidate.object));
-                candidate_objects_by_object.insert({&dot_candidate.object, co});
+                assert(!candidate_objects_by_id.contains(dot_candidate.object_id));
+                candidate_objects_by_id.insert({dot_candidate.object_id, co});
 
             } else {
                 // Allocate the candidate
@@ -479,12 +484,13 @@ void Completion::FindCandidatesForNamePath() {
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = c,
                     .candidate_tags = dot_candidate.candidate_tags,
+                    .catalog_object_id = dot_candidate.object_id,
                     .catalog_object = dot_candidate.object,
                 });
                 c.catalog_objects.PushBack(co);
 
-                assert(!candidate_objects_by_object.contains(&dot_candidate.object));
-                candidate_objects_by_object.insert({&dot_candidate.object, co});
+                assert(!candidate_objects_by_id.contains(dot_candidate.object_id));
+                candidate_objects_by_id.insert({dot_candidate.object_id, co});
             }
         }
     }
@@ -608,7 +614,7 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
         // Add the resolved objects
         for (auto& o : name_info.resolved_objects) {
             // Already registered?
-            if (auto iter = candidate_objects_by_object.find(&o); iter != candidate_objects_by_object.end()) {
+            if (auto iter = candidate_objects_by_id.find(o.object_id); iter != candidate_objects_by_id.end()) {
                 // Note that this assumes that a catalog object can be added to at most a single candidate.
                 assert(&iter->second.get().candidate == candidate);
                 iter->second.get().candidate_tags |= candidate_tags;
@@ -618,12 +624,13 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = *candidate,
                     .candidate_tags = candidate_tags,
+                    .catalog_object_id = o.object_id,
                     .catalog_object = o,
                 });
                 candidate->catalog_objects.PushBack(co);
 
-                assert(!candidate_objects_by_object.contains(&o));
-                candidate_objects_by_object.insert({&o, co});
+                assert(!candidate_objects_by_id.contains(o.object_id));
+                candidate_objects_by_id.insert({o.object_id, co});
             }
         }
 
@@ -647,11 +654,63 @@ void Completion::FindCandidatesInIndexes() {
 }
 
 void Completion::PromoteIdentifiersInScope() {
-    // 1. Collect the vector of name scopes that the cursor is in
-    //    (bottom to top)
-    // 2. For each scope, collect the table references
-    // 3. For each of the table references that are in scope, probe the candidate table with the table columns
-    // 4. For each of the candidates found, make sure the relevant catalog object comes first
+    // We can be a bit more involved here since the number of entities in a scope should be small(ish)
+
+    // Check all naming scopes for tables that are in scope.
+    for (auto& name_scope : cursor.name_scopes) {
+        auto& scope = name_scope.get();
+
+        // Iterate over all table references in the scope.
+        // A column name belonging to a table ref gets boosted.
+        for (auto& table_ref : scope.table_references) {
+            // Resolved table ref?
+            auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
+            if (!rel_expr || rel_expr->resolved_table.has_value()) {
+                continue;
+            }
+
+            // Find the table in the catalog
+            // Note that this would benefit from storing candidates in a btree::map.
+            // Then we could just prefix-search with the table id without ever resolving the table column count.
+            auto& resolved_table_entry = rel_expr->resolved_table.value();
+            auto resolved_table_id = resolved_table_entry.catalog_table_id.UnpackTableID();
+            auto* resolved_table = cursor.script.catalog.ResolveTable(resolved_table_id);
+            if (!resolved_table) {
+                continue;
+            }
+            for (uint32_t i = 0; i < resolved_table->table_columns.size(); ++i) {
+                auto iter = candidate_objects_by_id.find(QualifiedCatalogObjectID::TableColumn(resolved_table_id, i));
+                if (iter == candidate_objects_by_id.end()) {
+                    continue;
+                }
+                // XXX Found column reachable through the scope that is a candidate
+                //     Boost it.
+            }
+        }
+
+        // Iterate over all existing column references in the scope.
+        // A resolved column name that has been used before gets boosted.
+        for (auto& expr : scope.expressions) {
+            // Resolved column ref?
+            auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            if (!colref || colref->resolved_column.has_value()) {
+                continue;
+            }
+
+            auto& resolved_column = colref->resolved_column.value();
+            auto iter = candidate_objects_by_id.find(resolved_column.catalog_table_column_id);
+            if (iter == candidate_objects_by_id.end()) {
+                continue;
+            }
+
+            // XXX Found a referenced column in the scope that was used before.
+            //     Boost it.
+        }
+    }
+}
+
+void Completion::PromoteIdentifiersInScripts(ScriptRegistry& registry) {
+    // XXX
 }
 
 void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
@@ -677,7 +736,7 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
                 auto& table = table_col.table->get();
                 auto& table_name = table.table_name.table_name.get();
                 // Boost the table name as candidate (if any)
-                if (auto iter = candidate_objects_by_object.find(&table); iter != candidate_objects_by_object.end()) {
+                if (auto iter = candidate_objects_by_id.find(table.object_id); iter != candidate_objects_by_id.end()) {
                     auto& co = iter->second.get();
                     co.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
                     co.candidate.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
@@ -685,8 +744,8 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
                 // Promote column names in these tables
                 for (auto& peer_col : table.table_columns) {
                     // Boost the peer name as candidate (if any)
-                    if (auto iter = candidate_objects_by_object.find(&peer_col);
-                        iter != candidate_objects_by_object.end()) {
+                    if (auto iter = candidate_objects_by_id.find(peer_col.object_id);
+                        iter != candidate_objects_by_id.end()) {
                         auto& co = iter->second.get();
                         co.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
                         co.candidate.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
@@ -781,14 +840,11 @@ void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
     for (auto& entry : result_candidates) {
         // Process all catalog objects for a result candidate
         for (auto& obj : entry.catalog_objects) {
-            switch (obj.catalog_object.object_type) {
+            switch (obj.catalog_object.GetObjectType()) {
                 case CatalogObjectType::ColumnDeclaration: {
-                    auto& column = obj.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
-                    auto& table = column.table->get();
-
-                    registry.CollectColumnRestrictions(table.catalog_table_id, column.column_index, std::nullopt,
+                    registry.CollectColumnRestrictions(obj.catalog_object.object_id, std::nullopt,
                                                        entry.restriction_snippets);
-                    registry.CollectColumnTransforms(table.catalog_table_id, column.column_index, std::nullopt,
+                    registry.CollectColumnTransforms(obj.catalog_object.object_id, std::nullopt,
                                                      entry.transform_snippets);
                     break;
                 }
@@ -797,6 +853,10 @@ void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
             }
         }
     }
+}
+
+void Completion::DeriveKeywordSnippetsForResults() {
+    // XXX
 }
 
 static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
@@ -958,37 +1018,44 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         for (auto& co : iter_entry->catalog_objects) {
             auto& o = co.catalog_object;
             buffers::completion::CompletionCandidateObjectBuilder obj{builder};
-            obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.object_type));
+            obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.GetObjectType()));
             obj.add_candidate_tags(co.candidate_tags);
             obj.add_score(co.score);
-            switch (o.object_type) {
+            switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();
-                    obj.add_catalog_database_id(db.catalog_database_id);
+                    obj.add_catalog_database_id(db.GetDatabaseID());
                     break;
                 }
                 case CatalogObjectType::SchemaReference: {
                     auto& schema = o.CastUnsafe<CatalogEntry::SchemaReference>();
-                    obj.add_catalog_database_id(schema.catalog_database_id);
-                    obj.add_catalog_schema_id(schema.catalog_schema_id);
+                    obj.add_catalog_database_id(schema.GetDatabaseID());
+                    obj.add_catalog_schema_id(schema.GetSchemaID());
                     break;
                 }
                 case CatalogObjectType::TableDeclaration: {
                     auto& table = o.CastUnsafe<CatalogEntry::TableDeclaration>();
-                    obj.add_catalog_database_id(table.catalog_database_id);
-                    obj.add_catalog_schema_id(table.catalog_schema_id);
-                    obj.add_catalog_table_id(table.catalog_table_id.Pack());
+                    auto [db_id, schema_id] = table.catalog_schema_id.UnpackSchemaID();
+                    obj.add_catalog_database_id(db_id);
+                    obj.add_catalog_schema_id(schema_id);
+                    obj.add_catalog_table_id(table.object_id.UnpackTableID().Pack());
                     obj.add_referenced_catalog_version(table.catalog_version);
                     break;
                 }
                 case CatalogObjectType::ColumnDeclaration: {
                     auto& column = o.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& table = column.table->get();
-                    obj.add_catalog_database_id(table.catalog_database_id);
-                    obj.add_catalog_schema_id(table.catalog_schema_id);
-                    obj.add_catalog_table_id(table.catalog_table_id.Pack());
-                    obj.add_table_column_id(column.column_index);
+                    auto [db_id, schema_id] = table.catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_idx] = table.object_id.UnpackTableColumnID();
+                    obj.add_catalog_database_id(db_id);
+                    obj.add_catalog_schema_id(schema_id);
+                    obj.add_catalog_table_id(table_id.Pack());
+                    obj.add_table_column_id(column_idx);
                     obj.add_referenced_catalog_version(table.catalog_version);
+                    break;
+                }
+                case CatalogObjectType::Deferred: {
+                    assert(false);
                     break;
                 }
             }

@@ -175,9 +175,9 @@ TEST(UnificationTest, SimpleTableReference) {
     auto& rel_expr = std::get<AnalyzedScript::TableReference::RelationExpression>(analyzed->table_references[0].inner);
     ASSERT_TRUE(rel_expr.resolved_table.has_value());
     auto& resolved = rel_expr.resolved_table.value();
-    ASSERT_EQ(resolved.catalog_database_id, flat->databases()->Get(1)->catalog_object_id());
-    ASSERT_EQ(resolved.catalog_schema_id, flat->schemas()->Get(1)->catalog_object_id());
-    ASSERT_EQ(resolved.catalog_table_id.Pack(), flat->tables()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.catalog_schema_id.UnpackSchemaID().first, flat->databases()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.catalog_schema_id.UnpackSchemaID().second, flat->schemas()->Get(1)->catalog_object_id());
+    ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().Pack(), flat->tables()->Get(1)->catalog_object_id());
 }
 
 TEST(UnificationTest, ParallelDatabaseRegistration) {

@@ -39,11 +39,13 @@ static void quoteIdentifier(std::string& buffer, std::string_view name) {
 
 /// Write all table declarations
 static void writeTables(pugi::xml_node root, const AnalyzedScript& target) {
-    target.GetTables().ForEach([&](size_t ti, auto& table_decl) {
+    target.GetTables().ForEach([&](size_t ti, const CatalogEntry::TableDeclaration& table_decl) {
+        auto [db_id, schema_id] = table_decl.catalog_schema_id.UnpackSchemaID();
+        auto table_id = table_decl.object_id.UnpackTableID();
+
         auto xml_tbl = root.append_child("table");
         std::string table_name{table_decl.table_name.table_name.get().text};
-        std::string table_catalog_id = std::format("{}.{}.{}", table_decl.catalog_database_id,
-                                                   table_decl.catalog_schema_id, table_decl.catalog_table_id.Pack());
+        std::string table_catalog_id = std::format("{}.{}.{}", db_id, schema_id, table_id.Pack());
         xml_tbl.append_attribute("id").set_value(table_catalog_id.c_str());
         xml_tbl.append_attribute("name").set_value(table_name.c_str());
         assert(table_decl.ast_node_id.has_value());
@@ -183,10 +185,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             xml_ref.append_attribute("type").set_value("name/unresolved");
                         } else {
                             auto& resolved = relation_expr.resolved_table.value();
-                            std::string catalog_id =
-                                std::format("{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
-                                            resolved.catalog_table_id.Pack());
-                            auto type = is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId()
+                            auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+                            auto table_id = resolved.catalog_table_id.UnpackTableID();
+                            std::string catalog_id = std::format("{}.{}.{}", db_id, schema_id, table_id.Pack());
+                            auto type = is_main && table_id.GetContext() == script.GetCatalogEntryId()
                                             ? "name/internal"
                                             : "name/external";
                             xml_ref.append_attribute("type").set_value(type);
@@ -223,13 +225,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             xml_ref.append_attribute("type").set_value("colref/unresolved");
                         } else {
                             auto& resolved = column_ref.resolved_column.value();
+                            auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
+                            auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
                             std::string catalog_id =
-                                std::format("{}.{}.{}.{}", resolved.catalog_database_id, resolved.catalog_schema_id,
-                                            resolved.catalog_table_id.Pack(), resolved.table_column_id);
-                            auto type =
-                                (is_main && resolved.catalog_table_id.GetContext() == script.GetCatalogEntryId())
-                                    ? "colref/internal"
-                                    : "colref/external";
+                                std::format("{}.{}.{}.{}", db_id, schema_id, table_id.Pack(), column_idx);
+                            auto type = (is_main && table_id.GetContext() == script.GetCatalogEntryId())
+                                            ? "colref/internal"
+                                            : "colref/external";
                             xml_ref.append_attribute("type").set_value(type);
                             xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
                         }
