@@ -545,7 +545,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 .replace_text_at = location->symbol.location,
                 .score = score,
             };
-            result_heap.Insert(std::move(candidate));
+            candidate_heap.Insert(std::move(candidate));
         }
     }
 }
@@ -665,7 +665,7 @@ void Completion::PromoteIdentifiersInScope() {
         for (auto& table_ref : scope.table_references) {
             // Resolved table ref?
             auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
-            if (!rel_expr || rel_expr->resolved_table.has_value()) {
+            if (!rel_expr || !rel_expr->resolved_table.has_value()) {
                 continue;
             }
 
@@ -678,6 +678,8 @@ void Completion::PromoteIdentifiersInScope() {
             if (!resolved_table) {
                 continue;
             }
+
+            // We can just derive the table column ids based on the column count
             for (uint32_t i = 0; i < resolved_table->table_columns.size(); ++i) {
                 auto iter = candidate_objects_by_id.find(QualifiedCatalogObjectID::TableColumn(resolved_table_id, i));
                 if (iter == candidate_objects_by_id.end()) {
@@ -693,10 +695,11 @@ void Completion::PromoteIdentifiersInScope() {
         for (auto& expr : scope.expressions) {
             // Resolved column ref?
             auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            if (!colref || colref->resolved_column.has_value()) {
+            if (!colref || !colref->resolved_column.has_value()) {
                 continue;
             }
 
+            // Check directly if the the column is stored as candidate
             auto& resolved_column = colref->resolved_column.value();
             auto iter = candidate_objects_by_id.find(resolved_column.catalog_table_column_id);
             if (iter == candidate_objects_by_id.end()) {
@@ -710,7 +713,24 @@ void Completion::PromoteIdentifiersInScope() {
 }
 
 void Completion::PromoteIdentifiersInScripts(ScriptRegistry& registry) {
-    // XXX
+    for (auto& [key, script_entry] : registry.GetRegisteredScripts())
+        script_entry.analyzed->expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& expr) {
+            // Resolved column ref?
+            auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+            if (!colref || !colref->resolved_column.has_value()) {
+                return;
+            }
+
+            // Check directly if the the column is stored as candidate
+            auto& resolved_column = colref->resolved_column.value();
+            auto iter = candidate_objects_by_id.find(resolved_column.catalog_table_column_id);
+            if (iter == candidate_objects_by_id.end()) {
+                return;
+            }
+
+            // XXX Found a referenced column in the scope that was used before.
+            //     Boost it.
+        });
 }
 
 void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
@@ -779,7 +799,7 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     return score;
 }
 
-void Completion::FlushCandidatesAndFinish() {
+void Completion::SelectTopCandidates() {
     // Resolve the scoring table
     auto& base_scoring_table = selectNameScoringTable(strategy);
 
@@ -822,22 +842,22 @@ void Completion::FlushCandidatesAndFinish() {
 
         // Apply all score modifiers
         // Add the scored candidate
-        result_heap.Insert(std::move(candidate));
+        candidate_heap.Insert(std::move(candidate));
     });
 
     // Finish the heap
-    result_heap.Finish();
+    candidate_heap.Finish();
 
     // Collect result entries
-    auto& entries = result_heap.GetEntries();
-    result_candidates.reserve(entries.size());
+    auto& entries = candidate_heap.GetEntries();
+    top_candidates.reserve(entries.size());
     for (auto& entry : entries) {
-        result_candidates.emplace_back(entry);
+        top_candidates.emplace_back(entry);
     }
 }
 
-void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
-    for (auto& entry : result_candidates) {
+void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry) {
+    for (auto& entry : top_candidates) {
         // Process all catalog objects for a result candidate
         for (auto& obj : entry.catalog_objects) {
             switch (obj.catalog_object.GetObjectType()) {
@@ -855,7 +875,7 @@ void Completion::FindIdentifierSnippetsForResults(ScriptRegistry& registry) {
     }
 }
 
-void Completion::DeriveKeywordSnippetsForResults() {
+void Completion::DeriveKeywordSnippetsForTopCandidates() {
     // XXX
 }
 
@@ -875,7 +895,7 @@ static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
-    : cursor(cursor), strategy(selectStrategy(cursor)), result_heap(k) {}
+    : cursor(cursor), strategy(selectStrategy(cursor)), candidate_heap(k) {}
 
 std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
                                                                                         size_t k,
@@ -894,7 +914,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL: {
                 completion->FindCandidatesForNamePath();
-                completion->FlushCandidatesAndFinish();
+                completion->SelectTopCandidates();
                 return {std::move(completion), buffers::status::StatusCode::OK};
             }
 
@@ -913,7 +933,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL: {
                 completion->FindCandidatesForNamePath();
-                completion->FlushCandidatesAndFinish();
+                completion->SelectTopCandidates();
                 return {std::move(completion), buffers::status::StatusCode::OK};
             }
             case RelativePosition::BEGIN_OF_SYMBOL:
@@ -951,16 +971,15 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     // We're checking here if the previous symbol is an inner dot.
     // If there was a whitespace after the previous dot, we'd mark as at trailing.
     // Since the previous symbol is a normal dot, it must be an inner.
+    bool complete_dot = false;
     if (cursor.scanner_location->previousSymbolIsDot() && expects_identifier) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (cursor.scanner_location->relative_pos) {
             case RelativePosition::END_OF_SYMBOL:
             case RelativePosition::BEGIN_OF_SYMBOL:
-            case RelativePosition::MID_OF_SYMBOL: {
-                completion->FindCandidatesForNamePath();
-                completion->FlushCandidatesAndFinish();
-                return {std::move(completion), buffers::status::StatusCode::OK};
-            }
+            case RelativePosition::MID_OF_SYMBOL:
+                complete_dot = true;
+                break;
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::NEW_SYMBOL_BEFORE:
                 /// NEW_SYMBOL_BEFORE should be unreachable, the previous symbol would have been a trailing dot...
@@ -971,28 +990,42 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         }
     }
 
-    // Add expected grammar symbols to the heap and score them
-    completion->AddExpectedKeywordsAsCandidates(expected_symbols);
-    // Also check the name indexes when expecting an identifier
-    if (expects_identifier) {
-        // Just find all candidates in the name index
-        completion->FindCandidatesInIndexes();
-        // Promote names of all tables that could resolve an unresolved column
-        completion->PromoteTablesAndPeersForUnresolvedColumns();
+    // Dot completion?
+    if (complete_dot) {
+        // Restricting candidates to the dot context
+        completion->FindCandidatesForNamePath();
+    } else {
+        // Add expected grammar symbols to the heap and score them
+        completion->AddExpectedKeywordsAsCandidates(expected_symbols);
+        // Also check the name indexes when expecting an identifier
+        if (expects_identifier) {
+            // Just find all candidates in the name index
+            completion->FindCandidatesInIndexes();
+            // Promote names of all tables that could resolve an unresolved column
+            completion->PromoteTablesAndPeersForUnresolvedColumns();
+        }
+    }
+    // Promote names that are in scope
+    completion->PromoteIdentifiersInScope();
+    // Promote names that we've used before
+    if (registry) {
+        completion->PromoteIdentifiersInScripts(*registry);
     }
     // Add all candidates to the result heap
-    completion->FlushCandidatesAndFinish();
+    completion->SelectTopCandidates();
     // Find identifier snippets for the completion result
     if (registry) {
-        completion->FindIdentifierSnippetsForResults(*registry);
+        completion->FindIdentifierSnippetsForTopCandidates(*registry);
     }
+    // Derive keyword snippets (if any)
+    completion->DeriveKeywordSnippetsForTopCandidates();
 
     // Register as normal completion
     return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
-    auto& entries = result_candidates;
+    auto& entries = top_candidates;
 
     // Reservie for packed candidates
     std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidates;

@@ -102,12 +102,13 @@ struct Completion {
     /// We *could* use a btree here if we want to prefix-search for candidate columns of a table.
     /// However, `PromoteIdentifiersInScripts` probes this hash map with all identifiers that we can find
     /// through the script registry. Having a hash-map there outweighs resolving scope columns without prefix.
-    std::unordered_map<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>> candidate_objects_by_id;
+    std::unordered_map<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>>
+        candidate_objects_by_id;
 
     /// The result heap, holding up to k entries
-    TopKHeap<Candidate> result_heap;
+    TopKHeap<Candidate> candidate_heap;
     /// The top result candidates
-    std::vector<ResultCandidate> result_candidates;
+    std::vector<ResultCandidate> top_candidates;
 
     /// Read the name path of the current cursor
     std::vector<Completion::NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
@@ -127,11 +128,11 @@ struct Completion {
     /// UI.
     void AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols);
     /// Flush pending candidates and finish the results
-    void FlushCandidatesAndFinish();
+    void SelectTopCandidates();
     /// Find identifier snippets for results (after flushing)
-    void FindIdentifierSnippetsForResults(ScriptRegistry& registry);
+    void FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry);
     /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
-    void DeriveKeywordSnippetsForResults();
+    void DeriveKeywordSnippetsForTopCandidates();
 
    public:
     /// Constructor
@@ -142,9 +143,9 @@ struct Completion {
     /// Get the completion strategy
     auto& GetStrategy() const { return strategy; }
     /// Get the result heap
-    auto& GetHeap() const { return result_heap; }
+    auto& GetHeap() const { return candidate_heap; }
     /// Get the result candidates after finishing
-    auto& GetResultCandidates() const { return result_candidates; }
+    auto& GetResultCandidates() const { return top_candidates; }
 
     /// Pack the completion result
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);

@@ -72,6 +72,8 @@ class ScriptRegistry {
     btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_transforms;
 
    public:
+    /// Get the script entries
+    auto& GetRegisteredScripts() const { return script_entries; }
     /// Get the column restrictions
     auto& GetColumnRestrictions() const { return column_restrictions; }
     /// Get the column transforms
@@ -107,11 +109,11 @@ class ScriptRegistry {
     using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
 
     // Collect column restrictions
-    void CollectColumnRestrictions(QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version,
-                                   SnippetMap& out);
+    void CollectColumnRestrictions(QualifiedCatalogObjectID column_id,
+                                   std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
     // Collect column transforms
-    void CollectColumnTransforms(QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version,
-                                 SnippetMap& out);
+    void CollectColumnTransforms(QualifiedCatalogObjectID column_id,
+                                 std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
 };
 
 }  // namespace dashql
