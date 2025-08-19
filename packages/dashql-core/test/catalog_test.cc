@@ -136,7 +136,7 @@ TEST(CatalogTest, SingleDescriptorPool) {
         ASSERT_TRUE(rel_expr.resolved_table.has_value());
         auto& resolved = rel_expr.resolved_table.value();
         ASSERT_EQ(resolved.catalog_table_id.GetType(), CatalogObjectType::TableDeclaration);
-        ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().GetContext(), 1);
+        ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().GetOrigin(), 1);
         ASSERT_EQ(resolved.catalog_table_id.UnpackTableID().GetObject(), 0);
     }
     {

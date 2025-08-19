@@ -56,7 +56,7 @@ describe('Lookup', () => {
             });
             it('single hit', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
                 const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, 1, DB_ID, SCHEMA_ID, 0n);
@@ -64,7 +64,7 @@ describe('Lookup', () => {
             });
             it('single miss', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
                 const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, 1, DB_ID, SCHEMA_ID + 1, 0n);
@@ -72,8 +72,8 @@ describe('Lookup', () => {
             });
             it('skip 1', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID - 1, dashql.ContextObjectID.create(42, 2), 0),
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID - 1, dashql.ExternalObjectID.create(42, 2), 0),
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
                 const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, 2, DB_ID, SCHEMA_ID, 0n);
@@ -82,64 +82,64 @@ describe('Lookup', () => {
             it('100 different, last', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, i), 0));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, i), 0));
                 }
-                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(43, 1), 0))
+                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(43, 1), 0))
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(43, 0));
+                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(43, 0));
                 expect(iter).toEqual(100);
             });
             it('100 different, first', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
-                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 1), 0))
+                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 1), 0))
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, i), 0));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, i), 0));
                 }
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 0));
+                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 0));
                 expect(iter).toEqual(0);
             });
             it('100 different, mid', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 50; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, i), 0));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, i), 0));
                 }
-                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(43, 1), 0))
+                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(43, 1), 0))
                 for (let i = 0; i < 50; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(44, i), 0));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(44, i), 0));
                 }
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(43, 0));
+                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(43, 0));
                 expect(iter).toEqual(50);
             });
             it('100 equal, skip first', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
-                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 2), 0))
+                tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 2), 0))
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 3));
+                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 3));
                 expect(iter).toEqual(1);
             });
             it('100 equal, skip 100', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 4), i))
                 }
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 3));
+                const iter = dashql.findScriptTableRefsLowerBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 3));
                 expect(iter).toEqual(100);
             });
         });
@@ -153,7 +153,7 @@ describe('Lookup', () => {
             });
             it('single hit', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
                 const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, 1, DB_ID, SCHEMA_ID - 1, 0n);
@@ -161,35 +161,35 @@ describe('Lookup', () => {
             });
             it('single miss', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, 1, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, 1, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual(1);
             });
             it('skip 1', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 2), 0),
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 2), 0),
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, 2, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 2));
+                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, 2, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 2));
                 expect(iter).toEqual(1);
             });
             it('100 equal, skip 100', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 4), i))
                 }
                 const script = packScript(tableRefs, []);
                 const tmp = new dashql.buffers.analyzer.IndexedTableReference();
-                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsUpperBound(script, tmp, 0, tableRefs.length, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual(200);
             });
         });
@@ -202,80 +202,80 @@ describe('Lookup', () => {
             });
             it('single hit', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([0, 1]);
             });
             it('single miss, lower', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID - 1, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID - 1, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([0, 0]);
             });
             it('single miss, upper', () => {
                 const script = packScript([
-                    tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0)
+                    tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0)
                 ], [])
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID + 1, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID + 1, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([1, 1]);
             });
             it('100 equal, skip 100', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 4), i))
                 }
                 const script = packScript(tableRefs, []);
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([100, 200]);
             });
             it('100 equal, skip 200', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 200; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 4), i))
                 }
                 const script = packScript(tableRefs, []);
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([200, 300]);
             });
             it('100 equal, skip 200, trailing 400', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 200; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(41, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(41, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 400; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(43, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(43, 4), i))
                 }
                 const script = packScript(tableRefs, []);
-                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3));
+                const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3));
                 expect(iter).toEqual([200, 300]);
             });
             it('100 equal, skip 200, trailing 400, schema prefix', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 200; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID - 1, dashql.ContextObjectID.create(41, 2), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID - 1, dashql.ExternalObjectID.create(41, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 400; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID + 1, dashql.ContextObjectID.create(43, 4), i))
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID + 1, dashql.ExternalObjectID.create(43, 4), i))
                 }
                 const script = packScript(tableRefs, []);
                 const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID, SCHEMA_ID);
@@ -284,13 +284,13 @@ describe('Lookup', () => {
             it('100 equal, skip 200, trailing 400, db prefix', () => {
                 const tableRefs: dashql.buffers.analyzer.IndexedTableReferenceT[] = [];
                 for (let i = 0; i < 200; ++i) {
-                    tableRefs.push(tableRef(DB_ID - 1, 0, dashql.ContextObjectID.create(41, 2), i))
+                    tableRefs.push(tableRef(DB_ID - 1, 0, dashql.ExternalObjectID.create(41, 2), i))
                 }
                 for (let i = 0; i < 100; ++i) {
-                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), i));
+                    tableRefs.push(tableRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), i));
                 }
                 for (let i = 0; i < 400; ++i) {
-                    tableRefs.push(tableRef(DB_ID + 1, 0, dashql.ContextObjectID.create(43, 4), i))
+                    tableRefs.push(tableRef(DB_ID + 1, 0, dashql.ExternalObjectID.create(43, 4), i))
                 }
                 const script = packScript(tableRefs, []);
                 const iter = dashql.findScriptTableRefsEqualRange(script, DB_ID);
@@ -308,23 +308,23 @@ describe('Lookup', () => {
             });
             it('single hit', () => {
                 const script = packScript([], [
-                    columnRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0, 0)
+                    columnRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0, 0)
                 ]);
-                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0);
+                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0);
                 expect(iter).toEqual([0, 1]);
             });
             it('single miss, lower', () => {
                 const script = packScript([], [
-                    columnRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0, 0)
+                    columnRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0, 0)
                 ])
-                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID - 1, dashql.ContextObjectID.create(42, 3), 0);
+                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID - 1, dashql.ExternalObjectID.create(42, 3), 0);
                 expect(iter).toEqual([0, 0]);
             });
             it('single miss, upper', () => {
                 const script = packScript([], [
-                    columnRef(DB_ID, SCHEMA_ID, dashql.ContextObjectID.create(42, 3), 0, 0)
+                    columnRef(DB_ID, SCHEMA_ID, dashql.ExternalObjectID.create(42, 3), 0, 0)
                 ])
-                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID + 1, dashql.ContextObjectID.create(42, 3), 0);
+                const iter = dashql.findScriptColumnRefsEqualRange(script, DB_ID, SCHEMA_ID + 1, dashql.ExternalObjectID.create(42, 3), 0);
                 expect(iter).toEqual([1, 1]);
             });
         });
@@ -412,16 +412,16 @@ describe('Lookup', () => {
         });
         it('single hit', () => {
             const catalog = packCatalog([], [], [
-                tableEntryById(dashql.ContextObjectID.create(42, 43), 0)
+                tableEntryById(dashql.ExternalObjectID.create(42, 43), 0)
             ])
-            const iter = dashql.findCatalogTableById(catalog, dashql.ContextObjectID.create(42, 43));
+            const iter = dashql.findCatalogTableById(catalog, dashql.ExternalObjectID.create(42, 43));
             expect(iter).toEqual(0);
         });
         it('single miss', () => {
             const catalog = packCatalog([], [], [
-                tableEntryById(dashql.ContextObjectID.create(42, 43), 0)
+                tableEntryById(dashql.ExternalObjectID.create(42, 43), 0)
             ])
-            const iter = dashql.findCatalogTableById(catalog, dashql.ContextObjectID.create(42, 44));
+            const iter = dashql.findCatalogTableById(catalog, dashql.ExternalObjectID.create(42, 44));
             expect(iter).toEqual(null);
         });
     });

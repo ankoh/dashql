@@ -923,7 +923,7 @@ export interface DashQLQueryGraphLayoutConfig {
     tableHeight: number;
 }
 
-export namespace ContextObjectID {
+export namespace ExternalObjectID {
     export type Value = bigint;
 
     /// Create the external id
@@ -934,7 +934,7 @@ export namespace ContextObjectID {
         return (BigInt(context) << 32n) | BigInt(value);
     }
     /// Get the context id
-    export function getContext(value: Value): number {
+    export function getOrigin(value: Value): number {
         return Number(value >> 32n);
     }
     /// Mask index
@@ -943,7 +943,7 @@ export namespace ContextObjectID {
     }
     /// Is a null id?
     export function isNull(value: Value): boolean {
-        return ContextObjectID.getObject(value) == 0xffffffff;
+        return ExternalObjectID.getObject(value) == 0xffffffff;
     }
 }
 
@@ -1000,8 +1000,8 @@ export class DashQLScriptRegistry {
         const catalogVersion = referenced_catalog_version == null ? -1 : referenced_catalog_version;
         const result = this.ptr.api.instanceExports.dashql_script_registry_find_column(
             registryPtr,
-            ContextObjectID.getContext(table_id),
-            ContextObjectID.getObject(table_id),
+            ExternalObjectID.getOrigin(table_id),
+            ExternalObjectID.getObject(table_id),
             table_column_id,
             catalogVersion
         );

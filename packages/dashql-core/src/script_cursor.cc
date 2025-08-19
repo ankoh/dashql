@@ -61,7 +61,7 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
                                 matched = true;
                                 for (auto& table_ref : innermost_scope.table_references) {
                                     if (node_id == table_ref.ast_node_id) {
-                                        assert(table_ref.table_reference_id.GetContext() ==
+                                        assert(table_ref.table_reference_id.GetOrigin() ==
                                                analyzed->GetCatalogEntryId());
                                         cursor->context = TableRefContext{table_ref.table_reference_id.GetObject()};
                                     }

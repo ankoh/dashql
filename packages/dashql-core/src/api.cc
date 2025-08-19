@@ -421,7 +421,7 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
                                                          size_t table_object_id, size_t column_idx,
                                                          ssize_t target_catalog_version) {
-    ContextObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
+    ExternalObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
     auto column_id = QualifiedCatalogObjectID::TableColumn(table_id, column_idx);
 
     flatbuffers::FlatBufferBuilder fb;

@@ -202,7 +202,7 @@ class AnalyzedScript : public CatalogEntry {
         };
 
         /// The table reference id
-        ContextObjectID table_reference_id;
+        ExternalObjectID table_reference_id;
         /// The AST node id in the target script
         uint32_t ast_node_id;
         /// The location in the target script

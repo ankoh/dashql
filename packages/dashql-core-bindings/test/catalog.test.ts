@@ -100,7 +100,7 @@ describe('Catalog Tests ', () => {
         const resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
-        expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
+        expect(dashql.ExternalObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         // Delete all the memory
         analyzedBuffer.destroy();
@@ -165,7 +165,7 @@ describe('Catalog Tests ', () => {
         let resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
-        expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
+        expect(dashql.ExternalObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         tableRef = analyzed.tableReferences(1)!;
         expect(tableRef.resolvedTable()).not.toBeNull();
@@ -174,7 +174,7 @@ describe('Catalog Tests ', () => {
         resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
-        expect(dashql.ContextObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
+        expect(dashql.ExternalObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
 
         // Delete all the memory
         analyzedBuffer.destroy();

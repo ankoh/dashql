@@ -176,7 +176,7 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
 }
 
 const CatalogEntry::TableDeclaration* CatalogEntry::ResolveTableById(CatalogTableID table_id) const {
-    if (table_id.GetContext() == catalog_entry_id) {
+    if (table_id.GetOrigin() == catalog_entry_id) {
         return &table_declarations[table_id.GetObject()];
     }
     return nullptr;
@@ -1146,7 +1146,7 @@ buffers::status::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID externa
 }
 
 const CatalogEntry::TableDeclaration* Catalog::ResolveTable(CatalogTableID table_id) const {
-    if (auto iter = entries.find(table_id.GetContext()); iter != entries.end()) {
+    if (auto iter = entries.find(table_id.GetOrigin()); iter != entries.end()) {
         return iter->second->ResolveTableById(table_id);
     } else {
         return nullptr;

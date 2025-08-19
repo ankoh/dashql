@@ -188,7 +188,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
                             auto table_id = resolved.catalog_table_id.UnpackTableID();
                             std::string catalog_id = std::format("{}.{}.{}", db_id, schema_id, table_id.Pack());
-                            auto type = is_main && table_id.GetContext() == script.GetCatalogEntryId()
+                            auto type = is_main && table_id.GetOrigin() == script.GetCatalogEntryId()
                                             ? "name/internal"
                                             : "name/external";
                             xml_ref.append_attribute("type").set_value(type);
@@ -229,7 +229,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             auto [table_id, column_idx] = resolved.catalog_table_column_id.UnpackTableColumnID();
                             std::string catalog_id =
                                 std::format("{}.{}.{}.{}", db_id, schema_id, table_id.Pack(), column_idx);
-                            auto type = (is_main && table_id.GetContext() == script.GetCatalogEntryId())
+                            auto type = (is_main && table_id.GetOrigin() == script.GetCatalogEntryId())
                                             ? "colref/internal"
                                             : "colref/external";
                             xml_ref.append_attribute("type").set_value(type);

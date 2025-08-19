@@ -12,7 +12,7 @@ export interface QualifiedSchemaId extends QualifiedDatabaseId {
 }
 export interface QualifiedTableId extends QualifiedSchemaId {
     /// The table
-    table: dashql.ContextObjectID.Value;
+    table: dashql.ExternalObjectID.Value;
     /// The referenced catalog version
     referencedCatalogVersion: number;
 }

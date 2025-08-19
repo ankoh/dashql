@@ -50,7 +50,8 @@ NameResolutionPass::NameResolutionPass(AnalysisState& state)
     : PassManager::LTRPass(state), node_states(state.ast.size()) {}
 
 /// Register a schema
-QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& database_name, RegisteredName& schema_name) {
+QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& database_name,
+                                                            RegisteredName& schema_name) {
     // Register the database
     auto db_ref_iter = state.analyzed->databases_by_name.find({database_name});
     QualifiedCatalogObjectID db_id = QualifiedCatalogObjectID::Deferred();
@@ -408,8 +409,8 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         auto& n = state.analyzed->table_references.PushBack(AnalyzedScript::TableReference(alias_name));
                         n.buffer_index = state.analyzed->table_references.GetSize() - 1;
                         n.table_reference_id =
-                            ContextObjectID{state.catalog_entry_id,
-                                            static_cast<uint32_t>(state.analyzed->table_references.GetSize() - 1)};
+                            ExternalObjectID{state.catalog_entry_id,
+                                             static_cast<uint32_t>(state.analyzed->table_references.GetSize() - 1)};
                         n.ast_node_id = node_id;
                         n.location = state.parsed.nodes[node_id].location();
                         n.ast_statement_id = std::nullopt;
@@ -461,7 +462,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     // Register the database
                     auto schema_id = RegisterSchema(table_name->database_name, table_name->schema_name);
                     // Determine the catalog table id
-                    ContextObjectID catalog_table_id{
+                    ExternalObjectID catalog_table_id{
                         state.catalog_entry_id, static_cast<uint32_t>(state.analyzed->table_declarations.GetSize())};
                     // Merge child states
                     MergeChildStates(node_state, {elements_node});

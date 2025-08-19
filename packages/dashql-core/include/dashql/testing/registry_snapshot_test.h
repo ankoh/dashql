@@ -25,7 +25,7 @@ struct RegistrySnapshotTest {
     /// The registry scripts
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> registry_scripts;
 
-    using TableColumnKey = std::pair<ContextObjectID, ColumnID>;
+    using TableColumnKey = std::pair<ExternalObjectID, ColumnID>;
 
     /// Test a registry snapshot
     static void TestRegistrySnapshot(const std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot>& snaps,

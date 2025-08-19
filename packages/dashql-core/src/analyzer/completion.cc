@@ -418,7 +418,7 @@ void Completion::FindCandidatesForNamePath() {
                                 .replace_text_at = replace_text_at};
                             candidate.candidate_tags.AddIf(
                                 buffers::completion::CandidateTag::THROUGH_CATALOG,
-                                table_decl.GetTableID().GetContext() != script.GetCatalogEntryId());
+                                table_decl.GetTableID().GetOrigin() != script.GetCatalogEntryId());
                             dot_candidates.push_back(std::move(candidate));
                         }
                         break;

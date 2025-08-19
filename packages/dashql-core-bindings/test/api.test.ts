@@ -27,7 +27,7 @@ describe('DashQL setup', () => {
 
 describe('ContextObjectChildID', () => {
     it('create child ids', () => {
-        const parentId = dashql.ContextObjectID.create(1234, 5678);
+        const parentId = dashql.ExternalObjectID.create(1234, 5678);
         const childId = dashql.ContextObjectChildID.create(parentId, 91011);
         expect(childId).not.toEqual(parentId);
         expect(dashql.ContextObjectChildID.getParent(childId)).toEqual(parentId);

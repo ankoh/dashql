@@ -28,7 +28,7 @@ class Script;
 class AnalyzedScript;
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
-using CatalogTableID = ContextObjectID;
+using CatalogTableID = ExternalObjectID;
 using CatalogVersion = uint32_t;
 
 constexpr uint32_t PROTO_NULL_U32 = std::numeric_limits<uint32_t>::max();

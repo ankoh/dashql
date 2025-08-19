@@ -26,7 +26,7 @@ static_assert(static_cast<uint8_t>(buffers::completion::CompletionCandidateObjec
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
 using CatalogEntryID = uint32_t;
-using CatalogTableID = ContextObjectID;
+using CatalogTableID = ExternalObjectID;
 using CatalogVersion = uint32_t;
 
 /// An id for a catalog object

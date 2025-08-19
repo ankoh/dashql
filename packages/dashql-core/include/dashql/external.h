@@ -11,7 +11,7 @@ namespace dashql {
 using CatalogEntryID = uint32_t;
 
 /// An identifier annotated with an external id
-struct ContextObjectID {
+struct ExternalObjectID {
     constexpr static CatalogEntryID KEYWORD_EXTERNAL_ID = 0xFFFFFFFF;
 
    protected:
@@ -22,12 +22,12 @@ struct ContextObjectID {
 
    public:
     /// Constructor
-    ContextObjectID()
+    ExternalObjectID()
         : external_id(std::numeric_limits<uint32_t>::max()), value(std::numeric_limits<uint32_t>::max()) {}
     /// Constructor
-    explicit ContextObjectID(uint32_t origin, uint32_t value) : external_id(origin), value(value) {}
+    explicit ExternalObjectID(uint32_t origin, uint32_t value) : external_id(origin), value(value) {}
     /// Get the external identifier
-    inline uint32_t GetContext() const { return external_id; }
+    inline uint32_t GetOrigin() const { return external_id; }
     /// Get the index
     inline uint32_t GetObject() const { return value; }
     /// Is a null id?
@@ -35,24 +35,24 @@ struct ContextObjectID {
     /// Is a null id?
     inline uint64_t Pack() const { return (static_cast<uint64_t>(external_id) << 32) | value; }
     /// Is a null id?
-    inline static ContextObjectID Unpack(uint64_t packed) {
-        ContextObjectID out;
+    inline static ExternalObjectID Unpack(uint64_t packed) {
+        ExternalObjectID out;
         out.external_id = ((packed >> 32) & 0xFFFFFFFF);
         out.value = (packed & 0xFFFFFFFF);
         return out;
     }
 
     /// Comparison
-    bool operator==(const ContextObjectID& other) const {
+    bool operator==(const ExternalObjectID& other) const {
         return external_id == other.external_id && value == other.value;
     }
     /// Comparison
-    bool operator<(const ContextObjectID& other) const {
+    bool operator<(const ExternalObjectID& other) const {
         return external_id < other.external_id || (external_id == other.external_id && value < other.value);
     }
     /// A hasher
     struct Hasher {
-        size_t operator()(const ContextObjectID& key) const {
+        size_t operator()(const ExternalObjectID& key) const {
             size_t hash = 0;
             hash_combine(hash, key.external_id);
             hash_combine(hash, key.value);
@@ -63,11 +63,11 @@ struct ContextObjectID {
 }  // namespace dashql
 
 namespace std {
-template <> struct hash<dashql::ContextObjectID> {
-    size_t operator()(const dashql::ContextObjectID& key) const { return dashql::ContextObjectID::Hasher{}(key); }
+template <> struct hash<dashql::ExternalObjectID> {
+    size_t operator()(const dashql::ExternalObjectID& key) const { return dashql::ExternalObjectID::Hasher{}(key); }
 };
-template <> struct hash<std::pair<dashql::ContextObjectID, uint32_t>> {
-    size_t operator()(const std::pair<dashql::ContextObjectID, uint32_t>& key) const {
+template <> struct hash<std::pair<dashql::ExternalObjectID, uint32_t>> {
+    size_t operator()(const std::pair<dashql::ExternalObjectID, uint32_t>& key) const {
         size_t value = 0;
         dashql::hash_combine(value, std::get<0>(key));
         dashql::hash_combine(value, std::get<1>(key));
