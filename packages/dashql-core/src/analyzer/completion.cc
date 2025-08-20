@@ -911,6 +911,21 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
     // XXX
 }
 
+void Completion::QualifyTopCandidatesIfNeeded() {
+    // We want to auto-qualify a name if there's potential ambiguity.
+    //
+    // Strategy:
+    // A) For table names, we always qualify unless:
+    // A.1) There is no table in scope with the same name, and
+    // A.2) The catalog object name is not ambiguous
+    //
+    // B) For column names, we depend on whether we know the table already or not.
+    // B.1) Does the table in scope have an alias and our current cursor doesn't?
+    // B.2) Is there a different table in scope that has the same column name?
+
+    // XXX
+}
+
 static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
     return std::visit(
         [](const auto& ctx) -> buffers::completion::CompletionStrategy {

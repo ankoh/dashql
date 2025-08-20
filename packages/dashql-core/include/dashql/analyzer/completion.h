@@ -133,6 +133,8 @@ struct Completion {
     void FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry);
     /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
     void DeriveKeywordSnippetsForTopCandidates();
+    /// Make sure top-candidates are qualified
+    void QualifyTopCandidatesIfNeeded();
 
    public:
     /// Constructor
