@@ -54,9 +54,9 @@ enum CandidateTag: uint32 {
     UNRESOLVED_PEER = 512,
     THROUGH_CATALOG = 1024,
     IN_NAME_SCOPE = 2048,
-    REF_IN_SAME_STATEMENT = 4096,
-    REF_IN_SAME_SCRIPT = 8192,
-    REF_IN_OTHER_SCRIPT = 16384,
+    IN_SAME_STATEMENT = 4096,
+    IN_SAME_SCRIPT = 8192,
+    IN_OTHER_SCRIPT = 16384,
 }
 
 table CompletionCandidate {

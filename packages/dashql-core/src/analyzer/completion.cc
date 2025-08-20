@@ -633,10 +633,6 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 candidate_objects_by_id.insert({o.object_id, co});
             }
         }
-
-        // XXX What's missing here is the check if the catalog object is already in scope.
-        //     This becomes problematic when we have the same column name for multiple tables.
-        //     We want to promote candidates with names that are in scope to show correct catalog entries.
     }
 }
 
@@ -685,8 +681,10 @@ void Completion::PromoteIdentifiersInScope() {
                 if (iter == candidate_objects_by_id.end()) {
                     continue;
                 }
-                // XXX Found column reachable through the scope that is a candidate
-                //     Boost it.
+                // Found column reachable through the scope that is a candidate.
+                auto& co = iter->second.get();
+                co.candidate_tags |= buffers::completion::CandidateTag::IN_NAME_SCOPE;
+                co.candidate.candidate_tags |= buffers::completion::CandidateTag::IN_NAME_SCOPE;
             }
         }
 
@@ -706,14 +704,21 @@ void Completion::PromoteIdentifiersInScope() {
                 continue;
             }
 
-            // XXX Found a referenced column in the scope that was used before.
-            //     Boost it.
+            // Found column reachable through the scope that is a candidate.
+            auto& co = iter->second.get();
+            co.candidate_tags |= buffers::completion::CandidateTag::IN_NAME_SCOPE;
+            co.candidate.candidate_tags |= buffers::completion::CandidateTag::IN_NAME_SCOPE;
         }
     }
 }
 
 void Completion::PromoteIdentifiersInScripts(ScriptRegistry& registry) {
-    for (auto& [key, script_entry] : registry.GetRegisteredScripts())
+    for (auto& [key, script_entry] : registry.GetRegisteredScripts()) {
+        bool is_same_script = &script_entry.script == &cursor.script;
+        buffers::completion::CandidateTag candidate_tag = is_same_script
+                                                              ? buffers::completion::CandidateTag::IN_SAME_SCRIPT
+                                                              : buffers::completion::CandidateTag::IN_OTHER_SCRIPT;
+
         script_entry.analyzed->expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& expr) {
             // Resolved column ref?
             auto* colref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
@@ -728,9 +733,13 @@ void Completion::PromoteIdentifiersInScripts(ScriptRegistry& registry) {
                 return;
             }
 
-            // XXX Found a referenced column in the scope that was used before.
-            //     Boost it.
+            // Found a referenced column in the scope that was used before.
+            // Boost it.
+            auto& co = iter->second.get();
+            co.candidate_tags |= candidate_tag;
+            co.candidate.candidate_tags |= candidate_tag;
         });
+    }
 }
 
 void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
@@ -796,6 +805,8 @@ Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags)
     score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE) != 0) * DOT_TABLE_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA) != 0) * DOT_SCHEMA_SCORE_MODIFIER;
     score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN) != 0) * DOT_COLUMN_SCORE_MODIFIER;
+
+    // XXX Account for new candidate tags (name scope, same statement, ...)
     return score;
 }
 

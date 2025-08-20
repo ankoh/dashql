@@ -220,8 +220,8 @@ create table table3(attr3 integer);
             <search text="where external_" index="14" />
         </cursor>
         <completions limit="5" strategy="COLUMN_REF" symbol="NAME" relative="MID_OF_SYMBOL" loc="65..74" text="external_">
-            <entry score="40" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
-                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
+            <entry score="40" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="65..74" replace_text="external_">
+                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
             </entry>
             <entry score="30" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
                 <object score="20" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
@@ -262,8 +262,8 @@ create table table3(attr3 integer);
             <search text="where external_" index="15" />
         </cursor>
         <completions limit="5" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="65..74" text="external_">
-            <entry score="40" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
-                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
+            <entry score="40" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="65..74" replace_text="external_">
+                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
             </entry>
             <entry score="30" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
                 <object score="20" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
