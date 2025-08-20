@@ -16,7 +16,7 @@ struct Completion {
     using ScoreValueType = uint32_t;
     /// A bitset for candidate tags
     using CandidateTags =
-        EnumBitset<uint16_t, buffers::completion::CandidateTag, buffers::completion::CandidateTag::MAX>;
+        EnumBitset<uint32_t, buffers::completion::CandidateTag, buffers::completion::CandidateTag::MAX>;
 
     struct Candidate;
 

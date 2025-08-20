@@ -40,7 +40,7 @@ table CompletionCandidateObject {
 
 }
 
-enum CandidateTag: uint16 {
+enum CandidateTag: uint32 {
     NONE = 0,
     EXPECTED_PARSER_SYMBOL = 1,
     NAME_INDEX = 2,
@@ -53,11 +53,15 @@ enum CandidateTag: uint16 {
     RESOLVING_TABLE = 256,
     UNRESOLVED_PEER = 512,
     THROUGH_CATALOG = 1024,
+    IN_NAME_SCOPE = 2048,
+    REF_IN_SAME_STATEMENT = 4096,
+    REF_IN_SAME_SCRIPT = 8192,
+    REF_IN_OTHER_SCRIPT = 16384,
 }
 
 table CompletionCandidate {
     /// The fine-granular candidate tags
-    candidate_tags: uint8;
+    candidate_tags: uint32;
     /// The coarse-granular analyzer tags
     name_tags: uint8;
     /// The display text
