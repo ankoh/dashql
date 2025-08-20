@@ -23,7 +23,7 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(restriction.column_ref.get().inner);
         if (column_ref.resolved_column.has_value()) {
             auto& col = column_ref.resolved_column.value();
-            std::tuple<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
+            std::pair<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
             column_restrictions.insert(entry);
         }
     });
@@ -31,7 +31,7 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(transform.column_ref.get().inner);
         if (column_ref.resolved_column.has_value()) {
             auto& col = column_ref.resolved_column.value();
-            std::tuple<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
+            std::pair<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
             column_transforms.insert(entry);
         }
     });
