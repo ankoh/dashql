@@ -940,16 +940,14 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     }
 
     // Is the current symbol an inner dot?
+    bool complete_dot = false;
     if (cursor.scanner_location->currentSymbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (cursor.scanner_location->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
-            case RelativePosition::END_OF_SYMBOL: {
-                completion->FindCandidatesForNamePath();
-                completion->SelectTopCandidates();
-                return {std::move(completion), buffers::status::StatusCode::OK};
-            }
-
+            case RelativePosition::END_OF_SYMBOL:
+                complete_dot = true;
+                break;
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE:
@@ -963,11 +961,9 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (cursor.scanner_location->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
-            case RelativePosition::END_OF_SYMBOL: {
-                completion->FindCandidatesForNamePath();
-                completion->SelectTopCandidates();
-                return {std::move(completion), buffers::status::StatusCode::OK};
-            }
+            case RelativePosition::END_OF_SYMBOL:
+                complete_dot = true;
+                break;
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE: {
@@ -977,21 +973,23 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         }
     }
 
-    // Find the expected symbols at this location
-    std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
-    if (cursor.scanner_location->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
-        !cursor.scanner_location->at_eof) {
-        expected_symbols =
-            parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id + 1);
-    } else {
-        expected_symbols =
-            parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id);
-    }
+    // When not dot-completing, find the expected symbols at this location
     bool expects_identifier = false;
-    for (auto& expected : expected_symbols) {
-        if (expected == parser::Parser::symbol_kind_type::S_IDENT) {
-            expects_identifier = true;
-            break;
+    std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
+    if (!complete_dot) {
+        if (cursor.scanner_location->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
+            !cursor.scanner_location->at_eof) {
+            expected_symbols =
+                parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id + 1);
+        } else {
+            expected_symbols =
+                parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id);
+        }
+        for (auto& expected : expected_symbols) {
+            if (expected == parser::Parser::symbol_kind_type::S_IDENT) {
+                expects_identifier = true;
+                break;
+            }
         }
     }
 
@@ -1003,7 +1001,6 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     // We're checking here if the previous symbol is an inner dot.
     // If there was a whitespace after the previous dot, we'd mark as at trailing.
     // Since the previous symbol is a normal dot, it must be an inner.
-    bool complete_dot = false;
     if (cursor.scanner_location->previousSymbolIsDot() && expects_identifier) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (cursor.scanner_location->relative_pos) {
