@@ -298,8 +298,8 @@
             <search text="f.ap" index="4" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="99..101" text="ap">
-            <entry score="42" value="apple" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH" replace_loc="99..101" replace_text="ap">
-                <object score="22" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH" />
+            <entry score="57" value="apple" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="99..101" replace_text="ap">
+                <object score="37" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH|SUBSTRING_MATCH" />
             </entry>
             <entry score="22" value="juice" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="99..101" replace_text="ap">
                 <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" />

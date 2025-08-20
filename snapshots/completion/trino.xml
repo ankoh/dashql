@@ -399,11 +399,8 @@
             <search text=" event" index="6" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="70..75" text="event">
-            <entry score="40" value="event" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="70..75" replace_text="event">
-                <object score="20" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
-            </entry>
-            <entry score="40" value="event_timestamp" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" replace_loc="70..75" replace_text="event">
-                <object score="20" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" />
+            <entry score="66" value="event_timestamp" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" replace_loc="70..75" replace_text="event">
+                <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" />
                 <templates>
                     <template signature="153693783941112220">
                         <snippet template="153693783941112220" raw="17607440235580690731">
@@ -464,8 +461,11 @@
                     </template>
                 </templates>
             </entry>
-            <entry score="25" value="some_events" ntags="SCHEMA_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="70..75" replace_text="event">
-                <object score="15" type="schema" id="256.65536" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
+            <entry score="65" value="event" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="70..75" replace_text="event">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
+            </entry>
+            <entry score="40" value="some_events" ntags="SCHEMA_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="70..75" replace_text="event">
+                <object score="30" type="schema" id="256.65536" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
         </completions>
     </completion-snapshot>

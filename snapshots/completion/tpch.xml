@@ -205,11 +205,11 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <search text="s_co" index="4" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="24..28" text="s_co">
-            <entry score="40" value="s_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="24..28" replace_text="s_co">
-                <object score="20" type="column" id="256.65536.4294967297.2" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
+            <entry score="55" value="s_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="24..28" replace_text="s_co">
+                <object score="35" type="column" id="256.65536.4294967297.2" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="35" value="ps_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="24..28" replace_text="s_co">
-                <object score="15" type="column" id="256.65536.4294967298.1" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
+            <entry score="50" value="ps_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="24..28" replace_text="s_co">
+                <object score="30" type="column" id="256.65536.4294967298.1" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
             <entry score="3" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="24..28" replace_text="s_co" />
         </completions>
@@ -423,14 +423,14 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <search text="ke" index="2" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="46..48" text="ke">
-            <entry score="35" value="c_custkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="46..48" replace_text="ke">
-                <object score="15" type="column" id="256.65536.4294967299.3" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
+            <entry score="60" value="l_orderkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="46..48" replace_text="ke">
+                <object score="40" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
             </entry>
-            <entry score="35" value="c_nationkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="46..48" replace_text="ke">
-                <object score="15" type="column" id="256.65536.4294967299.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
+            <entry score="60" value="l_partkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="46..48" replace_text="ke">
+                <object score="40" type="column" id="256.65536.4294967301.7" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
             </entry>
-            <entry score="35" value="l_orderkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="46..48" replace_text="ke">
-                <object score="15" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
+            <entry score="60" value="l_suppkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="46..48" replace_text="ke">
+                <object score="40" type="column" id="256.65536.4294967301.14" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" />
             </entry>
         </completions>
     </completion-snapshot>

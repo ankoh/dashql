@@ -17,36 +17,45 @@ namespace dashql {
 
 namespace {
 
+// Keyword prevalence modifiers
+// Users write some keywords much more likely than others, and we hardcode some prevalence scores.
+// Example: "se" should suggest "select" before "set"
+static constexpr Completion::ScoreValueType KEYWORD_VERY_POPULAR = 3;
+static constexpr Completion::ScoreValueType KEYWORD_POPULAR = 2;
+static constexpr Completion::ScoreValueType KEYWORD_DEFAULT = 0;
+
 // Coarse base score of a registered name
 static constexpr Completion::ScoreValueType NAME_TAG_IGNORE = 0;
 static constexpr Completion::ScoreValueType NAME_TAG_UNLIKELY = 10;
 static constexpr Completion::ScoreValueType NAME_TAG_LIKELY = 20;
 
-// Keywork prevalence modifiers
-// Users write some keywords much more likely than others, and we hardcode some prevalence scores.
-static constexpr Completion::ScoreValueType KEYWORD_VERY_POPULAR = 3;
-static constexpr Completion::ScoreValueType KEYWORD_POPULAR = 2;
-static constexpr Completion::ScoreValueType KEYWORD_DEFAULT = 0;
-
 // Fine-granular score modifiers
-static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 15;
-static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 20;
-static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 2;
-static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 2;
-static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;
-static constexpr Completion::ScoreValueType DOT_TABLE_SCORE_MODIFIER = 2;
-static constexpr Completion::ScoreValueType DOT_COLUMN_SCORE_MODIFIER = 2;
-static constexpr Completion::ScoreValueType IN_NAME_SCOPE_SCORE_MODIFIER = 0;
-static constexpr Completion::ScoreValueType IN_SAME_STATEMENT_SCORE_MODIFIER = 0;
-static constexpr Completion::ScoreValueType IN_SAME_SCRIPT_SCORE_MODIFIER = 0;
-static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 0;
+static constexpr Completion::ScoreValueType SUBSTRING_SCORE_MODIFIER = 30;         // User typed name substring
+static constexpr Completion::ScoreValueType PREFIX_SCORE_MODIFIER = 5;             // User typed name prefix
+static constexpr Completion::ScoreValueType RESOLVING_TABLE_SCORE_MODIFIER = 5;    // Table is resolving unresolved
+static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 1;    // Share unresolved table
+static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;         // Dot completion for schema
+static constexpr Completion::ScoreValueType DOT_TABLE_SCORE_MODIFIER = 2;          // Dot completion for table
+static constexpr Completion::ScoreValueType DOT_COLUMN_SCORE_MODIFIER = 2;         // Dot completion for column
+static constexpr Completion::ScoreValueType IN_NAME_SCOPE_SCORE_MODIFIER = 10;     // Candidate is in scope
+static constexpr Completion::ScoreValueType IN_SAME_STATEMENT_SCORE_MODIFIER = 1;  // Candidate used in same statement
+static constexpr Completion::ScoreValueType IN_SAME_SCRIPT_SCORE_MODIFIER = 1;     // Candidate used in same script
+static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 1;    // Candidate used in other script
 
 // Design choices for the score modifiers
-static_assert(PREFIX_SCORE_MODIFIER > SUBSTRING_SCORE_MODIFIER, "Prefix weighs more than being a substring");
 static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
-static_assert((NAME_TAG_UNLIKELY + KEYWORD_VERY_POPULAR) < NAME_TAG_LIKELY,
-              "A very likely keyword prevalance doesn't outweigh a likely tag");
+static_assert(IN_NAME_SCOPE_SCORE_MODIFIER > PREFIX_SCORE_MODIFIER,
+              "Candidates being available in scope weighs more than being a prefix");
+static_assert(SUBSTRING_SCORE_MODIFIER >
+                  (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
+              "Candidates that are used elsewhere are not higher scoring than a substring match");
+static_assert(IN_NAME_SCOPE_SCORE_MODIFIER >
+                  (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
+              "Being in scope outweighs being referenced elsewhere");
+static_assert(RESOLVING_TABLE_SCORE_MODIFIER >
+                  (IN_SAME_STATEMENT_SCORE_MODIFIER + IN_SAME_SCRIPT_SCORE_MODIFIER + IN_OTHER_SCRIPT_SCORE_MODIFIER),
+              "Resolving unresolved columns outweighs being referenced elsewhere");
 
 Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
     Completion::ScoreValueType score = 0;
@@ -469,11 +478,12 @@ void Completion::FindCandidatesForNamePath() {
             if (!last_text_prefix.empty()) {
                 // Check if we have a prefix
                 fuzzy_ci_string_view ci_name{dot_candidate.name.data(), dot_candidate.name.size()};
-                if (ci_name.starts_with(fuzzy_ci_string_view{last_text_prefix.data(), last_text_prefix.size()})) {
-                    dot_candidate.candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                } else if (ci_name.find(fuzzy_ci_string_view{last_text_prefix.data(), last_text_prefix.size()}) !=
-                           fuzzy_ci_string_view::npos) {
+                if (auto pos = ci_name.find(fuzzy_ci_string_view{last_text_prefix.data(), last_text_prefix.size()});
+                    pos != fuzzy_ci_string_view::npos) {
                     dot_candidate.candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
+                    if (pos == 0) {
+                        dot_candidate.candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
+                    }
                 }
             }
             // No, do we know the candidate name already?
@@ -545,11 +555,10 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 auto symbol_prefix = std::max<uint32_t>(location->text_offset, symbol_ofs) - symbol_ofs;
                 fuzzy_ci_string_view ci_symbol_text{cursor.text.data(), symbol_prefix};
                 // Is substring?
-                if (auto pos = ci_keyword_text.find(ci_symbol_text, 0); pos != fuzzy_ci_string_view::npos) {
+                if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
+                    tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                     if (pos == 0) {
                         tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                    } else {
-                        tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                     }
                 }
                 return tags;
@@ -608,10 +617,9 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
             case Relative::END_OF_SYMBOL:
+                candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 if (fuzzy_ci_string_view{name_info.text.data(), name_info.text.size()}.starts_with(ci_prefix_text)) {
                     candidate_tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                } else {
-                    candidate_tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
                 }
                 break;
             default:
@@ -835,14 +843,14 @@ void Completion::SelectTopCandidates() {
         bool operator<(const CandidateObjectRef& other) const { return score < other.score; }
     };
     // Use a heap to collect the top catalog objects for a candidate
-    TopKHeap<CandidateObjectRef> catalog_object_heap{5};
+    TopKHeap<CandidateObjectRef> catalog_object_heap{24};
 
     // Insert all pending candidates into the heap
     candidates.ForEach([&](size_t i, Candidate& candidate) {
         // Derive the base score as maximum among the name tags
-        Completion::ScoreValueType name_score = 0;
+        Completion::ScoreValueType base_score = 0;
         for (auto [tag, tag_score] : base_scoring_table) {
-            name_score = std::max(name_score, candidate.coarse_name_tags.contains(tag) ? tag_score : 0);
+            base_score = std::max(base_score, candidate.coarse_name_tags.contains(tag) ? tag_score : 0);
         }
         // Then find the top n best candidate objects.
         // Splitting off the base score ensures that we're not depending on resolving catalog objects too much.
@@ -861,7 +869,7 @@ void Completion::SelectTopCandidates() {
 
         // Determine overall candidate score
         Completion::ScoreValueType object_score = !candidate_objects.empty() ? candidate_objects.back().score : 0;
-        Completion::ScoreValueType candidate_score = name_score + object_score;
+        Completion::ScoreValueType candidate_score = base_score + object_score;
         candidate.score = candidate_score;
 
         // Apply all score modifiers

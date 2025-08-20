@@ -26,11 +26,11 @@
             <search text="apple, ju" index="9" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="135..137" text="ju">
-            <entry score="42" value="juice0" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|UNRESOLVED_PEER" replace_loc="135..137" replace_text="ju">
-                <object score="22" type="column" id="256.65536.0.1" ctags="NAME_INDEX|PREFIX_MATCH|UNRESOLVED_PEER" />
+            <entry score="56" value="juice0" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER" replace_loc="135..137" replace_text="ju">
+                <object score="36" type="column" id="256.65536.0.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER" />
             </entry>
-            <entry score="40" value="juice1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH" replace_loc="135..137" replace_text="ju">
-                <object score="20" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH" />
+            <entry score="55" value="juice1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="135..137" replace_text="ju">
+                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
             </entry>
             <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="135..137" replace_text="ju" />
         </completions>
