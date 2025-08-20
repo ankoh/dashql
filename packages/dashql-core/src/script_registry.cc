@@ -104,7 +104,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
     // Collect column transforms
     std::vector<ScriptRegistry::IndexedColumnTransform> lookup;
     // Track outdated refs
-    std::vector<std::tuple<QualifiedCatalogObjectID, const Script*>> outdated;
+    std::vector<std::pair<QualifiedCatalogObjectID, const Script*>> outdated;
 
     // Search the qualified column id
     auto iter = column_transforms.lower_bound({column_id, nullptr});
