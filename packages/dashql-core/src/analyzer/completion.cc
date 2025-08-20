@@ -2,7 +2,6 @@
 
 #include <flatbuffers/buffer.h>
 
-#include <unordered_set>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -37,12 +36,39 @@ static constexpr Completion::ScoreValueType UNRESOLVED_PEER_SCORE_MODIFIER = 2;
 static constexpr Completion::ScoreValueType DOT_SCHEMA_SCORE_MODIFIER = 2;
 static constexpr Completion::ScoreValueType DOT_TABLE_SCORE_MODIFIER = 2;
 static constexpr Completion::ScoreValueType DOT_COLUMN_SCORE_MODIFIER = 2;
+static constexpr Completion::ScoreValueType IN_NAME_SCOPE_SCORE_MODIFIER = 0;
+static constexpr Completion::ScoreValueType IN_SAME_STATEMENT_SCORE_MODIFIER = 0;
+static constexpr Completion::ScoreValueType IN_SAME_SCRIPT_SCORE_MODIFIER = 0;
+static constexpr Completion::ScoreValueType IN_OTHER_SCRIPT_SCORE_MODIFIER = 0;
 
-static_assert(PREFIX_SCORE_MODIFIER > SUBSTRING_SCORE_MODIFIER, "Begin a prefix weighs more than being a substring");
+// Design choices for the score modifiers
+static_assert(PREFIX_SCORE_MODIFIER > SUBSTRING_SCORE_MODIFIER, "Prefix weighs more than being a substring");
 static_assert((NAME_TAG_UNLIKELY + SUBSTRING_SCORE_MODIFIER) > NAME_TAG_LIKELY,
               "An unlikely name that is a substring outweighs a likely name");
 static_assert((NAME_TAG_UNLIKELY + KEYWORD_VERY_POPULAR) < NAME_TAG_LIKELY,
               "A very likely keyword prevalance doesn't outweigh a likely tag");
+
+Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
+    Completion::ScoreValueType score = 0;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_DEFAULT) != 0) * KEYWORD_DEFAULT;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_POPULAR) != 0) * KEYWORD_POPULAR;
+    score += ((tags & buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR) != 0) * KEYWORD_VERY_POPULAR;
+
+    score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
+
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE) != 0) * DOT_TABLE_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA) != 0) * DOT_SCHEMA_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN) != 0) * DOT_COLUMN_SCORE_MODIFIER;
+
+    score += ((tags & buffers::completion::CandidateTag::IN_NAME_SCOPE) != 0) * IN_NAME_SCOPE_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::IN_SAME_STATEMENT) != 0) * IN_SAME_STATEMENT_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::IN_SAME_SCRIPT) != 0) * IN_SAME_SCRIPT_SCORE_MODIFIER;
+    score += ((tags & buffers::completion::CandidateTag::IN_OTHER_SCRIPT) != 0) * IN_OTHER_SCRIPT_SCORE_MODIFIER;
+    return score;
+}
 
 using NameScoringTable = std::array<std::pair<buffers::analyzer::NameTag, Completion::ScoreValueType>, 8>;
 
@@ -77,7 +103,7 @@ static constexpr NameScoringTable NAME_SCORE_COLUMN_REF{{
 /// It is much more likely that a user wants to complete certain keywords than others.
 /// The added score is chosen so small that it only influences the ranking among similarly ranked keywords.
 /// (i.e., being prefix, substring or in-scope outweighs the prevalence score)
-static constexpr Completion::ScoreValueType GetKeywordPrevalenceScore(parser::Parser::symbol_kind_type keyword) {
+static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::Parser::symbol_kind_type keyword) {
     switch (keyword) {
         case parser::Parser::symbol_kind_type::S_AND:
         case parser::Parser::symbol_kind_type::S_FROM:
@@ -85,7 +111,7 @@ static constexpr Completion::ScoreValueType GetKeywordPrevalenceScore(parser::Pa
         case parser::Parser::symbol_kind_type::S_ORDER:
         case parser::Parser::symbol_kind_type::S_SELECT:
         case parser::Parser::symbol_kind_type::S_WHERE:
-            return KEYWORD_VERY_POPULAR;
+            return buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR;
         case parser::Parser::symbol_kind_type::S_AS:
         case parser::Parser::symbol_kind_type::S_ASC_P:
         case parser::Parser::symbol_kind_type::S_BY:
@@ -101,13 +127,13 @@ static constexpr Completion::ScoreValueType GetKeywordPrevalenceScore(parser::Pa
         case parser::Parser::symbol_kind_type::S_THEN:
         case parser::Parser::symbol_kind_type::S_WHEN:
         case parser::Parser::symbol_kind_type::S_WITH:
-            return KEYWORD_POPULAR;
+            return buffers::completion::CandidateTag::KEYWORD_POPULAR;
         case parser::Parser::symbol_kind_type::S_BETWEEN:
         case parser::Parser::symbol_kind_type::S_DAY_P:
         case parser::Parser::symbol_kind_type::S_PARTITION:
         case parser::Parser::symbol_kind_type::S_SETOF:
         default:
-            return KEYWORD_DEFAULT;
+            return buffers::completion::CandidateTag::KEYWORD_DEFAULT;
     }
 }
 
@@ -501,17 +527,17 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
 
     // Helper to determine the score of a cursor symbol
     auto get_score = [&](const ScannedScript::LocationInfo& loc, parser::Parser::ExpectedSymbol expected,
-                         std::string_view keyword_text) -> std::pair<CandidateTags, uint32_t> {
+                         std::string_view keyword_text) -> CandidateTags {
         fuzzy_ci_string_view ci_keyword_text{keyword_text.data(), keyword_text.size()};
         using Relative = ScannedScript::LocationInfo::RelativePosition;
-        CandidateTags tags = buffers::completion::CandidateTag::EXPECTED_PARSER_SYMBOL;
 
-        auto score = GetKeywordPrevalenceScore(expected);
+        CandidateTags tags = buffers::completion::CandidateTag::EXPECTED_PARSER_SYMBOL;
+        tags |= GetKeywordPrevalence(expected);
 
         switch (location->relative_pos) {
             case Relative::NEW_SYMBOL_AFTER:
             case Relative::NEW_SYMBOL_BEFORE:
-                return {tags, score};
+                return tags;
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
             case Relative::END_OF_SYMBOL: {
@@ -522,13 +548,11 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 if (auto pos = ci_keyword_text.find(ci_symbol_text, 0); pos != fuzzy_ci_string_view::npos) {
                     if (pos == 0) {
                         tags |= buffers::completion::CandidateTag::PREFIX_MATCH;
-                        score += PREFIX_SCORE_MODIFIER;
                     } else {
                         tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
-                        score += SUBSTRING_SCORE_MODIFIER;
                     }
                 }
-                return {tags, score};
+                return tags;
             }
         }
     };
@@ -537,13 +561,13 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     for (auto& expected : symbols) {
         auto name = parser::Keyword::GetKeywordName(expected);
         if (!name.empty()) {
-            auto [tags, score] = get_score(*location, expected, name);
+            auto tags = get_score(*location, expected, name);
             Candidate candidate{
                 .name = name,
                 .coarse_name_tags = {},
                 .candidate_tags = tags,
                 .replace_text_at = location->symbol.location,
-                .score = score,
+                .score = computeCandidateScore(tags),
             };
             candidate_heap.Insert(std::move(candidate));
         }
@@ -751,38 +775,41 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
     std::vector<CatalogEntry::TableColumn> tmp_columns;
 
     // Iterate all unresolved columns in the current script
-    // XXX Don't search all unresolved expressions but only the unresolved ones in the current statement
-    analyzed_script.expressions.ForEach([&](size_t i, AnalyzedScript::Expression& expr) {
-        // Is unresolved?
-        if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
-            column_ref && !column_ref->resolved_column.has_value()) {
-            auto& column_name = column_ref->column_name.column_name.get();
-            tmp_columns.clear();
-            // Resolve all table columns that would match the unresolved name?
-            cursor.script.analyzed_script->ResolveTableColumnsWithCatalog(column_name, tmp_columns);
-            // Register the table name
-            for (auto& table_col : tmp_columns) {
-                auto& table = table_col.table->get();
-                auto& table_name = table.table_name.table_name.get();
-                // Boost the table name as candidate (if any)
-                if (auto iter = candidate_objects_by_id.find(table.object_id); iter != candidate_objects_by_id.end()) {
-                    auto& co = iter->second.get();
-                    co.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
-                    co.candidate.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
-                }
-                // Promote column names in these tables
-                for (auto& peer_col : table.table_columns) {
-                    // Boost the peer name as candidate (if any)
-                    if (auto iter = candidate_objects_by_id.find(peer_col.object_id);
+    for (auto& name_scope : cursor.name_scopes) {
+        auto& scope = name_scope.get();
+        for (auto& expr : scope.expressions) {
+            // Is unresolved?
+            if (auto* column_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
+                column_ref && !column_ref->resolved_column.has_value()) {
+                auto& column_name = column_ref->column_name.column_name.get();
+                tmp_columns.clear();
+                // Resolve all table columns that would match the unresolved name?
+                cursor.script.analyzed_script->ResolveTableColumnsWithCatalog(column_name, tmp_columns);
+                // Register the table name
+                for (auto& table_col : tmp_columns) {
+                    auto& table = table_col.table->get();
+                    auto& table_name = table.table_name.table_name.get();
+                    // Boost the table name as candidate (if any)
+                    if (auto iter = candidate_objects_by_id.find(table.object_id);
                         iter != candidate_objects_by_id.end()) {
                         auto& co = iter->second.get();
-                        co.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
-                        co.candidate.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
+                        co.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
+                        co.candidate.candidate_tags |= buffers::completion::CandidateTag::RESOLVING_TABLE;
+                    }
+                    // Promote column names in these tables
+                    for (auto& peer_col : table.table_columns) {
+                        // Boost the peer name as candidate (if any)
+                        if (auto iter = candidate_objects_by_id.find(peer_col.object_id);
+                            iter != candidate_objects_by_id.end()) {
+                            auto& co = iter->second.get();
+                            co.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
+                            co.candidate.candidate_tags |= buffers::completion::CandidateTag::UNRESOLVED_PEER;
+                        }
                     }
                 }
             }
         }
-    });
+    }
 }
 
 static const NameScoringTable& selectNameScoringTable(buffers::completion::CompletionStrategy strategy) {
@@ -794,20 +821,6 @@ static const NameScoringTable& selectNameScoringTable(buffers::completion::Compl
         case buffers::completion::CompletionStrategy::COLUMN_REF:
             return NAME_SCORE_COLUMN_REF;
     }
-}
-
-Completion::ScoreValueType computeCandidateScore(Completion::CandidateTags tags) {
-    Completion::ScoreValueType score = 0;
-    score += ((tags & buffers::completion::CandidateTag::SUBSTRING_MATCH) != 0) * SUBSTRING_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::PREFIX_MATCH) != 0) * PREFIX_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::RESOLVING_TABLE) != 0) * RESOLVING_TABLE_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::UNRESOLVED_PEER) != 0) * UNRESOLVED_PEER_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE) != 0) * DOT_TABLE_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA) != 0) * DOT_SCHEMA_SCORE_MODIFIER;
-    score += ((tags & buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN) != 0) * DOT_COLUMN_SCORE_MODIFIER;
-
-    // XXX Account for new candidate tags (name scope, same statement, ...)
-    return score;
 }
 
 void Completion::SelectTopCandidates() {

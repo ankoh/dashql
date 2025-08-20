@@ -8,9 +8,9 @@
             <search text="" index="0" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="0..1" text="">
-            <entry score="3" value="select" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
-            <entry score="2" value="set" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
-            <entry score="2" value="with" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
+            <entry score="3" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
+            <entry score="2" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
+            <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_database_name">
@@ -43,8 +43,8 @@
             <entry score="40" value="dbname" ntags="DATABASE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="31..33" replace_text="db">
                 <object score="20" type="database" id="256" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="3" value="group" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
-            <entry score="3" value="order" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_schema_name">
@@ -77,8 +77,8 @@
             <entry score="40" value="schemaname" ntags="SCHEMA_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="31..34" replace_text="sch">
                 <object score="20" type="schema" id="256.65536" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="20" value="schema" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..34" replace_text="sch" />
-            <entry score="20" value="schemas" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..34" replace_text="sch" />
+            <entry score="20" value="schema" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..34" replace_text="sch" />
+            <entry score="20" value="schemas" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..34" replace_text="sch" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_table_name">
@@ -111,8 +111,8 @@
             <entry score="40" value="foo" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="31..33" replace_text="fo">
                 <object score="20" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="20" value="following" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..33" replace_text="fo" />
-            <entry score="20" value="for" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..33" replace_text="fo" />
+            <entry score="20" value="following" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..33" replace_text="fo" />
+            <entry score="20" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="31..33" replace_text="fo" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dont_complete_at_lrb">
@@ -226,9 +226,9 @@ create table table3(attr3 integer);
             <entry score="30" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
                 <object score="20" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="20" value="external" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="group" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="order" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="20" value="external" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="65..74" replace_text="external_" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="remap_external_names_eof">
@@ -268,9 +268,9 @@ create table table3(attr3 integer);
             <entry score="30" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
                 <object score="20" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="3" value="group" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="order" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="2" value="by" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>

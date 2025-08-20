@@ -32,7 +32,7 @@
             <entry score="40" value="juice1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH" replace_loc="135..137" replace_text="ju">
                 <object score="20" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH" />
             </entry>
-            <entry score="2" value="by" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="135..137" replace_text="ju" />
+            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="135..137" replace_text="ju" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>

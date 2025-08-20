@@ -98,7 +98,7 @@
             <entry score="40" value="attr2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" replace_loc="44..48" replace_text="attr">
                 <object score="20" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="20" value="attribute" ctags="EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="44..48" replace_text="attr" />
+            <entry score="20" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH" replace_loc="44..48" replace_text="attr" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>

@@ -211,7 +211,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <entry score="35" value="ps_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="24..28" replace_text="s_co">
                 <object score="15" type="column" id="256.65536.4294967298.1" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="3" value="from" ctags="EXPECTED_PARSER_SYMBOL" replace_loc="24..28" replace_text="s_co" />
+            <entry score="3" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="24..28" replace_text="s_co" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="column_name_in_scope">
