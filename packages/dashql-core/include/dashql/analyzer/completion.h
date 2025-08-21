@@ -1,9 +1,12 @@
 #pragma once
 
+#include <type_traits>
+
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
 #include "dashql/script.h"
 #include "dashql/script_registry.h"
+#include "dashql/text/names.h"
 #include "dashql/utils/enum_bitset.h"
 #include "dashql/utils/topk.h"
 
@@ -32,7 +35,12 @@ struct Completion {
         const CatalogObject& catalog_object;
         /// The score (if computed)
         ScoreValueType score = 0;
+        /// The qualified name (if any)
+        std::span<std::string_view> qualified_name;
     };
+    static_assert(std::is_trivially_destructible_v<CandidateCatalogObject>,
+                  "Candidate objects must be trivially destructable");
+
     /// A completion candidate
     struct Candidate {
         /// The name
@@ -49,6 +57,10 @@ struct Completion {
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)
         ScoreValueType score = 0;
+        /// Prefer qualified tables?
+        bool prefer_qualified_tables = 0;
+        /// Prefer qualified columns?
+        bool prefer_qualified_columns = 0;
         /// Is less in the min-heap?
         /// We want to kick a candidate A before candidate B if
         ///     1) the score of A is less than the score of B
@@ -60,6 +72,8 @@ struct Completion {
                                           fuzzy_ci_string_view{other.name.data(), other.name.size()}));
         }
     };
+    static_assert(std::is_trivially_destructible_v<Candidate>, "Candidates must be trivially destructable");
+
     /// A candidate that was picked
     struct ResultCandidate : public Candidate {
         /// The column restriction snippets
@@ -109,6 +123,16 @@ struct Completion {
     TopKHeap<Candidate> candidate_heap;
     /// The top result candidates
     std::vector<ResultCandidate> top_candidates;
+    /// The top candidate names
+    ChunkBuffer<std::vector<std::string_view>, 16> top_candidate_names;
+
+    /// Store the qualified table name
+    std::span<std::string_view> GetQualifiedTableName(const CatalogEntry::QualifiedTableName& name);
+    /// Store the qualified column name
+    std::span<std::string_view> GetQualifiedColumnName(const CatalogEntry::QualifiedTableName& name,
+                                                       const RegisteredName& column);
+    /// Store the qualified column name
+    std::span<std::string_view> GetQualifiedColumnName(const RegisteredName& alias, const RegisteredName& column);
 
     /// Read the name path of the current cursor
     std::vector<Completion::NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
@@ -134,7 +158,7 @@ struct Completion {
     /// Derive keyword snippets for results (e.g. group >by<, partition >by<, create >table<, inner >join<)
     void DeriveKeywordSnippetsForTopCandidates();
     /// Make sure top-candidates are qualified
-    void QualifyTopCandidatesIfNeeded();
+    void QualifyTopCandidates();
 
    public:
     /// Constructor

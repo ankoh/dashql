@@ -35,10 +35,10 @@ table CompletionCandidateObject {
     referenced_catalog_version: uint32;
     /// The candidate tags
     candidate_tags: uint32;
-    /// The score
+    /// The candidate score
     score: uint32;
-    /// The qualified object identifier (if any)
-    qualified_identifier: [string];
+    /// The qualified name (if any)
+    qualified_name: [string];
 }
 
 enum CandidateTag: uint32 {

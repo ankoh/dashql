@@ -5,6 +5,8 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/catalog.h"
+#include "dashql/catalog_object.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
 #include "dashql/script.h"
@@ -172,6 +174,49 @@ bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
 }
 
 }  // namespace
+
+std::span<std::string_view> Completion::GetQualifiedTableName(const CatalogEntry::QualifiedTableName& name) {
+    std::vector<std::string_view> names;
+    names.reserve(3);
+    if (!name.database_name.get().text.empty()) {
+        names.push_back(name.database_name.get().text);
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.table_name.get().text);
+    } else if (!name.schema_name.get().text.empty()) {
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.table_name.get().text);
+    } else if (!name.table_name.get().text.empty()) {
+        names.push_back(name.table_name.get().text);
+    }
+    return top_candidate_names.PushBack(std::move(names));
+}
+
+std::span<std::string_view> Completion::GetQualifiedColumnName(const CatalogEntry::QualifiedTableName& name,
+                                                               const RegisteredName& column) {
+    std::vector<std::string_view> names;
+    names.reserve(4);
+    if (!name.database_name.get().text.empty()) {
+        names.push_back(name.database_name.get().text);
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.table_name.get().text);
+    } else if (!name.schema_name.get().text.empty()) {
+        names.push_back(name.schema_name.get().text);
+        names.push_back(name.table_name.get().text);
+    } else if (!name.table_name.get().text.empty()) {
+        names.push_back(name.table_name.get().text);
+    }
+    names.push_back(column.text);
+    return top_candidate_names.PushBack(std::move(names));
+}
+
+std::span<std::string_view> Completion::GetQualifiedColumnName(const RegisteredName& alias,
+                                                               const RegisteredName& column) {
+    std::vector<std::string_view> names;
+    names.reserve(2);
+    names.push_back(alias.text);
+    names.push_back(column.text);
+    return top_candidate_names.PushBack(std::move(names));
+}
 
 std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
     auto& nodes = cursor.script.parsed_script->nodes;
@@ -697,6 +742,8 @@ void Completion::PromoteIdentifiersInScope() {
                 continue;
             }
 
+            // XXX Alternatives
+
             // Find the table in the catalog
             // Note that this would benefit from storing candidates in a btree::map.
             // Then we could just prefix-search with the table id without ever resolving the table column count.
@@ -911,19 +958,74 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
     // XXX
 }
 
-void Completion::QualifyTopCandidatesIfNeeded() {
-    // We want to auto-qualify a name if there's potential ambiguity.
-    //
-    // Strategy:
-    // A) For table names, we always qualify unless:
-    // A.1) There is no table in scope with the same name, and
-    // A.2) The catalog object name is not ambiguous
-    //
-    // B) For column names, we depend on whether we know the table already or not.
-    // B.1) Does the table in scope have an alias and our current cursor doesn't?
-    // B.2) Is there a different table in scope that has the same column name?
+void Completion::QualifyTopCandidates() {
+    // Remember the column candidates by the table that defines them.
+    // We later probe this map with all tables in the the current scope to find table refs with aliases.
+    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>>
+        column_candidates_by_table_id;
 
-    // XXX
+    // Any ambiguities among the candidate objects?
+    for (auto& top_candidate : top_candidates) {
+        size_t column_count = 0;
+        size_t table_count = 0;
+        for (auto& co : top_candidate.catalog_objects) {
+            column_count += co.catalog_object_id.GetType() == CatalogObjectType::ColumnDeclaration;
+            table_count += co.catalog_object_id.GetType() == CatalogObjectType::TableDeclaration;
+
+            switch (co.catalog_object_id.GetType()) {
+                case CatalogObjectType::ColumnDeclaration: {
+                    column_candidates_by_table_id.insert(
+                        {QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableID()), co});
+                    break;
+                }
+                case CatalogObjectType::TableDeclaration: {
+                    auto& table = co.catalog_object.CastUnsafe<CatalogEntry::TableDeclaration>();
+                    co.qualified_name = GetQualifiedTableName(table.table_name);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        top_candidate.prefer_qualified_columns = column_count > 1;
+        top_candidate.prefer_qualified_tables = table_count > 1;
+    }
+
+    // Iterate over all cursor name scopes
+    for (auto& name_scope : cursor.name_scopes) {
+        auto& scope = name_scope.get();
+        for (auto& table_ref : scope.table_references) {
+            // Read the relation expression
+            auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
+            if (!rel_expr || !rel_expr->resolved_table.has_value()) {
+                continue;
+            }
+
+            // We found a resolved table in the name scope.
+            // Check if any of the column candidates is referencing this table.
+            // If yes, check if that table ref has an alias.
+            // If yes, qualify the column candidate with that alias.
+            auto& resolved = rel_expr->resolved_table.value();
+            if (auto iter = column_candidates_by_table_id.find(resolved.catalog_table_id);
+                iter != column_candidates_by_table_id.end()) {
+                auto& co = iter->second.get();
+
+                // Table ref has an alias?
+                // Store the qualified name.
+                if (table_ref.alias_name.has_value()) {
+                    auto& alias = table_ref.alias_name.value().get();
+                    auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
+                    auto& column_name = column.column_name.get();
+                    co.qualified_name = GetQualifiedColumnName(alias, column_name);
+                } else {
+                    auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
+                    auto& column_name = column.column_name.get();
+                    co.qualified_name = GetQualifiedColumnName(resolved.table_name, column_name);
+                }
+                column_candidates_by_table_id.erase(iter);
+            }
+        }
+    }
 }
 
 static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor& cursor) {
