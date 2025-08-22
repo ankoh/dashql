@@ -52,7 +52,7 @@ __metadata:
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.8.0"
     "@tauri-apps/cli": "npm:^2.8.1"
-    "@tauri-apps/plugin-deep-link": "npm:^2.4.1"
+    "@tauri-apps/plugin-deep-link": "npm:^2.4.2"
     "@tauri-apps/plugin-dialog": "npm:^2.3.3"
     "@tauri-apps/plugin-fs": "npm:^2.4.2"
     "@tauri-apps/plugin-http": "npm:^2.5.2"
@@ -2265,12 +2265,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tauri-apps/plugin-deep-link@npm:^2.4.1":
-  version: 2.4.1
-  resolution: "@tauri-apps/plugin-deep-link@npm:2.4.1"
+"@tauri-apps/plugin-deep-link@npm:^2.4.2":
+  version: 2.4.2
+  resolution: "@tauri-apps/plugin-deep-link@npm:2.4.2"
   dependencies:
-    "@tauri-apps/api": "npm:^2.6.0"
-  checksum: 10c0/bd882772903fccd1327da2302018fa424fd43c4601d06fc22f764da4656802cc6490891226af5e3fa075669d0cc53cdac78f36d093089bed671457b2325fd608
+    "@tauri-apps/api": "npm:^2.8.0"
+  checksum: 10c0/6966c3ddc9dbed77bf90c91c2f22e74f3b179e8060a67eea576a6ef9f4cf8cd109e43eb1be26e7de6378d835c2a172699111258aff7a25b6c5872e9b37326d34
   languageName: node
   linkType: hard
 
