@@ -45,10 +45,10 @@ __metadata:
     "@lezer/common": "npm:^1.2.3"
     "@lezer/highlight": "npm:^1.2.1"
     "@octokit/graphql": "npm:^9.0.1"
-    "@primer/behaviors": "npm:^1.8.1"
+    "@primer/behaviors": "npm:^1.8.2"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
     "@primer/react": "npm:^37.31.0"
-    "@primer/react-brand": "npm:^0.57.1"
+    "@primer/react-brand": "npm:^0.57.2"
     "@react-hook/resize-observer": "npm:^2.0.2"
     "@tauri-apps/api": "npm:^2.8.0"
     "@tauri-apps/cli": "npm:^2.8.1"
@@ -1803,17 +1803,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/behaviors@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@primer/behaviors@npm:1.8.0"
-  checksum: 10c0/a532e270845edb6216b7321871b05b329e03453164346f8b61e76324feb681e3b93a0fd51fb94845f5c873d0c0808b183980a531e32f18ab89f0dd496f0ce83a
-  languageName: node
-  linkType: hard
-
-"@primer/behaviors@npm:^1.8.0, @primer/behaviors@npm:^1.8.1":
+"@primer/behaviors@npm:^1.8.0":
   version: 1.8.1
   resolution: "@primer/behaviors@npm:1.8.1"
   checksum: 10c0/ace8de874f016bcc83efed2a9e39ffe527411122b9206cde8a969b60715e7e9a54a12f22d77d1d51e996aee02726d7fe1fa8bce67840aea04efda7942d8226a8
+  languageName: node
+  linkType: hard
+
+"@primer/behaviors@npm:^1.8.2":
+  version: 1.8.2
+  resolution: "@primer/behaviors@npm:1.8.2"
+  checksum: 10c0/89aee741ccfe05c5ca9041d90938046506c103cf2791232f523595482aa737e09d2af68961c8dd22ec63f810c87f873989e886ab0aa8811684dfb649c6cb69aa
   languageName: node
   linkType: hard
 
@@ -1860,12 +1860,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/react-brand@npm:^0.57.1":
-  version: 0.57.1
-  resolution: "@primer/react-brand@npm:0.57.1"
+"@primer/react-brand@npm:^0.57.2":
+  version: 0.57.2
+  resolution: "@primer/react-brand@npm:0.57.2"
   dependencies:
     "@oddbird/popover-polyfill": "npm:0.5.2"
-    "@primer/behaviors": "npm:1.8.0"
+    "@primer/behaviors": "npm:^1.8.2"
   peerDependencies:
     "@types/react": ">=18 <20"
     "@types/react-dom": ">=18 <20"
@@ -1876,7 +1876,7 @@ __metadata:
       optional: true
     "@types/react-dom":
       optional: true
-  checksum: 10c0/284cc76b7ae8341fc84b91c235c85cdc602a59cc443232f42b68d884a46642ab6b6cc89f58c4bb60647d0ac0c266a7c18595f3d8f07d2c05050d0dfbd53b96bd
+  checksum: 10c0/57fd16573dee01b8a2a1999d4ab68dd94d4d9b0a6fdf14154d82b71b9ec68463cbd3141d4c4be51d787ee9673e39ce937813233643c5ec8e41c2b020e570750b
   languageName: node
   linkType: hard
 
