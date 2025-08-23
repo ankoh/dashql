@@ -21,7 +21,7 @@ jobs:
                   name: dashql_pwa_pages
                   path: ./page
 
-            - uses: actions/upload-pages-artifact@v3
+            - uses: actions/upload-pages-artifact@v4
               with:
                   path: ./page
 
