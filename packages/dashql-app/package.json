@@ -83,7 +83,7 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-resizable": "^3.0.5",
-        "react-router-dom": "^7.8.1",
+        "react-router-dom": "^7.8.2",
         "react-test-renderer": "^19.1.1",
         "react-window": "^1.8.11",
         "react-zoom-pan-pinch": "^3.7.0",
