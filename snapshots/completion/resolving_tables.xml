@@ -29,10 +29,10 @@
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="162..163" text="s">
             <entry score="60" value="similar_name_0" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE" replace_loc="162..163" replace_text="s">
-                <object score="40" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE" />
+                <object score="40" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE" qualified="similar_name_0" />
             </entry>
             <entry score="55" value="similar_name_1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="162..163" replace_text="s">
-                <object score="35" type="table" id="256.65536.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+                <object score="35" type="table" id="256.65536.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="similar_name_1" />
             </entry>
             <entry score="37" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="162..163" replace_text="s" />
         </completions>

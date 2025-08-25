@@ -25,10 +25,10 @@
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="148..151" text="cas">
             <entry score="55" value="CaSeSeNsItIvE_TaBlE" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas">
-                <object score="35" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+                <object score="35" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="CaSeSeNsItIvE_TaBlE" />
             </entry>
             <entry score="55" value="casesensitive_table" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas">
-                <object score="35" type="table" id="256.65536.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+                <object score="35" type="table" id="256.65536.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="casesensitive_table" />
             </entry>
             <entry score="37" value="cast" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas" />
         </completions>

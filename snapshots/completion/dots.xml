@@ -20,7 +20,7 @@
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="107..108" text=".">
             <entry score="22" value="foo" ntags="TABLE_NAME" ctags="DOT_RESOLUTION_TABLE" replace_loc="108..108" replace_text="">
-                <object score="2" type="table" id="256.65536.0" ctags="DOT_RESOLUTION_TABLE" />
+                <object score="2" type="table" id="256.65536.0" ctags="DOT_RESOLUTION_TABLE" qualified="dbname.schemaname.foo" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -48,7 +48,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="119..120" text=".">
             <entry score="22" value="a" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="120..120" replace_text="">
-                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" qualified="f.a" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -76,7 +76,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="105..106" text=".">
             <entry score="22" value="a" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="106..106" replace_text="">
-                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" qualified="f.a" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -104,7 +104,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="83..84" text=".">
             <entry score="22" value="a" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="84..84" replace_text="">
-                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN" qualified="f.a" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -146,7 +146,7 @@
                 <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" />
             </entry>
             <entry score="22" value="c" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="161..161" replace_text="">
-                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" qualified="alias.c" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -189,7 +189,7 @@
                 <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" />
             </entry>
             <entry score="22" value="c" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="160..160" replace_text="">
-                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" qualified="f.c" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -232,7 +232,7 @@
                 <object score="2" type="column" id="256.65536.1.1" ctags="DOT_RESOLUTION_COLUMN" />
             </entry>
             <entry score="22" value="f" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="160..160" replace_text="">
-                <object score="2" type="column" id="256.65536.1.2" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.1.2" ctags="DOT_RESOLUTION_COLUMN" qualified="b.f" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -270,7 +270,7 @@
                 <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" />
             </entry>
             <entry score="22" value="c" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="112..112" replace_text="">
-                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.2" ctags="DOT_RESOLUTION_COLUMN" qualified="f.c" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -302,7 +302,7 @@
                 <object score="37" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH|SUBSTRING_MATCH" />
             </entry>
             <entry score="22" value="juice" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" replace_loc="99..101" replace_text="ap">
-                <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" />
+                <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" qualified="f.juice" />
             </entry>
         </completions>
     </completion-snapshot>

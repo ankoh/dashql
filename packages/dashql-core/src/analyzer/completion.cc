@@ -975,7 +975,7 @@ void Completion::QualifyTopCandidates() {
             switch (co.catalog_object_id.GetType()) {
                 case CatalogObjectType::ColumnDeclaration: {
                     column_candidates_by_table_id.insert(
-                        {QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableID()), co});
+                        {QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first), co});
                     break;
                 }
                 case CatalogObjectType::TableDeclaration: {
@@ -1159,6 +1159,8 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     }
     // Add all candidates to the result heap
     completion->SelectTopCandidates();
+    // Get qualified names for the top candidate objects
+    completion->QualifyTopCandidates();
     // Find identifier snippets for the completion result
     if (registry) {
         completion->FindIdentifierSnippetsForTopCandidates(*registry);

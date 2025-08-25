@@ -119,6 +119,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 default:
                     assert(false);
             }
+            // Encode the ctags of the candidate object
             {
                 std::stringstream candidate_tags;
                 size_t i = 0;
@@ -131,6 +132,15 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 if (i > 0) {
                     xml_obj.append_attribute("ctags").set_value(candidate_tags.str().c_str());
                 }
+            }
+            // Encode the qualified name of the candidate object (if any)
+            if (!co.qualified_name.empty()) {
+                std::stringstream name;
+                for (size_t i = 0; i < co.qualified_name.size(); ++i) {
+                    name << ((i > 0) ? "." : "");
+                    name << co.qualified_name[i];
+                }
+                xml_obj.append_attribute("qualified").set_value(name.str().c_str());
             }
         }
 
