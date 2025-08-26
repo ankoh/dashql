@@ -8,6 +8,7 @@
 #include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "dashql/text/names.h"
+#include "dashql/utils/string_conversion.h"
 
 namespace dashql {
 namespace testing {
@@ -144,7 +145,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 std::stringstream name;
                 for (size_t i = 0; i < co.qualified_name.size(); ++i) {
                     name << ((i > 0) ? "." : "");
-                    name << co.qualified_name[i];
+                    name << QuotedIfAnyUpper{co.qualified_name[i]};
                 }
                 xml_obj.append_attribute("qualified").set_value(name.str().c_str());
             }

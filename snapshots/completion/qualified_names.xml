@@ -35,14 +35,14 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="82..86" text="attr">
             <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="82..86" replace_text="attr">
-                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute1.attr1" />
-                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute2.attr1" />
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;AmbiguousAttribute1&quot;.attr1" />
+                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;AmbiguousAttribute2&quot;.attr1" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="82..86" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute1&quot;" />
             </entry>
             <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="82..86" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute2&quot;" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -81,14 +81,14 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="59..63" text="attr">
             <entry score="55" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="59..63" replace_text="attr">
-                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute1.attr1" />
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;AmbiguousAttribute1&quot;.attr1" />
                 <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="59..63" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute1&quot;" />
             </entry>
             <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="59..63" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute2&quot;" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -130,8 +130,8 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="98..102" text="attr">
             <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="98..102" replace_text="attr">
-                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.AmbiguousCrossSchema.attr1" />
-                <object score="45" type="column" id="256.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema1.AmbiguousCrossSchema.attr1" />
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.&quot;AmbiguousCrossSchema&quot;.attr1" />
+                <object score="45" type="column" id="256.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema1.&quot;AmbiguousCrossSchema&quot;.attr1" />
             </entry>
             <entry score="35" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="98..102" replace_text="attr" />
             <entry score="30" value="xmlattributes" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" replace_loc="98..102" replace_text="attr" />
@@ -173,14 +173,14 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="106..110" text="attr">
             <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="106..110" replace_text="attr">
-                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.AmbiguousAttribute1.attr1" />
-                <object score="45" type="column" id="257.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db1.schema0.AmbiguousAttribute2.attr1" />
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.&quot;AmbiguousAttribute1&quot;.attr1" />
+                <object score="45" type="column" id="257.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db1.schema0.&quot;AmbiguousAttribute2&quot;.attr1" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="106..110" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db0.schema0.AmbiguousAttribute1" />
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db0.schema0.&quot;AmbiguousAttribute1&quot;" />
             </entry>
             <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="106..110" replace_text="attr">
-                <object score="30" type="table" id="257.65537.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db1.schema0.AmbiguousAttribute2" />
+                <object score="30" type="table" id="257.65537.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db1.schema0.&quot;AmbiguousAttribute2&quot;" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -224,10 +224,10 @@
                 <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="b.attr1" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="86..90" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute1&quot;" />
             </entry>
             <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="86..90" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute2&quot;" />
             </entry>
         </completions>
     </completion-snapshot>
@@ -268,13 +268,13 @@
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="84..88" text="attr">
             <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="84..88" replace_text="attr">
                 <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="a.attr1" />
-                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute2.attr1" />
+                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;AmbiguousAttribute2&quot;.attr1" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="84..88" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute1&quot;" />
             </entry>
             <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="84..88" replace_text="attr">
-                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute2&quot;" />
             </entry>
         </completions>
     </completion-snapshot>

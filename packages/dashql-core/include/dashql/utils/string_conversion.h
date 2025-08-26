@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <string>
 #include <string_view>
 
@@ -58,5 +59,24 @@ inline std::string_view quote_anyupper_fuzzy(std::string_view text, std::string 
         return text;
     }
 }
+
+/// Wrapper class for conditional quoting based on uppercase characters
+class QuotedIfAnyUpper {
+    /// The text
+    std::string_view text_;
+
+   public:
+    /// Constructor
+    explicit QuotedIfAnyUpper(std::string_view text) : text_(text) {}
+    /// Stream operator
+    friend std::ostream &operator<<(std::ostream &os, const QuotedIfAnyUpper &wrapper) {
+        if (anyupper_fuzzy(wrapper.text_)) {
+            os << '"' << wrapper.text_ << '"';
+        } else {
+            os << wrapper.text_;
+        }
+        return os;
+    }
+};
 
 }  // namespace dashql
