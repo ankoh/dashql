@@ -974,8 +974,8 @@ void Completion::QualifyTopCandidates() {
 
             switch (co.catalog_object_id.GetType()) {
                 case CatalogObjectType::ColumnDeclaration: {
-                    column_candidates_by_table_id.insert(
-                        {QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first), co});
+                    auto table_id = QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first);
+                    column_candidates_by_table_id.insert({table_id, co});
                     break;
                 }
                 case CatalogObjectType::TableDeclaration: {
@@ -1006,8 +1006,10 @@ void Completion::QualifyTopCandidates() {
             // If yes, check if that table ref has an alias.
             // If yes, qualify the column candidate with that alias.
             auto& resolved = rel_expr->resolved_table.value();
-            if (auto iter = column_candidates_by_table_id.find(resolved.catalog_table_id);
-                iter != column_candidates_by_table_id.end()) {
+            auto [matches_begin, matches_end] = column_candidates_by_table_id.equal_range(resolved.catalog_table_id);
+            bool has_match = matches_begin != matches_end;
+
+            for (auto iter = matches_begin; iter != matches_end; ++iter) {
                 auto& co = iter->second.get();
 
                 // Table ref has an alias?
@@ -1022,7 +1024,9 @@ void Completion::QualifyTopCandidates() {
                     auto& column_name = column.column_name.get();
                     co.qualified_name = GetQualifiedColumnName(resolved.table_name, column_name);
                 }
-                column_candidates_by_table_id.erase(iter);
+            }
+            if (has_match) {
+                column_candidates_by_table_id.erase(resolved.catalog_table_id);
             }
         }
     }

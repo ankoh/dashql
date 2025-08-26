@@ -400,7 +400,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="70..75" text="event">
             <entry score="66" value="event_timestamp" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" replace_loc="70..75" replace_text="event">
-                <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" />
+                <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="iceberg.some_events.some_queries.event_timestamp" />
                 <templates>
                     <template signature="153693783941112220">
                         <snippet template="153693783941112220" raw="17607440235580690731">
