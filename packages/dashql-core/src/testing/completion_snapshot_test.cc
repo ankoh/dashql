@@ -42,7 +42,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
             .set_value(
                 buffers::cursor::EnumNameRelativeSymbolPosition(completion.GetCursor().scanner_location->relative_pos));
     }
-    for (auto iter = entries.rbegin(); iter != entries.rend(); ++iter) {
+    for (auto iter = entries.begin(); iter != entries.end(); ++iter) {
         auto xml_entry = root.append_child("entry");
         std::string text{iter->name.data(), iter->name.size()};
         xml_entry.append_attribute("score").set_value(iter->score);

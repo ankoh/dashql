@@ -18,6 +18,25 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <completion-snapshot name="ambiguous_in_schema_but_not_in_scope">
+        <catalog>
+            <script>
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from "AmbiguousAttribute1" where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
     <completion-snapshot name="ambiguous_cross_schema">
         <catalog>
             <script>

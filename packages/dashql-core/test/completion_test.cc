@@ -55,8 +55,8 @@ SELECT s_co
     for (auto iter = entries.rbegin(); iter != entries.rend(); ++iter) {
         names.emplace_back(iter->name);
     }
-    std::vector<std::string> expected_names{"s_comment", "ps_comment", "from", "group", "order",
-                                            "where",     "by",         "case", "cast",  "like"};
+    std::vector<std::string> expected_names{"like",  "cast",  "case", "by",         "where",
+                                            "order", "group", "from", "ps_comment", "s_comment"};
     ASSERT_EQ(names, expected_names);
 }
 

@@ -75,13 +75,13 @@ static auto TESTS = ::testing::ValuesIn({
                  Entry(0, 10),
                  Entry(1, 20),
              },
-             {0, 1}),
+             {1, 0}),
     TopKTest("swap_2", 4,
              {
                  Entry(0, 20),
                  Entry(1, 10),
              },
-             {1, 0}),
+             {0, 1}),
     TopKTest("capacity_reached", 4,
              {
                  Entry(0, 50),
@@ -89,7 +89,7 @@ static auto TESTS = ::testing::ValuesIn({
                  Entry(2, 30),
                  Entry(3, 20),
              },
-             {3, 2, 1, 0}),
+             {0, 1, 2, 3}),
     TopKTest("capacity_exceeded_1", 4,
              {
                  Entry(0, 50),
@@ -98,7 +98,7 @@ static auto TESTS = ::testing::ValuesIn({
                  Entry(3, 20),
                  Entry(4, 10),
              },
-             {3, 2, 1, 0}),
+             {0, 1, 2, 3}),
 });
 
 INSTANTIATE_TEST_SUITE_P(TopKBasics, TopKTestSuite, TESTS, TopKTestPrinter());
@@ -112,7 +112,7 @@ TEST(TopKTests, AscendingSequence) {
     auto values = getTopK(heap.Finish());
     ASSERT_EQ(values.size(), 10);
 
-    std::vector<size_t> expected{990, 991, 992, 993, 994, 995, 996, 997, 998, 999};
+    std::vector<size_t> expected{999, 998, 997, 996, 995, 994, 993, 992, 991, 990};
     ASSERT_EQ(values, expected);
 }
 
@@ -125,7 +125,7 @@ TEST(TopKTests, DescendingSequence) {
     auto values = getTopK(heap.Finish());
     ASSERT_EQ(values.size(), 10);
 
-    std::vector<size_t> expected{9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+    std::vector<size_t> expected{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     ASSERT_EQ(values, expected);
 }
 

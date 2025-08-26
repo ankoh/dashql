@@ -1187,7 +1187,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
     std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> script_snippets;
 
     // Pack candidates
-    for (auto iter_entry = entries.rbegin(); iter_entry != entries.rend(); ++iter_entry) {
+    for (auto iter_entry = entries.begin(); iter_entry != entries.end(); ++iter_entry) {
         // Do we have to quote the completion text?
         auto display_text_offset = builder.CreateString(iter_entry->name);
         std::string quoted;

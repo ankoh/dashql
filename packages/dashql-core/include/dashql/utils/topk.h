@@ -7,15 +7,18 @@
 
 namespace dashql {
 
+/// The top-k heap is modeled as min heap.
+/// We track the current min element and replace it if a new element is larger than the minimum.
+/// After replacing, we bubble down the heap root to determine the new minimum.
 template <typename ValueType> struct TopKHeap {
    protected:
-    /// The min-heap entries
+    /// The max-heap entries
     std::vector<ValueType> entries;
 
    public:
     /// Constructor
     TopKHeap(size_t capacity = 10) { entries.reserve(capacity); }
-    /// Helper to move the last element up the heap
+    /// Helper to move the top-element down
     void FixHeap() {
         size_t i = 0;
         while (true) {
@@ -56,7 +59,8 @@ template <typename ValueType> struct TopKHeap {
     void Clear() { entries.clear(); }
     /// Finish the entries
     std::vector<ValueType>& Finish() {
-        std::sort(entries.begin(), entries.end());
+        /// Sort in descending order to get top-k from left to right.
+        std::sort(entries.begin(), entries.end(), [](auto& l, auto& r) { return r < l; });
         return entries;
     }
     /// Get the heap entries

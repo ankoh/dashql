@@ -24,11 +24,11 @@
             <search text="from cas" index="8" />
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="148..151" text="cas">
-            <entry score="55" value="CaSeSeNsItIvE_TaBlE" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas">
-                <object score="35" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="CaSeSeNsItIvE_TaBlE" />
-            </entry>
             <entry score="55" value="casesensitive_table" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas">
                 <object score="35" type="table" id="256.65536.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="casesensitive_table" />
+            </entry>
+            <entry score="55" value="CaSeSeNsItIvE_TaBlE" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas">
+                <object score="35" type="table" id="256.65536.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="CaSeSeNsItIvE_TaBlE" />
             </entry>
             <entry score="37" value="cast" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="148..151" replace_text="cas" />
         </completions>
@@ -58,11 +58,11 @@
             <search text="select cas" index="10" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="135..138" text="cas">
-            <entry score="55" value="casesensitive" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="135..138" replace_text="cas">
-                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
-            </entry>
             <entry score="55" value="Casesensitive" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="135..138" replace_text="cas">
                 <object score="35" type="column" id="256.65536.0.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+            </entry>
+            <entry score="55" value="casesensitive" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="135..138" replace_text="cas">
+                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
             </entry>
             <entry score="37" value="case" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="135..138" replace_text="cas" />
         </completions>
