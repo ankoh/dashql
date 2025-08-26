@@ -1,0 +1,235 @@
+<completion-snapshots>
+    <completion-snapshot name="ambiguous_in_schema">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="AmbiguousAttribute1" loc="21..66" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="56..65" text="attr1 int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="AmbiguousAttribute2" loc="88..133" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967297.0" name="attr1" loc="123..132" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..52" text="&quot;Ambiguous..ttribute1&quot;" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="54..75" text="&quot;Ambiguous..ttribute2&quot;" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="82..86" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="82..86" text="attr">
+            <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="82..86" replace_text="attr">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute1.attr1" />
+                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute2.attr1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="82..86" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="82..86" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+            </entry>
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="ambiguous_cross_schema">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table db0.schema0."AmbiguousCrossSchema"(attr1 int);
+                    create table db0.schema1."AmbiguousCrossSchema"(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="AmbiguousCrossSchema" loc="21..79" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="69..78" text="attr1 int" />
+                    </table>
+                    <table id="256.65537.4294967297" name="AmbiguousCrossSchema" loc="101..159" text="create tab..attr1 int)">
+                        <column id="256.65537.4294967297.0" name="attr1" loc="149..158" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
+            </input>
+            <errors>
+                <error type="DUPLICATE_TABLE_ALIAS" message="duplicate table alias &quot;AmbiguousCrossSchema&quot;" loc="62..91" text="schema1.&quot;A..ttribute2&quot;" />
+            </errors>
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..60" text="schema0.&quot;A..ttribute1&quot;" />
+                <table-ref type="name/external" id="256.65537.4294967297" stmt="0" loc="62..91" text="schema1.&quot;A..ttribute2&quot;" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="98..102" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="98..102" text="attr">
+            <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="98..102" replace_text="attr">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.AmbiguousCrossSchema.attr1" />
+                <object score="45" type="column" id="256.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema1.AmbiguousCrossSchema.attr1" />
+            </entry>
+            <entry score="35" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="98..102" replace_text="attr" />
+            <entry score="30" value="xmlattributes" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" replace_loc="98..102" replace_text="attr" />
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="ambiguous_cross_db">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table db0.schema0."AmbiguousAttribute1"(attr1 int);
+                    create table db1.schema0."AmbiguousAttribute2"(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="AmbiguousAttribute1" loc="21..78" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="68..77" text="attr1 int" />
+                    </table>
+                    <table id="257.65537.4294967297" name="AmbiguousAttribute2" loc="100..157" text="create tab..attr1 int)">
+                        <column id="257.65537.4294967297.0" name="attr1" loc="147..156" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..64" text="db0.schema..ttribute1&quot;" />
+                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="66..99" text="db1.schema..ttribute2&quot;" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="106..110" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="106..110" text="attr">
+            <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="106..110" replace_text="attr">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db0.schema0.AmbiguousAttribute1.attr1" />
+                <object score="45" type="column" id="257.65537.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="db1.schema0.AmbiguousAttribute2.attr1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="106..110" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db0.schema0.AmbiguousAttribute1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="106..110" replace_text="attr">
+                <object score="30" type="table" id="257.65537.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="db1.schema0.AmbiguousAttribute2" />
+            </entry>
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="both_aliased">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="AmbiguousAttribute1" loc="21..66" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="56..65" text="attr1 int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="AmbiguousAttribute2" loc="88..133" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967297.0" name="attr1" loc="123..132" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="56..79" text="&quot;Ambiguous..ribute2&quot; b" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="86..90" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="86..90" text="attr">
+            <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="86..90" replace_text="attr">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="a.attr1" />
+                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="b.attr1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="86..90" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="86..90" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+            </entry>
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="one_not_aliased">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="AmbiguousAttribute1" loc="21..66" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="56..65" text="attr1 int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="AmbiguousAttribute2" loc="88..133" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967297.0" name="attr1" loc="123..132" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="56..77" text="&quot;Ambiguous..ttribute2&quot;" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="colref/unresolved" stmt="0" loc="84..88" text="attr" />
+            </expressions>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="84..88" text="attr">
+            <entry score="65" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" replace_loc="84..88" replace_text="attr">
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="a.attr1" />
+                <object score="45" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="AmbiguousAttribute2.attr1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="84..88" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute1" />
+            </entry>
+            <entry score="40" value="AmbiguousAttribute2" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="84..88" replace_text="attr">
+                <object score="30" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="AmbiguousAttribute2" />
+            </entry>
+        </completions>
+    </completion-snapshot>
+</completion-snapshots>

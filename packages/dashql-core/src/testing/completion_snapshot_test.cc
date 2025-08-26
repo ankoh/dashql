@@ -73,6 +73,12 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 xml_entry.append_attribute("ctags").set_value(candidate_tags.str().c_str());
             }
         }
+        if (iter->prefer_qualified_tables) {
+            xml_entry.append_attribute("qualify_tables").set_value(iter->prefer_qualified_tables);
+        }
+        if (iter->prefer_qualified_columns) {
+            xml_entry.append_attribute("qualify_columns").set_value(iter->prefer_qualified_columns);
+        }
         EncodeLocation(xml_entry, iter->replace_text_at, completion.GetCursor().script.scanned_script->text_buffer,
                        "replace_loc", "replace_text");
         for (auto& co : iter->catalog_objects) {

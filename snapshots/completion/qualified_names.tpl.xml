@@ -1,0 +1,97 @@
+<completion-snapshots>
+    <completion-snapshot name="ambiguous_in_schema">
+        <catalog>
+            <script>
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+    <completion-snapshot name="ambiguous_cross_schema">
+        <catalog>
+            <script>
+                <input>
+                    create table db0.schema0."AmbiguousCrossSchema"(attr1 int);
+                    create table db0.schema1."AmbiguousCrossSchema"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+    <completion-snapshot name="ambiguous_cross_db">
+        <catalog>
+            <script>
+                <input>
+                    create table db0.schema0."AmbiguousAttribute1"(attr1 int);
+                    create table db1.schema0."AmbiguousAttribute2"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+    <completion-snapshot name="both_aliased">
+        <catalog>
+            <script>
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+    <completion-snapshot name="one_not_aliased">
+        <catalog>
+            <script>
+                <input>
+                    create table "AmbiguousAttribute1"(attr1 int);
+                    create table "AmbiguousAttribute2"(attr1 int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
+            </input>
+        </editor>
+        <cursor>
+            <search text=" attr" index="5" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+</completion-snapshots>
