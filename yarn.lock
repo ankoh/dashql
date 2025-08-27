@@ -36,8 +36,8 @@ __metadata:
     "@codemirror/language": "npm:^6.11.3"
     "@codemirror/state": "npm:^6.5.2"
     "@codemirror/view": "npm:^6.38.1"
-    "@connectrpc/connect": "npm:^2.0.4"
-    "@connectrpc/connect-web": "npm:^2.0.4"
+    "@connectrpc/connect": "npm:^2.1.0"
+    "@connectrpc/connect-web": "npm:^2.1.0"
     "@dnd-kit/core": "npm:^6.3.1"
     "@dnd-kit/sortable": "npm:^10.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
@@ -154,8 +154,8 @@ __metadata:
   resolution: "@ankoh/dashql-protobuf@workspace:packages/dashql-protobuf"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.7.0"
-    "@connectrpc/connect": "npm:^2.0.4"
-    "@connectrpc/connect-web": "npm:^2.0.4"
+    "@connectrpc/connect": "npm:^2.1.0"
+    "@connectrpc/connect-web": "npm:^2.1.0"
     "@types/node": "npm:^22.17.2"
     esbuild: "npm:^0.25.9"
     typescript: "npm:^5.8.3"
@@ -724,22 +724,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@connectrpc/connect-web@npm:^2.0.4":
-  version: 2.0.4
-  resolution: "@connectrpc/connect-web@npm:2.0.4"
+"@connectrpc/connect-web@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@connectrpc/connect-web@npm:2.1.0"
   peerDependencies:
-    "@bufbuild/protobuf": ^2.2.0
-    "@connectrpc/connect": 2.0.4
-  checksum: 10c0/f8ac765c8656602e827a65db3c30819e0cfc5a5994077e7e62f8fd088a7a1388f768dd4dd31feb7cacaf459571e6f125d07bf9f7ac69b18bf9ef9f036fa0b561
+    "@bufbuild/protobuf": ^2.7.0
+    "@connectrpc/connect": 2.1.0
+  checksum: 10c0/d7bfdd5ab3ac8658358484054347a14c990028ae6c0ed78befa5ae83ad7c6ed51c8f410587b083b10c8c8966a05dce7ca18e15d3130a0f19c63c6303b0112b4f
   languageName: node
   linkType: hard
 
-"@connectrpc/connect@npm:^2.0.4":
-  version: 2.0.4
-  resolution: "@connectrpc/connect@npm:2.0.4"
+"@connectrpc/connect@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@connectrpc/connect@npm:2.1.0"
   peerDependencies:
-    "@bufbuild/protobuf": ^2.2.0
-  checksum: 10c0/55ea993da462ad0d56c94b8b0259ea46f224d89f8f0d98c428122b18f916ab6002e4b8d39415b88d86f9d1251f5c10025a84d5509beeddf2503ebc531dfc9b7e
+    "@bufbuild/protobuf": ^2.7.0
+  checksum: 10c0/beabac9b1717ee53e164ee406870998c9893078c9e39666e45e9425d72cb06952ffcb3970e496b3d4ff885ab7c851dd78f9ecce65b12c5bdfbe5e3e69e771514
   languageName: node
   linkType: hard
 
