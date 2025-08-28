@@ -14,7 +14,7 @@
         "@bufbuild/protoc-gen-es": "^2.7.0",
         "@eslint/js": "^9.34.0",
         "@tauri-apps/cli": "^2.8.3",
-        "@types/node": "^22.17.2",
+        "@types/node": "^22.18.0",
         "eslint": "^9.34.0",
         "prettier": "^3.6.2",
         "ts-node": "^10.9.2",
