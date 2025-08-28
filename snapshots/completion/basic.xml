@@ -8,9 +8,9 @@
             <search text="" index="0" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="0..1" text="">
-            <entry score="3" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
-            <entry score="2" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
-            <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="0..1" replace_text="" />
+            <entry score="3" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
+            <entry score="2" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
+            <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_database_name">
@@ -40,11 +40,11 @@
             <search text="db" index="2" />
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..33" text="db">
-            <entry score="55" value="dbname" ntags="DATABASE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="31..33" replace_text="db">
+            <entry score="55" value="dbname" ntags="DATABASE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..33" target_text="db" qualified_loc="31..33" qualified_text="db">
                 <object score="35" type="database" id="256" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
-            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="31..33" replace_text="db" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..33" target_text="db" qualified_loc="31..33" qualified_text="db" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..33" target_text="db" qualified_loc="31..33" qualified_text="db" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_schema_name">
@@ -74,11 +74,11 @@
             <search text="sch" index="3" />
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..34" text="sch">
-            <entry score="55" value="schemaname" ntags="SCHEMA_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="31..34" replace_text="sch">
+            <entry score="55" value="schemaname" ntags="SCHEMA_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..34" target_text="sch" qualified_loc="31..34" qualified_text="sch">
                 <object score="35" type="schema" id="256.65536" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="35" value="schema" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="31..34" replace_text="sch" />
-            <entry score="35" value="schemas" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="31..34" replace_text="sch" />
+            <entry score="35" value="schema" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..34" target_text="sch" qualified_loc="31..34" qualified_text="sch" />
+            <entry score="35" value="schemas" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..34" target_text="sch" qualified_loc="31..34" qualified_text="sch" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="complete_table_name">
@@ -108,11 +108,11 @@
             <search text="fo" index="2" />
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..33" text="fo">
-            <entry score="55" value="foo" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="31..33" replace_text="fo">
+            <entry score="55" value="foo" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..33" target_text="fo" qualified_loc="31..33" qualified_text="fo">
                 <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="foo" />
             </entry>
-            <entry score="35" value="following" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="31..33" replace_text="fo" />
-            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="31..33" replace_text="fo" />
+            <entry score="35" value="following" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..33" target_text="fo" qualified_loc="31..33" qualified_text="fo" />
+            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..33" target_text="fo" qualified_loc="31..33" qualified_text="fo" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="dont_complete_at_lrb">
@@ -178,13 +178,13 @@ create table table3(attr3 integer);
             <search text="tab" index="3" />
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="35..38" text="tab">
-            <entry score="60" value="table2" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE|THROUGH_CATALOG" replace_loc="35..38" replace_text="tab">
+            <entry score="60" value="table2" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE|THROUGH_CATALOG" target_loc="35..38" target_text="tab" qualified_loc="35..38" qualified_text="tab">
                 <object score="40" type="table" id="256.65536.4294967297" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE|THROUGH_CATALOG" qualified="table2" />
             </entry>
-            <entry score="55" value="table1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="35..38" replace_text="tab">
+            <entry score="55" value="table1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="35..38" target_text="tab" qualified_loc="35..38" qualified_text="tab">
                 <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="table1" />
             </entry>
-            <entry score="55" value="table3" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="35..38" replace_text="tab">
+            <entry score="55" value="table3" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="35..38" target_text="tab" qualified_loc="35..38" qualified_text="tab">
                 <object score="35" type="table" id="256.65536.4294967298" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="table3" />
             </entry>
         </completions>
@@ -220,15 +220,15 @@ create table table3(attr3 integer);
             <search text="where external_" index="14" />
         </cursor>
         <completions limit="5" strategy="COLUMN_REF" symbol="NAME" relative="MID_OF_SYMBOL" loc="65..74" text="external_">
-            <entry score="65" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="65..74" replace_text="external_">
+            <entry score="65" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_">
                 <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="external_name1.external_name2" />
             </entry>
-            <entry score="45" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
+            <entry score="45" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_">
                 <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="external_name1" />
             </entry>
-            <entry score="35" value="external" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="35" value="external" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="remap_external_names_eof">
@@ -262,15 +262,15 @@ create table table3(attr3 integer);
             <search text="where external_" index="15" />
         </cursor>
         <completions limit="5" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="65..74" text="external_">
-            <entry score="65" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" replace_loc="65..74" replace_text="external_">
+            <entry score="65" value="external_name2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_">
                 <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="external_name1.external_name2" />
             </entry>
-            <entry score="45" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="65..74" replace_text="external_">
+            <entry score="45" value="external_name1" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_">
                 <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="external_name1" />
             </entry>
-            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
-            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" replace_loc="65..74" replace_text="external_" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
+            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>

@@ -36,6 +36,9 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
 
     auto ctxName = buffers::completion::EnumNameCompletionStrategy(completion.GetStrategy());
     root.append_attribute("strategy").set_value(ctxName);
+    if (completion.IsDotCompletion()) {
+        root.append_attribute("dot").set_value(true);
+    }
     if (auto node_id = completion.GetCursor().ast_node_id) {
         root.append_attribute("symbol").set_value(buffers::parser::EnumNameNodeType(
             completion.GetCursor().script.parsed_script->nodes[*node_id].node_type()));
@@ -45,7 +48,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
     }
     for (auto iter = entries.begin(); iter != entries.end(); ++iter) {
         auto xml_entry = root.append_child("entry");
-        std::string text{iter->name.data(), iter->name.size()};
+        std::string text{iter->completion_text.data(), iter->completion_text.size()};
         xml_entry.append_attribute("score").set_value(iter->score);
         xml_entry.append_attribute("value").set_value(text.c_str());
         {
@@ -80,8 +83,13 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
         if (iter->prefer_qualified_columns) {
             xml_entry.append_attribute("qualify_columns").set_value(iter->prefer_qualified_columns);
         }
-        EncodeLocation(xml_entry, iter->replace_text_at, completion.GetCursor().script.scanned_script->text_buffer,
-                       "replace_loc", "replace_text");
+        EncodeLocation(xml_entry, iter->target_location, completion.GetCursor().script.scanned_script->text_buffer,
+                       "target_loc", "target_text");
+        if (iter->target_location_qualified.offset() != 0 || iter->target_location_qualified.length() != 0) {
+            EncodeLocation(xml_entry, iter->target_location_qualified,
+                           completion.GetCursor().script.scanned_script->text_buffer, "qualified_loc",
+                           "qualified_text");
+        }
         for (auto& co : iter->catalog_objects) {
             auto& obj = co.catalog_object;
             auto xml_obj = xml_entry.append_child("object");

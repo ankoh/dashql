@@ -345,7 +345,7 @@ void Completion::FindCandidatesForNamePath() {
             auto last_prefix_length = std::max<size_t>(cursor_location, last_content_ofs) - last_content_ofs;
             last_text_prefix = last_text.substr(last_content, last_prefix_length);
 
-            // Truncate whn replacing
+            // Truncate when replacing
             truncate_at = last_loc.offset();
             break;
         }
@@ -369,7 +369,6 @@ void Completion::FindCandidatesForNamePath() {
         NameTags name_tags;
         QualifiedCatalogObjectID object_id;
         const CatalogObject& object;
-        sx::parser::Location replace_text_at;
     };
     // Collect all candidate strings
     std::vector<DotCandidate> dot_candidates;
@@ -403,8 +402,7 @@ void Completion::FindCandidatesForNamePath() {
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
                             .name_tags = {buffers::analyzer::NameTag::TABLE_NAME},
                             .object_id = table.get().object_id,
-                            .object = table.get().CastToBase(),
-                            .replace_text_at = replace_text_at};
+                            .object = table.get().CastToBase()};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
                                                        through_catalog);
                         dot_candidates.push_back(std::move(candidate));
@@ -424,8 +422,7 @@ void Completion::FindCandidatesForNamePath() {
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_SCHEMA},
                             .name_tags = NameTags{buffers::analyzer::NameTag::SCHEMA_NAME},
                             .object_id = schema.get().object_id,
-                            .object = schema.get().CastToBase(),
-                            .replace_text_at = replace_text_at};
+                            .object = schema.get().CastToBase()};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
                                                        through_catalog);
                         dot_candidates.push_back(std::move(candidate));
@@ -451,8 +448,7 @@ void Completion::FindCandidatesForNamePath() {
                             .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_TABLE},
                             .name_tags = NameTags{buffers::analyzer::NameTag::TABLE_NAME},
                             .object_id = table.get().object_id,
-                            .object = {table.get().CastToBase()},
-                            .replace_text_at = replace_text_at};
+                            .object = {table.get().CastToBase()}};
                         candidate.candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG,
                                                        through_catalog);
                         dot_candidates.push_back(std::move(candidate));
@@ -494,8 +490,7 @@ void Completion::FindCandidatesForNamePath() {
                                 .candidate_tags = {buffers::completion::CandidateTag::DOT_RESOLUTION_COLUMN},
                                 .name_tags = NameTags{buffers::analyzer::NameTag::COLUMN_NAME},
                                 .object_id = column.object_id,
-                                .object = {column.CastToBase()},
-                                .replace_text_at = replace_text_at};
+                                .object = {column.CastToBase()}};
                             candidate.candidate_tags.AddIf(
                                 buffers::completion::CandidateTag::THROUGH_CATALOG,
                                 table_decl.GetTableID().GetOrigin() != script.GetCatalogEntryId());
@@ -515,8 +510,9 @@ void Completion::FindCandidatesForNamePath() {
             // Update candidate tags and replacement target
             auto& candidate_object = iter->second.get();
             candidate_object.candidate_tags |= dot_candidate.candidate_tags;
-            candidate_object.candidate.replace_text_at = replace_text_at;
-            assert(candidate_object.candidate.name == dot_candidate.name);
+            candidate_object.candidate.target_location = replace_text_at;
+            candidate_object.candidate.target_location_qualified = name_path_loc;
+            assert(candidate_object.candidate.completion_text == dot_candidate.name);
 
         } else {
             // If the user gave us a text, determine the substring match
@@ -536,7 +532,8 @@ void Completion::FindCandidatesForNamePath() {
                 // Name is there, just not the object
                 auto& existing = iter->second.get();
                 // Fix text replacement
-                existing.replace_text_at = replace_text_at;
+                existing.target_location = replace_text_at;
+                existing.target_location_qualified = name_path_loc;
                 // Allocate the candidate object
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
                     .candidate = existing,
@@ -553,13 +550,14 @@ void Completion::FindCandidatesForNamePath() {
             } else {
                 // Allocate the candidate
                 auto& c = candidates.PushBack(Candidate{
-                    .name = dot_candidate.name,
+                    .completion_text = dot_candidate.name,
                     .coarse_name_tags = dot_candidate.name_tags,
                     .candidate_tags = dot_candidate.candidate_tags,
-                    .replace_text_at = replace_text_at,
+                    .target_location = replace_text_at,
+                    .target_location_qualified = name_path_loc,
                     .catalog_objects = {},
                 });
-                candidates_by_name.insert({c.name, c});
+                candidates_by_name.insert({c.completion_text, c});
 
                 // Allocate the candidate object
                 auto& co = candidate_objects.PushBack(CandidateCatalogObject{
@@ -617,10 +615,11 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         if (!name.empty()) {
             auto tags = get_score(*location, expected, name);
             Candidate candidate{
-                .name = name,
+                .completion_text = name,
                 .coarse_name_tags = {},
                 .candidate_tags = tags,
-                .replace_text_at = location->symbol.location,
+                .target_location = location->symbol.location,
+                .target_location_qualified = location->symbol.location,
                 .score = computeCandidateScore(tags),
             };
             candidate_heap.Insert(std::move(candidate));
@@ -679,10 +678,11 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
             candidate->candidate_tags |= candidate_tags;
         } else {
             candidate = &candidates.PushBack(Candidate{
-                .name = name_info.text,
+                .completion_text = name_info.text,
                 .coarse_name_tags = name_info.coarse_analyzer_tags,
                 .candidate_tags = candidate_tags,
-                .replace_text_at = location->symbol.location,
+                .target_location = location->symbol.location,
+                .target_location_qualified = location->symbol.location,
                 .catalog_objects = {},
             });
             candidates_by_name.insert({name_info.text, *candidate});
@@ -1060,14 +1060,16 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         return {std::move(completion), buffers::status::StatusCode::OK};
     }
 
+    // XXX Always read name path for qualified location?
+
     // Is the current symbol an inner dot?
-    bool complete_dot = false;
+    completion->dot_completion = false;
     if (cursor.scanner_location->currentSymbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (cursor.scanner_location->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL:
-                complete_dot = true;
+                completion->dot_completion = true;
                 break;
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
@@ -1083,7 +1085,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         switch (cursor.scanner_location->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL:
-                complete_dot = true;
+                completion->dot_completion = true;
                 break;
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
@@ -1097,7 +1099,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     // When not dot-completing, find the expected symbols at this location
     bool expects_identifier = false;
     std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
-    if (!complete_dot) {
+    if (!completion->dot_completion) {
         if (cursor.scanner_location->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
             !cursor.scanner_location->at_eof) {
             expected_symbols =
@@ -1128,7 +1130,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::END_OF_SYMBOL:
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:
-                complete_dot = true;
+                completion->dot_completion = true;
                 break;
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::NEW_SYMBOL_BEFORE:
@@ -1141,7 +1143,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     }
 
     // Dot completion?
-    if (complete_dot) {
+    if (completion->dot_completion) {
         // Restricting candidates to the dot context
         completion->FindCandidatesForNamePath();
     } else {
@@ -1189,9 +1191,9 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
     // Pack candidates
     for (auto iter_entry = entries.begin(); iter_entry != entries.end(); ++iter_entry) {
         // Do we have to quote the completion text?
-        auto display_text_offset = builder.CreateString(iter_entry->name);
+        auto display_text_offset = builder.CreateString(iter_entry->completion_text);
         std::string quoted;
-        std::string_view completion_text = iter_entry->name;
+        std::string_view completion_text = iter_entry->completion_text;
         completion_text = quote_anyupper_fuzzy(completion_text, quoted);
 
         // Resolve the catalog objects
@@ -1286,7 +1288,8 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         candidate_builder.add_name_tags(iter_entry->coarse_name_tags);
         candidate_builder.add_catalog_objects(catalog_objects_ofs);
         candidate_builder.add_score(iter_entry->score);
-        candidate_builder.add_replace_text_at(&iter_entry->replace_text_at);
+        candidate_builder.add_target_location(&iter_entry->target_location);
+        candidate_builder.add_target_location_qualified(&iter_entry->target_location_qualified);
         candidate_builder.add_completion_templates(templates_ofs);
         candidates.push_back(candidate_builder.Finish());
     }
@@ -1294,7 +1297,8 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
 
     // Pack completion table
     buffers::completion::CompletionBuilder completion_builder{builder};
-    completion_builder.add_text_offset(cursor.text_offset);
+    completion_builder.add_cursor_offset(cursor.text_offset);
+    completion_builder.add_dot_completion(dot_completion);
     completion_builder.add_strategy(strategy);
     completion_builder.add_candidates(candidatesOfs);
     return completion_builder.Finish();

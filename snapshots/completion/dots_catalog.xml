@@ -25,8 +25,8 @@
         <cursor>
             <search text="dbname." index="7" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="37..38" text=".">
-            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" replace_loc="38..38" replace_text="">
+        <completions limit="3" strategy="TABLE_REF" dot="true" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="37..38" text=".">
+            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" target_loc="38..38" target_text="" qualified_loc="31..38" qualified_text="dbname.">
                 <object score="2" type="schema" id="256.65536" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" />
             </entry>
         </completions>
@@ -85,8 +85,8 @@
         <cursor>
             <search text=".sch" index="1" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="38..41" text="sch">
-            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" replace_loc="38..41" replace_text="sch">
+        <completions limit="3" strategy="TABLE_REF" dot="true" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="38..41" text="sch">
+            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" target_loc="38..41" target_text="sch" qualified_loc="31..41" qualified_text="dbname.sch">
                 <object score="2" type="schema" id="256.65536" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" />
             </entry>
         </completions>
@@ -117,8 +117,8 @@
         <cursor>
             <search text="name." index="5" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="38..43" text="&quot;sch&quot;">
-            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" replace_loc="38..43" replace_text="&quot;sch&quot;">
+        <completions limit="3" strategy="TABLE_REF" dot="true" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="38..43" text="&quot;sch&quot;">
+            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" target_loc="38..43" target_text="&quot;sch&quot;" qualified_loc="31..43" qualified_text="dbname.&quot;sch&quot;">
                 <object score="2" type="schema" id="256.65536" ctags="DOT_RESOLUTION_SCHEMA|THROUGH_CATALOG" />
             </entry>
         </completions>
@@ -142,8 +142,8 @@
         <cursor>
             <search text="from dbname." index="12" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="96..97" text=".">
-            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA" replace_loc="97..97" replace_text="">
+        <completions limit="3" strategy="TABLE_REF" dot="true" symbol="OBJECT_EXT_TRAILING_DOT" relative="END_OF_SYMBOL" loc="96..97" text=".">
+            <entry score="22" value="schemaname" ntags="SCHEMA_NAME" ctags="DOT_RESOLUTION_SCHEMA" target_loc="97..97" target_text="" qualified_loc="90..97" qualified_text="dbname.">
                 <object score="2" type="schema" id="256.65536" ctags="DOT_RESOLUTION_SCHEMA" />
             </entry>
         </completions>

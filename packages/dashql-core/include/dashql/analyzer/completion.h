@@ -43,16 +43,18 @@ struct Completion {
 
     /// A completion candidate
     struct Candidate {
-        /// The name
-        std::string_view name;
+        /// The completion text
+        std::string_view completion_text;
         /// The combined coarse-granular analyzer tags.
         /// We may hit the same name multiple times in multiple catalog entries.
         /// Each of these entries may have different name tags, so we have to merge them here.
         NameTags coarse_name_tags;
         /// The combined more fine-granular candidate tags
         CandidateTags candidate_tags;
-        /// Replace text at a location
-        sx::parser::Location replace_text_at;
+        /// The target text to replace
+        sx::parser::Location target_location;
+        /// The target text to replace when adding a qualified text
+        sx::parser::Location target_location_qualified;
         /// The catalog objects
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)
@@ -68,8 +70,9 @@ struct Completion {
         bool operator<(const Candidate& other) const {
             auto l = score;
             auto r = other.score;
-            return (l < r) || (l == r && (fuzzy_ci_string_view{name.data(), name.size()} >
-                                          fuzzy_ci_string_view{other.name.data(), other.name.size()}));
+            return (l < r) ||
+                   (l == r && (fuzzy_ci_string_view{completion_text.data(), completion_text.size()} >
+                               fuzzy_ci_string_view{other.completion_text.data(), other.completion_text.size()}));
         }
     };
     static_assert(std::is_trivially_destructible_v<Candidate>, "Candidates must be trivially destructable");
@@ -102,6 +105,8 @@ struct Completion {
     const ScriptCursor& cursor;
     /// The completion strategy
     const buffers::completion::CompletionStrategy strategy;
+    /// Is the target qualified?
+    bool dot_completion = false;
 
     /// The candidate buffer
     ChunkBuffer<Candidate, 16> candidates;
@@ -168,6 +173,8 @@ struct Completion {
     auto& GetCursor() const { return cursor; }
     /// Get the completion strategy
     auto& GetStrategy() const { return strategy; }
+    /// Are we dot-completing?
+    auto& IsDotCompletion() const { return dot_completion; }
     /// Get the result heap
     auto& GetHeap() const { return candidate_heap; }
     /// Get the result candidates after finishing

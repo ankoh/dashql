@@ -68,10 +68,12 @@ table CompletionCandidate {
     candidate_tags: uint32;
     /// The coarse-granular analyzer tags
     name_tags: uint8;
+    /// The text to replace
+    target_location: parser.Location;
+    /// The qualified text to replace
+    target_location_qualified: parser.Location;
     /// The display text
     display_text: string;
-    /// The text to replace when completing
-    replace_text_at: parser.Location;
     /// The completion text (simple)
     completion_text: string;
     /// The completion templates (extended)
@@ -89,10 +91,13 @@ enum CompletionStrategy: uint8 {
 }
 
 table Completion {
-    /// The text offset
-    text_offset: uint32;
+    /// The cursor offset
+    cursor_offset: uint32;
     /// The strategy
     strategy: CompletionStrategy;
+    /// Are we dot-completing?
+    /// That will disable inline hints for auto-qualification.
+    dot_completion: bool;
     /// The completion candidates
     candidates: [CompletionCandidate];
 }

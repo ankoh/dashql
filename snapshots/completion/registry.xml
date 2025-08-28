@@ -72,7 +72,7 @@
             <search text=" attr" index="5" />
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="44..48" text="attr">
-            <entry score="66" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" replace_loc="44..48" replace_text="attr">
+            <entry score="66" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr">
                 <object score="46" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="tablea.attr1" />
                 <templates>
                     <template signature="1794172684583478586">
@@ -95,10 +95,10 @@
                     </template>
                 </templates>
             </entry>
-            <entry score="55" value="attr2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" replace_loc="44..48" replace_text="attr">
+            <entry score="55" value="attr2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr">
                 <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
             </entry>
-            <entry score="35" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="44..48" replace_text="attr" />
+            <entry score="35" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>

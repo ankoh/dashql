@@ -51,9 +51,9 @@ type CursorOffset = number;
 function computeChangeSpecForSimpleCompletion(view: EditorView, candidate: dashql.buffers.completion.CompletionCandidate): [SingleChangeSpec, CursorOffset] | null {
     // XXX The location of the trailing to might include eof?
     //     We shouldn't need to clamp here but should rather fix it on the wasm side
-    const replaceTextAt = candidate.replaceTextAt()!;
-    const replaceFrom = Math.min(replaceTextAt.offset(), view.state.doc.length);
-    const replaceTo = Math.min(replaceFrom + replaceTextAt.length(), view.state.doc.length);
+    const targetLocationAt = candidate.targetLocation()!;
+    const replaceFrom = Math.min(targetLocationAt.offset(), view.state.doc.length);
+    const replaceTo = Math.min(replaceFrom + targetLocationAt.length(), view.state.doc.length);
     const completionText = candidate.completionText()!;
     const newCursor = replaceFrom + completionText.length;
     const changeSpec: SingleChangeSpec = {
@@ -96,7 +96,7 @@ function computeChangeSpecForExtendedCompletion(view: EditorView, candidate: das
     const changes: SingleChangeSpec[] = [];
     if (snippetModel.textBefore.length > 0) {
         changes.push({
-            from: innerCompletionChange.from,
+            from: innerCompletionChange.from, // XXX From To is not respecting qualified names
             to: innerCompletionChange.from,
             insert: snippetModel.textBefore,
         });
@@ -123,8 +123,8 @@ function applyCompletion(view: EditorView, completion: Completion, _from: number
     }
     // Get the completion candidate
     const candidate = coreCompletion.candidates(c.candidateId)!;
-    if (!candidate.replaceTextAt) {
-        console.warn("candidate replaceTextAt is null");
+    if (!candidate.targetLocation) {
+        console.warn("candidate targetLocation is null");
         return;
     }
 
@@ -149,8 +149,8 @@ function applyExtendedCompletion(view: EditorView, completion: Completion) {
     }
     // Get the completion candidate
     const candidate = coreCompletion.candidates(c.candidateId)!;
-    if (!candidate.replaceTextAt) {
-        console.warn("candidate replaceTextAt is null");
+    if (!candidate.targetLocation) {
+        console.warn("candidate targetLocation is null");
         return false;
     }
 

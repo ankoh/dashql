@@ -8,6 +8,7 @@ import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 
 import * as styles from './dashql_completion_hint.module.css';
+import { quoteIfAnyUpper } from '../../utils/format.js';
 
 /// A completion content
 interface CompletionHint {
@@ -18,13 +19,13 @@ interface CompletionHint {
 }
 
 /// A completion hint that hints the autocompletion candidate
-interface CandidateCompletion {
+interface CandidateCompletionHint {
     /// The content
     hint: CompletionHint;
 };
 
 /// An extended completion hint that shows an extended snippet
-interface ExtendedCompletion {
+interface ExtendedCompletionHint {
     /// The prefix
     hintPrefix: CompletionHint | null;
     /// The suffix
@@ -33,10 +34,23 @@ interface ExtendedCompletion {
 
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: CandidateCompletion;
-    /// The extended completion hint
-    extended: ExtendedCompletion | null;
+    candidate: CandidateCompletionHint;
+    /// The qualifier for the candidate
+    candidateQualification: ExtendedCompletionHint | null;
+    /// The extended template completion hint
+    candidateTemplate: ExtendedCompletionHint | null;
 }
+
+function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
+    const out = [];
+    for (let i = 0; i < co.qualifiedNameLength(); ++i) {
+        const name = co.qualifiedName(i);
+        out.push(name);
+    }
+    return out;
+}
+
+
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
 export function computeCompletionHints(candidate: DashQLCompletion, state: EditorState): CompletionHints | null {
@@ -48,52 +62,75 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
     // Show inline completion hint.
     const candidateData = completion.candidates(candidate.candidateId)!;
     const candidateText = candidateData.completionText();
-    const replaceTextAt = candidateData.replaceTextAt();
-    if (candidateText === null || replaceTextAt === null) {
+    const targetLocation = candidateData.targetLocation();
+    const targetLocationQualified = candidateData.targetLocationQualified();
+    if (candidateText === null || targetLocation === null || targetLocationQualified == null) {
         return null;
     }
     const _cursorPos = state.selection.main.head;
-    const replaceFrom = replaceTextAt.offset();
-    const replaceTo = replaceFrom + replaceTextAt.length();
+    const targetFrom = targetLocation.offset();
+    const targetTo = targetFrom + targetLocation.length();
+    const qualifiedFrom = targetLocationQualified.offset();
+    const qualifiedTo = qualifiedFrom + targetLocationQualified.length();
 
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
 
     // Calculate the hint text (part that would be inserted after current cursor)
-    const currentText = state.doc.sliceString(replaceFrom, replaceTo);
+    const currentText = state.doc.sliceString(targetFrom, targetTo);
 
     if (!candidateText.startsWith(currentText)) {
         return null;
     }
     const hintText = candidateText.slice(currentText.length);
-    const candidateCompletion: CandidateCompletion = {
+    const candidateCompletion: CandidateCompletionHint = {
         hint: {
-            at: replaceTo,
+            at: targetTo,
             text: hintText
         }
     };
-    let extended: ExtendedCompletion | null = null;
+
+    // Is there a qualified name for the candidate?
+    // Skip if we're dot-completing or don't have a qualified target location.
+    if (candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
+        const co = candidateData.catalogObjects(0)!;
+        let name = readQualifiedName(co);
+        // We assume the candidate is the last entry
+        if (name.length > 1) {
+            name = name.slice(0, name.length - 1);
+
+            // XXX Now create the name qualification hint
+            // We still need to take care of dot-completion here.
+            // Right now, replaceFrom is NOT including the qualified path.
+            // Need to fix
+        }
+    }
+
+    // Is there a candidate template?
+    let candidateTemplate: ExtendedCompletionHint | null = null;
     const tmpNode = new dashql.buffers.parser.Node();
     if (candidateData.completionTemplatesLength() > 0) {
         const template = candidateData.completionTemplates(0)!;
         if (template.snippetsLength() > 0) {
             const snippet = template.snippets(0)!;
             const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-            extended = {
+            candidateTemplate = {
                 hintPrefix: {
-                    at: replaceFrom,
+                    at: qualifiedFrom,
                     text: snippetModel.textBefore
                 },
                 hintSuffix: {
-                    at: replaceTo,
+                    at: qualifiedTo,
                     text: snippetModel.textAfter
                 }
             };
         }
     }
+
     return {
         candidate: candidateCompletion,
-        extended
+        candidateQualification: null,
+        candidateTemplate: candidateTemplate
     };
 }
 
@@ -145,16 +182,16 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     }
 
     const candidate = new CompletionHintWidget(hints.candidate.hint.text, false);
-    if (hints.extended != null) {
+    if (hints.candidateTemplate != null) {
         const widgets = [];
-        if (hints.extended.hintPrefix != null) {
-            const prefix = new CompletionHintWidget(hints.extended.hintPrefix.text, true);
-            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.extended.hintPrefix.at));
+        if (hints.candidateTemplate.hintPrefix != null) {
+            const prefix = new CompletionHintWidget(hints.candidateTemplate.hintPrefix.text, true);
+            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.candidateTemplate.hintPrefix.at));
         }
         widgets.push(Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at));
-        if (hints.extended.hintSuffix != null) {
-            const suffix = new CompletionHintWidget(hints.extended.hintSuffix.text, true);
-            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hints.extended.hintSuffix.at));
+        if (hints.candidateTemplate.hintSuffix != null) {
+            const suffix = new CompletionHintWidget(hints.candidateTemplate.hintSuffix.text, true);
+            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hints.candidateTemplate.hintSuffix.at));
         }
         return Decoration.set(widgets);
     } else {

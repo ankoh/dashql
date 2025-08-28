@@ -10,9 +10,9 @@
             <search text="s" index="1" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="17..18" text="s">
-            <entry score="38" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="17..18" replace_text="s" />
-            <entry score="37" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="17..18" replace_text="s" />
-            <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" replace_loc="17..18" replace_text="s" />
+            <entry score="38" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="17..18" target_text="s" qualified_loc="17..18" qualified_text="s" />
+            <entry score="37" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="17..18" target_text="s" qualified_loc="17..18" qualified_text="s" />
+            <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="17..18" target_text="s" qualified_loc="17..18" qualified_text="s" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="expected_select_1">
@@ -26,9 +26,9 @@
             <search text="s" index="1" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="17..19" text="se">
-            <entry score="38" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="17..19" replace_text="se" />
-            <entry score="37" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="17..19" replace_text="se" />
-            <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" replace_loc="17..19" replace_text="se" />
+            <entry score="38" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="17..19" target_text="se" qualified_loc="17..19" qualified_text="se" />
+            <entry score="37" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="17..19" target_text="se" qualified_loc="17..19" qualified_text="se" />
+            <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="17..19" target_text="se" qualified_loc="17..19" qualified_text="se" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="expected_select_from_0">
@@ -42,9 +42,9 @@
             <search text="f" index="1" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="26..27" text="f">
-            <entry score="38" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="26..27" replace_text="f" />
-            <entry score="35" value="fetch" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="26..27" replace_text="f" />
-            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="26..27" replace_text="f" />
+            <entry score="38" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="26..27" target_text="f" qualified_loc="26..27" qualified_text="f" />
+            <entry score="35" value="fetch" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="26..27" target_text="f" qualified_loc="26..27" qualified_text="f" />
+            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="26..27" target_text="f" qualified_loc="26..27" qualified_text="f" />
         </completions>
     </completion-snapshot>
     <completion-snapshot name="expected_select_from_1">
@@ -61,9 +61,9 @@
             <search text="foo f" index="5" />
         </cursor>
         <completions limit="3" strategy="DEFAULT" symbol="NAME" relative="END_OF_SYMBOL" loc="28..29" text="f">
-            <entry score="38" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="28..29" replace_text="f" />
-            <entry score="35" value="fetch" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="28..29" replace_text="f" />
-            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" replace_loc="28..29" replace_text="f" />
+            <entry score="38" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="28..29" target_text="f" qualified_loc="28..29" qualified_text="f" />
+            <entry score="35" value="fetch" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="28..29" target_text="f" qualified_loc="28..29" qualified_text="f" />
+            <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="28..29" target_text="f" qualified_loc="28..29" qualified_text="f" />
         </completions>
     </completion-snapshot>
 </completion-snapshots>
