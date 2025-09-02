@@ -424,13 +424,13 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="46..48" text="ke">
             <entry score="60" value="l_orderkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_orderkey" />
+                <object score="40" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_orderkey" qualified_idx="1" />
             </entry>
             <entry score="60" value="l_partkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.7" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_partkey" />
+                <object score="40" type="column" id="256.65536.4294967301.7" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_partkey" qualified_idx="1" />
             </entry>
             <entry score="60" value="l_suppkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.14" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_suppkey" />
+                <object score="40" type="column" id="256.65536.4294967301.14" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_suppkey" qualified_idx="1" />
             </entry>
         </completions>
     </completion-snapshot>

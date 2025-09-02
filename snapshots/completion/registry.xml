@@ -73,7 +73,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="44..48" text="attr">
             <entry score="66" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr">
-                <object score="46" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="tablea.attr1" />
+                <object score="46" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="tablea.attr1" qualified_idx="1" />
                 <templates>
                     <template signature="1794172684583478586">
                         <snippet template="1794172684583478586" raw="16511122199517028602">

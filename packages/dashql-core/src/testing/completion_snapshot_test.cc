@@ -156,6 +156,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                     name << QuotedIfAnyUpper{co.qualified_name[i]};
                 }
                 xml_obj.append_attribute("qualified").set_value(name.str().c_str());
+                xml_obj.append_attribute("qualified_idx").set_value(co.qualified_name_target_idx);
             }
         }
 
