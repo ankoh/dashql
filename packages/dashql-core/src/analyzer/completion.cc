@@ -1202,12 +1202,25 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         catalog_objects.reserve(catalog_object_count);
 
         // Pack the catalog objects
+        std::vector<flatbuffers::Offset<flatbuffers::String>> qualified_name_offsets;
+        std::string qualified_name_buffer;
         for (auto& co : iter_entry->catalog_objects) {
             auto& o = co.catalog_object;
+
+            // Pack qualified name
+            qualified_name_offsets.clear();
+            for (auto& n : co.qualified_name) {
+                auto ofs = builder.CreateString(quote_anyupper_fuzzy(n, qualified_name_buffer));
+                qualified_name_offsets.push_back(ofs);
+            }
+            auto qualified_names_ofs = builder.CreateVector(qualified_name_offsets);
+
+            // Pack candidate object
             buffers::completion::CompletionCandidateObjectBuilder obj{builder};
             obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.GetObjectType()));
             obj.add_candidate_tags(co.candidate_tags);
             obj.add_score(co.score);
+            obj.add_qualified_name(qualified_names_ofs);
             switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();

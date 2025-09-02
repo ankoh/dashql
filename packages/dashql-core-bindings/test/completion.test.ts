@@ -85,4 +85,40 @@ describe('DashQL Completion', () => {
         scriptA.destroy();
         schemaScript.destroy();
     });
+
+    test('simple qualified column name', () => {
+        const catalog = dql!.createCatalog();
+        const registry = dql!.createScriptRegistry();
+        const schemaScript = dql!.createScript(catalog, 1);
+        const scriptA = dql!.createScript(catalog, 2);
+
+        schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
+        schemaScript.analyze();
+        registry.addScript(schemaScript);
+        catalog.loadScript(schemaScript, 0);
+
+        const text = "select * from tableA \"T\" where attr";
+        scriptA.insertTextAt(0, text);
+        scriptA.analyze();
+        const cursor = scriptA.moveCursor(text.search(" attr") + 6);
+        const completion = scriptA.completeAtCursor(10, registry);
+
+        const completionReader = completion.read()
+        expect(completionReader.candidatesLength()).toEqual(10);
+        const candidate = completionReader.candidates(0);
+        expect(candidate?.catalogObjectsLength()).toEqual(1);
+        expect(candidate?.completionText()).toEqual("\"attrA\"");
+        expect(candidate?.catalogObjectsLength()).toEqual(1);
+        const catalogObject = candidate?.catalogObjects(0)!;
+        expect(catalogObject.qualifiedNameLength()).toEqual(2);
+        const name0 = catalogObject.qualifiedName(0)!;
+        const name1 = catalogObject.qualifiedName(1)!;
+        expect(name0).toEqual("\"T\"");
+        expect(name1).toEqual("\"attrA\"");
+
+        cursor.destroy();
+        completion.destroy();
+        scriptA.destroy();
+        schemaScript.destroy();
+    });
 });
