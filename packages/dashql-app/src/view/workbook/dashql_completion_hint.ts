@@ -1,14 +1,13 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { currentCompletions, completionStatus, selectedCompletion } from '@codemirror/autocomplete';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 
 import * as styles from './dashql_completion_hint.module.css';
-import { quoteIfAnyUpper } from '../../utils/format.js';
 
 /// A completion content
 interface CompletionHint {
@@ -17,12 +16,6 @@ interface CompletionHint {
     /// The completion text
     text: string;
 }
-
-/// A completion hint that hints the autocompletion candidate
-interface CandidateCompletionHint {
-    /// The content
-    hint: CompletionHint;
-};
 
 /// An extended completion hint that shows an extended snippet
 interface ExtendedCompletionHint {
@@ -34,7 +27,7 @@ interface ExtendedCompletionHint {
 
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: CandidateCompletionHint;
+    candidate: ExtendedCompletionHint;
     /// The qualifier for the candidate
     candidateQualification: ExtendedCompletionHint | null;
     /// The extended template completion hint
@@ -76,22 +69,27 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
 
-    // Calculate the hint text (part that would be inserted after current cursor)
+    // Calculate the primary hint text.
+    // Note that this hint can also consist of prefix and suffix, for example for quoting.
     const currentText = state.doc.sliceString(targetFrom, targetTo);
-
-    if (!candidateText.startsWith(currentText)) {
+    const candidateSubstringOffset = candidateText.indexOf(currentText);
+    if (candidateSubstringOffset == -1) {
         return null;
     }
-    const hintText = candidateText.slice(currentText.length);
-    const candidateCompletion: CandidateCompletionHint = {
-        hint: {
+    const candidateCompletion: ExtendedCompletionHint = {
+        hintPrefix: candidateSubstringOffset == 0 ? null : {
+            at: targetFrom,
+            text: candidateText.slice(0, candidateSubstringOffset),
+
+        },
+        hintSuffix: ((candidateSubstringOffset + currentText.length) == candidateText.length) ? null : {
             at: targetTo,
-            text: hintText
+            text: candidateText.slice(candidateSubstringOffset + currentText.length),
         }
     };
 
     // Is there a qualified name for the candidate?
-    // Skip if we're dot-completing or don't have a qualified target location.
+    // Skip if we're dot-completing.
     if (candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
         const co = candidateData.catalogObjects(0)!;
         let name = readQualifiedName(co);
@@ -134,11 +132,17 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
     };
 }
 
+enum HintType {
+    Candidate,
+    CandidateQualification,
+    CandidateTemplate
+}
+
 
 class CompletionHintWidget extends WidgetType {
     constructor(
         protected text: string,
-        protected extended: boolean = false
+        protected hintType: HintType
     ) {
         super();
     }
@@ -147,7 +151,14 @@ class CompletionHintWidget extends WidgetType {
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
-        span.className = this.extended ? styles.completion_hint_extended : styles.completion_hint_simple;
+        switch (this.hintType) {
+            case HintType.Candidate:
+                span.className = styles.completion_hint_primary;
+                break;
+            case HintType.CandidateTemplate:
+                span.className = styles.completion_hint_template;
+                break;
+        }
         span.textContent = this.text;
         return span;
     }
@@ -181,24 +192,26 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         return Decoration.none;
     }
 
-    const candidate = new CompletionHintWidget(hints.candidate.hint.text, false);
-    if (hints.candidateTemplate != null) {
-        const widgets = [];
-        if (hints.candidateTemplate.hintPrefix != null) {
-            const prefix = new CompletionHintWidget(hints.candidateTemplate.hintPrefix.text, true);
-            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hints.candidateTemplate.hintPrefix.at));
+    // Heelper to add a completion hint widget
+    const addHint = (hint: ExtendedCompletionHint, hintType: HintType, widgets: Range<Decoration>[]) => {
+        if (hint.hintPrefix != null) {
+            const prefix = new CompletionHintWidget(hint.hintPrefix.text, hintType);
+            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hint.hintPrefix.at));
         }
-        widgets.push(Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at));
-        if (hints.candidateTemplate.hintSuffix != null) {
-            const suffix = new CompletionHintWidget(hints.candidateTemplate.hintSuffix.text, true);
-            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hints.candidateTemplate.hintSuffix.at));
+        if (hint.hintSuffix != null) {
+            const suffix = new CompletionHintWidget(hint.hintSuffix.text, hintType);
+            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hint.hintSuffix.at));
         }
-        return Decoration.set(widgets);
-    } else {
-        return Decoration.set([
-            Decoration.widget({ widget: candidate, side: 1 }).range(hints.candidate.hint.at),
-        ]);
+    };
+
+    // Add candidate hint
+    const decorations: Range<Decoration>[] = [];
+    addHint(hints.candidate, HintType.Candidate, decorations);
+    if (hints.candidateTemplate) {
+        addHint(hints.candidateTemplate, HintType.CandidateTemplate, decorations);
     }
+
+    return Decoration.set(decorations);
 };
 
 export const DashQLCompletionHint = ViewPlugin.fromClass(

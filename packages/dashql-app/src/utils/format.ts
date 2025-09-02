@@ -77,3 +77,4 @@ export function formatTimeDifference(to: Date, from: Date = new Date()): string 
 export function quoteIfAnyUpper(text: string) {
     return /[A-Z]/.test(text) ? `"${text}"` : text;
 }
+

@@ -37,7 +37,8 @@ table CompletionCandidateObject {
     candidate_tags: uint32;
     /// The candidate score
     score: uint32;
-    /// The qualified name (if any)
+    /// The qualified name (if any).
+    /// Quoted if characters are not all-lowercase.
     qualified_name: [string];
 }
 
@@ -74,7 +75,8 @@ table CompletionCandidate {
     target_location_qualified: parser.Location;
     /// The display text
     display_text: string;
-    /// The completion text (simple)
+    /// The completion text (simple).
+    /// Quoted if characters are not all-lowercase.
     completion_text: string;
     /// The completion templates (extended)
     completion_templates: [snippet.ScriptTemplate];
