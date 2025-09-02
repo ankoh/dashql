@@ -981,6 +981,7 @@ void Completion::QualifyTopCandidates() {
                 case CatalogObjectType::TableDeclaration: {
                     auto& table = co.catalog_object.CastUnsafe<CatalogEntry::TableDeclaration>();
                     co.qualified_name = GetQualifiedTableName(table.table_name);
+                    co.qualified_name_target_idx = co.qualified_name.size() - 1;
                     break;
                 }
                 default:
@@ -1019,10 +1020,12 @@ void Completion::QualifyTopCandidates() {
                     auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& column_name = column.column_name.get();
                     co.qualified_name = GetQualifiedColumnName(alias, column_name);
+                    co.qualified_name_target_idx = co.qualified_name.size() - 1;
                 } else {
                     auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& column_name = column.column_name.get();
                     co.qualified_name = GetQualifiedColumnName(resolved.table_name, column_name);
+                    co.qualified_name_target_idx = co.qualified_name.size() - 1;
                 }
             }
             if (has_match) {
@@ -1221,6 +1224,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             obj.add_candidate_tags(co.candidate_tags);
             obj.add_score(co.score);
             obj.add_qualified_name(qualified_names_ofs);
+            obj.add_qualified_name_target_idx(co.qualified_name_target_idx);
             switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();

@@ -37,6 +37,8 @@ struct Completion {
         ScoreValueType score = 0;
         /// The qualified name (if any)
         std::span<std::string_view> qualified_name;
+        /// The index of the target name in the qualified name
+        size_t qualified_name_target_idx = 0;
     };
     static_assert(std::is_trivially_destructible_v<CandidateCatalogObject>,
                   "Candidate objects must be trivially destructable");
