@@ -19,7 +19,7 @@
         "@ankoh/dashql-protobuf": "link:../dashql-protobuf",
         "@bokuweb/zstd-wasm": "^0.0.27",
         "@bufbuild/protobuf": "^2.7.0",
-        "@codemirror/autocomplete": "^6.18.6",
+        "@codemirror/autocomplete": "^6.18.7",
         "@codemirror/commands": "^6.8.1",
         "@codemirror/language": "^6.11.3",
         "@codemirror/state": "^6.5.2",
