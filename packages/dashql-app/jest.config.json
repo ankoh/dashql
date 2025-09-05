@@ -2,7 +2,7 @@
     "preset": "ts-jest/presets/default-esm",
     "moduleNameMapper": {
         "^(\\.{1,2}/.*)\\.js$": "$1",
-        ".*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$": "<rootDir>/__tests__/file_mock.ts",
+        ".*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$": "<rootDir>/env/file_mock.ts",
         "^.+\\.(css|styl|less|sass|scss)$": "identity-obj-proxy",
         "react-router-dom": "<rootDir>/../../node_modules/react-router-dom/dist/index.mjs",
         "@ankoh/dashql-protobuf": "<rootDir>/../dashql-protobuf/dist/dashql-proto.module.js",
@@ -32,5 +32,6 @@
     "testPathIgnorePatterns": [
         "node_modules",
         "\\.cache"
-    ]
+    ],
+    "testEnvironment": "<rootDir>/env/wasm_env.ts"
 }

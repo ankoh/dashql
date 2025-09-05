@@ -2,20 +2,12 @@ import '@jest/globals';
 
 import { cyrb128, xoshiro128ss } from './rand.js';
 import * as dashql from '../src/index.js';
-import * as path from 'path';
-import * as fs from 'fs';
-import { fileURLToPath } from 'node:url';
 
-const distPath = path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
-const wasmPath = path.resolve(distPath, './dashql.wasm');
+declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
 let dql: dashql.DashQL | null = null;
-
 beforeAll(async () => {
-    dql = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
-        const buf = await fs.promises.readFile(wasmPath);
-        return await WebAssembly.instantiate(buf, imports);
-    });
+    dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
 

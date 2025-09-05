@@ -30,5 +30,6 @@
     ],
     "coverageReporters": [
         "lcov"
-    ]
+    ],
+    "testEnvironment": "<rootDir>/env/wasm_env.ts"
 }
