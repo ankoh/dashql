@@ -58,7 +58,7 @@ describe('Completion Hint', () => {
         catalog.destroy();
     });
 
-    it.skip('candidate qualification', async () => {
+    it('candidate qualification', async () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
         const schemaScriptPtr = dql!.createScript(catalog, 1);

@@ -89,17 +89,31 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
+    let qualification: ExtendedCompletionHint | null = null;
     if (candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
         const co = candidateData.catalogObjects(0)!;
         let name = readQualifiedName(co);
-        // We assume the candidate is the last entry
-        if (name.length > 1) {
-            name = name.slice(0, name.length - 1);
 
-            // XXX Now create the name qualification hint
-            // We still need to take care of dot-completion here.
-            // Right now, replaceFrom is NOT including the qualified path.
-            // Need to fix
+        let qualPrefix = name.slice(0, co.qualifiedNameTargetIdx());
+        let qualSuffix = name.slice(co.qualifiedNameTargetIdx() + 1);
+
+        if (qualPrefix.length > 0 || qualSuffix.length > 0) {
+            qualification = {
+                hintPrefix: null,
+                hintSuffix: null
+            };
+            if (qualPrefix.length > 0) {
+                qualification.hintPrefix = {
+                    at: qualifiedFrom, // XXX Diff existing prefix
+                    text: qualPrefix.join(".") + ".",
+                };
+            }
+            if (qualSuffix.length > 0) {
+                qualification.hintPrefix = {
+                    at: qualifiedTo, // XXX Diff existing suffix
+                    text: "." + qualSuffix.join("."),
+                };
+            }
         }
     }
 
@@ -126,7 +140,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
 
     return {
         candidate: candidateCompletion,
-        candidateQualification: null,
+        candidateQualification: qualification,
         candidateTemplate: candidateTemplate
     };
 }
