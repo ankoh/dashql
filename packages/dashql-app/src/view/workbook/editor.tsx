@@ -6,7 +6,7 @@ import { EditorView } from '@codemirror/view';
 import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from './codemirror.js';
-import { DashQLProcessor, DashQLScriptBuffers, DashQLScriptKey, DashQLSyncEffect } from './dashql_processor.js';
+import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey, DashQLSyncEffect } from './dashql_processor.js';
 import { COMPLETION_CHANGED, COMPLETION_STARTED, COMPLETION_STOPPED, ScriptData, UPDATE_SCRIPT, UPDATE_SCRIPT_ANALYSIS, UPDATE_SCRIPT_CURSOR, WorkbookState } from '../../workbook/workbook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -81,7 +81,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
 
 
 function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: ScriptData, modifyWorkbook: ModifyWorkbook, logger: Logger, config: AppConfig) {
-    const state = view.state.field(DashQLProcessor);
+    const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
 

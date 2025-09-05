@@ -102,7 +102,7 @@ const destroyBuffers = (state: DashQLScriptBuffers) => {
 export const DashQLSyncEffect: StateEffectType<DashQLSyncState> = StateEffect.define<DashQLSyncState>();
 
 /// A processor for DashQL scripts
-export const DashQLProcessor: StateField<DashQLProcessorState> = StateField.define<DashQLProcessorState>({
+export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateField.define<DashQLProcessorState>({
     // Create the initial state
     create: () => {
         // By default, the DashQL script is not configured

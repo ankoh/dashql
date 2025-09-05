@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { gutter, GutterMarker } from '@codemirror/view';
 import { Transaction, StateField } from '@codemirror/state';
 
-import { DashQLProcessor, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
+import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
 
 import * as icons from '../../../static/svg/symbols.generated.svg';
 
@@ -37,7 +37,7 @@ const GutterState: StateField<State> = StateField.define<State>({
     }),
     update: (state: State, transaction: Transaction) => {
         // Program untouched?
-        const processor = transaction.state.field(DashQLProcessor);
+        const processor = transaction.state.field(DashQLProcessorPlugin);
         if (
             processor.scriptKey === state.scriptKey &&
             processor.scriptBuffers.scanned === state.scriptBuffers?.scanned &&
@@ -92,4 +92,4 @@ const GutterExtension = gutter({
     },
 });
 
-export const DashQLGutters = [GutterState, GutterExtension];
+export const DashQLGutterPlugin = [GutterState, GutterExtension];

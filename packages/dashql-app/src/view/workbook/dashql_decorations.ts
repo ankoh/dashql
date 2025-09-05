@@ -4,7 +4,7 @@ import { EditorState, Transaction, StateField, RangeSetBuilder } from '@codemirr
 import { highlightingFor } from '@codemirror/language';
 import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 
-import { DashQLProcessor, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
+import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
 import { FocusType, UserFocus } from '../../workbook/focus.js';
 
 import './dashql_decorations.css';
@@ -333,7 +333,7 @@ const ScannerDecorationField: StateField<ScriptDecorationState> = StateField.def
     // Mirror the DashQL state
     update: (state: ScriptDecorationState, transaction: Transaction) => {
         // Scanned program untouched?
-        const processor = transaction.state.field(DashQLProcessor);
+        const processor = transaction.state.field(DashQLProcessorPlugin);
         if (processor.scriptBuffers.scanned === state.scriptBuffers.scanned) {
             return state;
         }
@@ -364,7 +364,7 @@ const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.defin
     },
     update: (state: ScriptDecorationState, transaction: Transaction) => {
         // Scanned program untouched?
-        const processor = transaction.state.field(DashQLProcessor);
+        const processor = transaction.state.field(DashQLProcessorPlugin);
         if (processor.scriptBuffers === state.scriptBuffers) {
             return state;
         }
@@ -391,7 +391,7 @@ const AnalyzerDecorationsField: StateField<ScriptDecorationState> = StateField.d
     },
     update: (state: ScriptDecorationState, transaction: Transaction) => {
         // Scanned program untouched?
-        const processor = transaction.state.field(DashQLProcessor);
+        const processor = transaction.state.field(DashQLProcessorPlugin);
         if (processor.scriptBuffers === state.scriptBuffers) {
             return state;
         }
@@ -432,7 +432,7 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
     // Mirror the DashQL state
     update: (state: FocusDecorationState, transaction: Transaction) => {
         // Scanned program untouched?
-        const processor = transaction.state.field(DashQLProcessor);
+        const processor = transaction.state.field(DashQLProcessorPlugin);
         if (
             processor.scriptKey === state.scriptKey &&
             processor.scriptBuffers.scanned === state.scriptBuffers.scanned &&
@@ -466,4 +466,4 @@ const AnalyzerDecorations = EditorView.decorations.from(AnalyzerDecorationsField
 const FocusDecorations = EditorView.decorations.from(FocusDecorationField, state => state.decorations);
 
 /// Bundle the decoration extensions
-export const DashQLDecorations = [ScannerDecorationField, ScannerDecorations, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];
+export const DashQLDecorationPlugins = [ScannerDecorationField, ScannerDecorations, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];

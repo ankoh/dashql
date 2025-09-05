@@ -4,8 +4,8 @@ import { autocompletion, selectedCompletion } from '@codemirror/autocomplete';
 import { EditorView, keymap } from '@codemirror/view';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
-import { DashQLCompletionHint } from './dashql_completion_hint.js';
-import { DashQLProcessorState, DashQLProcessor } from './dashql_processor.js';
+import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
+import { DashQLProcessorState, DashQLProcessorPlugin } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 const COMPLETION_LIMIT = 32;
@@ -171,7 +171,7 @@ function applyExtendedCompletion(view: EditorView, completion: Completion) {
 /// Derived from this example:
 /// https://codemirror.net/examples/autocompletion/
 export async function completeDashQL(context: CompletionContext): Promise<CompletionResult> {
-    const processor = context.state.field(DashQLProcessor);
+    const processor = context.state.field(DashQLProcessorPlugin);
     const completions: DashQLCompletion[] = [];
 
     let offset = context.pos;
@@ -242,10 +242,10 @@ export const COMPLETION_KEYMAP = [
 ];
 
 
-export const DashQLCompletion = [
+export const DashQLCompletionPlugin = [
     autocompletion({
         override: [completeDashQL],
     }),
-    DashQLCompletionHint,
+    DashQLCompletionHintPlugin,
     keymap.of(COMPLETION_KEYMAP)
 ];

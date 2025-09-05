@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 
 import { currentCompletions, completionStatus, selectedCompletion } from '@codemirror/autocomplete';
-import { EditorState, Range } from '@codemirror/state';
+import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletion } from './dashql_completion.js';
@@ -46,21 +46,20 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
 
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
-export function computeCompletionHints(candidate: DashQLCompletion, state: EditorState): CompletionHints | null {
-    const completion = candidate.completion.read();
-    if (completion.candidatesLength() <= candidate.candidateId) {
+export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number, text: Text): CompletionHints | null {
+    const completion = completionPtr.read();
+    if (completion.candidatesLength() <= candidateId) {
         return null;
     }
 
     // Show inline completion hint.
-    const candidateData = completion.candidates(candidate.candidateId)!;
+    const candidateData = completion.candidates(candidateId)!;
     const candidateText = candidateData.completionText();
     const targetLocation = candidateData.targetLocation();
     const targetLocationQualified = candidateData.targetLocationQualified();
     if (candidateText === null || targetLocation === null || targetLocationQualified == null) {
         return null;
     }
-    const _cursorPos = state.selection.main.head;
     const targetFrom = targetLocation.offset();
     const targetTo = targetFrom + targetLocation.length();
     const qualifiedFrom = targetLocationQualified.offset();
@@ -71,7 +70,7 @@ export function computeCompletionHints(candidate: DashQLCompletion, state: Edito
 
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
-    const currentText = state.doc.sliceString(targetFrom, targetTo);
+    const currentText = text.sliceString(targetFrom, targetTo);
     const candidateSubstringOffset = candidateText.indexOf(currentText);
     if (candidateSubstringOffset == -1) {
         return null;
@@ -187,7 +186,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     }
 
     // Compute the new completion hints
-    const hints = computeCompletionHints(currentCompletion, viewUpdate.state);
+    const hints = computeCompletionHints(currentCompletion.completion, currentCompletion.candidateId, viewUpdate.state.doc);
     if (hints == null) {
         return Decoration.none;
     }
@@ -214,7 +213,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     return Decoration.set(decorations);
 };
 
-export const DashQLCompletionHint = ViewPlugin.fromClass(
+export const DashQLCompletionHintPlugin = ViewPlugin.fromClass(
     class {
         decorations: DecorationSet;
         constructor(readonly view: EditorView) {

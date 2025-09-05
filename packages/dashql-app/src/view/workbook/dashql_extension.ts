@@ -1,13 +1,13 @@
-import { DashQLDecorations } from './dashql_decorations.js';
-import { DashQLProcessor } from './dashql_processor.js';
-import { DashQLTooltips } from './dashql_tooltips.js';
-import { DashQLGutters } from './dashql_gutters.js';
-import { DashQLCompletion } from './dashql_completion.js';
+import { DashQLDecorationPlugins } from './dashql_decorations.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLTooltipPlugin } from './dashql_tooltips.js';
+import { DashQLGutterPlugin } from './dashql_gutters.js';
+import { DashQLCompletionPlugin } from './dashql_completion.js';
 
 export const DashQLExtensions = [
-    DashQLProcessor,
-    DashQLDecorations,
-    DashQLTooltips,
-    DashQLGutters,
-    DashQLCompletion,
+    DashQLProcessorPlugin,
+    DashQLDecorationPlugins,
+    DashQLTooltipPlugin,
+    DashQLGutterPlugin,
+    DashQLCompletionPlugin,
 ];

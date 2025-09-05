@@ -3,10 +3,10 @@ import * as dashql from '@ankoh/dashql-core';
 import { Tooltip, showTooltip, hoverTooltip, EditorView } from '@codemirror/view';
 import { Transaction, StateField, EditorState } from '@codemirror/state';
 
-import { DashQLProcessor } from './dashql_processor.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
 
 function createCursorTooltip(state: EditorState, pos: number): Tooltip | null {
-    const processor = state.field(DashQLProcessor);
+    const processor = state.field(DashQLProcessorPlugin);
     const findErrorAtLocation = (
         buffer: {
             errors: (index: number, obj?: dashql.buffers.parser.Error) => dashql.buffers.parser.Error | null;
@@ -90,4 +90,4 @@ const HoverTooltip = hoverTooltip(
     },
 );
 
-export const DashQLTooltips = [CursorTooltipField, HoverTooltip];
+export const DashQLTooltipPlugin = [CursorTooltipField, HoverTooltip];

@@ -187,6 +187,9 @@ pwa_tests:
 pwa_tests_verbose:
 	yarn workspace @ankoh/dashql-app test --verbose=true
 
+.PHONY: js_tests
+js_tests: core_js_tests pwa_tests
+
 .PHONY: lint
 lint:
 	DEBUG=eslint:cli-engine yarn run eslint
