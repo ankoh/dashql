@@ -4,35 +4,88 @@ import { currentCompletions, completionStatus, selectedCompletion } from '@codem
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
+import * as meyers from '../../utils/diff.js';
+
 import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
+import { VariantKind } from '../../utils/index.js';
 
 import * as styles from './dashql_completion_hint.module.css';
 
-/// A completion content
-interface CompletionHint {
+export const HINT_PRIORITY_CANDIDATE = 1;
+export const HINT_PRIORITY_CANDIDATE_QUALIFICATION = 10;
+export const HINT_PRIORITY_CANDIDATE_TEMPLATE = 100;
+
+export const HINT_INSERT_TEXT = Symbol("INSERT_TEXT");
+export const HINT_DELETE_TEXT = Symbol("REMOVE_TEXT");
+
+type PatchHint =
+    | VariantKind<typeof HINT_INSERT_TEXT, InsertTextHint>
+    | VariantKind<typeof HINT_DELETE_TEXT, RemoveTextHint>;
+
+export enum HintTextAnchor {
+    Left,
+    Right,
+}
+
+interface InsertTextHint {
     /// The location
     at: number;
     /// The completion text
     text: string;
+    /// The text anchor of the hint
+    textAnchor: HintTextAnchor;
+    /// The the priority in which completion hints at the same position are added.
+    /// Lower number is added first.
+    renderingPriority: number;
 }
 
-/// An extended completion hint that shows an extended snippet
-interface ExtendedCompletionHint {
-    /// The prefix
-    hintPrefix: CompletionHint | null;
-    /// The suffix
-    hintSuffix: CompletionHint | null;
+interface RemoveTextHint {
+    /// Remove text at a location
+    at: number;
+    /// Remove `length` characters
+    length: number;
 }
 
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: ExtendedCompletionHint;
+    candidate: PatchHint[];
     /// The qualifier for the candidate
-    candidateQualification: ExtendedCompletionHint | null;
+    candidateQualification: PatchHint[];
     /// The extended template completion hint
-    candidateTemplate: ExtendedCompletionHint | null;
+    candidateTemplate: PatchHint[];
 }
+
+/// Given two strings, derive the hints that needed to get from `have` to `want`
+function deriveHints(at: number, have: string, want: string, priority: number, cursor: number): PatchHint[] {
+    const out: PatchHint[] = [];
+
+    for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
+        if (haveFrom != haveTo) {
+            out.push({
+                type: HINT_DELETE_TEXT,
+                value: {
+                    at: at + haveFrom,
+                    length: haveTo - haveFrom,
+                }
+            })
+        }
+        if (wantFrom != wantTo) {
+            out.push({
+                type: HINT_INSERT_TEXT,
+                value: {
+                    at: at + haveTo,
+                    text: want.substring(wantFrom, wantTo),
+                    textAnchor: ((at + haveTo) < cursor) ? HintTextAnchor.Right : HintTextAnchor.Left,
+                    renderingPriority: priority,
+                }
+            })
+        }
+    }
+
+    return out;
+}
+
 
 function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
     const out = [];
@@ -42,8 +95,6 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
     }
     return out;
 }
-
-
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
 export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number, text: Text): CompletionHints | null {
@@ -58,12 +109,14 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     const targetLocation = candidateData.targetLocation();
     const targetLocationQualified = candidateData.targetLocationQualified();
     if (candidateText === null || targetLocation === null || targetLocationQualified == null) {
+        console.log({ candidateText, targetLocation, targetLocationQualified });
         return null;
     }
     const targetFrom = targetLocation.offset();
     const targetTo = targetFrom + targetLocation.length();
     const qualifiedFrom = targetLocationQualified.offset();
     const qualifiedTo = qualifiedFrom + targetLocationQualified.length();
+    const cursor = targetTo;
 
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
@@ -71,77 +124,71 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
     const currentText = text.sliceString(targetFrom, targetTo);
-    const candidateSubstringOffset = candidateText.indexOf(currentText);
-    if (candidateSubstringOffset == -1) {
-        return null;
-    }
-    const candidateCompletion: ExtendedCompletionHint = {
-        hintPrefix: candidateSubstringOffset == 0 ? null : {
-            at: targetFrom,
-            text: candidateText.slice(0, candidateSubstringOffset),
-
-        },
-        hintSuffix: ((candidateSubstringOffset + currentText.length) == candidateText.length) ? null : {
-            at: targetTo,
-            text: candidateText.slice(candidateSubstringOffset + currentText.length),
-        }
-    };
+    const candidateHints = deriveHints(targetFrom, currentText, candidateText, HINT_PRIORITY_CANDIDATE, cursor);
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
-    let qualification: ExtendedCompletionHint | null = null;
+    let qualificationHints: PatchHint[] = [];
     if (candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
         const co = candidateData.catalogObjects(0)!;
         let name = readQualifiedName(co);
 
+        // Qualification prefix
         let qualPrefix = name.slice(0, co.qualifiedNameTargetIdx());
-        let qualSuffix = name.slice(co.qualifiedNameTargetIdx() + 1);
+        if (qualPrefix.length > 0) {
+            let have = text.sliceString(qualifiedFrom, targetFrom);
+            let want = qualPrefix.join(".") + ".";
+            let hints = deriveHints(qualifiedFrom, have, want, HINT_PRIORITY_CANDIDATE_QUALIFICATION, cursor);
+            qualificationHints = hints;
+        }
 
-        if (qualPrefix.length > 0 || qualSuffix.length > 0) {
-            qualification = {
-                hintPrefix: null,
-                hintSuffix: null
-            };
-            if (qualPrefix.length > 0) {
-                qualification.hintPrefix = {
-                    at: qualifiedFrom, // XXX Diff existing prefix
-                    text: qualPrefix.join(".") + ".",
-                };
-            }
-            if (qualSuffix.length > 0) {
-                qualification.hintPrefix = {
-                    at: qualifiedTo, // XXX Diff existing suffix
-                    text: "." + qualSuffix.join("."),
-                };
-            }
+        // Qualification suffix
+        let qualSuffix = name.slice(co.qualifiedNameTargetIdx() + 1);
+        if (qualSuffix.length > 0) {
+            let have = text.sliceString(targetTo, qualifiedTo);
+            let want = "." + qualSuffix.join(".");
+            let hints = deriveHints(targetTo, have, want, HINT_PRIORITY_CANDIDATE_QUALIFICATION, cursor);
+            qualificationHints = qualificationHints.concat(hints);
         }
     }
 
     // Is there a candidate template?
-    let candidateTemplate: ExtendedCompletionHint | null = null;
+    let templateHints: PatchHint[] = [];
     const tmpNode = new dashql.buffers.parser.Node();
     if (candidateData.completionTemplatesLength() > 0) {
         const template = candidateData.completionTemplates(0)!;
         if (template.snippetsLength() > 0) {
             const snippet = template.snippets(0)!;
             const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-            candidateTemplate = {
-                hintPrefix: {
-                    at: qualifiedFrom,
-                    text: snippetModel.textBefore
-                },
-                hintSuffix: {
-                    at: qualifiedTo,
-                    text: snippetModel.textAfter
-                }
-            };
+            if (snippetModel.textBefore.length > 0) {
+                templateHints.push({
+                    type: HINT_INSERT_TEXT,
+                    value: {
+                        at: qualifiedFrom,
+                        text: snippetModel.textBefore,
+                        textAnchor: HintTextAnchor.Right,
+                        renderingPriority: HINT_PRIORITY_CANDIDATE_TEMPLATE,
+                    }
+                });
+            }
+            if (snippetModel.textAfter.length > 0) {
+                templateHints.push({
+                    type: HINT_INSERT_TEXT,
+                    value: {
+                        at: qualifiedTo,
+                        text: snippetModel.textAfter,
+                        textAnchor: HintTextAnchor.Left,
+                        renderingPriority: HINT_PRIORITY_CANDIDATE_TEMPLATE,
+                    }
+                });
+            }
         }
     }
 
     return {
-        candidate: candidateCompletion,
-        candidateQualification: qualification,
-        candidateTemplate: candidateTemplate
+        candidate: candidateHints,
+        candidateQualification: qualificationHints,
+        candidateTemplate: templateHints,
     };
 }
 
@@ -152,26 +199,19 @@ enum HintType {
 }
 
 
-class CompletionHintWidget extends WidgetType {
+class InsertPatchWidget extends WidgetType {
     constructor(
         protected text: string,
-        protected hintType: HintType
+        protected className: string
     ) {
         super();
     }
-    eq(other: CompletionHintWidget): boolean {
+    eq(other: InsertPatchWidget): boolean {
         return this.text === other.text;
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
-        switch (this.hintType) {
-            case HintType.Candidate:
-                span.className = styles.completion_hint_primary;
-                break;
-            case HintType.CandidateTemplate:
-                span.className = styles.completion_hint_template;
-                break;
-        }
+        span.className = this.className;
         span.textContent = this.text;
         return span;
     }
@@ -205,25 +245,44 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         return Decoration.none;
     }
 
-    // Heelper to add a completion hint widget
-    const addHint = (hint: ExtendedCompletionHint, hintType: HintType, widgets: Range<Decoration>[]) => {
-        if (hint.hintPrefix != null) {
-            const prefix = new CompletionHintWidget(hint.hintPrefix.text, hintType);
-            widgets.push(Decoration.widget({ widget: prefix, side: -1 }).range(hint.hintPrefix.at));
-        }
-        if (hint.hintSuffix != null) {
-            const suffix = new CompletionHintWidget(hint.hintSuffix.text, hintType);
-            widgets.push(Decoration.widget({ widget: suffix, side: 2 }).range(hint.hintSuffix.at));
+    // Helper to add a completion hint widget
+    const addPatch = (patch: PatchHint, hintType: HintType, decorations: Range<Decoration>[]) => {
+        switch (patch.type) {
+            case HINT_INSERT_TEXT: {
+                let className = "";
+                switch (hintType) {
+                    case HintType.Candidate:
+                        className = styles.completion_hint_primary;
+                        break;
+                    case HintType.CandidateTemplate:
+                        className = styles.completion_hint_template;
+                        break;
+                }
+                const widget = new InsertPatchWidget(patch.value.text, className);
+                let side = patch.value.textAnchor == HintTextAnchor.Left ? 0 : -10000;
+                side += patch.value.renderingPriority;
+                decorations.push(Decoration.widget({ widget, side }).range(patch.value.at));
+                break;
+            }
+            case HINT_DELETE_TEXT:
+                break;
         }
     };
 
     // Add candidate hint
     const decorations: Range<Decoration>[] = [];
-    addHint(hints.candidate, HintType.Candidate, decorations);
-    if (hints.candidateTemplate) {
-        addHint(hints.candidateTemplate, HintType.CandidateTemplate, decorations);
+    for (const patch of hints.candidate) {
+        addPatch(patch, HintType.Candidate, decorations);
     }
-
+    for (const patch of hints.candidateQualification) {
+        addPatch(patch, HintType.CandidateQualification, decorations);
+    }
+    for (const patch of hints.candidateTemplate) {
+        addPatch(patch, HintType.CandidateTemplate, decorations);
+    }
+    decorations.sort((l, r) => {
+        return l.from - r.from;
+    })
     return Decoration.set(decorations);
 };
 

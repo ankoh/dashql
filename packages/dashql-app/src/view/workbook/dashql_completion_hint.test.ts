@@ -3,7 +3,7 @@ import '@jest/globals';
 import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
-import { computeCompletionHints } from './dashql_completion_hint.js';
+import { computeCompletionHints, HINT_INSERT_TEXT, HINT_PRIORITY_CANDIDATE, HINT_PRIORITY_CANDIDATE_QUALIFICATION, HintTextAnchor } from './dashql_completion_hint.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -43,12 +43,25 @@ describe('Completion Hint', () => {
         expect(hints).not.toBeNull();
 
         // Check candidate hint
-        expect(hints!.candidate.hintPrefix).not.toBeNull();
-        expect(hints!.candidate.hintPrefix!.text).toEqual("\"");
-        expect(hints!.candidate.hintPrefix!.at).toEqual(text.length - "attr".length);
-        expect(hints!.candidate.hintSuffix).not.toBeNull();
-        expect(hints!.candidate.hintSuffix!.text).toEqual("A\"");
-        expect(hints!.candidate.hintSuffix!.at).toEqual(text.length);
+        expect(hints!.candidate.length).toEqual(2);
+        expect(hints!.candidate[0]).toEqual({
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length - "attr".length,
+                text: "\"",
+                textAnchor: HintTextAnchor.Right,
+                renderingPriority: HINT_PRIORITY_CANDIDATE
+            }
+        });
+        expect(hints!.candidate[1]).toEqual({
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length,
+                text: "A\"",
+                textAnchor: HintTextAnchor.Left,
+                renderingPriority: HINT_PRIORITY_CANDIDATE
+            }
+        });
 
         completionPtr.destroy();
         cursorPtr.destroy();
@@ -86,18 +99,37 @@ describe('Completion Hint', () => {
         expect(hints).not.toBeNull();
 
         // Check candidate hint
-        expect(hints!.candidate.hintPrefix).not.toBeNull();
-        expect(hints!.candidate.hintPrefix!.text).toEqual("\"");
-        expect(hints!.candidate.hintPrefix!.at).toEqual(text.length - "tab".length);
-        expect(hints!.candidate.hintSuffix).not.toBeNull();
-        expect(hints!.candidate.hintSuffix!.text).toEqual("leA\"");
-        expect(hints!.candidate.hintSuffix!.at).toEqual(text.length);
+        expect(hints!.candidate.length).toEqual(2);
+        expect(hints!.candidate[0]).toEqual({
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length - "tab".length,
+                text: "\"",
+                textAnchor: HintTextAnchor.Right,
+                renderingPriority: HINT_PRIORITY_CANDIDATE
+            }
+        });
+        expect(hints!.candidate[1]).toEqual({
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length,
+                text: "leA\"",
+                textAnchor: HintTextAnchor.Left,
+                renderingPriority: HINT_PRIORITY_CANDIDATE
+            }
+        });
 
         // Check qualification hint
-        expect(hints!.candidateQualification).not.toBeNull();
-        expect(hints!.candidateQualification!.hintPrefix).not.toBeNull();
-        expect(hints!.candidateQualification!.hintPrefix!.text).toEqual("db0.schema0.");
-        expect(hints!.candidateQualification!.hintSuffix).toBeNull();
+        expect(hints!.candidateQualification.length).toEqual(1);
+        expect(hints!.candidateQualification[0]).toEqual({
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length - "tab".length,
+                text: "db0.schema0.",
+                textAnchor: HintTextAnchor.Right,
+                renderingPriority: HINT_PRIORITY_CANDIDATE_QUALIFICATION
+            }
+        });
 
         completionPtr.destroy();
         cursorPtr.destroy();

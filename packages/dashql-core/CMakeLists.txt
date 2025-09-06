@@ -276,8 +276,8 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/script_signature.cc
   ${CMAKE_SOURCE_DIR}/src/script_snippet.cc
   ${CMAKE_SOURCE_DIR}/src/text/names.cc
-  ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/murmur3.cc
+  ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
 )
 
