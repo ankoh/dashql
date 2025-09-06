@@ -255,7 +255,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                         className = styles.completion_hint_primary;
                         break;
                     case HintType.CandidateQualification:
-                        className = styles.completion_hint_template;
+                        className = styles.completion_hint_qualification;
                         break;
                     case HintType.CandidateTemplate:
                         className = styles.completion_hint_template;
